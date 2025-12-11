@@ -1,0 +1,179 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export interface Cliente {
+  id: string;
+  nome: string;
+  numero: string;
+  produto: string;
+  data_renovacao: string;
+  email: string;
+  cpf: string;
+  plano: string | null;
+  valor: number;
+  observacao: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClienteInput {
+  nome: string;
+  numero: string;
+  produto: string;
+  data_renovacao: string;
+  email: string;
+  cpf: string;
+  plano?: string;
+  valor: number;
+}
+
+export const useClientes = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchClientes = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Cliente[];
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao buscar clientes',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const searchCliente = async (query: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .or(`cpf.ilike.%${query}%,numero.ilike.%${query}%,nome.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Cliente[];
+    } catch (error: any) {
+      toast({
+        title: 'Erro na consulta',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createCliente = async (cliente: ClienteInput) => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert({
+          ...cliente,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Cliente cadastrado com sucesso!',
+        description: `${cliente.nome} foi adicionado ao sistema.`,
+      });
+      
+      return data as Cliente;
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao cadastrar cliente',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateCliente = async (id: string, updates: Partial<ClienteInput>) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Cliente atualizado com sucesso!',
+      });
+      
+      return data as Cliente;
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar cliente',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteCliente = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('clientes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast({
+        title: 'Cliente excluído com sucesso!',
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir cliente',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    isLoading,
+    fetchClientes,
+    searchCliente,
+    createCliente,
+    updateCliente,
+    deleteCliente,
+  };
+};
