@@ -125,7 +125,8 @@ export default function GerenciarUsuarios() {
         description: 'O usuário agora pode acessar o sistema.',
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error approving user:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível aprovar o usuário.',
@@ -159,7 +160,8 @@ export default function GerenciarUsuarios() {
         description: 'O usuário foi notificado com o motivo da rejeição.',
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error rejecting user:', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível rejeitar o usuário.',
