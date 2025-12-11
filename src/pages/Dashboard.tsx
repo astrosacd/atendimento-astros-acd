@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserPlus, Search, Edit, Trash2, LogOut } from 'lucide-react';
+import { UserPlus, Search, Edit, Trash2, LogOut, Users } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -42,6 +42,13 @@ export default function Dashboard() {
       path: '/excluir',
       adminOnly: true,
       variant: 'destructive' as const,
+    },
+    {
+      title: 'Gerenciar Usuários',
+      description: 'Criar e gerenciar usuários do sistema',
+      icon: Users,
+      path: '/usuarios',
+      adminOnly: true,
     },
   ];
 

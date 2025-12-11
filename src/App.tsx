@@ -12,6 +12,7 @@ import CadastrarCliente from "./pages/CadastrarCliente";
 import ConsultarCliente from "./pages/ConsultarCliente";
 import AtualizarCliente from "./pages/AtualizarCliente";
 import ExcluirCliente from "./pages/ExcluirCliente";
+import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="/consultar" element={<ProtectedRoute><ConsultarCliente /></ProtectedRoute>} />
         <Route path="/atualizar" element={<ProtectedRoute adminOnly><AtualizarCliente /></ProtectedRoute>} />
         <Route path="/excluir" element={<ProtectedRoute adminOnly><ExcluirCliente /></ProtectedRoute>} />
+        <Route path="/usuarios" element={<ProtectedRoute adminOnly><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && <ChatPopup />}
