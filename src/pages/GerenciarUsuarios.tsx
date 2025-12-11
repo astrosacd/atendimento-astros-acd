@@ -9,9 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,13 +24,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface UserWithRole {
   id: string;
   email: string;
   name: string;
   role: 'admin' | 'user';
-  approved: boolean;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  rejection_reason: string | null;
+  user_response: string | null;
   created_at: string;
 }
 
@@ -44,6 +55,15 @@ export default function GerenciarUsuarios() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
   const [isCreating, setIsCreating] = useState(false);
+  
+  // Rejection dialog state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingUserId, setRejectingUserId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  
+  // View response dialog state
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [selectedUserResponse, setSelectedUserResponse] = useState<{ name: string; response: string } | null>(null);
 
   // Fetch all users with their roles
   const { data: users = [], isLoading } = useQuery({
@@ -69,7 +89,9 @@ export default function GerenciarUsuarios() {
           email: profile.email || '',
           name: profile.name,
           role: (userRole?.role as 'admin' | 'user') || 'user',
-          approved: profile.approved ?? false,
+          approval_status: (profile.approval_status as 'pending' | 'approved' | 'rejected') || 'pending',
+          rejection_reason: profile.rejection_reason,
+          user_response: profile.user_response,
           created_at: profile.created_at,
         };
       });
@@ -78,34 +100,90 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  const pendingUsers = users.filter(u => !u.approved);
-  const approvedUsers = users.filter(u => u.approved);
+  const pendingUsers = users.filter(u => u.approval_status === 'pending' || (u.approval_status === 'rejected' && u.user_response));
+  const approvedUsers = users.filter(u => u.approval_status === 'approved');
 
   // Approve user mutation
   const approveMutation = useMutation({
-    mutationFn: async ({ userId, approve }: { userId: string; approve: boolean }) => {
+    mutationFn: async (userId: string) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ approved: approve })
+        .update({ 
+          approved: true, 
+          approval_status: 'approved',
+          rejection_reason: null,
+          user_response: null 
+        })
         .eq('user_id', userId);
 
       if (error) throw error;
     },
-    onSuccess: (_, { approve }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({
-        title: approve ? 'Usuário aprovado!' : 'Usuário rejeitado!',
-        description: approve ? 'O usuário agora pode acessar o sistema.' : 'O acesso do usuário foi negado.',
+        title: 'Usuário aprovado!',
+        description: 'O usuário agora pode acessar o sistema.',
       });
     },
     onError: () => {
       toast({
         title: 'Erro',
-        description: 'Não foi possível atualizar o status.',
+        description: 'Não foi possível aprovar o usuário.',
         variant: 'destructive',
       });
     },
   });
+
+  // Reject user mutation
+  const rejectMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          approved: false, 
+          approval_status: 'rejected',
+          rejection_reason: reason,
+          user_response: null 
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      setRejectDialogOpen(false);
+      setRejectingUserId(null);
+      setRejectionReason('');
+      toast({
+        title: 'Usuário rejeitado!',
+        description: 'O usuário foi notificado com o motivo da rejeição.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível rejeitar o usuário.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleReject = (userId: string) => {
+    setRejectingUserId(userId);
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const confirmReject = () => {
+    if (rejectingUserId && rejectionReason.trim()) {
+      rejectMutation.mutate({ userId: rejectingUserId, reason: rejectionReason });
+    }
+  };
+
+  const viewUserResponse = (user: UserWithRole) => {
+    setSelectedUserResponse({ name: user.name, response: user.user_response || '' });
+    setResponseDialogOpen(true);
+  };
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
@@ -275,6 +353,7 @@ export default function GerenciarUsuarios() {
                     <TableRow className="border-border">
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Solicitado em</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
@@ -285,13 +364,36 @@ export default function GerenciarUsuarios() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
+                          {user.user_response ? (
+                            <Badge variant="outline" className="border-blue-500 text-blue-500">
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              Respondeu
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                              Pendente
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
+                            {user.user_response && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => viewUserResponse(user)}
+                                className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                              >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                Ver Resposta
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              onClick={() => approveMutation.mutate({ userId: user.id, approve: true })}
+                              onClick={() => approveMutation.mutate(user.id)}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Check className="h-4 w-4 mr-1" />
@@ -300,7 +402,7 @@ export default function GerenciarUsuarios() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => approveMutation.mutate({ userId: user.id, approve: false })}
+                              onClick={() => handleReject(user.id)}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Rejeitar
@@ -499,6 +601,62 @@ export default function GerenciarUsuarios() {
             )}
           </CardContent>
         </Card>
+
+        {/* Rejection Dialog */}
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rejeitar Usuário</DialogTitle>
+              <DialogDescription>
+                Informe o motivo da rejeição. O usuário poderá ver este motivo e enviar uma resposta.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="rejection-reason">Motivo da Rejeição</Label>
+                <Textarea
+                  id="rejection-reason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Ex: Não foi possível verificar sua identidade..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmReject}
+                disabled={!rejectionReason.trim() || rejectMutation.isPending}
+              >
+                {rejectMutation.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Response Dialog */}
+        <Dialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Resposta de {selectedUserResponse?.name}</DialogTitle>
+              <DialogDescription>
+                Mensagem enviada pelo usuário após a rejeição:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="bg-secondary p-4 rounded-lg">
+                <p className="text-foreground whitespace-pre-wrap">{selectedUserResponse?.response}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setResponseDialogOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

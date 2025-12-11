@@ -64,31 +64,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string | null
           approved: boolean
           created_at: string
           email: string | null
           id: string
           name: string
+          rejection_reason: string | null
           updated_at: string
           user_id: string
+          user_response: string | null
         }
         Insert: {
+          approval_status?: string | null
           approved?: boolean
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          rejection_reason?: string | null
           updated_at?: string
           user_id: string
+          user_response?: string | null
         }
         Update: {
+          approval_status?: string | null
           approved?: boolean
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          rejection_reason?: string | null
           updated_at?: string
           user_id?: string
+          user_response?: string | null
         }
         Relationships: []
       }

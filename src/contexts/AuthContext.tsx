@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fetch approval status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('approved')
+        .select('approved, approval_status')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -49,9 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching profile:', profileError);
       }
 
+      // User is approved only if approval_status is 'approved'
+      const isApproved = profileData?.approval_status === 'approved' || profileData?.approved === true;
+
       return {
         role: roleData?.role as UserRole | null,
-        approved: profileData?.approved ?? false,
+        approved: isApproved,
       };
     } catch (error) {
       console.error('Error fetching user data:', error);
