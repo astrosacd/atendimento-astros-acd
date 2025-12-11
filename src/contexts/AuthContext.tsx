@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fetch approval status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('approved, approval_status')
+        .select('approval_status')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -49,12 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching profile:', profileError);
       }
 
-      // User is approved only if approval_status is 'approved'
-      const isApproved = profileData?.approval_status === 'approved' || profileData?.approved === true;
+      // User is approved ONLY if approval_status is explicitly 'approved'
+      const isUserApproved = profileData?.approval_status === 'approved';
 
       return {
         role: roleData?.role as UserRole | null,
-        approved: isApproved,
+        approved: isUserApproved,
       };
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -63,25 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id).then(({ role, approved }) => {
-              setUserRole(role);
-              setIsApproved(approved);
-            });
-          }, 0);
-        } else {
-          setUserRole(null);
-          setIsApproved(false);
-        }
-      }
-    );
-
+    // First, get the current session synchronously
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -96,6 +78,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     });
+
+    // Then set up the listener for future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Use setTimeout to avoid deadlock
+          setTimeout(() => {
+            fetchUserData(session.user.id).then(({ role, approved }) => {
+              setUserRole(role);
+              setIsApproved(approved);
+              setIsLoading(false);
+            });
+          }, 0);
+        } else {
+          setUserRole(null);
+          setIsApproved(false);
+          setIsLoading(false);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);

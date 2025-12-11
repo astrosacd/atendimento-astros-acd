@@ -42,13 +42,15 @@ export default function Auth() {
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
 
   useEffect(() => {
+    if (authLoading) return;
+    
     if (user && isApproved) {
       navigate('/');
     } else if (user && !isApproved) {
       // Fetch detailed profile status
       fetchProfileStatus();
     }
-  }, [user, isApproved, navigate]);
+  }, [user, isApproved, authLoading, navigate]);
 
   const fetchProfileStatus = async () => {
     if (!user) return;
