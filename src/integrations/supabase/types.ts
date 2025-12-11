@@ -64,6 +64,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved: boolean
           created_at: string
           email: string | null
           id: string
@@ -72,6 +73,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved?: boolean
           created_at?: string
           email?: string | null
           id?: string
@@ -80,6 +82,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved?: boolean
           created_at?: string
           email?: string | null
           id?: string
@@ -123,6 +126,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

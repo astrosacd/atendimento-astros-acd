@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -18,6 +18,7 @@ interface UserWithRole {
   email: string;
   name: string;
   role: 'admin' | 'user';
+  approved: boolean;
   created_at: string;
 }
 
@@ -57,11 +58,41 @@ export default function GerenciarUsuarios() {
           email: profile.email || '',
           name: profile.name,
           role: (userRole?.role as 'admin' | 'user') || 'user',
+          approved: profile.approved ?? false,
           created_at: profile.created_at,
         };
       });
 
       return usersWithRoles;
+    },
+  });
+
+  const pendingUsers = users.filter(u => !u.approved);
+  const approvedUsers = users.filter(u => u.approved);
+
+  // Approve user mutation
+  const approveMutation = useMutation({
+    mutationFn: async ({ userId, approve }: { userId: string; approve: boolean }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: approve })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { approve }) => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast({
+        title: approve ? 'Usuário aprovado!' : 'Usuário rejeitado!',
+        description: approve ? 'O usuário agora pode acessar o sistema.' : 'O acesso do usuário foi negado.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status.',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -82,13 +113,12 @@ export default function GerenciarUsuarios() {
         description: 'Papel do usuário atualizado.',
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o papel.',
         variant: 'destructive',
       });
-      console.error(error);
     },
   });
 
@@ -98,7 +128,6 @@ export default function GerenciarUsuarios() {
     setIsCreating(true);
 
     try {
-      // First, sign up the user via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUserEmail,
         password: newUserPassword,
@@ -113,24 +142,26 @@ export default function GerenciarUsuarios() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Update the role if it's admin (default is 'user')
+        // Wait for trigger to create profile and role
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        // Update role if admin
         if (newUserRole === 'admin') {
-          // Wait a bit for the trigger to create the default role
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          
-          const { error: roleError } = await supabase
+          await supabase
             .from('user_roles')
             .update({ role: 'admin' })
             .eq('user_id', authData.user.id);
-
-          if (roleError) {
-            console.error('Error updating role:', roleError);
-          }
         }
+
+        // Auto-approve users created by admin
+        await supabase
+          .from('profiles')
+          .update({ approved: true })
+          .eq('user_id', authData.user.id);
 
         toast({
           title: 'Usuário criado!',
-          description: `${newUserEmail} foi cadastrado com sucesso.`,
+          description: `${newUserEmail} foi cadastrado e aprovado automaticamente.`,
         });
 
         setNewUserEmail('');
@@ -181,6 +212,63 @@ export default function GerenciarUsuarios() {
             <p className="text-muted-foreground">Crie e gerencie usuários do sistema</p>
           </div>
         </div>
+
+        {/* Pending Approvals */}
+        {pendingUsers.length > 0 && (
+          <Card className="border-yellow-500/50 bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-yellow-500">
+                <Clock className="h-5 w-5" />
+                Solicitações Pendentes ({pendingUsers.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Solicitado em</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingUsers.map((user) => (
+                      <TableRow key={user.id} className="border-border">
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => approveMutation.mutate({ userId: user.id, approve: true })}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Aprovar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => approveMutation.mutate({ userId: user.id, approve: false })}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Rejeitar
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Create User Form */}
         <Card className="border-border bg-card">
@@ -263,17 +351,17 @@ export default function GerenciarUsuarios() {
           </CardContent>
         </Card>
 
-        {/* Users List */}
+        {/* Approved Users List */}
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-primary">Usuários Cadastrados</CardTitle>
+            <CardTitle className="text-primary">Usuários Aprovados</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-            ) : users.length === 0 ? (
+            ) : approvedUsers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhum usuário encontrado
+                Nenhum usuário aprovado
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -288,7 +376,7 @@ export default function GerenciarUsuarios() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {approvedUsers.map((user) => (
                       <TableRow key={user.id} className="border-border">
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>

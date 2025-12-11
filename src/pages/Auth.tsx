@@ -22,18 +22,21 @@ const signupSchema = z.object({
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const { user, isApproved, signIn, signUp, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
 
   useEffect(() => {
-    if (user) {
+    if (user && isApproved) {
       navigate('/');
+    } else if (user && !isApproved) {
+      setPendingApproval(true);
     }
-  }, [user, navigate]);
+  }, [user, isApproved, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +99,10 @@ export default function Auth() {
       });
     } else {
       toast({
-        title: 'Conta criada com sucesso!',
-        description: 'Você já pode fazer login.',
+        title: 'Solicitação enviada!',
+        description: 'Aguarde a aprovação de um administrador.',
       });
+      setPendingApproval(true);
     }
   };
 
@@ -106,6 +110,38 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (pendingApproval) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md bg-card border-border">
+          <CardHeader className="text-center space-y-4">
+            <img 
+              src="https://i.imgur.com/odbwwWW.png" 
+              alt="Astros Comunicação Digital" 
+              className="h-20 mx-auto"
+            />
+            <CardTitle className="text-2xl font-bold text-primary">Aguardando Aprovação</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Sua solicitação de acesso foi enviada. Um administrador precisa aprovar sua conta para que você possa acessar o sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                await signOut();
+                setPendingApproval(false);
+              }}
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              Voltar ao Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

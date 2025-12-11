@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,13 @@ import { UserPlus, Search, Edit, Trash2, LogOut, Users } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, userRole, isAdmin, signOut } = useAuth();
+  const { user, userRole, isAdmin, isApproved, signOut } = useAuth();
+
+  useEffect(() => {
+    if (user && !isApproved) {
+      navigate('/auth');
+    }
+  }, [user, isApproved, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
