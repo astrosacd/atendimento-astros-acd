@@ -61,7 +61,7 @@ export default function AtualizarCliente() {
     
     const result = await updateCliente(selectedCliente.id, {
       data_renovacao: newDate,
-    });
+    }, selectedCliente);
     
     if (result) {
       setSelectedCliente(null);

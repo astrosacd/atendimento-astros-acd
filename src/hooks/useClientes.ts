@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWebhooks } from '@/hooks/useWebhooks';
+import { useClientHistory } from '@/hooks/useClientHistory';
+import { Json } from '@/integrations/supabase/types';
 
 export interface Cliente {
   id: string;
@@ -34,6 +36,7 @@ export const useClientes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { triggerWebhooks } = useWebhooks();
+  const { logClientChange } = useClientHistory();
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -101,8 +104,9 @@ export const useClientes = () => {
         description: `${cliente.nome} foi adicionado ao sistema.`,
       });
 
-      // Trigger webhooks
+      // Log history
       if (data) {
+        await logClientChange(data.id, 'created', null, data as unknown as Json);
         triggerWebhooks('cliente.created', data);
       }
       
@@ -119,7 +123,7 @@ export const useClientes = () => {
     }
   };
 
-  const updateCliente = async (id: string, updates: Partial<ClienteInput>) => {
+  const updateCliente = async (id: string, updates: Partial<ClienteInput>, previousData?: Cliente) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -135,8 +139,14 @@ export const useClientes = () => {
         title: 'Cliente atualizado com sucesso!',
       });
 
-      // Trigger webhooks
+      // Log history and trigger webhooks
       if (data) {
+        await logClientChange(
+          data.id, 
+          'updated', 
+          previousData as unknown as Json, 
+          data as unknown as Json
+        );
         triggerWebhooks('cliente.updated', data);
       }
       
@@ -153,7 +163,7 @@ export const useClientes = () => {
     }
   };
 
-  const deleteCliente = async (id: string, clienteData?: Record<string, unknown>) => {
+  const deleteCliente = async (id: string, clienteData?: Cliente) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -167,8 +177,9 @@ export const useClientes = () => {
         title: 'Cliente excluído com sucesso!',
       });
 
-      // Trigger webhooks
+      // Log history and trigger webhooks
       if (clienteData) {
+        await logClientChange(id, 'deleted', clienteData as unknown as Json, null);
         triggerWebhooks('cliente.deleted', { id, ...clienteData });
       }
       

@@ -59,7 +59,7 @@ export default function ExcluirCliente() {
   const confirmDelete = async () => {
     if (!selectedCliente) return;
     
-    const success = await deleteCliente(selectedCliente.id);
+    const success = await deleteCliente(selectedCliente.id, selectedCliente);
     
     if (success) {
       setSelectedCliente(null);
