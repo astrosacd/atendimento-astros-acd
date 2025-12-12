@@ -306,6 +306,50 @@ export type Database = {
           },
         ]
       }
+      client_history: {
+        Row: {
+          action: string
+          changed_by: string | null
+          changed_by_email: string | null
+          changed_fields: string[] | null
+          cliente_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          previous_data: Json | null
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changed_fields?: string[] | null
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          previous_data?: Json | null
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          changed_fields?: string[] | null
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          previous_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_history_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf: string
