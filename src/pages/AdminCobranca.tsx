@@ -471,7 +471,7 @@ const AdminCobranca = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* Header with gradient */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 p-6 border border-amber-500/20">
           <div className="absolute inset-0 bg-grid-white/5" />

@@ -1,9 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Menu
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings } = usePermissions();
   const [chatEnabled, setChatEnabled] = useState(false);
   const [userName, setUserName] = useState('');
 
@@ -63,24 +65,24 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
 
   const clientItems: NavItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'text-info' },
-    { title: 'Cadastrar', icon: UserPlus, path: '/cadastrar', adminOnly: true, color: 'text-primary' },
+    { title: 'Cadastrar', icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary' },
     { title: 'Consultar', icon: Search, path: '/consultar', color: 'text-info' },
-    { title: 'Atualizar', icon: Edit, path: '/atualizar', adminOnly: true, color: 'text-update' },
-    { title: 'Excluir', icon: Trash2, path: '/excluir', adminOnly: true, color: 'text-destructive' },
+    { title: 'Atualizar', icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update' },
+    { title: 'Excluir', icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive' },
   ];
 
   const adminItems: NavItem[] = [
-    { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: true },
-    { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: true },
-    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: true },
-    { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: true },
-    { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: true },
-    { title: 'Logs', icon: FileText, path: '/admin/logs', adminOnly: true },
-    { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: true },
+    { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers() },
+    { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions() },
+    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling() },
+    { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks() },
+    { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi() },
+    { title: 'Logs', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs() },
+    { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: !canManageSettings() },
   ];
 
-  const visibleClientItems = clientItems.filter(item => isAdmin || !item.adminOnly);
-  const visibleAdminItems = isAdmin ? adminItems : [];
+  const visibleClientItems = clientItems.filter(item => !item.adminOnly || isAdmin);
+  const visibleAdminItems = adminItems.filter(item => !item.adminOnly || isAdmin);
 
   const handleSignOut = async () => {
     await signOut();
