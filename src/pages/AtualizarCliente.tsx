@@ -4,8 +4,9 @@ import { useClientes, Cliente } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Check, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import {
@@ -27,6 +28,7 @@ export default function AtualizarCliente() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [newDate, setNewDate] = useState('');
+  const [newObservacao, setNewObservacao] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
 
@@ -41,6 +43,7 @@ export default function AtualizarCliente() {
   const handleSelectCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente);
     setNewDate(cliente.data_renovacao);
+    setNewObservacao(cliente.observacao || '');
     setSearchResults([]);
   };
 
@@ -61,12 +64,14 @@ export default function AtualizarCliente() {
     
     const result = await updateCliente(selectedCliente.id, {
       data_renovacao: newDate,
+      observacao: newObservacao,
     }, selectedCliente);
     
     if (result) {
       setSelectedCliente(null);
       setSearchQuery('');
       setNewDate('');
+      setNewObservacao('');
     }
     setShowConfirm(false);
   };
@@ -157,6 +162,21 @@ export default function AtualizarCliente() {
                   onChange={(e) => setNewDate(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="observacao" className="text-foreground font-medium">Observações</Label>
+                </div>
+                <Textarea
+                  id="observacao"
+                  placeholder="Adicione ou edite notas sobre o cliente..."
+                  value={newObservacao}
+                  onChange={(e) => setNewObservacao(e.target.value)}
+                  className="bg-secondary border-border text-foreground min-h-[100px] resize-none focus:ring-2 focus:ring-update/20"
+                />
+                <p className="text-xs text-muted-foreground">Campo opcional para anotações internas</p>
               </div>
 
               <Button 
