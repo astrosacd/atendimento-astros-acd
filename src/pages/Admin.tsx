@@ -9,7 +9,8 @@ import {
   ArrowLeft,
   UserCheck,
   Database,
-  MessageCircle
+  MessageCircle,
+  ShieldCheck
 } from "lucide-react";
 
 const Admin = () => {
@@ -24,6 +25,13 @@ const Admin = () => {
       color: "from-blue-500/20 to-blue-600/10"
     },
     {
+      title: "Permissões do Sistema",
+      description: "Visualizar matriz detalhada de permissões por role",
+      icon: ShieldCheck,
+      path: "/admin/permissoes",
+      color: "from-purple-500/20 to-purple-600/10"
+    },
+    {
       title: "Recuperação de Senha",
       description: "Configurar métodos de recuperação de senha",
       icon: KeyRound,
@@ -35,7 +43,7 @@ const Admin = () => {
       description: "Configurar assistente virtual",
       icon: MessageCircle,
       path: "/admin/chat",
-      color: "from-purple-500/20 to-purple-600/10"
+      color: "from-pink-500/20 to-pink-600/10"
     }
   ];
 
@@ -78,7 +86,7 @@ const Admin = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Módulos Ativos</p>
-                  <p className="text-2xl font-bold text-foreground">3</p>
+                  <p className="text-2xl font-bold text-foreground">4</p>
                 </div>
               </div>
             </CardContent>
