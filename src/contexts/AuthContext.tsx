@@ -24,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isApproved, setIsApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -63,36 +64,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // First, get the current session synchronously
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    let isMounted = true;
 
-      if (session?.user) {
-        fetchUserData(session.user.id).then(({ role, approved }) => {
-          setUserRole(role);
-          setIsApproved(approved);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
 
-    // Then set up the listener for future changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          const { role, approved } = await fetchUserData(session.user.id);
+          if (!isMounted) return;
+          setUserRole(role);
+          setIsApproved(approved);
+        }
+        
+        setIsDataLoaded(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsDataLoaded(true);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Set up the listener for future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Set loading while fetching user data
+          setIsLoading(true);
+          
           // Use setTimeout to avoid deadlock
-          setTimeout(() => {
-            fetchUserData(session.user.id).then(({ role, approved }) => {
-              setUserRole(role);
-              setIsApproved(approved);
-              setIsLoading(false);
-            });
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const { role, approved } = await fetchUserData(session.user.id);
+            if (!isMounted) return;
+            setUserRole(role);
+            setIsApproved(approved);
+            setIsLoading(false);
           }, 0);
         } else {
           setUserRole(null);
@@ -102,7 +124,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

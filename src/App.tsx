@@ -18,7 +18,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, isAdmin, isApproved, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -32,6 +32,11 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
     return <Navigate to="/auth" replace />;
   }
 
+  // If user is not approved, redirect to auth page to see the approval status
+  if (!isApproved) {
+    return <Navigate to="/auth" replace />;
+  }
+
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
   }
@@ -40,7 +45,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
 }
 
 function AppRoutes() {
-  const { user, isLoading } = useAuth();
+  const { user, isApproved, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -53,7 +58,7 @@ function AppRoutes() {
   return (
     <>
       <Routes>
-        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+        <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/cadastrar" element={<ProtectedRoute adminOnly><CadastrarCliente /></ProtectedRoute>} />
         <Route path="/consultar" element={<ProtectedRoute><ConsultarCliente /></ProtectedRoute>} />
@@ -62,7 +67,7 @@ function AppRoutes() {
         <Route path="/usuarios" element={<ProtectedRoute adminOnly><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {user && <ChatPopup />}
+      {user && isApproved && <ChatPopup />}
     </>
   );
 }
