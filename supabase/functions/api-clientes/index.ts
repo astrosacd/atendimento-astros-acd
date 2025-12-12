@@ -6,6 +6,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+async function getNotificationConfig(supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from('recovery_config')
+    .select('config_key, config_value')
+    .in('config_key', ['notify_api_errors', 'notification_email', 'gmail_user', 'gmail_app_password']);
+  
+  if (!data) return null;
+  
+  return data.reduce((acc, item) => {
+    acc[item.config_key] = item.config_value;
+    return acc;
+  }, {} as Record<string, string>);
+}
+
+async function sendErrorNotification(
+  config: Record<string, string>,
+  errorDetails: {
+    action: string;
+    method: string;
+    path: string;
+    status: number;
+    error: string;
+    ip: string;
+    timestamp: string;
+  }
+) {
+  if (config.notify_api_errors !== 'true' || !config.notification_email || !config.gmail_user || !config.gmail_app_password) {
+    return;
+  }
+
+  try {
+    const emailBody = `
+      <h2>⚠️ Erro na API - Sistema de Clientes</h2>
+      <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Ação</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.action}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Método</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.method}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Path</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.path}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Status</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.status}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Erro</strong></td><td style="padding: 8px; border: 1px solid #ddd; color: red;">${errorDetails.error}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>IP</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.ip}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Data/Hora</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.timestamp}</td></tr>
+      </table>
+      <p style="margin-top: 20px; color: #666;">Este é um email automático do sistema de monitoramento.</p>
+    `;
+
+    // Send email via SMTP (Gmail)
+    const response = await fetch('https://api.smtp2go.com/v3/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: config.gmail_app_password,
+        sender: config.gmail_user,
+        to: [config.notification_email],
+        subject: `[ALERTA] Erro na API - ${errorDetails.action}`,
+        html_body: emailBody,
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to send error notification email');
+    }
+  } catch (err) {
+    console.error('Error sending notification:', err);
+  }
+}
+
 async function logAudit(
   supabase: SupabaseClient,
   data: {
@@ -38,6 +104,22 @@ async function logAudit(
       ip_address: data.ip_address || null,
       user_agent: data.user_agent || null,
     });
+
+    // Send notification if it's an error
+    if (data.action.includes('error') || data.action.includes('failed') || data.response_status >= 400) {
+      const config = await getNotificationConfig(supabase);
+      if (config) {
+        await sendErrorNotification(config, {
+          action: data.action,
+          method: data.request_method,
+          path: data.request_path,
+          status: data.response_status,
+          error: JSON.stringify(data.response_body),
+          ip: data.ip_address || 'unknown',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
   } catch (err) {
     console.error('Failed to log audit:', err);
   }
