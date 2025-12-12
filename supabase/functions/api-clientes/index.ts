@@ -31,15 +31,22 @@ serve(async (req) => {
       );
     }
 
-    // Verificar se a API key existe e está ativa nos webhooks
-    const { data: webhook, error: webhookError } = await supabase
+    // Verificar se a API key existe e está ativa na tabela api_keys OU webhooks
+    const { data: apiKeyRecord } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('api_key', apiKey)
+      .eq('is_active', true)
+      .single();
+
+    const { data: webhook } = await supabase
       .from('webhooks')
       .select('*')
       .eq('secret_key', apiKey)
       .eq('is_active', true)
       .single();
 
-    if (webhookError || !webhook) {
+    if (!apiKeyRecord && !webhook) {
       console.log('Invalid API key attempt:', apiKey);
       return new Response(
         JSON.stringify({ error: 'API key inválida ou inativa' }),
@@ -50,7 +57,15 @@ serve(async (req) => {
       );
     }
 
-    console.log('API request authenticated for webhook:', webhook.name);
+    // Atualizar last_used_at se for api_key da tabela api_keys
+    if (apiKeyRecord) {
+      await supabase
+        .from('api_keys')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', apiKeyRecord.id);
+    }
+
+    console.log('API request authenticated:', apiKeyRecord ? `API Key: ${apiKeyRecord.name}` : `Webhook: ${webhook?.name}`);
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
