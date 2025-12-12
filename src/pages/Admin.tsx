@@ -10,7 +10,8 @@ import {
   UserCheck,
   Database,
   MessageCircle,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from "lucide-react";
 
 const Admin = () => {
@@ -44,6 +45,13 @@ const Admin = () => {
       icon: MessageCircle,
       path: "/admin/chat",
       color: "from-pink-500/20 to-pink-600/10"
+    },
+    {
+      title: "Guia de Configuração",
+      description: "Aprenda a configurar todos os módulos do sistema",
+      icon: BookOpen,
+      path: "/admin/guia",
+      color: "from-cyan-500/20 to-cyan-600/10"
     }
   ];
 
