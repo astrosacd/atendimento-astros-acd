@@ -10,6 +10,7 @@ import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History } from 
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCPFOrCNPJ, formatPhone } from '@/utils/formatters';
 import {
   Sheet,
   SheetContent,
@@ -382,9 +383,9 @@ export default function ConsultarCliente() {
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <p className="text-muted-foreground">ID: <span className="text-foreground">{cliente.id.slice(0, 8)}...</span></p>
-                          <p className="text-muted-foreground">Telefone: <span className="text-foreground">{cliente.numero}</span></p>
+                          <p className="text-muted-foreground">Telefone: <span className="text-foreground">{formatPhone(cliente.numero)}</span></p>
                           <p className="text-muted-foreground">Email: <span className="text-foreground">{cliente.email}</span></p>
-                          <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{cliente.cpf}</span></p>
+                          <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
                           <p className="text-muted-foreground">Produto: <span className="text-foreground">{cliente.produto}</span></p>
                           <p className="text-muted-foreground">Plano: <span className="text-foreground">{cliente.plano || 'Nenhum'}</span></p>
                           <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor)}</span></p>

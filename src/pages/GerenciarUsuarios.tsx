@@ -69,6 +69,7 @@ export default function GerenciarUsuarios() {
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState<AppRole>('user');
   const [isCreating, setIsCreating] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
   
   // Rejection dialog state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -151,7 +152,19 @@ export default function GerenciarUsuarios() {
   });
 
   const pendingUsers = users.filter(u => u.approval_status === 'pending' || (u.approval_status === 'rejected' && u.user_response));
-  const approvedUsers = users.filter(u => u.approval_status === 'approved');
+  const approvedUsers = users.filter(u => {
+    const isApproved = u.approval_status === 'approved';
+    const matchesRoleFilter = roleFilter === 'all' || u.role === roleFilter;
+    return isApproved && matchesRoleFilter;
+  });
+
+  // Count users by role
+  const roleCounts = users.reduce((acc, user) => {
+    if (user.approval_status === 'approved') {
+      acc[user.role] = (acc[user.role] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<AppRole, number>);
 
   // Approve user mutation with role selection
   const approveMutation = useMutation({
@@ -634,7 +647,55 @@ export default function GerenciarUsuarios() {
         {/* Approved Users List */}
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-primary">Usuários Aprovados</CardTitle>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle className="text-primary">Usuários Aprovados</CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant={roleFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRoleFilter('all')}
+                  className={roleFilter === 'all' ? 'bg-primary text-primary-foreground' : 'border-border'}
+                >
+                  Todos ({users.filter(u => u.approval_status === 'approved').length})
+                </Button>
+                <Button
+                  variant={roleFilter === 'admin' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRoleFilter('admin')}
+                  className={roleFilter === 'admin' ? 'bg-primary text-primary-foreground' : 'border-primary text-primary'}
+                >
+                  <Shield className="h-3 w-3 mr-1" />
+                  Admin ({roleCounts.admin || 0})
+                </Button>
+                <Button
+                  variant={roleFilter === 'operador' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRoleFilter('operador')}
+                  className={roleFilter === 'operador' ? 'bg-orange-500 text-white' : 'border-orange-500 text-orange-500'}
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Operador ({roleCounts.operador || 0})
+                </Button>
+                <Button
+                  variant={roleFilter === 'gerente' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRoleFilter('gerente')}
+                  className={roleFilter === 'gerente' ? 'bg-purple-500 text-white' : 'border-purple-500 text-purple-500'}
+                >
+                  <Shield className="h-3 w-3 mr-1" />
+                  Gerente ({roleCounts.gerente || 0})
+                </Button>
+                <Button
+                  variant={roleFilter === 'user' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRoleFilter('user')}
+                  className={roleFilter === 'user' ? 'bg-muted text-muted-foreground' : 'border-border text-muted-foreground'}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Visualizador ({roleCounts.user || 0})
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
