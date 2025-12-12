@@ -26,7 +26,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, conversationId, userId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -35,26 +35,36 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Fetch custom prompt from database
+    // Fetch configuration from database
     let systemPrompt = defaultSystemPrompt;
+    let aiModel = "google/gemini-2.5-flash";
+    let supabase: any = null;
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        const { data } = await supabase
-          .from('billing_config')
-          .select('config_value')
-          .eq('config_key', 'chat_ai_prompt')
-          .maybeSingle();
+        supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
-        if (data?.config_value) {
-          systemPrompt = data.config_value;
+        const { data: configData } = await supabase
+          .from('billing_config')
+          .select('config_key, config_value')
+          .in('config_key', ['chat_ai_prompt', 'chat_ai_model']);
+        
+        if (configData) {
+          for (const item of configData) {
+            if (item.config_key === 'chat_ai_prompt' && item.config_value) {
+              systemPrompt = item.config_value;
+            }
+            if (item.config_key === 'chat_ai_model' && item.config_value) {
+              aiModel = item.config_value;
+            }
+          }
         }
       } catch (dbError) {
-        console.error("Error fetching custom prompt:", dbError);
-        // Continue with default prompt
+        console.error("Error fetching config:", dbError);
       }
     }
+
+    console.log("Using AI model:", aiModel);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -63,7 +73,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: aiModel,
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -99,8 +109,50 @@ serve(async (req) => {
     const data = await response.json();
     const assistantResponse = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
 
+    // Save messages to database if conversationId and userId provided
+    if (supabase && conversationId && userId) {
+      try {
+        // Get the last user message
+        const lastUserMessage = messages[messages.length - 1];
+        
+        // Save user message
+        if (lastUserMessage) {
+          await supabase.from('chat_messages').insert({
+            conversation_id: conversationId,
+            role: 'user',
+            content: lastUserMessage.content,
+          });
+        }
+        
+        // Save assistant message
+        await supabase.from('chat_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: assistantResponse,
+        });
+
+        // Update conversation title if it's the first message
+        const { data: msgCount } = await supabase
+          .from('chat_messages')
+          .select('id', { count: 'exact' })
+          .eq('conversation_id', conversationId);
+        
+        if (msgCount && msgCount.length <= 2 && lastUserMessage) {
+          // Generate a title from the first message
+          const title = lastUserMessage.content.slice(0, 50) + (lastUserMessage.content.length > 50 ? '...' : '');
+          await supabase
+            .from('chat_conversations')
+            .update({ title })
+            .eq('id', conversationId);
+        }
+      } catch (saveError) {
+        console.error("Error saving messages:", saveError);
+        // Don't fail the request if saving fails
+      }
+    }
+
     return new Response(
-      JSON.stringify({ response: assistantResponse }),
+      JSON.stringify({ response: assistantResponse, model: aiModel }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }

@@ -33,6 +33,15 @@ const themeColors = [
   { name: 'Rosa', value: 'pink', gradient: 'from-pink-600 to-pink-800' },
 ];
 
+const aiModels = [
+  { name: 'Gemini 2.5 Flash (Recomendado)', value: 'google/gemini-2.5-flash', description: 'Rápido e eficiente' },
+  { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro', description: 'Mais poderoso, melhor para tarefas complexas' },
+  { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite', description: 'Mais rápido e barato' },
+  { name: 'GPT-5', value: 'openai/gpt-5', description: 'OpenAI GPT-5, muito poderoso' },
+  { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini', description: 'GPT-5 mais rápido e barato' },
+  { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano', description: 'GPT-5 mais leve e econômico' },
+];
+
 const AdminChatConfig = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -64,6 +73,7 @@ Instruções:
 - Se não souber a resposta, indique que o usuário pode entrar em contato com o suporte
 - Mantenha um tom amigável e profissional`,
     chat_quick_replies: '[]',
+    chat_ai_model: 'google/gemini-2.5-flash',
   });
 
   const [quickReplies, setQuickReplies] = useState<{ trigger: string; response: string }[]>([]);
@@ -99,6 +109,7 @@ Instruções:
           chat_offline_message: configMap.chat_offline_message || 'Estamos fora do horário de atendimento. Retornaremos em breve!',
           chat_ai_prompt: configMap.chat_ai_prompt || config.chat_ai_prompt,
           chat_quick_replies: configMap.chat_quick_replies || '[]',
+          chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
         });
 
         try {
@@ -132,6 +143,7 @@ Instruções:
         { config_key: 'chat_offline_message', config_value: config.chat_offline_message },
         { config_key: 'chat_ai_prompt', config_value: config.chat_ai_prompt },
         { config_key: 'chat_quick_replies', config_value: JSON.stringify(quickReplies) },
+        { config_key: 'chat_ai_model', config_value: config.chat_ai_model },
       ];
 
       for (const update of updates) {
@@ -548,6 +560,44 @@ Instruções:
 
           {/* Tab IA */}
           <TabsContent value="ia" className="space-y-6">
+            {/* Modelo */}
+            <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-cyan-500" />
+                  </div>
+                  <div>
+                    <CardTitle>Modelo de IA</CardTitle>
+                    <CardDescription>Escolha qual modelo será usado para gerar respostas</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {aiModels.map((model) => (
+                    <button
+                      key={model.value}
+                      onClick={() => setConfig({ ...config, chat_ai_model: model.value })}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        config.chat_ai_model === model.value 
+                          ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
+                          : 'border-border/40 hover:border-border bg-background/50'
+                      }`}
+                    >
+                      <p className="font-medium text-foreground">{model.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{model.description}</p>
+                      <p className="text-xs text-primary/70 mt-2 font-mono">{model.value}</p>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Modelo atual: <span className="font-mono text-primary">{config.chat_ai_model}</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Prompt */}
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -555,14 +605,14 @@ Instruções:
                     <Brain className="h-5 w-5 text-indigo-500" />
                   </div>
                   <div>
-                    <CardTitle>Configuração da IA</CardTitle>
+                    <CardTitle>Prompt do Sistema</CardTitle>
                     <CardDescription>Personalize o comportamento do assistente</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ai-prompt">Prompt do Sistema (Instruções para a IA)</Label>
+                  <Label htmlFor="ai-prompt">Instruções para a IA</Label>
                   <Textarea
                     id="ai-prompt"
                     value={config.chat_ai_prompt}
