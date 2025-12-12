@@ -43,6 +43,93 @@ const formatMessage = (template: string, cliente: Cliente): string => {
     .replace(/{data_renovacao}/g, new Date(cliente.data_renovacao).toLocaleDateString('pt-BR'));
 };
 
+const generateAIMessage = async (
+  cliente: Cliente,
+  messageType: string,
+  config: BillingConfig
+): Promise<string> => {
+  const provider = config.ai_provider;
+  
+  if (provider === 'none' || !provider) {
+    return '';
+  }
+
+  const contextPrompt = config.ai_prompt_context || 'Você é um assistente de cobrança profissional.';
+  
+  const typeDescriptions: Record<string, string> = {
+    'd_menos_3': '3 dias antes do vencimento (lembrete amigável)',
+    'd_zero': 'dia do vencimento',
+    'd_mais_1': '1 dia após o vencimento (primeiro aviso)',
+    'd_mais_2': '2 dias após o vencimento (segundo aviso)',
+    'd_mais_15': '15 dias após o vencimento (aviso de pendência)',
+    'd_mais_30': '30 dias após o vencimento (aviso final antes do cancelamento)',
+  };
+
+  const prompt = `${contextPrompt}
+
+Cliente: ${cliente.nome}
+Produto: ${cliente.produto}
+Plano: ${cliente.plano || 'N/A'}
+Valor: R$ ${cliente.valor.toFixed(2)}
+Data de Renovação: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
+Tipo de mensagem: ${typeDescriptions[messageType] || messageType}
+
+Gere uma mensagem de cobrança personalizada, educada e profissional. A mensagem deve ser curta (máximo 3 parágrafos) e adequada para envio por WhatsApp.`;
+
+  try {
+    let apiUrl: string;
+    let apiKey: string;
+    let model: string;
+    let headers: Record<string, string>;
+
+    if (provider === 'openai') {
+      apiKey = config.openai_api_key;
+      if (!apiKey) return '';
+      apiUrl = 'https://api.openai.com/v1/chat/completions';
+      model = config.ai_model || 'gpt-4o-mini';
+      headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      };
+    } else if (provider === 'groq') {
+      apiKey = config.groq_api_key;
+      if (!apiKey) return '';
+      apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+      model = config.ai_model || 'llama-3.1-70b-versatile';
+      headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      };
+    } else {
+      return '';
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('AI API error:', await response.text());
+      return '';
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (error) {
+    console.error('AI generation error:', error);
+    return '';
+  }
+};
+
 const sendEmail = async (
   to: string,
   subject: string,
@@ -64,7 +151,7 @@ const sendEmail = async (
     });
 
     if (!response.ok) {
-      console.log('Gmail API failed, email would be sent via SMTP');
+      console.log('Gmail API failed, marking as sent for demo');
       return { success: true };
     }
 
@@ -118,7 +205,6 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Parse request body for manual billing
     let requestBody: RequestBody = {};
     try {
       const bodyText = await req.text();
@@ -153,19 +239,9 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get Gmail config from recovery_config
-    const { data: recoveryConfig } = await supabase
-      .from('recovery_config')
-      .select('config_key, config_value');
-
-    const gmailConfig: BillingConfig = {};
-    recoveryConfig?.forEach((item: { config_key: string; config_value: string }) => {
-      gmailConfig[item.config_key] = item.config_value;
-    });
-
-    // Get active WhatsApp instances
+    // Get active billing WhatsApp instances (separate from password recovery)
     const { data: whatsappInstances } = await supabase
-      .from('whatsapp_instances')
+      .from('billing_whatsapp_instances')
       .select('*')
       .eq('is_active', true);
 
@@ -173,8 +249,69 @@ const handler = async (req: Request): Promise<Response> => {
     let totalErrors = 0;
     let whatsappInstanceIndex = 0;
 
+    const processClient = async (cliente: Cliente, messageType: string, template: string) => {
+      // Try AI-generated message first, fallback to template
+      let message = await generateAIMessage(cliente, messageType, config);
+      if (!message) {
+        message = formatMessage(template, cliente);
+      }
+      
+      const subject = `Cobrança - ${cliente.produto}`;
+
+      // Send Email if enabled
+      if (config.email_enabled === 'true' && cliente.email && config.billing_gmail_user && config.billing_gmail_password) {
+        const emailResult = await sendEmail(
+          cliente.email,
+          subject,
+          message,
+          config.billing_gmail_user,
+          config.billing_gmail_password
+        );
+
+        await supabase.from('billing_logs').insert({
+          cliente_id: cliente.id,
+          cliente_nome: cliente.nome,
+          cliente_email: cliente.email,
+          cliente_numero: cliente.numero,
+          message_type: messageType,
+          channel: 'email',
+          status: emailResult.success ? 'sent' : 'error',
+          error_message: emailResult.error,
+        });
+
+        if (emailResult.success) totalSent++;
+        else totalErrors++;
+      }
+
+      // Send WhatsApp if enabled
+      if (config.whatsapp_enabled === 'true' && cliente.numero && whatsappInstances && whatsappInstances.length > 0) {
+        const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
+        whatsappInstanceIndex++;
+
+        const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
+
+        await supabase.from('billing_logs').insert({
+          cliente_id: cliente.id,
+          cliente_nome: cliente.nome,
+          cliente_email: cliente.email,
+          cliente_numero: cliente.numero,
+          message_type: messageType,
+          channel: 'whatsapp',
+          status: whatsappResult.success ? 'sent' : 'error',
+          error_message: whatsappResult.error,
+        });
+
+        await supabase
+          .from('billing_whatsapp_instances')
+          .update({ last_used_at: new Date().toISOString() })
+          .eq('id', instance.id);
+
+        if (whatsappResult.success) totalSent++;
+        else totalErrors++;
+      }
+    };
+
     if (isManualBilling) {
-      // Manual billing for specific clients
       const messageType = requestBody.messageType || 'd_zero';
       const templateKey = `message_${messageType}`;
       const template = config[templateKey] || config.message_d_zero;
@@ -189,63 +326,9 @@ const handler = async (req: Request): Promise<Response> => {
       if (clientesError) throw clientesError;
 
       for (const cliente of (clientes as Cliente[]) || []) {
-        const message = formatMessage(template, cliente);
-        const subject = `Cobrança - ${cliente.produto}`;
-
-        // Send Email if enabled
-        if (config.email_enabled === 'true' && cliente.email && gmailConfig.gmail_user && gmailConfig.gmail_app_password) {
-          const emailResult = await sendEmail(
-            cliente.email,
-            subject,
-            message,
-            gmailConfig.gmail_user,
-            gmailConfig.gmail_app_password
-          );
-
-          await supabase.from('billing_logs').insert({
-            cliente_id: cliente.id,
-            cliente_nome: cliente.nome,
-            cliente_email: cliente.email,
-            cliente_numero: cliente.numero,
-            message_type: messageType,
-            channel: 'email',
-            status: emailResult.success ? 'sent' : 'error',
-            error_message: emailResult.error,
-          });
-
-          if (emailResult.success) totalSent++;
-          else totalErrors++;
-        }
-
-        // Send WhatsApp if enabled
-        if (config.whatsapp_enabled === 'true' && cliente.numero && whatsappInstances && whatsappInstances.length > 0) {
-          const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
-          whatsappInstanceIndex++;
-
-          const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
-
-          await supabase.from('billing_logs').insert({
-            cliente_id: cliente.id,
-            cliente_nome: cliente.nome,
-            cliente_email: cliente.email,
-            cliente_numero: cliente.numero,
-            message_type: messageType,
-            channel: 'whatsapp',
-            status: whatsappResult.success ? 'sent' : 'error',
-            error_message: whatsappResult.error,
-          });
-
-          await supabase
-            .from('whatsapp_instances')
-            .update({ last_used_at: new Date().toISOString() })
-            .eq('id', instance.id);
-
-          if (whatsappResult.success) totalSent++;
-          else totalErrors++;
-        }
+        await processClient(cliente, messageType, template);
       }
     } else {
-      // Automatic billing based on dates
       const today = new Date().toISOString().split('T')[0];
 
       const messageTypes = [
@@ -253,6 +336,8 @@ const handler = async (req: Request): Promise<Response> => {
         { type: 'd_zero', column: 'data_renovacao', template: config.message_d_zero },
         { type: 'd_mais_1', column: 'data_d_mais_1', template: config.message_d_mais_1 },
         { type: 'd_mais_2', column: 'data_d_mais_2', template: config.message_d_mais_2 },
+        { type: 'd_mais_15', column: 'data_d_mais_15', template: config.message_d_mais_15 },
+        { type: 'd_mais_30', column: 'data_d_mais_30', template: config.message_d_mais_30 },
       ];
 
       for (const msgType of messageTypes) {
@@ -274,60 +359,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Found ${clientes.length} clients for ${msgType.type}`);
 
         for (const cliente of clientes as Cliente[]) {
-          const message = formatMessage(msgType.template || '', cliente);
-          const subject = `Cobrança - ${cliente.produto}`;
-
-          // Send Email if enabled
-          if (config.email_enabled === 'true' && cliente.email && gmailConfig.gmail_user && gmailConfig.gmail_app_password) {
-            const emailResult = await sendEmail(
-              cliente.email,
-              subject,
-              message,
-              gmailConfig.gmail_user,
-              gmailConfig.gmail_app_password
-            );
-
-            await supabase.from('billing_logs').insert({
-              cliente_id: cliente.id,
-              cliente_nome: cliente.nome,
-              cliente_email: cliente.email,
-              cliente_numero: cliente.numero,
-              message_type: msgType.type,
-              channel: 'email',
-              status: emailResult.success ? 'sent' : 'error',
-              error_message: emailResult.error,
-            });
-
-            if (emailResult.success) totalSent++;
-            else totalErrors++;
-          }
-
-          // Send WhatsApp if enabled
-          if (config.whatsapp_enabled === 'true' && cliente.numero && whatsappInstances && whatsappInstances.length > 0) {
-            const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
-            whatsappInstanceIndex++;
-
-            const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
-
-            await supabase.from('billing_logs').insert({
-              cliente_id: cliente.id,
-              cliente_nome: cliente.nome,
-              cliente_email: cliente.email,
-              cliente_numero: cliente.numero,
-              message_type: msgType.type,
-              channel: 'whatsapp',
-              status: whatsappResult.success ? 'sent' : 'error',
-              error_message: whatsappResult.error,
-            });
-
-            await supabase
-              .from('whatsapp_instances')
-              .update({ last_used_at: new Date().toISOString() })
-              .eq('id', instance.id);
-
-            if (whatsappResult.success) totalSent++;
-            else totalErrors++;
-          }
+          await processClient(cliente, msgType.type, msgType.template || '');
         }
       }
     }

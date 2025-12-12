@@ -217,13 +217,48 @@ export type Database = {
           },
         ]
       }
+      billing_whatsapp_instances: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string
+          id: string
+          instance_name: string
+          is_active: boolean
+          last_used_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string
+          id?: string
+          instance_name: string
+          is_active?: boolean
+          last_used_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string
+          id?: string
+          instance_name?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cpf: string
           created_at: string
           created_by: string | null
           data_d_mais_1: string | null
+          data_d_mais_15: string | null
           data_d_mais_2: string | null
+          data_d_mais_30: string | null
           data_d_menos_3: string | null
           data_renovacao: string
           email: string
@@ -241,7 +276,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_d_mais_1?: string | null
+          data_d_mais_15?: string | null
           data_d_mais_2?: string | null
+          data_d_mais_30?: string | null
           data_d_menos_3?: string | null
           data_renovacao: string
           email: string
@@ -259,7 +296,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_d_mais_1?: string | null
+          data_d_mais_15?: string | null
           data_d_mais_2?: string | null
+          data_d_mais_30?: string | null
           data_d_menos_3?: string | null
           data_renovacao?: string
           email?: string
