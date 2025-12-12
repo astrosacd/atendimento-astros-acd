@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { UserPlus, Search, Edit, Trash2, LogOut, Users, Settings } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserPlus, Search, Edit, Trash2, LogOut, Users, Settings, ChevronRight } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -20,108 +20,195 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
-  const menuItems = [
+  const clientActions = [
     {
-      title: 'Cadastrar Cliente',
-      description: 'Cadastrar um novo cliente',
+      title: 'Cadastrar',
+      description: 'Adicionar novo cliente ao sistema',
       icon: UserPlus,
       path: '/cadastrar',
       adminOnly: true,
+      color: 'from-emerald-500 to-emerald-600',
     },
     {
-      title: 'Consultar Cliente',
-      description: 'Visualizar clientes cadastrados',
+      title: 'Consultar',
+      description: 'Buscar e visualizar clientes',
       icon: Search,
       path: '/consultar',
       adminOnly: false,
+      color: 'from-blue-500 to-blue-600',
     },
     {
-      title: 'Atualizar Cliente',
-      description: 'Editar dados de um cliente',
+      title: 'Atualizar',
+      description: 'Editar informações de clientes',
       icon: Edit,
       path: '/atualizar',
       adminOnly: true,
+      color: 'from-amber-500 to-amber-600',
     },
     {
-      title: 'Excluir Cliente',
+      title: 'Excluir',
       description: 'Remover cliente do sistema',
       icon: Trash2,
       path: '/excluir',
       adminOnly: true,
-      variant: 'destructive' as const,
-    },
-    {
-      title: 'Gerenciar Usuários',
-      description: 'Criar e gerenciar usuários do sistema',
-      icon: Users,
-      path: '/usuarios',
-      adminOnly: true,
-    },
-    {
-      title: 'Painel Admin',
-      description: 'Configurações administrativas do sistema',
-      icon: Settings,
-      path: '/admin',
-      adminOnly: true,
+      color: 'from-rose-500 to-rose-600',
     },
   ];
 
-  const visibleMenuItems = menuItems.filter(item => isAdmin || !item.adminOnly);
+  const adminActions = [
+    {
+      title: 'Gerenciar Usuários',
+      description: 'Criar, editar e gerenciar acessos',
+      icon: Users,
+      path: '/usuarios',
+    },
+    {
+      title: 'Configurações',
+      description: 'Recuperação de senha e mais',
+      icon: Settings,
+      path: '/admin',
+    },
+  ];
+
+  const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-xl bg-card border-border">
-        <CardContent className="p-8">
-          <div className="flex justify-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Header */}
+      <header className="border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <img 
               src="https://i.imgur.com/odbwwWW.png" 
               alt="Astros Comunicação Digital" 
-              className="h-24"
+              className="h-10"
             />
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-semibold text-foreground">Astros Digital</h1>
+              <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+            </div>
           </div>
           
-          <h1 className="text-2xl font-bold text-center text-primary mb-2">
-            Selecione uma opção
-          </h1>
-          
-          <p className="text-sm text-muted-foreground text-center mb-6">
-            Logado como: {user?.email} ({userRole === 'admin' ? 'Administrador' : 'Usuário'})
-          </p>
-
-          <div className="flex flex-col gap-4">
-            {visibleMenuItems.map((item) => (
-              <Button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                variant={item.variant || 'outline'}
-                className={`relative group py-6 rounded-xl text-center font-semibold transition duration-300 shadow-lg ${
-                  item.variant === 'destructive' 
-                    ? 'bg-destructive/20 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground' 
-                    : 'bg-secondary text-foreground border-primary hover:bg-primary hover:text-primary-foreground'
-                }`}
-              >
-                <item.icon className="w-5 h-5 mr-2" />
-                {item.title}
-                <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 text-sm text-foreground bg-card border border-primary rounded shadow-lg opacity-0 group-hover:opacity-100 transition duration-200 z-10 whitespace-nowrap">
-                  {item.description}
-                </span>
-              </Button>
-            ))}
-
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                {user?.email}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {userRole === 'admin' ? 'Administrador' : 'Visualizador'}
+              </p>
+            </div>
             <Button
               onClick={handleSignOut}
-              variant="destructive"
-              className="relative group py-6 rounded-xl text-center font-semibold transition duration-300 shadow-lg"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
-              <LogOut className="w-5 h-5 mr-2" />
-              Sair
-              <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 text-sm text-foreground bg-card border border-destructive rounded shadow-lg opacity-0 group-hover:opacity-100 transition duration-200 z-10">
-                Encerrar a sessão
-              </span>
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+            Bem-vindo de volta!
+          </h2>
+          <p className="text-muted-foreground">
+            O que você gostaria de fazer hoje?
+          </p>
+        </div>
+
+        {/* Client Actions */}
+        <section className="mb-10">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <span className="h-5 w-1 bg-primary rounded-full"></span>
+            Gestão de Clientes
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {visibleClientActions.map((item) => (
+              <Card 
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="group cursor-pointer border-border/40 bg-card/50 backdrop-blur-sm hover:bg-card hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1"
+              >
+                <CardContent className="p-6">
+                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <item.icon className="h-6 w-6 text-white" />
+                  </div>
+                  <h4 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {item.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <section>
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
+              Administração
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {adminActions.map((item) => (
+                <Card 
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="group cursor-pointer border-border/40 bg-card/50 backdrop-blur-sm hover:bg-card hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                >
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-11 w-11 rounded-xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                        <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Quick Stats (Optional visual element) */}
+        <section className="mt-10 pt-8 border-t border-border/40">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-muted/30 text-center">
+              <p className="text-2xl font-bold text-foreground">CRM</p>
+              <p className="text-xs text-muted-foreground">Sistema Ativo</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 text-center">
+              <p className="text-2xl font-bold text-primary">24/7</p>
+              <p className="text-xs text-muted-foreground">Disponibilidade</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 text-center">
+              <p className="text-2xl font-bold text-foreground">Cloud</p>
+              <p className="text-xs text-muted-foreground">Hospedagem</p>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 text-center">
+              <p className="text-2xl font-bold text-emerald-500">Seguro</p>
+              <p className="text-xs text-muted-foreground">Dados Protegidos</p>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
