@@ -413,6 +413,39 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_roles: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_system_role: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_system_role?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_system_role?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       password_recovery_logs: {
         Row: {
           created_at: string
@@ -544,6 +577,62 @@ export type Database = {
           created_at?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission_key: string
+          role_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission_key: string
+          role_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission_key?: string
+          role_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "system_permissions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      system_permissions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
         }
         Relationships: []
       }
