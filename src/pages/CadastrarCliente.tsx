@@ -11,6 +11,7 @@ import { ArrowLeft, Check, X, UserPlus, FileText } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { formatCPFOrCNPJ, formatCurrency, formatPhone, parseCurrency, unformat } from '@/utils/formatters';
 
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -153,9 +154,9 @@ export default function CadastrarCliente() {
                   <Label htmlFor="numero" className="text-foreground font-medium">Número WhatsApp</Label>
                   <Input
                     id="numero"
-                    placeholder="Digite o número"
-                    value={formData.numero}
-                    onChange={(e) => setFormData({ ...formData, numero: e.target.value.replace(/\D/g, '') })}
+                    placeholder="(00) 00000-0000"
+                    value={formatPhone(formData.numero)}
+                    onChange={(e) => setFormData({ ...formData, numero: unformat(e.target.value) })}
                     className="bg-secondary border-border text-foreground h-11"
                     required
                   />
@@ -165,9 +166,9 @@ export default function CadastrarCliente() {
                   <Label htmlFor="cpf" className="text-foreground font-medium">CPF ou CNPJ</Label>
                   <Input
                     id="cpf"
-                    placeholder="Digite o CPF ou CNPJ"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
+                    placeholder="000.000.000-00"
+                    value={formatCPFOrCNPJ(formData.cpf)}
+                    onChange={(e) => setFormData({ ...formData, cpf: unformat(e.target.value) })}
                     className="bg-secondary border-border text-foreground h-11"
                     required
                   />
@@ -232,11 +233,9 @@ export default function CadastrarCliente() {
                   <Label htmlFor="valor" className="text-foreground font-medium">Valor do Produto</Label>
                   <Input
                     id="valor"
-                    type="number"
-                    step="0.01"
-                    placeholder="Digite o valor"
-                    value={formData.valor || ''}
-                    onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })}
+                    placeholder="R$ 0,00"
+                    value={formData.valor ? formatCurrency((formData.valor * 100).toString()) : ''}
+                    onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
                     className="bg-secondary border-border text-foreground h-11"
                     required
                   />

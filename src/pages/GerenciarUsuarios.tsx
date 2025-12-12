@@ -33,11 +33,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+type AppRole = 'admin' | 'user' | 'operador' | 'gerente';
+
 interface UserWithRole {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: AppRole;
   approval_status: 'pending' | 'approved' | 'rejected';
   rejection_reason: string | null;
   user_response: string | null;
@@ -65,7 +67,7 @@ export default function GerenciarUsuarios() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
+  const [newUserRole, setNewUserRole] = useState<AppRole>('user');
   const [isCreating, setIsCreating] = useState(false);
   
   // Rejection dialog state
@@ -80,7 +82,7 @@ export default function GerenciarUsuarios() {
   // Approval dialog state (with role selection)
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
-  const [approveRole, setApproveRole] = useState<'admin' | 'user'>('user');
+  const [approveRole, setApproveRole] = useState<AppRole>('user');
 
   // Fetch all users with their roles
   const { data: users = [], isLoading } = useQuery({
@@ -105,7 +107,7 @@ export default function GerenciarUsuarios() {
           id: profile.user_id,
           email: profile.email || '',
           name: profile.name,
-          role: (userRole?.role as 'admin' | 'user') || 'user',
+          role: (userRole?.role as AppRole) || 'user',
           approval_status: (profile.approval_status as 'pending' | 'approved' | 'rejected') || 'pending',
           rejection_reason: profile.rejection_reason,
           user_response: profile.user_response,
@@ -153,7 +155,7 @@ export default function GerenciarUsuarios() {
 
   // Approve user mutation with role selection
   const approveMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'user' }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -176,13 +178,20 @@ export default function GerenciarUsuarios() {
       if (roleError) throw roleError;
 
       // Add to history
+      const roleNames: Record<AppRole, string> = {
+        admin: 'Administrador',
+        user: 'Visualizador',
+        operador: 'Operador',
+        gerente: 'Gerente',
+      };
+      
       const { error: historyError } = await supabase
         .from('approval_history')
         .insert({
           user_id: userId,
           admin_id: currentUser?.id,
           action: 'approved',
-          role_assigned: role === 'admin' ? 'Administrador' : 'Visualizador',
+          role_assigned: roleNames[role],
         });
 
       if (historyError) console.error('Error adding to history:', historyError);
@@ -281,7 +290,7 @@ export default function GerenciarUsuarios() {
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'user' }) => {
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
@@ -400,7 +409,7 @@ export default function GerenciarUsuarios() {
     }
   };
 
-  const handleRoleChange = (userId: string, newRole: 'admin' | 'user') => {
+  const handleRoleChange = (userId: string, newRole: AppRole) => {
     if (userId === currentUser?.id) {
       toast({
         title: 'Ação não permitida',
@@ -410,6 +419,19 @@ export default function GerenciarUsuarios() {
       return;
     }
     updateRoleMutation.mutate({ userId, newRole });
+  };
+
+  const getRoleBadge = (role: AppRole) => {
+    switch (role) {
+      case 'admin':
+        return <Badge className="bg-primary/10 text-primary border-primary"><Shield className="h-3 w-3 mr-1" />Administrador</Badge>;
+      case 'operador':
+        return <Badge className="bg-orange-500/10 text-orange-500 border-orange-500"><UserPlus className="h-3 w-3 mr-1" />Operador</Badge>;
+      case 'gerente':
+        return <Badge className="bg-purple-500/10 text-purple-500 border-purple-500"><Shield className="h-3 w-3 mr-1" />Gerente</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground"><Eye className="h-3 w-3 mr-1" />Visualizador</Badge>;
+    }
   };
 
   return (
@@ -564,7 +586,7 @@ export default function GerenciarUsuarios() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Tipo</Label>
-                <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'admin' | 'user')}>
+                <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as AppRole)}>
                   <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
@@ -573,6 +595,18 @@ export default function GerenciarUsuarios() {
                       <span className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-primary" />
                         Administrador
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="operador">
+                      <span className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4 text-orange-500" />
+                        Operador
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="gerente">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                        Gerente
                       </span>
                     </SelectItem>
                     <SelectItem value="user">
@@ -627,22 +661,7 @@ export default function GerenciarUsuarios() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant={user.role === 'admin' ? 'default' : 'secondary'}
-                            className={user.role === 'admin' ? 'bg-primary' : ''}
-                          >
-                            {user.role === 'admin' ? (
-                              <span className="flex items-center gap-1">
-                                <Shield className="h-3 w-3" />
-                                Administrador
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
-                                Visualizador
-                              </span>
-                            )}
-                          </Badge>
+                          {getRoleBadge(user.role)}
                         </TableCell>
                         <TableCell>
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
@@ -652,13 +671,15 @@ export default function GerenciarUsuarios() {
                             <div className="flex items-center gap-2">
                               <Select
                                 value={user.role}
-                                onValueChange={(newRole) => handleRoleChange(user.id, newRole as 'admin' | 'user')}
+                                onValueChange={(newRole) => handleRoleChange(user.id, newRole as AppRole)}
                               >
                                 <SelectTrigger className="w-[140px] border-border">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="admin">Administrador</SelectItem>
+                                  <SelectItem value="operador">Operador</SelectItem>
+                                  <SelectItem value="gerente">Gerente</SelectItem>
                                   <SelectItem value="user">Visualizador</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -776,7 +797,7 @@ export default function GerenciarUsuarios() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Tipo de Usuário</Label>
-                <Select value={approveRole} onValueChange={(v) => setApproveRole(v as 'admin' | 'user')}>
+                <Select value={approveRole} onValueChange={(v) => setApproveRole(v as AppRole)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -785,6 +806,18 @@ export default function GerenciarUsuarios() {
                       <span className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-primary" />
                         Administrador - Acesso completo
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="operador">
+                      <span className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4 text-orange-500" />
+                        Operador - Cadastra e atualiza
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="gerente">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-purple-500" />
+                        Gerente - Gerencia seus clientes
                       </span>
                     </SelectItem>
                     <SelectItem value="user">
