@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
@@ -93,17 +93,17 @@ export default function CadastrarCliente() {
   if (showSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-xl bg-card border-border">
+        <Card className="w-full max-w-xl bg-card border-border shadow-xl">
           <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-primary mb-4">Cliente cadastrado com sucesso!</h2>
+            <h2 className="text-xl font-semibold text-primary mb-6">Cliente cadastrado com sucesso!</h2>
             <div className="flex gap-4 justify-center">
-              <Button onClick={resetForm} className="bg-primary text-primary-foreground">
+              <Button onClick={resetForm} className="bg-primary text-primary-foreground hover:bg-primary/90 h-11">
                 Novo Cadastro
               </Button>
-              <Button onClick={() => navigate('/')} variant="outline" className="border-border">
+              <Button onClick={() => navigate('/')} variant="outline" className="border-border text-muted-foreground h-11">
                 Voltar ao Menu
               </Button>
             </div>
@@ -115,125 +115,133 @@ export default function CadastrarCliente() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-xl bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-primary text-center">
-            Cadastro de Cliente
-          </CardTitle>
+      <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+        <CardHeader className="border-b border-border pb-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <UserPlus className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-semibold text-foreground">
+              Cadastro de Cliente
+            </CardTitle>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {!showConfirmation ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome" className="text-foreground">Nome</Label>
-                <Input
-                  id="nome"
-                  placeholder="Digite o nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="nome" className="text-foreground font-medium">Nome</Label>
+                  <Input
+                    id="nome"
+                    placeholder="Digite o nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="numero" className="text-foreground">Número WhatsApp</Label>
-                <Input
-                  id="numero"
-                  placeholder="Digite o número"
-                  value={formData.numero}
-                  onChange={(e) => setFormData({ ...formData, numero: e.target.value.replace(/\D/g, '') })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numero" className="text-foreground font-medium">Número WhatsApp</Label>
+                  <Input
+                    id="numero"
+                    placeholder="Digite o número"
+                    value={formData.numero}
+                    onChange={(e) => setFormData({ ...formData, numero: e.target.value.replace(/\D/g, '') })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="produto" className="text-foreground">Produto</Label>
-                <Input
-                  id="produto"
-                  placeholder="Nome do produto"
-                  value={formData.produto}
-                  onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf" className="text-foreground font-medium">CPF ou CNPJ</Label>
+                  <Input
+                    id="cpf"
+                    placeholder="Digite o CPF ou CNPJ"
+                    value={formData.cpf}
+                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="data_renovacao" className="text-foreground">Data de Renovação</Label>
-                <Input
-                  id="data_renovacao"
-                  type="date"
-                  value={formData.data_renovacao}
-                  onChange={(e) => setFormData({ ...formData, data_renovacao: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Digite o email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Digite o email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="produto" className="text-foreground font-medium">Produto</Label>
+                  <Input
+                    id="produto"
+                    placeholder="Nome do produto"
+                    value={formData.produto}
+                    onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cpf" className="text-foreground">CPF ou CNPJ</Label>
-                <Input
-                  id="cpf"
-                  placeholder="Digite o CPF ou CNPJ"
-                  value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_renovacao" className="text-foreground font-medium">Data de Renovação</Label>
+                  <Input
+                    id="data_renovacao"
+                    type="date"
+                    value={formData.data_renovacao}
+                    onChange={(e) => setFormData({ ...formData, data_renovacao: e.target.value })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="plano" className="text-foreground">Plano Revendedor</Label>
-                <Select
-                  value={formData.plano}
-                  onValueChange={(value) => setFormData({ ...formData, plano: value })}
-                >
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Selecione o Plano Revendedor" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="Plano Starter">Plano Starter</SelectItem>
-                    <SelectItem value="Plano Pro">Plano Pro</SelectItem>
-                    <SelectItem value="Plano Agência">Plano Agência</SelectItem>
-                    <SelectItem value="Nenhum">Nenhum</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                  <Select
+                    value={formData.plano}
+                    onValueChange={(value) => setFormData({ ...formData, plano: value })}
+                  >
+                    <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                      <SelectValue placeholder="Selecione o plano" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="Plano Starter">Plano Starter</SelectItem>
+                      <SelectItem value="Plano Pro">Plano Pro</SelectItem>
+                      <SelectItem value="Plano Agência">Plano Agência</SelectItem>
+                      <SelectItem value="Nenhum">Nenhum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="valor" className="text-foreground">Valor do Produto</Label>
-                <Input
-                  id="valor"
-                  type="number"
-                  step="0.01"
-                  placeholder="Digite o valor"
-                  value={formData.valor || ''}
-                  onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })}
-                  className="bg-input border-border text-foreground"
-                  required
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="valor" className="text-foreground font-medium">Valor do Produto</Label>
+                  <Input
+                    id="valor"
+                    type="number"
+                    step="0.01"
+                    placeholder="Digite o valor"
+                    value={formData.valor || ''}
+                    onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })}
+                    className="bg-secondary border-border text-foreground h-11"
+                    required
+                  />
+                </div>
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium mt-2"
                 disabled={isLoading}
               >
+                <UserPlus className="w-4 h-4 mr-2" />
                 Cadastrar
               </Button>
 
@@ -241,7 +249,7 @@ export default function CadastrarCliente() {
                 type="button"
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full border-border text-foreground hover:bg-secondary"
+                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Menu
@@ -249,21 +257,21 @@ export default function CadastrarCliente() {
             </form>
           ) : (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-primary text-center">Confirme os dados abaixo:</h2>
-              <div className="space-y-2 text-sm">
-                <p><strong className="text-muted-foreground">Nome:</strong> {formData.nome}</p>
-                <p><strong className="text-muted-foreground">Número:</strong> {formData.numero}</p>
-                <p><strong className="text-muted-foreground">Produto:</strong> {formData.produto}</p>
-                <p><strong className="text-muted-foreground">Data Renovação:</strong> {formData.data_renovacao}</p>
-                <p><strong className="text-muted-foreground">Email:</strong> {formData.email}</p>
-                <p><strong className="text-muted-foreground">CPF/CNPJ:</strong> {formData.cpf}</p>
-                <p><strong className="text-muted-foreground">Plano:</strong> {formData.plano || 'Nenhum'}</p>
-                <p><strong className="text-muted-foreground">Valor:</strong> R$ {Number(formData.valor).toFixed(2)}</p>
+              <h2 className="text-lg font-semibold text-primary text-center">Confirme os dados abaixo:</h2>
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 space-y-2 text-sm">
+                <p className="text-muted-foreground">Nome: <span className="text-foreground font-medium">{formData.nome}</span></p>
+                <p className="text-muted-foreground">Número: <span className="text-foreground">{formData.numero}</span></p>
+                <p className="text-muted-foreground">Produto: <span className="text-foreground">{formData.produto}</span></p>
+                <p className="text-muted-foreground">Data Renovação: <span className="text-foreground">{formData.data_renovacao}</span></p>
+                <p className="text-muted-foreground">Email: <span className="text-foreground">{formData.email}</span></p>
+                <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formData.cpf}</span></p>
+                <p className="text-muted-foreground">Plano: <span className="text-foreground">{formData.plano || 'Nenhum'}</span></p>
+                <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">R$ {Number(formData.valor).toFixed(2)}</span></p>
               </div>
               <div className="flex justify-center gap-4">
                 <Button 
                   onClick={handleConfirm}
-                  className="bg-primary text-primary-foreground"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-11"
                   disabled={isLoading}
                 >
                   <Check className="w-4 h-4 mr-2" />
@@ -271,7 +279,8 @@ export default function CadastrarCliente() {
                 </Button>
                 <Button 
                   onClick={handleCancel}
-                  variant="destructive"
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10 h-11"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancelar

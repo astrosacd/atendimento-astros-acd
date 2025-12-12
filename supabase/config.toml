@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.send-password-reset-whatsapp]
 verify_jwt = true
+
+[functions.api-clientes]
+verify_jwt = false

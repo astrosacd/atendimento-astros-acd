@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -70,13 +70,18 @@ export default function ExcluirCliente() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-xl bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-destructive text-center">
-            Excluir Cliente
-          </CardTitle>
+      <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+        <CardHeader className="border-b border-border pb-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-2.5 rounded-xl bg-destructive/10">
+              <Trash2 className="w-6 h-6 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-semibold text-foreground">
+              Excluir Cliente
+            </CardTitle>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {!selectedCliente ? (
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="space-y-4">
@@ -84,11 +89,11 @@ export default function ExcluirCliente() {
                   placeholder="Buscar por CPF, número ou nome"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-input border-border text-foreground"
+                  className="bg-secondary border-border text-foreground h-12"
                 />
                 <Button 
                   type="submit" 
-                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
@@ -98,13 +103,13 @@ export default function ExcluirCliente() {
 
               {searchResults.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Selecione o cliente para excluir:</Label>
+                  <Label className="text-muted-foreground text-sm">Selecione o cliente para excluir:</Label>
                   {searchResults.map((cliente) => (
                     <Button
                       key={cliente.id}
                       onClick={() => handleSelectCliente(cliente)}
                       variant="outline"
-                      className="w-full justify-start border-destructive/50 text-foreground hover:bg-destructive/10"
+                      className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 h-12"
                     >
                       {cliente.nome} - {cliente.cpf}
                     </Button>
@@ -116,7 +121,7 @@ export default function ExcluirCliente() {
                 type="button"
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full border-border text-foreground hover:bg-secondary"
+                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Menu
@@ -124,28 +129,32 @@ export default function ExcluirCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-4 space-y-2">
-                <h3 className="font-bold text-destructive">{selectedCliente.nome}</h3>
-                <p className="text-sm text-muted-foreground">CPF/CNPJ: {selectedCliente.cpf}</p>
-                <p className="text-sm text-muted-foreground">Produto: {selectedCliente.produto}</p>
-                <p className="text-sm text-muted-foreground">Email: {selectedCliente.email}</p>
+              <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                  <h3 className="font-semibold text-destructive text-lg">{selectedCliente.nome}</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{selectedCliente.cpf}</span></p>
+                  <p className="text-muted-foreground">Produto: <span className="text-foreground">{selectedCliente.produto}</span></p>
+                  <p className="text-muted-foreground col-span-2">Email: <span className="text-foreground">{selectedCliente.email}</span></p>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="motivo" className="text-foreground">Motivo da Exclusão</Label>
+                <Label htmlFor="motivo" className="text-foreground font-medium">Motivo da Exclusão</Label>
                 <Textarea
                   id="motivo"
                   placeholder="Descreva o motivo da exclusão (mínimo 10 caracteres)"
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
-                  className="bg-input border-border text-foreground min-h-[100px]"
+                  className="bg-secondary border-border text-foreground min-h-[100px] resize-none"
                 />
               </div>
 
               <Button 
                 onClick={handleDelete}
-                variant="destructive"
-                className="w-full"
+                className="w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
                 disabled={isLoading}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -159,7 +168,7 @@ export default function ExcluirCliente() {
                   setMotivo('');
                 }}
                 variant="outline"
-                className="w-full border-border text-foreground hover:bg-secondary"
+                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
@@ -172,16 +181,19 @@ export default function ExcluirCliente() {
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">⚠️ Tem certeza?</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Tem certeza?
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Deseja excluir o cliente <strong>{selectedCliente?.nome}</strong>? Esta ação não pode ser desfeita.
+              Deseja excluir o cliente <strong className="text-foreground">{selectedCliente?.nome}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary text-foreground">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-secondary text-foreground border-border">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isLoading ? 'Excluindo...' : 'Sim, excluir!'}
             </AlertDialogAction>

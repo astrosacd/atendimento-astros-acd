@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Check } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -76,13 +76,18 @@ export default function AtualizarCliente() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-xl bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-warning text-center">
-            Atualizar Cliente
-          </CardTitle>
+      <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+        <CardHeader className="border-b border-border pb-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-2.5 rounded-xl bg-update/10">
+              <RefreshCw className="w-6 h-6 text-update" />
+            </div>
+            <CardTitle className="text-2xl font-semibold text-foreground">
+              Atualizar Cliente
+            </CardTitle>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {!selectedCliente ? (
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="space-y-4">
@@ -90,11 +95,11 @@ export default function AtualizarCliente() {
                   placeholder="Buscar por CPF, número ou nome"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-input border-border text-foreground"
+                  className="bg-secondary border-border text-foreground h-12"
                 />
                 <Button 
                   type="submit" 
-                  className="w-full bg-warning text-foreground hover:bg-warning/90"
+                  className="w-full h-12 bg-update text-update-foreground hover:bg-update/90 font-medium"
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
@@ -104,13 +109,13 @@ export default function AtualizarCliente() {
 
               {searchResults.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Selecione o cliente:</Label>
+                  <Label className="text-muted-foreground text-sm">Selecione o cliente:</Label>
                   {searchResults.map((cliente) => (
                     <Button
                       key={cliente.id}
                       onClick={() => handleSelectCliente(cliente)}
                       variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-secondary"
+                      className="w-full justify-start border-border text-foreground hover:bg-update/10 hover:border-update/50 h-12"
                     >
                       {cliente.nome} - {cliente.cpf}
                     </Button>
@@ -122,7 +127,7 @@ export default function AtualizarCliente() {
                 type="button"
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full border-border text-foreground hover:bg-secondary"
+                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Menu
@@ -130,29 +135,31 @@ export default function AtualizarCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-secondary rounded-lg p-4 space-y-2">
-                <h3 className="font-bold text-primary">{selectedCliente.nome}</h3>
-                <p className="text-sm text-muted-foreground">CPF/CNPJ: {selectedCliente.cpf}</p>
-                <p className="text-sm text-muted-foreground">Produto: {selectedCliente.produto}</p>
+              <div className="bg-update/5 border border-update/20 rounded-xl p-5 space-y-3">
+                <h3 className="font-semibold text-update text-lg">{selectedCliente.nome}</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{selectedCliente.cpf}</span></p>
+                  <p className="text-muted-foreground">Produto: <span className="text-foreground">{selectedCliente.produto}</span></p>
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  Data atual de renovação: {formatDate(selectedCliente.data_renovacao)}
+                  Data atual: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newDate" className="text-foreground">Nova Data de Renovação</Label>
+                <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
                 <Input
                   id="newDate"
                   type="date"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="bg-input border-border text-foreground"
+                  className="bg-secondary border-border text-foreground h-12"
                 />
               </div>
 
               <Button 
                 onClick={handleUpdate}
-                className="w-full bg-warning text-foreground hover:bg-warning/90"
+                className="w-full h-12 bg-update text-update-foreground hover:bg-update/90 font-medium"
                 disabled={isLoading}
               >
                 <Check className="w-4 h-4 mr-2" />
@@ -165,7 +172,7 @@ export default function AtualizarCliente() {
                   setSearchResults([]);
                 }}
                 variant="outline"
-                className="w-full border-border text-foreground hover:bg-secondary"
+                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
@@ -184,10 +191,10 @@ export default function AtualizarCliente() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary text-foreground">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-secondary text-foreground border-border">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmUpdate}
-              className="bg-warning text-foreground"
+              className="bg-update text-update-foreground hover:bg-update/90"
             >
               {isLoading ? 'Atualizando...' : 'Sim, atualizar!'}
             </AlertDialogAction>
