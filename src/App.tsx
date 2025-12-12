@@ -13,6 +13,8 @@ import ConsultarCliente from "./pages/ConsultarCliente";
 import AtualizarCliente from "./pages/AtualizarCliente";
 import ExcluirCliente from "./pages/ExcluirCliente";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
+import Admin from "./pages/Admin";
+import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +67,8 @@ function AppRoutes() {
         <Route path="/atualizar" element={<ProtectedRoute adminOnly><AtualizarCliente /></ProtectedRoute>} />
         <Route path="/excluir" element={<ProtectedRoute adminOnly><ExcluirCliente /></ProtectedRoute>} />
         <Route path="/usuarios" element={<ProtectedRoute adminOnly><GerenciarUsuarios /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+        <Route path="/admin/recuperacao-senha" element={<ProtectedRoute adminOnly><AdminRecuperacaoSenha /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && isApproved && <ChatPopup />}

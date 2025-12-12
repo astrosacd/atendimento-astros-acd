@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserPlus, Search, Edit, Trash2, LogOut, Users } from 'lucide-react';
+import { UserPlus, Search, Edit, Trash2, LogOut, Users, Settings } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -55,6 +55,13 @@ export default function Dashboard() {
       description: 'Criar e gerenciar usuários do sistema',
       icon: Users,
       path: '/usuarios',
+      adminOnly: true,
+    },
+    {
+      title: 'Painel Admin',
+      description: 'Configurações administrativas do sistema',
+      icon: Settings,
+      path: '/admin',
       adminOnly: true,
     },
   ];
