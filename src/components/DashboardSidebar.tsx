@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
-  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key 
+  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key, FileText 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,7 @@ export function DashboardSidebar() {
     { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: true },
     { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: true },
     { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: true },
+    { title: 'Logs', icon: FileText, path: '/admin/logs', adminOnly: true },
     { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: true },
   ];
 

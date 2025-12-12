@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Search, Trash2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardLayout } from '@/components/DashboardLayout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +70,8 @@ export default function ExcluirCliente() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <DashboardLayout>
+      <div className="flex items-center justify-center p-4">
       <Card className="w-full max-w-xl bg-card border-border shadow-xl">
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-center gap-3">
@@ -200,6 +202,7 @@ export default function ExcluirCliente() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

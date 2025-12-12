@@ -80,6 +80,72 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          api_key_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          request_body: Json | null
+          request_method: string | null
+          request_path: string | null
+          resource_id: string | null
+          resource_type: string
+          response_body: Json | null
+          response_status: number | null
+          user_agent: string | null
+          webhook_id: string | null
+        }
+        Insert: {
+          action: string
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          request_body?: Json | null
+          request_method?: string | null
+          request_path?: string | null
+          resource_id?: string | null
+          resource_type: string
+          response_body?: Json | null
+          response_status?: number | null
+          user_agent?: string | null
+          webhook_id?: string | null
+        }
+        Update: {
+          action?: string
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          request_body?: Json | null
+          request_method?: string | null
+          request_path?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          response_body?: Json | null
+          response_status?: number | null
+          user_agent?: string | null
+          webhook_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf: string

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Search, RefreshCw, Eye } from 'lucide-react';
+import { DashboardLayout } from '@/components/DashboardLayout';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -37,7 +38,8 @@ export default function ConsultarCliente() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <DashboardLayout>
+      <div className="flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl bg-card border-border shadow-xl">
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-center gap-3">
@@ -131,6 +133,7 @@ export default function ConsultarCliente() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
