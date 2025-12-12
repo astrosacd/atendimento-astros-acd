@@ -10,8 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   Clock, 
   Mail, 
@@ -25,7 +28,10 @@ import {
   AlertCircle,
   Calendar,
   Send,
-  History
+  History,
+  Users,
+  BarChart3,
+  Search
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -52,9 +58,26 @@ interface BillingLog {
   sent_at: string;
 }
 
+interface Cliente {
+  id: string;
+  nome: string;
+  email: string;
+  numero: string;
+  produto: string;
+  plano: string | null;
+  valor: number;
+  data_renovacao: string;
+}
+
 interface GmailConfig {
   gmail_user: string;
   gmail_app_password: string;
+}
+
+interface MonthlyStats {
+  month: string;
+  sent: number;
+  errors: number;
 }
 
 const defaultConfig: BillingConfig = {
@@ -69,6 +92,8 @@ const defaultConfig: BillingConfig = {
   message_d_mais_2: 'Olá {nome}! URGENTE: Sua renovação do plano {plano} - {produto} está atrasada há 2 dias. Valor: R$ {valor}. Evite a suspensão do serviço!',
 };
 
+const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'];
+
 const AdminCobranca = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -78,16 +103,25 @@ const AdminCobranca = () => {
   const [gmailConfig, setGmailConfig] = useState<GmailConfig>({ gmail_user: '', gmail_app_password: '' });
   const [logs, setLogs] = useState<BillingLog[]>([]);
   const [stats, setStats] = useState({ total: 0, sent: 0, errors: 0, today: 0 });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [selectedClientes, setSelectedClientes] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedMessageType, setSelectedMessageType] = useState('d_zero');
+  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
+  const [isSendingManual, setIsSendingManual] = useState(false);
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
+  const [channelStats, setChannelStats] = useState<{ name: string; value: number }[]>([]);
+  const [typeStats, setTypeStats] = useState<{ name: string; sent: number; errors: number }[]>([]);
 
   useEffect(() => {
     loadConfig();
     loadLogs();
+    loadClientes();
   }, []);
 
   const loadConfig = async () => {
     setIsLoading(true);
     try {
-      // Load billing config
       const { data: billingData, error: billingError } = await supabase
         .from('billing_config')
         .select('config_key, config_value');
@@ -100,7 +134,6 @@ const AdminCobranca = () => {
       });
       setConfig({ ...defaultConfig, ...loadedConfig });
 
-      // Load Gmail config from recovery_config
       const { data: gmailData, error: gmailError } = await supabase
         .from('recovery_config')
         .select('config_key, config_value')
@@ -124,13 +157,27 @@ const AdminCobranca = () => {
     }
   };
 
+  const loadClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      setClientes(data || []);
+    } catch (error: any) {
+      console.error('Error loading clients:', error);
+    }
+  };
+
   const loadLogs = async () => {
     try {
       const { data, error } = await supabase
         .from('billing_logs')
         .select('*')
         .order('sent_at', { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (error) throw error;
 
@@ -144,6 +191,60 @@ const AdminCobranca = () => {
       const todayLogs = data?.filter(l => l.sent_at.startsWith(today)).length || 0;
 
       setStats({ total, sent, errors, today: todayLogs });
+
+      // Calculate monthly stats for last 6 months
+      const monthlyData: Record<string, { sent: number; errors: number }> = {};
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData[key] = { sent: 0, errors: 0 };
+      }
+
+      data?.forEach(log => {
+        const month = log.sent_at.substring(0, 7);
+        if (monthlyData[month]) {
+          if (log.status === 'sent') monthlyData[month].sent++;
+          else monthlyData[month].errors++;
+        }
+      });
+
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      setMonthlyStats(Object.entries(monthlyData).map(([key, value]) => ({
+        month: monthNames[parseInt(key.split('-')[1]) - 1],
+        sent: value.sent,
+        errors: value.errors,
+      })));
+
+      // Calculate channel stats
+      const emailCount = data?.filter(l => l.channel === 'email').length || 0;
+      const whatsappCount = data?.filter(l => l.channel === 'whatsapp').length || 0;
+      setChannelStats([
+        { name: 'Email', value: emailCount },
+        { name: 'WhatsApp', value: whatsappCount },
+      ]);
+
+      // Calculate type stats
+      const typeData: Record<string, { sent: number; errors: number }> = {
+        'd_menos_3': { sent: 0, errors: 0 },
+        'd_zero': { sent: 0, errors: 0 },
+        'd_mais_1': { sent: 0, errors: 0 },
+        'd_mais_2': { sent: 0, errors: 0 },
+      };
+
+      data?.forEach(log => {
+        if (typeData[log.message_type]) {
+          if (log.status === 'sent') typeData[log.message_type].sent++;
+          else typeData[log.message_type].errors++;
+        }
+      });
+
+      setTypeStats([
+        { name: 'D-3', sent: typeData.d_menos_3.sent, errors: typeData.d_menos_3.errors },
+        { name: 'D', sent: typeData.d_zero.sent, errors: typeData.d_zero.errors },
+        { name: 'D+1', sent: typeData.d_mais_1.sent, errors: typeData.d_mais_1.errors },
+        { name: 'D+2', sent: typeData.d_mais_2.sent, errors: typeData.d_mais_2.errors },
+      ]);
     } catch (error: any) {
       console.error('Error loading logs:', error);
     }
@@ -152,14 +253,12 @@ const AdminCobranca = () => {
   const saveConfig = async () => {
     setIsSaving(true);
     try {
-      // Save billing config
       for (const [key, value] of Object.entries(config)) {
         await supabase
           .from('billing_config')
           .upsert({ config_key: key, config_value: value }, { onConflict: 'config_key' });
       }
 
-      // Save Gmail config
       for (const [key, value] of Object.entries(gmailConfig)) {
         if (value) {
           await supabase
@@ -207,6 +306,66 @@ const AdminCobranca = () => {
     }
   };
 
+  const sendManualBilling = async () => {
+    if (selectedClientes.length === 0) {
+      toast({
+        title: 'Nenhum cliente selecionado',
+        description: 'Selecione pelo menos um cliente para enviar cobrança.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSendingManual(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('billing-cron', {
+        body: {
+          clienteIds: selectedClientes,
+          messageType: selectedMessageType,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Cobrança manual enviada!',
+        description: `Enviados: ${data.sent || 0}, Erros: ${data.errors || 0}`,
+      });
+
+      setSelectedClientes([]);
+      setIsManualDialogOpen(false);
+      loadLogs();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao enviar cobrança',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingManual(false);
+    }
+  };
+
+  const filteredClientes = clientes.filter(c =>
+    c.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.numero.includes(searchQuery)
+  );
+
+  const toggleClienteSelection = (id: string) => {
+    setSelectedClientes(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllClientes = () => {
+    if (selectedClientes.length === filteredClientes.length) {
+      setSelectedClientes([]);
+    } else {
+      setSelectedClientes(filteredClientes.map(c => c.id));
+    }
+  };
+
   const getMessageTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       'd_menos_3': 'D-3 (Lembrete)',
@@ -245,6 +404,113 @@ const AdminCobranca = () => {
             </p>
           </div>
           <div className="flex gap-3">
+            <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
+                  <Users className="w-4 h-4 mr-2" />
+                  Cobrança Manual
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Cobrança Manual Seletiva</DialogTitle>
+                  <DialogDescription>
+                    Selecione os clientes e o tipo de mensagem para enviar cobranças manualmente.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label className="text-foreground">Buscar cliente</Label>
+                      <div className="relative mt-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Nome, email ou telefone..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 bg-background/50 border-border/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="w-48">
+                      <Label className="text-foreground">Tipo de mensagem</Label>
+                      <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
+                        <SelectTrigger className="mt-1 bg-background/50 border-border/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="d_menos_3">D-3 (Lembrete)</SelectItem>
+                          <SelectItem value="d_zero">D (Vencimento)</SelectItem>
+                          <SelectItem value="d_mais_1">D+1 (1º Aviso)</SelectItem>
+                          <SelectItem value="d_mais_2">D+2 (2º Aviso)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                    <Checkbox
+                      checked={selectedClientes.length === filteredClientes.length && filteredClientes.length > 0}
+                      onCheckedChange={selectAllClientes}
+                    />
+                    <span className="text-sm text-foreground">
+                      Selecionar todos ({filteredClientes.length})
+                    </span>
+                    <Badge className="ml-auto bg-purple-500/20 text-purple-400">
+                      {selectedClientes.length} selecionado(s)
+                    </Badge>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto border border-border/50 rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead className="text-foreground">Nome</TableHead>
+                          <TableHead className="text-foreground">Email</TableHead>
+                          <TableHead className="text-foreground">Telefone</TableHead>
+                          <TableHead className="text-foreground">Produto</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredClientes.map((cliente) => (
+                          <TableRow 
+                            key={cliente.id} 
+                            className="hover:bg-muted/20 cursor-pointer"
+                            onClick={() => toggleClienteSelection(cliente.id)}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedClientes.includes(cliente.id)}
+                                onCheckedChange={() => toggleClienteSelection(cliente.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium text-foreground">{cliente.nome}</TableCell>
+                            <TableCell className="text-muted-foreground">{cliente.email}</TableCell>
+                            <TableCell className="text-muted-foreground">{cliente.numero}</TableCell>
+                            <TableCell className="text-muted-foreground">{cliente.produto}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+                    <Button variant="outline" onClick={() => setIsManualDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={sendManualBilling}
+                      disabled={isSendingManual || selectedClientes.length === 0}
+                      className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700"
+                    >
+                      <Send className={`w-4 h-4 mr-2 ${isSendingManual ? 'animate-pulse' : ''}`} />
+                      {isSendingManual ? 'Enviando...' : `Enviar para ${selectedClientes.length} cliente(s)`}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button
               variant="outline"
               onClick={loadLogs}
@@ -331,6 +597,10 @@ const AdminCobranca = () => {
               <MessageSquare className="w-4 h-4 mr-2" />
               Mensagens
             </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Relatórios
+            </TabsTrigger>
             <TabsTrigger value="logs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <History className="w-4 h-4 mr-2" />
               Histórico
@@ -340,7 +610,6 @@ const AdminCobranca = () => {
           {/* Configurações Tab */}
           <TabsContent value="config" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Configurações Gerais */}
               <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
@@ -418,7 +687,6 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Canais de Envio */}
               <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
@@ -464,7 +732,6 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Configurações de Email */}
               <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
@@ -584,13 +851,124 @@ const AdminCobranca = () => {
             </div>
           </TabsContent>
 
+          {/* Relatórios Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Gráfico de Barras - Mensal */}
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Envios por Mês
+                  </CardTitle>
+                  <CardDescription>
+                    Histórico de sucesso e erros nos últimos 6 meses
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={monthlyStats}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      />
+                      <Legend />
+                      <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Gráfico de Pizza - Canais */}
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Send className="w-5 h-5 text-purple-400" />
+                    Distribuição por Canal
+                  </CardTitle>
+                  <CardDescription>
+                    Proporção de envios por Email vs WhatsApp
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={channelStats}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {channelStats.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#22c55e'} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Gráfico de Barras - Por Tipo */}
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Calendar className="w-5 h-5 text-amber-400" />
+                    Envios por Tipo de Mensagem
+                  </CardTitle>
+                  <CardDescription>
+                    Comparação entre D-3, D, D+1 e D+2
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={typeStats}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      />
+                      <Legend />
+                      <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* Histórico Tab */}
           <TabsContent value="logs">
             <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
               <CardHeader>
                 <CardTitle className="text-foreground">Histórico de Envios</CardTitle>
                 <CardDescription>
-                  Últimos 100 envios de cobrança
+                  Últimos 500 envios de cobrança
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -614,7 +992,7 @@ const AdminCobranca = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        logs.map((log) => (
+                        logs.slice(0, 100).map((log) => (
                           <TableRow key={log.id} className="hover:bg-muted/20">
                             <TableCell className="font-medium text-foreground">{log.cliente_nome}</TableCell>
                             <TableCell className="text-muted-foreground">
