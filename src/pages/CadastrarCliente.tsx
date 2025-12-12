@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Check, X, UserPlus } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardLayout } from '@/components/DashboardLayout';
 
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -92,29 +93,32 @@ export default function CadastrarCliente() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-xl bg-card border-border shadow-xl">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold text-primary mb-6">Cliente cadastrado com sucesso!</h2>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={resetForm} className="bg-primary text-primary-foreground hover:bg-primary/90 h-11">
-                Novo Cadastro
-              </Button>
-              <Button onClick={() => navigate('/')} variant="outline" className="border-border text-muted-foreground h-11">
-                Voltar ao Menu
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center p-4">
+          <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold text-primary mb-6">Cliente cadastrado com sucesso!</h2>
+              <div className="flex gap-4 justify-center">
+                <Button onClick={resetForm} className="bg-primary text-primary-foreground hover:bg-primary/90 h-11">
+                  Novo Cadastro
+                </Button>
+                <Button onClick={() => navigate('/dashboard')} variant="outline" className="border-border text-muted-foreground h-11">
+                  Voltar ao Menu
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <DashboardLayout>
+      <div className="flex items-center justify-center p-4">
       <Card className="w-full max-w-xl bg-card border-border shadow-xl">
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-center gap-3">
@@ -290,6 +294,7 @@ export default function CadastrarCliente() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
