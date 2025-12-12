@@ -63,6 +63,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/cadastrar" element={<ProtectedRoute adminOnly><CadastrarCliente /></ProtectedRoute>} />
         <Route path="/consultar" element={<ProtectedRoute><ConsultarCliente /></ProtectedRoute>} />
         <Route path="/atualizar" element={<ProtectedRoute adminOnly><AtualizarCliente /></ProtectedRoute>} />
