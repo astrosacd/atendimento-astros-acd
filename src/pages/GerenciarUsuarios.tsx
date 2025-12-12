@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,6 +44,18 @@ interface UserWithRole {
   created_at: string;
 }
 
+interface ApprovalHistoryEntry {
+  id: string;
+  user_id: string;
+  admin_id: string;
+  action: 'approved' | 'rejected';
+  role_assigned: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  user_name?: string;
+  admin_name?: string;
+}
+
 export default function GerenciarUsuarios() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -64,6 +76,11 @@ export default function GerenciarUsuarios() {
   // View response dialog state
   const [responseDialogOpen, setResponseDialogOpen] = useState(false);
   const [selectedUserResponse, setSelectedUserResponse] = useState<{ name: string; response: string } | null>(null);
+
+  // Approval dialog state (with role selection)
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
+  const [approveRole, setApproveRole] = useState<'admin' | 'user'>('user');
 
   // Fetch all users with their roles
   const { data: users = [], isLoading } = useQuery({
@@ -100,13 +117,45 @@ export default function GerenciarUsuarios() {
     },
   });
 
+  // Fetch approval history
+  const { data: approvalHistory = [] } = useQuery({
+    queryKey: ['approval-history'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('approval_history')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      // Get user names for the history
+      const historyWithNames = (data || []).map((entry) => {
+        const user = users.find(u => u.id === entry.user_id);
+        const admin = users.find(u => u.id === entry.admin_id);
+        return {
+          ...entry,
+          action: entry.action as 'approved' | 'rejected',
+          user_name: user?.name || 'Usuário removido',
+          admin_name: admin?.name || 'Admin',
+        };
+      });
+
+      return historyWithNames as ApprovalHistoryEntry[];
+
+      return historyWithNames;
+    },
+    enabled: users.length > 0,
+  });
+
   const pendingUsers = users.filter(u => u.approval_status === 'pending' || (u.approval_status === 'rejected' && u.user_response));
   const approvedUsers = users.filter(u => u.approval_status === 'approved');
 
-  // Approve user mutation
+  // Approve user mutation with role selection
   const approveMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase
+    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'user' }) => {
+      // Update profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           approved: true, 
@@ -116,10 +165,34 @@ export default function GerenciarUsuarios() {
         })
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({ role })
+        .eq('user_id', userId);
+
+      if (roleError) throw roleError;
+
+      // Add to history
+      const { error: historyError } = await supabase
+        .from('approval_history')
+        .insert({
+          user_id: userId,
+          admin_id: currentUser?.id,
+          action: 'approved',
+          role_assigned: role === 'admin' ? 'Administrador' : 'Visualizador',
+        });
+
+      if (historyError) console.error('Error adding to history:', historyError);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['approval-history'] });
+      setApproveDialogOpen(false);
+      setApprovingUserId(null);
+      setApproveRole('user');
       toast({
         title: 'Usuário aprovado!',
         description: 'O usuário agora pode acessar o sistema.',
@@ -149,9 +222,22 @@ export default function GerenciarUsuarios() {
         .eq('user_id', userId);
 
       if (error) throw error;
+
+      // Add to history
+      const { error: historyError } = await supabase
+        .from('approval_history')
+        .insert({
+          user_id: userId,
+          admin_id: currentUser?.id,
+          action: 'rejected',
+          rejection_reason: reason,
+        });
+
+      if (historyError) console.error('Error adding to history:', historyError);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['approval-history'] });
       setRejectDialogOpen(false);
       setRejectingUserId(null);
       setRejectionReason('');
@@ -179,6 +265,12 @@ export default function GerenciarUsuarios() {
   const confirmReject = () => {
     if (rejectingUserId && rejectionReason.trim()) {
       rejectMutation.mutate({ userId: rejectingUserId, reason: rejectionReason });
+    }
+  };
+
+  const confirmApprove = () => {
+    if (approvingUserId) {
+      approveMutation.mutate({ userId: approvingUserId, role: approveRole });
     }
   };
 
@@ -395,7 +487,11 @@ export default function GerenciarUsuarios() {
                             )}
                             <Button
                               size="sm"
-                              onClick={() => approveMutation.mutate(user.id)}
+                              onClick={() => {
+                                setApprovingUserId(user.id);
+                                setApproveRole('user');
+                                setApproveDialogOpen(true);
+                              }}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <Check className="h-4 w-4 mr-1" />
@@ -603,6 +699,118 @@ export default function GerenciarUsuarios() {
             )}
           </CardContent>
         </Card>
+
+        {/* Approval History */}
+        {approvalHistory.length > 0 && (
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <History className="h-5 w-5" />
+                Histórico de Aprovações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Por</TableHead>
+                      <TableHead>Observação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvalHistory.map((entry) => (
+                      <TableRow key={entry.id} className="border-border">
+                        <TableCell>
+                          {new Date(entry.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </TableCell>
+                        <TableCell className="font-medium">{entry.user_name}</TableCell>
+                        <TableCell>
+                          {entry.action === 'approved' ? (
+                            <Badge className="bg-green-600 text-white">
+                              <Check className="h-3 w-3 mr-1" />
+                              Aprovado
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <X className="h-3 w-3 mr-1" />
+                              Rejeitado
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {entry.role_assigned || '-'}
+                        </TableCell>
+                        <TableCell>{entry.admin_name}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {entry.rejection_reason || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Approval Dialog with Role Selection */}
+        <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Aprovar Usuário</DialogTitle>
+              <DialogDescription>
+                Escolha o tipo de acesso que este usuário terá no sistema.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Tipo de Usuário</Label>
+                <Select value={approveRole} onValueChange={(v) => setApproveRole(v as 'admin' | 'user')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      <span className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-primary" />
+                        Administrador - Acesso completo
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="user">
+                      <span className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        Visualizador - Apenas consulta
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmApprove}
+                disabled={approveMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {approveMutation.isPending ? 'Aprovando...' : 'Confirmar Aprovação'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Rejection Dialog */}
         <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
