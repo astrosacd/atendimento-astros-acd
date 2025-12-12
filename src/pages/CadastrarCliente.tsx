@@ -4,9 +4,10 @@ import { useClientes, ClienteInput } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Check, X, UserPlus } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus, FileText } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -36,6 +37,7 @@ export default function CadastrarCliente() {
     cpf: '',
     plano: '',
     valor: 0,
+    observacao: '',
   });
   
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -87,6 +89,7 @@ export default function CadastrarCliente() {
       cpf: '',
       plano: '',
       valor: 0,
+      observacao: '',
     });
     setShowSuccess(false);
   };
@@ -102,10 +105,10 @@ export default function CadastrarCliente() {
               </div>
               <h2 className="text-xl font-semibold text-primary mb-6">Cliente cadastrado com sucesso!</h2>
               <div className="flex gap-4 justify-center">
-                <Button onClick={resetForm} className="bg-primary text-primary-foreground hover:bg-primary/90 h-11">
+                <Button onClick={resetForm} className="btn-3d bg-primary text-primary-foreground hover:bg-primary/90 h-11">
                   Novo Cadastro
                 </Button>
-                <Button onClick={() => navigate('/dashboard')} variant="outline" className="border-border text-muted-foreground h-11">
+                <Button onClick={() => navigate('/dashboard')} variant="outline" className="btn-3d border-border text-muted-foreground h-11">
                   Voltar ao Menu
                 </Button>
               </div>
@@ -240,9 +243,25 @@ export default function CadastrarCliente() {
                 </div>
               </div>
 
+              {/* Campo de Observações Melhorado */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="observacao" className="text-foreground font-medium">Observações</Label>
+                </div>
+                <Textarea
+                  id="observacao"
+                  placeholder="Adicione notas, observações ou informações importantes sobre o cliente..."
+                  value={formData.observacao || ''}
+                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                  className="bg-secondary border-border text-foreground min-h-[100px] resize-none focus:ring-2 focus:ring-primary/20"
+                />
+                <p className="text-xs text-muted-foreground">Campo opcional para anotações internas</p>
+              </div>
+
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium mt-2"
+                className="btn-3d w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium mt-4"
                 disabled={isLoading}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -253,7 +272,7 @@ export default function CadastrarCliente() {
                 type="button"
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
+                className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Menu
@@ -271,11 +290,14 @@ export default function CadastrarCliente() {
                 <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formData.cpf}</span></p>
                 <p className="text-muted-foreground">Plano: <span className="text-foreground">{formData.plano || 'Nenhum'}</span></p>
                 <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">R$ {Number(formData.valor).toFixed(2)}</span></p>
+                {formData.observacao && (
+                  <p className="text-muted-foreground mt-2">Observações: <span className="text-foreground italic">{formData.observacao}</span></p>
+                )}
               </div>
               <div className="flex justify-center gap-4">
                 <Button 
                   onClick={handleConfirm}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-11"
+                  className="btn-3d bg-primary text-primary-foreground hover:bg-primary/90 h-11"
                   disabled={isLoading}
                 >
                   <Check className="w-4 h-4 mr-2" />
@@ -284,7 +306,7 @@ export default function CadastrarCliente() {
                 <Button 
                   onClick={handleCancel}
                   variant="outline"
-                  className="border-destructive text-destructive hover:bg-destructive/10 h-11"
+                  className="btn-3d border-destructive text-destructive hover:bg-destructive/10 h-11"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancelar

@@ -95,7 +95,7 @@ export default function ExcluirCliente() {
                 />
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
+                  className="btn-3d w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
@@ -123,7 +123,7 @@ export default function ExcluirCliente() {
                 type="button"
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
+                className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Menu
@@ -156,7 +156,7 @@ export default function ExcluirCliente() {
 
               <Button 
                 onClick={handleDelete}
-                className="w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
+                className="btn-3d w-full h-12 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium"
                 disabled={isLoading}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -170,7 +170,7 @@ export default function ExcluirCliente() {
                   setMotivo('');
                 }}
                 variant="outline"
-                className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
+                className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
