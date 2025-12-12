@@ -20,6 +20,7 @@ import AdminAuditLogs from "./pages/AdminAuditLogs";
 import AdminCobranca from "./pages/AdminCobranca";
 import AdminChatConfig from "./pages/AdminChatConfig";
 import AdminPermissoes from "./pages/AdminPermissoes";
+import AdminGuia from "./pages/AdminGuia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ function AppRoutes() {
         <Route path="/admin/cobranca" element={<ProtectedRoute adminOnly><AdminCobranca /></ProtectedRoute>} />
         <Route path="/admin/chat" element={<ProtectedRoute adminOnly><AdminChatConfig /></ProtectedRoute>} />
         <Route path="/admin/permissoes" element={<ProtectedRoute adminOnly><AdminPermissoes /></ProtectedRoute>} />
+        <Route path="/admin/guia" element={<ProtectedRoute adminOnly><AdminGuia /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
