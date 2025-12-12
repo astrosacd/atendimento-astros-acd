@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
   Mail, 
@@ -31,19 +32,20 @@ import {
   History,
   Users,
   BarChart3,
-  Search
+  Search,
+  Plus,
+  Trash2,
+  Bot,
+  Key,
+  Zap,
+  Sparkles,
+  Phone,
+  Edit,
+  Power
 } from 'lucide-react';
 
 interface BillingConfig {
-  cron_hour: string;
-  cron_minute: string;
-  billing_enabled: string;
-  email_enabled: string;
-  whatsapp_enabled: string;
-  message_d_menos_3: string;
-  message_d_zero: string;
-  message_d_mais_1: string;
-  message_d_mais_2: string;
+  [key: string]: string;
 }
 
 interface BillingLog {
@@ -69,9 +71,13 @@ interface Cliente {
   data_renovacao: string;
 }
 
-interface GmailConfig {
-  gmail_user: string;
-  gmail_app_password: string;
+interface WhatsAppInstance {
+  id: string;
+  instance_name: string;
+  api_url: string;
+  api_key: string;
+  is_active: boolean;
+  last_used_at: string | null;
 }
 
 interface MonthlyStats {
@@ -80,27 +86,23 @@ interface MonthlyStats {
   errors: number;
 }
 
-const defaultConfig: BillingConfig = {
-  cron_hour: '10',
-  cron_minute: '0',
-  billing_enabled: 'false',
-  email_enabled: 'true',
-  whatsapp_enabled: 'true',
+const defaultMessages: Record<string, string> = {
   message_d_menos_3: 'Olá {nome}! Lembramos que sua renovação do plano {plano} - {produto} vence em 3 dias ({data_renovacao}). Valor: R$ {valor}. Não deixe para última hora!',
   message_d_zero: 'Olá {nome}! Hoje é o dia da renovação do seu plano {plano} - {produto}. Valor: R$ {valor}. Entre em contato para renovar!',
   message_d_mais_1: 'Olá {nome}! Sua renovação do plano {plano} - {produto} venceu ontem. Valor: R$ {valor}. Regularize sua situação!',
   message_d_mais_2: 'Olá {nome}! URGENTE: Sua renovação do plano {plano} - {produto} está atrasada há 2 dias. Valor: R$ {valor}. Evite a suspensão do serviço!',
+  message_d_mais_15: 'Olá {nome}! Sua renovação do plano {plano} - {produto} está pendente há 15 dias. Valor: R$ {valor}. Entre em contato para regularizar!',
+  message_d_mais_30: 'Olá {nome}! ATENÇÃO: Sua renovação do plano {plano} - {produto} está pendente há 30 dias. Valor: R$ {valor}. Regularize para evitar o cancelamento do serviço!',
 };
 
-const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6'];
+const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
 
 const AdminCobranca = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [config, setConfig] = useState<BillingConfig>(defaultConfig);
-  const [gmailConfig, setGmailConfig] = useState<GmailConfig>({ gmail_user: '', gmail_app_password: '' });
+  const [config, setConfig] = useState<BillingConfig>({});
   const [logs, setLogs] = useState<BillingLog[]>([]);
   const [stats, setStats] = useState({ total: 0, sent: 0, errors: 0, today: 0 });
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -112,40 +114,43 @@ const AdminCobranca = () => {
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
   const [channelStats, setChannelStats] = useState<{ name: string; value: number }[]>([]);
   const [typeStats, setTypeStats] = useState<{ name: string; sent: number; errors: number }[]>([]);
+  const [whatsappInstances, setWhatsappInstances] = useState<WhatsAppInstance[]>([]);
+  const [newInstance, setNewInstance] = useState({ instance_name: '', api_url: '', api_key: '' });
+  const [isAddingInstance, setIsAddingInstance] = useState(false);
 
   useEffect(() => {
     loadConfig();
     loadLogs();
     loadClientes();
+    loadWhatsAppInstances();
   }, []);
 
   const loadConfig = async () => {
     setIsLoading(true);
     try {
-      const { data: billingData, error: billingError } = await supabase
+      const { data, error } = await supabase
         .from('billing_config')
         .select('config_key, config_value');
 
-      if (billingError) throw billingError;
+      if (error) throw error;
 
-      const loadedConfig: Partial<BillingConfig> = {};
-      billingData?.forEach((item) => {
-        loadedConfig[item.config_key as keyof BillingConfig] = item.config_value;
+      const loadedConfig: BillingConfig = {};
+      data?.forEach((item) => {
+        loadedConfig[item.config_key] = item.config_value;
       });
-      setConfig({ ...defaultConfig, ...loadedConfig });
-
-      const { data: gmailData, error: gmailError } = await supabase
-        .from('recovery_config')
-        .select('config_key, config_value')
-        .in('config_key', ['gmail_user', 'gmail_app_password']);
-
-      if (gmailError) throw gmailError;
-
-      const loadedGmail: Partial<GmailConfig> = {};
-      gmailData?.forEach((item) => {
-        loadedGmail[item.config_key as keyof GmailConfig] = item.config_value;
+      
+      // Set defaults
+      Object.keys(defaultMessages).forEach(key => {
+        if (!loadedConfig[key]) loadedConfig[key] = defaultMessages[key];
       });
-      setGmailConfig({ gmail_user: '', gmail_app_password: '', ...loadedGmail });
+      if (!loadedConfig.cron_hour) loadedConfig.cron_hour = '10';
+      if (!loadedConfig.cron_minute) loadedConfig.cron_minute = '0';
+      if (!loadedConfig.billing_enabled) loadedConfig.billing_enabled = 'false';
+      if (!loadedConfig.email_enabled) loadedConfig.email_enabled = 'true';
+      if (!loadedConfig.whatsapp_enabled) loadedConfig.whatsapp_enabled = 'true';
+      if (!loadedConfig.ai_provider) loadedConfig.ai_provider = 'none';
+      
+      setConfig(loadedConfig);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar configurações',
@@ -154,6 +159,20 @@ const AdminCobranca = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadWhatsAppInstances = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('billing_whatsapp_instances')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setWhatsappInstances(data || []);
+    } catch (error: any) {
+      console.error('Error loading WhatsApp instances:', error);
     }
   };
 
@@ -183,7 +202,6 @@ const AdminCobranca = () => {
 
       setLogs(data || []);
 
-      // Calculate stats
       const today = new Date().toISOString().split('T')[0];
       const total = data?.length || 0;
       const sent = data?.filter(l => l.status === 'sent').length || 0;
@@ -192,7 +210,7 @@ const AdminCobranca = () => {
 
       setStats({ total, sent, errors, today: todayLogs });
 
-      // Calculate monthly stats for last 6 months
+      // Monthly stats
       const monthlyData: Record<string, { sent: number; errors: number }> = {};
       const now = new Date();
       for (let i = 5; i >= 0; i--) {
@@ -216,7 +234,7 @@ const AdminCobranca = () => {
         errors: value.errors,
       })));
 
-      // Calculate channel stats
+      // Channel stats
       const emailCount = data?.filter(l => l.channel === 'email').length || 0;
       const whatsappCount = data?.filter(l => l.channel === 'whatsapp').length || 0;
       setChannelStats([
@@ -224,13 +242,11 @@ const AdminCobranca = () => {
         { name: 'WhatsApp', value: whatsappCount },
       ]);
 
-      // Calculate type stats
-      const typeData: Record<string, { sent: number; errors: number }> = {
-        'd_menos_3': { sent: 0, errors: 0 },
-        'd_zero': { sent: 0, errors: 0 },
-        'd_mais_1': { sent: 0, errors: 0 },
-        'd_mais_2': { sent: 0, errors: 0 },
-      };
+      // Type stats
+      const typeData: Record<string, { sent: number; errors: number }> = {};
+      ['d_menos_3', 'd_zero', 'd_mais_1', 'd_mais_2', 'd_mais_15', 'd_mais_30'].forEach(type => {
+        typeData[type] = { sent: 0, errors: 0 };
+      });
 
       data?.forEach(log => {
         if (typeData[log.message_type]) {
@@ -244,6 +260,8 @@ const AdminCobranca = () => {
         { name: 'D', sent: typeData.d_zero.sent, errors: typeData.d_zero.errors },
         { name: 'D+1', sent: typeData.d_mais_1.sent, errors: typeData.d_mais_1.errors },
         { name: 'D+2', sent: typeData.d_mais_2.sent, errors: typeData.d_mais_2.errors },
+        { name: 'D+15', sent: typeData.d_mais_15.sent, errors: typeData.d_mais_15.errors },
+        { name: 'D+30', sent: typeData.d_mais_30.sent, errors: typeData.d_mais_30.errors },
       ]);
     } catch (error: any) {
       console.error('Error loading logs:', error);
@@ -259,17 +277,9 @@ const AdminCobranca = () => {
           .upsert({ config_key: key, config_value: value }, { onConflict: 'config_key' });
       }
 
-      for (const [key, value] of Object.entries(gmailConfig)) {
-        if (value) {
-          await supabase
-            .from('recovery_config')
-            .upsert({ config_key: key, config_value: value }, { onConflict: 'config_key' });
-        }
-      }
-
       toast({
         title: 'Configurações salvas!',
-        description: 'Todas as configurações foram atualizadas com sucesso.',
+        description: 'Todas as configurações foram atualizadas.',
       });
     } catch (error: any) {
       toast({
@@ -279,6 +289,74 @@ const AdminCobranca = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const addWhatsAppInstance = async () => {
+    if (!newInstance.instance_name || !newInstance.api_url || !newInstance.api_key) {
+      toast({
+        title: 'Preencha todos os campos',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsAddingInstance(true);
+    try {
+      const { error } = await supabase
+        .from('billing_whatsapp_instances')
+        .insert(newInstance);
+
+      if (error) throw error;
+
+      toast({ title: 'Instância adicionada!' });
+      setNewInstance({ instance_name: '', api_url: '', api_key: '' });
+      loadWhatsAppInstances();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao adicionar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAddingInstance(false);
+    }
+  };
+
+  const toggleInstanceStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('billing_whatsapp_instances')
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      loadWhatsAppInstances();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteInstance = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('billing_whatsapp_instances')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast({ title: 'Instância removida!' });
+      loadWhatsAppInstances();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao remover',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -310,7 +388,6 @@ const AdminCobranca = () => {
     if (selectedClientes.length === 0) {
       toast({
         title: 'Nenhum cliente selecionado',
-        description: 'Selecione pelo menos um cliente para enviar cobrança.',
         variant: 'destructive',
       });
       return;
@@ -337,7 +414,7 @@ const AdminCobranca = () => {
       loadLogs();
     } catch (error: any) {
       toast({
-        title: 'Erro ao enviar cobrança',
+        title: 'Erro ao enviar',
         description: error.message,
         variant: 'destructive',
       });
@@ -368,17 +445,19 @@ const AdminCobranca = () => {
 
   const getMessageTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'd_menos_3': 'D-3 (Lembrete)',
-      'd_zero': 'D (Vencimento)',
-      'd_mais_1': 'D+1 (1º Aviso)',
-      'd_mais_2': 'D+2 (2º Aviso)',
+      'd_menos_3': 'D-3',
+      'd_zero': 'D',
+      'd_mais_1': 'D+1',
+      'd_mais_2': 'D+2',
+      'd_mais_15': 'D+15',
+      'd_mais_30': 'D+30',
     };
     return labels[type] || type;
   };
 
   const getStatusBadge = (status: string) => {
     if (status === 'sent') {
-      return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />Enviado</Badge>;
+      return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
     }
     return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Erro</Badge>;
   };
@@ -393,49 +472,53 @@ const AdminCobranca = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Sistema de Cobrança Automática
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Configure e gerencie cobranças automáticas por Email e WhatsApp
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
-                  <Users className="w-4 h-4 mr-2" />
-                  Cobrança Manual
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground">Cobrança Manual Seletiva</DialogTitle>
-                  <DialogDescription>
-                    Selecione os clientes e o tipo de mensagem para enviar cobranças manualmente.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <Label className="text-foreground">Buscar cliente</Label>
-                      <div className="relative mt-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Nome, email ou telefone..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 bg-background/50 border-border/50"
-                        />
+        {/* Header with gradient */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 p-6 border border-amber-500/20">
+          <div className="absolute inset-0 bg-grid-white/5" />
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25">
+                <Zap className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                  Sistema de Cobrança Automática
+                </h1>
+                <p className="text-muted-foreground text-sm lg:text-base">
+                  Gerencie cobranças por Email e WhatsApp com IA
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
+                    <Users className="w-4 h-4 mr-2" />
+                    Cobrança Seletiva
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Cobrança Manual Seletiva</DialogTitle>
+                    <DialogDescription>
+                      Selecione clientes específicos para enviar cobranças.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Buscar por nome, email ou telefone..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-48">
-                      <Label className="text-foreground">Tipo de mensagem</Label>
                       <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
-                        <SelectTrigger className="mt-1 bg-background/50 border-border/50">
+                        <SelectTrigger className="w-full sm:w-48">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -443,193 +526,132 @@ const AdminCobranca = () => {
                           <SelectItem value="d_zero">D (Vencimento)</SelectItem>
                           <SelectItem value="d_mais_1">D+1 (1º Aviso)</SelectItem>
                           <SelectItem value="d_mais_2">D+2 (2º Aviso)</SelectItem>
+                          <SelectItem value="d_mais_15">D+15 (Pendência)</SelectItem>
+                          <SelectItem value="d_mais_30">D+30 (Aviso Final)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
-                    <Checkbox
-                      checked={selectedClientes.length === filteredClientes.length && filteredClientes.length > 0}
-                      onCheckedChange={selectAllClientes}
-                    />
-                    <span className="text-sm text-foreground">
-                      Selecionar todos ({filteredClientes.length})
-                    </span>
-                    <Badge className="ml-auto bg-purple-500/20 text-purple-400">
-                      {selectedClientes.length} selecionado(s)
-                    </Badge>
-                  </div>
+                    <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                      <Checkbox
+                        checked={selectedClientes.length === filteredClientes.length && filteredClientes.length > 0}
+                        onCheckedChange={selectAllClientes}
+                      />
+                      <span className="text-sm">Selecionar todos ({filteredClientes.length})</span>
+                      <Badge className="ml-auto">{selectedClientes.length} selecionado(s)</Badge>
+                    </div>
 
-                  <div className="flex-1 overflow-y-auto border border-border/50 rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/30">
-                          <TableHead className="w-12"></TableHead>
-                          <TableHead className="text-foreground">Nome</TableHead>
-                          <TableHead className="text-foreground">Email</TableHead>
-                          <TableHead className="text-foreground">Telefone</TableHead>
-                          <TableHead className="text-foreground">Produto</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredClientes.map((cliente) => (
-                          <TableRow 
-                            key={cliente.id} 
-                            className="hover:bg-muted/20 cursor-pointer"
-                            onClick={() => toggleClienteSelection(cliente.id)}
-                          >
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedClientes.includes(cliente.id)}
-                                onCheckedChange={() => toggleClienteSelection(cliente.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium text-foreground">{cliente.nome}</TableCell>
-                            <TableCell className="text-muted-foreground">{cliente.email}</TableCell>
-                            <TableCell className="text-muted-foreground">{cliente.numero}</TableCell>
-                            <TableCell className="text-muted-foreground">{cliente.produto}</TableCell>
+                    <div className="flex-1 overflow-y-auto border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12"></TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead className="hidden sm:table-cell">Email</TableHead>
+                            <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                            <TableHead className="hidden lg:table-cell">Produto</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredClientes.map((cliente) => (
+                            <TableRow key={cliente.id} className="cursor-pointer" onClick={() => toggleClienteSelection(cliente.id)}>
+                              <TableCell>
+                                <Checkbox checked={selectedClientes.includes(cliente.id)} />
+                              </TableCell>
+                              <TableCell className="font-medium">{cliente.nome}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-muted-foreground">{cliente.email}</TableCell>
+                              <TableCell className="hidden md:table-cell text-muted-foreground">{cliente.numero}</TableCell>
+                              <TableCell className="hidden lg:table-cell text-muted-foreground">{cliente.produto}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-                    <Button variant="outline" onClick={() => setIsManualDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={sendManualBilling}
-                      disabled={isSendingManual || selectedClientes.length === 0}
-                      className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700"
-                    >
-                      <Send className={`w-4 h-4 mr-2 ${isSendingManual ? 'animate-pulse' : ''}`} />
-                      {isSendingManual ? 'Enviando...' : `Enviar para ${selectedClientes.length} cliente(s)`}
-                    </Button>
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <Button variant="outline" onClick={() => setIsManualDialogOpen(false)}>Cancelar</Button>
+                      <Button
+                        onClick={sendManualBilling}
+                        disabled={isSendingManual || selectedClientes.length === 0}
+                        className="bg-gradient-to-r from-purple-500 to-violet-600"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        {isSendingManual ? 'Enviando...' : `Enviar (${selectedClientes.length})`}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Button
-              variant="outline"
-              onClick={loadLogs}
-              disabled={isLoading}
-              className="border-border/50"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-            <Button
-              onClick={runBillingManually}
-              disabled={isRunning || config.billing_enabled !== 'true'}
-              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
-            >
-              <Play className={`w-4 h-4 mr-2 ${isRunning ? 'animate-pulse' : ''}`} />
-              {isRunning ? 'Executando...' : 'Executar Agora'}
-            </Button>
+                </DialogContent>
+              </Dialog>
+              <Button variant="outline" onClick={() => { loadLogs(); loadConfig(); }} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button
+                onClick={runBillingManually}
+                disabled={isRunning || config.billing_enabled !== 'true'}
+                className="bg-gradient-to-r from-amber-500 to-orange-600"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                {isRunning ? 'Executando...' : 'Executar Agora'}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Enviados</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Enviados', value: stats.total, icon: Send, color: 'blue' },
+            { label: 'Sucesso', value: stats.sent, icon: CheckCircle, color: 'emerald' },
+            { label: 'Erros', value: stats.errors, icon: XCircle, color: 'red' },
+            { label: 'Hoje', value: stats.today, icon: Calendar, color: 'amber' },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-gradient-to-br from-card to-card/50 border-border/50 hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{stat.label}</p>
+                    <p className={`text-xl sm:text-2xl font-bold text-${stat.color}-400`}>{stat.value}</p>
+                  </div>
+                  <div className={`p-2 sm:p-3 rounded-xl bg-${stat.color}-500/20`}>
+                    <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 text-${stat.color}-400`} />
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl bg-blue-500/20">
-                  <Send className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Sucesso</p>
-                  <p className="text-2xl font-bold text-emerald-400">{stats.sent}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-emerald-500/20">
-                  <CheckCircle className="w-6 h-6 text-emerald-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Erros</p>
-                  <p className="text-2xl font-bold text-red-400">{stats.errors}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-red-500/20">
-                  <XCircle className="w-6 h-6 text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Hoje</p>
-                  <p className="text-2xl font-bold text-amber-400">{stats.today}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-amber-500/20">
-                  <Calendar className="w-6 h-6 text-amber-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <Tabs defaultValue="config" className="space-y-6">
-          <TabsList className="bg-card/50 border border-border/50 p-1">
-            <TabsTrigger value="config" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Settings className="w-4 h-4 mr-2" />
-              Configurações
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Mensagens
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Relatórios
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <History className="w-4 h-4 mr-2" />
-              Histórico
-            </TabsTrigger>
+          <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
+            <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />Geral</TabsTrigger>
+            <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
+            <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />Canais</TabsTrigger>
+            <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />Mensagens</TabsTrigger>
+            <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
+            <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />Histórico</TabsTrigger>
           </TabsList>
 
-          {/* Configurações Tab */}
+          {/* Configurações Gerais */}
           <TabsContent value="config" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+              <Card className="border-border/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Clock className="w-5 h-5 text-amber-400" />
-                    Agendamento do Cron
+                  <CardTitle className="flex items-center gap-2">
+                    <Power className="w-5 h-5 text-emerald-400" />
+                    Status do Sistema
                   </CardTitle>
-                  <CardDescription>
-                    Configure o horário de execução diária
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 border border-border/30">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-background to-muted/30 border">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${config.billing_enabled === 'true' ? 'bg-emerald-500/20' : 'bg-muted'}`}>
-                        <AlertCircle className={`w-5 h-5 ${config.billing_enabled === 'true' ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+                        <Zap className={`w-5 h-5 ${config.billing_enabled === 'true' ? 'text-emerald-400' : 'text-muted-foreground'}`} />
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">Sistema de Cobrança</p>
+                        <p className="font-semibold">Cobrança Automática</p>
                         <p className="text-sm text-muted-foreground">
-                          {config.billing_enabled === 'true' ? 'Ativo e funcionando' : 'Desativado'}
+                          {config.billing_enabled === 'true' ? 'Sistema ativo' : 'Sistema desativado'}
                         </p>
                       </div>
                     </div>
@@ -638,214 +660,348 @@ const AdminCobranca = () => {
                       onCheckedChange={(checked) => setConfig({ ...config, billing_enabled: checked ? 'true' : 'false' })}
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Hora</Label>
-                      <Select
-                        value={config.cron_hour}
-                        onValueChange={(value) => setConfig({ ...config, cron_hour: value })}
-                      >
-                        <SelectTrigger className="bg-background/50 border-border/50">
-                          <SelectValue placeholder="Hora" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                              {i.toString().padStart(2, '0')}h
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Minuto</Label>
-                      <Select
-                        value={config.cron_minute}
-                        onValueChange={(value) => setConfig({ ...config, cron_minute: value })}
-                      >
-                        <SelectTrigger className="bg-background/50 border-border/50">
-                          <SelectValue placeholder="Minuto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[0, 15, 30, 45].map((m) => (
-                            <SelectItem key={m} value={m.toString()}>
-                              {m.toString().padStart(2, '0')} min
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-sm text-amber-400">
-                      <Clock className="w-4 h-4 inline mr-2" />
-                      Execução programada: todos os dias às {config.cron_hour.padStart(2, '0')}:{config.cron_minute.padStart(2, '0')}
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+              <Card className="border-border/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Send className="w-5 h-5 text-blue-400" />
-                    Canais de Envio
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-400" />
+                    Agendamento
                   </CardTitle>
-                  <CardDescription>
-                    Ative ou desative os canais de comunicação
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 border border-border/30">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${config.email_enabled === 'true' ? 'bg-blue-500/20' : 'bg-muted'}`}>
-                        <Mail className={`w-5 h-5 ${config.email_enabled === 'true' ? 'text-blue-400' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">Email</p>
-                        <p className="text-sm text-muted-foreground">Enviar cobranças por email</p>
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Hora</Label>
+                      <Select value={config.cron_hour || '10'} onValueChange={(v) => setConfig({ ...config, cron_hour: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}h</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch
-                      checked={config.email_enabled === 'true'}
-                      onCheckedChange={(checked) => setConfig({ ...config, email_enabled: checked ? 'true' : 'false' })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 border border-border/30">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${config.whatsapp_enabled === 'true' ? 'bg-green-500/20' : 'bg-muted'}`}>
-                        <MessageSquare className={`w-5 h-5 ${config.whatsapp_enabled === 'true' ? 'text-green-400' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">WhatsApp</p>
-                        <p className="text-sm text-muted-foreground">Enviar cobranças via Evolution API</p>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Minuto</Label>
+                      <Select value={config.cron_minute || '0'} onValueChange={(v) => setConfig({ ...config, cron_minute: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {[0, 15, 30, 45].map((m) => (
+                            <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')} min</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch
-                      checked={config.whatsapp_enabled === 'true'}
-                      onCheckedChange={(checked) => setConfig({ ...config, whatsapp_enabled: checked ? 'true' : 'false' })}
-                    />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Mail className="w-5 h-5 text-blue-400" />
-                    Configurações de Email (Gmail)
-                  </CardTitle>
-                  <CardDescription>
-                    Configure as credenciais do Gmail para envio de emails
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Email do Gmail</Label>
-                    <Input
-                      type="email"
-                      placeholder="seu-email@gmail.com"
-                      value={gmailConfig.gmail_user}
-                      onChange={(e) => setGmailConfig({ ...gmailConfig, gmail_user: e.target.value })}
-                      className="bg-background/50 border-border/50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Senha de App do Gmail</Label>
-                    <Input
-                      type="password"
-                      placeholder="••••••••••••••••"
-                      value={gmailConfig.gmail_app_password}
-                      onChange={(e) => setGmailConfig({ ...gmailConfig, gmail_app_password: e.target.value })}
-                      className="bg-background/50 border-border/50"
-                    />
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-400">
+                    <Clock className="w-4 h-4 inline mr-2" />
+                    Execução: todos os dias às {(config.cron_hour || '10').padStart(2, '0')}:{(config.cron_minute || '0').padStart(2, '0')}
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             <div className="flex justify-end">
-              <Button
-                onClick={saveConfig}
-                disabled={isSaving}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
-              >
-                <Save className={`w-4 h-4 mr-2 ${isSaving ? 'animate-pulse' : ''}`} />
+              <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
+                <Save className="w-4 h-4 mr-2" />
                 {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* IA Tab */}
+          <TabsContent value="ai" className="space-y-6">
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  Geração de Mensagens com IA
+                </CardTitle>
+                <CardDescription>
+                  Configure uma IA para gerar mensagens personalizadas automaticamente
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <Label>Provedor de IA</Label>
+                    <Select value={config.ai_provider || 'none'} onValueChange={(v) => setConfig({ ...config, ai_provider: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Desativado (usar templates)</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="groq">Groq</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label>Modelo</Label>
+                    <Select value={config.ai_model || 'gpt-4o-mini'} onValueChange={(v) => setConfig({ ...config, ai_model: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {config.ai_provider === 'openai' && (
+                          <>
+                            <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                            <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                          </>
+                        )}
+                        {config.ai_provider === 'groq' && (
+                          <>
+                            <SelectItem value="llama-3.1-70b-versatile">Llama 3.1 70B</SelectItem>
+                            <SelectItem value="llama-3.1-8b-instant">Llama 3.1 8B</SelectItem>
+                            <SelectItem value="mixtral-8x7b-32768">Mixtral 8x7B</SelectItem>
+                          </>
+                        )}
+                        {(!config.ai_provider || config.ai_provider === 'none') && (
+                          <SelectItem value="none">Selecione um provedor primeiro</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {config.ai_provider === 'openai' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      API Key da OpenAI
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={config.openai_api_key || ''}
+                      onChange={(e) => setConfig({ ...config, openai_api_key: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {config.ai_provider === 'groq' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      API Key do Groq
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="gsk_..."
+                      value={config.groq_api_key || ''}
+                      onChange={(e) => setConfig({ ...config, groq_api_key: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Contexto/Prompt da IA</Label>
+                  <Textarea
+                    placeholder="Instruções para a IA gerar as mensagens..."
+                    value={config.ai_prompt_context || ''}
+                    onChange={(e) => setConfig({ ...config, ai_prompt_context: e.target.value })}
+                    className="min-h-[120px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Defina o tom e estilo das mensagens que a IA deve gerar.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-purple-500 to-violet-600">
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Salvando...' : 'Salvar Configurações de IA'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Canais Tab */}
+          <TabsContent value="channels" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Email Config */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-blue-400" />
+                    Configuração de Email
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <span>Enviar por Email</span>
+                    <Switch
+                      checked={config.email_enabled === 'true'}
+                      onCheckedChange={(c) => setConfig({ ...config, email_enabled: c ? 'true' : 'false' })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email do Gmail</Label>
+                    <Input
+                      type="email"
+                      placeholder="seu-email@gmail.com"
+                      value={config.billing_gmail_user || ''}
+                      onChange={(e) => setConfig({ ...config, billing_gmail_user: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Senha de App do Gmail</Label>
+                    <Input
+                      type="password"
+                      placeholder="••••••••••••"
+                      value={config.billing_gmail_password || ''}
+                      onChange={(e) => setConfig({ ...config, billing_gmail_password: e.target.value })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* WhatsApp Config */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-green-400" />
+                    Configuração WhatsApp
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <span>Enviar por WhatsApp</span>
+                    <Switch
+                      checked={config.whatsapp_enabled === 'true'}
+                      onCheckedChange={(c) => setConfig({ ...config, whatsapp_enabled: c ? 'true' : 'false' })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* WhatsApp Instances */}
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-green-400" />
+                  Instâncias WhatsApp (Evolution API)
+                </CardTitle>
+                <CardDescription>
+                  Gerencie múltiplas instâncias para rotação de envio (exclusivas para cobrança)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <Input
+                    placeholder="Nome da instância"
+                    value={newInstance.instance_name}
+                    onChange={(e) => setNewInstance({ ...newInstance, instance_name: e.target.value })}
+                  />
+                  <Input
+                    placeholder="URL da API"
+                    value={newInstance.api_url}
+                    onChange={(e) => setNewInstance({ ...newInstance, api_url: e.target.value })}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="API Key"
+                    value={newInstance.api_key}
+                    onChange={(e) => setNewInstance({ ...newInstance, api_key: e.target.value })}
+                  />
+                  <Button onClick={addWhatsAppInstance} disabled={isAddingInstance}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+
+                {whatsappInstances.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Instância</TableHead>
+                          <TableHead className="hidden sm:table-cell">URL</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {whatsappInstances.map((inst) => (
+                          <TableRow key={inst.id}>
+                            <TableCell className="font-medium">{inst.instance_name}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-muted-foreground truncate max-w-[200px]">{inst.api_url}</TableCell>
+                            <TableCell>
+                              <Badge className={inst.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
+                                {inst.is_active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="ghost" onClick={() => toggleInstanceStatus(inst.id, inst.is_active)}>
+                                  <Power className="w-4 h-4" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => deleteInstance(inst.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Salvando...' : 'Salvar Canais'}
               </Button>
             </div>
           </TabsContent>
 
           {/* Mensagens Tab */}
           <TabsContent value="messages" className="space-y-6">
-            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+            <Card className="border-border/50">
               <CardHeader>
-                <CardTitle className="text-foreground">Templates de Mensagens</CardTitle>
+                <CardTitle>Templates de Mensagens</CardTitle>
                 <CardDescription>
-                  Personalize as mensagens para cada tipo de cobrança. Use as variáveis: {'{nome}'}, {'{produto}'}, {'{plano}'}, {'{valor}'}, {'{data_renovacao}'}
+                  Usados quando a IA está desativada. Variáveis: {'{nome}'}, {'{produto}'}, {'{plano}'}, {'{valor}'}, {'{data_renovacao}'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">D-3</Badge>
-                    Lembrete (3 dias antes)
-                  </Label>
-                  <Textarea
-                    value={config.message_d_menos_3}
-                    onChange={(e) => setConfig({ ...config, message_d_menos_3: e.target.value })}
-                    className="min-h-[100px] bg-background/50 border-border/50"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">D</Badge>
-                    Dia do Vencimento
-                  </Label>
-                  <Textarea
-                    value={config.message_d_zero}
-                    onChange={(e) => setConfig({ ...config, message_d_zero: e.target.value })}
-                    className="min-h-[100px] bg-background/50 border-border/50"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">D+1</Badge>
-                    1º Aviso (1 dia após)
-                  </Label>
-                  <Textarea
-                    value={config.message_d_mais_1}
-                    onChange={(e) => setConfig({ ...config, message_d_mais_1: e.target.value })}
-                    className="min-h-[100px] bg-background/50 border-border/50"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-foreground">
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">D+2</Badge>
-                    2º Aviso (2 dias após)
-                  </Label>
-                  <Textarea
-                    value={config.message_d_mais_2}
-                    onChange={(e) => setConfig({ ...config, message_d_mais_2: e.target.value })}
-                    className="min-h-[100px] bg-background/50 border-border/50"
-                  />
-                </div>
+                {[
+                  { key: 'message_d_menos_3', label: 'D-3', desc: 'Lembrete (3 dias antes)', color: 'blue' },
+                  { key: 'message_d_zero', label: 'D', desc: 'Dia do Vencimento', color: 'amber' },
+                  { key: 'message_d_mais_1', label: 'D+1', desc: '1º Aviso', color: 'orange' },
+                  { key: 'message_d_mais_2', label: 'D+2', desc: '2º Aviso', color: 'red' },
+                  { key: 'message_d_mais_15', label: 'D+15', desc: 'Aviso de Pendência', color: 'purple' },
+                  { key: 'message_d_mais_30', label: 'D+30', desc: 'Aviso Final', color: 'red' },
+                ].map((msg) => (
+                  <div key={msg.key} className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Badge className={`bg-${msg.color}-500/20 text-${msg.color}-400 border-${msg.color}-500/30`}>
+                        {msg.label}
+                      </Badge>
+                      {msg.desc}
+                    </Label>
+                    <Textarea
+                      value={config[msg.key] || defaultMessages[msg.key] || ''}
+                      onChange={(e) => setConfig({ ...config, [msg.key]: e.target.value })}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
             <div className="flex justify-end">
-              <Button
-                onClick={saveConfig}
-                disabled={isSaving}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
-              >
-                <Save className={`w-4 h-4 mr-2 ${isSaving ? 'animate-pulse' : ''}`} />
+              <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
+                <Save className="w-4 h-4 mr-2" />
                 {isSaving ? 'Salvando...' : 'Salvar Mensagens'}
               </Button>
             </div>
@@ -854,31 +1010,17 @@ const AdminCobranca = () => {
           {/* Relatórios Tab */}
           <TabsContent value="reports" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Gráfico de Barras - Mensal */}
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+              <Card className="border-border/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <BarChart3 className="w-5 h-5 text-blue-400" />
-                    Envios por Mês
-                  </CardTitle>
-                  <CardDescription>
-                    Histórico de sucesso e erros nos últimos 6 meses
-                  </CardDescription>
+                  <CardTitle>Envios por Mês</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={monthlyStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
                       <Legend />
                       <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -887,71 +1029,35 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Gráfico de Pizza - Canais */}
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+              <Card className="border-border/50">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Send className="w-5 h-5 text-purple-400" />
-                    Distribuição por Canal
-                  </CardTitle>
-                  <CardDescription>
-                    Proporção de envios por Email vs WhatsApp
-                  </CardDescription>
+                  <CardTitle>Por Canal</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
-                      <Pie
-                        data={channelStats}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {channelStats.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#22c55e'} />
+                      <Pie data={channelStats} cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                        {channelStats.map((_, i) => (
+                          <Cell key={i} fill={i === 0 ? '#3b82f6' : '#22c55e'} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
 
-              {/* Gráfico de Barras - Por Tipo */}
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 lg:col-span-2">
+              <Card className="border-border/50 lg:col-span-2">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Calendar className="w-5 h-5 text-amber-400" />
-                    Envios por Tipo de Mensagem
-                  </CardTitle>
-                  <CardDescription>
-                    Comparação entre D-3, D, D+1 e D+2
-                  </CardDescription>
+                  <CardTitle>Por Tipo de Mensagem</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={typeStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
                       <Legend />
                       <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -962,51 +1068,44 @@ const AdminCobranca = () => {
             </div>
           </TabsContent>
 
-          {/* Histórico Tab */}
+          {/* Logs Tab */}
           <TabsContent value="logs">
-            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+            <Card className="border-border/50">
               <CardHeader>
-                <CardTitle className="text-foreground">Histórico de Envios</CardTitle>
-                <CardDescription>
-                  Últimos 500 envios de cobrança
-                </CardDescription>
+                <CardTitle>Histórico de Envios</CardTitle>
+                <CardDescription>Últimos 500 registros</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border border-border/50 overflow-hidden">
+                <div className="rounded-lg border overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableHead className="text-foreground">Cliente</TableHead>
-                        <TableHead className="text-foreground">Contato</TableHead>
-                        <TableHead className="text-foreground">Tipo</TableHead>
-                        <TableHead className="text-foreground">Canal</TableHead>
-                        <TableHead className="text-foreground">Status</TableHead>
-                        <TableHead className="text-foreground">Data/Hora</TableHead>
+                      <TableRow>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead className="hidden sm:table-cell">Contato</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Canal</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden lg:table-cell">Data/Hora</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {logs.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            Nenhum registro de cobrança encontrado
+                            Nenhum registro encontrado
                           </TableCell>
                         </TableRow>
                       ) : (
                         logs.slice(0, 100).map((log) => (
-                          <TableRow key={log.id} className="hover:bg-muted/20">
-                            <TableCell className="font-medium text-foreground">{log.cliente_nome}</TableCell>
-                            <TableCell className="text-muted-foreground">
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">{log.cliente_nome}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-muted-foreground">
                               {log.channel === 'email' ? log.cliente_email : log.cliente_numero}
                             </TableCell>
-                            <TableCell>{getMessageTypeLabel(log.message_type)}</TableCell>
+                            <TableCell><Badge variant="outline">{getMessageTypeLabel(log.message_type)}</Badge></TableCell>
                             <TableCell>{getChannelBadge(log.channel)}</TableCell>
-                            <TableCell>
-                              {getStatusBadge(log.status)}
-                              {log.error_message && (
-                                <p className="text-xs text-red-400 mt-1">{log.error_message}</p>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell>{getStatusBadge(log.status)}</TableCell>
+                            <TableCell className="hidden lg:table-cell text-muted-foreground">
                               {new Date(log.sent_at).toLocaleString('pt-BR')}
                             </TableCell>
                           </TableRow>
