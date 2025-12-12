@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_history: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          rejection_reason: string | null
+          role_assigned: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          role_assigned?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          rejection_reason?: string | null
+          role_assigned?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cpf: string
