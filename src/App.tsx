@@ -18,6 +18,7 @@ import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
 import AdminWebhooks from "./pages/AdminWebhooks";
 import AdminApiKeys from "./pages/AdminApiKeys";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
+import AdminCobranca from "./pages/AdminCobranca";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="/admin/webhooks" element={<ProtectedRoute adminOnly><AdminWebhooks /></ProtectedRoute>} />
         <Route path="/admin/api" element={<ProtectedRoute adminOnly><AdminApiKeys /></ProtectedRoute>} />
         <Route path="/admin/logs" element={<ProtectedRoute adminOnly><AdminAuditLogs /></ProtectedRoute>} />
+        <Route path="/admin/cobranca" element={<ProtectedRoute adminOnly><AdminCobranca /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && isApproved && <ChatPopup />}

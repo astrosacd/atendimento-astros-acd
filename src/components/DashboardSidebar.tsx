@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
-  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key, FileText 
+  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key, FileText, CreditCard 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export function DashboardSidebar() {
 
   const adminItems: NavItem[] = [
     { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: true },
+    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: true },
     { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: true },
     { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: true },
     { title: 'Logs', icon: FileText, path: '/admin/logs', adminOnly: true },

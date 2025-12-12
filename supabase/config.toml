@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.api-clientes]
 verify_jwt = false
+
+[functions.billing-cron]
+verify_jwt = false

@@ -146,11 +146,85 @@ export type Database = {
           },
         ]
       }
+      billing_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_logs: {
+        Row: {
+          channel: string
+          cliente_email: string | null
+          cliente_id: string | null
+          cliente_nome: string
+          cliente_numero: string | null
+          error_message: string | null
+          id: string
+          message_type: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_nome: string
+          cliente_numero?: string | null
+          error_message?: string | null
+          id?: string
+          message_type: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string
+          cliente_numero?: string | null
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_logs_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf: string
           created_at: string
           created_by: string | null
+          data_d_mais_1: string | null
+          data_d_mais_2: string | null
+          data_d_menos_3: string | null
           data_renovacao: string
           email: string
           id: string
@@ -166,6 +240,9 @@ export type Database = {
           cpf: string
           created_at?: string
           created_by?: string | null
+          data_d_mais_1?: string | null
+          data_d_mais_2?: string | null
+          data_d_menos_3?: string | null
           data_renovacao: string
           email: string
           id?: string
@@ -181,6 +258,9 @@ export type Database = {
           cpf?: string
           created_at?: string
           created_by?: string | null
+          data_d_mais_1?: string | null
+          data_d_mais_2?: string | null
+          data_d_menos_3?: string | null
           data_renovacao?: string
           email?: string
           id?: string
