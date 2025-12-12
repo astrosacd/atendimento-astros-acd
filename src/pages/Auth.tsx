@@ -35,6 +35,7 @@ export default function Auth() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   
@@ -55,6 +56,7 @@ export default function Auth() {
   const fetchProfileStatus = async () => {
     if (!user) return;
     
+    setIsLoadingProfile(true);
     const { data, error } = await supabase
       .from('profiles')
       .select('approval_status, rejection_reason, user_response')
@@ -64,6 +66,7 @@ export default function Auth() {
     if (!error && data) {
       setProfileStatus(data as ProfileStatus);
     }
+    setIsLoadingProfile(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -161,7 +164,7 @@ export default function Auth() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || (user && !isApproved && isLoadingProfile)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
