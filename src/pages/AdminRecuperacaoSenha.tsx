@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,16 @@ import {
   User,
   Plus,
   Trash2,
-  Settings2
+  Settings2,
+  Save,
+  History,
+  Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface UserProfile {
   user_id: string;
@@ -29,14 +35,27 @@ interface UserProfile {
 
 interface WhatsAppInstance {
   id: string;
-  name: string;
-  apiUrl: string;
-  apiKey: string;
+  instance_name: string;
+  api_url: string;
+  api_key: string;
+  is_active: boolean;
+}
+
+interface RecoveryLog {
+  id: string;
+  user_email: string;
+  recovery_method: string;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+  whatsapp_instance_id: string | null;
 }
 
 const AdminRecuperacaoSenha = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
@@ -44,6 +63,7 @@ const AdminRecuperacaoSenha = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
   
   // Email config
   const [showEmailConfig, setShowEmailConfig] = useState(false);
@@ -52,10 +72,74 @@ const AdminRecuperacaoSenha = () => {
   
   // WhatsApp instances
   const [showWhatsappConfig, setShowWhatsappConfig] = useState(false);
-  const [whatsappInstances, setWhatsappInstances] = useState<WhatsAppInstance[]>([
-    { id: '1', name: 'Instância Principal', apiUrl: '', apiKey: '' }
-  ]);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string>('1');
+  const [whatsappInstances, setWhatsappInstances] = useState<WhatsAppInstance[]>([]);
+  const [newInstanceName, setNewInstanceName] = useState("");
+  const [newInstanceApiUrl, setNewInstanceApiUrl] = useState("");
+  const [newInstanceApiKey, setNewInstanceApiKey] = useState("");
+
+  // Fetch Gmail config
+  const { data: gmailConfig } = useQuery({
+    queryKey: ['gmail-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recovery_config')
+        .select('config_key, config_value')
+        .in('config_key', ['gmail_user', 'gmail_app_password', 'email_enabled', 'whatsapp_enabled']);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch WhatsApp instances
+  const { data: dbInstances = [], isLoading: isLoadingInstances } = useQuery({
+    queryKey: ['whatsapp-instances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return data as WhatsAppInstance[];
+    }
+  });
+
+  // Fetch recovery logs
+  const { data: recoveryLogs = [], isLoading: isLoadingLogs } = useQuery({
+    queryKey: ['recovery-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('password_recovery_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as RecoveryLog[];
+    }
+  });
+
+  // Load config from database
+  useEffect(() => {
+    if (gmailConfig) {
+      const config = gmailConfig.reduce((acc, item) => {
+        acc[item.config_key] = item.config_value;
+        return acc;
+      }, {} as Record<string, string>);
+      
+      setGmailUser(config.gmail_user || '');
+      setGmailAppPassword(config.gmail_app_password || '');
+      setEmailEnabled(config.email_enabled !== 'false');
+      setWhatsappEnabled(config.whatsapp_enabled !== 'false');
+    }
+  }, [gmailConfig]);
+
+  useEffect(() => {
+    if (dbInstances.length > 0) {
+      setWhatsappInstances(dbInstances);
+    }
+  }, [dbInstances]);
 
   // Fetch users
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
@@ -76,37 +160,160 @@ const AdminRecuperacaoSenha = () => {
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addWhatsAppInstance = () => {
-    const newId = String(Date.now());
-    setWhatsappInstances([
-      ...whatsappInstances,
-      { id: newId, name: `Instância ${whatsappInstances.length + 1}`, apiUrl: '', apiKey: '' }
-    ]);
-  };
+  // Save config mutation
+  const saveConfigMutation = useMutation({
+    mutationFn: async () => {
+      const configs = [
+        { config_key: 'gmail_user', config_value: gmailUser },
+        { config_key: 'gmail_app_password', config_value: gmailAppPassword },
+        { config_key: 'email_enabled', config_value: String(emailEnabled) },
+        { config_key: 'whatsapp_enabled', config_value: String(whatsappEnabled) },
+      ];
 
-  const removeWhatsAppInstance = (id: string) => {
-    if (whatsappInstances.length > 1) {
-      setWhatsappInstances(whatsappInstances.filter(inst => inst.id !== id));
-      if (selectedInstanceId === id) {
-        setSelectedInstanceId(whatsappInstances[0].id);
+      for (const config of configs) {
+        const { error } = await supabase
+          .from('recovery_config')
+          .upsert(config, { onConflict: 'config_key' });
+        if (error) throw error;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gmail-config'] });
+      toast({
+        title: "Configurações salvas!",
+        description: "As configurações foram atualizadas com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive"
+      });
     }
-  };
+  });
 
-  const updateWhatsAppInstance = (id: string, field: keyof WhatsAppInstance, value: string) => {
-    setWhatsappInstances(whatsappInstances.map(inst => 
-      inst.id === id ? { ...inst, [field]: value } : inst
-    ));
-  };
+  // Add WhatsApp instance mutation
+  const addInstanceMutation = useMutation({
+    mutationFn: async (instance: { instance_name: string; api_url: string; api_key: string }) => {
+      const { data, error } = await supabase
+        .from('whatsapp_instances')
+        .insert(instance)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+      setNewInstanceName("");
+      setNewInstanceApiUrl("");
+      setNewInstanceApiKey("");
+      toast({
+        title: "Instância adicionada!",
+        description: "A instância foi salva com sucesso.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao adicionar",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
-  // Rotação de instâncias - pega a próxima instância disponível
-  const getNextInstance = () => {
-    const validInstances = whatsappInstances.filter(inst => inst.apiUrl && inst.apiKey);
-    if (validInstances.length === 0) return null;
+  // Remove WhatsApp instance mutation
+  const removeInstanceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-instances'] });
+      toast({
+        title: "Instância removida!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao remover",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const addWhatsAppInstance = () => {
+    if (!newInstanceName || !newInstanceApiUrl || !newInstanceApiKey) {
+      toast({
+        title: "Preencha todos os campos",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    // Rotação simples baseada no timestamp
-    const index = Date.now() % validInstances.length;
-    return validInstances[index];
+    addInstanceMutation.mutate({
+      instance_name: newInstanceName,
+      api_url: newInstanceApiUrl,
+      api_key: newInstanceApiKey
+    });
+  };
+
+  // Rotação de instâncias - pega a próxima instância disponível e atualiza last_used_at
+  const getNextInstance = async () => {
+    const activeInstances = whatsappInstances.filter(inst => inst.is_active && inst.api_url && inst.api_key);
+    if (activeInstances.length === 0) return null;
+    
+    // Pega a instância menos usada recentemente (ou qualquer uma se nunca usada)
+    const { data: leastUsed } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('is_active', true)
+      .order('last_used_at', { ascending: true, nullsFirst: true })
+      .limit(1)
+      .single();
+    
+    if (leastUsed) {
+      // Atualiza last_used_at
+      await supabase
+        .from('whatsapp_instances')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', leastUsed.id);
+      
+      return leastUsed as WhatsAppInstance;
+    }
+    
+    return activeInstances[0];
+  };
+
+  // Log recovery attempt
+  const logRecoveryAttempt = async (
+    userEmail: string,
+    method: string,
+    status: string,
+    errorMessage?: string,
+    instanceId?: string
+  ) => {
+    if (!user) return;
+    
+    await supabase
+      .from('password_recovery_logs')
+      .insert({
+        user_email: userEmail,
+        recovery_method: method,
+        status,
+        error_message: errorMessage || null,
+        whatsapp_instance_id: instanceId || null,
+        sent_by: user.id
+      });
+    
+    queryClient.invalidateQueries({ queryKey: ['recovery-logs'] });
   };
 
   const handleSendRecoveryEmail = async () => {
@@ -131,11 +338,14 @@ const AdminRecuperacaoSenha = () => {
 
       if (error) throw error;
 
+      await logRecoveryAttempt(selectedUser.email, 'email', 'sent');
+
       toast({
         title: "Email enviado!",
         description: `Link de recuperação enviado para ${selectedUser.email}`,
       });
     } catch (error: any) {
+      await logRecoveryAttempt(selectedUser.email, 'email', 'error', error.message);
       toast({
         title: "Erro ao enviar email",
         description: error.message || "Tente novamente mais tarde",
@@ -165,11 +375,11 @@ const AdminRecuperacaoSenha = () => {
       return;
     }
 
-    const instance = getNextInstance();
+    const instance = await getNextInstance();
     if (!instance) {
       toast({
         title: "Erro",
-        description: "Configure pelo menos uma instância do WhatsApp",
+        description: "Configure pelo menos uma instância ativa do WhatsApp",
         variant: "destructive"
       });
       return;
@@ -182,19 +392,34 @@ const AdminRecuperacaoSenha = () => {
           userId: selectedUser.user_id,
           phone: whatsappNumber,
           userName: selectedUser.name,
-          instanceName: instance.name,
-          apiUrl: instance.apiUrl,
-          apiKey: instance.apiKey
+          instanceName: instance.instance_name,
+          apiUrl: instance.api_url,
+          apiKey: instance.api_key
         }
       });
 
       if (error) throw error;
 
+      await logRecoveryAttempt(
+        selectedUser.email || whatsappNumber, 
+        'whatsapp', 
+        'sent', 
+        undefined, 
+        instance.id
+      );
+
       toast({
         title: "Mensagem enviada!",
-        description: `Link enviado via ${instance.name}`,
+        description: `Link enviado via ${instance.instance_name}`,
       });
     } catch (error: any) {
+      await logRecoveryAttempt(
+        selectedUser.email || whatsappNumber, 
+        'whatsapp', 
+        'error', 
+        error.message, 
+        instance.id
+      );
       toast({
         title: "Erro ao enviar WhatsApp",
         description: error.message || "Tente novamente mais tarde",
@@ -203,6 +428,12 @@ const AdminRecuperacaoSenha = () => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleSaveConfig = async () => {
+    setIsSavingConfig(true);
+    await saveConfigMutation.mutateAsync();
+    setIsSavingConfig(false);
   };
 
   return (
@@ -235,9 +466,23 @@ const AdminRecuperacaoSenha = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Configurações de Métodos */}
         <Card className="border-border/40 bg-card/50 backdrop-blur-sm mb-6">
-          <CardHeader>
-            <CardTitle className="text-foreground">Métodos de Recuperação</CardTitle>
-            <CardDescription>Configure quais métodos estão disponíveis</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-foreground">Métodos de Recuperação</CardTitle>
+              <CardDescription>Configure quais métodos estão disponíveis</CardDescription>
+            </div>
+            <Button
+              onClick={handleSaveConfig}
+              disabled={isSavingConfig}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSavingConfig ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar Configurações
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Email Config */}
@@ -313,7 +558,7 @@ const AdminRecuperacaoSenha = () => {
                   <div>
                     <p className="font-medium text-foreground">WhatsApp</p>
                     <p className="text-sm text-muted-foreground">
-                      Enviar link via Evolution API ({whatsappInstances.length} instância{whatsappInstances.length > 1 ? 's' : ''})
+                      Enviar link via Evolution API ({whatsappInstances.length} instância{whatsappInstances.length !== 1 ? 's' : ''})
                     </p>
                   </div>
                 </div>
@@ -335,66 +580,84 @@ const AdminRecuperacaoSenha = () => {
               
               {showWhatsappConfig && (
                 <div className="pt-4 border-t border-border/40 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Configure as instâncias da Evolution API (rotação automática)
-                    </p>
+                  <p className="text-sm text-muted-foreground">
+                    Configure as instâncias da Evolution API (rotação automática)
+                  </p>
+                  
+                  {/* Lista de instâncias existentes */}
+                  {isLoadingInstances ? (
+                    <div className="text-center py-4 text-muted-foreground">Carregando...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {whatsappInstances.map((instance) => (
+                        <div key={instance.id} className="p-3 rounded-lg bg-background/50 border border-border/40 flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-foreground">{instance.instance_name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-xs">{instance.api_url}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeInstanceMutation.mutate(instance.id)}
+                            disabled={removeInstanceMutation.isPending}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Adicionar nova instância */}
+                  <div className="p-4 rounded-lg bg-background/30 border border-dashed border-border/60 space-y-3">
+                    <p className="text-sm font-medium text-foreground">Adicionar Nova Instância</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Nome</Label>
+                        <Input
+                          placeholder="Ex: Instância 1"
+                          value={newInstanceName}
+                          onChange={(e) => setNewInstanceName(e.target.value)}
+                          className="bg-background/50 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">URL da API</Label>
+                        <Input
+                          placeholder="https://api.evolution..."
+                          value={newInstanceApiUrl}
+                          onChange={(e) => setNewInstanceApiUrl(e.target.value)}
+                          className="bg-background/50 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">API Key</Label>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          value={newInstanceApiKey}
+                          onChange={(e) => setNewInstanceApiKey(e.target.value)}
+                          className="bg-background/50 text-sm"
+                        />
+                      </div>
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={addWhatsAppInstance}
+                      disabled={addInstanceMutation.isPending}
                       className="text-primary border-primary/40 hover:bg-primary/10"
                     >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Adicionar
+                      {addInstanceMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-1" />
+                      )}
+                      Adicionar Instância
                     </Button>
                   </div>
                   
-                  <div className="space-y-4">
-                    {whatsappInstances.map((instance, index) => (
-                      <div key={instance.id} className="p-4 rounded-lg bg-background/50 border border-border/40 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <Input
-                            value={instance.name}
-                            onChange={(e) => updateWhatsAppInstance(instance.id, 'name', e.target.value)}
-                            className="bg-transparent border-none p-0 h-auto font-medium text-foreground focus-visible:ring-0"
-                            placeholder="Nome da instância"
-                          />
-                          {whatsappInstances.length > 1 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeWhatsAppInstance(instance.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">URL da API</Label>
-                            <Input
-                              placeholder="https://api.evolution.com/instance"
-                              value={instance.apiUrl}
-                              onChange={(e) => updateWhatsAppInstance(instance.id, 'apiUrl', e.target.value)}
-                              className="bg-background/50 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs text-muted-foreground">API Key</Label>
-                            <Input
-                              type="password"
-                              placeholder="••••••••••••••••"
-                              value={instance.apiKey}
-                              onChange={(e) => updateWhatsAppInstance(instance.id, 'apiKey', e.target.value)}
-                              className="bg-background/50 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                   <p className="text-xs text-muted-foreground">
                     Com múltiplas instâncias, o sistema faz rotação automática para não sobrecarregar um único número.
                   </p>
@@ -430,23 +693,23 @@ const AdminRecuperacaoSenha = () => {
                     Nenhum usuário encontrado
                   </div>
                 ) : (
-                  filteredUsers.map((user) => (
+                  filteredUsers.map((userItem) => (
                     <div
-                      key={user.user_id}
+                      key={userItem.user_id}
                       className={`p-3 rounded-lg cursor-pointer transition-all ${
-                        selectedUser?.user_id === user.user_id
+                        selectedUser?.user_id === userItem.user_id
                           ? 'bg-primary/20 border border-primary/40'
                           : 'bg-muted/30 hover:bg-muted/50'
                       }`}
-                      onClick={() => setSelectedUser(user)}
+                      onClick={() => setSelectedUser(userItem)}
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                           <User className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">{user.email || 'Sem email'}</p>
+                          <p className="font-medium text-foreground">{userItem.name}</p>
+                          <p className="text-sm text-muted-foreground">{userItem.email || 'Sem email'}</p>
                         </div>
                       </div>
                     </div>
@@ -459,7 +722,7 @@ const AdminRecuperacaoSenha = () => {
 
         {/* Ações de Recuperação - Layout lado a lado */}
         {selectedUser && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Email */}
             {emailEnabled && (
               <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
@@ -524,6 +787,61 @@ const AdminRecuperacaoSenha = () => {
             )}
           </div>
         )}
+
+        {/* Histórico de Recuperações */}
+        <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-foreground">Histórico de Recuperações</CardTitle>
+            </div>
+            <CardDescription>Últimas 50 tentativas de recuperação de senha</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingLogs ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Carregando histórico...
+              </div>
+            ) : recoveryLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma recuperação registrada ainda
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {recoveryLogs.map((log) => (
+                  <div 
+                    key={log.id} 
+                    className={`p-3 rounded-lg flex items-center justify-between ${
+                      log.status === 'sent' ? 'bg-green-500/10' : 'bg-destructive/10'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {log.recovery_method === 'email' ? (
+                        <Mail className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <MessageSquare className="h-4 w-4 text-green-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{log.user_email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`text-xs font-medium px-2 py-1 rounded ${
+                      log.status === 'sent' 
+                        ? 'bg-green-500/20 text-green-600' 
+                        : 'bg-destructive/20 text-destructive'
+                    }`}>
+                      {log.status === 'sent' ? 'Enviado' : 'Erro'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
