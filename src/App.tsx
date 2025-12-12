@@ -15,6 +15,7 @@ import ExcluirCliente from "./pages/ExcluirCliente";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import Admin from "./pages/Admin";
 import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
+import AdminWebhooks from "./pages/AdminWebhooks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ function AppRoutes() {
         <Route path="/usuarios" element={<ProtectedRoute adminOnly><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
         <Route path="/admin/recuperacao-senha" element={<ProtectedRoute adminOnly><AdminRecuperacaoSenha /></ProtectedRoute>} />
+        <Route path="/admin/webhooks" element={<ProtectedRoute adminOnly><AdminWebhooks /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {user && isApproved && <ChatPopup />}

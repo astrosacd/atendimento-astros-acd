@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWebhooks } from '@/hooks/useWebhooks';
 
 export interface Cliente {
   id: string;
@@ -32,6 +33,7 @@ export interface ClienteInput {
 export const useClientes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { triggerWebhooks } = useWebhooks();
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -98,6 +100,11 @@ export const useClientes = () => {
         title: 'Cliente cadastrado com sucesso!',
         description: `${cliente.nome} foi adicionado ao sistema.`,
       });
+
+      // Trigger webhooks
+      if (data) {
+        triggerWebhooks('cliente.created', data);
+      }
       
       return data as Cliente;
     } catch (error: any) {
@@ -127,6 +134,11 @@ export const useClientes = () => {
       toast({
         title: 'Cliente atualizado com sucesso!',
       });
+
+      // Trigger webhooks
+      if (data) {
+        triggerWebhooks('cliente.updated', data);
+      }
       
       return data as Cliente;
     } catch (error: any) {
@@ -141,7 +153,7 @@ export const useClientes = () => {
     }
   };
 
-  const deleteCliente = async (id: string) => {
+  const deleteCliente = async (id: string, clienteData?: Record<string, unknown>) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -154,6 +166,11 @@ export const useClientes = () => {
       toast({
         title: 'Cliente excluído com sucesso!',
       });
+
+      // Trigger webhooks
+      if (clienteData) {
+        triggerWebhooks('cliente.deleted', { id, ...clienteData });
+      }
       
       return true;
     } catch (error: any) {
