@@ -9,8 +9,12 @@ interface Message {
   content: string;
 }
 
-export default function ChatPopup() {
-  const [isOpen, setIsOpen] = useState(false);
+interface ChatPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -65,28 +69,23 @@ export default function ChatPopup() {
     }
   };
 
-  return (
-    <>
-      {/* Floating Button */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 h-14 px-5 rounded-full bg-gradient-to-r from-purple-600 to-purple-800 text-foreground shadow-lg hover:from-purple-700 hover:to-purple-900 z-50"
-      >
-        {isOpen ? <X className="w-5 h-5" /> : <MessageCircle className="w-5 h-5 mr-2" />}
-        {!isOpen && 'Ajuda'}
-      </Button>
+  if (!isOpen) return null;
 
-      {/* Chat Popup */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-4">
-            <h3 className="font-bold text-foreground flex items-center gap-2">
-              <Bot className="w-5 h-5" />
-              Lyra - Assistente Virtual
-            </h3>
-            <p className="text-sm text-foreground/80">Como posso ajudar?</p>
-          </div>
+  return (
+    <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-4 flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-foreground flex items-center gap-2">
+            <Bot className="w-5 h-5" />
+            Lyra - Assistente Virtual
+          </h3>
+          <p className="text-sm text-foreground/80">Como posso ajudar?</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-foreground hover:bg-white/20">
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
 
           {/* Messages */}
           <div className="h-64 overflow-y-auto p-4 space-y-3 bg-secondary/50">
@@ -159,8 +158,6 @@ export default function ChatPopup() {
               <Send className="w-4 h-4" />
             </Button>
           </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

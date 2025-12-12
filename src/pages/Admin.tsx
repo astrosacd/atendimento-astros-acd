@@ -1,7 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { 
   Users, 
   KeyRound, 
@@ -9,12 +14,55 @@ import {
   Shield,
   ArrowLeft,
   UserCheck,
-  Database
+  Database,
+  MessageCircle
 } from "lucide-react";
 
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [chatEnabled, setChatEnabled] = useState(false);
+  const [savingChat, setSavingChat] = useState(false);
+
+  useEffect(() => {
+    const loadChatConfig = async () => {
+      const { data } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .eq('config_key', 'chat_enabled')
+        .maybeSingle();
+      setChatEnabled(data?.config_value === 'true');
+    };
+    loadChatConfig();
+  }, []);
+
+  const handleChatToggle = async (enabled: boolean) => {
+    setSavingChat(true);
+    try {
+      const { data: existing } = await supabase
+        .from('billing_config')
+        .select('id')
+        .eq('config_key', 'chat_enabled')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('billing_config')
+          .update({ config_value: enabled ? 'true' : 'false' })
+          .eq('config_key', 'chat_enabled');
+      } else {
+        await supabase
+          .from('billing_config')
+          .insert({ config_key: 'chat_enabled', config_value: enabled ? 'true' : 'false' });
+      }
+      setChatEnabled(enabled);
+      toast.success(enabled ? 'Chat de ajuda ativado' : 'Chat de ajuda desativado');
+    } catch (error) {
+      toast.error('Erro ao salvar configuração');
+    } finally {
+      setSavingChat(false);
+    }
+  };
 
   const adminModules = [
     {
@@ -140,6 +188,32 @@ const Admin = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Chat Configuration */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Configurações Gerais</h2>
+          <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                    <MessageCircle className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <Label htmlFor="chat-toggle" className="text-foreground font-medium">Chat de Ajuda (Lyra)</Label>
+                    <p className="text-sm text-muted-foreground">Habilitar assistente virtual no menu lateral</p>
+                  </div>
+                </div>
+                <Switch
+                  id="chat-toggle"
+                  checked={chatEnabled}
+                  onCheckedChange={handleChatToggle}
+                  disabled={savingChat}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
