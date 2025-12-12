@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User } from 'lucide-react';
+import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
 }
 
 interface ChatConfig {
@@ -19,6 +27,7 @@ interface ChatConfig {
   operatingHoursEnd: string;
   offlineMessage: string;
   quickReplies: { trigger: string; response: string }[];
+  aiModel: string;
 }
 
 interface ChatPopupProps {
@@ -45,9 +54,14 @@ const themeBgColors: Record<string, string> = {
 };
 
 export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [currentModel, setCurrentModel] = useState<string>('');
   const [config, setConfig] = useState<ChatConfig>({
     name: 'Lyra',
     welcomeMessage: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudá-lo hoje?',
@@ -58,6 +72,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     operatingHoursEnd: '18:00',
     offlineMessage: 'Estamos fora do horário de atendimento.',
     quickReplies: [],
+    aiModel: 'google/gemini-2.5-flash',
   });
   const [isOffline, setIsOffline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -70,6 +85,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Load config
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -101,7 +117,9 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
             operatingHoursEnd: configMap.chat_operating_hours_end || '18:00',
             offlineMessage: configMap.chat_offline_message || 'Estamos fora do horário de atendimento.',
             quickReplies,
+            aiModel: configMap.chat_ai_model || 'google/gemini-2.5-flash',
           });
+          setCurrentModel(configMap.chat_ai_model || 'google/gemini-2.5-flash');
         }
       } catch (error) {
         console.error('Error loading chat config:', error);
@@ -110,6 +128,96 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
 
     loadConfig();
   }, []);
+
+  // Load conversations
+  useEffect(() => {
+    if (user) {
+      loadConversations();
+    }
+  }, [user]);
+
+  const loadConversations = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('id, title, created_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('role, content')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      setMessages(data?.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })) || []);
+      setCurrentConversationId(conversationId);
+      setShowHistory(false);
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  const createNewConversation = async () => {
+    if (!user) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .insert({ user_id: user.id, title: 'Nova conversa' })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      
+      setCurrentConversationId(data.id);
+      setMessages([]);
+      loadConversations();
+      return data.id;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      return null;
+    }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) throw error;
+      
+      if (currentConversationId === conversationId) {
+        setCurrentConversationId(null);
+        setMessages([]);
+      }
+      loadConversations();
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
+  const startNewChat = () => {
+    setCurrentConversationId(null);
+    setMessages([]);
+    setShowHistory(false);
+  };
 
   // Check operating hours
   useEffect(() => {
@@ -172,8 +280,18 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     setIsLoading(true);
 
     try {
+      // Create conversation if needed
+      let convId = currentConversationId;
+      if (!convId && user) {
+        convId = await createNewConversation();
+      }
+
       const { data, error } = await supabase.functions.invoke('chat-lyra', {
-        body: { messages: [...messages, userMessage] },
+        body: { 
+          messages: [...messages, userMessage],
+          conversationId: convId,
+          userId: user?.id
+        },
       });
 
       if (error) throw error;
@@ -183,6 +301,10 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
         content: data.response || 'Desculpe, não consegui processar sua mensagem.',
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      
+      if (data.model) {
+        setCurrentModel(data.model);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages((prev) => [
@@ -210,94 +332,160 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const bgColor = themeBgColors[config.themeColor] || themeBgColors.purple;
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
+    <div className="fixed bottom-6 right-6 w-96 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in">
       {/* Header */}
       <div className={`bg-gradient-to-r ${gradient} p-4 flex items-center justify-between`}>
-        <div>
-          <h3 className="font-bold text-white flex items-center gap-2">
-            <Bot className="w-5 h-5" />
-            {config.name} - Assistente Virtual
-          </h3>
-          <p className="text-sm text-white/80">
-            {isOffline ? 'Fora do horário' : 'Como posso ajudar?'}
-          </p>
+        <div className="flex items-center gap-2">
+          {showHistory && (
+            <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)} className="text-white hover:bg-white/20 h-8 w-8">
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+          )}
+          <div>
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <Bot className="w-5 h-5" />
+              {showHistory ? 'Histórico' : `${config.name}`}
+            </h3>
+            {!showHistory && (
+              <p className="text-xs text-white/70">
+                {currentModel ? currentModel.split('/')[1] : config.aiModel.split('/')[1]}
+              </p>
+            )}
+          </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!showHistory && (
+            <>
+              <Button variant="ghost" size="icon" onClick={startNewChat} className="text-white hover:bg-white/20 h-8 w-8" title="Nova conversa">
+                <Plus className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setShowHistory(true)} className="text-white hover:bg-white/20 h-8 w-8" title="Histórico">
+                <History className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 h-8 w-8">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Messages */}
-      <div className="h-64 overflow-y-auto p-4 space-y-3 bg-secondary/50">
-        {messages.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm">
-            {config.welcomeMessage}
-          </p>
-        )}
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex gap-2 ${
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            } animate-fade-in`}
-          >
-            {message.role === 'assistant' && (
-              <div className={`w-6 h-6 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
-                <Bot className="w-4 h-4 text-white" />
+      {showHistory ? (
+        /* History View */
+        <ScrollArea className="h-80 p-4 bg-secondary/50">
+          {conversations.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-8">
+              Nenhuma conversa salva ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between group ${
+                    currentConversationId === conv.id 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border/40 hover:border-border hover:bg-background/50'
+                  }`}
+                  onClick={() => loadConversation(conv.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{conv.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(conv.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation(conv.id);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      ) : (
+        /* Chat View */
+        <>
+          <div className="h-72 overflow-y-auto p-4 space-y-3 bg-secondary/50">
+            {messages.length === 0 && (
+              <p className="text-center text-muted-foreground text-sm">
+                {config.welcomeMessage}
+              </p>
+            )}
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex gap-2 ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                } animate-fade-in`}
+              >
+                {message.role === 'assistant' && (
+                  <div className={`w-6 h-6 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[80%] p-3 rounded-xl text-sm ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground'
+                  }`}
+                >
+                  {message.content}
+                </div>
+                {message.role === 'user' && (
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex gap-2 justify-start">
+                <div className={`w-6 h-6 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+                <div className="bg-muted p-3 rounded-xl">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
               </div>
             )}
-            <div
-              className={`max-w-[80%] p-3 rounded-xl text-sm ${
-                message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
-              }`}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="p-3 border-t border-border bg-card flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={config.placeholder}
+              className="flex-1 bg-input border-border text-foreground"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {message.content}
-            </div>
-            {message.role === 'user' && (
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-primary-foreground" />
-              </div>
-            )}
+              <Send className="w-4 h-4" />
+            </Button>
           </div>
-        ))}
-        {isLoading && (
-          <div className="flex gap-2 justify-start">
-            <div className={`w-6 h-6 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-            <div className="bg-muted p-3 rounded-xl">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div className="p-3 border-t border-border bg-card flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={config.placeholder}
-          className="flex-1 bg-input border-border text-foreground"
-          disabled={isLoading}
-        />
-        <Button
-          onClick={sendMessage}
-          disabled={isLoading || !input.trim()}
-          size="icon"
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </div>
+        </>
+      )}
     </div>
   );
 }
