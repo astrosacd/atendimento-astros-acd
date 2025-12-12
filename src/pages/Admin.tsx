@@ -19,7 +19,7 @@ const Admin = () => {
   const adminModules = [
     {
       title: "Gerenciar Usuários",
-      description: "Aprovar, rejeitar e gerenciar contas de usuários",
+      description: "Aprovar, rejeitar e gerenciar contas e permissões",
       icon: Users,
       path: "/usuarios",
       color: "from-blue-500/20 to-blue-600/10"
@@ -30,13 +30,6 @@ const Admin = () => {
       icon: KeyRound,
       path: "/admin/recuperacao-senha",
       color: "from-amber-500/20 to-amber-600/10"
-    },
-    {
-      title: "Controle de Acesso",
-      description: "Gerenciar permissões e roles dos usuários",
-      icon: Shield,
-      path: "/usuarios",
-      color: "from-emerald-500/20 to-emerald-600/10"
     }
   ];
 
