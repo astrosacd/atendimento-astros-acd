@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserPlus, Search, Edit, Trash2, LogOut, Users, Settings, ChevronRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, Calendar, Webhook } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, userRole, isAdmin, isApproved, signOut } = useAuth();
+  const { user, userRole, isAdmin, isApproved } = useAuth();
+  const [stats, setStats] = useState({ totalClientes: 0, pendingUsers: 0, activeWebhooks: 0 });
 
   useEffect(() => {
     if (user && !isApproved) {
@@ -15,10 +17,39 @@ export default function Dashboard() {
     }
   }, [user, isApproved, navigate]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
+  useEffect(() => {
+    const fetchStats = async () => {
+      // Fetch client count
+      const { count: clienteCount } = await supabase
+        .from('clientes')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch pending users count (admin only)
+      let pendingCount = 0;
+      let webhookCount = 0;
+      if (isAdmin) {
+        const { count: pending } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('approval_status', 'pending');
+        pendingCount = pending || 0;
+
+        const { count: webhooks } = await supabase
+          .from('webhooks')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true);
+        webhookCount = webhooks || 0;
+      }
+
+      setStats({
+        totalClientes: clienteCount || 0,
+        pendingUsers: pendingCount,
+        activeWebhooks: webhookCount,
+      });
+    };
+
+    if (user) fetchStats();
+  }, [user, isAdmin]);
 
   const clientActions = [
     {
@@ -56,70 +87,89 @@ export default function Dashboard() {
   ];
 
   const adminActions = [
-    {
-      title: 'Gerenciar Usuários',
-      description: 'Criar, editar e gerenciar acessos',
-      icon: Users,
-      path: '/usuarios',
-    },
-    {
-      title: 'Configurações',
-      description: 'Recuperação de senha e mais',
-      icon: Settings,
-      path: '/admin',
-    },
+    { title: 'Gerenciar Usuários', description: 'Criar, editar e gerenciar acessos', icon: Users, path: '/usuarios' },
+    { title: 'Webhooks', description: 'Integrações e automações', icon: Webhook, path: '/admin/webhooks' },
+    { title: 'Configurações', description: 'Recuperação de senha e mais', icon: Settings, path: '/admin' },
   ];
 
   const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img 
-              src="https://i.imgur.com/odbwwWW.png" 
-              alt="Astros Comunicação Digital" 
-              className="h-10"
-            />
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-foreground">Astros Digital</h1>
-              <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground truncate max-w-[200px]">
-                {user?.email}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {userRole === 'admin' ? 'Administrador' : 'Visualizador'}
-              </p>
-            </div>
-            <Button
-              onClick={handleSignOut}
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Sair</span>
-            </Button>
+    <DashboardLayout>
+      <div className="p-6 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Bem-vindo de volta!
+            </h1>
+            <p className="text-muted-foreground">
+              {user?.email} • {userRole === 'admin' ? 'Administrador' : 'Visualizador'}
+            </p>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            Bem-vindo de volta!
-          </h2>
-          <p className="text-muted-foreground">
-            O que você gostaria de fazer hoje?
-          </p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalClientes}</p>
+                  <p className="text-xs text-muted-foreground">Clientes Cadastrados</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {isAdmin && (
+            <>
+              <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{stats.pendingUsers}</p>
+                      <p className="text-xs text-muted-foreground">Usuários Pendentes</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-violet-500/10 to-violet-500/5 border-violet-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                      <Webhook className="h-5 w-5 text-violet-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{stats.activeWebhooks}</p>
+                      <p className="text-xs text-muted-foreground">Webhooks Ativos</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+          
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">24/7</p>
+                  <p className="text-xs text-muted-foreground">Sistema Online</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Client Actions */}
@@ -158,7 +208,7 @@ export default function Dashboard() {
               <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
               Administração
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {adminActions.map((item) => (
                 <Card 
                   key={item.path}
@@ -186,29 +236,7 @@ export default function Dashboard() {
             </div>
           </section>
         )}
-
-        {/* Quick Stats (Optional visual element) */}
-        <section className="mt-10 pt-8 border-t border-border/40">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-2xl font-bold text-foreground">CRM</p>
-              <p className="text-xs text-muted-foreground">Sistema Ativo</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-2xl font-bold text-primary">24/7</p>
-              <p className="text-xs text-muted-foreground">Disponibilidade</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-2xl font-bold text-foreground">Cloud</p>
-              <p className="text-xs text-muted-foreground">Hospedagem</p>
-            </div>
-            <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-2xl font-bold text-emerald-500">Seguro</p>
-              <p className="text-xs text-muted-foreground">Dados Protegidos</p>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
