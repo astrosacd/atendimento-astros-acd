@@ -30,6 +30,7 @@ export interface ClienteInput {
   cpf: string;
   plano?: string;
   valor: number;
+  observacao?: string;
 }
 
 export const useClientes = () => {
