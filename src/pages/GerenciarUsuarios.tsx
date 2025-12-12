@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,14 +32,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
-type AppRole = 'admin' | 'user' | 'operador' | 'gerente';
+interface CustomRole {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  color: string;
+  is_system_role: boolean;
+}
 
 interface UserWithRole {
   id: string;
   email: string;
   name: string;
-  role: AppRole;
+  role: string;
   approval_status: 'pending' | 'approved' | 'rejected';
   rejection_reason: string | null;
   user_response: string | null;
@@ -67,9 +75,9 @@ export default function GerenciarUsuarios() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<AppRole>('user');
+  const [newUserRole, setNewUserRole] = useState<string>('user');
   const [isCreating, setIsCreating] = useState(false);
-  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   
   // Rejection dialog state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -83,7 +91,21 @@ export default function GerenciarUsuarios() {
   // Approval dialog state (with role selection)
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
-  const [approveRole, setApproveRole] = useState<AppRole>('user');
+  const [approveRole, setApproveRole] = useState<string>('user');
+
+  // Fetch custom roles from database
+  const { data: customRoles = [] } = useQuery({
+    queryKey: ['custom-roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .select('*')
+        .order('is_system_role', { ascending: false })
+        .order('display_name');
+      if (error) throw error;
+      return data as CustomRole[];
+    },
+  });
 
   // Fetch all users with their roles
   const { data: users = [], isLoading } = useQuery({
@@ -108,7 +130,7 @@ export default function GerenciarUsuarios() {
           id: profile.user_id,
           email: profile.email || '',
           name: profile.name,
-          role: (userRole?.role as AppRole) || 'user',
+          role: userRole?.role || 'user',
           approval_status: (profile.approval_status as 'pending' | 'approved' | 'rejected') || 'pending',
           rejection_reason: profile.rejection_reason,
           user_response: profile.user_response,
@@ -164,11 +186,11 @@ export default function GerenciarUsuarios() {
       acc[user.role] = (acc[user.role] || 0) + 1;
     }
     return acc;
-  }, {} as Record<AppRole, number>);
+  }, {} as Record<string, number>);
 
   // Approve user mutation with role selection
   const approveMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -182,21 +204,17 @@ export default function GerenciarUsuarios() {
 
       if (profileError) throw profileError;
 
-      // Update role
+      // Update role - cast to any since we now support dynamic roles
       const { error: roleError } = await supabase
         .from('user_roles')
-        .update({ role })
+        .update({ role: role as any })
         .eq('user_id', userId);
 
       if (roleError) throw roleError;
 
-      // Add to history
-      const roleNames: Record<AppRole, string> = {
-        admin: 'Administrador',
-        user: 'Visualizador',
-        operador: 'Operador',
-        gerente: 'Gerente',
-      };
+      // Add to history - get role display name from customRoles
+      const roleInfo = customRoles.find(r => r.name === role);
+      const roleDisplayName = roleInfo?.display_name || role;
       
       const { error: historyError } = await supabase
         .from('approval_history')
@@ -204,7 +222,7 @@ export default function GerenciarUsuarios() {
           user_id: userId,
           admin_id: currentUser?.id,
           action: 'approved',
-          role_assigned: roleNames[role],
+          role_assigned: roleDisplayName,
         });
 
       if (historyError) console.error('Error adding to history:', historyError);
@@ -303,10 +321,10 @@ export default function GerenciarUsuarios() {
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
       const { error } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
+        .update({ role: newRole as any })
         .eq('user_id', userId);
 
       if (error) throw error;
@@ -422,7 +440,7 @@ export default function GerenciarUsuarios() {
     }
   };
 
-  const handleRoleChange = (userId: string, newRole: AppRole) => {
+  const handleRoleChange = (userId: string, newRole: string) => {
     if (userId === currentUser?.id) {
       toast({
         title: 'Ação não permitida',
@@ -434,17 +452,31 @@ export default function GerenciarUsuarios() {
     updateRoleMutation.mutate({ userId, newRole });
   };
 
-  const getRoleBadge = (role: AppRole) => {
-    switch (role) {
-      case 'admin':
-        return <Badge className="bg-primary/10 text-primary border-primary"><Shield className="h-3 w-3 mr-1" />Administrador</Badge>;
-      case 'operador':
-        return <Badge className="bg-orange-500/10 text-orange-500 border-orange-500"><UserPlus className="h-3 w-3 mr-1" />Operador</Badge>;
-      case 'gerente':
-        return <Badge className="bg-purple-500/10 text-purple-500 border-purple-500"><Shield className="h-3 w-3 mr-1" />Gerente</Badge>;
-      default:
-        return <Badge variant="outline" className="text-muted-foreground"><Eye className="h-3 w-3 mr-1" />Visualizador</Badge>;
+  const getRoleColor = (colorName: string) => {
+    const colorMap: Record<string, string> = {
+      emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500',
+      orange: 'bg-orange-500/20 text-orange-400 border-orange-500',
+      purple: 'bg-purple-500/20 text-purple-400 border-purple-500',
+      blue: 'bg-blue-500/20 text-blue-400 border-blue-500',
+      red: 'bg-red-500/20 text-red-400 border-red-500',
+      yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500',
+      pink: 'bg-pink-500/20 text-pink-400 border-pink-500',
+      gray: 'bg-gray-500/20 text-gray-400 border-gray-500',
+    };
+    return colorMap[colorName] || colorMap.gray;
+  };
+
+  const getRoleBadge = (roleName: string) => {
+    const roleInfo = customRoles.find(r => r.name === roleName);
+    if (roleInfo) {
+      return (
+        <Badge className={cn(getRoleColor(roleInfo.color))}>
+          <Shield className="h-3 w-3 mr-1" />
+          {roleInfo.display_name}
+        </Badge>
+      );
     }
+    return <Badge variant="outline" className="text-muted-foreground"><Eye className="h-3 w-3 mr-1" />Usuário</Badge>;
   };
 
   return (
@@ -599,35 +631,19 @@ export default function GerenciarUsuarios() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Tipo</Label>
-                <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as AppRole)}>
+                <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v)}>
                   <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">
-                      <span className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-primary" />
-                        Administrador
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="operador">
-                      <span className="flex items-center gap-2">
-                        <UserPlus className="h-4 w-4 text-orange-500" />
-                        Operador
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="gerente">
-                      <span className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-purple-500" />
-                        Gerente
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="user">
-                      <span className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                        Visualizador
-                      </span>
-                    </SelectItem>
+                    {customRoles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        <span className="flex items-center gap-2">
+                          <Shield className={cn("h-4 w-4", getRoleColor(role.color).split(' ')[1])} />
+                          {role.display_name}
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -658,42 +674,22 @@ export default function GerenciarUsuarios() {
                 >
                   Todos ({users.filter(u => u.approval_status === 'approved').length})
                 </Button>
-                <Button
-                  variant={roleFilter === 'admin' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRoleFilter('admin')}
-                  className={roleFilter === 'admin' ? 'bg-primary text-primary-foreground' : 'border-primary text-primary'}
-                >
-                  <Shield className="h-3 w-3 mr-1" />
-                  Admin ({roleCounts.admin || 0})
-                </Button>
-                <Button
-                  variant={roleFilter === 'operador' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRoleFilter('operador')}
-                  className={roleFilter === 'operador' ? 'bg-orange-500 text-white' : 'border-orange-500 text-orange-500'}
-                >
-                  <UserPlus className="h-3 w-3 mr-1" />
-                  Operador ({roleCounts.operador || 0})
-                </Button>
-                <Button
-                  variant={roleFilter === 'gerente' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRoleFilter('gerente')}
-                  className={roleFilter === 'gerente' ? 'bg-purple-500 text-white' : 'border-purple-500 text-purple-500'}
-                >
-                  <Shield className="h-3 w-3 mr-1" />
-                  Gerente ({roleCounts.gerente || 0})
-                </Button>
-                <Button
-                  variant={roleFilter === 'user' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setRoleFilter('user')}
-                  className={roleFilter === 'user' ? 'bg-muted text-muted-foreground' : 'border-border text-muted-foreground'}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  Visualizador ({roleCounts.user || 0})
-                </Button>
+                {customRoles.map((role) => (
+                  <Button
+                    key={role.id}
+                    variant={roleFilter === role.name ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRoleFilter(role.name)}
+                    className={cn(
+                      roleFilter === role.name 
+                        ? getRoleColor(role.color).replace('/20', '') 
+                        : `border-${role.color}-500 text-${role.color}-500`
+                    )}
+                  >
+                    <Shield className="h-3 w-3 mr-1" />
+                    {role.display_name} ({roleCounts[role.name] || 0})
+                  </Button>
+                ))}
               </div>
             </div>
           </CardHeader>
@@ -732,16 +728,17 @@ export default function GerenciarUsuarios() {
                             <div className="flex items-center gap-2">
                               <Select
                                 value={user.role}
-                                onValueChange={(newRole) => handleRoleChange(user.id, newRole as AppRole)}
+                                onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
                               >
-                                <SelectTrigger className="w-[140px] border-border">
+                                <SelectTrigger className="w-[160px] border-border">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="admin">Administrador</SelectItem>
-                                  <SelectItem value="operador">Operador</SelectItem>
-                                  <SelectItem value="gerente">Gerente</SelectItem>
-                                  <SelectItem value="user">Visualizador</SelectItem>
+                                  {customRoles.map((role) => (
+                                    <SelectItem key={role.id} value={role.name}>
+                                      {role.display_name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                               <AlertDialog>
@@ -858,35 +855,19 @@ export default function GerenciarUsuarios() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Tipo de Usuário</Label>
-                <Select value={approveRole} onValueChange={(v) => setApproveRole(v as AppRole)}>
+                <Select value={approveRole} onValueChange={(v) => setApproveRole(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">
-                      <span className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-primary" />
-                        Administrador - Acesso completo
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="operador">
-                      <span className="flex items-center gap-2">
-                        <UserPlus className="h-4 w-4 text-orange-500" />
-                        Operador - Cadastra e atualiza
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="gerente">
-                      <span className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-purple-500" />
-                        Gerente - Gerencia seus clientes
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="user">
-                      <span className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                        Visualizador - Apenas consulta
-                      </span>
-                    </SelectItem>
+                    {customRoles.map((role) => (
+                      <SelectItem key={role.id} value={role.name}>
+                        <span className="flex items-center gap-2">
+                          <Shield className={cn("h-4 w-4", getRoleColor(role.color).split(' ')[1])} />
+                          {role.display_name} - {role.description?.substring(0, 30)}...
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
