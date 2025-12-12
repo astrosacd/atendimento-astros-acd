@@ -23,13 +23,22 @@ interface NavItem {
   color?: string;
 }
 
-export function DashboardSidebar({ onOpenChat }: { onOpenChat?: () => void }) {
+interface DashboardSidebarProps {
+  onOpenChat?: () => void;
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
   const [chatEnabled, setChatEnabled] = useState(false);
   const [userName, setUserName] = useState('');
+
+  const handleToggle = () => {
+    onCollapsedChange?.(!collapsed);
+  };
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -153,7 +162,7 @@ export function DashboardSidebar({ onOpenChat }: { onOpenChat?: () => void }) {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={handleToggle}
         className={cn(
           "absolute -right-3 top-20 h-6 w-6 rounded-full border border-border bg-card shadow-md hover:bg-muted transition-all",
           "flex items-center justify-center z-30"
