@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import ChatPopup from "@/components/ChatPopup";
 
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -80,7 +79,6 @@ function AppRoutes() {
         <Route path="/admin/cobranca" element={<ProtectedRoute adminOnly><AdminCobranca /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {user && isApproved && <ChatPopup />}
     </>
   );
 }

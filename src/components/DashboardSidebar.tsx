@@ -2,11 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
-  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key, FileText, CreditCard 
+  LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, Key, FileText, CreditCard, MessageCircle 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NavItem {
   title: string;
@@ -15,11 +16,24 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ onOpenChat }: { onOpenChat?: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [chatEnabled, setChatEnabled] = useState(false);
+
+  useEffect(() => {
+    const loadChatConfig = async () => {
+      const { data } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .eq('config_key', 'chat_enabled')
+        .maybeSingle();
+      setChatEnabled(data?.config_value === 'true');
+    };
+    loadChatConfig();
+  }, []);
 
   const clientItems: NavItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -113,6 +127,17 @@ export function DashboardSidebar() {
               <NavButton key={item.path} item={item} />
             ))}
           </>
+        )}
+        {/* Chat/Ajuda button - after Logs */}
+        {chatEnabled && onOpenChat && (
+          <Button
+            variant="ghost"
+            onClick={onOpenChat}
+            className="w-full justify-start gap-3 h-10 px-3 mt-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+          >
+            <MessageCircle className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Ajuda</span>}
+          </Button>
         )}
       </nav>
 
