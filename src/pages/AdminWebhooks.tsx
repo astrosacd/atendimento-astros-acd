@@ -19,8 +19,7 @@ import {
   TableHeader, TableRow 
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Webhook, Copy, Eye, EyeOff, Globe, Code, RefreshCw, Key } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Trash2, Webhook, Copy, Eye, EyeOff } from 'lucide-react';
 
 interface WebhookData {
   id: string;
@@ -37,15 +36,6 @@ const EVENT_TYPES = [
   { id: 'cliente.updated', label: 'Cliente Atualizado' },
   { id: 'cliente.deleted', label: 'Cliente Excluído' },
 ];
-
-function generateApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'ak_';
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
 export default function AdminWebhooks() {
   const navigate = useNavigate();
@@ -153,37 +143,29 @@ export default function AdminWebhooks() {
     }));
   };
 
-  const handleGenerateApiKey = () => {
-    const newKey = generateApiKey();
-    setNewWebhook(prev => ({ ...prev, secret_key: newKey }));
-  };
-
-  // Get a valid API key from webhooks for API documentation
-  const activeApiKey = webhooks.find(w => w.is_active && w.secret_key)?.secret_key;
-
   return (
     <DashboardLayout>
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Webhooks & API</h1>
+            <h1 className="text-2xl font-bold text-foreground">Webhooks</h1>
             <p className="text-muted-foreground">
-              Configure integrações com n8n e sistemas externos
+              Receba notificações em tempo real quando clientes são criados, atualizados ou excluídos
             </p>
           </div>
         </div>
 
-        {/* ==================== WEBHOOKS SECTION ==================== */}
+        {/* Webhooks Table */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Webhook className="h-5 w-5 text-primary" />
-                Webhooks
+                Webhooks Configurados
               </CardTitle>
               <CardDescription>
-                Receba notificações em tempo real quando clientes são criados, atualizados ou excluídos
+                Configure endpoints para receber eventos via n8n ou outros sistemas
               </CardDescription>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -237,28 +219,13 @@ export default function AdminWebhooks() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="secret">API Key / Chave Secreta</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="secret"
-                        placeholder="Clique em gerar ou digite manualmente"
-                        value={newWebhook.secret_key}
-                        onChange={(e) => setNewWebhook(prev => ({ ...prev, secret_key: e.target.value }))}
-                        className="flex-1"
-                      />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon"
-                        onClick={handleGenerateApiKey}
-                        title="Gerar API Key"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Esta chave será usada para autenticar webhooks e requisições da API REST
-                    </p>
+                    <Label htmlFor="secret">Chave Secreta (opcional)</Label>
+                    <Input
+                      id="secret"
+                      placeholder="Para validação de assinatura"
+                      value={newWebhook.secret_key}
+                      onChange={(e) => setNewWebhook(prev => ({ ...prev, secret_key: e.target.value }))}
+                    />
                   </div>
                 </div>
                 <DialogFooter>
@@ -286,7 +253,7 @@ export default function AdminWebhooks() {
                     <TableHead>Nome</TableHead>
                     <TableHead>URL</TableHead>
                     <TableHead>Eventos</TableHead>
-                    <TableHead>API Key</TableHead>
+                    <TableHead>Chave</TableHead>
                     <TableHead>Ativo</TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
@@ -323,7 +290,7 @@ export default function AdminWebhooks() {
                         {webhook.secret_key ? (
                           <div className="flex items-center gap-1">
                             <code className="text-xs bg-muted px-2 py-1 rounded max-w-[120px] truncate">
-                              {showSecrets[webhook.id] ? webhook.secret_key : '••••••••••••'}
+                              {showSecrets[webhook.id] ? webhook.secret_key : '••••••••'}
                             </code>
                             <Button
                               variant="ghost"
@@ -332,14 +299,6 @@ export default function AdminWebhooks() {
                               onClick={() => setShowSecrets(prev => ({ ...prev, [webhook.id]: !prev[webhook.id] }))}
                             >
                               {showSecrets[webhook.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => copyToClipboard(webhook.secret_key!)}
-                            >
-                              <Copy className="h-3 w-3" />
                             </Button>
                           </div>
                         ) : (
@@ -373,7 +332,7 @@ export default function AdminWebhooks() {
         {/* Webhook Payload Example */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Formato do Payload (Webhook)</CardTitle>
+            <CardTitle className="text-base">Formato do Payload</CardTitle>
             <CardDescription>Exemplo do payload enviado para seu webhook quando um evento ocorre</CardDescription>
           </CardHeader>
           <CardContent>
@@ -401,219 +360,6 @@ export default function AdminWebhooks() {
   }
 }`}
             </pre>
-          </CardContent>
-        </Card>
-
-        {/* ==================== API REST SECTION ==================== */}
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              API REST - Integração Externa
-            </CardTitle>
-            <CardDescription>
-              Use esta API para integrar com n8n, Make, Zapier ou qualquer sistema externo via HTTP Request
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Base URL */}
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <Code className="h-4 w-4" />
-                URL Base
-              </h4>
-              <div className="flex items-center gap-2">
-                <code className="bg-muted px-3 py-2 rounded text-sm flex-1 overflow-x-auto">
-                  https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-clientes
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard('https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-clientes')}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Authentication */}
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <Key className="h-4 w-4" />
-                Autenticação
-              </h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Todas as requisições precisam do header <code className="bg-muted px-1 rounded">x-api-key</code> com a chave configurada no webhook.
-              </p>
-              {activeApiKey ? (
-                <div className="bg-muted p-3 rounded text-sm">
-                  <p className="text-muted-foreground mb-1">Sua API Key ativa:</p>
-                  <div className="flex items-center gap-2">
-                    <code className="text-primary font-mono">{activeApiKey}</code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => copyToClipboard(activeApiKey)}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-muted/50 border border-dashed border-muted-foreground/30 p-3 rounded text-sm text-muted-foreground">
-                  Crie um webhook com uma API Key para usar a API REST
-                </div>
-              )}
-              <pre className="bg-muted p-3 rounded text-sm mt-3">
-{`Headers:
-  x-api-key: sua-api-key-aqui
-  Content-Type: application/json`}
-              </pre>
-            </div>
-
-            {/* Endpoints */}
-            <Tabs defaultValue="get" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="get" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">GET</TabsTrigger>
-                <TabsTrigger value="post" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">POST</TabsTrigger>
-                <TabsTrigger value="put" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">PUT</TabsTrigger>
-                <TabsTrigger value="delete" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400">DELETE</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="get" className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge className="bg-blue-500">GET</Badge>
-                    <span className="font-mono text-sm">/api-clientes</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">Listar todos os clientes</p>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Query Parameters (opcionais):</p>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside">
-                      <li><code>search</code> - Buscar por nome, CPF, email ou número</li>
-                      <li><code>limit</code> - Limite de resultados (padrão: 100)</li>
-                      <li><code>offset</code> - Paginação</li>
-                    </ul>
-                  </div>
-                  <pre className="bg-muted p-3 rounded text-xs mt-3 overflow-x-auto">
-{`// Exemplo de resposta
-{
-  "data": [
-    {
-      "id": "uuid",
-      "nome": "João Silva",
-      "email": "joao@email.com",
-      "numero": "11999999999",
-      "cpf": "12345678900",
-      "produto": "Produto X",
-      "plano": "Premium",
-      "valor": 99.90,
-      "data_renovacao": "2025-01-12"
-    }
-  ],
-  "pagination": {
-    "total": 50,
-    "limit": 100,
-    "offset": 0,
-    "hasMore": false
-  }
-}`}
-                  </pre>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="post" className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge className="bg-green-500">POST</Badge>
-                    <span className="font-mono text-sm">/api-clientes</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">Criar novo cliente</p>
-                  <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`// Body (JSON)
-{
-  "nome": "João Silva",         // obrigatório
-  "numero": "11999999999",      // obrigatório
-  "email": "joao@email.com",    // obrigatório
-  "cpf": "12345678900",         // obrigatório
-  "produto": "Produto X",       // obrigatório
-  "data_renovacao": "2025-01-12", // obrigatório
-  "valor": 99.90,               // obrigatório
-  "plano": "Premium",           // opcional
-  "observacao": "Obs..."        // opcional
-}
-
-// Resposta (201)
-{
-  "data": { ... },
-  "message": "Cliente criado com sucesso"
-}`}
-                  </pre>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="put" className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge className="bg-purple-500">PUT</Badge>
-                    <span className="font-mono text-sm">/api-clientes?id=UUID</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">Atualizar cliente existente</p>
-                  <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`// Query param obrigatório: ?id=uuid-do-cliente
-
-// Body (JSON) - apenas campos a atualizar
-{
-  "nome": "Novo Nome",
-  "valor": 149.90
-}
-
-// Resposta (200)
-{
-  "data": { ... },
-  "message": "Cliente atualizado com sucesso"
-}`}
-                  </pre>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="delete" className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge className="bg-red-500">DELETE</Badge>
-                    <span className="font-mono text-sm">/api-clientes?id=UUID</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">Excluir cliente</p>
-                  <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`// Query param obrigatório: ?id=uuid-do-cliente
-
-// Resposta (200)
-{
-  "message": "Cliente excluído com sucesso"
-}`}
-                  </pre>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            {/* n8n Example */}
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-2">📦 Exemplo no n8n (HTTP Request)</h4>
-              <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`Node: HTTP Request
-Method: GET
-URL: https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-clientes
-
-Headers:
-  x-api-key: ${activeApiKey || 'sua-api-key-aqui'}
-  Content-Type: application/json
-
-Query Parameters:
-  search: {{ $json.searchTerm }}
-  limit: 50`}
-              </pre>
-            </div>
           </CardContent>
         </Card>
       </div>
