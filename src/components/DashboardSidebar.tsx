@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Tooltip,
@@ -38,6 +38,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const [chatEnabled, setChatEnabled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navRef = useRef<HTMLDivElement | null>(null);
 
   const handleToggle = () => {
     onCollapsedChange?.(!collapsed);
@@ -90,6 +91,14 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     };
   }, [user?.id]);
 
+  // Restore sidebar scroll position between navigations
+  useEffect(() => {
+    const saved = sessionStorage.getItem('sidebarScroll');
+    if (navRef.current && saved) {
+      navRef.current.scrollTop = Number(saved);
+    }
+  }, []);
+
   const clientItems: NavItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'text-info' },
     { title: 'Cadastrar', icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary' },
@@ -123,7 +132,12 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     const button = (
       <Button
         variant="ghost"
-        onClick={() => navigate(item.path)}
+        onClick={() => {
+          if (navRef.current) {
+            sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
+          }
+          navigate(item.path);
+        }}
         className={cn(
           "w-full justify-start gap-3 h-11 px-3 transition-all duration-200 relative group",
           isActive 
@@ -229,7 +243,10 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-thin">
+      <nav
+        ref={navRef}
+        className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-thin"
+      >
         {!collapsed && (
           <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
             Clientes
