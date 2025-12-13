@@ -88,12 +88,8 @@ export default function Dashboard() {
       });
     };
 
-    // Small delay to prevent flash and allow smoother rendering
-    const timer = setTimeout(() => {
-      if (user) fetchStats();
-    }, 100);
-
-    return () => clearTimeout(timer);
+    // Remove delay - fetch immediately for faster load
+    if (user) fetchStats();
   }, [user, isAdmin]);
 
   const getClientesPorMes = (clientes: any[]) => {

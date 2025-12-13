@@ -14,6 +14,7 @@ interface Cliente {
   produto: string;
   plano: string | null;
   valor: number;
+  cpf: string;
   data_renovacao: string;
 }
 
@@ -34,19 +35,175 @@ interface RequestBody {
   messageType?: string;
 }
 
-const formatMessage = (template: string, cliente: Cliente): string => {
-  return template
+interface PaymentData {
+  linkPagamento?: string;
+  boletoUrl?: string;
+  valorCartao?: string;
+  valorBoleto?: string;
+  pixChave?: string;
+  pixNome?: string;
+  pixBanco?: string;
+}
+
+const formatMessage = (template: string, cliente: Cliente, paymentData?: PaymentData): string => {
+  let message = template
     .replace(/{nome}/g, cliente.nome)
     .replace(/{produto}/g, cliente.produto)
     .replace(/{plano}/g, cliente.plano || 'N/A')
     .replace(/{valor}/g, cliente.valor.toFixed(2))
     .replace(/{data_renovacao}/g, new Date(cliente.data_renovacao).toLocaleDateString('pt-BR'));
+
+  if (paymentData) {
+    message = message
+      .replace(/{link_pagamento}/g, paymentData.linkPagamento || '')
+      .replace(/{boleto_url}/g, paymentData.boletoUrl || '')
+      .replace(/{valor_cartao}/g, paymentData.valorCartao || '')
+      .replace(/{valor_boleto}/g, paymentData.valorBoleto || '')
+      .replace(/{chave_pix}/g, paymentData.pixChave || '')
+      .replace(/{nome_beneficiario}/g, paymentData.pixNome || '')
+      .replace(/{banco_pix}/g, paymentData.pixBanco || '');
+  }
+
+  return message;
+};
+
+const generatePaymentLink = async (
+  cliente: Cliente,
+  config: BillingConfig
+): Promise<string | null> => {
+  const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  
+  if (!accessToken) {
+    console.log("Mercado Pago access token not configured");
+    return null;
+  }
+
+  // If fixed link is configured, use it
+  if (config.mp_link_fixo) {
+    return config.mp_link_fixo;
+  }
+
+  if (config.mp_link_enabled !== 'true') {
+    return null;
+  }
+
+  try {
+    const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
+    const valorComTaxa = cliente.valor / (1 - taxaCartao);
+
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        items: [{
+          title: cliente.produto,
+          quantity: 1,
+          unit_price: parseFloat(valorComTaxa.toFixed(2)),
+        }],
+        expires: true,
+        expiration_date_from: new Date().toISOString(),
+        expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        payer: {
+          email: cliente.email,
+          name: cliente.nome,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mercado Pago link error:', errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`Payment link generated for ${cliente.nome}: ${data.init_point}`);
+    return data.init_point;
+  } catch (error) {
+    console.error('Error generating payment link:', error);
+    return null;
+  }
+};
+
+const generateBoleto = async (
+  cliente: Cliente,
+  config: BillingConfig
+): Promise<string | null> => {
+  const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  
+  if (!accessToken) {
+    console.log("Mercado Pago access token not configured");
+    return null;
+  }
+
+  if (config.mp_boleto_enabled !== 'true') {
+    return null;
+  }
+
+  // Boleto requires CPF and minimum value
+  if (!cliente.cpf) {
+    console.log(`Client ${cliente.nome} has no CPF, skipping boleto`);
+    return null;
+  }
+
+  const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+  const valorBoleto = cliente.valor + taxaBoleto;
+
+  // Mercado Pago minimum for boleto is R$ 2.01
+  if (valorBoleto < 2.01) {
+    console.log(`Value ${valorBoleto} is below minimum for boleto`);
+    return null;
+  }
+
+  try {
+    const cleanCpf = cliente.cpf.replace(/\D/g, '');
+    
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        transaction_amount: valorBoleto,
+        description: cliente.produto,
+        payment_method_id: 'bolbradesco',
+        payer: {
+          email: cliente.email,
+          first_name: cliente.nome.split(' ')[0],
+          last_name: cliente.nome.split(' ').slice(1).join(' ') || cliente.nome,
+          identification: {
+            type: 'CPF',
+            number: cleanCpf,
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mercado Pago boleto error:', errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const boletoUrl = data.transaction_details?.external_resource_url;
+    console.log(`Boleto generated for ${cliente.nome}: ${boletoUrl}`);
+    return boletoUrl;
+  } catch (error) {
+    console.error('Error generating boleto:', error);
+    return null;
+  }
 };
 
 const generateAIMessage = async (
   cliente: Cliente,
   messageType: string,
-  config: BillingConfig
+  config: BillingConfig,
+  paymentData?: PaymentData
 ): Promise<string> => {
   const provider = config.ai_provider;
   
@@ -65,6 +222,19 @@ const generateAIMessage = async (
     'd_mais_30': '30 dias após o vencimento (aviso final antes do cancelamento)',
   };
 
+  let paymentInfo = '';
+  if (paymentData) {
+    if (paymentData.pixChave) {
+      paymentInfo += `\nPIX disponível - Chave: ${paymentData.pixChave} (${paymentData.pixNome})`;
+    }
+    if (paymentData.linkPagamento) {
+      paymentInfo += `\nLink de pagamento por cartão: ${paymentData.linkPagamento} (valor com taxa: R$ ${paymentData.valorCartao})`;
+    }
+    if (paymentData.boletoUrl) {
+      paymentInfo += `\nBoleto disponível (valor com taxa: R$ ${paymentData.valorBoleto})`;
+    }
+  }
+
   const prompt = `${contextPrompt}
 
 Cliente: ${cliente.nome}
@@ -73,8 +243,9 @@ Plano: ${cliente.plano || 'N/A'}
 Valor: R$ ${cliente.valor.toFixed(2)}
 Data de Renovação: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
 Tipo de mensagem: ${typeDescriptions[messageType] || messageType}
+${paymentInfo}
 
-Gere uma mensagem de cobrança personalizada, educada e profissional. A mensagem deve ser curta (máximo 3 parágrafos) e adequada para envio por WhatsApp.`;
+Gere uma mensagem de cobrança personalizada, educada e profissional. A mensagem deve ser curta (máximo 3 parágrafos) e adequada para envio por WhatsApp. Inclua as informações de pagamento disponíveis.`;
 
   try {
     let apiUrl: string;
@@ -135,10 +306,18 @@ const sendEmail = async (
   subject: string,
   body: string,
   gmailUser: string,
-  gmailPassword: string
+  gmailPassword: string,
+  attachmentUrl?: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const emailContent = `From: ${gmailUser}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`;
+    let emailBody = body;
+    
+    // Add boleto attachment note if available
+    if (attachmentUrl) {
+      emailBody += `\n\n📄 BOLETO: ${attachmentUrl}`;
+    }
+
+    const emailContent = `From: ${gmailUser}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${emailBody}`;
     const base64Email = btoa(unescape(encodeURIComponent(emailContent)));
 
     const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -206,7 +385,7 @@ const sendErrorNotification = async (
   
   try {
     const errorList = errorDetails
-      .slice(0, 10) // Max 10 errors in email
+      .slice(0, 10)
       .map(e => `• ${e.cliente} (${e.channel}): ${e.error}`)
       .join('\n');
     
@@ -236,6 +415,52 @@ Acesse o painel administrativo para mais detalhes.`;
   } catch (error) {
     console.error('Failed to send error notification:', error);
   }
+};
+
+const buildPaymentMessage = (config: BillingConfig, paymentData: PaymentData, cliente: Cliente): string => {
+  const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
+  const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+  
+  let parts: string[] = [];
+  
+  // PIX Section
+  if (paymentData.pixChave) {
+    parts.push(`*PIX*
+
+DADOS CHAVE PIX
+NOME: ${paymentData.pixNome}
+${paymentData.pixBanco ? `Banco: ${paymentData.pixBanco}\n` : ''}
+CHAVE PIX: ${paymentData.pixChave}`);
+  }
+  
+  // Card payment link
+  if (paymentData.linkPagamento) {
+    const valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
+    parts.push(`*CARTÃO DE CRÉDITO*
+
+CLIQUE AQUI: ${paymentData.linkPagamento}
+
+Valor: R$ ${valorCartao}
+\`Atenção: pagamentos via cartão estão sujeitos a taxa administrativa.\``);
+  }
+  
+  // Boleto
+  if (paymentData.boletoUrl) {
+    const valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
+    parts.push(`*BOLETO*
+
+O boleto foi enviado para seu e-mail ou acesse:
+${paymentData.boletoUrl}
+
+Valor: R$ ${valorBoleto}
+\`Atenção: pagamentos via boleto estão sujeitos a taxa administrativa.\``);
+  }
+  
+  if (parts.length === 0) {
+    return '';
+  }
+  
+  return '\n\n*INFORMAÇÕES PARA PAGAMENTO*\n\n' + parts.join('\n\n');
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -282,7 +507,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get active billing WhatsApp instances (separate from password recovery)
+    // Get active billing WhatsApp instances
     const { data: whatsappInstances } = await supabase
       .from('billing_whatsapp_instances')
       .select('*')
@@ -294,10 +519,46 @@ const handler = async (req: Request): Promise<Response> => {
     const errorDetails: { cliente: string; channel: string; error: string }[] = [];
 
     const processClient = async (cliente: Cliente, messageType: string, template: string) => {
+      // Generate payment data for D0 (vencimento) messages
+      let paymentData: PaymentData = {};
+      
+      // Always include PIX if configured
+      if (config.pix_chave) {
+        paymentData.pixChave = config.pix_chave;
+        paymentData.pixNome = config.pix_nome_beneficiario || '';
+        paymentData.pixBanco = config.pix_banco || '';
+      }
+      
+      // Generate payment link and boleto for D0 and later
+      if (['d_zero', 'd_mais_1', 'd_mais_2', 'd_mais_15', 'd_mais_30'].includes(messageType)) {
+        const [linkPagamento, boletoUrl] = await Promise.all([
+          generatePaymentLink(cliente, config),
+          generateBoleto(cliente, config),
+        ]);
+        
+        if (linkPagamento) {
+          paymentData.linkPagamento = linkPagamento;
+          const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
+          paymentData.valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
+        }
+        
+        if (boletoUrl) {
+          paymentData.boletoUrl = boletoUrl;
+          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+          paymentData.valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
+        }
+      }
+      
       // Try AI-generated message first, fallback to template
-      let message = await generateAIMessage(cliente, messageType, config);
+      let message = await generateAIMessage(cliente, messageType, config, paymentData);
       if (!message) {
-        message = formatMessage(template, cliente);
+        message = formatMessage(template, cliente, paymentData);
+        
+        // Append payment information if we have any
+        const paymentSection = buildPaymentMessage(config, paymentData, cliente);
+        if (paymentSection) {
+          message += paymentSection;
+        }
       }
       
       const subject = `Cobrança - ${cliente.produto}`;
@@ -309,7 +570,8 @@ const handler = async (req: Request): Promise<Response> => {
           subject,
           message,
           config.billing_gmail_user,
-          config.billing_gmail_password
+          config.billing_gmail_password,
+          paymentData.boletoUrl
         );
 
         await supabase.from('billing_logs').insert({
