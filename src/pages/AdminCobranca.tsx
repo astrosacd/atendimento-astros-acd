@@ -48,7 +48,11 @@ import {
   Target,
   Percent,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  CreditCard,
+  QrCode,
+  Link2,
+  FileText
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -105,7 +109,7 @@ interface MetricsData {
 
 const defaultMessages: Record<string, string> = {
   message_d_menos_3: 'Olá {nome}! Lembramos que sua renovação do plano {plano} - {produto} vence em 3 dias ({data_renovacao}). Valor: R$ {valor}. Não deixe para última hora!',
-  message_d_zero: 'Olá {nome}! Hoje é o dia da renovação do seu plano {plano} - {produto}. Valor: R$ {valor}. Entre em contato para renovar!',
+  message_d_zero: 'Olá {nome}! Hoje é o dia da renovação do seu plano {plano} - {produto}. Valor: R$ {valor}. Escolha a melhor forma de pagamento:',
   message_d_mais_1: 'Olá {nome}! Sua renovação do plano {plano} - {produto} venceu ontem. Valor: R$ {valor}. Regularize sua situação!',
   message_d_mais_2: 'Olá {nome}! URGENTE: Sua renovação do plano {plano} - {produto} está atrasada há 2 dias. Valor: R$ {valor}. Evite a suspensão do serviço!',
   message_d_mais_15: 'Olá {nome}! Sua renovação do plano {plano} - {produto} está pendente há 15 dias. Valor: R$ {valor}. Entre em contato para regularizar!',
@@ -719,6 +723,7 @@ const AdminCobranca = () => {
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
             <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />Métricas</TabsTrigger>
             <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />Geral</TabsTrigger>
+            <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />Pagamentos</TabsTrigger>
             <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
             <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />Canais</TabsTrigger>
             <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />Mensagens</TabsTrigger>
@@ -1023,6 +1028,159 @@ const AdminCobranca = () => {
               <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
                 <Save className="w-4 h-4 mr-2" />
                 {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* Pagamentos Tab (Mercado Pago) */}
+          <TabsContent value="payments" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Mercado Pago Config */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-blue-400" />
+                    Credenciais Mercado Pago
+                  </CardTitle>
+                  <CardDescription>
+                    Configure sua conta para gerar links de pagamento e boletos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <span>Gerar Link de Pagamento</span>
+                    <Switch
+                      checked={config.mp_link_enabled === 'true'}
+                      onCheckedChange={(c) => setConfig({ ...config, mp_link_enabled: c ? 'true' : 'false' })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <span>Gerar Boleto</span>
+                    <Switch
+                      checked={config.mp_boleto_enabled === 'true'}
+                      onCheckedChange={(c) => setConfig({ ...config, mp_boleto_enabled: c ? 'true' : 'false' })}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      Access Token do Mercado Pago
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="APP_USR-..."
+                      value={config.mp_access_token || ''}
+                      onChange={(e) => setConfig({ ...config, mp_access_token: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Encontre em: Mercado Pago → Seu negócio → Configurações → Credenciais
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Taxa Cartão (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="4.99"
+                        value={config.mp_taxa_cartao || ''}
+                        onChange={(e) => setConfig({ ...config, mp_taxa_cartao: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Taxa Boleto (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="1.99"
+                        value={config.mp_taxa_boleto || ''}
+                        onChange={(e) => setConfig({ ...config, mp_taxa_boleto: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* PIX Config */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-green-400" />
+                    Configuração do PIX
+                  </CardTitle>
+                  <CardDescription>
+                    Dados que serão enviados nas mensagens de cobrança
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Chave</Label>
+                    <Select value={config.pix_tipo_chave || 'cnpj'} onValueChange={(v) => setConfig({ ...config, pix_tipo_chave: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cnpj">CNPJ</SelectItem>
+                        <SelectItem value="cpf">CPF</SelectItem>
+                        <SelectItem value="email">E-mail</SelectItem>
+                        <SelectItem value="telefone">Telefone</SelectItem>
+                        <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Chave PIX</Label>
+                    <Input
+                      placeholder="Sua chave PIX"
+                      value={config.pix_chave || ''}
+                      onChange={(e) => setConfig({ ...config, pix_chave: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome do Beneficiário</Label>
+                    <Input
+                      placeholder="Nome que aparece no PIX"
+                      value={config.pix_nome_beneficiario || ''}
+                      onChange={(e) => setConfig({ ...config, pix_nome_beneficiario: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banco (informativo)</Label>
+                    <Input
+                      placeholder="Ex: Cora SCD"
+                      value={config.pix_banco || ''}
+                      onChange={(e) => setConfig({ ...config, pix_banco: e.target.value })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Link de Pagamento Fixo (opcional) */}
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-purple-400" />
+                  Link de Pagamento Fixo (Opcional)
+                </CardTitle>
+                <CardDescription>
+                  Se preenchido, será usado este link ao invés de gerar um novo no Mercado Pago
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  placeholder="https://link.mercadopago.com.br/seulink"
+                  value={config.mp_link_fixo || ''}
+                  onChange={(e) => setConfig({ ...config, mp_link_fixo: e.target.value })}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-blue-500 to-blue-600">
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Salvando...' : 'Salvar Pagamentos'}
               </Button>
             </div>
           </TabsContent>

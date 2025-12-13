@@ -36,32 +36,51 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const { isAdmin, signOut, user } = useAuth();
   const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings } = usePermissions();
   const [chatEnabled, setChatEnabled] = useState(false);
-  const [userName, setUserName] = useState('');
+  
+  // Initialize userName from user email immediately to prevent flickering
+  const [userName, setUserName] = useState(() => {
+    return user?.email?.split('@')[0] || 'Usuário';
+  });
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
 
   const handleToggle = () => {
     onCollapsedChange?.(!collapsed);
   };
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadConfig = async () => {
       const { data: chatData } = await supabase
         .from('billing_config')
         .select('config_value')
         .eq('config_key', 'chat_enabled')
         .maybeSingle();
-      setChatEnabled(chatData?.config_value === 'true');
+      
+      if (isMounted) {
+        setChatEnabled(chatData?.config_value === 'true');
+      }
 
-      if (user) {
+      if (user && isMounted) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('name')
           .eq('user_id', user.id)
           .maybeSingle();
-        setUserName(profile?.name || user.email?.split('@')[0] || 'Usuário');
+        
+        if (isMounted) {
+          setUserName(profile?.name || user.email?.split('@')[0] || 'Usuário');
+          setIsUserDataLoaded(true);
+        }
       }
     };
+    
     loadConfig();
-  }, [user]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]); // Use user.id instead of user to prevent unnecessary rerenders
 
   const clientItems: NavItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'text-info' },
