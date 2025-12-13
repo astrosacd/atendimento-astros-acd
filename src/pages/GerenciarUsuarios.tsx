@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -92,6 +92,13 @@ export default function GerenciarUsuarios() {
   // Approval dialog state (with role selection)
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState<string | null>(null);
+  
+  // Resend credentials dialog state
+  const [resendDialogOpen, setResendDialogOpen] = useState(false);
+  const [resendingUser, setResendingUser] = useState<{ id: string; email: string; name: string } | null>(null);
+  const [resendPassword, setResendPassword] = useState('');
+  const [resendPhone, setResendPhone] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const [approveRole, setApproveRole] = useState<string>('user');
 
   // Fetch custom roles from database
@@ -483,6 +490,43 @@ export default function GerenciarUsuarios() {
     updateRoleMutation.mutate({ userId, newRole });
   };
 
+  // Resend credentials function
+  const handleResendCredentials = async () => {
+    if (!resendingUser || !resendPassword) return;
+    
+    setIsResending(true);
+    try {
+      await supabase.functions.invoke('send-welcome', {
+        body: {
+          userName: resendingUser.name,
+          userEmail: resendingUser.email,
+          userPassword: resendPassword,
+          userPhone: resendPhone || undefined,
+          sendEmail: true,
+          sendWhatsapp: !!resendPhone,
+        },
+      });
+
+      toast({
+        title: 'Credenciais reenviadas!',
+        description: `As credenciais foram enviadas para ${resendingUser.email}.`,
+      });
+
+      setResendDialogOpen(false);
+      setResendingUser(null);
+      setResendPassword('');
+      setResendPhone('');
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao reenviar',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const getRoleColor = (colorName: string) => {
     const colorMap: Record<string, string> = {
       emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500',
@@ -783,6 +827,20 @@ export default function GerenciarUsuarios() {
                                   ))}
                                 </SelectContent>
                               </Select>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setResendingUser({ id: user.id, email: user.email, name: user.name });
+                                  setResendPassword('');
+                                  setResendPhone('');
+                                  setResendDialogOpen(true);
+                                }}
+                                className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                                title="Reenviar credenciais"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="icon" variant="destructive">
@@ -981,6 +1039,56 @@ export default function GerenciarUsuarios() {
             </div>
             <DialogFooter>
               <Button onClick={() => setResponseDialogOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Resend Credentials Dialog */}
+        <Dialog open={resendDialogOpen} onOpenChange={setResendDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reenviar Credenciais</DialogTitle>
+              <DialogDescription>
+                Envie as credenciais de acesso para <strong>{resendingUser?.name}</strong> ({resendingUser?.email})
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="resend-password">Nova Senha (obrigatória)</Label>
+                <Input
+                  id="resend-password"
+                  type="password"
+                  value={resendPassword}
+                  onChange={(e) => setResendPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  minLength={6}
+                  className="border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="resend-phone">WhatsApp (opcional)</Label>
+                <Input
+                  id="resend-phone"
+                  type="tel"
+                  value={resendPhone}
+                  onChange={(e) => setResendPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="border-border"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setResendDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleResendCredentials}
+                disabled={!resendPassword || resendPassword.length < 6 || isResending}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isResending ? 'Enviando...' : 'Enviar Credenciais'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
