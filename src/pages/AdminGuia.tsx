@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Info,
   Database,
-  HelpCircle
+  HelpCircle,
+  Tag,
+  DollarSign
 } from "lucide-react";
 
 interface CustomRole {
@@ -429,6 +431,122 @@ Se algum requisito não for atendido, o boleto não será gerado e o motivo apar
       ]
     },
     {
+      id: "tags",
+      title: "Gerenciamento de Tags",
+      icon: Tag,
+      color: "text-violet-400",
+      bgColor: "bg-violet-500/10",
+      description: "Organize e segmente seus clientes com tags personalizadas",
+      steps: [
+        {
+          title: "O que são tags?",
+          content: `Tags são etiquetas que você pode adicionar aos clientes para organizá-los:
+
+- **VIP**: Clientes premium
+- **Inadimplente**: Clientes com pagamentos atrasados
+- **Novo**: Clientes recém-cadastrados
+- **Ativo**: Clientes com assinatura ativa
+
+Você pode criar quantas tags quiser!`
+        },
+        {
+          title: "Adicionar tags a clientes",
+          content: `1. Ao **Cadastrar** ou **Atualizar** um cliente
+2. Use o campo **Tags** para adicionar etiquetas
+3. Digite o nome e pressione Enter
+4. Você pode adicionar múltiplas tags
+
+As tags são salvas automaticamente com o cliente.`
+        },
+        {
+          title: "Gerenciar tags existentes",
+          content: `1. Acesse **Painel Administrativo** → **Tags**
+2. Veja todas as tags em uso e quantos clientes usam cada uma
+3. **Renomear**: Clique no ícone de edição, altere e pressione Enter
+4. **Excluir**: Remove a tag de TODOS os clientes
+
+⚠️ Excluir uma tag remove ela de todos os clientes automaticamente!`
+        },
+        {
+          title: "Filtrar por tags",
+          content: `Na página **Consultar Clientes**:
+
+1. Use o campo de filtro por tags
+2. Selecione uma ou mais tags
+3. O sistema mostra apenas clientes com essas tags
+
+Útil para ações direcionadas como campanhas ou cobranças específicas.`
+        }
+      ],
+      tips: [
+        "Use tags para segmentar clientes em campanhas de cobrança",
+        "Crie tags padronizadas (evite variações como 'vip' e 'VIP')",
+        "Renomear é melhor que excluir e recriar",
+        "Tags aparecem como badges coloridos na consulta de clientes"
+      ]
+    },
+    {
+      id: "verificacao-pagamento",
+      title: "Verificação de Pagamentos",
+      icon: DollarSign,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Entenda como funciona a verificação de status de pagamentos",
+      steps: [
+        {
+          title: "Verificação automática (Mercado Pago)",
+          content: `O sistema verifica automaticamente pagamentos feitos via **Mercado Pago**:
+
+- Link de pagamento (cartão de crédito)
+- Boleto bancário
+- PIX do Mercado Pago
+
+Quando o cliente paga por esses meios, o sistema atualiza o status automaticamente.`
+        },
+        {
+          title: "Pagamentos fora do Mercado Pago",
+          content: `Se o cliente pagar por **outra forma** (PIX de outro banco, transferência, etc.):
+
+❌ O sistema **NÃO detecta automaticamente**
+
+✅ Você pode **marcar manualmente como pago**:
+1. Vá em **Cobrança** → aba **Pagamentos**
+2. Encontre o pagamento pendente
+3. Clique em **"Marcar como Pago"**
+4. O status é atualizado para "Pago"
+
+Isso mantém o controle mesmo para pagamentos externos.`
+        },
+        {
+          title: "Status de pagamento",
+          content: `Os pagamentos podem ter os seguintes status:
+
+- 🟡 **Pendente**: Aguardando pagamento
+- 🟢 **Pago**: Pagamento confirmado (automático ou manual)
+- 🔴 **Cancelado**: Pagamento foi cancelado
+- 🔴 **Rejeitado**: Pagamento recusado pelo banco/cartão
+
+Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança.`
+        },
+        {
+          title: "Dicas para controle de pagamentos",
+          content: `1. **Verifique diariamente** os pagamentos pendentes
+2. Use o botão **"Verificar Pagamentos"** para atualizar status do Mercado Pago
+3. Para pagamentos externos, marque como pago manualmente
+4. Use **tags** para marcar clientes pagos (ex: tag "Pago Mês X")
+
+O sistema registra a data/hora de todos os pagamentos confirmados.`
+        }
+      ],
+      tips: [
+        "A verificação automática funciona APENAS para Mercado Pago",
+        "PIX de outros bancos requer marcação manual",
+        "Marcar como pago é irreversível - confirme antes",
+        "Use tags como backup visual (ex: 'Pago Janeiro')",
+        "Confira o extrato bancário antes de marcar pagamentos externos"
+      ]
+    },
+    {
       id: "backup",
       title: "Backup de Dados",
       icon: Database,
@@ -514,6 +632,16 @@ Verifique as permissões em **Permissões** e ajuste conforme necessário.`
 
 **Solução:**
 Teste com Webhook.site primeiro para validar que os eventos estão sendo enviados.`
+        },
+        {
+          title: "Pagamento não atualiza automaticamente",
+          content: `**Verificações:**
+1. O pagamento foi feito via **Mercado Pago**?
+2. O Access Token está configurado corretamente?
+3. Clique em **"Verificar Pagamentos"** para forçar atualização
+
+**Se for PIX de outro banco:**
+A verificação automática NÃO funciona. Marque manualmente como pago.`
         }
       ],
       tips: [
@@ -573,7 +701,7 @@ Teste com Webhook.site primeiro para validar que os eventos estão sendo enviado
         </Card>
 
         {/* Quick Status */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('gmail')?.scrollIntoView({ behavior: 'smooth' })}>
             <CardContent className="p-4 flex items-center gap-3">
               <Mail className="h-5 w-5 text-red-400" />
@@ -607,6 +735,24 @@ Teste com Webhook.site primeiro para validar que os eventos estão sendo enviado
               <div>
                 <p className="text-xs text-muted-foreground">API Keys</p>
                 <p className="text-sm font-medium">Configurar →</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('tags')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Tag className="h-5 w-5 text-violet-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Tags</p>
+                <p className="text-sm font-medium">Configurar →</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('verificacao-pagamento')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <DollarSign className="h-5 w-5 text-emerald-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Pagamentos</p>
+                <p className="text-sm font-medium">Ver como →</p>
               </div>
             </CardContent>
           </Card>

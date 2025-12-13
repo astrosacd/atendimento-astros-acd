@@ -24,6 +24,7 @@ import AdminPermissoes from "./pages/AdminPermissoes";
 import AdminGuia from "./pages/AdminGuia";
 import AdminActivityLogs from "./pages/AdminActivityLogs";
 import AdminBoasVindas from "./pages/AdminBoasVindas";
+import AdminTags from "./pages/AdminTags";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ function AppRoutes() {
       <Route path="/admin/permissoes" element={<ProtectedRoute permission="manage_permissions"><AdminPermissoes /></ProtectedRoute>} />
       <Route path="/admin/guia" element={<ProtectedRoute permission="manage_settings"><AdminGuia /></ProtectedRoute>} />
       <Route path="/admin/boas-vindas" element={<ProtectedRoute permission="manage_settings"><AdminBoasVindas /></ProtectedRoute>} />
+      <Route path="/admin/tags" element={<ProtectedRoute permission="manage_settings"><AdminTags /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
