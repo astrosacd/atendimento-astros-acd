@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,6 +79,8 @@ export default function GerenciarUsuarios() {
   const [newUserRole, setNewUserRole] = useState<string>('user');
   const [isCreating, setIsCreating] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   
   // Rejection dialog state
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -388,9 +390,46 @@ export default function GerenciarUsuarios() {
     },
   });
 
+  // Check if email already exists
+  const checkEmailExists = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setEmailError(null);
+      return;
+    }
+    
+    setIsCheckingEmail(true);
+    try {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .maybeSingle();
+      
+      if (existingProfile) {
+        setEmailError('Este email já está cadastrado no sistema.');
+      } else {
+        setEmailError(null);
+      }
+    } catch {
+      setEmailError(null);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   // Create new user - auto-approved when created by admin
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (emailError) {
+      toast({
+        title: "Email inválido",
+        description: emailError,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsCreating(true);
 
     try {
@@ -755,15 +794,36 @@ export default function GerenciarUsuarios() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  placeholder="email@exemplo.com"
-                  required
-                  className="border-border"
-                />
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => {
+                      setNewUserEmail(e.target.value);
+                      setEmailError(null);
+                    }}
+                    onBlur={(e) => checkEmailExists(e.target.value)}
+                    placeholder="email@exemplo.com"
+                    required
+                    className={cn(
+                      "border-border pr-10",
+                      emailError && "border-destructive focus-visible:ring-destructive"
+                    )}
+                  />
+                  {isCheckingEmail && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+                  )}
+                  {emailError && !isCheckingEmail && (
+                    <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+                  )}
+                </div>
+                {emailError && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {emailError}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">WhatsApp (opcional)</Label>
