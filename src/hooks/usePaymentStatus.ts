@@ -121,10 +121,69 @@ export function usePaymentStatus() {
     }
   };
 
+  // Mark payment as paid manually (for payments outside Mercado Pago)
+  const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('client_payments')
+        .update({ 
+          status: 'paid', 
+          paid_at: new Date().toISOString(),
+        })
+        .eq('id', paymentId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Pagamento confirmado',
+        description: 'Status atualizado para pago manualmente',
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error marking payment as paid:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao marcar pagamento como pago',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  // Mark payment as cancelled
+  const cancelPayment = async (paymentId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('client_payments')
+        .update({ status: 'cancelled' })
+        .eq('id', paymentId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Pagamento cancelado',
+        description: 'Status atualizado para cancelado',
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error cancelling payment:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao cancelar pagamento',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     isLoading,
     checkPaymentStatus,
     fetchClientPayments,
     getPaymentStats,
+    markPaymentAsPaid,
+    cancelPayment,
   };
 }

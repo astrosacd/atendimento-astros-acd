@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -111,6 +111,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers() },
     { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions() },
     { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling() },
+    { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings() },
     { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks() },
     { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi() },
     { title: 'Logs API', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs() },
