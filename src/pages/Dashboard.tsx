@@ -4,8 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, Calendar, Webhook, DollarSign, Clock } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { 
+  UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
+  Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
+  Bell, Download, FileText, Database
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClienteStats {
   totalClientes: number;
@@ -15,6 +22,14 @@ interface ClienteStats {
   renovacoesProximas: number;
   clientesPorMes: { mes: string; quantidade: number }[];
   clientesPorPlano: { plano: string; quantidade: number }[];
+  // New metrics
+  inadimplentes: number;
+  taxaInadimplencia: number;
+  receitaMensal: number;
+  previsaoFaturamento: number;
+  clientesNovos30d: number;
+  billingSuccess: number;
+  billingErrors: number;
 }
 
 interface CustomRole {
@@ -24,8 +39,11 @@ interface CustomRole {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { user, userRole, isAdmin, isApproved } = useAuth();
+  const { isSupported, permission, requestPermission } = useNotifications();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
+  const [isBackingUp, setIsBackingUp] = useState(false);
   const [stats, setStats] = useState<ClienteStats>({
     totalClientes: 0,
     pendingUsers: 0,
@@ -34,6 +52,13 @@ export default function Dashboard() {
     renovacoesProximas: 0,
     clientesPorMes: [],
     clientesPorPlano: [],
+    inadimplentes: 0,
+    taxaInadimplencia: 0,
+    receitaMensal: 0,
+    previsaoFaturamento: 0,
+    clientesNovos30d: 0,
+    billingSuccess: 0,
+    billingErrors: 0,
   });
 
   useEffect(() => {
@@ -56,7 +81,6 @@ export default function Dashboard() {
       if (data) {
         setRoleDisplayName(data.display_name);
       } else {
-        // Fallback for old roles
         const fallbackNames: Record<string, string> = {
           admin: 'Administrador',
           user: 'Visualizador',
@@ -77,15 +101,42 @@ export default function Dashboard() {
         .from('clientes')
         .select('*');
 
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
       // Calculate total value
       const totalValor = clientes?.reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
 
       // Calculate upcoming renewals (next 7 days)
-      const today = new Date();
       const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
       const renovacoesProximas = clientes?.filter(c => {
         const renovacao = new Date(c.data_renovacao);
         return renovacao >= today && renovacao <= nextWeek;
+      }).length || 0;
+
+      // Calculate overdue clients (inadimplentes)
+      const inadimplentes = clientes?.filter(c => {
+        const renovacao = new Date(c.data_renovacao);
+        return renovacao < today;
+      }).length || 0;
+
+      // Calculate delinquency rate
+      const taxaInadimplencia = clientes?.length ? (inadimplentes / clientes.length) * 100 : 0;
+
+      // Estimated monthly revenue (sum of all client values)
+      const receitaMensal = totalValor;
+
+      // Revenue forecast (clients renewing in next 30 days)
+      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const previsaoFaturamento = clientes?.filter(c => {
+        const renovacao = new Date(c.data_renovacao);
+        return renovacao >= today && renovacao <= nextMonth;
+      }).reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
+
+      // New clients in last 30 days
+      const clientesNovos30d = clientes?.filter(c => {
+        const created = new Date(c.created_at);
+        return created >= thirtyDaysAgo;
       }).length || 0;
 
       // Group by month for chart
@@ -97,6 +148,9 @@ export default function Dashboard() {
       // Fetch pending users count (admin only)
       let pendingCount = 0;
       let webhookCount = 0;
+      let billingSuccess = 0;
+      let billingErrors = 0;
+
       if (isAdmin) {
         const { count: pending } = await supabase
           .from('profiles')
@@ -109,6 +163,15 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('is_active', true);
         webhookCount = webhooks || 0;
+
+        // Billing stats from last 30 days
+        const { data: billingLogs } = await supabase
+          .from('billing_logs')
+          .select('status')
+          .gte('sent_at', thirtyDaysAgo.toISOString());
+
+        billingSuccess = billingLogs?.filter(l => l.status === 'sent').length || 0;
+        billingErrors = billingLogs?.filter(l => l.status === 'error').length || 0;
       }
 
       setStats({
@@ -119,10 +182,16 @@ export default function Dashboard() {
         renovacoesProximas,
         clientesPorMes,
         clientesPorPlano,
+        inadimplentes,
+        taxaInadimplencia,
+        receitaMensal,
+        previsaoFaturamento,
+        clientesNovos30d,
+        billingSuccess,
+        billingErrors,
       });
     };
 
-    // Remove delay - fetch immediately for faster load
     if (user) fetchStats();
   }, [user, isAdmin]);
 
@@ -136,7 +205,6 @@ export default function Dashboard() {
       meses[mesKey] = (meses[mesKey] || 0) + 1;
     });
 
-    // Get last 6 months
     const result: { mes: string; quantidade: number }[] = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
@@ -163,6 +231,55 @@ export default function Dashboard() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const handleEnableNotifications = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      toast({
+        title: 'Notificações ativadas!',
+        description: 'Você receberá alertas de novos usuários e erros.',
+      });
+    } else {
+      toast({
+        title: 'Notificações bloqueadas',
+        description: 'Permita notificações nas configurações do navegador.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBackup = async () => {
+    setIsBackingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backup-data');
+      
+      if (error) throw error;
+
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Backup realizado!',
+        description: 'O arquivo foi baixado com sucesso.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro no backup',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
   const COLORS = ['hsl(152, 76%, 45%)', 'hsl(217, 91%, 60%)', 'hsl(271, 81%, 56%)', 'hsl(38, 92%, 50%)'];
@@ -214,6 +331,11 @@ export default function Dashboard() {
 
   const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
 
+  const billingData = [
+    { name: 'Sucesso', value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
+    { name: 'Erros', value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
+  ];
+
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
@@ -227,10 +349,25 @@ export default function Dashboard() {
               {user?.email} • <span className="text-primary font-medium">{roleDisplayName || 'Carregando...'}</span>
             </p>
           </div>
+          
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              {isSupported && permission !== 'granted' && (
+                <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Ativar Notificações
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                <Database className="h-4 w-4 mr-2" />
+                {isBackingUp ? 'Baixando...' : 'Backup'}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Primary Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -253,27 +390,11 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.totalValor)}</p>
-                  <p className="text-xs text-muted-foreground">Valor Total</p>
+                  <p className="text-xs text-muted-foreground">Receita Mensal</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
-          {isAdmin && (
-            <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20 hover:border-warning/40 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-warning/20 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
-                    <p className="text-xs text-muted-foreground">Usuários Pendentes</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
           
           <Card className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors">
             <CardContent className="p-4">
@@ -288,11 +409,61 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
+                  <p className="text-xs text-muted-foreground">Inadimplentes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Secondary Stats - Admin Only */}
+        {isAdmin && (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">Taxa Inadimplência</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
+                <p className="text-xs text-muted-foreground">Previsão 30 dias</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{stats.clientesNovos30d}</p>
+                <p className="text-xs text-muted-foreground">Novos (30 dias)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
+                <p className="text-xs text-muted-foreground">Usuários Pendentes</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{stats.activeWebhooks}</p>
+                <p className="text-xs text-muted-foreground">Webhooks Ativos</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Charts Row - Admin Only */}
         {isAdmin && stats.clientesPorMes.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <Card className="bg-card border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-display text-foreground">Cadastros por Mês</CardTitle>
@@ -362,6 +533,31 @@ export default function Dashboard() {
                         }}
                       />
                     </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-display text-foreground">Cobranças (30 dias)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={billingData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 18%)" />
+                      <XAxis type="number" stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                      <YAxis type="category" dataKey="name" stroke="hsl(220, 10%, 55%)" fontSize={12} width={60} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(220, 18%, 8%)', 
+                          border: '1px solid hsl(220, 15%, 18%)',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Bar dataKey="value" fill="hsl(152, 76%, 45%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
