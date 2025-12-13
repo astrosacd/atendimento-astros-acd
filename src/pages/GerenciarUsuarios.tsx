@@ -394,84 +394,89 @@ export default function GerenciarUsuarios() {
     setIsCreating(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUserEmail,
-        password: newUserPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            name: newUserName,
-          },
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email: newUserEmail,
+          password: newUserPassword,
+          name: newUserName,
         },
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Wait for trigger to create profile and role
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        // Update role based on selection
-        if (newUserRole !== 'user') {
-          await supabase
-            .from('user_roles')
-            .update({ role: newUserRole })
-            .eq('user_id', authData.user.id);
-        }
-
-        // Auto-approve user created by admin
-        await supabase
-          .from('profiles')
-          .update({ 
-            approved: true,
-            approval_status: 'approved'
-          })
-          .eq('user_id', authData.user.id);
-
-        // Log the approval action
-        if (currentUser) {
-          await supabase.from('approval_history').insert({
-            user_id: authData.user.id,
-            admin_id: currentUser.id,
-            action: 'approved',
-            role_assigned: newUserRole,
-          });
-        }
-
-        // Send welcome message (email/whatsapp)
-        try {
-          await supabase.functions.invoke('send-welcome', {
-            body: {
-              userName: newUserName,
-              userEmail: newUserEmail,
-              userPassword: newUserPassword,
-              userPhone: newUserPhone || undefined,
-              sendEmail: true,
-              sendWhatsapp: !!newUserPhone,
-            },
-          });
-        } catch (welcomeError) {
-          console.error('Error sending welcome message:', welcomeError);
-        }
-
-        toast({
-          title: 'Usuário criado!',
-          description: `${newUserEmail} foi cadastrado e aprovado com sucesso.`,
-        });
-
-        setNewUserEmail('');
-        setNewUserPassword('');
-        setNewUserName('');
-        setNewUserPhone('');
-        setNewUserRole('user');
-        
-        queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      if (error) {
+        throw error;
       }
+
+      const userId = (data as { userId?: string } | null)?.userId;
+
+      if (!userId) {
+        throw new Error("Falha ao criar usuário.");
+      }
+
+      // Aguarda criação de perfil/role via gatilhos, se existirem
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Atualiza o papel conforme seleção
+      if (newUserRole !== "user") {
+        await supabase
+          .from("user_roles")
+          .update({ role: newUserRole })
+          .eq("user_id", userId);
+      }
+
+      // Aprova automaticamente usuários criados por admin
+      await supabase
+        .from("profiles")
+        .update({
+          approved: true,
+          approval_status: "approved",
+          rejection_reason: null,
+          user_response: null,
+        })
+        .eq("user_id", userId);
+
+      // Registra histórico de aprovação
+      if (currentUser) {
+        await supabase.from("approval_history").insert({
+          user_id: userId,
+          admin_id: currentUser.id,
+          action: "approved",
+          role_assigned: newUserRole,
+        });
+      }
+
+      // Envia mensagem de boas-vindas (email/whatsapp)
+      try {
+        await supabase.functions.invoke("send-welcome", {
+          body: {
+            userName: newUserName,
+            userEmail: newUserEmail,
+            userPassword: newUserPassword,
+            userPhone: newUserPhone || undefined,
+            sendEmail: true,
+            sendWhatsapp: !!newUserPhone,
+          },
+        });
+      } catch (welcomeError) {
+        console.error("Error sending welcome message:", welcomeError);
+      }
+
+      toast({
+        title: "Usuário criado!",
+        description: `${newUserEmail} foi cadastrado e aprovado com sucesso.`,
+      });
+
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserName("");
+      setNewUserPhone("");
+      setNewUserRole("user");
+
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
     } catch (error: any) {
       toast({
-        title: 'Erro ao criar usuário',
-        description: error.message || 'Tente novamente.',
-        variant: 'destructive',
+        title: "Erro ao criar usuário",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
       });
     } finally {
       setIsCreating(false);
