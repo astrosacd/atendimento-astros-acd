@@ -36,51 +36,59 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const { isAdmin, signOut, user } = useAuth();
   const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings } = usePermissions();
   const [chatEnabled, setChatEnabled] = useState(false);
-  
-  // Initialize userName from user email immediately to prevent flickering
-  const [userName, setUserName] = useState(() => {
-    return user?.email?.split('@')[0] || 'Usuário';
-  });
-  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleToggle = () => {
     onCollapsedChange?.(!collapsed);
   };
 
+  // Load user profile name on mount - cache in sessionStorage to prevent flickering
   useEffect(() => {
+    if (!user?.id) {
+      setIsLoading(false);
+      return;
+    }
+
+    const cacheKey = `profile_name_${user.id}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    
+    if (cached) {
+      setUserName(cached);
+      setIsLoading(false);
+    }
+
     let isMounted = true;
     
-    const loadConfig = async () => {
-      const { data: chatData } = await supabase
-        .from('billing_config')
-        .select('config_value')
-        .eq('config_key', 'chat_enabled')
-        .maybeSingle();
-      
-      if (isMounted) {
-        setChatEnabled(chatData?.config_value === 'true');
-      }
-
-      if (user && isMounted) {
-        const { data: profile } = await supabase
+    const loadData = async () => {
+      const [chatResult, profileResult] = await Promise.all([
+        supabase
+          .from('billing_config')
+          .select('config_value')
+          .eq('config_key', 'chat_enabled')
+          .maybeSingle(),
+        supabase
           .from('profiles')
           .select('name')
           .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (isMounted) {
-          setUserName(profile?.name || user.email?.split('@')[0] || 'Usuário');
-          setIsUserDataLoaded(true);
-        }
+          .maybeSingle()
+      ]);
+      
+      if (isMounted) {
+        setChatEnabled(chatResult.data?.config_value === 'true');
+        const name = profileResult.data?.name || user.email?.split('@')[0] || 'Usuário';
+        setUserName(name);
+        sessionStorage.setItem(cacheKey, name);
+        setIsLoading(false);
       }
     };
     
-    loadConfig();
+    loadData();
     
     return () => {
       isMounted = false;
     };
-  }, [user?.id]); // Use user.id instead of user to prevent unnecessary rerenders
+  }, [user?.id]);
 
   const clientItems: NavItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'text-info' },
@@ -198,12 +206,20 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         <div className="px-4 py-3 border-b border-border/40">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
-              <span className="text-primary font-medium text-sm">
-                {userName.charAt(0).toUpperCase()}
-              </span>
+              {isLoading ? (
+                <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
+              ) : (
+                <span className="text-primary font-medium text-sm">
+                  {(userName || 'U').charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{userName}</p>
+              {isLoading ? (
+                <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
+              ) : (
+                <p className="text-sm font-medium text-foreground truncate">{userName}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {isAdmin ? 'Administrador' : 'Usuário'}
               </p>
