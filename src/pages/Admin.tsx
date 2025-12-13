@@ -102,7 +102,7 @@ const Admin = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Módulos Ativos</p>
-                  <p className="text-2xl font-bold text-foreground">4</p>
+                  <p className="text-2xl font-bold text-foreground">{adminModules.length}</p>
                 </div>
               </div>
             </CardContent>
