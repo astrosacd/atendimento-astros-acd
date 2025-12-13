@@ -350,6 +350,56 @@ export type Database = {
           },
         ]
       }
+      client_payments: {
+        Row: {
+          amount: number
+          billing_date: string
+          cliente_id: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          payment_id: string
+          payment_type: string
+          preference_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_date: string
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_id: string
+          payment_type: string
+          preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_date?: string
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_id?: string
+          payment_type?: string
+          preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_payments_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf: string
@@ -368,6 +418,7 @@ export type Database = {
           observacao: string | null
           plano: string | null
           produto: string
+          tags: string[] | null
           updated_at: string
           valor: number
         }
@@ -388,6 +439,7 @@ export type Database = {
           observacao?: string | null
           plano?: string | null
           produto: string
+          tags?: string[] | null
           updated_at?: string
           valor: number
         }
@@ -408,6 +460,7 @@ export type Database = {
           observacao?: string | null
           plano?: string | null
           produto?: string
+          tags?: string[] | null
           updated_at?: string
           valor?: number
         }
