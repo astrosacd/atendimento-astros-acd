@@ -567,6 +567,26 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Authenticate request using CRON_SECRET
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  
+  if (!cronSecret) {
+    console.error("CRON_SECRET not configured");
+    return new Response(
+      JSON.stringify({ error: "Server misconfiguration" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    console.error("Unauthorized billing-cron request");
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

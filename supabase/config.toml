@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.admin-create-user]
 verify_jwt = true
+
+[functions.trigger-billing]
+verify_jwt = true
