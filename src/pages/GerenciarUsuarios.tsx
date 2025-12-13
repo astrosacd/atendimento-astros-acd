@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -588,76 +588,128 @@ export default function GerenciarUsuarios() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead>Nome</TableHead>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Solicitado em</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingUsers.map((user) => (
-                      <TableRow key={user.id} className="border-border">
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          {user.user_response ? (
-                            <Badge variant="outline" className="border-blue-500 text-blue-500">
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              Respondeu
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                              Pendente
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {user.user_response && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => viewUserResponse(user)}
-                                className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
-                              >
-                                <MessageSquare className="h-4 w-4 mr-1" />
-                                Ver Resposta
-                              </Button>
-                            )}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {pendingUsers.map((user) => {
+                  const createdDate = new Date(user.created_at);
+                  const now = new Date();
+                  const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+                  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  
+                  let waitingTime = "";
+                  if (diffDays > 0) {
+                    waitingTime = `${diffDays} dia${diffDays > 1 ? "s" : ""}`;
+                  } else if (diffHours > 0) {
+                    waitingTime = `${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+                  } else {
+                    waitingTime = "Agora";
+                  }
+
+                  return (
+                    <Card key={user.id} className="border-border bg-secondary/30">
+                      <CardContent className="pt-4 space-y-4">
+                        {/* Header with status */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                              <User className="h-5 w-5 text-yellow-500" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">{user.name}</p>
+                              {user.user_response ? (
+                                <Badge variant="outline" className="border-blue-500 text-blue-500 text-xs">
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  Respondeu
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-yellow-500 text-yellow-500 text-xs">
+                                  Aguardando
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* User details */}
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Mail className="h-4 w-4" />
+                            <span className="truncate">{user.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              {createdDate.toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>Aguardando há {waitingTime}</span>
+                          </div>
+                        </div>
+
+                        {/* Response preview if exists */}
+                        {user.user_response && (
+                          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                            <p className="text-xs font-medium text-blue-400 mb-1">Resposta do usuário:</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {user.user_response}
+                            </p>
                             <Button
                               size="sm"
-                              onClick={() => {
-                                setApprovingUserId(user.id);
-                                setApproveRole('user');
-                                setApproveDialogOpen(true);
-                              }}
-                              className="bg-green-600 hover:bg-green-700 text-white"
+                              variant="link"
+                              onClick={() => viewUserResponse(user)}
+                              className="text-blue-400 p-0 h-auto mt-1"
                             >
-                              <Check className="h-4 w-4 mr-1" />
-                              Aprovar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleReject(user.id)}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Rejeitar
+                              Ver resposta completa
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        )}
+
+                        {/* Rejection reason if previously rejected */}
+                        {user.rejection_reason && (
+                          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                            <p className="text-xs font-medium text-destructive mb-1">Motivo da rejeição anterior:</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {user.rejection_reason}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2 border-t border-border">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setApprovingUserId(user.id);
+                              setApproveRole("user");
+                              setApproveDialogOpen(true);
+                            }}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleReject(user.id)}
+                            className="flex-1"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
