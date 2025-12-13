@@ -1,9 +1,10 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -15,14 +16,48 @@ import {
   CreditCard,
   Bot,
   Shield,
-  Settings,
   CheckCircle2,
   AlertCircle,
-  Info
+  Info,
+  Database,
+  HelpCircle
 } from "lucide-react";
+
+interface CustomRole {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+}
 
 const AdminGuia = () => {
   const navigate = useNavigate();
+
+  const { data: customRoles = [] } = useQuery({
+    queryKey: ['custom-roles-guia'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .select('id, name, display_name, description')
+        .order('name');
+      if (error) throw error;
+      return data as CustomRole[];
+    },
+  });
+
+  const getRolesContent = () => {
+    if (customRoles.length === 0) {
+      return `- **Admin**: Acesso total ao sistema
+- **Gerente**: CRUD de clientes próprios, sem acesso admin
+- **Operador**: Cadastra e atualiza clientes, não exclui
+- **Financeiro**: Acesso apenas ao módulo de Cobrança
+- **Visualizador**: Apenas consulta clientes (read-only)`;
+    }
+    
+    return customRoles.map(role => 
+      `- **${role.display_name}**: ${role.description || 'Sem descrição'}`
+    ).join('\n');
+  };
 
   const guideCategories = [
     {
@@ -35,18 +70,15 @@ const AdminGuia = () => {
       steps: [
         {
           title: "Criar Senha de App no Google",
-          content: `
-1. Acesse sua conta Google em **myaccount.google.com**
+          content: `1. Acesse sua conta Google em **myaccount.google.com**
 2. Vá em **Segurança** → **Verificação em duas etapas** (ative se ainda não tiver)
 3. Após ativar, volte em **Segurança** e procure por **Senhas de app**
 4. Selecione "Outro (nome personalizado)" e digite "CRM Cobranca"
-5. Clique em **Gerar** e copie a senha de 16 caracteres
-          `
+5. Clique em **Gerar** e copie a senha de 16 caracteres`
         },
         {
           title: "Onde configurar no sistema",
-          content: `
-**Para Recuperação de Senha:**
+          content: `**Para Recuperação de Senha:**
 - Acesse **Painel Administrativo** → **Recuperação de Senha**
 - Na aba **Configurações**, preencha:
   - **E-mail Gmail**: seu e-mail completo (ex: seuemail@gmail.com)
@@ -54,8 +86,7 @@ const AdminGuia = () => {
 
 **Para Cobrança Automática:**
 - Acesse **Painel Administrativo** → **Cobrança**
-- Na aba **Canais**, seção **Gmail**, preencha os mesmos dados
-          `
+- Na aba **Canais**, seção **Gmail**, preencha os mesmos dados`
         }
       ],
       tips: [
@@ -74,20 +105,17 @@ const AdminGuia = () => {
       steps: [
         {
           title: "Obter credenciais da Evolution API",
-          content: `
-1. Acesse seu painel da **Evolution API**
+          content: `1. Acesse seu painel da **Evolution API**
 2. Crie ou selecione uma **instância** do WhatsApp
 3. Conecte o WhatsApp escaneando o QR Code
 4. Copie as seguintes informações:
    - **API URL**: URL base da sua Evolution (ex: https://api.evolution.com.br)
    - **API Key**: Chave de autenticação da instância
-   - **Nome da Instância**: Nome que você deu à instância
-          `
+   - **Nome da Instância**: Nome que você deu à instância`
         },
         {
           title: "Onde configurar no sistema",
-          content: `
-**Para Recuperação de Senha via WhatsApp:**
+          content: `**Para Recuperação de Senha via WhatsApp:**
 - Acesse **Painel Administrativo** → **Recuperação de Senha**
 - Na aba **Instâncias WhatsApp**, clique em **Adicionar Instância**
 - Preencha: Nome, URL da API e Chave API
@@ -95,8 +123,7 @@ const AdminGuia = () => {
 **Para Cobrança via WhatsApp:**
 - Acesse **Painel Administrativo** → **Cobrança**
 - Na aba **Canais**, seção **WhatsApp**, adicione suas instâncias
-- Você pode adicionar múltiplas instâncias para rotação automática
-          `
+- Você pode adicionar múltiplas instâncias para rotação automática`
         }
       ],
       tips: [
@@ -115,25 +142,21 @@ const AdminGuia = () => {
       steps: [
         {
           title: "Criar um Webhook",
-          content: `
-1. Acesse **Painel Administrativo** → **Webhooks**
+          content: `1. Acesse **Painel Administrativo** → **Webhooks**
 2. Clique em **Criar Webhook**
 3. Preencha:
    - **Nome**: Identificação do webhook (ex: "Notificação n8n")
    - **URL**: Endpoint que receberá os dados (ex: URL do n8n)
    - **Eventos**: Selecione quais ações disparam o webhook
-   - **Chave Secreta** (opcional): Para validar autenticidade
-          `
+   - **Chave Secreta** (opcional): Para validar autenticidade`
         },
         {
           title: "Eventos disponíveis",
-          content: `
-- **cliente.created**: Disparado quando um cliente é cadastrado
+          content: `- **cliente.created**: Disparado quando um cliente é cadastrado
 - **cliente.updated**: Disparado quando um cliente é atualizado
 - **cliente.deleted**: Disparado quando um cliente é excluído
 
-O payload enviado inclui todos os dados do cliente e informações do usuário que realizou a ação.
-          `
+O payload enviado inclui todos os dados do cliente e informações do usuário que realizou a ação.`
         }
       ],
       tips: [
@@ -152,19 +175,16 @@ O payload enviado inclui todos os dados do cliente e informações do usuário q
       steps: [
         {
           title: "Criar uma API Key",
-          content: `
-1. Acesse **Painel Administrativo** → **API Keys**
+          content: `1. Acesse **Painel Administrativo** → **API Keys**
 2. Clique em **Criar API Key**
 3. Preencha:
    - **Nome**: Identificação da chave (ex: "Integração n8n")
    - **Descrição**: Para que será usada
-4. Copie a chave gerada (ela só é exibida uma vez!)
-          `
+4. Copie a chave gerada (ela só é exibida uma vez!)`
         },
         {
           title: "Como usar a API",
-          content: `
-Endpoint base: \`/functions/v1/api-clientes\`
+          content: `Endpoint base: \`/functions/v1/api-clientes\`
 
 **Autenticação**: Envie o header \`x-api-key\` com sua chave
 
@@ -173,8 +193,7 @@ Endpoint base: \`/functions/v1/api-clientes\`
 - \`GET /api-clientes?id=xxx\` - Busca cliente específico
 - \`POST /api-clientes\` - Cria novo cliente
 - \`PUT /api-clientes?id=xxx\` - Atualiza cliente
-- \`DELETE /api-clientes?id=xxx\` - Remove cliente
-          `
+- \`DELETE /api-clientes?id=xxx\` - Remove cliente`
         }
       ],
       tips: [
@@ -193,23 +212,15 @@ Endpoint base: \`/functions/v1/api-clientes\`
       steps: [
         {
           title: "Fluxo de aprovação",
-          content: `
-1. Usuário se cadastra na tela de login
+          content: `1. Usuário se cadastra na tela de login
 2. Aguarda aprovação do administrador
 3. Admin acessa **Gerenciar Usuários** e vê pendentes
 4. Admin aprova e **seleciona a role** do usuário
-5. Usuário recebe acesso conforme permissões da role
-          `
+5. Usuário recebe acesso conforme permissões da role`
         },
         {
           title: "Roles disponíveis",
-          content: `
-- **Admin**: Acesso total ao sistema
-- **Gerente**: CRUD de clientes próprios, sem acesso admin
-- **Operador**: Cadastra e atualiza clientes, não exclui
-- **Financeiro**: Acesso apenas ao módulo de Cobrança
-- **Visualizador**: Apenas consulta clientes (read-only)
-          `
+          content: getRolesContent()
         }
       ],
       tips: [
@@ -228,33 +239,27 @@ Endpoint base: \`/functions/v1/api-clientes\`
       steps: [
         {
           title: "Configurar horário de execução",
-          content: `
-1. Acesse **Painel Administrativo** → **Cobrança**
+          content: `1. Acesse **Painel Administrativo** → **Cobrança**
 2. Na aba **Geral**, defina:
    - **Horário de Execução**: Quando o cron roda diariamente
-   - **Status**: Ative/desative o sistema de cobrança
-          `
+   - **Status**: Ative/desative o sistema de cobrança`
         },
         {
           title: "Configurar mensagens",
-          content: `
-Na aba **Mensagens**, personalize os templates para cada momento:
+          content: `Na aba **Mensagens**, personalize os templates para cada momento:
 - **D-3**: 3 dias antes do vencimento (lembrete)
 - **D**: Dia do vencimento (cobrança)
 - **D+1 e D+2**: Dias após vencimento (follow-up)
 - **D+15 e D+30**: Cobranças de atraso
 
-Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.
-          `
+Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
         },
         {
           title: "IA para mensagens (opcional)",
-          content: `
-Na aba **IA**, você pode:
+          content: `Na aba **IA**, você pode:
 - Selecionar um modelo de IA (Gemini ou GPT)
 - Definir um prompt de contexto
-- O sistema gerará mensagens personalizadas automaticamente
-          `
+- O sistema gerará mensagens personalizadas automaticamente`
         }
       ],
       tips: [
@@ -273,28 +278,118 @@ Na aba **IA**, você pode:
       steps: [
         {
           title: "Personalizar o chat",
-          content: `
-1. Acesse **Painel Administrativo** → **Chat Lyra**
+          content: `1. Acesse **Painel Administrativo** → **Chat Lyra**
 2. Configure:
    - **Nome do Chat**: Como o assistente se apresenta
    - **Mensagem de Boas-vindas**: Primeira mensagem exibida
    - **Placeholder**: Texto do campo de input
-   - **Cor do Tema**: Cor principal do chat
-          `
+   - **Cor do Tema**: Cor principal do chat`
         },
         {
           title: "Configurar IA",
-          content: `
-- Selecione o **modelo de IA** (Gemini ou GPT)
+          content: `- Selecione o **modelo de IA** (Gemini ou GPT)
 - O chat usa o Lovable AI Gateway, sem necessidade de API key
-- Você tem uso gratuito mensal incluído
-          `
+- Você tem uso gratuito mensal incluído`
         }
       ],
       tips: [
         "Configure horário de funcionamento se não quiser 24/7",
         "Adicione respostas automáticas para perguntas frequentes",
         "O histórico de conversas fica salvo por usuário"
+      ]
+    },
+    {
+      id: "backup",
+      title: "Backup de Dados",
+      icon: Database,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Entenda como proteger seus dados",
+      steps: [
+        {
+          title: "Exportação manual",
+          content: `**Exportar Clientes:**
+1. Acesse **Consultar Clientes**
+2. Use os filtros para selecionar os dados desejados
+3. Clique em **Exportar CSV**
+
+**Exportar Logs:**
+1. Acesse **Logs de Atividade** ou **Logs de API**
+2. Aplique os filtros de período
+3. Clique em **Exportar CSV**`
+        },
+        {
+          title: "Backup automático",
+          content: `O sistema mantém backup automático através do Lovable Cloud:
+- Dados são replicados em múltiplas regiões
+- Backups point-in-time disponíveis
+- Retenção de dados por 30 dias
+
+Para restauração, entre em contato com o suporte.`
+        }
+      ],
+      tips: [
+        "Faça exportações mensais como backup extra",
+        "Mantenha os CSVs em local seguro",
+        "Os logs de atividade servem como histórico completo"
+      ]
+    },
+    {
+      id: "troubleshooting",
+      title: "Solução de Problemas",
+      icon: HelpCircle,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Resolva problemas comuns do sistema",
+      steps: [
+        {
+          title: "E-mails não chegam",
+          content: `**Verificações:**
+1. Confirme se a senha de app do Gmail está correta
+2. Verifique se a verificação em 2 etapas está ativa
+3. Cheque a aba de spam do destinatário
+4. Verifique os logs em **Cobrança** → **Histórico**
+
+**Solução comum:**
+Regenere a senha de app e atualize no sistema.`
+        },
+        {
+          title: "WhatsApp não envia",
+          content: `**Verificações:**
+1. Confirme se a instância Evolution está conectada
+2. Verifique se o QR Code foi escaneado recentemente
+3. Cheque se a API URL e Key estão corretas
+4. Verifique os logs de erro em **Cobrança** → **Histórico**
+
+**Solução comum:**
+Reconecte a instância escaneando o QR Code novamente.`
+        },
+        {
+          title: "Usuário não consegue acessar",
+          content: `**Verificações:**
+1. O usuário foi aprovado? (Cheque em Gerenciar Usuários)
+2. A role atribuída tem as permissões necessárias?
+3. O usuário está tentando acessar área restrita?
+
+**Solução:**
+Verifique as permissões em **Permissões** e ajuste conforme necessário.`
+        },
+        {
+          title: "Webhook não dispara",
+          content: `**Verificações:**
+1. O webhook está ativo?
+2. Os eventos corretos estão selecionados?
+3. A URL de destino está acessível?
+4. Verifique os logs em **Logs de API**
+
+**Solução:**
+Teste com Webhook.site primeiro para validar que os eventos estão sendo enviados.`
+        }
+      ],
+      tips: [
+        "Sempre verifique os logs primeiro",
+        "Problemas de conexão geralmente são credenciais incorretas",
+        "Recarregue a página após fazer alterações de configuração"
       ]
     }
   ];
@@ -349,7 +444,7 @@ Na aba **IA**, você pode:
 
         {/* Quick Status */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-border/40">
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('gmail')?.scrollIntoView({ behavior: 'smooth' })}>
             <CardContent className="p-4 flex items-center gap-3">
               <Mail className="h-5 w-5 text-red-400" />
               <div>
@@ -358,7 +453,7 @@ Na aba **IA**, você pode:
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40">
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('evolution')?.scrollIntoView({ behavior: 'smooth' })}>
             <CardContent className="p-4 flex items-center gap-3">
               <MessageSquare className="h-5 w-5 text-green-400" />
               <div>
@@ -367,7 +462,7 @@ Na aba **IA**, você pode:
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40">
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('webhooks')?.scrollIntoView({ behavior: 'smooth' })}>
             <CardContent className="p-4 flex items-center gap-3">
               <Webhook className="h-5 w-5 text-purple-400" />
               <div>
@@ -376,7 +471,7 @@ Na aba **IA**, você pode:
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40">
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('api')?.scrollIntoView({ behavior: 'smooth' })}>
             <CardContent className="p-4 flex items-center gap-3">
               <Key className="h-5 w-5 text-yellow-400" />
               <div>
@@ -390,7 +485,7 @@ Na aba **IA**, você pode:
         {/* Guide Sections */}
         <div className="space-y-4">
           {guideCategories.map((category) => (
-            <Card key={category.id} className="border-border/40 overflow-hidden">
+            <Card key={category.id} id={category.id} className="border-border/40 overflow-hidden">
               <Accordion type="single" collapsible>
                 <AccordionItem value={category.id} className="border-none">
                   <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/30">
@@ -408,7 +503,6 @@ Na aba **IA**, você pode:
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-6">
                     <div className="space-y-6 pt-4">
-                      {/* Steps */}
                       {category.steps.map((step, index) => (
                         <div key={index} className="space-y-3">
                           <div className="flex items-center gap-2">
@@ -427,7 +521,6 @@ Na aba **IA**, você pode:
                         </div>
                       ))}
 
-                      {/* Tips */}
                       {category.tips && category.tips.length > 0 && (
                         <div className="mt-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
                           <div className="flex items-center gap-2 mb-3">
@@ -467,7 +560,6 @@ Na aba **IA**, você pode:
                 size="sm"
                 onClick={() => navigate("/admin")}
               >
-                <Settings className="h-4 w-4 mr-2" />
                 Voltar ao Painel
               </Button>
             </div>

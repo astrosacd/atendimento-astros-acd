@@ -77,7 +77,8 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling() },
     { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks() },
     { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi() },
-    { title: 'Logs', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs() },
+    { title: 'Logs API', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs() },
+    { title: 'Atividades', icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs() },
     { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: !canManageSettings() },
   ];
 
