@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.billing-cron]
 verify_jwt = false
+
+[functions.send-welcome]
+verify_jwt = true

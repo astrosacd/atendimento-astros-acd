@@ -219,6 +219,17 @@ O payload enviado inclui todos os dados do cliente e informações do usuário q
 5. Usuário recebe acesso conforme permissões da role`
         },
         {
+          title: "Criar usuário manualmente",
+          content: `O admin pode criar usuários diretamente:
+
+1. Acesse **Gerenciar Usuários**
+2. Preencha: Nome, E-mail, WhatsApp (opcional), Senha e Tipo
+3. Clique em **Criar Usuário**
+
+O usuário é criado já aprovado automaticamente!
+Se configurado, recebe email/WhatsApp de boas-vindas.`
+        },
+        {
           title: "Roles disponíveis",
           content: getRolesContent()
         }
@@ -227,6 +238,51 @@ O payload enviado inclui todos os dados do cliente e informações do usuário q
         "Crie roles customizadas em Permissões se precisar de controle granular",
         "Usuários rejeitados podem enviar justificativa para reconsideração",
         "O histórico de aprovações fica registrado para auditoria"
+      ]
+    },
+    {
+      id: "boas-vindas",
+      title: "Mensagens de Boas-vindas",
+      icon: Mail,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Configure o envio automático de credenciais para novos usuários",
+      steps: [
+        {
+          title: "Configurar boas-vindas",
+          content: `1. Acesse **Painel Administrativo** → **Mensagens de Boas-vindas**
+2. Ative **E-mail de Boas-vindas** e/ou **WhatsApp de Boas-vindas**
+3. Personalize os templates de mensagem
+
+Quando um admin criar um usuário em **Gerenciar Usuários**, 
+o sistema enviará automaticamente as credenciais.`
+        },
+        {
+          title: "Variáveis disponíveis",
+          content: `Use estas variáveis nos templates:
+
+- \`{nome}\` - Nome do usuário
+- \`{email}\` - E-mail do usuário
+- \`{senha}\` - Senha inicial definida
+- \`{url}\` - Link de acesso ao sistema
+
+Exemplo:
+"Olá {nome}, sua conta foi criada! Acesse {url} com e-mail {email} e senha {senha}"`
+        },
+        {
+          title: "Pré-requisitos",
+          content: `**Para E-mail funcionar:**
+- Configure Gmail em **Recuperação de Senha**
+
+**Para WhatsApp funcionar:**
+- Configure instâncias Evolution API em **Recuperação de Senha**
+- Informe o WhatsApp do usuário ao criar`
+        }
+      ],
+      tips: [
+        "Use emojis no WhatsApp para mensagens mais amigáveis",
+        "Sempre oriente o usuário a trocar a senha inicial",
+        "O WhatsApp só é enviado se o telefone for informado"
       ]
     },
     {

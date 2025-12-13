@@ -75,6 +75,7 @@ export default function GerenciarUsuarios() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserRole, setNewUserRole] = useState<string>('user');
   const [isCreating, setIsCreating] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -430,6 +431,22 @@ export default function GerenciarUsuarios() {
           });
         }
 
+        // Send welcome message (email/whatsapp)
+        try {
+          await supabase.functions.invoke('send-welcome', {
+            body: {
+              userName: newUserName,
+              userEmail: newUserEmail,
+              userPassword: newUserPassword,
+              userPhone: newUserPhone || undefined,
+              sendEmail: true,
+              sendWhatsapp: !!newUserPhone,
+            },
+          });
+        } catch (welcomeError) {
+          console.error('Error sending welcome message:', welcomeError);
+        }
+
         toast({
           title: 'Usuário criado!',
           description: `${newUserEmail} foi cadastrado e aprovado com sucesso.`,
@@ -438,6 +455,7 @@ export default function GerenciarUsuarios() {
         setNewUserEmail('');
         setNewUserPassword('');
         setNewUserName('');
+        setNewUserPhone('');
         setNewUserRole('user');
         
         queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
@@ -605,7 +623,7 @@ export default function GerenciarUsuarios() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateUser} className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <form onSubmit={handleCreateUser} className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome</Label>
                 <Input
@@ -626,6 +644,17 @@ export default function GerenciarUsuarios() {
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   placeholder="email@exemplo.com"
                   required
+                  className="border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">WhatsApp (opcional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
                   className="border-border"
                 />
               </div>

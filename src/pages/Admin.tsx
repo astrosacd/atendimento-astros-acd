@@ -11,7 +11,8 @@ import {
   Database,
   MessageCircle,
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  UserPlus
 } from "lucide-react";
 
 const Admin = () => {
@@ -38,6 +39,13 @@ const Admin = () => {
       icon: KeyRound,
       path: "/admin/recuperacao-senha",
       color: "from-amber-500/20 to-amber-600/10"
+    },
+    {
+      title: "Mensagens de Boas-vindas",
+      description: "Configurar envio automático para novos usuários",
+      icon: UserPlus,
+      path: "/admin/boas-vindas",
+      color: "from-emerald-500/20 to-emerald-600/10"
     },
     {
       title: "Chat de Ajuda (Lyra)",
