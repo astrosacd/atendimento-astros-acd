@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
 import { Badge } from '@/components/ui/badge';
+import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ export default function ConsultarCliente() {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [clienteHistory, setClienteHistory] = useState<ClientHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [paymentClienteId, setPaymentClienteId] = useState<string | null>(null);
+  const [paymentClienteName, setPaymentClienteName] = useState<string>('');
   
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -372,17 +375,33 @@ export default function ConsultarCliente() {
                       >
                         <div className="flex items-center justify-between">
                           <h3 className="text-lg font-semibold text-info capitalize font-display">{cliente.nome}</h3>
-                          {isAdmin && (
-                            <Button
-                              onClick={() => handleViewHistory(cliente)}
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-info"
-                              title="Ver histórico"
-                            >
-                              <History className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <div className="flex gap-1">
+                            {isAdmin && (
+                              <>
+                                <Button
+                                  onClick={() => {
+                                    setPaymentClienteId(cliente.id);
+                                    setPaymentClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-primary"
+                                  title="Ver pagamentos"
+                                >
+                                  <CreditCard className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleViewHistory(cliente)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-info"
+                                  title="Ver histórico"
+                                >
+                                  <History className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <p className="text-muted-foreground">ID: <span className="text-foreground">{cliente.id.slice(0, 8)}...</span></p>
@@ -490,6 +509,14 @@ export default function ConsultarCliente() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Payment History Dialog */}
+        <ClientPaymentHistory
+          clienteId={paymentClienteId || ''}
+          clienteName={paymentClienteName}
+          isOpen={!!paymentClienteId}
+          onClose={() => setPaymentClienteId(null)}
+        />
       </div>
     </DashboardLayout>
   );

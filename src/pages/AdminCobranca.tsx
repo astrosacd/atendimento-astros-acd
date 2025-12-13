@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
+import { PendingPaymentsList } from '@/components/PendingPaymentsList';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
@@ -1249,6 +1250,9 @@ const AdminCobranca = () => {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Pending Payments List */}
+            <PendingPaymentsList onPaymentUpdated={loadPaymentStats} />
 
             <div className="flex justify-end">
               <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-blue-500 to-blue-600">

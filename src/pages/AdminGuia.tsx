@@ -511,11 +511,54 @@ Quando o cliente paga por esses meios, o sistema atualiza o status automaticamen
 
 ✅ Você pode **marcar manualmente como pago**:
 1. Vá em **Cobrança** → aba **Pagamentos**
-2. Encontre o pagamento pendente
-3. Clique em **"Marcar como Pago"**
-4. O status é atualizado para "Pago"
+2. Encontre o pagamento na lista de pendentes
+3. Clique no botão **"Pago"** (verde)
+4. Confirme no modal que aparece
+5. O status é atualizado e a **data de renovação avança 1 mês**!
 
 Isso mantém o controle mesmo para pagamentos externos.`
+        },
+        {
+          title: "Gerenciamento de Pagamentos",
+          content: `Na aba **Pagamentos** do módulo de Cobrança, você encontra:
+
+**Estatísticas gerais:**
+- Total de pagamentos
+- Pagamentos pagos (com valor total)
+- Pagamentos pendentes (com valor total)
+- Pagamentos rejeitados/cancelados
+
+**Lista de pagamentos:**
+- Pagamentos pendentes aparecem destacados em amarelo
+- Botão **"Pago"**: marca como pago e avança renovação
+- Botão **"X"**: cancela o pagamento
+- Histórico completo de todos os pagamentos`
+        },
+        {
+          title: "Histórico por Cliente",
+          content: `Você pode ver o histórico de pagamentos de um cliente específico:
+
+1. Acesse **Consultar Clientes**
+2. Busque o cliente desejado
+3. Clique no **ícone de cartão (💳)** ao lado do nome
+4. Veja todos os pagamentos daquele cliente:
+   - Total de pagamentos
+   - Quantos foram pagos/pendentes
+   - Valor total pago
+   - Ações para marcar como pago ou cancelar`
+        },
+        {
+          title: "Atualização Automática de Renovação",
+          content: `Quando um pagamento é confirmado (manual ou automático):
+
+1. ✅ O status muda para **"Pago"**
+2. ✅ A **data de renovação** do cliente avança **1 mês**
+3. ✅ As datas de cobrança são recalculadas:
+   - D-3 (3 dias antes)
+   - D+1, D+2 (dias após)
+   - D+15, D+30 (follow-up)
+
+Isso acontece automaticamente, sem precisar editar o cliente manualmente!`
         },
         {
           title: "Status de pagamento",
@@ -527,23 +570,14 @@ Isso mantém o controle mesmo para pagamentos externos.`
 - 🔴 **Rejeitado**: Pagamento recusado pelo banco/cartão
 
 Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança.`
-        },
-        {
-          title: "Dicas para controle de pagamentos",
-          content: `1. **Verifique diariamente** os pagamentos pendentes
-2. Use o botão **"Verificar Pagamentos"** para atualizar status do Mercado Pago
-3. Para pagamentos externos, marque como pago manualmente
-4. Use **tags** para marcar clientes pagos (ex: tag "Pago Mês X")
-
-O sistema registra a data/hora de todos os pagamentos confirmados.`
         }
       ],
       tips: [
         "A verificação automática funciona APENAS para Mercado Pago",
         "PIX de outros bancos requer marcação manual",
-        "Marcar como pago é irreversível - confirme antes",
-        "Use tags como backup visual (ex: 'Pago Janeiro')",
-        "Confira o extrato bancário antes de marcar pagamentos externos"
+        "Ao marcar como pago, a renovação avança 1 mês automaticamente",
+        "Use o botão 'Verificar Status Agora' para atualizar pagamentos do Mercado Pago",
+        "O histórico por cliente está disponível na página de Consulta"
       ]
     },
     {
