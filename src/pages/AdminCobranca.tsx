@@ -117,6 +117,13 @@ const AdminCobranca = () => {
   const [whatsappInstances, setWhatsappInstances] = useState<WhatsAppInstance[]>([]);
   const [newInstance, setNewInstance] = useState({ instance_name: '', api_url: '', api_key: '' });
   const [isAddingInstance, setIsAddingInstance] = useState(false);
+  
+  // Log filters
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+  const [logStatusFilter, setLogStatusFilter] = useState<string>('all');
+  const [logChannelFilter, setLogChannelFilter] = useState<string>('all');
+  const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
+  const [logDateFilter, setLogDateFilter] = useState<string>('7days');
 
   useEffect(() => {
     loadConfig();
@@ -1068,54 +1075,283 @@ const AdminCobranca = () => {
             </div>
           </TabsContent>
 
-          {/* Logs Tab */}
-          <TabsContent value="logs">
+          {/* Logs Tab - Enhanced */}
+          <TabsContent value="logs" className="space-y-6">
+            {/* Filters */}
             <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Histórico de Envios</CardTitle>
-                <CardDescription>Últimos 500 registros</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead className="hidden sm:table-cell">Contato</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Canal</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="hidden lg:table-cell">Data/Hora</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {logs.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            Nenhum registro encontrado
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        logs.slice(0, 100).map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="font-medium">{log.cliente_nome}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-muted-foreground">
-                              {log.channel === 'email' ? log.cliente_email : log.cliente_numero}
-                            </TableCell>
-                            <TableCell><Badge variant="outline">{getMessageTypeLabel(log.message_type)}</Badge></TableCell>
-                            <TableCell>{getChannelBadge(log.channel)}</TableCell>
-                            <TableCell>{getStatusBadge(log.status)}</TableCell>
-                            <TableCell className="hidden lg:table-cell text-muted-foreground">
-                              {new Date(log.sent_at).toLocaleString('pt-BR')}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+              <CardContent className="p-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por cliente, email ou telefone..."
+                      value={logSearchQuery}
+                      onChange={(e) => setLogSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos Status</SelectItem>
+                        <SelectItem value="sent">Sucesso</SelectItem>
+                        <SelectItem value="error">Erro</SelectItem>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={logChannelFilter} onValueChange={setLogChannelFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Canal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos Canais</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos Tipos</SelectItem>
+                        <SelectItem value="d_menos_3">D-3</SelectItem>
+                        <SelectItem value="d_zero">D</SelectItem>
+                        <SelectItem value="d_mais_1">D+1</SelectItem>
+                        <SelectItem value="d_mais_2">D+2</SelectItem>
+                        <SelectItem value="d_mais_15">D+15</SelectItem>
+                        <SelectItem value="d_mais_30">D+30</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={logDateFilter} onValueChange={setLogDateFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Período" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Hoje</SelectItem>
+                        <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                        <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                        <SelectItem value="90days">Últimos 90 dias</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Stats Summary */}
+            {(() => {
+              const filteredLogs = logs.filter(log => {
+                const matchesSearch = logSearchQuery === '' || 
+                  log.cliente_nome.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
+                  log.cliente_email?.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
+                  log.cliente_numero?.includes(logSearchQuery);
+                const matchesStatus = logStatusFilter === 'all' || log.status === logStatusFilter;
+                const matchesChannel = logChannelFilter === 'all' || log.channel === logChannelFilter;
+                const matchesType = logTypeFilter === 'all' || log.message_type === logTypeFilter;
+                
+                let matchesDate = true;
+                if (logDateFilter !== 'all') {
+                  const logDate = new Date(log.sent_at);
+                  const now = new Date();
+                  let startDate: Date;
+                  switch (logDateFilter) {
+                    case 'today':
+                      startDate = new Date(now.setHours(0, 0, 0, 0));
+                      break;
+                    case '7days':
+                      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                      break;
+                    case '30days':
+                      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                      break;
+                    case '90days':
+                      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                      break;
+                    default:
+                      startDate = new Date(0);
+                  }
+                  matchesDate = logDate >= startDate;
+                }
+                
+                return matchesSearch && matchesStatus && matchesChannel && matchesType && matchesDate;
+              });
+
+              const logStats = {
+                total: filteredLogs.length,
+                sent: filteredLogs.filter(l => l.status === 'sent').length,
+                errors: filteredLogs.filter(l => l.status === 'error').length,
+                pending: filteredLogs.filter(l => l.status === 'pending').length,
+              };
+
+              const exportLogsToCSV = () => {
+                const headers = ['Data/Hora', 'Cliente', 'Email', 'Telefone', 'Tipo', 'Canal', 'Status', 'Erro'];
+                const rows = filteredLogs.map(log => [
+                  new Date(log.sent_at).toLocaleString('pt-BR'),
+                  log.cliente_nome,
+                  log.cliente_email || '',
+                  log.cliente_numero || '',
+                  getMessageTypeLabel(log.message_type),
+                  log.channel,
+                  log.status,
+                  log.error_message || ''
+                ]);
+
+                const csvContent = [
+                  headers.join(','),
+                  ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `logs-cobranca-${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+              };
+
+              return (
+                <>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Filtrados</p>
+                            <p className="text-2xl font-bold">{logStats.total}</p>
+                          </div>
+                          <History className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Sucesso</p>
+                            <p className="text-2xl font-bold text-emerald-400">{logStats.sent}</p>
+                          </div>
+                          <CheckCircle className="w-6 h-6 text-emerald-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Erros</p>
+                            <p className="text-2xl font-bold text-red-400">{logStats.errors}</p>
+                          </div>
+                          <XCircle className="w-6 h-6 text-red-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Pendentes</p>
+                            <p className="text-2xl font-bold text-amber-400">{logStats.pending}</p>
+                          </div>
+                          <AlertCircle className="w-6 h-6 text-amber-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Export Button */}
+                  <div className="flex justify-end">
+                    <Button onClick={exportLogsToCSV} variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                      <Send className="w-4 h-4 mr-2" />
+                      Exportar CSV ({logStats.total})
+                    </Button>
+                  </div>
+
+                  {/* Logs Table */}
+                  <Card className="border-border/50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <History className="w-5 h-5 text-amber-400" />
+                        Histórico de Envios
+                      </CardTitle>
+                      <CardDescription>
+                        Mostrando {Math.min(filteredLogs.length, 200)} de {filteredLogs.length} registros
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-lg border overflow-x-auto max-h-[500px] overflow-y-auto">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-card z-10">
+                            <TableRow>
+                              <TableHead className="w-[160px]">Data/Hora</TableHead>
+                              <TableHead>Cliente</TableHead>
+                              <TableHead className="hidden md:table-cell">Contato</TableHead>
+                              <TableHead className="w-[80px]">Tipo</TableHead>
+                              <TableHead className="w-[100px]">Canal</TableHead>
+                              <TableHead className="w-[100px]">Status</TableHead>
+                              <TableHead className="hidden lg:table-cell">Erro</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredLogs.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                                  <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                  Nenhum registro encontrado com os filtros aplicados
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              filteredLogs.slice(0, 200).map((log) => (
+                                <TableRow key={log.id} className="hover:bg-muted/30">
+                                  <TableCell className="font-mono text-sm text-muted-foreground">
+                                    {new Date(log.sent_at).toLocaleString('pt-BR', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="font-medium">{log.cliente_nome}</div>
+                                  </TableCell>
+                                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                                    {log.channel === 'email' ? log.cliente_email : log.cliente_numero}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs">
+                                      {getMessageTypeLabel(log.message_type)}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{getChannelBadge(log.channel)}</TableCell>
+                                  <TableCell>{getStatusBadge(log.status)}</TableCell>
+                                  <TableCell className="hidden lg:table-cell">
+                                    {log.error_message ? (
+                                      <span className="text-sm text-red-400 truncate max-w-[200px] block" title={log.error_message}>
+                                        {log.error_message.substring(0, 50)}...
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </div>
