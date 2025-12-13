@@ -744,6 +744,18 @@ export type Database = {
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_gerente: { Args: never; Returns: boolean }
       is_operador: { Args: never; Returns: boolean }
+      mark_password_reset_token_used: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
+      validate_password_reset_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          is_valid: boolean
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "operador" | "gerente"
