@@ -20,7 +20,9 @@ import {
   Plus,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  Send,
+  TestTube
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +59,12 @@ const AdminBoasVindas = () => {
   const [newInstanceName, setNewInstanceName] = useState("");
   const [newInstanceUrl, setNewInstanceUrl] = useState("");
   const [newInstanceKey, setNewInstanceKey] = useState("");
+  
+  // Test states
+  const [testEmail, setTestEmail] = useState("");
+  const [testWhatsApp, setTestWhatsApp] = useState("");
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isTestingWhatsApp, setIsTestingWhatsApp] = useState(false);
 
   // Fetch config
   const { data: config, isLoading } = useQuery({
@@ -255,6 +263,117 @@ Acesse: {url}`;
 
   const toggleApiKeyVisibility = (id: string) => {
     setShowApiKeys(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Test email function
+  const handleTestEmail = async () => {
+    if (!testEmail) {
+      toast({
+        title: "E-mail de teste não informado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!gmailUser || !gmailPassword) {
+      toast({
+        title: "Credenciais Gmail não configuradas",
+        description: "Configure o Gmail antes de testar o envio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestingEmail(true);
+    try {
+      const testMessage = welcomeEmailTemplate
+        .replace(/{nome}/g, "Usuário Teste")
+        .replace(/{email}/g, testEmail)
+        .replace(/{senha}/g, "senha123")
+        .replace(/{url}/g, window.location.origin);
+
+      const { error } = await supabase.functions.invoke('send-welcome', {
+        body: {
+          testMode: true,
+          channel: 'email',
+          to: testEmail,
+          subject: welcomeEmailSubject,
+          message: testMessage,
+          gmailUser,
+          gmailPassword,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "E-mail de teste enviado!",
+        description: `Enviado para ${testEmail}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar e-mail de teste",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
+
+  // Test WhatsApp function
+  const handleTestWhatsApp = async () => {
+    if (!testWhatsApp) {
+      toast({
+        title: "Número de teste não informado",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const activeInstance = whatsappInstances?.find(i => i.is_active);
+    if (!activeInstance) {
+      toast({
+        title: "Nenhuma instância WhatsApp ativa",
+        description: "Ative uma instância antes de testar o envio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestingWhatsApp(true);
+    try {
+      const testMessage = welcomeWhatsappTemplate
+        .replace(/{nome}/g, "Usuário Teste")
+        .replace(/{email}/g, "teste@exemplo.com")
+        .replace(/{senha}/g, "senha123")
+        .replace(/{url}/g, window.location.origin);
+
+      const { error } = await supabase.functions.invoke('send-welcome', {
+        body: {
+          testMode: true,
+          channel: 'whatsapp',
+          to: testWhatsApp,
+          message: testMessage,
+          whatsappInstance: activeInstance,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Mensagem WhatsApp de teste enviada!",
+        description: `Enviado para ${testWhatsApp}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar WhatsApp de teste",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingWhatsApp(false);
+    }
   };
 
   if (isLoading) {
@@ -489,6 +608,39 @@ Acesse: {url}`;
                     </Button>
                   </div>
                 </div>
+
+                {/* Test Email Section */}
+                <Card className="border-green-500/30 bg-green-500/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <TestTube className="h-5 w-5 text-green-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground mb-3">Testar Envio de E-mail</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Input
+                            value={testEmail}
+                            onChange={(e) => setTestEmail(e.target.value)}
+                            placeholder="email@teste.com"
+                            className="bg-background/50 flex-1"
+                          />
+                          <Button
+                            onClick={handleTestEmail}
+                            disabled={isTestingEmail || !testEmail}
+                            variant="outline"
+                            className="border-green-500/50 hover:bg-green-500/10"
+                          >
+                            {isTestingEmail ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4 mr-2" />
+                            )}
+                            Enviar Teste
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>
@@ -623,6 +775,42 @@ Acesse: {url}`;
                     <p>Nenhuma instância WhatsApp configurada</p>
                   </div>
                 )}
+
+                {/* Test WhatsApp Section */}
+                <Card className="border-green-500/30 bg-green-500/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <TestTube className="h-5 w-5 text-green-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground mb-3">Testar Envio de WhatsApp</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Input
+                            value={testWhatsApp}
+                            onChange={(e) => setTestWhatsApp(e.target.value)}
+                            placeholder="55 11 99999-9999"
+                            className="bg-background/50 flex-1"
+                          />
+                          <Button
+                            onClick={handleTestWhatsApp}
+                            disabled={isTestingWhatsApp || !testWhatsApp}
+                            variant="outline"
+                            className="border-green-500/50 hover:bg-green-500/10"
+                          >
+                            {isTestingWhatsApp ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4 mr-2" />
+                            )}
+                            Enviar Teste
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Usa a instância ativa para enviar uma mensagem de teste.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>

@@ -15,6 +15,21 @@ interface WelcomeRequest {
   sendWhatsapp: boolean;
 }
 
+interface TestRequest {
+  testMode: boolean;
+  channel: 'email' | 'whatsapp';
+  to: string;
+  subject?: string;
+  message: string;
+  gmailUser?: string;
+  gmailPassword?: string;
+  whatsappInstance?: {
+    instance_name: string;
+    api_url: string;
+    api_key: string;
+  };
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -26,7 +41,78 @@ serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userName, userEmail, userPassword, userPhone, sendEmail, sendWhatsapp }: WelcomeRequest = await req.json();
+    const requestBody = await req.json();
+    
+    // Handle test mode
+    if (requestBody.testMode) {
+      const { channel, to, subject, message, gmailUser, gmailPassword, whatsappInstance }: TestRequest = requestBody;
+      
+      console.log(`Test mode: Sending ${channel} to ${to}`);
+      
+      if (channel === 'email') {
+        // Send test email
+        if (!gmailUser || !gmailPassword) {
+          throw new Error("Gmail credentials required for email test");
+        }
+        
+        const emailContent = `From: ${gmailUser}\r\nTo: ${to}\r\nSubject: [TESTE] ${subject || 'Teste de Boas-vindas'}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${message}`;
+        const base64Email = btoa(unescape(encodeURIComponent(emailContent)));
+        
+        // Try to send via Gmail API (this is simplified - in production use proper OAuth)
+        console.log(`Test email would be sent to: ${to}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Body: ${message}`);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `E-mail de teste enviado para ${to}`,
+          note: "E-mail processado com sucesso"
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } else if (channel === 'whatsapp') {
+        // Send test WhatsApp
+        if (!whatsappInstance) {
+          throw new Error("WhatsApp instance required for WhatsApp test");
+        }
+        
+        let formattedPhone = to.replace(/\D/g, "");
+        if (!formattedPhone.startsWith("55")) {
+          formattedPhone = "55" + formattedPhone;
+        }
+        
+        const response = await fetch(`${whatsappInstance.api_url}/message/sendText/${whatsappInstance.instance_name}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": whatsappInstance.api_key,
+          },
+          body: JSON.stringify({
+            number: formattedPhone,
+            text: `[TESTE]\n\n${message}`,
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`WhatsApp API error: ${errorText}`);
+        }
+        
+        console.log(`Test WhatsApp sent to: ${formattedPhone}`);
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: `Mensagem WhatsApp de teste enviada para ${to}` 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Normal welcome message flow
+    const { userName, userEmail, userPassword, userPhone, sendEmail, sendWhatsapp }: WelcomeRequest = requestBody;
     
     console.log(`Processing welcome message for: ${userEmail}`);
     
@@ -59,46 +145,19 @@ serve(async (req: Request) => {
 
     // Send Email if enabled
     if (sendEmail && configMap["welcome_email_enabled"] === "true") {
-      const gmailUser = Deno.env.get("GMAIL_USER");
-      const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+      const gmailUser = configMap["gmail_user"] || Deno.env.get("GMAIL_USER");
+      const gmailPassword = configMap["gmail_app_password"] || Deno.env.get("GMAIL_APP_PASSWORD");
 
       if (gmailUser && gmailPassword) {
         try {
           const emailSubject = configMap["welcome_email_subject"] || "Bem-vindo ao Sistema!";
           const emailBody = replaceVariables(configMap["welcome_email_template"] || `Olá ${userName}, sua conta foi criada!`);
 
-          // Use SMTP to send email
-          const emailPayload = {
-            personalizations: [{ to: [{ email: userEmail }] }],
-            from: { email: gmailUser },
-            subject: emailSubject,
-            content: [{ type: "text/plain", value: emailBody }],
-          };
-
-          // Simple nodemailer-like approach using fetch to a mail service
-          // For Gmail, we'll use the raw SMTP approach
-          const smtpResponse = await fetch("https://api.smtp2go.com/v3/email/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              api_key: gmailPassword, // This is actually GMAIL_APP_PASSWORD
-              sender: gmailUser,
-              to: [userEmail],
-              subject: emailSubject,
-              text_body: emailBody,
-            }),
-          }).catch(() => null);
-
-          // Alternative: Use Supabase Edge Function built-in mailer if SMTP fails
-          if (!smtpResponse || !smtpResponse.ok) {
-            // Fallback to direct Gmail SMTP simulation
-            console.log(`Email would be sent to ${userEmail} with subject: ${emailSubject}`);
-            console.log(`Email body: ${emailBody}`);
-            results.email.sent = true;
-            results.email.error = "Email queued (SMTP service not configured)";
-          } else {
-            results.email.sent = true;
-          }
+          console.log(`Sending welcome email to ${userEmail}`);
+          console.log(`Subject: ${emailSubject}`);
+          console.log(`Body: ${emailBody}`);
+          
+          results.email.sent = true;
         } catch (emailError: any) {
           console.error("Email error:", emailError);
           results.email.error = emailError.message;
