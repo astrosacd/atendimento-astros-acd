@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
@@ -52,7 +53,8 @@ import {
   CreditCard,
   QrCode,
   Link2,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -1483,6 +1485,32 @@ const AdminCobranca = () => {
 
           {/* Relatórios Tab */}
           <TabsContent value="reports" className="space-y-6">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const stats = {
+                    totalEnviados: logs.length,
+                    totalErros: logs.filter(l => l.status === 'error').length,
+                    taxaSucesso: logs.length ? ((logs.filter(l => l.status === 'sent').length / logs.length) * 100) : 0,
+                    porCanal: {
+                      email: logs.filter(l => l.channel === 'email').length,
+                      whatsapp: logs.filter(l => l.channel === 'whatsapp').length,
+                    },
+                    porTipo: {},
+                  };
+                  const today = new Date();
+                  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                  exportBillingReportPDF(logs, stats, {
+                    start: thirtyDaysAgo.toLocaleDateString('pt-BR'),
+                    end: today.toLocaleDateString('pt-BR'),
+                  });
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-border/50">
                 <CardHeader>

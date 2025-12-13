@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.trigger-billing]
 verify_jwt = true
+
+[functions.backup-data]
+verify_jwt = true
