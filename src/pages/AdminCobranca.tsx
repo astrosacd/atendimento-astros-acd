@@ -41,7 +41,14 @@ import {
   Sparkles,
   Phone,
   Edit,
-  Power
+  Power,
+  Bell,
+  TrendingUp,
+  DollarSign,
+  Target,
+  Percent,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -86,6 +93,16 @@ interface MonthlyStats {
   errors: number;
 }
 
+interface MetricsData {
+  successRate: number;
+  previousSuccessRate: number;
+  totalValue: number;
+  previousTotalValue: number;
+  projectedValue: number;
+  clientsWithPending: number;
+  avgResponseTime: number;
+}
+
 const defaultMessages: Record<string, string> = {
   message_d_menos_3: 'Olá {nome}! Lembramos que sua renovação do plano {plano} - {produto} vence em 3 dias ({data_renovacao}). Valor: R$ {valor}. Não deixe para última hora!',
   message_d_zero: 'Olá {nome}! Hoje é o dia da renovação do seu plano {plano} - {produto}. Valor: R$ {valor}. Entre em contato para renovar!',
@@ -124,12 +141,22 @@ const AdminCobranca = () => {
   const [logChannelFilter, setLogChannelFilter] = useState<string>('all');
   const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
   const [logDateFilter, setLogDateFilter] = useState<string>('7days');
+  const [metrics, setMetrics] = useState<MetricsData>({
+    successRate: 0,
+    previousSuccessRate: 0,
+    totalValue: 0,
+    previousTotalValue: 0,
+    projectedValue: 0,
+    clientsWithPending: 0,
+    avgResponseTime: 0,
+  });
 
   useEffect(() => {
     loadConfig();
     loadLogs();
     loadClientes();
     loadWhatsAppInstances();
+    loadMetrics();
   }, []);
 
   const loadConfig = async () => {
@@ -272,6 +299,65 @@ const AdminCobranca = () => {
       ]);
     } catch (error: any) {
       console.error('Error loading logs:', error);
+    }
+  };
+
+  const loadMetrics = async () => {
+    try {
+      // Current month logs
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+      const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+
+      const { data: currentLogs } = await supabase
+        .from('billing_logs')
+        .select('*')
+        .gte('sent_at', currentMonthStart);
+
+      const { data: previousLogs } = await supabase
+        .from('billing_logs')
+        .select('*')
+        .gte('sent_at', previousMonthStart)
+        .lt('sent_at', previousMonthEnd);
+
+      const { data: allClientes } = await supabase
+        .from('clientes')
+        .select('id, valor, data_renovacao');
+
+      // Calculate metrics
+      const currentSent = currentLogs?.filter(l => l.status === 'sent').length || 0;
+      const currentTotal = currentLogs?.length || 1;
+      const currentSuccessRate = (currentSent / currentTotal) * 100;
+
+      const previousSent = previousLogs?.filter(l => l.status === 'sent').length || 0;
+      const previousTotal = previousLogs?.length || 1;
+      const previousSuccessRate = (previousSent / previousTotal) * 100;
+
+      // Total value from clients
+      const totalValue = allClientes?.reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
+
+      // Clients with pending (overdue)
+      const today = new Date().toISOString().split('T')[0];
+      const clientsWithPending = allClientes?.filter(c => c.data_renovacao < today).length || 0;
+
+      // Projected value (clients renewing this month)
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const projectedValue = allClientes?.filter(c => 
+        c.data_renovacao >= today && c.data_renovacao <= endOfMonth
+      ).reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
+
+      setMetrics({
+        successRate: currentSuccessRate,
+        previousSuccessRate: previousSuccessRate,
+        totalValue: totalValue,
+        previousTotalValue: totalValue * 0.95, // Approximate
+        projectedValue: projectedValue,
+        clientsWithPending: clientsWithPending,
+        avgResponseTime: 2.5, // Placeholder
+      });
+    } catch (error) {
+      console.error('Error loading metrics:', error);
     }
   };
 
@@ -629,8 +715,9 @@ const AdminCobranca = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="config" className="space-y-6">
+        <Tabs defaultValue="metrics" className="space-y-6">
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
+            <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />Métricas</TabsTrigger>
             <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />Geral</TabsTrigger>
             <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
             <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />Canais</TabsTrigger>
@@ -638,6 +725,187 @@ const AdminCobranca = () => {
             <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
             <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />Histórico</TabsTrigger>
           </TabsList>
+
+          {/* Métricas Dashboard Tab */}
+          <TabsContent value="metrics" className="space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Taxa de Sucesso */}
+              <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Taxa de Sucesso</p>
+                      <p className="text-3xl font-bold text-emerald-400">{metrics.successRate.toFixed(1)}%</p>
+                      <div className={`flex items-center gap-1 mt-2 text-sm ${metrics.successRate >= metrics.previousSuccessRate ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {metrics.successRate >= metrics.previousSuccessRate ? (
+                          <ArrowUpRight className="w-4 h-4" />
+                        ) : (
+                          <ArrowDownRight className="w-4 h-4" />
+                        )}
+                        <span>{Math.abs(metrics.successRate - metrics.previousSuccessRate).toFixed(1)}% vs mês anterior</span>
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-500/20">
+                      <Target className="w-6 h-6 text-emerald-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Valor Total */}
+              <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Valor Total (Carteira)</p>
+                      <p className="text-3xl font-bold text-blue-400">
+                        R$ {metrics.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {clientes.length} clientes ativos
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-500/20">
+                      <DollarSign className="w-6 h-6 text-blue-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Previsão do Mês */}
+              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Previsão do Mês</p>
+                      <p className="text-3xl font-bold text-purple-400">
+                        R$ {metrics.projectedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Renovações previstas
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-purple-500/20">
+                      <TrendingUp className="w-6 h-6 text-purple-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Pendentes */}
+              <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Clientes Inadimplentes</p>
+                      <p className="text-3xl font-bold text-amber-400">{metrics.clientsWithPending}</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Com pagamento pendente
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-500/20">
+                      <AlertCircle className="w-6 h-6 text-amber-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Comparativo Mensal */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-400" />
+                    Comparativo Mensal
+                  </CardTitle>
+                  <CardDescription>Sucesso vs Erros por mês</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={monthlyStats}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                      <Legend />
+                      <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Evolução Taxa de Sucesso */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Percent className="w-5 h-5 text-emerald-400" />
+                    Evolução Taxa de Sucesso
+                  </CardTitle>
+                  <CardDescription>Percentual de sucesso ao longo do tempo</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={monthlyStats.map(m => ({
+                      ...m,
+                      rate: m.sent + m.errors > 0 ? ((m.sent / (m.sent + m.errors)) * 100).toFixed(1) : 0
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                      <Line type="monotone" dataKey="rate" name="Taxa %" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Por Canal */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle>Distribuição por Canal</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={channelStats} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                        {channelStats.map((_, i) => (
+                          <Cell key={i} fill={i === 0 ? '#3b82f6' : '#22c55e'} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Por Tipo de Mensagem */}
+              <Card className="border-border/50 lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Performance por Tipo de Mensagem</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={typeStats} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" width={50} />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+                      <Legend />
+                      <Bar dataKey="sent" name="Sucesso" fill="#10b981" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="errors" name="Erros" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Configurações Gerais */}
           <TabsContent value="config" className="space-y-6">
@@ -649,7 +917,7 @@ const AdminCobranca = () => {
                     Status do Sistema
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-background to-muted/30 border">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${config.billing_enabled === 'true' ? 'bg-emerald-500/20' : 'bg-muted'}`}>
@@ -666,6 +934,47 @@ const AdminCobranca = () => {
                       checked={config.billing_enabled === 'true'}
                       onCheckedChange={(checked) => setConfig({ ...config, billing_enabled: checked ? 'true' : 'false' })}
                     />
+                  </div>
+                  
+                  <Separator />
+
+                  {/* Error Notifications */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-500/5 to-red-500/10 border border-red-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${config.error_notifications_enabled === 'true' ? 'bg-red-500/20' : 'bg-muted'}`}>
+                          <Bell className={`w-5 h-5 ${config.error_notifications_enabled === 'true' ? 'text-red-400' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold">Notificações de Erro</p>
+                          <p className="text-sm text-muted-foreground">
+                            Receber email quando houver falhas
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={config.error_notifications_enabled === 'true'}
+                        onCheckedChange={(checked) => setConfig({ ...config, error_notifications_enabled: checked ? 'true' : 'false' })}
+                      />
+                    </div>
+
+                    {config.error_notifications_enabled === 'true' && (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          Email para Notificações de Erro
+                        </Label>
+                        <Input
+                          type="email"
+                          placeholder="admin@empresa.com"
+                          value={config.error_notification_email || ''}
+                          onChange={(e) => setConfig({ ...config, error_notification_email: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Você receberá um alerta por email sempre que uma cobrança falhar
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

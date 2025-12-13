@@ -195,6 +195,49 @@ const sendWhatsApp = async (
   }
 };
 
+const sendErrorNotification = async (
+  errorCount: number,
+  errorDetails: { cliente: string; channel: string; error: string }[],
+  gmailUser: string,
+  gmailPassword: string,
+  notificationEmail: string
+): Promise<void> => {
+  if (!notificationEmail || !gmailUser || !gmailPassword || errorCount === 0) return;
+  
+  try {
+    const errorList = errorDetails
+      .slice(0, 10) // Max 10 errors in email
+      .map(e => `• ${e.cliente} (${e.channel}): ${e.error}`)
+      .join('\n');
+    
+    const body = `⚠️ ALERTA: ${errorCount} erro(s) detectado(s) no sistema de cobrança
+
+Data/Hora: ${new Date().toLocaleString('pt-BR')}
+
+Erros encontrados:
+${errorList}
+${errorCount > 10 ? `\n... e mais ${errorCount - 10} erro(s)` : ''}
+
+Acesse o painel administrativo para mais detalhes.`;
+
+    const emailContent = `From: ${gmailUser}\r\nTo: ${notificationEmail}\r\nSubject: [ALERTA] Erros no Sistema de Cobrança\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`;
+    const base64Email = btoa(unescape(encodeURIComponent(emailContent)));
+
+    await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gmailPassword}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw: base64Email.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') }),
+    });
+
+    console.log(`Error notification sent to ${notificationEmail}`);
+  } catch (error) {
+    console.error('Failed to send error notification:', error);
+  }
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -248,6 +291,7 @@ const handler = async (req: Request): Promise<Response> => {
     let totalSent = 0;
     let totalErrors = 0;
     let whatsappInstanceIndex = 0;
+    const errorDetails: { cliente: string; channel: string; error: string }[] = [];
 
     const processClient = async (cliente: Cliente, messageType: string, template: string) => {
       // Try AI-generated message first, fallback to template
@@ -279,8 +323,12 @@ const handler = async (req: Request): Promise<Response> => {
           error_message: emailResult.error,
         });
 
-        if (emailResult.success) totalSent++;
-        else totalErrors++;
+        if (emailResult.success) {
+          totalSent++;
+        } else {
+          totalErrors++;
+          errorDetails.push({ cliente: cliente.nome, channel: 'email', error: emailResult.error || 'Erro desconhecido' });
+        }
       }
 
       // Send WhatsApp if enabled
@@ -306,8 +354,12 @@ const handler = async (req: Request): Promise<Response> => {
           .update({ last_used_at: new Date().toISOString() })
           .eq('id', instance.id);
 
-        if (whatsappResult.success) totalSent++;
-        else totalErrors++;
+        if (whatsappResult.success) {
+          totalSent++;
+        } else {
+          totalErrors++;
+          errorDetails.push({ cliente: cliente.nome, channel: 'whatsapp', error: whatsappResult.error || 'Erro desconhecido' });
+        }
       }
     };
 
@@ -365,6 +417,17 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Billing completed: ${totalSent} sent, ${totalErrors} errors`);
+
+    // Send error notification if enabled and there are errors
+    if (totalErrors > 0 && config.error_notifications_enabled === 'true') {
+      await sendErrorNotification(
+        totalErrors,
+        errorDetails,
+        config.billing_gmail_user || '',
+        config.billing_gmail_password || '',
+        config.error_notification_email || ''
+      );
+    }
 
     return new Response(
       JSON.stringify({ 
