@@ -269,6 +269,80 @@ Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
       ]
     },
     {
+      id: "mercadopago",
+      title: "Integração Mercado Pago",
+      icon: CreditCard,
+      color: "text-sky-400",
+      bgColor: "bg-sky-500/10",
+      description: "Configure pagamentos automáticos via Mercado Pago",
+      steps: [
+        {
+          title: "Obter credenciais do Mercado Pago",
+          content: `1. Acesse **mercadopago.com.br/developers/panel**
+2. Vá em **Suas integrações** ou crie uma nova aplicação
+3. Em **Credenciais de produção**, copie:
+   - **Access Token**: Token de acesso (começa com APP_USR-)
+   - **Public Key** (opcional): Chave pública
+
+⚠️ **Importante**: Use credenciais de **PRODUÇÃO**, não de teste!`
+        },
+        {
+          title: "Configurar no sistema",
+          content: `1. Acesse **Painel Administrativo** → **Cobrança**
+2. Clique na aba **Pagamentos**
+3. Preencha:
+   - **Access Token**: Cole o token do Mercado Pago
+   - **Taxa Cartão (%)**: Taxa administrativa (ex: 4.99%)
+   - **Taxa Boleto (R$)**: Taxa fixa (ex: R$ 1.99)
+   
+4. Configure os dados do **PIX**:
+   - **Chave PIX**: CNPJ, CPF, email, telefone ou aleatória
+   - **Tipo da Chave**: Selecione o tipo correspondente
+   - **Nome do Beneficiário**: Nome que aparece no PIX
+   
+5. Ative as opções desejadas:
+   - ✓ Habilitar geração de Link de Pagamento
+   - ✓ Habilitar geração de Boleto`
+        },
+        {
+          title: "Requisitos para geração de Boleto",
+          content: `Para gerar boletos, o cliente precisa ter:
+
+1. **CPF ou CNPJ válido** cadastrado
+   - CPF: 11 dígitos com dígitos verificadores corretos
+   - CNPJ: 14 dígitos com dígitos verificadores corretos
+   
+2. **Valor mínimo**: R$ 2,01 (restrição do Mercado Pago)
+
+Se algum requisito não for atendido, o boleto não será gerado e o motivo aparecerá nos **Logs de Cobrança**.`
+        },
+        {
+          title: "O que é enviado automaticamente",
+          content: `No dia da cobrança (D-0 em diante), o sistema envia:
+
+**PIX** (sempre, se configurado):
+- Chave PIX
+- Nome do beneficiário
+- Banco (informativo)
+
+**Link de Pagamento** (cartão de crédito):
+- Link do checkout do Mercado Pago
+- Valor com taxa administrativa aplicada
+
+**Boleto** (se CPF/CNPJ válido e valor ≥ R$ 2,01):
+- Link para PDF do boleto
+- Valor com taxa administrativa aplicada`
+        }
+      ],
+      tips: [
+        "O boleto só é gerado se o cliente tiver CPF ou CNPJ válido",
+        "Valor mínimo para boleto no Mercado Pago é R$ 2,01",
+        "Links de pagamento expiram em 24 horas",
+        "Verifique os Logs de Cobrança para ver quais pagamentos foram gerados",
+        "Se o CPF/CNPJ estiver errado, aparece o motivo nos logs"
+      ]
+    },
+    {
       id: "chat",
       title: "Chat Lyra (Assistente IA)",
       icon: Bot,

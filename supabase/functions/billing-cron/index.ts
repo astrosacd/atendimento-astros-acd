@@ -78,38 +78,70 @@ const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: stri
   return { valid: true };
 };
 
-const validateCPF = (cpf: string): { valid: boolean; reason?: string } => {
-  if (!cpf || cpf.trim() === '') {
-    return { valid: false, reason: 'CPF não informado' };
+const validateCPFCNPJ = (doc: string): { valid: boolean; reason?: string } => {
+  if (!doc || doc.trim() === '') {
+    return { valid: false, reason: 'CPF/CNPJ não informado' };
   }
-  const cleanCpf = cpf.replace(/\D/g, '');
-  if (cleanCpf.length !== 11) {
-    return { valid: false, reason: `CPF inválido (${cleanCpf.length} dígitos): ${cpf}` };
+  const cleanDoc = doc.replace(/\D/g, '');
+  
+  // Check if it's CPF (11 digits) or CNPJ (14 digits)
+  if (cleanDoc.length === 11) {
+    // Validate CPF
+    if (/^(\d)\1{10}$/.test(cleanDoc)) {
+      return { valid: false, reason: `CPF inválido (dígitos repetidos): ${doc}` };
+    }
+    // Validate CPF check digits
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(cleanDoc.charAt(i)) * (10 - i);
+    }
+    let remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanDoc.charAt(9))) {
+      return { valid: false, reason: `CPF inválido (dígito verificador): ${doc}` };
+    }
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(cleanDoc.charAt(i)) * (11 - i);
+    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(cleanDoc.charAt(10))) {
+      return { valid: false, reason: `CPF inválido (dígito verificador): ${doc}` };
+    }
+    return { valid: true };
+  } else if (cleanDoc.length === 14) {
+    // Validate CNPJ
+    if (/^(\d)\1{13}$/.test(cleanDoc)) {
+      return { valid: false, reason: `CNPJ inválido (dígitos repetidos): ${doc}` };
+    }
+    // Validate CNPJ check digits
+    const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(cleanDoc.charAt(i)) * weights1[i];
+    }
+    let remainder = sum % 11;
+    let digit1 = remainder < 2 ? 0 : 11 - remainder;
+    if (digit1 !== parseInt(cleanDoc.charAt(12))) {
+      return { valid: false, reason: `CNPJ inválido (dígito verificador): ${doc}` };
+    }
+    
+    sum = 0;
+    for (let i = 0; i < 13; i++) {
+      sum += parseInt(cleanDoc.charAt(i)) * weights2[i];
+    }
+    remainder = sum % 11;
+    let digit2 = remainder < 2 ? 0 : 11 - remainder;
+    if (digit2 !== parseInt(cleanDoc.charAt(13))) {
+      return { valid: false, reason: `CNPJ inválido (dígito verificador): ${doc}` };
+    }
+    return { valid: true };
+  } else {
+    return { valid: false, reason: `CPF/CNPJ inválido (${cleanDoc.length} dígitos, esperado 11 ou 14): ${doc}` };
   }
-  // Check for known invalid CPFs (all same digits)
-  if (/^(\d)\1{10}$/.test(cleanCpf)) {
-    return { valid: false, reason: `CPF inválido (dígitos repetidos): ${cpf}` };
-  }
-  // Validate CPF check digits
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += parseInt(cleanCpf.charAt(i)) * (10 - i);
-  }
-  let remainder = (sum * 10) % 11;
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  if (remainder !== parseInt(cleanCpf.charAt(9))) {
-    return { valid: false, reason: `CPF inválido (dígito verificador): ${cpf}` };
-  }
-  sum = 0;
-  for (let i = 0; i < 10; i++) {
-    sum += parseInt(cleanCpf.charAt(i)) * (11 - i);
-  }
-  remainder = (sum * 10) % 11;
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  if (remainder !== parseInt(cleanCpf.charAt(10))) {
-    return { valid: false, reason: `CPF inválido (dígito verificador): ${cpf}` };
-  }
-  return { valid: true };
 };
 
 const formatMessage = (template: string, cliente: Cliente, paymentData?: PaymentData): string => {
@@ -589,7 +621,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Validate client data first
       const emailValidation = validateEmail(cliente.email);
       const whatsappValidation = validateWhatsAppNumber(cliente.numero);
-      const cpfValidation = validateCPF(cliente.cpf);
+      const cpfValidation = validateCPFCNPJ(cliente.cpf);
       
       // Generate payment data for D0 (vencimento) messages
       let paymentData: PaymentData = {};
