@@ -17,9 +17,15 @@ interface ClienteStats {
   clientesPorPlano: { plano: string; quantidade: number }[];
 }
 
+interface CustomRole {
+  name: string;
+  display_name: string;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, userRole, isAdmin, isApproved } = useAuth();
+  const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [stats, setStats] = useState<ClienteStats>({
     totalClientes: 0,
     pendingUsers: 0,
@@ -35,6 +41,34 @@ export default function Dashboard() {
       navigate('/auth');
     }
   }, [user, isApproved, navigate]);
+
+  // Fetch role display name
+  useEffect(() => {
+    const fetchRoleDisplayName = async () => {
+      if (!userRole) return;
+      
+      const { data } = await supabase
+        .from('custom_roles')
+        .select('display_name')
+        .eq('name', userRole)
+        .maybeSingle();
+      
+      if (data) {
+        setRoleDisplayName(data.display_name);
+      } else {
+        // Fallback for old roles
+        const fallbackNames: Record<string, string> = {
+          admin: 'Administrador',
+          user: 'Visualizador',
+          operador: 'Operador',
+          gerente: 'Gerente',
+        };
+        setRoleDisplayName(fallbackNames[userRole] || userRole);
+      }
+    };
+    
+    fetchRoleDisplayName();
+  }, [userRole]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -190,7 +224,7 @@ export default function Dashboard() {
               Bem-vindo de volta!
             </h1>
             <p className="text-muted-foreground mt-1">
-              {user?.email} • <span className="text-primary font-medium">{userRole === 'admin' ? 'Administrador' : 'Visualizador'}</span>
+              {user?.email} • <span className="text-primary font-medium">{roleDisplayName || 'Carregando...'}</span>
             </p>
           </div>
         </div>

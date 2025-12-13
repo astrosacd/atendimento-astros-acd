@@ -380,7 +380,7 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  // Create new user
+  // Create new user - without auto-approval, shows in pending list
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
@@ -403,23 +403,26 @@ export default function GerenciarUsuarios() {
         // Wait for trigger to create profile and role
         await new Promise((resolve) => setTimeout(resolve, 1000));
         
-        // Update role if admin
-        if (newUserRole === 'admin') {
+        // Update role based on selection (stored as selected, but user still needs approval)
+        if (newUserRole !== 'user') {
           await supabase
             .from('user_roles')
-            .update({ role: 'admin' })
+            .update({ role: newUserRole })
             .eq('user_id', authData.user.id);
         }
 
-        // Auto-approve users created by admin
+        // Set the created user to pending for approval
         await supabase
           .from('profiles')
-          .update({ approved: true })
+          .update({ 
+            approved: false,
+            approval_status: 'pending'
+          })
           .eq('user_id', authData.user.id);
 
         toast({
           title: 'Usuário criado!',
-          description: `${newUserEmail} foi cadastrado e aprovado automaticamente.`,
+          description: `${newUserEmail} foi cadastrado e está aguardando aprovação.`,
         });
 
         setNewUserEmail('');

@@ -101,7 +101,13 @@ const AdminActivityLogs = () => {
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       JSON.stringify(log.new_data)?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesAction = actionFilter === 'all' || log.action === actionFilter;
+    const actionLower = log.action.toLowerCase();
+    const filterLower = actionFilter.toLowerCase();
+    const matchesAction = actionFilter === 'all' || 
+      actionLower === filterLower || 
+      (filterLower === 'create' && actionLower === 'created') ||
+      (filterLower === 'update' && actionLower === 'updated') ||
+      (filterLower === 'delete' && actionLower === 'deleted');
     
     return matchesSearch && matchesAction;
   });
@@ -136,26 +142,29 @@ const AdminActivityLogs = () => {
   };
 
   const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'CREATE':
-        return <UserPlus className="h-4 w-4 text-emerald-400" />;
-      case 'UPDATE':
-        return <Edit className="h-4 w-4 text-blue-400" />;
-      case 'DELETE':
-        return <Trash2 className="h-4 w-4 text-red-400" />;
-      default:
-        return <Activity className="h-4 w-4 text-muted-foreground" />;
+    const actionLower = action.toLowerCase();
+    if (actionLower === 'create' || actionLower === 'created') {
+      return <UserPlus className="h-4 w-4 text-emerald-400" />;
+    } else if (actionLower === 'update' || actionLower === 'updated') {
+      return <Edit className="h-4 w-4 text-blue-400" />;
+    } else if (actionLower === 'delete' || actionLower === 'deleted') {
+      return <Trash2 className="h-4 w-4 text-red-400" />;
     }
+    return <Activity className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getActionBadge = (action: string) => {
+    const actionLower = action.toLowerCase();
     const variants: Record<string, { bg: string; text: string; label: string }> = {
-      CREATE: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
-      UPDATE: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Atualização' },
-      DELETE: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Exclusão' },
+      create: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
+      created: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
+      update: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Atualização' },
+      updated: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Atualização' },
+      delete: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Exclusão' },
+      deleted: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Exclusão' },
     };
     
-    const variant = variants[action] || { bg: 'bg-muted', text: 'text-muted-foreground', label: action };
+    const variant = variants[actionLower] || { bg: 'bg-muted', text: 'text-muted-foreground', label: action };
     
     return (
       <Badge className={`${variant.bg} ${variant.text} border-none gap-1`}>
@@ -167,9 +176,9 @@ const AdminActivityLogs = () => {
 
   const stats = {
     total: filteredLogs.length,
-    creates: filteredLogs.filter(l => l.action === 'CREATE').length,
-    updates: filteredLogs.filter(l => l.action === 'UPDATE').length,
-    deletes: filteredLogs.filter(l => l.action === 'DELETE').length,
+    creates: filteredLogs.filter(l => l.action.toLowerCase() === 'create' || l.action.toLowerCase() === 'created').length,
+    updates: filteredLogs.filter(l => l.action.toLowerCase() === 'update' || l.action.toLowerCase() === 'updated').length,
+    deletes: filteredLogs.filter(l => l.action.toLowerCase() === 'delete' || l.action.toLowerCase() === 'deleted').length,
   };
 
   return (
@@ -271,9 +280,9 @@ const AdminActivityLogs = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="CREATE">Criação</SelectItem>
-                    <SelectItem value="UPDATE">Atualização</SelectItem>
-                    <SelectItem value="DELETE">Exclusão</SelectItem>
+                    <SelectItem value="create">Criação</SelectItem>
+                    <SelectItem value="update">Atualização</SelectItem>
+                    <SelectItem value="delete">Exclusão</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>

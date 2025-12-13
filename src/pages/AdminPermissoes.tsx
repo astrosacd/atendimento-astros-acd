@@ -18,6 +18,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -499,6 +500,9 @@ export default function AdminPermissoes() {
               <DialogTitle>
                 {editingRole ? 'Editar Role' : 'Nova Role'}
               </DialogTitle>
+              <DialogDescription>
+                {editingRole ? 'Atualize as informações da role.' : 'Crie uma nova role com permissões personalizadas.'}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {!editingRole && (
