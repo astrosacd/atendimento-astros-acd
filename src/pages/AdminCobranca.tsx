@@ -460,7 +460,7 @@ const AdminCobranca = () => {
   const runBillingManually = async () => {
     setIsRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('billing-cron');
+      const { data, error } = await supabase.functions.invoke('trigger-billing');
 
       if (error) throw error;
 
@@ -492,7 +492,7 @@ const AdminCobranca = () => {
 
     setIsSendingManual(true);
     try {
-      const { data, error } = await supabase.functions.invoke('billing-cron', {
+      const { data, error } = await supabase.functions.invoke('trigger-billing', {
         body: {
           clienteIds: selectedClientes,
           messageType: selectedMessageType,
