@@ -45,6 +45,73 @@ interface PaymentData {
   pixBanco?: string;
 }
 
+// Validation functions
+const validateEmail = (email: string): { valid: boolean; reason?: string } => {
+  if (!email || email.trim() === '') {
+    return { valid: false, reason: 'Email não informado' };
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { valid: false, reason: `Email inválido: ${email}` };
+  }
+  return { valid: true };
+};
+
+const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: string } => {
+  if (!numero || numero.trim() === '') {
+    return { valid: false, reason: 'Número de WhatsApp não informado' };
+  }
+  const cleanNumber = numero.replace(/\D/g, '');
+  // Brazilian numbers: 10-11 digits (with DDD) or 12-13 digits (with country code)
+  if (cleanNumber.length < 10 || cleanNumber.length > 13) {
+    return { valid: false, reason: `Número WhatsApp inválido (${cleanNumber.length} dígitos): ${numero}` };
+  }
+  // Check if it's a valid Brazilian mobile number (starts with 9 after DDD)
+  const numberWithoutCountry = cleanNumber.startsWith('55') ? cleanNumber.slice(2) : cleanNumber;
+  if (numberWithoutCountry.length >= 10) {
+    const ddd = numberWithoutCountry.slice(0, 2);
+    const dddNum = parseInt(ddd, 10);
+    if (dddNum < 11 || dddNum > 99) {
+      return { valid: false, reason: `DDD inválido (${ddd}): ${numero}` };
+    }
+  }
+  return { valid: true };
+};
+
+const validateCPF = (cpf: string): { valid: boolean; reason?: string } => {
+  if (!cpf || cpf.trim() === '') {
+    return { valid: false, reason: 'CPF não informado' };
+  }
+  const cleanCpf = cpf.replace(/\D/g, '');
+  if (cleanCpf.length !== 11) {
+    return { valid: false, reason: `CPF inválido (${cleanCpf.length} dígitos): ${cpf}` };
+  }
+  // Check for known invalid CPFs (all same digits)
+  if (/^(\d)\1{10}$/.test(cleanCpf)) {
+    return { valid: false, reason: `CPF inválido (dígitos repetidos): ${cpf}` };
+  }
+  // Validate CPF check digits
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCpf.charAt(i)) * (10 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCpf.charAt(9))) {
+    return { valid: false, reason: `CPF inválido (dígito verificador): ${cpf}` };
+  }
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCpf.charAt(i)) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCpf.charAt(10))) {
+    return { valid: false, reason: `CPF inválido (dígito verificador): ${cpf}` };
+  }
+  return { valid: true };
+};
+
 const formatMessage = (template: string, cliente: Cliente, paymentData?: PaymentData): string => {
   let message = template
     .replace(/{nome}/g, cliente.nome)
@@ -519,6 +586,11 @@ const handler = async (req: Request): Promise<Response> => {
     const errorDetails: { cliente: string; channel: string; error: string }[] = [];
 
     const processClient = async (cliente: Cliente, messageType: string, template: string) => {
+      // Validate client data first
+      const emailValidation = validateEmail(cliente.email);
+      const whatsappValidation = validateWhatsAppNumber(cliente.numero);
+      const cpfValidation = validateCPF(cliente.cpf);
+      
       // Generate payment data for D0 (vencimento) messages
       let paymentData: PaymentData = {};
       const paymentSkipReasons: string[] = [];
@@ -543,13 +615,13 @@ const handler = async (req: Request): Promise<Response> => {
           paymentSkipReasons.push('Link Cartão: Geração de link desabilitada');
         }
         
-        // Check boleto
+        // Check boleto with CPF validation
         if (!accessToken) {
           paymentSkipReasons.push('Boleto: Token Mercado Pago não configurado');
         } else if (config.mp_boleto_enabled !== 'true') {
           paymentSkipReasons.push('Boleto: Geração de boleto desabilitada');
-        } else if (!cliente.cpf) {
-          paymentSkipReasons.push('Boleto: Cliente sem CPF cadastrado');
+        } else if (!cpfValidation.valid) {
+          paymentSkipReasons.push(`Boleto: ${cpfValidation.reason}`);
         } else {
           const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
           const valorBoleto = cliente.valor + taxaBoleto;
@@ -558,9 +630,10 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
         
+        // Only generate payment link and boleto if validations pass
         const [linkPagamento, boletoUrl] = await Promise.all([
           generatePaymentLink(cliente, config),
-          generateBoleto(cliente, config),
+          cpfValidation.valid ? generateBoleto(cliente, config) : Promise.resolve(null),
         ]);
         
         if (linkPagamento) {
@@ -590,80 +663,114 @@ const handler = async (req: Request): Promise<Response> => {
       
       const subject = `Cobrança - ${cliente.produto}`;
       
-      // Build payment status for logging
-      const paymentStatus = [];
-      if (paymentData.pixChave) paymentStatus.push('PIX: ✓');
-      if (paymentData.linkPagamento) paymentStatus.push('Link Cartão: ✓');
-      if (paymentData.boletoUrl) paymentStatus.push('Boleto: ✓');
-      
-      const paymentNote = paymentSkipReasons.length > 0 
-        ? `Pagamentos não enviados: ${paymentSkipReasons.join('; ')}` 
-        : null;
+      // Build complete log notes
+      const logNotes: string[] = [];
+      if (paymentSkipReasons.length > 0) {
+        logNotes.push(`Pagamentos: ${paymentSkipReasons.join('; ')}`);
+      }
 
       // Send Email if enabled
-      if (config.email_enabled === 'true' && cliente.email && config.billing_gmail_user && config.billing_gmail_password) {
-        const emailResult = await sendEmail(
-          cliente.email,
-          subject,
-          message,
-          config.billing_gmail_user,
-          config.billing_gmail_password,
-          paymentData.boletoUrl
-        );
-
-        // Include payment skip reasons in error_message if any
-        const logError = emailResult.error || (paymentNote ? paymentNote : null);
-
-        await supabase.from('billing_logs').insert({
-          cliente_id: cliente.id,
-          cliente_nome: cliente.nome,
-          cliente_email: cliente.email,
-          cliente_numero: cliente.numero,
-          message_type: messageType,
-          channel: 'email',
-          status: emailResult.success ? 'sent' : 'error',
-          error_message: logError,
-        });
-
-        if (emailResult.success) {
-          totalSent++;
+      const canSendEmail = config.email_enabled === 'true' && 
+                           config.billing_gmail_user && 
+                           config.billing_gmail_password;
+      
+      if (canSendEmail) {
+        if (!emailValidation.valid) {
+          // Log email skip due to invalid email
+          await supabase.from('billing_logs').insert({
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome,
+            cliente_email: cliente.email,
+            cliente_numero: cliente.numero,
+            message_type: messageType,
+            channel: 'email',
+            status: 'skipped',
+            error_message: `Email não enviado: ${emailValidation.reason}${logNotes.length > 0 ? '; ' + logNotes.join('; ') : ''}`,
+          });
+          console.log(`Skipping email for ${cliente.nome}: ${emailValidation.reason}`);
         } else {
-          totalErrors++;
-          errorDetails.push({ cliente: cliente.nome, channel: 'email', error: emailResult.error || 'Erro desconhecido' });
+          const emailResult = await sendEmail(
+            cliente.email,
+            subject,
+            message,
+            config.billing_gmail_user,
+            config.billing_gmail_password,
+            paymentData.boletoUrl
+          );
+
+          // Include payment skip reasons in error_message if any
+          const logError = emailResult.error || (logNotes.length > 0 ? logNotes.join('; ') : null);
+
+          await supabase.from('billing_logs').insert({
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome,
+            cliente_email: cliente.email,
+            cliente_numero: cliente.numero,
+            message_type: messageType,
+            channel: 'email',
+            status: emailResult.success ? 'sent' : 'error',
+            error_message: logError,
+          });
+
+          if (emailResult.success) {
+            totalSent++;
+          } else {
+            totalErrors++;
+            errorDetails.push({ cliente: cliente.nome, channel: 'email', error: emailResult.error || 'Erro desconhecido' });
+          }
         }
       }
 
       // Send WhatsApp if enabled
-      if (config.whatsapp_enabled === 'true' && cliente.numero && whatsappInstances && whatsappInstances.length > 0) {
-        const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
-        whatsappInstanceIndex++;
-
-        const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
-        
-        // Include payment skip reasons in error_message if any
-        const logError = whatsappResult.error || (paymentNote ? paymentNote : null);
-
-        await supabase.from('billing_logs').insert({
-          cliente_id: cliente.id,
-          cliente_nome: cliente.nome,
-          cliente_email: cliente.email,
-          cliente_numero: cliente.numero,
-          message_type: messageType,
-          channel: 'whatsapp',
-          status: whatsappResult.success ? 'sent' : 'error',
-          error_message: logError,
-        });
-
-        await supabase
-          .from('billing_whatsapp_instances')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('id', instance.id);
-
-        if (whatsappResult.success) {
-          totalSent++;
+      const canSendWhatsApp = config.whatsapp_enabled === 'true' && 
+                              whatsappInstances && 
+                              whatsappInstances.length > 0;
+      
+      if (canSendWhatsApp) {
+        if (!whatsappValidation.valid) {
+          // Log WhatsApp skip due to invalid number
+          await supabase.from('billing_logs').insert({
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome,
+            cliente_email: cliente.email,
+            cliente_numero: cliente.numero,
+            message_type: messageType,
+            channel: 'whatsapp',
+            status: 'skipped',
+            error_message: `WhatsApp não enviado: ${whatsappValidation.reason}${logNotes.length > 0 ? '; ' + logNotes.join('; ') : ''}`,
+          });
+          console.log(`Skipping WhatsApp for ${cliente.nome}: ${whatsappValidation.reason}`);
         } else {
-          totalErrors++;
-          errorDetails.push({ cliente: cliente.nome, channel: 'whatsapp', error: whatsappResult.error || 'Erro desconhecido' });
+          const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
+          whatsappInstanceIndex++;
+
+          const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
+          
+          // Include payment skip reasons in error_message if any
+          const logError = whatsappResult.error || (logNotes.length > 0 ? logNotes.join('; ') : null);
+
+          await supabase.from('billing_logs').insert({
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome,
+            cliente_email: cliente.email,
+            cliente_numero: cliente.numero,
+            message_type: messageType,
+            channel: 'whatsapp',
+            status: whatsappResult.success ? 'sent' : 'error',
+            error_message: logError,
+          });
+
+          await supabase
+            .from('billing_whatsapp_instances')
+            .update({ last_used_at: new Date().toISOString() })
+            .eq('id', instance.id);
+
+          if (whatsappResult.success) {
+            totalSent++;
+          } else {
+            totalErrors++;
+            errorDetails.push({ cliente: cliente.nome, channel: 'whatsapp', error: whatsappResult.error || 'Erro desconhecido' });
+          }
         }
       }
     };
