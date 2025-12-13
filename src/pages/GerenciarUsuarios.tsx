@@ -402,14 +402,31 @@ export default function GerenciarUsuarios() {
         },
       });
 
+      // Handle edge function errors - check data.error first (API response), then error object
+      if (data?.error) {
+        const errorMsg = data.error;
+        let friendlyMsg = errorMsg;
+        
+        // Translate common error messages
+        if (errorMsg.includes("already been registered")) {
+          friendlyMsg = "Este email já está cadastrado no sistema.";
+        } else if (errorMsg.includes("Invalid email")) {
+          friendlyMsg = "O email informado é inválido.";
+        } else if (errorMsg.includes("Password")) {
+          friendlyMsg = "A senha deve ter pelo menos 6 caracteres.";
+        }
+        
+        throw new Error(friendlyMsg);
+      }
+
       if (error) {
-        throw error;
+        throw new Error(error.message || "Erro ao conectar com o servidor.");
       }
 
       const userId = (data as { userId?: string } | null)?.userId;
 
       if (!userId) {
-        throw new Error("Falha ao criar usuário.");
+        throw new Error("Falha ao criar usuário. Tente novamente.");
       }
 
       // Aguarda criação de perfil/role via gatilhos, se existirem
@@ -475,7 +492,7 @@ export default function GerenciarUsuarios() {
     } catch (error: any) {
       toast({
         title: "Erro ao criar usuário",
-        description: error.message || "Tente novamente.",
+        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
