@@ -731,6 +731,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_password_reset_token: {
+        Args: {
+          p_email: string
+          p_expires_at: string
+          p_token: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {
@@ -740,6 +749,23 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      insert_audit_log: {
+        Args: {
+          p_action: string
+          p_api_key_id?: string
+          p_ip_address?: string
+          p_request_body?: Json
+          p_request_method?: string
+          p_request_path?: string
+          p_resource_id?: string
+          p_resource_type: string
+          p_response_body?: Json
+          p_response_status?: number
+          p_user_agent?: string
+          p_webhook_id?: string
+        }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_gerente: { Args: never; Returns: boolean }
