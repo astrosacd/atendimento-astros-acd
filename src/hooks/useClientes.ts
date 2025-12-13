@@ -16,6 +16,7 @@ export interface Cliente {
   plano: string | null;
   valor: number;
   observacao: string | null;
+  tags: string[] | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -31,6 +32,7 @@ export interface ClienteInput {
   plano?: string;
   valor: number;
   observacao?: string;
+  tags?: string[];
 }
 
 export const useClientes = () => {

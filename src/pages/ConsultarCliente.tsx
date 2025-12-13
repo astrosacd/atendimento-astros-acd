@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
+import { Badge } from '@/components/ui/badge';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function ConsultarCliente() {
     valorMax: '',
     produto: '',
     plano: '',
+    tag: '',
   });
 
   useEffect(() => {
@@ -111,6 +113,7 @@ export default function ConsultarCliente() {
       valorMax: '',
       produto: '',
       plano: '',
+      tag: '',
     });
   };
 
@@ -391,6 +394,16 @@ export default function ConsultarCliente() {
                           <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor)}</span></p>
                           <p className="text-muted-foreground">Renovação: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
                         </div>
+                        {cliente.tags && cliente.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-2">
+                            {cliente.tags.map((tag, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                <Tag className="w-2.5 h-2.5 mr-1" />
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                         {cliente.observacao && (
                           <div className="pt-2 border-t border-info/10">
                             <p className="text-sm text-muted-foreground">

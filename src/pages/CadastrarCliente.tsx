@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientes, ClienteInput } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Check, X, UserPlus, FileText } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus, FileText, Tag } from 'lucide-react';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { formatCPFOrCNPJ, formatCurrency, formatPhone, parseCurrency, unformat } from '@/utils/formatters';
+import { TagInput } from '@/components/TagInput';
+import { supabase } from '@/integrations/supabase/client';
 
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -39,10 +41,25 @@ export default function CadastrarCliente() {
     plano: '',
     valor: 0,
     observacao: '',
+    tags: [],
   });
   
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [existingTags, setExistingTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch existing tags for suggestions
+    const fetchTags = async () => {
+      const { data } = await supabase.from('clientes').select('tags');
+      if (data) {
+        const allTags = data.flatMap(c => c.tags || []);
+        const uniqueTags = [...new Set(allTags)];
+        setExistingTags(uniqueTags);
+      }
+    };
+    fetchTags();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +108,7 @@ export default function CadastrarCliente() {
       plano: '',
       valor: 0,
       observacao: '',
+      tags: [],
     });
     setShowSuccess(false);
   };
@@ -258,6 +276,19 @@ export default function CadastrarCliente() {
                 <p className="text-xs text-muted-foreground">Campo opcional para anotações internas</p>
               </div>
 
+              {/* Campo de Tags */}
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="tags" className="text-foreground font-medium">Tags</Label>
+                </div>
+                <TagInput
+                  tags={formData.tags || []}
+                  onTagsChange={(tags) => setFormData({ ...formData, tags })}
+                  suggestions={existingTags}
+                />
+              </div>
+
               <Button 
                 type="submit" 
                 className="btn-3d w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium mt-4"
@@ -291,6 +322,9 @@ export default function CadastrarCliente() {
                 <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">R$ {Number(formData.valor).toFixed(2)}</span></p>
                 {formData.observacao && (
                   <p className="text-muted-foreground mt-2">Observações: <span className="text-foreground italic">{formData.observacao}</span></p>
+                )}
+                {formData.tags && formData.tags.length > 0 && (
+                  <p className="text-muted-foreground mt-2">Tags: <span className="text-foreground">{formData.tags.join(', ')}</span></p>
                 )}
               </div>
               <div className="flex justify-center gap-4">

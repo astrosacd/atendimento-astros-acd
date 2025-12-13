@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { exportBillingReportPDF } from '@/utils/exportPDF';
+import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
@@ -122,6 +123,7 @@ const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#e
 
 const AdminCobranca = () => {
   const { toast } = useToast();
+  const { checkPaymentStatus, getPaymentStats, isLoading: isCheckingPayments } = usePaymentStatus();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -156,6 +158,14 @@ const AdminCobranca = () => {
     clientsWithPending: 0,
     avgResponseTime: 0,
   });
+  const [paymentStats, setPaymentStats] = useState<{
+    total: number;
+    paid: number;
+    pending: number;
+    rejected: number;
+    totalPaid: number;
+    totalPending: number;
+  } | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -163,7 +173,20 @@ const AdminCobranca = () => {
     loadClientes();
     loadWhatsAppInstances();
     loadMetrics();
+    loadPaymentStats();
   }, []);
+
+  const loadPaymentStats = async () => {
+    const stats = await getPaymentStats();
+    if (stats) {
+      setPaymentStats(stats);
+    }
+  };
+
+  const handleCheckPayments = async () => {
+    await checkPaymentStatus();
+    await loadPaymentStats();
+  };
 
   const loadConfig = async () => {
     setIsLoading(true);
@@ -1176,6 +1199,54 @@ const AdminCobranca = () => {
                   value={config.mp_link_fixo || ''}
                   onChange={(e) => setConfig({ ...config, mp_link_fixo: e.target.value })}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Payment Status Check */}
+            <Card className="border-border/50 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-emerald-400" />
+                  Verificação Automática de Pagamentos
+                </CardTitle>
+                <CardDescription>
+                  Verifica automaticamente o status dos pagamentos no Mercado Pago
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {paymentStats && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-xs text-muted-foreground">Total</p>
+                      <p className="text-xl font-bold text-blue-400">{paymentStats.total}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <p className="text-xs text-muted-foreground">Pagos</p>
+                      <p className="text-xl font-bold text-emerald-400">{paymentStats.paid}</p>
+                      <p className="text-xs text-muted-foreground">R$ {paymentStats.totalPaid.toFixed(2)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <p className="text-xs text-muted-foreground">Pendentes</p>
+                      <p className="text-xl font-bold text-amber-400">{paymentStats.pending}</p>
+                      <p className="text-xs text-muted-foreground">R$ {paymentStats.totalPending.toFixed(2)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <p className="text-xs text-muted-foreground">Rejeitados</p>
+                      <p className="text-xl font-bold text-red-400">{paymentStats.rejected}</p>
+                    </div>
+                  </div>
+                )}
+                <Button 
+                  onClick={handleCheckPayments} 
+                  disabled={isCheckingPayments}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isCheckingPayments ? 'animate-spin' : ''}`} />
+                  {isCheckingPayments ? 'Verificando...' : 'Verificar Status Agora'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Consulta a API do Mercado Pago para atualizar o status de pagamentos pendentes
+                </p>
               </CardContent>
             </Card>
 
