@@ -122,8 +122,19 @@ export function usePaymentStatus() {
   };
 
   // Mark payment as paid manually (for payments outside Mercado Pago)
+  // Also updates the client's renewal date to next month
   const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
     try {
+      // First get the payment to find the cliente_id
+      const { data: payment, error: fetchError } = await supabase
+        .from('client_payments')
+        .select('cliente_id')
+        .eq('id', paymentId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Update payment status
       const { error } = await supabase
         .from('client_payments')
         .update({ 
@@ -134,9 +145,32 @@ export function usePaymentStatus() {
       
       if (error) throw error;
       
+      // If we have a cliente_id, update the renewal date
+      if (payment?.cliente_id) {
+        // Get current client renewal date
+        const { data: cliente, error: clienteError } = await supabase
+          .from('clientes')
+          .select('data_renovacao')
+          .eq('id', payment.cliente_id)
+          .single();
+        
+        if (!clienteError && cliente) {
+          // Add 1 month to renewal date
+          const currentDate = new Date(cliente.data_renovacao);
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          const newRenewalDate = currentDate.toISOString().split('T')[0];
+          
+          // Update client - the database trigger will recalculate D-3, D+1, D+2, D+15, D+30
+          await supabase
+            .from('clientes')
+            .update({ data_renovacao: newRenewalDate })
+            .eq('id', payment.cliente_id);
+        }
+      }
+      
       toast({
         title: 'Pagamento confirmado',
-        description: 'Status atualizado para pago manualmente',
+        description: 'Status atualizado e data de renovação avançada para o próximo mês',
       });
       
       return true;

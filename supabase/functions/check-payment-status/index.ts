@@ -6,6 +6,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to add 1 month to a date
+function addOneMonth(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setMonth(date.getMonth() + 1);
+  return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+}
+
+// Update client renewal date when payment is confirmed
+async function updateClientRenewalDate(supabase: any, clienteId: string) {
+  if (!clienteId) return;
+  
+  try {
+    // Get current client data
+    const { data: cliente, error: fetchError } = await supabase
+      .from('clientes')
+      .select('data_renovacao')
+      .eq('id', clienteId)
+      .single();
+    
+    if (fetchError || !cliente) {
+      console.error('Error fetching client for renewal update:', fetchError);
+      return;
+    }
+    
+    // Calculate new renewal date (current + 1 month)
+    const newRenewalDate = addOneMonth(cliente.data_renovacao);
+    
+    // Update the client - the trigger will recalculate D-3, D+1, D+2, D+15, D+30
+    const { error: updateError } = await supabase
+      .from('clientes')
+      .update({ data_renovacao: newRenewalDate })
+      .eq('id', clienteId);
+    
+    if (updateError) {
+      console.error('Error updating client renewal date:', updateError);
+    } else {
+      console.log(`Client ${clienteId} renewal date updated to ${newRenewalDate}`);
+    }
+  } catch (err) {
+    console.error('Error in updateClientRenewalDate:', err);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -98,6 +141,11 @@ serve(async (req) => {
                 new_status: newStatus,
                 cliente_id: payment.cliente_id
               });
+              
+              // If payment was approved, update client renewal date
+              if (newStatus === 'paid' && payment.cliente_id) {
+                await updateClientRenewalDate(supabase, payment.cliente_id);
+              }
             }
           }
         } else if (mpResponse.status === 404) {
@@ -144,6 +192,11 @@ serve(async (req) => {
                       new_status: newStatus,
                       cliente_id: payment.cliente_id
                     });
+                    
+                    // If payment was approved, update client renewal date
+                    if (newStatus === 'paid' && payment.cliente_id) {
+                      await updateClientRenewalDate(supabase, payment.cliente_id);
+                    }
                   }
                 }
               }
