@@ -1,0 +1,378 @@
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Search, 
+  Download, 
+  Filter,
+  Activity,
+  UserPlus,
+  Edit,
+  Trash2,
+  LogIn,
+  Clock,
+  User,
+  RefreshCw
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+interface ActivityLog {
+  id: string;
+  action: string;
+  cliente_id: string | null;
+  changed_by: string | null;
+  changed_by_email: string | null;
+  changed_fields: string[] | null;
+  previous_data: any;
+  new_data: any;
+  created_at: string;
+}
+
+const AdminActivityLogs = () => {
+  const { toast } = useToast();
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('7days');
+
+  useEffect(() => {
+    loadLogs();
+  }, [dateFilter]);
+
+  const loadLogs = async () => {
+    setIsLoading(true);
+    try {
+      let query = supabase
+        .from('client_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Apply date filter
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case '7days':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30days':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90days':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+
+      query = query.gte('created_at', startDate.toISOString());
+
+      const { data, error } = await query.limit(500);
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao carregar logs',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = 
+      log.changed_by_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      JSON.stringify(log.new_data)?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesAction = actionFilter === 'all' || log.action === actionFilter;
+    
+    return matchesSearch && matchesAction;
+  });
+
+  const exportToCSV = () => {
+    const headers = ['Data/Hora', 'Ação', 'Usuário', 'Campos Alterados', 'Detalhes'];
+    const rows = filteredLogs.map(log => [
+      format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss'),
+      log.action,
+      log.changed_by_email || 'Sistema',
+      log.changed_fields?.join(', ') || '-',
+      log.new_data?.nome || '-'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `logs-atividade-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: 'Exportação concluída',
+      description: `${filteredLogs.length} registros exportados.`,
+    });
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'CREATE':
+        return <UserPlus className="h-4 w-4 text-emerald-400" />;
+      case 'UPDATE':
+        return <Edit className="h-4 w-4 text-blue-400" />;
+      case 'DELETE':
+        return <Trash2 className="h-4 w-4 text-red-400" />;
+      default:
+        return <Activity className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getActionBadge = (action: string) => {
+    const variants: Record<string, { bg: string; text: string; label: string }> = {
+      CREATE: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
+      UPDATE: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Atualização' },
+      DELETE: { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Exclusão' },
+    };
+    
+    const variant = variants[action] || { bg: 'bg-muted', text: 'text-muted-foreground', label: action };
+    
+    return (
+      <Badge className={`${variant.bg} ${variant.text} border-none gap-1`}>
+        {getActionIcon(action)}
+        {variant.label}
+      </Badge>
+    );
+  };
+
+  const stats = {
+    total: filteredLogs.length,
+    creates: filteredLogs.filter(l => l.action === 'CREATE').length,
+    updates: filteredLogs.filter(l => l.action === 'UPDATE').length,
+    deletes: filteredLogs.filter(l => l.action === 'DELETE').length,
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-lg shadow-purple-500/25">
+              <Activity className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                Logs de Atividade
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Histórico completo de todas as ações no sistema
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={loadLogs} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button onClick={exportToCSV} className="bg-gradient-to-r from-emerald-500 to-green-600">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                </div>
+                <Activity className="w-8 h-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Criações</p>
+                  <p className="text-2xl font-bold text-emerald-400">{stats.creates}</p>
+                </div>
+                <UserPlus className="w-8 h-8 text-emerald-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Atualizações</p>
+                  <p className="text-2xl font-bold text-blue-400">{stats.updates}</p>
+                </div>
+                <Edit className="w-8 h-8 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Exclusões</p>
+                  <p className="text-2xl font-bold text-red-400">{stats.deletes}</p>
+                </div>
+                <Trash2 className="w-8 h-8 text-red-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="border-border/50">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por usuário, ação ou cliente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Ação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="CREATE">Criação</SelectItem>
+                    <SelectItem value="UPDATE">Atualização</SelectItem>
+                    <SelectItem value="DELETE">Exclusão</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Hoje</SelectItem>
+                    <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                    <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                    <SelectItem value="90days">Últimos 90 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logs Table */}
+        <Card className="border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-purple-400" />
+              Histórico de Atividades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[500px]">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-[180px]">Data/Hora</TableHead>
+                    <TableHead className="w-[120px]">Ação</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Campos Alterados</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10">
+                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        Nenhum registro encontrado
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredLogs.map((log) => (
+                      <TableRow key={log.id} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-sm">
+                          {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          {getActionBadge(log.action)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              {log.changed_by_email || 'Sistema'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium">
+                            {log.new_data?.nome || log.previous_data?.nome || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {log.changed_fields?.slice(0, 3).map((field, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {field}
+                              </Badge>
+                            ))}
+                            {log.changed_fields && log.changed_fields.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{log.changed_fields.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default AdminActivityLogs;

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -21,36 +22,10 @@ import AdminCobranca from "./pages/AdminCobranca";
 import AdminChatConfig from "./pages/AdminChatConfig";
 import AdminPermissoes from "./pages/AdminPermissoes";
 import AdminGuia from "./pages/AdminGuia";
+import AdminActivityLogs from "./pages/AdminActivityLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { user, isAdmin, isApproved, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Carregando...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // If user is not approved, redirect to auth page to see the approval status
-  if (!isApproved) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
 
 function AppRoutes() {
   const { user, isApproved, isLoading } = useAuth();
@@ -64,28 +39,34 @@ function AppRoutes() {
   }
 
   return (
-    <>
-      <Routes>
-        <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/cadastrar" element={<ProtectedRoute adminOnly><CadastrarCliente /></ProtectedRoute>} />
-        <Route path="/consultar" element={<ProtectedRoute><ConsultarCliente /></ProtectedRoute>} />
-        <Route path="/atualizar" element={<ProtectedRoute adminOnly><AtualizarCliente /></ProtectedRoute>} />
-        <Route path="/excluir" element={<ProtectedRoute adminOnly><ExcluirCliente /></ProtectedRoute>} />
-        <Route path="/usuarios" element={<ProtectedRoute adminOnly><GerenciarUsuarios /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
-        <Route path="/admin/recuperacao-senha" element={<ProtectedRoute adminOnly><AdminRecuperacaoSenha /></ProtectedRoute>} />
-        <Route path="/admin/webhooks" element={<ProtectedRoute adminOnly><AdminWebhooks /></ProtectedRoute>} />
-        <Route path="/admin/api" element={<ProtectedRoute adminOnly><AdminApiKeys /></ProtectedRoute>} />
-        <Route path="/admin/logs" element={<ProtectedRoute adminOnly><AdminAuditLogs /></ProtectedRoute>} />
-        <Route path="/admin/cobranca" element={<ProtectedRoute adminOnly><AdminCobranca /></ProtectedRoute>} />
-        <Route path="/admin/chat" element={<ProtectedRoute adminOnly><AdminChatConfig /></ProtectedRoute>} />
-        <Route path="/admin/permissoes" element={<ProtectedRoute adminOnly><AdminPermissoes /></ProtectedRoute>} />
-        <Route path="/admin/guia" element={<ProtectedRoute adminOnly><AdminGuia /></ProtectedRoute>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
+      
+      {/* Dashboard - requires view_dashboard permission */}
+      <Route path="/" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
+      
+      {/* Client Management - permission-based */}
+      <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />
+      <Route path="/consultar" element={<ProtectedRoute permission="view_clients"><ConsultarCliente /></ProtectedRoute>} />
+      <Route path="/atualizar" element={<ProtectedRoute permission="update_clients"><AtualizarCliente /></ProtectedRoute>} />
+      <Route path="/excluir" element={<ProtectedRoute permission="delete_clients"><ExcluirCliente /></ProtectedRoute>} />
+      
+      {/* Admin Routes - permission-based */}
+      <Route path="/usuarios" element={<ProtectedRoute permission="manage_users"><GerenciarUsuarios /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute permission="manage_settings"><Admin /></ProtectedRoute>} />
+      <Route path="/admin/recuperacao-senha" element={<ProtectedRoute permission="manage_settings"><AdminRecuperacaoSenha /></ProtectedRoute>} />
+      <Route path="/admin/webhooks" element={<ProtectedRoute permission="manage_webhooks"><AdminWebhooks /></ProtectedRoute>} />
+      <Route path="/admin/api" element={<ProtectedRoute permission="manage_api"><AdminApiKeys /></ProtectedRoute>} />
+      <Route path="/admin/logs" element={<ProtectedRoute permission="view_logs"><AdminAuditLogs /></ProtectedRoute>} />
+      <Route path="/admin/activity" element={<ProtectedRoute permission="view_logs"><AdminActivityLogs /></ProtectedRoute>} />
+      <Route path="/admin/cobranca" element={<ProtectedRoute permission="manage_billing"><AdminCobranca /></ProtectedRoute>} />
+      <Route path="/admin/chat" element={<ProtectedRoute permission="manage_settings"><AdminChatConfig /></ProtectedRoute>} />
+      <Route path="/admin/permissoes" element={<ProtectedRoute permission="manage_permissions"><AdminPermissoes /></ProtectedRoute>} />
+      <Route path="/admin/guia" element={<ProtectedRoute permission="manage_settings"><AdminGuia /></ProtectedRoute>} />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
