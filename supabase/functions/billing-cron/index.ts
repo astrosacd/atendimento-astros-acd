@@ -521,16 +521,43 @@ const handler = async (req: Request): Promise<Response> => {
     const processClient = async (cliente: Cliente, messageType: string, template: string) => {
       // Generate payment data for D0 (vencimento) messages
       let paymentData: PaymentData = {};
+      const paymentSkipReasons: string[] = [];
       
       // Always include PIX if configured
       if (config.pix_chave) {
         paymentData.pixChave = config.pix_chave;
         paymentData.pixNome = config.pix_nome_beneficiario || '';
         paymentData.pixBanco = config.pix_banco || '';
+      } else {
+        paymentSkipReasons.push('PIX: Chave PIX não configurada');
       }
       
       // Generate payment link and boleto for D0 and later
       if (['d_zero', 'd_mais_1', 'd_mais_2', 'd_mais_15', 'd_mais_30'].includes(messageType)) {
+        // Check payment link
+        const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+        
+        if (!accessToken) {
+          paymentSkipReasons.push('Link Cartão: Token Mercado Pago não configurado');
+        } else if (config.mp_link_enabled !== 'true' && !config.mp_link_fixo) {
+          paymentSkipReasons.push('Link Cartão: Geração de link desabilitada');
+        }
+        
+        // Check boleto
+        if (!accessToken) {
+          paymentSkipReasons.push('Boleto: Token Mercado Pago não configurado');
+        } else if (config.mp_boleto_enabled !== 'true') {
+          paymentSkipReasons.push('Boleto: Geração de boleto desabilitada');
+        } else if (!cliente.cpf) {
+          paymentSkipReasons.push('Boleto: Cliente sem CPF cadastrado');
+        } else {
+          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+          const valorBoleto = cliente.valor + taxaBoleto;
+          if (valorBoleto < 2.01) {
+            paymentSkipReasons.push(`Boleto: Valor R$ ${valorBoleto.toFixed(2)} abaixo do mínimo R$ 2.01`);
+          }
+        }
+        
         const [linkPagamento, boletoUrl] = await Promise.all([
           generatePaymentLink(cliente, config),
           generateBoleto(cliente, config),
@@ -562,6 +589,16 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       const subject = `Cobrança - ${cliente.produto}`;
+      
+      // Build payment status for logging
+      const paymentStatus = [];
+      if (paymentData.pixChave) paymentStatus.push('PIX: ✓');
+      if (paymentData.linkPagamento) paymentStatus.push('Link Cartão: ✓');
+      if (paymentData.boletoUrl) paymentStatus.push('Boleto: ✓');
+      
+      const paymentNote = paymentSkipReasons.length > 0 
+        ? `Pagamentos não enviados: ${paymentSkipReasons.join('; ')}` 
+        : null;
 
       // Send Email if enabled
       if (config.email_enabled === 'true' && cliente.email && config.billing_gmail_user && config.billing_gmail_password) {
@@ -574,6 +611,9 @@ const handler = async (req: Request): Promise<Response> => {
           paymentData.boletoUrl
         );
 
+        // Include payment skip reasons in error_message if any
+        const logError = emailResult.error || (paymentNote ? paymentNote : null);
+
         await supabase.from('billing_logs').insert({
           cliente_id: cliente.id,
           cliente_nome: cliente.nome,
@@ -582,7 +622,7 @@ const handler = async (req: Request): Promise<Response> => {
           message_type: messageType,
           channel: 'email',
           status: emailResult.success ? 'sent' : 'error',
-          error_message: emailResult.error,
+          error_message: logError,
         });
 
         if (emailResult.success) {
@@ -599,6 +639,9 @@ const handler = async (req: Request): Promise<Response> => {
         whatsappInstanceIndex++;
 
         const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
+        
+        // Include payment skip reasons in error_message if any
+        const logError = whatsappResult.error || (paymentNote ? paymentNote : null);
 
         await supabase.from('billing_logs').insert({
           cliente_id: cliente.id,
@@ -608,7 +651,7 @@ const handler = async (req: Request): Promise<Response> => {
           message_type: messageType,
           channel: 'whatsapp',
           status: whatsappResult.success ? 'sent' : 'error',
-          error_message: whatsappResult.error,
+          error_message: logError,
         });
 
         await supabase
