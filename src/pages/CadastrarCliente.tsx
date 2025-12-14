@@ -49,15 +49,31 @@ export default function CadastrarCliente() {
   const [existingTags, setExistingTags] = useState<string[]>([]);
 
   useEffect(() => {
-    // Fetch existing tags for suggestions
+    // Buscar tags existentes em clientes e no registro central (billing_config)
     const fetchTags = async () => {
-      const { data } = await supabase.from('clientes').select('tags');
-      if (data) {
-        const allTags = data.flatMap(c => c.tags || []);
-        const uniqueTags = [...new Set(allTags)];
-        setExistingTags(uniqueTags);
-      }
+      // Tags usadas em clientes
+      const { data: clientesData } = await supabase.from('clientes').select('tags');
+      const clienteTags = clientesData
+        ? clientesData.flatMap((c) => c.tags || [])
+        : [];
+
+      // Tags registradas centralmente
+      const { data: configData } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .like('config_key', 'tag_%');
+
+      const configTags = configData
+        ? configData
+            .map((c) => c.config_value as string | null)
+            .filter((t): t is string => !!t)
+        : [];
+
+      const allTags = [...clienteTags, ...configTags];
+      const uniqueTags = [...new Set(allTags.map((t) => t.toLowerCase()))];
+      setExistingTags(uniqueTags);
     };
+
     fetchTags();
   }, []);
 
