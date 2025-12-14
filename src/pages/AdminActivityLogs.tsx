@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +60,8 @@ const AdminActivityLogs = () => {
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
+  const [logToRestore, setLogToRestore] = useState<ActivityLog | null>(null);
 
   useEffect(() => {
     loadLogs();
@@ -199,8 +202,13 @@ const AdminActivityLogs = () => {
     setIsDetailDialogOpen(true);
   };
 
-  const restoreDeletedClient = async (log: ActivityLog) => {
-    if (!log.previous_data) {
+  const openRestoreConfirm = (log: ActivityLog) => {
+    setLogToRestore(log);
+    setIsRestoreConfirmOpen(true);
+  };
+
+  const restoreDeletedClient = async () => {
+    if (!logToRestore?.previous_data) {
       toast({
         title: 'Erro',
         description: 'Dados do cliente não encontrados para restauração.',
@@ -213,7 +221,7 @@ const AdminActivityLogs = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const clientData = log.previous_data;
+      const clientData = logToRestore.previous_data;
       const { error } = await supabase
         .from('clientes')
         .insert({
@@ -237,7 +245,9 @@ const AdminActivityLogs = () => {
         description: `${clientData.nome} foi restaurado com sucesso.`,
       });
 
+      setIsRestoreConfirmOpen(false);
       setIsDetailDialogOpen(false);
+      setLogToRestore(null);
       loadLogs();
     } catch (error: any) {
       toast({
@@ -247,6 +257,7 @@ const AdminActivityLogs = () => {
       });
     } finally {
       setIsRestoring(false);
+      setIsRestoreConfirmOpen(false);
     }
   };
 
@@ -342,13 +353,13 @@ const AdminActivityLogs = () => {
                 Dados do Cliente Excluído
               </h3>
               <Button
-                onClick={() => restoreDeletedClient(selectedLog)}
+                onClick={() => openRestoreConfirm(selectedLog)}
                 disabled={isRestoring}
                 className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
                 size="sm"
               >
-                <RotateCcw className={`w-4 h-4 mr-2 ${isRestoring ? 'animate-spin' : ''}`} />
-                {isRestoring ? 'Restaurando...' : 'Restaurar Cliente'}
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restaurar Cliente
               </Button>
             </div>
             <div className="grid gap-3">
@@ -674,6 +685,46 @@ const AdminActivityLogs = () => {
             {renderLogDetailsContent()}
           </DialogContent>
         </Dialog>
+
+        {/* Restore Confirmation Dialog */}
+        <AlertDialog open={isRestoreConfirmOpen} onOpenChange={setIsRestoreConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-emerald-400" />
+                Confirmar Restauração
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  Você está prestes a restaurar o cliente <strong className="text-foreground">{logToRestore?.previous_data?.nome}</strong>.
+                </p>
+                <p>
+                  Um novo registro será criado com os dados salvos no momento da exclusão.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isRestoring}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={restoreDeletedClient}
+                disabled={isRestoring}
+                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+              >
+                {isRestoring ? (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2 animate-spin" />
+                    Restaurando...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Confirmar Restauração
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
