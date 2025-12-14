@@ -442,103 +442,309 @@ const AdminApiKeys = () => {
                   <p className="text-sm text-muted-foreground">
                     Todas as requisições devem incluir o header <code className="bg-muted px-1 rounded">x-api-key</code> com uma chave válida.
                   </p>
-                  <pre className="bg-muted p-3 rounded-lg text-sm overflow-x-auto">
-{`Headers:
-x-api-key: sua_api_key_aqui
-Content-Type: application/json`}
-                  </pre>
                 </div>
 
-                {/* Endpoints */}
+                {/* Endpoints with curl examples */}
                 <div className="space-y-4">
-                  <Label>Endpoints</Label>
+                  <Label className="text-lg font-semibold">Endpoints</Label>
                   
-                  {/* GET */}
+                  {/* GET - List all */}
                   <div className="border border-border/40 rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-blue-500">GET</Badge>
-                      <code className="text-sm">/api-clientes</code>
+                      <code className="text-sm font-semibold">/api-clientes</code>
+                      <span className="text-sm text-muted-foreground">- Lista todos os clientes</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Lista todos os clientes</p>
-                    <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`// Query params opcionais:
-?search=termo     // Busca por nome, CPF ou número
-?limit=10         // Limite de resultados
-?offset=0         // Paginação
-
-// Resposta:
-{
-  "data": [...],
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Parâmetros de query (opcionais):</p>
+                      <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                        <li><code className="bg-muted px-1 rounded">search</code> - Busca por nome, CPF ou número</li>
+                        <li><code className="bg-muted px-1 rounded">limit</code> - Limite de resultados (padrão: 100)</li>
+                        <li><code className="bg-muted px-1 rounded">offset</code> - Paginação</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X GET "${baseUrl}" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`, 'curl-get')}
+                        >
+                          {copiedKey === 'curl-get' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X GET "${baseUrl}" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Com filtros:</p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X GET "${baseUrl}?search=joao&limit=10" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Resposta:</p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
+{`{
+  "data": [
+    {
+      "id": "uuid",
+      "nome": "João Silva",
+      "email": "joao@email.com",
+      "numero": "11999999999",
+      "cpf": "12345678900",
+      "produto": "Plano Premium",
+      "valor": 99.90,
+      "data_renovacao": "2024-12-31",
+      ...
+    }
+  ],
   "count": 100
 }`}
-                    </pre>
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* GET - Single client */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500">GET</Badge>
+                      <code className="text-sm font-semibold">/api-clientes?id=uuid</code>
+                      <span className="text-sm text-muted-foreground">- Busca um cliente específico</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X GET "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`, 'curl-get-id')}
+                        >
+                          {copiedKey === 'curl-get-id' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X GET "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`}
+                      </pre>
+                    </div>
                   </div>
 
                   {/* POST */}
                   <div className="border border-border/40 rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-emerald-500">POST</Badge>
-                      <code className="text-sm">/api-clientes</code>
+                      <code className="text-sm font-semibold">/api-clientes</code>
+                      <span className="text-sm text-muted-foreground">- Cria um novo cliente</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Cria um novo cliente</p>
-                    <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`// Body:
-{
-  "nome": "Nome do Cliente",
-  "numero": "11999999999",
-  "cpf": "12345678900",
-  "email": "email@exemplo.com",
-  "produto": "Nome do Produto",
-  "data_renovacao": "2024-12-31",
-  "valor": 99.90,
-  "plano": "Mensal",
-  "observacao": "Observação opcional"
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Campos obrigatórios:</p>
+                      <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                        <li><code className="bg-muted px-1 rounded">nome</code> - Nome do cliente</li>
+                        <li><code className="bg-muted px-1 rounded">numero</code> - Telefone/WhatsApp</li>
+                        <li><code className="bg-muted px-1 rounded">cpf</code> - CPF ou CNPJ</li>
+                        <li><code className="bg-muted px-1 rounded">email</code> - E-mail</li>
+                        <li><code className="bg-muted px-1 rounded">produto</code> - Produto/Serviço</li>
+                        <li><code className="bg-muted px-1 rounded">data_renovacao</code> - Data de renovação (YYYY-MM-DD)</li>
+                        <li><code className="bg-muted px-1 rounded">valor</code> - Valor (número)</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X POST "${baseUrl}" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nome": "João Silva",
+    "numero": "11999999999",
+    "cpf": "12345678900",
+    "email": "joao@email.com",
+    "produto": "Plano Premium",
+    "data_renovacao": "2024-12-31",
+    "valor": 99.90,
+    "plano": "Mensal",
+    "observacao": "Cliente VIP"
+  }'`, 'curl-post')}
+                        >
+                          {copiedKey === 'curl-post' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X POST "${baseUrl}" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nome": "João Silva",
+    "numero": "11999999999",
+    "cpf": "12345678900",
+    "email": "joao@email.com",
+    "produto": "Plano Premium",
+    "data_renovacao": "2024-12-31",
+    "valor": 99.90,
+    "plano": "Mensal",
+    "observacao": "Cliente VIP"
+  }'`}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Resposta (sucesso):</p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
+{`{
+  "data": {
+    "id": "uuid-gerado",
+    "nome": "João Silva",
+    ...
+  },
+  "message": "Cliente criado com sucesso"
 }`}
-                    </pre>
+                      </pre>
+                    </div>
                   </div>
 
                   {/* PUT */}
                   <div className="border border-border/40 rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-update">PUT</Badge>
-                      <code className="text-sm">/api-clientes?id=uuid</code>
+                      <code className="text-sm font-semibold">/api-clientes?id=uuid</code>
+                      <span className="text-sm text-muted-foreground">- Atualiza um cliente</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Atualiza um cliente existente</p>
-                    <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`// Query param obrigatório:
-?id=uuid-do-cliente
-
-// Body (apenas campos a atualizar):
-{
-  "nome": "Novo Nome",
-  "valor": 149.90
+                    <p className="text-xs text-muted-foreground">
+                      Envie apenas os campos que deseja atualizar.
+                    </p>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X PUT "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nome": "João Silva Atualizado",
+    "valor": 149.90
+  }'`, 'curl-put')}
+                        >
+                          {copiedKey === 'curl-put' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X PUT "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nome": "João Silva Atualizado",
+    "valor": 149.90
+  }'`}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Resposta:</p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
+{`{
+  "data": { ... cliente atualizado ... },
+  "message": "Cliente atualizado com sucesso"
 }`}
-                    </pre>
+                      </pre>
+                    </div>
                   </div>
 
                   {/* DELETE */}
                   <div className="border border-border/40 rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-destructive">DELETE</Badge>
-                      <code className="text-sm">/api-clientes?id=uuid</code>
+                      <code className="text-sm font-semibold">/api-clientes?id=uuid</code>
+                      <span className="text-sm text-muted-foreground">- Remove um cliente</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Remove um cliente</p>
-                    <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`// Query param obrigatório:
-?id=uuid-do-cliente`}
-                    </pre>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X DELETE "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`, 'curl-delete')}
+                        >
+                          {copiedKey === 'curl-delete' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X DELETE "${baseUrl}?id=UUID_DO_CLIENTE" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json"`}
+                      </pre>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium">Resposta:</p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
+{`{
+  "message": "Cliente excluído com sucesso"
+}`}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error Responses */}
+                <div className="space-y-2">
+                  <Label className="text-lg font-semibold">Códigos de Erro</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="border border-border/40 rounded-lg p-3">
+                      <Badge variant="outline" className="mb-2">400</Badge>
+                      <p className="text-sm text-muted-foreground">Requisição inválida (campos faltando)</p>
+                    </div>
+                    <div className="border border-border/40 rounded-lg p-3">
+                      <Badge variant="outline" className="mb-2">401</Badge>
+                      <p className="text-sm text-muted-foreground">API Key inválida ou ausente</p>
+                    </div>
+                    <div className="border border-border/40 rounded-lg p-3">
+                      <Badge variant="outline" className="mb-2">404</Badge>
+                      <p className="text-sm text-muted-foreground">Cliente não encontrado</p>
+                    </div>
+                    <div className="border border-border/40 rounded-lg p-3">
+                      <Badge variant="outline" className="mb-2">500</Badge>
+                      <p className="text-sm text-muted-foreground">Erro interno do servidor</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* N8N Example */}
                 <div className="space-y-2">
-                  <Label>Exemplo N8N - HTTP Request</Label>
+                  <Label className="text-lg font-semibold">Integração N8N</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Configure o nó HTTP Request no N8N com as seguintes configurações:
+                  </p>
                   <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto">
-{`Método: GET
+{`Método: GET / POST / PUT / DELETE
 URL: ${baseUrl}
+
 Headers:
-  - x-api-key: sua_api_key_aqui
-  - Content-Type: application/json`}
+  x-api-key: sua_api_key_aqui
+  Content-Type: application/json
+
+Body (para POST/PUT):
+  JSON com os campos do cliente`}
                   </pre>
                 </div>
               </CardContent>
