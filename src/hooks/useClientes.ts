@@ -101,6 +101,22 @@ export const useClientes = () => {
         .single();
 
       if (error) throw error;
+
+      // Garantir que todas as tags usadas pelo cliente sejam registradas em billing_config
+      if (cliente.tags && cliente.tags.length > 0) {
+        try {
+          const upsertPayload = cliente.tags.map((tag) => ({
+            config_key: `tag_${tag.toLowerCase().replace(/\s+/g, '_')}`,
+            config_value: tag,
+          }));
+
+          await supabase
+            .from('billing_config')
+            .upsert(upsertPayload, { onConflict: 'config_key' });
+        } catch (e) {
+          console.error('Erro ao registrar tags em billing_config', e);
+        }
+      }
       
       toast({
         title: 'Cliente cadastrado com sucesso!',
