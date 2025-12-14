@@ -78,6 +78,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   dashboard: <LayoutDashboard className="h-4 w-4" />,
   clientes: <Users className="h-4 w-4" />,
   admin: <Settings className="h-4 w-4" />,
+  tags: <Tag className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -307,6 +308,7 @@ export default function AdminPermissoes() {
     dashboard: 'Dashboard',
     clientes: 'Clientes',
     admin: 'Administração',
+    tags: 'Tags',
   };
 
   return (
@@ -478,80 +480,65 @@ export default function AdminPermissoes() {
                     ))}
                   </>
                 ))}
+                {/* Tags Section in Matrix */}
+                {availableTags.length > 0 && (
+                  <>
+                    <TableRow className="bg-muted/30">
+                      <TableCell colSpan={roles.length + 1} className="font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4" />
+                          Tags
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {availableTags.map((tag) => {
+                      const tagPermKey = `tag_access_${tag.toLowerCase().replace(/\s+/g, '_')}`;
+                      return (
+                        <TableRow key={tag}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Tag className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium capitalize">{tag}</p>
+                                <p className="text-xs text-muted-foreground">Acesso a clientes com esta tag</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          {roles.map((role) => {
+                            const hasPerm = hasPermission(role.name, tagPermKey);
+                            const isAdmin = role.name === 'admin';
+                            return (
+                              <TableCell key={role.id} className="text-center">
+                                <button
+                                  onClick={() => !isAdmin && togglePermissionMutation.mutate({
+                                    roleName: role.name,
+                                    permissionKey: tagPermKey,
+                                    hasPermission: hasPerm,
+                                  })}
+                                  disabled={isAdmin}
+                                  className={cn(
+                                    "w-8 h-8 rounded-full flex items-center justify-center mx-auto transition-all",
+                                    hasPerm 
+                                      ? "bg-primary/20 text-primary" 
+                                      : "bg-muted text-muted-foreground",
+                                    !isAdmin && "hover:scale-110 cursor-pointer",
+                                    isAdmin && "opacity-60 cursor-not-allowed"
+                                  )}
+                                >
+                                  {hasPerm ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                                </button>
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
+                  </>
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-
-        {/* Tags Matrix */}
-        {availableTags.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5 text-primary" />
-                Restrição por Tags
-              </CardTitle>
-              <CardDescription>
-                Ative as tags que cada role pode acessar. Se nenhuma tag estiver marcada, a role pode acessar todos os clientes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Tag</TableHead>
-                    {roles.map((role) => (
-                      <TableHead key={role.id} className="text-center min-w-[120px]">
-                        <Badge className={cn("text-xs", getRoleColor(role.color))}>
-                          {role.display_name}
-                        </Badge>
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableTags.map((tag) => (
-                    <TableRow key={tag}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Tag className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium capitalize">{tag}</span>
-                        </div>
-                      </TableCell>
-                      {roles.map((role) => {
-                        const tagPermKey = `tag_access_${tag.toLowerCase().replace(/\s+/g, '_')}`;
-                        const hasPerm = hasPermission(role.name, tagPermKey);
-                        const isAdmin = role.name === 'admin';
-                        return (
-                          <TableCell key={role.id} className="text-center">
-                            <button
-                              onClick={() => !isAdmin && togglePermissionMutation.mutate({
-                                roleName: role.name,
-                                permissionKey: tagPermKey,
-                                hasPermission: hasPerm,
-                              })}
-                              disabled={isAdmin}
-                              className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center mx-auto transition-all",
-                                hasPerm 
-                                  ? "bg-primary/20 text-primary" 
-                                  : "bg-muted text-muted-foreground",
-                                !isAdmin && "hover:scale-110 cursor-pointer",
-                                isAdmin && "opacity-60 cursor-not-allowed"
-                              )}
-                            >
-                              {hasPerm ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                            </button>
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Legend */}
         <Card className="border-border bg-muted/30">
