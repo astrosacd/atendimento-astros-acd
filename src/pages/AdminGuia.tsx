@@ -22,7 +22,12 @@ import {
   Database,
   HelpCircle,
   Tag,
-  DollarSign
+  DollarSign,
+  History,
+  RotateCcw,
+  Bell,
+  BarChart3,
+  Lock
 } from "lucide-react";
 
 interface CustomRole {
@@ -581,6 +586,341 @@ Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança
       ]
     },
     {
+      id: "permissoes",
+      title: "Permissões e Roles Customizadas",
+      icon: Lock,
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      description: "Crie roles personalizadas e configure permissões granulares",
+      steps: [
+        {
+          title: "Entendendo o sistema de permissões",
+          content: `O sistema usa controle de acesso baseado em **roles** (funções):
+
+- Cada usuário tem **uma role** atribuída
+- Cada role tem **múltiplas permissões**
+- Permissões controlam o que o usuário pode fazer
+
+**Roles padrão:**
+- **Admin**: Acesso total ao sistema
+- **Gerente**: CRUD de clientes próprios
+- **Operador**: Cadastra e atualiza clientes
+- **Financeiro**: Acesso apenas ao módulo de Cobrança
+- **Visualizador**: Apenas consulta clientes`
+        },
+        {
+          title: "Criar role customizada",
+          content: `1. Acesse **Painel Administrativo** → **Permissões**
+2. Na aba **Roles**, clique em **Criar Role**
+3. Preencha:
+   - **Nome interno**: identificador único (ex: "suporte")
+   - **Nome de exibição**: nome amigável (ex: "Suporte Técnico")
+   - **Cor**: cor do badge da role
+   - **Descrição**: o que essa role faz
+4. Clique em **Criar**`
+        },
+        {
+          title: "Configurar permissões da role",
+          content: `Após criar a role, configure suas permissões:
+
+1. Na aba **Matriz de Permissões**
+2. Encontre a role na lista
+3. Marque/desmarque as permissões desejadas:
+   - **view_dashboard**: Ver dashboard e métricas
+   - **view_clients**: Consultar clientes
+   - **create_clients**: Cadastrar clientes
+   - **update_clients**: Atualizar clientes
+   - **delete_clients**: Excluir clientes
+   - **export_clients**: Exportar clientes
+   - **manage_billing**: Acessar módulo de cobrança
+   - **manage_users**: Gerenciar usuários
+   - **view_logs**: Ver logs de atividade
+   - E outras...`
+        },
+        {
+          title: "Atribuir role a usuário",
+          content: `1. Acesse **Gerenciar Usuários**
+2. Encontre o usuário na lista
+3. Clique no dropdown de role
+4. Selecione a nova role
+5. As permissões são aplicadas imediatamente!`
+        }
+      ],
+      tips: [
+        "Sempre teste uma nova role com um usuário de teste antes de usar em produção",
+        "Roles de sistema (Admin, etc.) não podem ser excluídas",
+        "Você pode criar roles específicas por departamento (Financeiro, Suporte, etc.)",
+        "Alterações de permissão são aplicadas em tempo real"
+      ]
+    },
+    {
+      id: "logs-atividade",
+      title: "Logs de Atividade",
+      icon: History,
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
+      description: "Acompanhe todas as ações realizadas no sistema",
+      steps: [
+        {
+          title: "O que é registrado",
+          content: `O sistema registra automaticamente todas as ações de clientes:
+
+- **Cadastro**: Quando um cliente é criado
+- **Atualização**: Quando dados são alterados (mostra antes/depois)
+- **Exclusão**: Quando um cliente é removido
+- **Restauração**: Quando um cliente excluído é restaurado
+
+Cada log inclui:
+- Quem fez a ação (nome e email)
+- Quando foi feito (data e hora)
+- O que mudou (campos alterados)`
+        },
+        {
+          title: "Acessar logs de atividade",
+          content: `1. Acesse **Painel Administrativo** → **Logs de Atividade**
+2. Veja as estatísticas no topo:
+   - Total de registros
+   - Cadastros
+   - Atualizações
+   - Exclusões
+   - Restaurações
+3. Use os filtros para encontrar ações específicas`
+        },
+        {
+          title: "Filtrar logs",
+          content: `**Filtros disponíveis:**
+
+- **Por tipo de ação**: Cadastro, Atualização, Exclusão, Restauração
+- **Por período**: Data inicial e final
+- **Por cliente**: Busca por nome do cliente
+
+**Exportar:**
+Clique em **Exportar PDF** para gerar relatório com os logs filtrados.`
+        },
+        {
+          title: "Ver detalhes de uma ação",
+          content: `Para ver detalhes completos de uma ação:
+
+1. Clique no ícone de **olho** na linha do log
+2. Veja o modal com:
+   - Dados anteriores (em atualizações/exclusões)
+   - Dados novos (em cadastros/atualizações)
+   - Campos que foram alterados (destacados)
+   - Informações do usuário que fez a ação`
+        }
+      ],
+      tips: [
+        "Logs não podem ser editados ou excluídos (auditoria)",
+        "Use os logs para identificar quem fez alterações indevidas",
+        "Exportações PDF são úteis para compliance e auditoria",
+        "Os logs de API são separados em outra página"
+      ]
+    },
+    {
+      id: "restauracao",
+      title: "Restauração de Clientes",
+      icon: RotateCcw,
+      color: "text-teal-400",
+      bgColor: "bg-teal-500/10",
+      description: "Recupere clientes excluídos acidentalmente",
+      steps: [
+        {
+          title: "Quando usar a restauração",
+          content: `A restauração é útil quando:
+
+- Um cliente foi excluído por engano
+- Precisa recuperar dados de um cliente antigo
+- Houve exclusão indevida por outro usuário
+
+⚠️ **Importante**: Apenas clientes excluídos recentemente podem ser restaurados (enquanto o log existir).`
+        },
+        {
+          title: "Como restaurar um cliente",
+          content: `1. Acesse **Painel Administrativo** → **Logs de Atividade**
+2. Filtre por **Tipo de Ação**: "Exclusão"
+3. Encontre o cliente que deseja restaurar
+4. Clique no botão **Restaurar** (ícone de refresh)
+5. Confirme a restauração no modal
+6. O cliente volta à base com todos os dados!`
+        },
+        {
+          title: "O que acontece na restauração",
+          content: `Quando um cliente é restaurado:
+
+1. ✅ Todos os dados originais são recuperados
+2. ✅ Uma observação é adicionada automaticamente:
+   "[Cliente restaurado em DD/MM/AAAA às HH:mm]"
+3. ✅ Um novo log de "Restauração" é criado
+4. ✅ O cliente pode ser consultado e editado normalmente
+
+A data de restauração é sempre atualizada para o momento atual.`
+        },
+        {
+          title: "Limitações",
+          content: `**Não é possível restaurar quando:**
+
+- O log de exclusão foi removido (muito antigo)
+- Já existe outro cliente com mesmo CPF
+- Já existe outro cliente com mesmo email
+
+Nestes casos, será necessário cadastrar o cliente novamente manualmente.`
+        }
+      ],
+      tips: [
+        "A observação de restauração é atualizada a cada nova restauração",
+        "O histórico mostra quantas vezes um cliente foi restaurado",
+        "Restaurações aparecem com badge especial nos logs",
+        "Use a restauração com responsabilidade - ela recria o cliente completo"
+      ]
+    },
+    {
+      id: "notificacoes",
+      title: "Notificações Push",
+      icon: Bell,
+      color: "text-rose-400",
+      bgColor: "bg-rose-500/10",
+      description: "Receba alertas do navegador para eventos importantes",
+      steps: [
+        {
+          title: "O que são notificações push",
+          content: `Notificações push são alertas do navegador que aparecem mesmo quando você não está olhando para a página:
+
+**Eventos notificados:**
+- 📋 Novo usuário aguardando aprovação
+- ❌ Erro no envio de cobrança
+
+Isso permite que você seja alertado sobre eventos importantes em tempo real!`
+        },
+        {
+          title: "Habilitar notificações",
+          content: `1. Acesse o **Dashboard** principal
+2. Procure o card **"Notificações"** ou ícone de sino
+3. Clique em **"Ativar Notificações"**
+4. O navegador perguntará se permite notificações
+5. Clique em **"Permitir"**
+6. Pronto! Você receberá alertas automaticamente.`
+        },
+        {
+          title: "Requisitos",
+          content: `Para receber notificações:
+
+- ✅ Use um navegador moderno (Chrome, Firefox, Edge)
+- ✅ Permita notificações quando o navegador solicitar
+- ✅ Mantenha pelo menos uma aba do CRM aberta
+- ✅ Seja um usuário com role **Admin**
+
+⚠️ Notificações só funcionam para administradores.`
+        },
+        {
+          title: "Gerenciar notificações",
+          content: `**Desativar notificações:**
+Clique no botão de notificações no Dashboard para desativar.
+
+**Revogar permissão do navegador:**
+1. Clique no ícone de cadeado na barra de endereços
+2. Encontre "Notificações"
+3. Mude para "Bloquear"
+
+**Não está recebendo?**
+- Verifique se permitiu no navegador
+- Verifique se não está em modo "Não Perturbe"`
+        }
+      ],
+      tips: [
+        "Notificações funcionam mesmo com a aba minimizada",
+        "Apenas admins recebem notificações (para evitar spam)",
+        "Teste criando um usuário e veja se a notificação aparece",
+        "Em dispositivos móveis, notificações web podem ter limitações"
+      ]
+    },
+    {
+      id: "dashboard",
+      title: "Dashboard e Métricas",
+      icon: BarChart3,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Entenda as métricas e gráficos do painel principal",
+      steps: [
+        {
+          title: "Visão geral do Dashboard",
+          content: `O Dashboard é a página inicial do sistema e mostra:
+
+**Cards de estatísticas:**
+- Total de clientes cadastrados
+- Próximas renovações (7 dias)
+- Valor total em contratos
+- Taxa de inadimplência
+- Novos clientes (30 dias)
+
+**Gráficos:**
+- Cadastros por mês (tendência)
+- Distribuição por plano
+- Cobranças dos últimos 30 dias`
+        },
+        {
+          title: "Métricas de clientes",
+          content: `**Total de Clientes:**
+Número total de clientes ativos na base.
+
+**Próximas Renovações:**
+Clientes com renovação nos próximos 7 dias.
+Útil para preparar cobranças manuais.
+
+**Valor Total:**
+Soma do valor (mensalidade) de todos os clientes.
+Representa o faturamento potencial mensal.
+
+**Novos Clientes (30 dias):**
+Quantos clientes foram cadastrados no último mês.`
+        },
+        {
+          title: "Métricas de cobrança",
+          content: `**Taxa de Inadimplência:**
+Percentual de clientes com data de renovação vencida.
+Calculada automaticamente.
+
+**Taxa de Sucesso de Cobranças:**
+Percentual de mensagens enviadas com sucesso.
+Considera email e WhatsApp.
+
+**Previsão de Receita:**
+Valor total dos pagamentos pendentes.
+Representa quanto pode entrar no caixa.`
+        },
+        {
+          title: "Gráficos",
+          content: `**Cadastros por Mês (Área):**
+Mostra a tendência de novos cadastros nos últimos 6 meses.
+Útil para avaliar crescimento.
+
+**Clientes por Plano (Pizza):**
+Distribuição percentual dos clientes por tipo de plano.
+Identifica planos mais populares.
+
+**Cobranças 30 Dias (Barras):**
+Volume de cobranças enviadas por dia.
+Mostra sucesso vs erro de envio.`
+        },
+        {
+          title: "Ações rápidas",
+          content: `O Dashboard também oferece ações rápidas:
+
+- **Cadastrar Cliente**: Atalho para novo cadastro
+- **Consultar Clientes**: Atalho para busca
+- **Backup**: Exportar dados do sistema
+- **Notificações**: Ativar/desativar alertas push
+
+Cards clicáveis levam diretamente às páginas de gestão.`
+        }
+      ],
+      tips: [
+        "O Dashboard atualiza automaticamente ao abrir",
+        "Use o Dashboard para ter visão geral rápida do negócio",
+        "Métricas de cobrança ajudam a identificar problemas no envio",
+        "Gráficos mostram tendências - use para tomar decisões"
+      ]
+    },
+    {
       id: "backup",
       title: "Backup de Dados",
       icon: Database,
@@ -598,7 +938,7 @@ Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança
 **Exportar Logs:**
 1. Acesse **Logs de Atividade** ou **Logs de API**
 2. Aplique os filtros de período
-3. Clique em **Exportar CSV**`
+3. Clique em **Exportar CSV** ou **Exportar PDF**`
         },
         {
           title: "Backup automático",
@@ -608,12 +948,27 @@ Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança
 - Retenção de dados por 30 dias
 
 Para restauração, entre em contato com o suporte.`
+        },
+        {
+          title: "Backup completo (Dashboard)",
+          content: `Para um backup completo do sistema:
+
+1. Acesse o **Dashboard**
+2. Clique no botão **Backup**
+3. O sistema gera um arquivo JSON com:
+   - Todos os clientes
+   - Configurações do sistema
+   - Roles e permissões
+   - Webhooks e API keys
+
+Guarde este arquivo em local seguro!`
         }
       ],
       tips: [
         "Faça exportações mensais como backup extra",
-        "Mantenha os CSVs em local seguro",
-        "Os logs de atividade servem como histórico completo"
+        "Mantenha os arquivos em local seguro",
+        "Os logs de atividade servem como histórico completo",
+        "O backup do Dashboard inclui TODAS as configurações"
       ]
     },
     {
@@ -735,58 +1090,100 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
         </Card>
 
         {/* Quick Status */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('gmail')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Mail className="h-5 w-5 text-red-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-red-400" />
               <div>
                 <p className="text-xs text-muted-foreground">Gmail</p>
-                <p className="text-sm font-medium">Configurar →</p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('evolution')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <MessageSquare className="h-5 w-5 text-green-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-green-400" />
               <div>
                 <p className="text-xs text-muted-foreground">WhatsApp</p>
-                <p className="text-sm font-medium">Configurar →</p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('webhooks')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Webhook className="h-5 w-5 text-purple-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <Webhook className="h-4 w-4 text-purple-400" />
               <div>
                 <p className="text-xs text-muted-foreground">Webhooks</p>
-                <p className="text-sm font-medium">Configurar →</p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('api')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Key className="h-5 w-5 text-yellow-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <Key className="h-4 w-4 text-yellow-400" />
               <div>
                 <p className="text-xs text-muted-foreground">API Keys</p>
-                <p className="text-sm font-medium">Configurar →</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('permissoes')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <Lock className="h-4 w-4 text-indigo-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Permissões</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('logs-atividade')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-amber-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Logs</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('restauracao')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-teal-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Restaurar</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('notificacoes')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <Bell className="h-4 w-4 text-rose-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Notificações</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-blue-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Dashboard</p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('tags')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Tag className="h-5 w-5 text-violet-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-violet-400" />
               <div>
                 <p className="text-xs text-muted-foreground">Tags</p>
-                <p className="text-sm font-medium">Configurar →</p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('verificacao-pagamento')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <DollarSign className="h-5 w-5 text-emerald-400" />
+            <CardContent className="p-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-emerald-400" />
               <div>
                 <p className="text-xs text-muted-foreground">Pagamentos</p>
-                <p className="text-sm font-medium">Ver como →</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('backup')?.scrollIntoView({ behavior: 'smooth' })}>
+            <CardContent className="p-3 flex items-center gap-2">
+              <Database className="h-4 w-4 text-cyan-400" />
+              <div>
+                <p className="text-xs text-muted-foreground">Backup</p>
               </div>
             </CardContent>
           </Card>
