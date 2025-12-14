@@ -169,6 +169,7 @@ const AdminActivityLogs = () => {
 
   const getActionLabel = (action: string): string => {
     const actionLower = action.toLowerCase();
+    if (actionLower === 'restored') return 'Restaurado';
     if (actionLower === 'create' || actionLower === 'created') return 'Criação';
     if (actionLower === 'update' || actionLower === 'updated') return 'Atualização';
     if (actionLower === 'delete' || actionLower === 'deleted') return 'Exclusão';
@@ -261,18 +262,14 @@ const AdminActivityLogs = () => {
   };
 
   const isRestoredClient = (log: ActivityLog): boolean => {
-    if (log.action.toLowerCase() !== 'create' && log.action.toLowerCase() !== 'created') {
-      return false;
-    }
-    const observacao = log.new_data?.observacao || '';
-    return observacao.includes('[Cliente restaurado em');
+    return log.action.toLowerCase() === 'restored';
   };
 
-  const getActionIcon = (action: string, isRestored: boolean = false) => {
-    if (isRestored) {
+  const getActionIcon = (action: string) => {
+    const actionLower = action.toLowerCase();
+    if (actionLower === 'restored') {
       return <RotateCcw className="h-4 w-4 text-amber-400" />;
     }
-    const actionLower = action.toLowerCase();
     if (actionLower === 'create' || actionLower === 'created') {
       return <UserPlus className="h-4 w-4 text-emerald-400" />;
     } else if (actionLower === 'update' || actionLower === 'updated') {
@@ -284,19 +281,10 @@ const AdminActivityLogs = () => {
   };
 
   const getActionBadge = (action: string, log?: ActivityLog) => {
-    const isRestored = log ? isRestoredClient(log) : false;
-    
-    if (isRestored) {
-      return (
-        <Badge className="bg-amber-500/20 text-amber-400 border-none gap-1">
-          <RotateCcw className="h-4 w-4" />
-          Restaurado
-        </Badge>
-      );
-    }
-    
     const actionLower = action.toLowerCase();
+    
     const variants: Record<string, { bg: string; text: string; label: string }> = {
+      restored: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Restaurado' },
       create: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
       created: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
       update: { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'Atualização' },
@@ -338,15 +326,14 @@ const AdminActivityLogs = () => {
     setIsRestoring(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email || 'Sistema';
       
       const clientData = logToRestore.previous_data;
       
-      // Add restoration note to observacao
-      const existingObs = clientData.observacao ? String(clientData.observacao) : '';
-      const restorationNote = `[Cliente restaurado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}]`;
-      const newObservacao = existingObs ? `${existingObs}\n${restorationNote}` : restorationNote;
+      // Keep only original observacao, don't add restoration note to client
+      const originalObs = clientData.observacao || null;
       
-      const { error } = await supabase
+      const { data: insertedClient, error } = await supabase
         .from('clientes')
         .insert({
           nome: clientData.nome,
@@ -357,12 +344,25 @@ const AdminActivityLogs = () => {
           plano: clientData.plano,
           valor: clientData.valor,
           data_renovacao: clientData.data_renovacao,
-          observacao: newObservacao,
+          observacao: originalObs,
           tags: clientData.tags || [],
           created_by: user?.id,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Register restoration in activity logs
+      await supabase.from('client_history').insert({
+        action: 'restored',
+        cliente_id: insertedClient.id,
+        changed_by: user?.id,
+        changed_by_email: userEmail,
+        previous_data: clientData,
+        new_data: insertedClient,
+        changed_fields: ['restored_from_deletion'],
+      });
 
       toast({
         title: 'Cliente restaurado!',
@@ -690,6 +690,7 @@ const AdminActivityLogs = () => {
                     <SelectItem value="create">Criação</SelectItem>
                     <SelectItem value="update">Atualização</SelectItem>
                     <SelectItem value="delete">Exclusão</SelectItem>
+                    <SelectItem value="restored">Restaurado</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
