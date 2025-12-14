@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { X, Plus, Tag } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { X, Plus, Tag, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface TagInputProps {
   tags: string[];
   onTagsChange: (tags: string[]) => void;
   suggestions?: string[];
+  /** Se true, só permite selecionar tags das sugestões (não permite criar novas) */
+  onlyFromSuggestions?: boolean;
 }
 
 const TAG_COLORS = [
@@ -21,9 +21,8 @@ const TAG_COLORS = [
   'bg-pink-500/20 text-pink-400 border-pink-500/30',
 ];
 
-export function TagInput({ tags, onTagsChange, suggestions = [] }: TagInputProps) {
-  const [inputValue, setInputValue] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
+export function TagInput({ tags, onTagsChange, suggestions = [], onlyFromSuggestions = false }: TagInputProps) {
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const getTagColor = (tag: string, index: number) => {
     return TAG_COLORS[index % TAG_COLORS.length];
@@ -34,29 +33,15 @@ export function TagInput({ tags, onTagsChange, suggestions = [] }: TagInputProps
     if (trimmedTag && !tags.includes(trimmedTag)) {
       onTagsChange([...tags, trimmedTag]);
     }
-    setInputValue('');
-    setShowSuggestions(false);
+    setShowDropdown(false);
   };
 
   const removeTag = (tagToRemove: string) => {
     onTagsChange(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (inputValue.trim()) {
-        addTag(inputValue);
-      }
-    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
-      removeTag(tags[tags.length - 1]);
-    }
-  };
-
-  const filteredSuggestions = suggestions.filter(
-    suggestion => 
-      suggestion.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !tags.includes(suggestion.toLowerCase())
+  const availableSuggestions = suggestions.filter(
+    suggestion => !tags.includes(suggestion.toLowerCase())
   );
 
   return (
@@ -80,38 +65,52 @@ export function TagInput({ tags, onTagsChange, suggestions = [] }: TagInputProps
           </Badge>
         ))}
         <div className="relative flex-1 min-w-[120px]">
-          <Input
-            value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-              setShowSuggestions(true);
-            }}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            placeholder={tags.length === 0 ? "Adicionar tags..." : ""}
-            className="border-0 bg-transparent h-8 p-0 focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
-          />
-          {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
-              {filteredSuggestions.map(suggestion => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => addTag(suggestion)}
-                  className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-secondary transition-colors flex items-center gap-2"
-                >
-                  <Plus className="w-3 h-3 text-muted-foreground" />
-                  {suggestion}
-                </button>
-              ))}
+          <button
+            type="button"
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors h-8"
+          >
+            <Plus className="w-3 h-3" />
+            Selecionar tag
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {showDropdown && (
+            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-y-auto min-w-[180px]">
+              {availableSuggestions.length > 0 ? (
+                availableSuggestions.map(suggestion => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => addTag(suggestion)}
+                    className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-secondary transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-3 h-3 text-muted-foreground" />
+                    {suggestion}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  {suggestions.length === 0 
+                    ? "Nenhuma tag disponível. Crie tags no Gerenciamento de Tags."
+                    : "Todas as tags já foram adicionadas"}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Pressione Enter para adicionar uma tag
+        {onlyFromSuggestions 
+          ? "Selecione tags criadas no Gerenciamento de Tags"
+          : "Clique para selecionar uma tag"}
       </p>
+      {/* Fecha o dropdown ao clicar fora */}
+      {showDropdown && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => setShowDropdown(false)}
+        />
+      )}
     </div>
   );
 }
