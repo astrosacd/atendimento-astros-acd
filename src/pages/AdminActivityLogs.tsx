@@ -318,6 +318,12 @@ const AdminActivityLogs = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       const clientData = logToRestore.previous_data;
+      
+      // Add restoration note to observacao
+      const existingObs = clientData.observacao ? String(clientData.observacao) : '';
+      const restorationNote = `[Cliente restaurado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}]`;
+      const newObservacao = existingObs ? `${existingObs}\n${restorationNote}` : restorationNote;
+      
       const { error } = await supabase
         .from('clientes')
         .insert({
@@ -329,7 +335,7 @@ const AdminActivityLogs = () => {
           plano: clientData.plano,
           valor: clientData.valor,
           data_renovacao: clientData.data_renovacao,
-          observacao: clientData.observacao,
+          observacao: newObservacao,
           tags: clientData.tags || [],
           created_by: user?.id,
         });
