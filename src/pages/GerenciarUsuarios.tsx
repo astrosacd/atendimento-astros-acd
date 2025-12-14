@@ -48,6 +48,7 @@ interface UserWithRole {
   email: string;
   name: string;
   role: string;
+  phone: string | null;
   approval_status: 'pending' | 'approved' | 'rejected';
   rejection_reason: string | null;
   user_response: string | null;
@@ -134,12 +135,13 @@ export default function GerenciarUsuarios() {
 
       if (rolesError) throw rolesError;
 
-      const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
-        const userRole = roles.find((r) => r.user_id === profile.user_id);
+      const usersWithRoles: UserWithRole[] = profiles.map((profile: any) => {
+        const userRole = roles.find((r: any) => r.user_id === profile.user_id);
         return {
           id: profile.user_id,
           email: profile.email || '',
           name: profile.name,
+          phone: profile.phone || null,
           role: userRole?.role || 'user',
           approval_status: (profile.approval_status as 'pending' | 'approved' | 'rejected') || 'pending',
           rejection_reason: profile.rejection_reason,
@@ -240,10 +242,10 @@ export default function GerenciarUsuarios() {
 
       if (historyError) console.error('Error adding to history:', historyError);
 
-      // Send welcome message on approval
+      // Send welcome message on approval with user's phone from profile
       if (userToApprove) {
         try {
-          // Generate a temporary password for the user
+          // Generate a new password for the user
           const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
           
           await supabase.functions.invoke('send-welcome', {
@@ -251,8 +253,11 @@ export default function GerenciarUsuarios() {
               userName: userToApprove.name,
               userEmail: userToApprove.email,
               userPassword: tempPassword,
+              userPhone: userToApprove.phone,
               sendEmail: true,
-              sendWhatsapp: false,
+              sendWhatsapp: !!userToApprove.phone,
+              updatePassword: true,
+              userId: userId,
             },
           });
           console.log('Welcome message sent on approval');

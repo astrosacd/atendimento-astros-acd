@@ -578,6 +578,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          phone: string | null
           rejection_reason: string | null
           updated_at: string
           user_id: string
@@ -590,6 +591,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          phone?: string | null
           rejection_reason?: string | null
           updated_at?: string
           user_id: string
@@ -602,6 +604,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          phone?: string | null
           rejection_reason?: string | null
           updated_at?: string
           user_id?: string

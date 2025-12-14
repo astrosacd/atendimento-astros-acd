@@ -25,6 +25,7 @@ import AdminGuia from "./pages/AdminGuia";
 import AdminActivityLogs from "./pages/AdminActivityLogs";
 import AdminBoasVindas from "./pages/AdminBoasVindas";
 import AdminTags from "./pages/AdminTags";
+import RecuperarSenha from "./pages/RecuperarSenha";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
       
       {/* Dashboard - requires view_dashboard permission */}
       <Route path="/" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
