@@ -111,6 +111,20 @@ const AdminTags = () => {
         
         if (updateError) throw updateError;
       }
+
+      // Update central registry in billing_config (if exists)
+      const oldKey = `tag_${oldName.toLowerCase().replace(/\s+/g, '_')}`;
+      const newKey = `tag_${newName.toLowerCase().replace(/\s+/g, '_')}`;
+
+      const { error: configError } = await supabase
+        .from('billing_config')
+        .update({
+          config_key: newKey,
+          config_value: newName,
+        })
+        .eq('config_key', oldKey);
+
+      if (configError) throw configError;
       
       return { oldName, newName, count: clients?.length || 0 };
     },
@@ -154,6 +168,14 @@ const AdminTags = () => {
         
         if (updateError) throw updateError;
       }
+
+      // Remove tag from central registry in billing_config (if exists)
+      const { error: configDeleteError } = await supabase
+        .from('billing_config')
+        .delete()
+        .eq('config_value', tagName);
+
+      if (configDeleteError) throw configDeleteError;
       
       return { tagName, count: clients?.length || 0 };
     },
