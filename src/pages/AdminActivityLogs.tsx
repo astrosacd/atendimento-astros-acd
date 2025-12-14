@@ -438,6 +438,7 @@ const AdminActivityLogs = () => {
     creates: filteredLogs.filter(l => l.action.toLowerCase() === 'create' || l.action.toLowerCase() === 'created').length,
     updates: filteredLogs.filter(l => l.action.toLowerCase() === 'update' || l.action.toLowerCase() === 'updated').length,
     deletes: filteredLogs.filter(l => l.action.toLowerCase() === 'delete' || l.action.toLowerCase() === 'deleted').length,
+    restores: filteredLogs.filter(l => l.action.toLowerCase() === 'restored').length,
   };
 
   const renderLogDetailsContent = () => {
@@ -613,7 +614,7 @@ const AdminActivityLogs = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -655,6 +656,17 @@ const AdminActivityLogs = () => {
                   <p className="text-2xl font-bold text-red-400">{stats.deletes}</p>
                 </div>
                 <Trash2 className="w-8 h-8 text-red-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Restaurações</p>
+                  <p className="text-2xl font-bold text-amber-400">{stats.restores}</p>
+                </div>
+                <RotateCcw className="w-8 h-8 text-amber-400" />
               </div>
             </CardContent>
           </Card>
