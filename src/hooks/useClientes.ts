@@ -90,11 +90,17 @@ export const useClientes = () => {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Normalizar tags (sempre array em minúsculas) para evitar inconsistências
+      const normalizedTags = (cliente.tags && cliente.tags.length > 0)
+        ? cliente.tags.map((tag) => tag.toLowerCase())
+        : [];
       
       const { data, error } = await supabase
         .from('clientes')
         .insert({
           ...cliente,
+          tags: normalizedTags,
           created_by: user?.id,
         })
         .select()
@@ -103,10 +109,10 @@ export const useClientes = () => {
       if (error) throw error;
 
       // Garantir que todas as tags usadas pelo cliente sejam registradas em billing_config
-      if (cliente.tags && cliente.tags.length > 0) {
+      if (normalizedTags.length > 0) {
         try {
-          const upsertPayload = cliente.tags.map((tag) => ({
-            config_key: `tag_${tag.toLowerCase().replace(/\s+/g, '_')}`,
+          const upsertPayload = normalizedTags.map((tag) => ({
+            config_key: `tag_${tag.replace(/\s+/g, '_')}`,
             config_value: tag,
           }));
 
