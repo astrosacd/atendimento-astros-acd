@@ -330,11 +330,12 @@ const AdminActivityLogs = () => {
       
       const clientData = logToRestore.previous_data;
       
-      // Add restoration note only if not already present
+      // Always update restoration note with current date/time
       const existingObs = clientData.observacao ? String(clientData.observacao) : '';
-      const hasRestorationNote = existingObs.includes('[Cliente restaurado em');
+      // Remove any existing restoration notes
+      const cleanedObs = existingObs.replace(/\[Cliente restaurado em [^\]]+\]/g, '').trim();
       const restorationNote = `[Cliente restaurado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}]`;
-      const finalObservacao = hasRestorationNote ? existingObs : (existingObs ? `${existingObs}\n${restorationNote}` : restorationNote);
+      const finalObservacao = cleanedObs ? `${cleanedObs}\n${restorationNote}` : restorationNote;
       
       const { data: insertedClient, error } = await supabase
         .from('clientes')
