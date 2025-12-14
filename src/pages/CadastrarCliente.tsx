@@ -49,15 +49,8 @@ export default function CadastrarCliente() {
   const [existingTags, setExistingTags] = useState<string[]>([]);
 
   useEffect(() => {
-    // Buscar tags existentes em clientes e no registro central (billing_config)
+    // Buscar somente tags registradas centralmente (billing_config)
     const fetchTags = async () => {
-      // Tags usadas em clientes
-      const { data: clientesData } = await supabase.from('clientes').select('tags');
-      const clienteTags = clientesData
-        ? clientesData.flatMap((c) => c.tags || [])
-        : [];
-
-      // Tags registradas centralmente
       const { data: configData } = await supabase
         .from('billing_config')
         .select('config_value')
@@ -69,9 +62,7 @@ export default function CadastrarCliente() {
             .filter((t): t is string => !!t)
         : [];
 
-      const allTags = [...clienteTags, ...configTags];
-      const uniqueTags = [...new Set(allTags.map((t) => t.toLowerCase()))];
-      setExistingTags(uniqueTags);
+      setExistingTags(configTags);
     };
 
     fetchTags();
@@ -302,6 +293,7 @@ export default function CadastrarCliente() {
                   tags={formData.tags || []}
                   onTagsChange={(tags) => setFormData({ ...formData, tags })}
                   suggestions={existingTags}
+                  onlyFromSuggestions={true}
                 />
               </div>
 
