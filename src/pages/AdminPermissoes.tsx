@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { 
   ArrowLeft, Shield, Users, Eye, UserPlus, Edit, Trash2, 
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
-  Plus, Save, X, Check, Pencil, Download
+  Plus, Save, X, Check, Pencil, Download, Tag
 } from 'lucide-react';
 import {
   Dialog,
@@ -145,6 +145,19 @@ export default function AdminPermissoes() {
         .select('*');
       if (error) throw error;
       return data as RolePermission[];
+    },
+  });
+
+  // Fetch available tags
+  const { data: availableTags = [] } = useQuery({
+    queryKey: ['available-tags'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .like('config_key', 'tag_%');
+      if (error) throw error;
+      return data.map(d => d.config_value).filter(Boolean) as string[];
     },
   });
 
@@ -469,6 +482,76 @@ export default function AdminPermissoes() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Tags Matrix */}
+        {availableTags.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-primary" />
+                Restrição por Tags
+              </CardTitle>
+              <CardDescription>
+                Ative as tags que cada role pode acessar. Se nenhuma tag estiver marcada, a role pode acessar todos os clientes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Tag</TableHead>
+                    {roles.map((role) => (
+                      <TableHead key={role.id} className="text-center min-w-[120px]">
+                        <Badge className={cn("text-xs", getRoleColor(role.color))}>
+                          {role.display_name}
+                        </Badge>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availableTags.map((tag) => (
+                    <TableRow key={tag}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium capitalize">{tag}</span>
+                        </div>
+                      </TableCell>
+                      {roles.map((role) => {
+                        const tagPermKey = `tag_access_${tag.toLowerCase().replace(/\s+/g, '_')}`;
+                        const hasPerm = hasPermission(role.name, tagPermKey);
+                        const isAdmin = role.name === 'admin';
+                        return (
+                          <TableCell key={role.id} className="text-center">
+                            <button
+                              onClick={() => !isAdmin && togglePermissionMutation.mutate({
+                                roleName: role.name,
+                                permissionKey: tagPermKey,
+                                hasPermission: hasPerm,
+                              })}
+                              disabled={isAdmin}
+                              className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center mx-auto transition-all",
+                                hasPerm 
+                                  ? "bg-primary/20 text-primary" 
+                                  : "bg-muted text-muted-foreground",
+                                !isAdmin && "hover:scale-110 cursor-pointer",
+                                isAdmin && "opacity-60 cursor-not-allowed"
+                              )}
+                            >
+                              {hasPerm ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                            </button>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Legend */}
         <Card className="border-border bg-muted/30">

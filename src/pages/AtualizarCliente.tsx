@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientes, Cliente } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Search, Check, RefreshCw, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { TagInput } from '@/components/TagInput';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +31,24 @@ export default function AtualizarCliente() {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [newDate, setNewDate] = useState('');
   const [newObservacao, setNewObservacao] = useState('');
+  const [newTags, setNewTags] = useState<string[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    loadAvailableTags();
+  }, []);
+
+  const loadAvailableTags = async () => {
+    const { data } = await supabase
+      .from('billing_config')
+      .select('config_value')
+      .like('config_key', 'tag_%');
+    if (data) {
+      setAvailableTags(data.map(d => d.config_value).filter(Boolean));
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +62,7 @@ export default function AtualizarCliente() {
     setSelectedCliente(cliente);
     setNewDate(cliente.data_renovacao);
     setNewObservacao(cliente.observacao || '');
+    setNewTags(cliente.tags || []);
     setSearchResults([]);
   };
 
@@ -65,6 +84,7 @@ export default function AtualizarCliente() {
     const result = await updateCliente(selectedCliente.id, {
       data_renovacao: newDate,
       observacao: newObservacao,
+      tags: newTags,
     }, selectedCliente);
     
     if (result) {
@@ -72,6 +92,7 @@ export default function AtualizarCliente() {
       setSearchQuery('');
       setNewDate('');
       setNewObservacao('');
+      setNewTags([]);
     }
     setShowConfirm(false);
   };
@@ -177,6 +198,16 @@ export default function AtualizarCliente() {
                   className="bg-secondary border-border text-foreground min-h-[100px] resize-none focus:ring-2 focus:ring-update/20"
                 />
                 <p className="text-xs text-muted-foreground">Campo opcional para anotações internas</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">Tags</Label>
+                <TagInput
+                  tags={newTags}
+                  onTagsChange={setNewTags}
+                  suggestions={availableTags}
+                  onlyFromSuggestions={true}
+                />
               </div>
 
               <Button 
