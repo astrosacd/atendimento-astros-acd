@@ -191,6 +191,11 @@ export const useClientes = () => {
   const deleteCliente = async (id: string, clienteData?: Cliente) => {
     setIsLoading(true);
     try {
+      // Log history BEFORE deleting (to avoid FK constraint issues)
+      if (clienteData) {
+        await logClientChange(id, 'deleted', clienteData as unknown as Json, null);
+      }
+
       const { error } = await supabase
         .from('clientes')
         .delete()
@@ -202,9 +207,8 @@ export const useClientes = () => {
         title: 'Cliente excluído com sucesso!',
       });
 
-      // Log history and trigger webhooks
+      // Trigger webhooks after successful deletion
       if (clienteData) {
-        await logClientChange(id, 'deleted', clienteData as unknown as Json, null);
         triggerWebhooks('cliente.deleted', { id, ...clienteData });
       }
       
