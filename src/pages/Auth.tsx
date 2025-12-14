@@ -20,7 +20,7 @@ const loginSchema = z.object({
 const signupSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  phone: z.string().min(10, 'Número de WhatsApp inválido').regex(/^\d+$/, 'Apenas números'),
 });
 
 interface ProfileStatus {
@@ -40,7 +40,7 @@ export default function Auth() {
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
+  const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
   useEffect(() => {
     if (authLoading) return;
@@ -115,7 +115,11 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(signupData.email, signupData.password, signupData.name);
+    
+    // Generate a temporary password - user will receive the real one via welcome email
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    
+    const { error } = await signUp(signupData.email, tempPassword, signupData.name, signupData.phone);
     setIsLoading(false);
 
     if (error) {
@@ -131,7 +135,7 @@ export default function Auth() {
     } else {
       toast({
         title: 'Solicitação enviada!',
-        description: 'Aguarde a aprovação de um administrador.',
+        description: 'Aguarde a aprovação de um administrador. Você receberá suas credenciais por email/WhatsApp.',
       });
       setProfileStatus({ approval_status: 'pending', rejection_reason: null, user_response: null });
     }
@@ -338,6 +342,17 @@ export default function Auth() {
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
+                
+                <div className="text-center pt-2">
+                  <Button 
+                    type="button"
+                    variant="link" 
+                    onClick={() => navigate('/recuperar-senha')}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Esqueci minha senha
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             
@@ -368,23 +383,24 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-foreground">Senha</Label>
+                  <Label htmlFor="signup-phone" className="text-foreground">WhatsApp</Label>
                   <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="11999999999"
+                    value={signupData.phone}
+                    onChange={(e) => setSignupData({ ...signupData, phone: e.target.value.replace(/\D/g, '') })}
                     className="bg-input border-border text-foreground"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">Apenas números, com DDD</p>
                 </div>
                 <Button 
                   type="submit" 
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Criando conta...' : 'Criar Conta'}
+                  {isLoading ? 'Enviando solicitação...' : 'Solicitar Acesso'}
                 </Button>
               </form>
             </TabsContent>

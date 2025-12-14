@@ -14,6 +14,8 @@ interface WelcomeRequest {
   userPhone?: string;
   sendEmail: boolean;
   sendWhatsapp: boolean;
+  updatePassword?: boolean;
+  userId?: string;
 }
 
 interface TestRequest {
@@ -98,8 +100,8 @@ serve(async (req: Request) => {
           gmailUser,
           gmailPassword,
           to,
-          `[TESTE] ${subject || 'Teste de Boas-vindas'}`,
-          message
+          subject || 'Teste de Boas-vindas',
+          `[TESTE]\n\n${message}`
         );
         
         if (!emailResult.success) {
@@ -154,9 +156,27 @@ serve(async (req: Request) => {
     }
 
     // Normal welcome message flow
-    const { userName, userEmail, userPassword, userPhone, sendEmail, sendWhatsapp }: WelcomeRequest = requestBody;
+    const { userName, userEmail, userPassword, userPhone, sendEmail, sendWhatsapp, updatePassword, userId }: WelcomeRequest = requestBody;
     
     console.log(`Processing welcome message for: ${userEmail}`);
+    
+    // If updatePassword is true and userId is provided, update the user's password
+    if (updatePassword && userId) {
+      try {
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          userId,
+          { password: userPassword }
+        );
+        
+        if (passwordError) {
+          console.error('Error updating user password:', passwordError);
+        } else {
+          console.log('User password updated successfully');
+        }
+      } catch (pwError) {
+        console.error('Exception updating password:', pwError);
+      }
+    }
     
     const results = {
       email: { sent: false, error: null as string | null },
