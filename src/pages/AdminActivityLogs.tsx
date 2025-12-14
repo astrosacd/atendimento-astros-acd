@@ -32,10 +32,13 @@ import {
   Calendar,
   Tag,
   FileText,
-  RotateCcw
+  RotateCcw,
+  FileDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ActivityLog {
   id: string;
@@ -160,6 +163,99 @@ const AdminActivityLogs = () => {
 
     toast({
       title: 'Exportação concluída',
+      description: `${filteredLogs.length} registros exportados.`,
+    });
+  };
+
+  const getActionLabel = (action: string): string => {
+    const actionLower = action.toLowerCase();
+    if (actionLower === 'create' || actionLower === 'created') return 'Criação';
+    if (actionLower === 'update' || actionLower === 'updated') return 'Atualização';
+    if (actionLower === 'delete' || actionLower === 'deleted') return 'Exclusão';
+    return action;
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFillColor(124, 58, 237);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Logs de Atividade', 14, 18);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 28);
+    
+    // Stats summary
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo', 14, 48);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const statsText = `Total: ${stats.total} | Criações: ${stats.creates} | Atualizações: ${stats.updates} | Exclusões: ${stats.deletes}`;
+    doc.text(statsText, 14, 56);
+    
+    // Table data
+    const tableData = filteredLogs.map(log => [
+      format(new Date(log.created_at), 'dd/MM/yyyy HH:mm'),
+      getActionLabel(log.action),
+      log.changed_by_email || 'Sistema',
+      log.new_data?.nome || log.previous_data?.nome || '-',
+      log.changed_fields?.slice(0, 3).join(', ') || '-'
+    ]);
+
+    autoTable(doc, {
+      startY: 65,
+      head: [['Data/Hora', 'Ação', 'Usuário', 'Cliente', 'Campos Alterados']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [124, 58, 237],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [60, 60, 60]
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 250]
+      },
+      columnStyles: {
+        0: { cellWidth: 32 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 40 },
+        4: { cellWidth: 'auto' }
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+    });
+    
+    doc.save(`logs-atividade-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    
+    toast({
+      title: 'PDF gerado com sucesso',
       description: `${filteredLogs.length} registros exportados.`,
     });
   };
@@ -474,9 +570,13 @@ const AdminActivityLogs = () => {
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
-            <Button onClick={exportToCSV} className="bg-gradient-to-r from-emerald-500 to-green-600">
+            <Button onClick={exportToCSV} variant="outline">
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              CSV
+            </Button>
+            <Button onClick={exportToPDF} className="bg-gradient-to-r from-purple-500 to-violet-600">
+              <FileDown className="w-4 h-4 mr-2" />
+              PDF
             </Button>
           </div>
         </div>
