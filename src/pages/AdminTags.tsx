@@ -46,22 +46,39 @@ const AdminTags = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<string | null>(null);
 
-  // Fetch all unique tags from clientes table
+  // Fetch all unique tags from clientes table AND billing_config (registered tags)
   const { data: tags = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-tags'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch tags from clients
+      const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
         .select('tags');
       
-      if (error) throw error;
+      if (clientesError) throw clientesError;
       
-      // Count occurrences of each tag
+      // Fetch registered tags from billing_config
+      const { data: configData, error: configError } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .like('config_key', 'tag_%');
+      
+      if (configError) throw configError;
+      
+      // Count occurrences of each tag from clients
       const tagCounts: Record<string, number> = {};
-      data?.forEach(cliente => {
+      clientesData?.forEach(cliente => {
         cliente.tags?.forEach((tag: string) => {
           tagCounts[tag] = (tagCounts[tag] || 0) + 1;
         });
+      });
+      
+      // Add registered tags that might not be used yet
+      configData?.forEach(config => {
+        const tagName = config.config_value;
+        if (tagName && !tagCounts[tagName]) {
+          tagCounts[tagName] = 0;
+        }
       });
       
       return Object.entries(tagCounts)
@@ -158,21 +175,31 @@ const AdminTags = () => {
     },
   });
 
-  // Create tag mutation (adds to a test entry or just validates)
+  // Create tag mutation - stores in billing_config as a central registry
   const createMutation = useMutation({
     mutationFn: async (tagName: string) => {
-      // Check if tag already exists
+      // Check if tag already exists in clients
       const exists = tags.some(t => t.name.toLowerCase() === tagName.toLowerCase());
       if (exists) {
         throw new Error("Tag já existe");
       }
-      // Tag will be available when added to a client
+      
+      // Store tag in billing_config for persistence (using 'tag_' prefix)
+      const { error } = await supabase
+        .from('billing_config')
+        .upsert({
+          config_key: `tag_${tagName.toLowerCase().replace(/\s+/g, '_')}`,
+          config_value: tagName,
+        }, { onConflict: 'config_key' });
+      
+      if (error) throw error;
       return tagName;
     },
     onSuccess: (tagName) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
       toast({
         title: "Tag criada",
-        description: `"${tagName}" disponível para uso. Adicione a um cliente para começar a usar.`,
+        description: `"${tagName}" disponível para uso.`,
       });
       setCreateDialogOpen(false);
       setCreateTagName("");

@@ -330,7 +330,7 @@ export default function ConsultarCliente() {
             {!results ? (
               <form onSubmit={handleSearch} className="space-y-4">
                 <Input
-                  placeholder="Digite o CPF, CNPJ, número ou nome (deixe vazio para listar todos)"
+                  placeholder="Digite o CPF, CNPJ, número, email ou nome (deixe vazio para listar todos)"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
