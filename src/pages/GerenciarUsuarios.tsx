@@ -201,6 +201,9 @@ export default function GerenciarUsuarios() {
   // Approve user mutation with role selection
   const approveMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      // Get user info for welcome message
+      const userToApprove = users.find(u => u.id === userId);
+      
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -236,6 +239,27 @@ export default function GerenciarUsuarios() {
         });
 
       if (historyError) console.error('Error adding to history:', historyError);
+
+      // Send welcome message on approval
+      if (userToApprove) {
+        try {
+          // Generate a temporary password for the user
+          const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+          
+          await supabase.functions.invoke('send-welcome', {
+            body: {
+              userName: userToApprove.name,
+              userEmail: userToApprove.email,
+              userPassword: tempPassword,
+              sendEmail: true,
+              sendWhatsapp: false,
+            },
+          });
+          console.log('Welcome message sent on approval');
+        } catch (welcomeError) {
+          console.error('Error sending welcome message on approval:', welcomeError);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
@@ -245,7 +269,7 @@ export default function GerenciarUsuarios() {
       setApproveRole('user');
       toast({
         title: 'Usuário aprovado!',
-        description: 'O usuário agora pode acessar o sistema.',
+        description: 'O usuário agora pode acessar o sistema e receberá uma mensagem de boas-vindas.',
       });
     },
     onError: (error) => {

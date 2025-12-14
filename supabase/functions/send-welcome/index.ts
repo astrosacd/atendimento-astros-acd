@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,44 @@ interface TestRequest {
   };
 }
 
+// Function to send email via Gmail SMTP
+async function sendEmailViaSMTP(
+  gmailUser: string,
+  gmailPassword: string,
+  to: string,
+  subject: string,
+  body: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: gmailUser,
+          password: gmailPassword,
+        },
+      },
+    });
+
+    await client.send({
+      from: gmailUser,
+      to: to,
+      subject: subject,
+      content: body,
+    });
+
+    await client.close();
+    
+    console.log(`Email sent successfully to ${to}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error("SMTP Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -50,23 +89,26 @@ serve(async (req: Request) => {
       console.log(`Test mode: Sending ${channel} to ${to}`);
       
       if (channel === 'email') {
-        // Send test email
+        // Send test email via SMTP
         if (!gmailUser || !gmailPassword) {
           throw new Error("Gmail credentials required for email test");
         }
         
-        const emailContent = `From: ${gmailUser}\r\nTo: ${to}\r\nSubject: [TESTE] ${subject || 'Teste de Boas-vindas'}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${message}`;
-        const base64Email = btoa(unescape(encodeURIComponent(emailContent)));
+        const emailResult = await sendEmailViaSMTP(
+          gmailUser,
+          gmailPassword,
+          to,
+          `[TESTE] ${subject || 'Teste de Boas-vindas'}`,
+          message
+        );
         
-        // Try to send via Gmail API (this is simplified - in production use proper OAuth)
-        console.log(`Test email would be sent to: ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log(`Body: ${message}`);
+        if (!emailResult.success) {
+          throw new Error(emailResult.error || "Falha ao enviar e-mail");
+        }
         
         return new Response(JSON.stringify({ 
           success: true, 
           message: `E-mail de teste enviado para ${to}`,
-          note: "E-mail processado com sucesso"
         }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -145,8 +187,8 @@ serve(async (req: Request) => {
 
     // Send Email if enabled
     if (sendEmail && configMap["welcome_email_enabled"] === "true") {
-      const gmailUser = configMap["gmail_user"] || Deno.env.get("GMAIL_USER");
-      const gmailPassword = configMap["gmail_app_password"] || Deno.env.get("GMAIL_APP_PASSWORD");
+      const gmailUser = configMap["gmail_user"];
+      const gmailPassword = configMap["gmail_app_password"];
 
       if (gmailUser && gmailPassword) {
         try {
@@ -154,10 +196,20 @@ serve(async (req: Request) => {
           const emailBody = replaceVariables(configMap["welcome_email_template"] || `Olá ${userName}, sua conta foi criada!`);
 
           console.log(`Sending welcome email to ${userEmail}`);
-          console.log(`Subject: ${emailSubject}`);
-          console.log(`Body: ${emailBody}`);
           
-          results.email.sent = true;
+          const emailResult = await sendEmailViaSMTP(
+            gmailUser,
+            gmailPassword,
+            userEmail,
+            emailSubject,
+            emailBody
+          );
+          
+          if (emailResult.success) {
+            results.email.sent = true;
+          } else {
+            results.email.error = emailResult.error || "Falha ao enviar e-mail";
+          }
         } catch (emailError: any) {
           console.error("Email error:", emailError);
           results.email.error = emailError.message;
