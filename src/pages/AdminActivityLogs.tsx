@@ -260,7 +260,18 @@ const AdminActivityLogs = () => {
     });
   };
 
-  const getActionIcon = (action: string) => {
+  const isRestoredClient = (log: ActivityLog): boolean => {
+    if (log.action.toLowerCase() !== 'create' && log.action.toLowerCase() !== 'created') {
+      return false;
+    }
+    const observacao = log.new_data?.observacao || '';
+    return observacao.includes('[Cliente restaurado em');
+  };
+
+  const getActionIcon = (action: string, isRestored: boolean = false) => {
+    if (isRestored) {
+      return <RotateCcw className="h-4 w-4 text-amber-400" />;
+    }
     const actionLower = action.toLowerCase();
     if (actionLower === 'create' || actionLower === 'created') {
       return <UserPlus className="h-4 w-4 text-emerald-400" />;
@@ -272,7 +283,18 @@ const AdminActivityLogs = () => {
     return <Activity className="h-4 w-4 text-muted-foreground" />;
   };
 
-  const getActionBadge = (action: string) => {
+  const getActionBadge = (action: string, log?: ActivityLog) => {
+    const isRestored = log ? isRestoredClient(log) : false;
+    
+    if (isRestored) {
+      return (
+        <Badge className="bg-amber-500/20 text-amber-400 border-none gap-1">
+          <RotateCcw className="h-4 w-4" />
+          Restaurado
+        </Badge>
+      );
+    }
+    
     const actionLower = action.toLowerCase();
     const variants: Record<string, { bg: string; text: string; label: string }> = {
       create: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Criação' },
@@ -728,7 +750,7 @@ const AdminActivityLogs = () => {
                           {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
-                          {getActionBadge(log.action)}
+                          {getActionBadge(log.action, log)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
