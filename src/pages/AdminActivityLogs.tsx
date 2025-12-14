@@ -30,7 +30,8 @@ import {
   CreditCard,
   Calendar,
   Tag,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -57,6 +58,7 @@ const AdminActivityLogs = () => {
   const [dateFilter, setDateFilter] = useState<string>('7days');
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     loadLogs();
@@ -197,6 +199,57 @@ const AdminActivityLogs = () => {
     setIsDetailDialogOpen(true);
   };
 
+  const restoreDeletedClient = async (log: ActivityLog) => {
+    if (!log.previous_data) {
+      toast({
+        title: 'Erro',
+        description: 'Dados do cliente não encontrados para restauração.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsRestoring(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const clientData = log.previous_data;
+      const { error } = await supabase
+        .from('clientes')
+        .insert({
+          nome: clientData.nome,
+          email: clientData.email,
+          numero: clientData.numero,
+          cpf: clientData.cpf,
+          produto: clientData.produto,
+          plano: clientData.plano,
+          valor: clientData.valor,
+          data_renovacao: clientData.data_renovacao,
+          observacao: clientData.observacao,
+          tags: clientData.tags || [],
+          created_by: user?.id,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Cliente restaurado!',
+        description: `${clientData.nome} foi restaurado com sucesso.`,
+      });
+
+      setIsDetailDialogOpen(false);
+      loadLogs();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao restaurar cliente',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
@@ -283,10 +336,21 @@ const AdminActivityLogs = () => {
         {/* Client Data - For Deletion */}
         {isDeleted && (
           <div className="space-y-3">
-            <h3 className="font-semibold text-red-400 flex items-center gap-2">
-              <Trash2 className="w-4 h-4" />
-              Dados do Cliente Excluído
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-red-400 flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+                Dados do Cliente Excluído
+              </h3>
+              <Button
+                onClick={() => restoreDeletedClient(selectedLog)}
+                disabled={isRestoring}
+                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+                size="sm"
+              >
+                <RotateCcw className={`w-4 h-4 mr-2 ${isRestoring ? 'animate-spin' : ''}`} />
+                {isRestoring ? 'Restaurando...' : 'Restaurar Cliente'}
+              </Button>
+            </div>
             <div className="grid gap-3">
               {displayFields.map((field) => {
                 const value = clientData?.[field];
