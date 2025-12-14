@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -17,10 +19,18 @@ import {
   UserPlus,
   Edit,
   Trash2,
-  LogIn,
   Clock,
   User,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  UserSearch,
+  ArrowRight,
+  Mail,
+  Phone,
+  CreditCard,
+  Calendar,
+  Tag,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,8 +52,11 @@ const AdminActivityLogs = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [clientNameFilter, setClientNameFilter] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('7days');
+  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   useEffect(() => {
     loadLogs();
@@ -101,6 +114,11 @@ const AdminActivityLogs = () => {
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       JSON.stringify(log.new_data)?.toLowerCase().includes(searchQuery.toLowerCase());
     
+    // Filter by client name
+    const clientName = log.new_data?.nome || log.previous_data?.nome || '';
+    const matchesClientName = !clientNameFilter || 
+      clientName.toLowerCase().includes(clientNameFilter.toLowerCase());
+    
     const actionLower = log.action.toLowerCase();
     const filterLower = actionFilter.toLowerCase();
     const matchesAction = actionFilter === 'all' || 
@@ -109,7 +127,7 @@ const AdminActivityLogs = () => {
       (filterLower === 'update' && actionLower === 'updated') ||
       (filterLower === 'delete' && actionLower === 'deleted');
     
-    return matchesSearch && matchesAction;
+    return matchesSearch && matchesAction && matchesClientName;
   });
 
   const exportToCSV = () => {
@@ -174,11 +192,188 @@ const AdminActivityLogs = () => {
     );
   };
 
+  const openLogDetails = (log: ActivityLog) => {
+    setSelectedLog(log);
+    setIsDetailDialogOpen(true);
+  };
+
+  const formatValue = (value: any): string => {
+    if (value === null || value === undefined) return '-';
+    if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
+    if (Array.isArray(value)) return value.join(', ') || '-';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  };
+
+  const getFieldLabel = (field: string): string => {
+    const labels: Record<string, string> = {
+      nome: 'Nome',
+      email: 'Email',
+      numero: 'Telefone',
+      cpf: 'CPF/CNPJ',
+      produto: 'Produto',
+      plano: 'Plano',
+      valor: 'Valor',
+      data_renovacao: 'Data de Renovação',
+      observacao: 'Observação',
+      tags: 'Tags',
+      created_at: 'Criado em',
+      updated_at: 'Atualizado em',
+      data_d_menos_3: 'D-3',
+      data_d_mais_1: 'D+1',
+      data_d_mais_2: 'D+2',
+      data_d_mais_15: 'D+15',
+      data_d_mais_30: 'D+30',
+    };
+    return labels[field] || field;
+  };
+
+  const getFieldIcon = (field: string) => {
+    const icons: Record<string, any> = {
+      nome: User,
+      email: Mail,
+      numero: Phone,
+      cpf: CreditCard,
+      data_renovacao: Calendar,
+      tags: Tag,
+      observacao: FileText,
+    };
+    const Icon = icons[field] || FileText;
+    return <Icon className="w-4 h-4 text-muted-foreground" />;
+  };
+
   const stats = {
     total: filteredLogs.length,
     creates: filteredLogs.filter(l => l.action.toLowerCase() === 'create' || l.action.toLowerCase() === 'created').length,
     updates: filteredLogs.filter(l => l.action.toLowerCase() === 'update' || l.action.toLowerCase() === 'updated').length,
     deletes: filteredLogs.filter(l => l.action.toLowerCase() === 'delete' || l.action.toLowerCase() === 'deleted').length,
+  };
+
+  const renderLogDetailsContent = () => {
+    if (!selectedLog) return null;
+
+    const isDeleted = selectedLog.action.toLowerCase() === 'deleted' || selectedLog.action.toLowerCase() === 'delete';
+    const isCreated = selectedLog.action.toLowerCase() === 'created' || selectedLog.action.toLowerCase() === 'create';
+    const isUpdated = selectedLog.action.toLowerCase() === 'updated' || selectedLog.action.toLowerCase() === 'update';
+
+    const clientData = isDeleted ? selectedLog.previous_data : selectedLog.new_data;
+    const displayFields = ['nome', 'email', 'numero', 'cpf', 'produto', 'plano', 'valor', 'data_renovacao', 'observacao', 'tags'];
+
+    return (
+      <div className="space-y-4">
+        {/* Action and Time Info */}
+        <div className="flex items-center justify-between">
+          {getActionBadge(selectedLog.action)}
+          <span className="text-sm text-muted-foreground">
+            {format(new Date(selectedLog.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+          </span>
+        </div>
+
+        {/* User Info */}
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+          <User className="w-5 h-5 text-muted-foreground" />
+          <div>
+            <p className="text-sm text-muted-foreground">Responsável pela ação</p>
+            <p className="font-medium">{selectedLog.changed_by_email || 'Sistema'}</p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Client Data - For Deletion */}
+        {isDeleted && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-red-400 flex items-center gap-2">
+              <Trash2 className="w-4 h-4" />
+              Dados do Cliente Excluído
+            </h3>
+            <div className="grid gap-3">
+              {displayFields.map((field) => {
+                const value = clientData?.[field];
+                if (value === undefined || value === null || value === '') return null;
+                return (
+                  <div key={field} className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    {getFieldIcon(field)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">{getFieldLabel(field)}</p>
+                      <p className="font-medium break-words">
+                        {field === 'valor' ? `R$ ${Number(value).toFixed(2)}` : formatValue(value)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Client Data - For Creation */}
+        {isCreated && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-emerald-400 flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Dados do Cliente Cadastrado
+            </h3>
+            <div className="grid gap-3">
+              {displayFields.map((field) => {
+                const value = clientData?.[field];
+                if (value === undefined || value === null || value === '') return null;
+                return (
+                  <div key={field} className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    {getFieldIcon(field)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">{getFieldLabel(field)}</p>
+                      <p className="font-medium break-words">
+                        {field === 'valor' ? `R$ ${Number(value).toFixed(2)}` : formatValue(value)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Client Data - For Update */}
+        {isUpdated && selectedLog.changed_fields && selectedLog.changed_fields.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-blue-400 flex items-center gap-2">
+              <Edit className="w-4 h-4" />
+              Campos Alterados
+            </h3>
+            <div className="space-y-2">
+              {selectedLog.changed_fields.map((field) => (
+                <div key={field} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    {getFieldIcon(field)}
+                    <span className="text-sm font-medium text-blue-400">{getFieldLabel(field)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="flex-1 p-2 rounded bg-red-500/10 border border-red-500/20">
+                      <span className="text-xs text-muted-foreground">Antes:</span>
+                      <p className="font-mono break-words">
+                        {field === 'valor' && selectedLog.previous_data?.[field] 
+                          ? `R$ ${Number(selectedLog.previous_data[field]).toFixed(2)}` 
+                          : formatValue(selectedLog.previous_data?.[field])}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                      <span className="text-xs text-muted-foreground">Depois:</span>
+                      <p className="font-mono break-words">
+                        {field === 'valor' && selectedLog.new_data?.[field] 
+                          ? `R$ ${Number(selectedLog.new_data[field]).toFixed(2)}` 
+                          : formatValue(selectedLog.new_data?.[field])}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -266,9 +461,18 @@ const AdminActivityLogs = () => {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por usuário, ação ou cliente..."
+                  placeholder="Buscar por usuário, ação ou dados..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex-1 relative">
+                <UserSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar por nome do cliente..."
+                  value={clientNameFilter}
+                  onChange={(e) => setClientNameFilter(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -320,18 +524,19 @@ const AdminActivityLogs = () => {
                     <TableHead>Usuário</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Campos Alterados</TableHead>
+                    <TableHead className="w-[80px] text-center">Detalhes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10">
+                      <TableCell colSpan={6} className="text-center py-10">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                       </TableCell>
                     </TableRow>
                   ) : filteredLogs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                         Nenhum registro encontrado
                       </TableCell>
                     </TableRow>
@@ -361,7 +566,7 @@ const AdminActivityLogs = () => {
                           <div className="flex flex-wrap gap-1">
                             {log.changed_fields?.slice(0, 3).map((field, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs">
-                                {field}
+                                {getFieldLabel(field)}
                               </Badge>
                             ))}
                             {log.changed_fields && log.changed_fields.length > 3 && (
@@ -371,6 +576,16 @@ const AdminActivityLogs = () => {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openLogDetails(log)}
+                            className="h-8 w-8"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -379,6 +594,22 @@ const AdminActivityLogs = () => {
             </ScrollArea>
           </CardContent>
         </Card>
+
+        {/* Log Details Dialog */}
+        <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-purple-400" />
+                Detalhes da Atividade
+              </DialogTitle>
+              <DialogDescription>
+                Informações completas sobre esta ação no sistema
+              </DialogDescription>
+            </DialogHeader>
+            {renderLogDetailsContent()}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
