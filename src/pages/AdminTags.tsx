@@ -47,7 +47,7 @@ const AdminTags = () => {
   const [tagToDelete, setTagToDelete] = useState<string | null>(null);
 
   // Fetch all unique tags from clientes table AND billing_config (registered tags)
-  const { data: tags = [], isLoading, refetch } = useQuery({
+  const { data: tags = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-tags'],
     queryFn: async () => {
       // Fetch tags from clients
@@ -69,14 +69,15 @@ const AdminTags = () => {
       const tagCounts: Record<string, number> = {};
       clientesData?.forEach(cliente => {
         cliente.tags?.forEach((tag: string) => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          const normalized = tag.toLowerCase();
+          tagCounts[normalized] = (tagCounts[normalized] || 0) + 1;
         });
       });
       
       // Add registered tags that might not be used yet
       configData?.forEach(config => {
-        const tagName = config.config_value;
-        if (tagName && !tagCounts[tagName]) {
+        const tagName = (config.config_value as string | null)?.toLowerCase();
+        if (tagName && tagCounts[tagName] === undefined) {
           tagCounts[tagName] = 0;
         }
       });
@@ -304,9 +305,9 @@ const AdminTags = () => {
             <Button
               variant="outline"
               onClick={() => refetch()}
-              disabled={isLoading}
+              disabled={isLoading || isFetching}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${(isLoading || isFetching) ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
