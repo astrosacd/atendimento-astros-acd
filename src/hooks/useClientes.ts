@@ -69,7 +69,7 @@ export const useClientes = () => {
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .or(`cpf.ilike.%${query}%,numero.ilike.%${query}%,nome.ilike.%${query}%`)
+        .or(`cpf.ilike.%${query}%,numero.ilike.%${query}%,nome.ilike.%${query}%,email.ilike.%${query}%`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -52,11 +52,16 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     }
 
     const cacheKey = `profile_name_${user.id}`;
+    const chatCacheKey = `chat_enabled`;
     const cached = sessionStorage.getItem(cacheKey);
+    const chatCached = sessionStorage.getItem(chatCacheKey);
     
+    // If we have cached data, use it immediately and don't refetch
     if (cached) {
       setUserName(cached);
+      setChatEnabled(chatCached === 'true');
       setIsLoading(false);
+      return;
     }
 
     let isMounted = true;
@@ -76,7 +81,10 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       ]);
       
       if (isMounted) {
-        setChatEnabled(chatResult.data?.config_value === 'true');
+        const chatValue = chatResult.data?.config_value === 'true';
+        setChatEnabled(chatValue);
+        sessionStorage.setItem(chatCacheKey, String(chatValue));
+        
         const name = profileResult.data?.name || user.email?.split('@')[0] || 'Usuário';
         setUserName(name);
         sessionStorage.setItem(cacheKey, name);

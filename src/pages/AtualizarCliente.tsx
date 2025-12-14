@@ -99,7 +99,7 @@ export default function AtualizarCliente() {
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="space-y-4">
                 <Input
-                  placeholder="Buscar por CPF, número ou nome"
+                  placeholder="Buscar por CPF, número, email ou nome"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
