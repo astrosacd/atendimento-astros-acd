@@ -10,6 +10,7 @@ import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, C
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCPFOrCNPJ, formatPhone } from '@/utils/formatters';
 import {
   Sheet,
@@ -44,6 +45,7 @@ export default function ConsultarCliente() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [paymentClienteId, setPaymentClienteId] = useState<string | null>(null);
   const [paymentClienteName, setPaymentClienteName] = useState<string>('');
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -58,11 +60,22 @@ export default function ConsultarCliente() {
 
   useEffect(() => {
     loadAllClientes();
+    loadAvailableTags();
   }, []);
 
   const loadAllClientes = async () => {
     const data = await fetchClientes();
     setAllClientes(data);
+  };
+
+  const loadAvailableTags = async () => {
+    const { data } = await supabase
+      .from('billing_config')
+      .select('config_value')
+      .like('config_key', 'tag_%');
+    if (data) {
+      setAvailableTags(data.map(d => d.config_value).filter(Boolean));
+    }
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -99,10 +112,15 @@ export default function ConsultarCliente() {
       if (filters.valorMax && cliente.valor > parseFloat(filters.valorMax)) return false;
       
       // Product filter
-      if (filters.produto && !cliente.produto.toLowerCase().includes(filters.produto.toLowerCase())) return false;
+      if (filters.produto && filters.produto !== 'all' && !cliente.produto.toLowerCase().includes(filters.produto.toLowerCase())) return false;
       
       // Plan filter
       if (filters.plano && filters.plano !== 'all' && cliente.plano !== filters.plano) return false;
+      
+      // Tag filter
+      if (filters.tag && filters.tag !== 'all') {
+        if (!cliente.tags?.some(t => t.toLowerCase() === filters.tag.toLowerCase())) return false;
+      }
       
       return true;
     });
@@ -282,6 +300,24 @@ export default function ConsultarCliente() {
                             <SelectItem value="all">Todos os planos</SelectItem>
                             {uniquePlans.map((plano) => (
                               <SelectItem key={plano} value={plano!}>{plano}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Tag</Label>
+                        <Select
+                          value={filters.tag}
+                          onValueChange={(value) => setFilters({ ...filters, tag: value })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground">
+                            <SelectValue placeholder="Todas as tags" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todas as tags</SelectItem>
+                            {availableTags.map((tag) => (
+                              <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

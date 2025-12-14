@@ -26,11 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Tag, Plus, Edit, Trash2, Search, RefreshCw } from "lucide-react";
+import { ArrowLeft, Tag, Plus, Edit, Trash2, Search, RefreshCw, Users, Download } from "lucide-react";
+import { exportToCSV } from '@/utils/exportClientes';
+import { Cliente } from '@/hooks/useClientes';
 
 interface TagData {
   name: string;
   count: number;
+  clients: Cliente[];
 }
 
 const AdminTags = () => {
@@ -45,15 +48,16 @@ const AdminTags = () => {
   const [createTagName, setCreateTagName] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+  const [viewClientsTag, setViewClientsTag] = useState<TagData | null>(null);
 
   // Fetch all unique tags from clientes table AND billing_config (registered tags)
   const { data: tags = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-tags'],
     queryFn: async () => {
-      // Fetch tags from clients
+      // Fetch all clients with tags
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
-        .select('tags');
+        .select('*');
       
       if (clientesError) throw clientesError;
       
@@ -65,25 +69,29 @@ const AdminTags = () => {
       
       if (configError) throw configError;
       
-      // Count occurrences of each tag from clients
-      const tagCounts: Record<string, number> = {};
+      // Group clients by tag
+      const tagData: Record<string, { count: number; clients: Cliente[] }> = {};
       clientesData?.forEach(cliente => {
         cliente.tags?.forEach((tag: string) => {
           const normalized = tag.toLowerCase();
-          tagCounts[normalized] = (tagCounts[normalized] || 0) + 1;
+          if (!tagData[normalized]) {
+            tagData[normalized] = { count: 0, clients: [] };
+          }
+          tagData[normalized].count += 1;
+          tagData[normalized].clients.push(cliente as Cliente);
         });
       });
       
       // Add registered tags that might not be used yet
       configData?.forEach(config => {
         const tagName = (config.config_value as string | null)?.toLowerCase();
-        if (tagName && tagCounts[tagName] === undefined) {
-          tagCounts[tagName] = 0;
+        if (tagName && !tagData[tagName]) {
+          tagData[tagName] = { count: 0, clients: [] };
         }
       });
       
-      return Object.entries(tagCounts)
-        .map(([name, count]) => ({ name, count }))
+      return Object.entries(tagData)
+        .map(([name, data]) => ({ name, count: data.count, clients: data.clients }))
         .sort((a, b) => a.name.localeCompare(b.name)) as TagData[];
     },
   });
@@ -404,6 +412,29 @@ const AdminTags = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => setViewClientsTag(tag)}
+                        title="Ver clientes"
+                        disabled={tag.count === 0}
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (tag.clients.length > 0) {
+                            exportToCSV(tag.clients, `clientes_tag_${tag.name}`);
+                            toast({ title: "Exportado", description: `${tag.clients.length} cliente(s) exportados` });
+                          }
+                        }}
+                        title="Exportar clientes"
+                        disabled={tag.count === 0}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           setEditingTag(tag.name);
                           setNewTagName(tag.name);
@@ -508,6 +539,47 @@ const AdminTags = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Clients Dialog */}
+      <Dialog open={!!viewClientsTag} onOpenChange={() => setViewClientsTag(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Clientes com tag "{viewClientsTag?.name}"</DialogTitle>
+            <DialogDescription>
+              {viewClientsTag?.count} cliente(s) encontrado(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            {viewClientsTag?.clients.map((cliente) => (
+              <div
+                key={cliente.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-muted/20"
+              >
+                <div>
+                  <p className="font-medium">{cliente.nome}</p>
+                  <p className="text-sm text-muted-foreground">{cliente.email}</p>
+                </div>
+                <p className="text-sm text-muted-foreground">{cliente.numero}</p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (viewClientsTag && viewClientsTag.clients.length > 0) {
+                  exportToCSV(viewClientsTag.clients, `clientes_tag_${viewClientsTag.name}`);
+                  toast({ title: "Exportado", description: `${viewClientsTag.clients.length} cliente(s) exportados` });
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button onClick={() => setViewClientsTag(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
