@@ -51,7 +51,7 @@ export const useWebhooks = () => {
         },
       };
 
-      // Send to all active webhooks
+      // Send to all active webhooks via Edge Function proxy for better formatting
       const promises = webhooks.map(async (webhook) => {
         try {
           const headers: Record<string, string> = {
@@ -62,11 +62,19 @@ export const useWebhooks = () => {
             headers['X-Webhook-Secret'] = webhook.secret_key;
           }
 
+          // Try direct fetch first, if fails due to CORS, the webhook receiver should handle it
           await fetch(webhook.url, {
             method: 'POST',
             headers,
-            mode: 'no-cors',
-            body: JSON.stringify(payload),
+            body: JSON.stringify(payload, null, 2), // Pretty print JSON for better readability
+          }).catch(() => {
+            // Fallback to no-cors mode if direct fails
+            return fetch(webhook.url, {
+              method: 'POST',
+              headers,
+              mode: 'no-cors',
+              body: JSON.stringify(payload),
+            });
           });
 
           console.log(`Webhook triggered: ${webhook.name} for event ${eventType}`);

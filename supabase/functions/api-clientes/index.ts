@@ -352,6 +352,16 @@ serve(async (req) => {
         );
       }
 
+      // Log to client_history for activity tracking
+      await supabase.from('client_history').insert({
+        cliente_id: data.id,
+        action: 'created',
+        previous_data: null,
+        new_data: data,
+        changed_by: null,
+        changed_by_email: `API REST (${apiKeyRecord?.name || webhook?.name || 'unknown'})`,
+      });
+
       console.log('Cliente created via API:', data.id);
       await logAudit(supabase, {
         action: 'create',
@@ -439,6 +449,13 @@ serve(async (req) => {
         );
       }
 
+      // Get previous data for history logging
+      const { data: previousData } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('id', clienteId)
+        .single();
+
       const { data, error } = await supabase
         .from('clientes')
         .update(updateData)
@@ -470,6 +487,27 @@ serve(async (req) => {
           }
         );
       }
+
+      // Calculate changed fields
+      const changedFields: string[] = [];
+      if (previousData) {
+        Object.keys(updateData).forEach(key => {
+          if (previousData[key] !== updateData[key]) {
+            changedFields.push(key);
+          }
+        });
+      }
+
+      // Log to client_history for activity tracking
+      await supabase.from('client_history').insert({
+        cliente_id: clienteId,
+        action: 'updated',
+        previous_data: previousData || null,
+        new_data: data,
+        changed_fields: changedFields.length > 0 ? changedFields : null,
+        changed_by: null,
+        changed_by_email: `API REST (${apiKeyRecord?.name || webhook?.name || 'unknown'})`,
+      });
 
       console.log('Cliente updated via API:', clienteId);
       await logAudit(supabase, {
@@ -518,6 +556,25 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
+      }
+
+      // Get client data before deletion for history logging
+      const { data: clienteData } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('id', clienteId)
+        .single();
+
+      // Log to client_history BEFORE deletion (required for audit trail)
+      if (clienteData) {
+        await supabase.from('client_history').insert({
+          cliente_id: clienteId,
+          action: 'deleted',
+          previous_data: clienteData,
+          new_data: null,
+          changed_by: null,
+          changed_by_email: `API REST (${apiKeyRecord?.name || webhook?.name || 'unknown'})`,
+        });
       }
 
       const { error } = await supabase

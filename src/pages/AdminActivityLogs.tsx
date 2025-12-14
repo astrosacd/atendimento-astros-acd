@@ -771,10 +771,23 @@ const AdminActivityLogs = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {log.changed_by_email || 'Sistema'}
-                            </span>
+                            {log.changed_by_email?.startsWith('API REST') ? (
+                              <>
+                                <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
+                                  API
+                                </Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  {log.changed_by_email.replace('API REST (', '').replace(')', '')}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <User className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {log.changed_by_email || 'Sistema'}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
