@@ -35,7 +35,7 @@ const clienteVitalicioSchema = z.object({
   cpf: z.string().min(11, 'CPF/CNPJ deve ter pelo menos 11 dígitos'),
 });
 
-type ClienteType = 'mensal' | 'vitalicio' | null;
+type ClienteType = 'mensal' | 'registro' | null;
 
 interface UploadedFile {
   file: File;
@@ -94,7 +94,7 @@ export default function CadastrarCliente() {
   useEffect(() => {
     if (clienteType === 'mensal') {
       setFormData(prev => ({ ...prev, cobranca_ativa: true }));
-    } else if (clienteType === 'vitalicio') {
+    } else if (clienteType === 'registro') {
       setFormData(prev => ({ 
         ...prev, 
         cobranca_ativa: false,
@@ -170,9 +170,9 @@ export default function CadastrarCliente() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const schema = clienteType === 'vitalicio' ? clienteVitalicioSchema : clienteSchema;
+    const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
     
-    const dataToValidate = clienteType === 'vitalicio' 
+    const dataToValidate = clienteType === 'registro'
       ? {
           nome: formData.nome,
           numero: formData.numero,
@@ -208,7 +208,7 @@ export default function CadastrarCliente() {
     if (cliente) {
       setCreatedClienteId(cliente.id);
       
-      if (clienteType === 'vitalicio' && uploadedFiles.length > 0) {
+      if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
       
@@ -257,7 +257,7 @@ export default function CadastrarCliente() {
                 <Check className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-xl font-semibold text-primary mb-2">Cliente cadastrado com sucesso!</h2>
-              {clienteType === 'vitalicio' && uploadedFiles.length > 0 && (
+              {clienteType === 'registro' && uploadedFiles.length > 0 && (
                 <p className="text-muted-foreground text-sm mb-4">
                   {uploadedFiles.length} arquivo(s) anexado(s)
                 </p>
@@ -326,9 +326,9 @@ export default function CadastrarCliente() {
                   </div>
                 </button>
 
-                {/* Vitalício Option */}
+                {/* Registro Option */}
                 <button
-                  onClick={() => setClienteType('vitalicio')}
+                  onClick={() => setClienteType('registro')}
                   className="group relative p-6 rounded-2xl border-2 border-border bg-secondary/30 hover:border-amber-500 hover:bg-amber-500/5 transition-all duration-300 text-left"
                 >
                   <div className="flex flex-col items-center text-center gap-4">
@@ -337,7 +337,7 @@ export default function CadastrarCliente() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">
-                        Acesso Vitalício
+                        Registro
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         Cliente sem cobrança recorrente, apenas para armazenar informações e arquivos
@@ -378,8 +378,8 @@ export default function CadastrarCliente() {
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${clienteType === 'vitalicio' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
-                {clienteType === 'vitalicio' ? (
+              <div className={`p-2.5 rounded-xl ${clienteType === 'registro' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+                {clienteType === 'registro' ? (
                   <Infinity className="w-6 h-6 text-amber-500" />
                 ) : (
                   <UserPlus className="w-6 h-6 text-primary" />
@@ -387,10 +387,10 @@ export default function CadastrarCliente() {
               </div>
               <div>
                 <CardTitle className="text-xl font-semibold text-foreground">
-                  {clienteType === 'vitalicio' ? 'Cliente Vitalício' : 'Cliente Mensal'}
+                  {clienteType === 'registro' ? 'Cliente Registro' : 'Cliente Mensal'}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {clienteType === 'vitalicio' ? 'Sem cobrança recorrente' : 'Com cobrança automática'}
+                  {clienteType === 'registro' ? 'Sem cobrança recorrente' : 'Com cobrança automática'}
                 </p>
               </div>
             </div>
@@ -457,7 +457,7 @@ export default function CadastrarCliente() {
                   />
                 </div>
 
-                <div className={clienteType === 'vitalicio' ? 'space-y-2 col-span-2' : 'space-y-2'}>
+                <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
                   <Label htmlFor="produto" className="text-foreground font-medium">Produto</Label>
                   <Input
                     id="produto"
@@ -516,8 +516,8 @@ export default function CadastrarCliente() {
                 )}
               </div>
 
-              {/* Upload de Arquivos - Apenas para Vitalício */}
-              {clienteType === 'vitalicio' && (
+              {/* Upload de Arquivos - Apenas para Registro */}
+              {clienteType === 'registro' && (
                 <div className="space-y-3 mt-6">
                   <div className="flex items-center gap-2">
                     <Upload className="w-4 h-4 text-amber-500" />
@@ -620,7 +620,7 @@ export default function CadastrarCliente() {
               <Button 
                 type="submit" 
                 className={`btn-3d w-full h-12 font-medium mt-6 ${
-                  clienteType === 'vitalicio' 
+                  clienteType === 'registro' 
                     ? 'bg-amber-500 text-white hover:bg-amber-600' 
                     : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
@@ -642,18 +642,18 @@ export default function CadastrarCliente() {
             </form>
           ) : (
             <div className="space-y-6">
-              <h2 className={`text-lg font-semibold text-center ${clienteType === 'vitalicio' ? 'text-amber-500' : 'text-primary'}`}>
+              <h2 className={`text-lg font-semibold text-center ${clienteType === 'registro' ? 'text-amber-500' : 'text-primary'}`}>
                 Confirme os dados abaixo:
               </h2>
               <div className={`border rounded-xl p-5 space-y-2 text-sm ${
-                clienteType === 'vitalicio' 
+                clienteType === 'registro' 
                   ? 'bg-amber-500/5 border-amber-500/20' 
                   : 'bg-primary/5 border-primary/20'
               }`}>
                 <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border">
-                  {clienteType === 'vitalicio' ? (
+                  {clienteType === 'registro' ? (
                     <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium">
-                      Acesso Vitalício
+                      Registro
                     </span>
                   ) : (
                     <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
@@ -681,7 +681,7 @@ export default function CadastrarCliente() {
                 {formData.tags && formData.tags.length > 0 && (
                   <p className="text-muted-foreground mt-2">Tags: <span className="text-foreground">{formData.tags.join(', ')}</span></p>
                 )}
-                {clienteType === 'vitalicio' && uploadedFiles.length > 0 && (
+                {clienteType === 'registro' && uploadedFiles.length > 0 && (
                   <p className="text-muted-foreground mt-2">
                     Arquivos: <span className="text-amber-500 font-medium">{uploadedFiles.length} arquivo(s) para upload</span>
                   </p>
@@ -691,7 +691,7 @@ export default function CadastrarCliente() {
                 <Button 
                   onClick={handleConfirm}
                   className={`btn-3d h-11 ${
-                    clienteType === 'vitalicio' 
+                    clienteType === 'registro' 
                       ? 'bg-amber-500 text-white hover:bg-amber-600' 
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}
