@@ -170,7 +170,7 @@ const formatMessage = (template: string, cliente: Cliente, paymentData?: Payment
 const generatePaymentLink = async (
   cliente: Cliente,
   config: BillingConfig
-): Promise<{ url: string | null; created: boolean; error?: string }> => {
+): Promise<{ url: string | null; created: boolean; error?: string; preferenceId?: string }> => {
   // Prioridade: token configurado no painel (billing_config) -> segredo do backend
   let accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
   
@@ -252,7 +252,7 @@ const generatePaymentLink = async (
     console.log(`✅ LINK CRIADO COM SUCESSO!`);
     console.log(`   ID da Preference: ${data.id}`);
     console.log(`   URL: ${data.init_point}`);
-    return { url: data.init_point, created: true };
+    return { url: data.init_point, created: true, preferenceId: data.id };
   } catch (error: any) {
     console.error('❌ Erro ao gerar link de pagamento:', error);
     return { url: null, created: false, error: error?.message };
@@ -262,7 +262,7 @@ const generatePaymentLink = async (
 const generateBoleto = async (
   cliente: Cliente,
   config: BillingConfig
-): Promise<{ url: string | null; created: boolean; error?: string }> => {
+): Promise<{ url: string | null; created: boolean; error?: string; paymentId?: string }> => {
   // Prioridade: token configurado no painel (billing_config) -> segredo do backend
   let accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
   
@@ -366,7 +366,7 @@ const generateBoleto = async (
     console.log(`   Status: ${data.status}`);
     console.log(`   URL: ${boletoUrl}`);
     
-    return { url: boletoUrl, created: true };
+    return { url: boletoUrl, created: true, paymentId: data.id?.toString() };
   } catch (error: any) {
     console.error('❌ Erro ao gerar boleto:', error);
     return { url: null, created: false, error: error?.message };
@@ -765,12 +765,37 @@ const handler = async (req: Request): Promise<Response> => {
         // Only generate payment link and boleto if validations pass
         const [linkResult, boletoResult] = await Promise.all([
           generatePaymentLink(cliente, config),
-          cpfValidation.valid && emailValidation.valid ? generateBoleto(cliente, config) : Promise.resolve({ url: null, created: false, error: "CPF ou Email inválido" }),
+          cpfValidation.valid && emailValidation.valid ? generateBoleto(cliente, config) : Promise.resolve({ url: null, created: false, error: "CPF ou Email inválido", paymentId: null }),
         ]);
+        
+        const billingDate = cliente.data_renovacao;
+        
+        // Register PIX payment if configured
+        if (config.pix_chave) {
+          await supabase.from('client_payments').insert({
+            cliente_id: cliente.id,
+            payment_id: `pix_${cliente.id}_${Date.now()}`,
+            payment_type: 'pix',
+            amount: cliente.valor,
+            status: 'pending',
+            billing_date: billingDate,
+          });
+          console.log(`📊 PIX registrado para ${cliente.nome}`);
+        }
         
         // Log do resultado do link
         if (linkResult.created) {
           console.log(`📊 Link criado no MP para ${cliente.nome}`);
+          // Register Link payment
+          await supabase.from('client_payments').insert({
+            cliente_id: cliente.id,
+            payment_id: `link_${cliente.id}_${Date.now()}`,
+            preference_id: linkResult.preferenceId || null,
+            payment_type: 'link_cartao',
+            amount: parseFloat((cliente.valor / (1 - parseFloat(config.mp_taxa_cartao || '4.99') / 100)).toFixed(2)),
+            status: 'pending',
+            billing_date: billingDate,
+          });
         } else if (linkResult.error) {
           paymentSkipReasons.push(`Link: ${linkResult.error}`);
         }
@@ -784,6 +809,16 @@ const handler = async (req: Request): Promise<Response> => {
         // Log do resultado do boleto
         if (boletoResult.created) {
           console.log(`📊 Boleto criado no MP para ${cliente.nome}`);
+          // Register Boleto payment
+          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+          await supabase.from('client_payments').insert({
+            cliente_id: cliente.id,
+            payment_id: boletoResult.paymentId || `boleto_${cliente.id}_${Date.now()}`,
+            payment_type: 'boleto',
+            amount: cliente.valor + taxaBoleto,
+            status: 'pending',
+            billing_date: billingDate,
+          });
         } else if (boletoResult.error) {
           paymentSkipReasons.push(`Boleto: ${boletoResult.error}`);
         }
