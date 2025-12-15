@@ -257,8 +257,9 @@ serve(async (req: Request) => {
 
       if (instances && instances.length > 0) {
         const instance = instances[0];
-        const whatsappTemplate = configMap["welcome_whatsapp_template"] || `Olá {nome}, sua conta foi criada!`;
-        const message = replaceVariables(whatsappTemplate);
+        const rawWhatsappTemplate = configMap["welcome_whatsapp_template"] || `Olá {nome}, sua conta foi criada!`;
+        const cleanedWhatsappTemplate = rawWhatsappTemplate.replace(/\[TESTE\]/gi, "").trim();
+        const message = replaceVariables(cleanedWhatsappTemplate);
 
         // Format phone number
         let formattedPhone = userPhone.replace(/\D/g, "");

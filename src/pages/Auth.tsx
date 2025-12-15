@@ -121,7 +121,7 @@ export default function Auth() {
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('user_id, approval_status, rejection_reason, user_response')
-      .eq('email', signupData.email)
+      .eq('email', signupData.email.toLowerCase().trim())
       .maybeSingle();
 
     if (existingProfile) {
@@ -170,16 +170,35 @@ export default function Auth() {
         const { data: profile } = await supabase
           .from('profiles')
           .select('approval_status, rejection_reason, user_response')
-          .eq('email', signupData.email)
+          .eq('email', signupData.email.toLowerCase().trim())
           .maybeSingle();
         
-        if (profile?.approval_status === 'rejected') {
-          setProfileStatus({
-            approval_status: 'rejected',
-            rejection_reason: profile.rejection_reason,
-            user_response: profile.user_response
-          });
-          return;
+        if (profile) {
+          if (profile.approval_status === 'rejected') {
+            setRejectedEmail(signupData.email);
+            setProfileStatus({
+              approval_status: 'rejected',
+              rejection_reason: profile.rejection_reason,
+              user_response: profile.user_response
+            });
+            return;
+          }
+
+          if (profile.approval_status === 'pending') {
+            toast({
+              title: 'Solicitação já existe',
+              description: 'Sua solicitação está aguardando aprovação do administrador.',
+            });
+            return;
+          }
+
+          if (profile.approval_status === 'approved') {
+            toast({
+              title: 'Conta já aprovada',
+              description: 'Sua conta já foi aprovada. Use a aba Login para entrar.',
+            });
+            return;
+          }
         }
         
         toast({
