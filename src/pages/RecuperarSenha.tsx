@@ -30,30 +30,13 @@ export default function RecuperarSenha() {
     setIsLoading(true);
 
     try {
-      // First check if user exists in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (!profile) {
-        toast({
-          title: 'Usuário não encontrado',
-          description: 'Não existe uma conta cadastrada com este email.',
-          variant: 'destructive',
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/redefinir-senha`,
       });
+
+      if (error) {
+        throw error;
+      }
 
       if (error) {
         throw error;
