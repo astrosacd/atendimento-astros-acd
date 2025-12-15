@@ -15,15 +15,27 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const gmailUser = Deno.env.get("GMAIL_USER");
-    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Buscar credenciais do recovery_config (igual ao send-welcome)
+    const { data: configs } = await supabase
+      .from("recovery_config")
+      .select("config_key, config_value");
+
+    const configMap: Record<string, string> = {};
+    configs?.forEach((c: { config_key: string; config_value: string }) => {
+      configMap[c.config_key] = c.config_value;
+    });
+
+    const gmailUser = configMap["gmail_user"];
+    const gmailAppPassword = configMap["gmail_app_password"];
 
     if (!gmailUser || !gmailAppPassword) {
-      console.error("Missing Gmail credentials");
-      throw new Error("Credenciais de email não configuradas");
+      console.error("Missing Gmail credentials in recovery_config");
+      throw new Error("Credenciais de email não configuradas. Configure em Admin > Boas-vindas.");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log(`Using Gmail credentials from recovery_config: ${gmailUser}`);
 
     const { userId, email, userName } = await req.json();
 
