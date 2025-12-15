@@ -887,8 +887,23 @@ const handler = async (req: Request): Promise<Response> => {
           });
           console.log(`Skipping WhatsApp for ${cliente.nome}: ${whatsappValidation.reason}`);
         } else {
-          const instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
-          whatsappInstanceIndex++;
+          // Select instance - random if enabled, otherwise round-robin
+          let instance;
+          if (config.whatsapp_random_rotation === 'true') {
+            const randomIndex = Math.floor(Math.random() * whatsappInstances.length);
+            instance = whatsappInstances[randomIndex];
+            console.log(`Using random WhatsApp instance: ${instance.instance_name} (index ${randomIndex})`);
+          } else {
+            instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
+            whatsappInstanceIndex++;
+          }
+          
+          // Apply delay if configured
+          const delaySeconds = parseInt(config.whatsapp_delay || '0', 10);
+          if (delaySeconds > 0 && whatsappInstanceIndex > 1) {
+            console.log(`Waiting ${delaySeconds} seconds before sending WhatsApp...`);
+            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+          }
 
           const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
           
