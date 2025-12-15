@@ -10,6 +10,7 @@ import { ArrowLeft, Search, Check, RefreshCw, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
+import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
@@ -177,7 +178,7 @@ export default function AtualizarCliente() {
                   <h3 className={`font-semibold text-lg ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
                   {isClienteVitalicio && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
-                      Vitalício
+                      Registro
                     </span>
                   )}
                 </div>
@@ -230,7 +231,14 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              <Button 
+              {/* Files Manager - only for Registro clients */}
+              {isClienteVitalicio && (
+                <div className="border border-amber-500/20 rounded-xl p-4 bg-amber-500/5">
+                  <ClientFilesManager clienteId={selectedCliente.id} />
+                </div>
+              )}
+
+              <Button
                 onClick={handleUpdate}
                 className="btn-3d w-full h-12 bg-update text-update-foreground hover:bg-update/90 font-medium"
                 disabled={isLoading}

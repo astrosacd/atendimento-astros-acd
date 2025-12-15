@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +30,7 @@ import {
 import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
 import { Badge } from '@/components/ui/badge';
 import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
+import { ClientFilesManager } from '@/components/ClientFilesManager';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -45,6 +46,8 @@ export default function ConsultarCliente() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [paymentClienteId, setPaymentClienteId] = useState<string | null>(null);
   const [paymentClienteName, setPaymentClienteName] = useState<string>('');
+  const [filesClienteId, setFilesClienteId] = useState<string | null>(null);
+  const [filesClienteName, setFilesClienteName] = useState<string>('');
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   
   // Advanced filters
@@ -56,6 +59,7 @@ export default function ConsultarCliente() {
     produto: '',
     plano: '',
     tag: '',
+    tipoCliente: '',
   });
 
   useEffect(() => {
@@ -95,6 +99,12 @@ export default function ConsultarCliente() {
 
   const applyFilters = (data: Cliente[]): Cliente[] => {
     return data.filter(cliente => {
+      // Client type filter
+      if (filters.tipoCliente && filters.tipoCliente !== 'all') {
+        if (filters.tipoCliente === 'mensal' && cliente.cobranca_ativa === false) return false;
+        if (filters.tipoCliente === 'registro' && cliente.cobranca_ativa !== false) return false;
+      }
+      
       // Date filter
       if (filters.dataInicio) {
         const clienteDate = new Date(cliente.data_renovacao);
@@ -135,6 +145,7 @@ export default function ConsultarCliente() {
       produto: '',
       plano: '',
       tag: '',
+      tipoCliente: '',
     });
   };
 
@@ -324,6 +335,23 @@ export default function ConsultarCliente() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Tipo de Cliente</Label>
+                        <Select
+                          value={filters.tipoCliente}
+                          onValueChange={(value) => setFilters({ ...filters, tipoCliente: value })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground">
+                            <SelectValue placeholder="Todos os tipos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="all">Todos os tipos</SelectItem>
+                            <SelectItem value="mensal">Mensal</SelectItem>
+                            <SelectItem value="registro">Registro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       
                       <div className="flex gap-2 pt-4">
                         <Button 
@@ -422,25 +450,43 @@ export default function ConsultarCliente() {
                             }`}>{cliente.nome}</h3>
                             {cliente.cobranca_ativa === false && (
                               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
-                                Vitalício
+                                Registro
                               </Badge>
                             )}
                           </div>
                           <div className="flex gap-1">
+                            {/* Files button - only for Registro clients */}
+                            {cliente.cobranca_ativa === false && (
+                              <Button
+                                onClick={() => {
+                                  setFilesClienteId(cliente.id);
+                                  setFilesClienteName(cliente.nome);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-amber-500"
+                                title="Ver arquivos"
+                              >
+                                <File className="h-4 w-4" />
+                              </Button>
+                            )}
                             {isAdmin && (
                               <>
-                                <Button
-                                  onClick={() => {
-                                    setPaymentClienteId(cliente.id);
-                                    setPaymentClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-primary"
-                                  title="Ver pagamentos"
-                                >
-                                  <CreditCard className="h-4 w-4" />
-                                </Button>
+                                {/* Payment button - only for Mensal clients */}
+                                {cliente.cobranca_ativa !== false && (
+                                  <Button
+                                    onClick={() => {
+                                      setPaymentClienteId(cliente.id);
+                                      setPaymentClienteName(cliente.nome);
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-primary"
+                                    title="Ver pagamentos"
+                                  >
+                                    <CreditCard className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   onClick={() => handleViewHistory(cliente)}
                                   variant="ghost"
@@ -572,6 +618,24 @@ export default function ConsultarCliente() {
           isOpen={!!paymentClienteId}
           onClose={() => setPaymentClienteId(null)}
         />
+
+        {/* Files Dialog */}
+        <Dialog open={!!filesClienteId} onOpenChange={() => setFilesClienteId(null)}>
+          <DialogContent className="bg-card border-border max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <File className="h-5 w-5 text-amber-500" />
+                Arquivos
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {filesClienteName}
+              </DialogDescription>
+            </DialogHeader>
+            {filesClienteId && (
+              <ClientFilesManager clienteId={filesClienteId} readOnly={!isAdmin} />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
