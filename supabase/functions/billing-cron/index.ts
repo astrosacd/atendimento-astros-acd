@@ -171,7 +171,8 @@ const generatePaymentLink = async (
   cliente: Cliente,
   config: BillingConfig
 ): Promise<{ url: string | null; created: boolean; error?: string }> => {
-  let accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  // Prioridade: token configurado no painel (billing_config) -> segredo do backend
+  let accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
   
   if (!accessToken) {
     console.log("⚠️ Mercado Pago access token not configured");
@@ -257,7 +258,8 @@ const generateBoleto = async (
   cliente: Cliente,
   config: BillingConfig
 ): Promise<{ url: string | null; created: boolean; error?: string }> => {
-  let accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  // Prioridade: token configurado no painel (billing_config) -> segredo do backend
+  let accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
   
   if (!accessToken) {
     console.log("⚠️ Mercado Pago access token not configured para boleto");
@@ -732,7 +734,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Generate payment link and boleto for D0 and later
       if (['d_zero', 'd_mais_1', 'd_mais_2', 'd_mais_15', 'd_mais_30'].includes(messageType)) {
         // Check payment link
-        const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+        const accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
         
         if (!accessToken) {
           paymentSkipReasons.push('Link Cartão: Token Mercado Pago não configurado');
