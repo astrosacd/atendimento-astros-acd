@@ -33,7 +33,7 @@ export default function RecuperarSenha() {
       // Buscar usuário no profiles
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('user_id, name, email')
+        .select('user_id, name, email, approval_status')
         .eq('email', email.toLowerCase().trim())
         .maybeSingle();
 
@@ -45,6 +45,19 @@ export default function RecuperarSenha() {
         toast({
           title: 'Usuário não encontrado',
           description: 'Não existe uma conta cadastrada com este email.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (profile.approval_status && profile.approval_status !== 'approved') {
+        const isPending = profile.approval_status === 'pending';
+        toast({
+          title: isPending ? 'Conta ainda não aprovada' : 'Conta rejeitada',
+          description: isPending
+            ? 'Sua solicitação de acesso ainda está aguardando aprovação do administrador.'
+            : 'Seu acesso foi rejeitado pelo administrador. Você pode enviar uma nova solicitação na tela de cadastro.',
           variant: 'destructive',
         });
         setIsLoading(false);
