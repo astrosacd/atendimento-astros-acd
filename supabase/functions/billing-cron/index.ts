@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -426,28 +427,32 @@ const sendEmail = async (
       emailBody += `\n\n📄 BOLETO: ${attachmentUrl}`;
     }
 
-    const emailContent = `From: ${gmailUser}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${emailBody}`;
-    const base64Email = btoa(unescape(encodeURIComponent(emailContent)));
-
-    const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${gmailPassword}`,
-        'Content-Type': 'application/json',
+    // Use SMTP with Gmail App Password
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: gmailUser,
+          password: gmailPassword,
+        },
       },
-      body: JSON.stringify({ raw: base64Email.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Gmail API failed: ${errorText}`);
-      return { success: false, error: `Falha Gmail API: ${response.status}` };
-    }
+    await client.send({
+      from: gmailUser,
+      to: to,
+      subject: subject,
+      content: emailBody,
+    });
 
+    await client.close();
+    console.log(`Email sent successfully to ${to}`);
     return { success: true };
   } catch (error: any) {
     console.error('Email send error:', error);
-    return { success: false, error: error?.message || 'Unknown error' };
+    return { success: false, error: error?.message || 'Erro ao enviar email' };
   }
 };
 
