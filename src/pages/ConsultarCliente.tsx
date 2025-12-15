@@ -160,7 +160,9 @@ export default function ConsultarCliente() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    // Adiciona horário meio-dia para evitar problema de timezone
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('pt-BR');
   };
 
   const formatDateTime = (dateString: string) => {
