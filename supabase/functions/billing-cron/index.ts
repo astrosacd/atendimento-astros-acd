@@ -170,11 +170,16 @@ const generatePaymentLink = async (
   cliente: Cliente,
   config: BillingConfig
 ): Promise<string | null> => {
-  const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  let accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
   
   if (!accessToken) {
     console.log("Mercado Pago access token not configured");
     return null;
+  }
+  
+  // Remove "Bearer " prefix if already included in token
+  if (accessToken.startsWith('Bearer ')) {
+    accessToken = accessToken.replace('Bearer ', '');
   }
 
   // If fixed link is configured, use it
@@ -231,11 +236,16 @@ const generateBoleto = async (
   cliente: Cliente,
   config: BillingConfig
 ): Promise<string | null> => {
-  const accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
+  let accessToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN") || config.mp_access_token;
   
   if (!accessToken) {
     console.log("Mercado Pago access token not configured");
     return null;
+  }
+  
+  // Remove "Bearer " prefix if already included in token
+  if (accessToken.startsWith('Bearer ')) {
+    accessToken = accessToken.replace('Bearer ', '');
   }
 
   if (config.mp_boleto_enabled !== 'true') {
@@ -429,8 +439,9 @@ const sendEmail = async (
     });
 
     if (!response.ok) {
-      console.log('Gmail API failed, marking as sent for demo');
-      return { success: true };
+      const errorText = await response.text();
+      console.error(`Gmail API failed: ${errorText}`);
+      return { success: false, error: `Falha Gmail API: ${response.status}` };
     }
 
     return { success: true };
