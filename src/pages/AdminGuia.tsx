@@ -27,7 +27,8 @@ import {
   RotateCcw,
   Bell,
   BarChart3,
-  Lock
+  Lock,
+  FileBox
 } from "lucide-react";
 
 interface CustomRole {
@@ -488,6 +489,90 @@ As tags são salvas automaticamente com o cliente.`
         "Crie tags padronizadas (evite variações como 'vip' e 'VIP')",
         "Renomear é melhor que excluir e recriar",
         "Tags aparecem como badges coloridos na consulta de clientes"
+      ]
+    },
+    {
+      id: "clientes-registro",
+      title: "Clientes Registro",
+      icon: FileBox,
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
+      description: "Gerencie clientes sem cobrança recorrente (compras avulsas, entregas pendentes)",
+      steps: [
+        {
+          title: "O que são Clientes Registro?",
+          content: `Clientes **Registro** são cadastros sem cobrança mensal automática, úteis para:
+
+- **Compras avulsas**: Produtos vendidos sem assinatura mensal
+- **Entregas pendentes**: Controle de produtos comprados mas não entregues
+- **Acesso vitalício**: Produtos com pagamento único (ex: licenças permanentes)
+- **Histórico de compras**: Registro de transações sem necessidade de cobrança
+
+Esses clientes **não recebem** cobranças automáticas do sistema.`
+        },
+        {
+          title: "Como cadastrar",
+          content: `1. Acesse **Cadastrar Cliente**
+2. Na tela inicial, escolha **"Registro"** (ícone de infinito amarelo)
+3. Preencha os dados básicos:
+   - Nome, WhatsApp, CPF/CNPJ, Email
+   - Produto adquirido
+4. Adicione **Observações** detalhando:
+   - O que foi comprado
+   - Quantidades pendentes de entrega
+   - Datas importantes
+5. **Anexe arquivos** (comprovantes, contratos, etc.)
+6. Confirme o cadastro`
+        },
+        {
+          title: "Gerenciamento de Arquivos",
+          content: `Clientes Registro podem ter arquivos anexados:
+
+**No Cadastro:**
+- Arraste ou selecione arquivos (imagens, PDFs, documentos)
+- Arquivos são enviados ao criar o cliente
+
+**Na Atualização:**
+- Veja arquivos existentes
+- Adicione novos arquivos
+- Baixe ou visualize arquivos
+- Exclua arquivos não necessários
+
+**Na Consulta:**
+- Clique no ícone de **arquivo (📁)** ao lado do nome
+- Visualize, baixe ou gerencie os anexos`
+        },
+        {
+          title: "Diferenças do Cliente Mensal",
+          content: `| Característica | Cliente Mensal | Cliente Registro |
+|----------------|----------------|------------------|
+| Cobrança automática | ✅ Sim | ❌ Não |
+| Data de renovação | ✅ Editável | ❌ Oculta |
+| Valor mensal | ✅ Definido | ❌ Não aplicável |
+| Histórico pagamentos | ✅ Disponível | ❌ Não mostrado |
+| Anexo de arquivos | ❌ Não | ✅ Sim |
+| Badge visual | 🔵 Azul | 🟡 Amarelo "Registro" |`
+        },
+        {
+          title: "Filtrar por tipo de cliente",
+          content: `Na página **Consultar Clientes**:
+
+1. Clique no ícone de **Filtro** no canto superior direito
+2. Em **Tipo de Cliente**, selecione:
+   - **Todos**: Mostra todos os clientes
+   - **Mensal**: Apenas clientes com cobrança
+   - **Registro**: Apenas clientes sem cobrança
+3. Clique em **Aplicar Filtros**
+
+Isso facilita encontrar clientes específicos por categoria.`
+        }
+      ],
+      tips: [
+        "Use Registro para produtos vendidos sem assinatura (licenças vitalícias, etc.)",
+        "Documente nas Observações o que foi comprado e pendências de entrega",
+        "Anexe comprovantes de pagamento e contratos para referência futura",
+        "Clientes Registro não aparecem nos relatórios de cobrança",
+        "Você pode converter um cliente Registro para Mensal editando manualmente no banco"
       ]
     },
     {
