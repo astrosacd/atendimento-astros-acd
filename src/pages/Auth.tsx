@@ -38,6 +38,7 @@ export default function Auth() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
+  const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
@@ -116,6 +117,47 @@ export default function Auth() {
 
     setIsLoading(true);
     
+    // Check if email already exists and was rejected
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('user_id, approval_status, rejection_reason, user_response')
+      .eq('email', signupData.email)
+      .maybeSingle();
+
+    if (existingProfile) {
+      // If rejected, show rejection screen instead of error
+      if (existingProfile.approval_status === 'rejected') {
+        setRejectedEmail(signupData.email);
+        setProfileStatus({
+          approval_status: 'rejected',
+          rejection_reason: existingProfile.rejection_reason,
+          user_response: existingProfile.user_response
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // If pending, show pending screen
+      if (existingProfile.approval_status === 'pending') {
+        toast({
+          title: 'Solicitação já existe',
+          description: 'Sua solicitação está aguardando aprovação do administrador.',
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // If approved, tell them to login
+      if (existingProfile.approval_status === 'approved') {
+        toast({
+          title: 'Conta já aprovada',
+          description: 'Sua conta já foi aprovada. Use a aba Login para entrar.',
+        });
+        setIsLoading(false);
+        return;
+      }
+    }
+    
     // Generate a temporary password - user will receive the real one via welcome email
     const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
     
@@ -123,15 +165,35 @@ export default function Auth() {
     setIsLoading(false);
 
     if (error) {
-      let message = 'Erro ao criar conta';
+      // Check again if it's already registered but wasn't found before
       if (error.message.includes('already registered')) {
-        message = 'Este email já está cadastrado';
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('approval_status, rejection_reason, user_response')
+          .eq('email', signupData.email)
+          .maybeSingle();
+        
+        if (profile?.approval_status === 'rejected') {
+          setProfileStatus({
+            approval_status: 'rejected',
+            rejection_reason: profile.rejection_reason,
+            user_response: profile.user_response
+          });
+          return;
+        }
+        
+        toast({
+          title: 'Email já cadastrado',
+          description: 'Use a aba Login para entrar ou solicite recuperação de senha.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Erro',
+          description: 'Erro ao criar conta. Tente novamente.',
+          variant: 'destructive',
+        });
       }
-      toast({
-        title: 'Erro',
-        description: message,
-        variant: 'destructive',
-      });
     } else {
       toast({
         title: 'Solicitação enviada!',
@@ -142,17 +204,37 @@ export default function Auth() {
   };
 
   const handleSendResponse = async () => {
-    if (!user || !userResponse.trim()) return;
+    if (!userResponse.trim()) return;
+    
+    // Use user.id if logged in, otherwise use email from signup form
+    const emailToUpdate = user ? null : rejectedEmail || signupData.email;
 
     setIsSendingResponse(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ user_response: userResponse, approval_status: 'pending' })
-      .eq('user_id', user.id);
+    
+    let updateResult;
+    if (user) {
+      updateResult = await supabase
+        .from('profiles')
+        .update({ user_response: userResponse, approval_status: 'pending' })
+        .eq('user_id', user.id);
+    } else if (emailToUpdate) {
+      updateResult = await supabase
+        .from('profiles')
+        .update({ user_response: userResponse, approval_status: 'pending' })
+        .eq('email', emailToUpdate);
+    } else {
+      setIsSendingResponse(false);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar o usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSendingResponse(false);
 
-    if (error) {
+    if (updateResult.error) {
       toast({
         title: 'Erro',
         description: 'Não foi possível enviar sua resposta.',
@@ -161,7 +243,7 @@ export default function Auth() {
     } else {
       toast({
         title: 'Resposta enviada!',
-        description: 'Sua resposta foi enviada para análise.',
+        description: 'Sua resposta foi enviada para análise do administrador.',
       });
       setProfileStatus(prev => prev ? { ...prev, user_response: userResponse, approval_status: 'pending' } : null);
       setUserResponse('');
@@ -176,8 +258,8 @@ export default function Auth() {
     );
   }
 
-  // Show status screens for logged-in users awaiting approval
-  if (user && profileStatus) {
+  // Show status screens for users awaiting approval (logged-in or rejected via signup)
+  if ((user && profileStatus) || (!user && profileStatus)) {
     // Pending approval
     if (profileStatus.approval_status === 'pending') {
       return (
@@ -203,8 +285,9 @@ export default function Auth() {
               <Button 
                 variant="outline" 
                 onClick={async () => {
-                  await signOut();
+                  if (user) await signOut();
                   setProfileStatus(null);
+                  setRejectedEmail(null);
                 }}
                 className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               >
@@ -269,8 +352,9 @@ export default function Auth() {
                 <Button 
                   variant="link" 
                   onClick={async () => {
-                    await signOut();
+                    if (user) await signOut();
                     setProfileStatus(null);
+                    setRejectedEmail(null);
                   }}
                   className="text-muted-foreground"
                 >
