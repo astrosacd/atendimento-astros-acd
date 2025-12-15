@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ArrowLeft, 
@@ -18,9 +20,6 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
-  Info,
-  Database,
-  HelpCircle,
   Tag,
   DollarSign,
   History,
@@ -28,8 +27,17 @@ import {
   Bell,
   BarChart3,
   Lock,
-  FileBox
+  FileBox,
+  Database,
+  HelpCircle,
+  ChevronRight,
+  Sparkles,
+  Settings,
+  Zap,
+  FileText,
+  LucideIcon
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CustomRole {
   id: string;
@@ -38,8 +46,33 @@ interface CustomRole {
   description: string | null;
 }
 
+interface GuideStep {
+  title: string;
+  content: string;
+}
+
+interface GuideCategory {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  color: string;
+  bgColor: string;
+  description: string;
+  steps: GuideStep[];
+  tips: string[];
+}
+
+interface GuideGroup {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  color: string;
+  categories: string[];
+}
+
 const AdminGuia = () => {
   const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState<string>("gmail");
 
   const { data: customRoles = [] } = useQuery({
     queryKey: ['custom-roles-guia'],
@@ -67,7 +100,52 @@ const AdminGuia = () => {
     ).join('\n');
   };
 
-  const guideCategories = [
+  const guideGroups: GuideGroup[] = [
+    {
+      id: "comunicacao",
+      title: "Comunicação",
+      icon: MessageSquare,
+      color: "text-green-400",
+      categories: ["gmail", "evolution", "boas-vindas"]
+    },
+    {
+      id: "integracao",
+      title: "Integrações",
+      icon: Zap,
+      color: "text-purple-400",
+      categories: ["webhooks", "api", "mercadopago"]
+    },
+    {
+      id: "usuarios-permissoes",
+      title: "Usuários",
+      icon: Users,
+      color: "text-blue-400",
+      categories: ["usuarios", "permissoes"]
+    },
+    {
+      id: "financeiro",
+      title: "Financeiro",
+      icon: DollarSign,
+      color: "text-emerald-400",
+      categories: ["cobranca", "verificacao-pagamento"]
+    },
+    {
+      id: "clientes",
+      title: "Clientes",
+      icon: FileText,
+      color: "text-amber-400",
+      categories: ["tags", "clientes-registro"]
+    },
+    {
+      id: "sistema",
+      title: "Sistema",
+      icon: Settings,
+      color: "text-slate-400",
+      categories: ["chat", "dashboard", "logs-atividade", "restauracao", "notificacoes", "backup", "troubleshooting"]
+    }
+  ];
+
+  const guideCategories: GuideCategory[] = [
     {
       id: "gmail",
       title: "Configuração do Gmail",
@@ -105,7 +183,7 @@ const AdminGuia = () => {
     },
     {
       id: "evolution",
-      title: "Configuração da Evolution API",
+      title: "Evolution API (WhatsApp)",
       icon: MessageSquare,
       color: "text-green-400",
       bgColor: "bg-green-500/10",
@@ -141,117 +219,9 @@ const AdminGuia = () => {
       ]
     },
     {
-      id: "webhooks",
-      title: "Configuração de Webhooks",
-      icon: Webhook,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
-      description: "Integre com sistemas externos como n8n para automações",
-      steps: [
-        {
-          title: "Criar um Webhook",
-          content: `1. Acesse **Painel Administrativo** → **Webhooks**
-2. Clique em **Criar Webhook**
-3. Preencha:
-   - **Nome**: Identificação do webhook (ex: "Notificação n8n")
-   - **URL**: Endpoint que receberá os dados (ex: URL do n8n)
-   - **Eventos**: Selecione quais ações disparam o webhook
-   - **Chave Secreta** (opcional): Para validar autenticidade`
-        },
-        {
-          title: "Eventos disponíveis",
-          content: `- **cliente.created**: Disparado quando um cliente é cadastrado
-- **cliente.updated**: Disparado quando um cliente é atualizado
-- **cliente.deleted**: Disparado quando um cliente é excluído
-
-O payload enviado inclui todos os dados do cliente e informações do usuário que realizou a ação.`
-        }
-      ],
-      tips: [
-        "Use a chave secreta para validar que as requisições vêm do CRM",
-        "Teste o webhook com uma ferramenta como Webhook.site antes de conectar ao n8n",
-        "Webhooks inativos não disparam eventos"
-      ]
-    },
-    {
-      id: "api",
-      title: "Configuração de API Keys",
-      icon: Key,
-      color: "text-yellow-400",
-      bgColor: "bg-yellow-500/10",
-      description: "Permita que sistemas externos acessem os dados do CRM",
-      steps: [
-        {
-          title: "Criar uma API Key",
-          content: `1. Acesse **Painel Administrativo** → **API Keys**
-2. Clique em **Criar API Key**
-3. Preencha:
-   - **Nome**: Identificação da chave (ex: "Integração n8n")
-   - **Descrição**: Para que será usada
-4. Copie a chave gerada (ela só é exibida uma vez!)`
-        },
-        {
-          title: "Como usar a API",
-          content: `Endpoint base: \`/functions/v1/api-clientes\`
-
-**Autenticação**: Envie o header \`x-api-key\` com sua chave
-
-**Operações disponíveis:**
-- \`GET /api-clientes\` - Lista todos os clientes
-- \`GET /api-clientes?id=xxx\` - Busca cliente específico
-- \`POST /api-clientes\` - Cria novo cliente
-- \`PUT /api-clientes?id=xxx\` - Atualiza cliente
-- \`DELETE /api-clientes?id=xxx\` - Remove cliente`
-        }
-      ],
-      tips: [
-        "Nunca compartilhe API Keys publicamente",
-        "Crie chaves separadas para cada integração",
-        "Desative chaves que não estão mais em uso"
-      ]
-    },
-    {
-      id: "usuarios",
-      title: "Gerenciamento de Usuários",
-      icon: Users,
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-      description: "Gerencie usuários e suas permissões no sistema",
-      steps: [
-        {
-          title: "Fluxo de aprovação",
-          content: `1. Usuário se cadastra na tela de login
-2. Aguarda aprovação do administrador
-3. Admin acessa **Gerenciar Usuários** e vê pendentes
-4. Admin aprova e **seleciona a role** do usuário
-5. Usuário recebe acesso conforme permissões da role`
-        },
-        {
-          title: "Criar usuário manualmente",
-          content: `O admin pode criar usuários diretamente:
-
-1. Acesse **Gerenciar Usuários**
-2. Preencha: Nome, E-mail, WhatsApp (opcional), Senha e Tipo
-3. Clique em **Criar Usuário**
-
-O usuário é criado já aprovado automaticamente!
-Se configurado, recebe email/WhatsApp de boas-vindas.`
-        },
-        {
-          title: "Roles disponíveis",
-          content: getRolesContent()
-        }
-      ],
-      tips: [
-        "Crie roles customizadas em Permissões se precisar de controle granular",
-        "Usuários rejeitados podem enviar justificativa para reconsideração",
-        "O histórico de aprovações fica registrado para auditoria"
-      ]
-    },
-    {
       id: "boas-vindas",
       title: "Mensagens de Boas-vindas",
-      icon: Mail,
+      icon: Sparkles,
       color: "text-emerald-400",
       bgColor: "bg-emerald-500/10",
       description: "Configure o envio automático de credenciais para novos usuários",
@@ -294,47 +264,78 @@ Exemplo:
       ]
     },
     {
-      id: "cobranca",
-      title: "Sistema de Cobrança",
-      icon: CreditCard,
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-500/10",
-      description: "Configure o envio automático de cobranças",
+      id: "webhooks",
+      title: "Webhooks",
+      icon: Webhook,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/10",
+      description: "Integre com sistemas externos como n8n para automações",
       steps: [
         {
-          title: "Configurar horário de execução",
-          content: `1. Acesse **Painel Administrativo** → **Cobrança**
-2. Na aba **Geral**, defina:
-   - **Horário de Execução**: Quando o cron roda diariamente
-   - **Status**: Ative/desative o sistema de cobrança`
+          title: "Criar um Webhook",
+          content: `1. Acesse **Painel Administrativo** → **Webhooks**
+2. Clique em **Criar Webhook**
+3. Preencha:
+   - **Nome**: Identificação do webhook (ex: "Notificação n8n")
+   - **URL**: Endpoint que receberá os dados (ex: URL do n8n)
+   - **Eventos**: Selecione quais ações disparam o webhook
+   - **Chave Secreta** (opcional): Para validar autenticidade`
         },
         {
-          title: "Configurar mensagens",
-          content: `Na aba **Mensagens**, personalize os templates para cada momento:
-- **D-3**: 3 dias antes do vencimento (lembrete)
-- **D**: Dia do vencimento (cobrança)
-- **D+1 e D+2**: Dias após vencimento (follow-up)
-- **D+15 e D+30**: Cobranças de atraso
+          title: "Eventos disponíveis",
+          content: `- **cliente.created**: Disparado quando um cliente é cadastrado
+- **cliente.updated**: Disparado quando um cliente é atualizado
+- **cliente.deleted**: Disparado quando um cliente é excluído
 
-Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
-        },
-        {
-          title: "IA para mensagens (opcional)",
-          content: `Na aba **IA**, você pode:
-- Selecionar um modelo de IA (Gemini ou GPT)
-- Definir um prompt de contexto
-- O sistema gerará mensagens personalizadas automaticamente`
+O payload enviado inclui todos os dados do cliente e informações do usuário que realizou a ação.`
         }
       ],
       tips: [
-        "Configure Gmail E WhatsApp para maior alcance",
-        "Monitore a aba Relatórios para ver taxas de sucesso",
-        "Use a cobrança manual para casos urgentes"
+        "Use a chave secreta para validar que as requisições vêm do CRM",
+        "Teste o webhook com uma ferramenta como Webhook.site antes de conectar ao n8n",
+        "Webhooks inativos não disparam eventos"
+      ]
+    },
+    {
+      id: "api",
+      title: "API Keys",
+      icon: Key,
+      color: "text-yellow-400",
+      bgColor: "bg-yellow-500/10",
+      description: "Permita que sistemas externos acessem os dados do CRM",
+      steps: [
+        {
+          title: "Criar uma API Key",
+          content: `1. Acesse **Painel Administrativo** → **API Keys**
+2. Clique em **Criar API Key**
+3. Preencha:
+   - **Nome**: Identificação da chave (ex: "Integração n8n")
+   - **Descrição**: Para que será usada
+4. Copie a chave gerada (ela só é exibida uma vez!)`
+        },
+        {
+          title: "Como usar a API",
+          content: `Endpoint base: \`/functions/v1/api-clientes\`
+
+**Autenticação**: Envie o header \`x-api-key\` com sua chave
+
+**Operações disponíveis:**
+- \`GET /api-clientes\` - Lista todos os clientes
+- \`GET /api-clientes?id=xxx\` - Busca cliente específico
+- \`POST /api-clientes\` - Cria novo cliente
+- \`PUT /api-clientes?id=xxx\` - Atualiza cliente
+- \`DELETE /api-clientes?id=xxx\` - Remove cliente`
+        }
+      ],
+      tips: [
+        "Nunca compartilhe API Keys publicamente",
+        "Crie chaves separadas para cada integração",
+        "Desative chaves que não estão mais em uso"
       ]
     },
     {
       id: "mercadopago",
-      title: "Integração Mercado Pago",
+      title: "Mercado Pago",
       icon: CreditCard,
       color: "text-sky-400",
       bgColor: "bg-sky-500/10",
@@ -407,33 +408,243 @@ Se algum requisito não for atendido, o boleto não será gerado e o motivo apar
       ]
     },
     {
-      id: "chat",
-      title: "Chat Lyra (Assistente IA)",
-      icon: Bot,
-      color: "text-pink-400",
-      bgColor: "bg-pink-500/10",
-      description: "Configure o assistente virtual para ajudar usuários",
+      id: "usuarios",
+      title: "Gerenciamento de Usuários",
+      icon: Users,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Gerencie usuários e suas permissões no sistema",
       steps: [
         {
-          title: "Personalizar o chat",
-          content: `1. Acesse **Painel Administrativo** → **Chat Lyra**
-2. Configure:
-   - **Nome do Chat**: Como o assistente se apresenta
-   - **Mensagem de Boas-vindas**: Primeira mensagem exibida
-   - **Placeholder**: Texto do campo de input
-   - **Cor do Tema**: Cor principal do chat`
+          title: "Fluxo de aprovação",
+          content: `1. Usuário se cadastra na tela de login
+2. Aguarda aprovação do administrador
+3. Admin acessa **Gerenciar Usuários** e vê pendentes
+4. Admin aprova e **seleciona a role** do usuário
+5. Usuário recebe acesso conforme permissões da role`
         },
         {
-          title: "Configurar IA",
-          content: `- Selecione o **modelo de IA** (Gemini ou GPT)
-- O chat usa o Lovable AI Gateway, sem necessidade de API key
-- Você tem uso gratuito mensal incluído`
+          title: "Criar usuário manualmente",
+          content: `O admin pode criar usuários diretamente:
+
+1. Acesse **Gerenciar Usuários**
+2. Preencha: Nome, E-mail, WhatsApp (opcional), Senha e Tipo
+3. Clique em **Criar Usuário**
+
+O usuário é criado já aprovado automaticamente!
+Se configurado, recebe email/WhatsApp de boas-vindas.`
+        },
+        {
+          title: "Roles disponíveis",
+          content: getRolesContent()
         }
       ],
       tips: [
-        "Configure horário de funcionamento se não quiser 24/7",
-        "Adicione respostas automáticas para perguntas frequentes",
-        "O histórico de conversas fica salvo por usuário"
+        "Crie roles customizadas em Permissões se precisar de controle granular",
+        "Usuários rejeitados podem enviar justificativa para reconsideração",
+        "O histórico de aprovações fica registrado para auditoria"
+      ]
+    },
+    {
+      id: "permissoes",
+      title: "Permissões e Roles",
+      icon: Lock,
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      description: "Crie roles personalizadas e configure permissões granulares",
+      steps: [
+        {
+          title: "Entendendo o sistema de permissões",
+          content: `O sistema usa controle de acesso baseado em **roles** (funções):
+
+- Cada usuário tem **uma role** atribuída
+- Cada role tem **múltiplas permissões**
+- Permissões controlam o que o usuário pode fazer
+
+**Roles padrão:**
+- **Admin**: Acesso total ao sistema
+- **Gerente**: CRUD de clientes próprios
+- **Operador**: Cadastra e atualiza clientes
+- **Financeiro**: Acesso apenas ao módulo de Cobrança
+- **Visualizador**: Apenas consulta clientes`
+        },
+        {
+          title: "Criar role customizada",
+          content: `1. Acesse **Painel Administrativo** → **Permissões**
+2. Na aba **Roles**, clique em **Criar Role**
+3. Preencha:
+   - **Nome interno**: identificador único (ex: "suporte")
+   - **Nome de exibição**: nome amigável (ex: "Suporte Técnico")
+   - **Cor**: cor do badge da role
+   - **Descrição**: o que essa role faz
+4. Clique em **Criar**`
+        },
+        {
+          title: "Configurar permissões da role",
+          content: `Após criar a role, configure suas permissões:
+
+1. Na aba **Matriz de Permissões**
+2. Encontre a role na lista
+3. Marque/desmarque as permissões desejadas:
+   - **view_dashboard**: Ver dashboard e métricas
+   - **view_clients**: Consultar clientes
+   - **create_clients**: Cadastrar clientes
+   - **update_clients**: Atualizar clientes
+   - **delete_clients**: Excluir clientes
+   - **export_clients**: Exportar clientes
+   - **manage_billing**: Acessar módulo de cobrança
+   - **manage_users**: Gerenciar usuários
+   - **view_logs**: Ver logs de atividade
+   - E outras...`
+        },
+        {
+          title: "Atribuir role a usuário",
+          content: `1. Acesse **Gerenciar Usuários**
+2. Encontre o usuário na lista
+3. Clique no dropdown de role
+4. Selecione a nova role
+5. As permissões são aplicadas imediatamente!`
+        }
+      ],
+      tips: [
+        "Sempre teste uma nova role com um usuário de teste antes de usar em produção",
+        "Roles de sistema (Admin, etc.) não podem ser excluídas",
+        "Você pode criar roles específicas por departamento (Financeiro, Suporte, etc.)",
+        "Alterações de permissão são aplicadas em tempo real"
+      ]
+    },
+    {
+      id: "cobranca",
+      title: "Sistema de Cobrança",
+      icon: CreditCard,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Configure o envio automático de cobranças",
+      steps: [
+        {
+          title: "Configurar horário de execução",
+          content: `1. Acesse **Painel Administrativo** → **Cobrança**
+2. Na aba **Geral**, defina:
+   - **Horário de Execução**: Quando o cron roda diariamente
+   - **Status**: Ative/desative o sistema de cobrança`
+        },
+        {
+          title: "Configurar mensagens",
+          content: `Na aba **Mensagens**, personalize os templates para cada momento:
+- **D-3**: 3 dias antes do vencimento (lembrete)
+- **D**: Dia do vencimento (cobrança)
+- **D+1 e D+2**: Dias após vencimento (follow-up)
+- **D+15 e D+30**: Cobranças de atraso
+
+Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
+        },
+        {
+          title: "IA para mensagens (opcional)",
+          content: `Na aba **IA**, você pode:
+- Selecionar um modelo de IA (Gemini ou GPT)
+- Definir um prompt de contexto
+- O sistema gerará mensagens personalizadas automaticamente`
+        }
+      ],
+      tips: [
+        "Configure Gmail E WhatsApp para maior alcance",
+        "Monitore a aba Relatórios para ver taxas de sucesso",
+        "Use a cobrança manual para casos urgentes"
+      ]
+    },
+    {
+      id: "verificacao-pagamento",
+      title: "Verificação de Pagamentos",
+      icon: DollarSign,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Entenda como funciona a verificação de status de pagamentos",
+      steps: [
+        {
+          title: "Verificação automática (Mercado Pago)",
+          content: `O sistema verifica automaticamente pagamentos feitos via **Mercado Pago**:
+
+- Link de pagamento (cartão de crédito)
+- Boleto bancário
+- PIX do Mercado Pago
+
+Quando o cliente paga por esses meios, o sistema atualiza o status automaticamente.`
+        },
+        {
+          title: "Pagamentos fora do Mercado Pago",
+          content: `Se o cliente pagar por **outra forma** (PIX de outro banco, transferência, etc.):
+
+❌ O sistema **NÃO detecta automaticamente**
+
+✅ Você pode **marcar manualmente como pago**:
+1. Vá em **Cobrança** → aba **Pagamentos**
+2. Encontre o pagamento na lista de pendentes
+3. Clique no botão **"Pago"** (verde)
+4. Confirme no modal que aparece
+5. O status é atualizado e a **data de renovação avança 1 mês**!
+
+Isso mantém o controle mesmo para pagamentos externos.`
+        },
+        {
+          title: "Gerenciamento de Pagamentos",
+          content: `Na aba **Pagamentos** do módulo de Cobrança, você encontra:
+
+**Estatísticas gerais:**
+- Total de pagamentos
+- Pagamentos pagos (com valor total)
+- Pagamentos pendentes (com valor total)
+- Pagamentos rejeitados/cancelados
+
+**Lista de pagamentos:**
+- Pagamentos pendentes aparecem destacados em amarelo
+- Botão **"Pago"**: marca como pago e avança renovação
+- Botão **"X"**: cancela o pagamento
+- Histórico completo de todos os pagamentos`
+        },
+        {
+          title: "Histórico por Cliente",
+          content: `Você pode ver o histórico de pagamentos de um cliente específico:
+
+1. Acesse **Consultar Clientes**
+2. Busque o cliente desejado
+3. Clique no **ícone de cartão (💳)** ao lado do nome
+4. Veja todos os pagamentos daquele cliente:
+   - Total de pagamentos
+   - Quantos foram pagos/pendentes
+   - Valor total pago
+   - Ações para marcar como pago ou cancelar`
+        },
+        {
+          title: "Atualização Automática de Renovação",
+          content: `Quando um pagamento é confirmado (manual ou automático):
+
+1. ✅ O status muda para **"Pago"**
+2. ✅ A **data de renovação** do cliente avança **1 mês**
+3. ✅ As datas de cobrança são recalculadas:
+   - D-3 (3 dias antes)
+   - D+1, D+2 (dias após)
+   - D+15, D+30 (follow-up)
+
+Isso acontece automaticamente, sem precisar editar o cliente manualmente!`
+        },
+        {
+          title: "Status de pagamento",
+          content: `Os pagamentos podem ter os seguintes status:
+
+- 🟡 **Pendente**: Aguardando pagamento
+- 🟢 **Pago**: Pagamento confirmado (automático ou manual)
+- 🔴 **Cancelado**: Pagamento foi cancelado
+- 🔴 **Rejeitado**: Pagamento recusado pelo banco/cartão
+
+Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança.`
+        }
+      ],
+      tips: [
+        "A verificação automática funciona APENAS para Mercado Pago",
+        "PIX de outros bancos requer marcação manual",
+        "Ao marcar como pago, a renovação avança 1 mês automaticamente",
+        "Use o botão 'Verificar Status Agora' para atualizar pagamentos do Mercado Pago",
+        "O histórico por cliente está disponível na página de Consulta"
       ]
     },
     {
@@ -576,166 +787,119 @@ Isso facilita encontrar clientes específicos por categoria.`
       ]
     },
     {
-      id: "verificacao-pagamento",
-      title: "Verificação de Pagamentos",
-      icon: DollarSign,
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-500/10",
-      description: "Entenda como funciona a verificação de status de pagamentos",
+      id: "chat",
+      title: "Chat Lyra (Assistente IA)",
+      icon: Bot,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Configure o assistente virtual para ajudar usuários",
       steps: [
         {
-          title: "Verificação automática (Mercado Pago)",
-          content: `O sistema verifica automaticamente pagamentos feitos via **Mercado Pago**:
-
-- Link de pagamento (cartão de crédito)
-- Boleto bancário
-- PIX do Mercado Pago
-
-Quando o cliente paga por esses meios, o sistema atualiza o status automaticamente.`
+          title: "Personalizar o chat",
+          content: `1. Acesse **Painel Administrativo** → **Chat Lyra**
+2. Configure:
+   - **Nome do Chat**: Como o assistente se apresenta
+   - **Mensagem de Boas-vindas**: Primeira mensagem exibida
+   - **Placeholder**: Texto do campo de input
+   - **Cor do Tema**: Cor principal do chat`
         },
         {
-          title: "Pagamentos fora do Mercado Pago",
-          content: `Se o cliente pagar por **outra forma** (PIX de outro banco, transferência, etc.):
-
-❌ O sistema **NÃO detecta automaticamente**
-
-✅ Você pode **marcar manualmente como pago**:
-1. Vá em **Cobrança** → aba **Pagamentos**
-2. Encontre o pagamento na lista de pendentes
-3. Clique no botão **"Pago"** (verde)
-4. Confirme no modal que aparece
-5. O status é atualizado e a **data de renovação avança 1 mês**!
-
-Isso mantém o controle mesmo para pagamentos externos.`
-        },
-        {
-          title: "Gerenciamento de Pagamentos",
-          content: `Na aba **Pagamentos** do módulo de Cobrança, você encontra:
-
-**Estatísticas gerais:**
-- Total de pagamentos
-- Pagamentos pagos (com valor total)
-- Pagamentos pendentes (com valor total)
-- Pagamentos rejeitados/cancelados
-
-**Lista de pagamentos:**
-- Pagamentos pendentes aparecem destacados em amarelo
-- Botão **"Pago"**: marca como pago e avança renovação
-- Botão **"X"**: cancela o pagamento
-- Histórico completo de todos os pagamentos`
-        },
-        {
-          title: "Histórico por Cliente",
-          content: `Você pode ver o histórico de pagamentos de um cliente específico:
-
-1. Acesse **Consultar Clientes**
-2. Busque o cliente desejado
-3. Clique no **ícone de cartão (💳)** ao lado do nome
-4. Veja todos os pagamentos daquele cliente:
-   - Total de pagamentos
-   - Quantos foram pagos/pendentes
-   - Valor total pago
-   - Ações para marcar como pago ou cancelar`
-        },
-        {
-          title: "Atualização Automática de Renovação",
-          content: `Quando um pagamento é confirmado (manual ou automático):
-
-1. ✅ O status muda para **"Pago"**
-2. ✅ A **data de renovação** do cliente avança **1 mês**
-3. ✅ As datas de cobrança são recalculadas:
-   - D-3 (3 dias antes)
-   - D+1, D+2 (dias após)
-   - D+15, D+30 (follow-up)
-
-Isso acontece automaticamente, sem precisar editar o cliente manualmente!`
-        },
-        {
-          title: "Status de pagamento",
-          content: `Os pagamentos podem ter os seguintes status:
-
-- 🟡 **Pendente**: Aguardando pagamento
-- 🟢 **Pago**: Pagamento confirmado (automático ou manual)
-- 🔴 **Cancelado**: Pagamento foi cancelado
-- 🔴 **Rejeitado**: Pagamento recusado pelo banco/cartão
-
-Você pode ver todos os pagamentos na aba **Pagamentos** do módulo de Cobrança.`
+          title: "Configurar IA",
+          content: `- Selecione o **modelo de IA** (Gemini ou GPT)
+- O chat usa o Lovable AI Gateway, sem necessidade de API key
+- Você tem uso gratuito mensal incluído`
         }
       ],
       tips: [
-        "A verificação automática funciona APENAS para Mercado Pago",
-        "PIX de outros bancos requer marcação manual",
-        "Ao marcar como pago, a renovação avança 1 mês automaticamente",
-        "Use o botão 'Verificar Status Agora' para atualizar pagamentos do Mercado Pago",
-        "O histórico por cliente está disponível na página de Consulta"
+        "Configure horário de funcionamento se não quiser 24/7",
+        "Adicione respostas automáticas para perguntas frequentes",
+        "O histórico de conversas fica salvo por usuário"
       ]
     },
     {
-      id: "permissoes",
-      title: "Permissões e Roles Customizadas",
-      icon: Lock,
-      color: "text-indigo-400",
-      bgColor: "bg-indigo-500/10",
-      description: "Crie roles personalizadas e configure permissões granulares",
+      id: "dashboard",
+      title: "Dashboard e Métricas",
+      icon: BarChart3,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Entenda as métricas e gráficos do painel principal",
       steps: [
         {
-          title: "Entendendo o sistema de permissões",
-          content: `O sistema usa controle de acesso baseado em **roles** (funções):
+          title: "Visão geral do Dashboard",
+          content: `O Dashboard é a página inicial do sistema e mostra:
 
-- Cada usuário tem **uma role** atribuída
-- Cada role tem **múltiplas permissões**
-- Permissões controlam o que o usuário pode fazer
+**Cards de estatísticas:**
+- Total de clientes cadastrados
+- Próximas renovações (7 dias)
+- Valor total em contratos
+- Taxa de inadimplência
+- Novos clientes (30 dias)
 
-**Roles padrão:**
-- **Admin**: Acesso total ao sistema
-- **Gerente**: CRUD de clientes próprios
-- **Operador**: Cadastra e atualiza clientes
-- **Financeiro**: Acesso apenas ao módulo de Cobrança
-- **Visualizador**: Apenas consulta clientes`
+**Gráficos:**
+- Cadastros por mês (tendência)
+- Distribuição por plano
+- Cobranças dos últimos 30 dias`
         },
         {
-          title: "Criar role customizada",
-          content: `1. Acesse **Painel Administrativo** → **Permissões**
-2. Na aba **Roles**, clique em **Criar Role**
-3. Preencha:
-   - **Nome interno**: identificador único (ex: "suporte")
-   - **Nome de exibição**: nome amigável (ex: "Suporte Técnico")
-   - **Cor**: cor do badge da role
-   - **Descrição**: o que essa role faz
-4. Clique em **Criar**`
-        },
-        {
-          title: "Configurar permissões da role",
-          content: `Após criar a role, configure suas permissões:
+          title: "Métricas de clientes",
+          content: `**Total de Clientes:**
+Número total de clientes ativos na base.
 
-1. Na aba **Matriz de Permissões**
-2. Encontre a role na lista
-3. Marque/desmarque as permissões desejadas:
-   - **view_dashboard**: Ver dashboard e métricas
-   - **view_clients**: Consultar clientes
-   - **create_clients**: Cadastrar clientes
-   - **update_clients**: Atualizar clientes
-   - **delete_clients**: Excluir clientes
-   - **export_clients**: Exportar clientes
-   - **manage_billing**: Acessar módulo de cobrança
-   - **manage_users**: Gerenciar usuários
-   - **view_logs**: Ver logs de atividade
-   - E outras...`
+**Próximas Renovações:**
+Clientes com renovação nos próximos 7 dias.
+Útil para preparar cobranças manuais.
+
+**Valor Total:**
+Soma do valor (mensalidade) de todos os clientes.
+Representa o faturamento potencial mensal.
+
+**Novos Clientes (30 dias):**
+Quantos clientes foram cadastrados no último mês.`
         },
         {
-          title: "Atribuir role a usuário",
-          content: `1. Acesse **Gerenciar Usuários**
-2. Encontre o usuário na lista
-3. Clique no dropdown de role
-4. Selecione a nova role
-5. As permissões são aplicadas imediatamente!`
+          title: "Métricas de cobrança",
+          content: `**Taxa de Inadimplência:**
+Percentual de clientes com data de renovação vencida.
+Calculada automaticamente.
+
+**Taxa de Sucesso de Cobranças:**
+Percentual de mensagens enviadas com sucesso.
+Considera email e WhatsApp.
+
+**Previsão de Receita:**
+Valor total dos pagamentos pendentes.
+Representa quanto pode entrar no caixa.`
+        },
+        {
+          title: "Gráficos",
+          content: `**Cadastros por Mês (Área):**
+Mostra a tendência de novos cadastros nos últimos 6 meses.
+Útil para avaliar crescimento.
+
+**Clientes por Plano (Pizza):**
+Distribuição percentual dos clientes por tipo de plano.
+Identifica planos mais populares.
+
+**Cobranças 30 Dias (Barras):**
+Volume de cobranças enviadas por dia.
+Mostra sucesso vs erro de envio.`
+        },
+        {
+          title: "Ações rápidas",
+          content: `O Dashboard oferece atalhos para as principais funções:
+
+- **Cadastrar Cliente**: Ir direto para cadastro
+- **Consultar Clientes**: Buscar na base
+- **Cobrança**: Acessar módulo de cobrança
+- **Backup**: Fazer backup completo
+- **Notificações**: Ativar/desativar alertas`
         }
       ],
       tips: [
-        "Sempre teste uma nova role com um usuário de teste antes de usar em produção",
-        "Roles de sistema (Admin, etc.) não podem ser excluídas",
-        "Você pode criar roles específicas por departamento (Financeiro, Suporte, etc.)",
-        "Alterações de permissão são aplicadas em tempo real"
+        "O Dashboard atualiza automaticamente ao abrir",
+        "Use o Dashboard para ter visão geral rápida do negócio",
+        "Métricas de cobrança ajudam a identificar problemas no envio",
+        "Gráficos mostram tendências - use para tomar decisões"
       ]
     },
     {
@@ -919,93 +1083,6 @@ Clique no botão de notificações no Dashboard para desativar.
       ]
     },
     {
-      id: "dashboard",
-      title: "Dashboard e Métricas",
-      icon: BarChart3,
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-      description: "Entenda as métricas e gráficos do painel principal",
-      steps: [
-        {
-          title: "Visão geral do Dashboard",
-          content: `O Dashboard é a página inicial do sistema e mostra:
-
-**Cards de estatísticas:**
-- Total de clientes cadastrados
-- Próximas renovações (7 dias)
-- Valor total em contratos
-- Taxa de inadimplência
-- Novos clientes (30 dias)
-
-**Gráficos:**
-- Cadastros por mês (tendência)
-- Distribuição por plano
-- Cobranças dos últimos 30 dias`
-        },
-        {
-          title: "Métricas de clientes",
-          content: `**Total de Clientes:**
-Número total de clientes ativos na base.
-
-**Próximas Renovações:**
-Clientes com renovação nos próximos 7 dias.
-Útil para preparar cobranças manuais.
-
-**Valor Total:**
-Soma do valor (mensalidade) de todos os clientes.
-Representa o faturamento potencial mensal.
-
-**Novos Clientes (30 dias):**
-Quantos clientes foram cadastrados no último mês.`
-        },
-        {
-          title: "Métricas de cobrança",
-          content: `**Taxa de Inadimplência:**
-Percentual de clientes com data de renovação vencida.
-Calculada automaticamente.
-
-**Taxa de Sucesso de Cobranças:**
-Percentual de mensagens enviadas com sucesso.
-Considera email e WhatsApp.
-
-**Previsão de Receita:**
-Valor total dos pagamentos pendentes.
-Representa quanto pode entrar no caixa.`
-        },
-        {
-          title: "Gráficos",
-          content: `**Cadastros por Mês (Área):**
-Mostra a tendência de novos cadastros nos últimos 6 meses.
-Útil para avaliar crescimento.
-
-**Clientes por Plano (Pizza):**
-Distribuição percentual dos clientes por tipo de plano.
-Identifica planos mais populares.
-
-**Cobranças 30 Dias (Barras):**
-Volume de cobranças enviadas por dia.
-Mostra sucesso vs erro de envio.`
-        },
-        {
-          title: "Ações rápidas",
-          content: `O Dashboard também oferece ações rápidas:
-
-- **Cadastrar Cliente**: Atalho para novo cadastro
-- **Consultar Clientes**: Atalho para busca
-- **Backup**: Exportar dados do sistema
-- **Notificações**: Ativar/desativar alertas push
-
-Cards clicáveis levam diretamente às páginas de gestão.`
-        }
-      ],
-      tips: [
-        "O Dashboard atualiza automaticamente ao abrir",
-        "Use o Dashboard para ter visão geral rápida do negócio",
-        "Métricas de cobrança ajudam a identificar problemas no envio",
-        "Gráficos mostram tendências - use para tomar decisões"
-      ]
-    },
-    {
       id: "backup",
       title: "Backup de Dados",
       icon: Database,
@@ -1126,10 +1203,25 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
     }
   ];
 
+  const activeGuide = guideCategories.find(c => c.id === activeCategory);
+
+  const renderMarkdown = (text: string) => {
+    // Simple markdown rendering for bold text and code blocks
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
+      .replace(/`(.*?)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-primary">$1</code>')
+      .replace(/^- /gm, '• ')
+      .replace(/^\d+\. /gm, (match, offset, string) => {
+        const lines = string.substring(0, offset).split('\n');
+        const num = match.trim().replace('.', '');
+        return `<span class="text-primary font-semibold">${num}.</span> `;
+      });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="border-b border-border/40 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b border-border/40 bg-card/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button
@@ -1141,11 +1233,13 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold font-heading">Guia de Configuração</h1>
+                <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Guia de Configuração
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   Aprenda a configurar todos os módulos do sistema
                 </p>
@@ -1155,208 +1249,191 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
         </div>
       </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Intro Card */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Info className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Bem-vindo ao Guia de Configuração</h3>
-                <p className="text-muted-foreground">
-                  Este guia irá ajudá-lo a configurar todos os módulos do sistema passo a passo. 
-                  Clique em cada seção abaixo para ver instruções detalhadas de como obter e onde 
-                  inserir as credenciais necessárias.
-                </p>
-              </div>
+      <div className="flex-1 flex">
+        {/* Sidebar Navigation */}
+        <div className="w-72 border-r border-border/40 bg-card/30 hidden lg:block">
+          <ScrollArea className="h-[calc(100vh-80px)]">
+            <div className="p-4 space-y-6">
+              {guideGroups.map((group) => (
+                <div key={group.id}>
+                  <div className="flex items-center gap-2 px-3 py-2 mb-2">
+                    <group.icon className={cn("h-4 w-4", group.color)} />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.title}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {group.categories.map((catId) => {
+                      const category = guideCategories.find(c => c.id === catId);
+                      if (!category) return null;
+                      const isActive = activeCategory === catId;
+                      return (
+                        <button
+                          key={catId}
+                          onClick={() => setActiveCategory(catId)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
+                            isActive 
+                              ? "bg-primary/10 text-primary border border-primary/20" 
+                              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <category.icon className={cn("h-4 w-4 flex-shrink-0", isActive ? category.color : "")} />
+                          <span className="text-sm font-medium truncate">{category.title}</span>
+                          {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Status */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('gmail')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-red-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Gmail</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('evolution')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-green-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">WhatsApp</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('webhooks')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Webhook className="h-4 w-4 text-purple-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Webhooks</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('api')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Key className="h-4 w-4 text-yellow-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">API Keys</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('permissoes')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Lock className="h-4 w-4 text-indigo-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Permissões</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('logs-atividade')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <History className="h-4 w-4 text-amber-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Logs</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('restauracao')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <RotateCcw className="h-4 w-4 text-teal-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Restaurar</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('notificacoes')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Bell className="h-4 w-4 text-rose-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Notificações</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-blue-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Dashboard</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('tags')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Tag className="h-4 w-4 text-violet-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Tags</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('verificacao-pagamento')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-emerald-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Pagamentos</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => document.getElementById('backup')?.scrollIntoView({ behavior: 'smooth' })}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Database className="h-4 w-4 text-cyan-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Backup</p>
-              </div>
-            </CardContent>
-          </Card>
+          </ScrollArea>
         </div>
 
-        {/* Guide Sections */}
-        <div className="space-y-4">
-          {guideCategories.map((category) => (
-            <Card key={category.id} id={category.id} className="border-border/40 overflow-hidden">
-              <Accordion type="single" collapsible>
-                <AccordionItem value={category.id} className="border-none">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/30">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${category.bgColor}`}>
-                        <category.icon className={`h-6 w-6 ${category.color}`} />
-                      </div>
-                      <div className="text-left">
-                        <h3 className="font-semibold text-lg">{category.title}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">
-                          {category.description}
-                        </p>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-6">
-                    <div className="space-y-6 pt-4">
-                      {category.steps.map((step, index) => (
-                        <div key={index} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="rounded-full">
-                              Passo {index + 1}
-                            </Badge>
-                            <h4 className="font-medium">{step.title}</h4>
-                          </div>
-                          <div className="pl-4 border-l-2 border-border/60">
-                            <div className="prose prose-sm prose-invert max-w-none">
-                              <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg font-sans">
-                                {step.content.trim()}
-                              </pre>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {category.tips && category.tips.length > 0 && (
-                        <div className="mt-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                          <div className="flex items-center gap-2 mb-3">
-                            <AlertCircle className="h-4 w-4 text-amber-400" />
-                            <span className="font-medium text-amber-400">Dicas importantes</span>
-                          </div>
-                          <ul className="space-y-2">
-                            {category.tips.map((tip, index) => (
-                              <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                <CheckCircle2 className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                                {tip}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </Card>
-          ))}
-        </div>
-
-        {/* Footer Help */}
-        <Card className="border-border/40 bg-muted/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Todas as credenciais são armazenadas de forma segura e criptografada.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/admin")}
+        {/* Mobile Navigation */}
+        <div className="lg:hidden border-b border-border/40 bg-card/30 overflow-x-auto">
+          <div className="flex gap-2 p-3">
+            {guideCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-sm transition-all",
+                  activeCategory === category.id
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                )}
               >
-                Voltar ao Painel
-              </Button>
+                <category.icon className="h-4 w-4" />
+                {category.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <ScrollArea className="h-[calc(100vh-80px)]">
+            <div className="max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
+              {activeGuide && (
+                <>
+                  {/* Category Header */}
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className={cn("p-4 rounded-2xl", activeGuide.bgColor)}>
+                        <activeGuide.icon className={cn("h-8 w-8", activeGuide.color)} />
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <h2 className="text-2xl font-bold font-heading">{activeGuide.title}</h2>
+                        <p className="text-muted-foreground mt-1">{activeGuide.description}</p>
+                      </div>
+                    </div>
+                    <Separator className="bg-border/40" />
+                  </div>
+
+                  {/* Steps */}
+                  <div className="space-y-6">
+                    {activeGuide.steps.map((step, index) => (
+                      <Card key={index} className="border-border/40 overflow-hidden hover:border-border/60 transition-colors">
+                        <CardHeader className="bg-muted/20 border-b border-border/40 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                              activeGuide.bgColor,
+                              activeGuide.color
+                            )}>
+                              {index + 1}
+                            </div>
+                            <CardTitle className="text-lg font-semibold">{step.title}</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-5">
+                          <div 
+                            className="prose prose-sm max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(step.content.trim()) }}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Tips */}
+                  {activeGuide.tips && activeGuide.tips.length > 0 && (
+                    <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-5 w-5 text-amber-400" />
+                          <CardTitle className="text-base font-semibold text-amber-400">
+                            Dicas Importantes
+                          </CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <ul className="space-y-3">
+                          {activeGuide.tips.map((tip, index) => (
+                            <li key={index} className="flex items-start gap-3">
+                              <CheckCircle2 className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Navigation Buttons */}
+                  <div className="flex items-center justify-between pt-4 border-t border-border/40">
+                    {(() => {
+                      const currentIndex = guideCategories.findIndex(c => c.id === activeCategory);
+                      const prevCategory = currentIndex > 0 ? guideCategories[currentIndex - 1] : null;
+                      const nextCategory = currentIndex < guideCategories.length - 1 ? guideCategories[currentIndex + 1] : null;
+                      
+                      return (
+                        <>
+                          {prevCategory ? (
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => setActiveCategory(prevCategory.id)}
+                              className="gap-2"
+                            >
+                              <ArrowLeft className="h-4 w-4" />
+                              {prevCategory.title}
+                            </Button>
+                          ) : <div />}
+                          
+                          {nextCategory && (
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => setActiveCategory(nextCategory.id)}
+                              className="gap-2"
+                            >
+                              {nextCategory.title}
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </ScrollArea>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-border/40 bg-card/30 py-4 px-6">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Shield className="h-4 w-4" />
+            <span>Todas as credenciais são armazenadas de forma segura e criptografada.</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+            Voltar ao Painel
+          </Button>
+        </div>
       </div>
     </div>
   );
