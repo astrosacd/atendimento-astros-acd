@@ -199,14 +199,19 @@ const generatePaymentLink = async (
     const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
     const valorComTaxa = cliente.valor / (1 - taxaCartao);
 
-    // Datas de expiração no formato correto
-    const now = new Date();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Datas de expiração - disponível IMEDIATAMENTE
+    // Subtrair 1 minuto para garantir que já esteja disponível
+    const nowUTC = new Date();
+    const startDate = new Date(nowUTC.getTime() - 60000); // 1 minuto atrás para garantir disponibilidade imediata
+    const expiresAt = new Date(nowUTC.getTime() + 24 * 60 * 60 * 1000); // 24 horas
     
-    // Formato exato do n8n: 2025-12-15T10:00:00.000-03:00
+    // Formato ISO 8601 com offset de Brasília (-03:00)
+    // O servidor está em UTC, então precisamos ajustar para BRT
     const formatDateBR = (date: Date) => {
+      // Converter UTC para horário de Brasília (UTC-3)
+      const brDate = new Date(date.getTime() - (3 * 60 * 60 * 1000));
       const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.000-03:00`;
+      return `${brDate.getUTCFullYear()}-${pad(brDate.getUTCMonth() + 1)}-${pad(brDate.getUTCDate())}T${pad(brDate.getUTCHours())}:${pad(brDate.getUTCMinutes())}:${pad(brDate.getUTCSeconds())}.000-03:00`;
     };
     
     // Payload EXATO conforme n8n - SEM payer
@@ -217,7 +222,7 @@ const generatePaymentLink = async (
         unit_price: parseFloat(valorComTaxa.toFixed(2)),
       }],
       expires: true,
-      expiration_date_from: formatDateBR(now),
+      expiration_date_from: formatDateBR(startDate),
       expiration_date_to: formatDateBR(expiresAt),
     };
 
