@@ -4,10 +4,13 @@ project_id = "udxaxemoozddkwpitngq"
 verify_jwt = false
 
 [functions.send-password-reset-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-password-reset-whatsapp]
-verify_jwt = true
+verify_jwt = false
+
+[functions.update-user-password]
+verify_jwt = false
 
 [functions.api-clientes]
 verify_jwt = false
