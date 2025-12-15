@@ -67,7 +67,8 @@ export default function AtualizarCliente() {
   };
 
   const handleUpdate = () => {
-    if (!newDate) {
+    // Para clientes mensais, a data é obrigatória
+    if (selectedCliente?.cobranca_ativa && !newDate) {
       toast({
         title: 'Erro',
         description: 'Selecione uma data de renovação',
@@ -78,14 +79,22 @@ export default function AtualizarCliente() {
     setShowConfirm(true);
   };
 
+  const isClienteVitalicio = selectedCliente && !selectedCliente.cobranca_ativa;
+
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const result = await updateCliente(selectedCliente.id, {
-      data_renovacao: newDate,
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[] } = {
       observacao: newObservacao,
       tags: newTags,
-    }, selectedCliente);
+    };
+    
+    // Só atualiza a data se for cliente mensal
+    if (selectedCliente.cobranca_ativa) {
+      updateData.data_renovacao = newDate;
+    }
+    
+    const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
     
     if (result) {
       setSelectedCliente(null);
@@ -163,27 +172,38 @@ export default function AtualizarCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-update/5 border border-update/20 rounded-xl p-5 space-y-3">
-                <h3 className="font-semibold text-update text-lg">{selectedCliente.nome}</h3>
+              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-3`}>
+                <div className="flex items-center gap-2">
+                  <h3 className={`font-semibold text-lg ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
+                  {isClienteVitalicio && (
+                    <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
+                      Vitalício
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{selectedCliente.cpf}</span></p>
                   <p className="text-muted-foreground">Produto: <span className="text-foreground">{selectedCliente.produto}</span></p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Data atual: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
-                </p>
+                {!isClienteVitalicio && (
+                  <p className="text-sm text-muted-foreground">
+                    Data atual: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
-                <Input
-                  id="newDate"
-                  type="date"
-                  value={newDate}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  className="bg-secondary border-border text-foreground h-12"
-                />
-              </div>
+              {!isClienteVitalicio && (
+                <div className="space-y-2">
+                  <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
+                  <Input
+                    id="newDate"
+                    type="date"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    className="bg-secondary border-border text-foreground h-12"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -240,14 +260,17 @@ export default function AtualizarCliente() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Confirmar Atualização</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Deseja atualizar a data de renovação do cliente {selectedCliente?.nome} para {newDate ? formatDate(newDate) : ''}?
+              {isClienteVitalicio 
+                ? `Deseja atualizar as informações do cliente ${selectedCliente?.nome}?`
+                : `Deseja atualizar a data de renovação do cliente ${selectedCliente?.nome} para ${newDate ? formatDate(newDate) : ''}?`
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-secondary text-foreground border-border">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmUpdate}
-              className="bg-update text-update-foreground hover:bg-update/90"
+              className={isClienteVitalicio ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-update text-update-foreground hover:bg-update/90"}
             >
               {isLoading ? 'Atualizando...' : 'Sim, atualizar!'}
             </AlertDialogAction>
