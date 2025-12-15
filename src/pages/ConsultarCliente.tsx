@@ -409,10 +409,23 @@ export default function ConsultarCliente() {
                     {results.map((cliente) => (
                       <div 
                         key={cliente.id}
-                        className="bg-info/5 border border-info/20 rounded-xl p-5 space-y-3 animate-fade-in hover:border-info/40 transition-colors"
+                        className={`border rounded-xl p-5 space-y-3 animate-fade-in transition-colors ${
+                          cliente.cobranca_ativa === false 
+                            ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40' 
+                            : 'bg-info/5 border-info/20 hover:border-info/40'
+                        }`}
                       >
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-info capitalize font-display">{cliente.nome}</h3>
+                          <div className="flex items-center gap-3">
+                            <h3 className={`text-lg font-semibold capitalize font-display ${
+                              cliente.cobranca_ativa === false ? 'text-amber-500' : 'text-info'
+                            }`}>{cliente.nome}</h3>
+                            {cliente.cobranca_ativa === false && (
+                              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
+                                Vitalício
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex gap-1">
                             {isAdmin && (
                               <>
@@ -447,9 +460,13 @@ export default function ConsultarCliente() {
                           <p className="text-muted-foreground">Email: <span className="text-foreground">{cliente.email}</span></p>
                           <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
                           <p className="text-muted-foreground">Produto: <span className="text-foreground">{cliente.produto}</span></p>
-                          <p className="text-muted-foreground">Plano: <span className="text-foreground">{cliente.plano || 'Nenhum'}</span></p>
-                          <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor)}</span></p>
-                          <p className="text-muted-foreground">Renovação: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
+                          {cliente.cobranca_ativa !== false && (
+                            <>
+                              <p className="text-muted-foreground">Plano: <span className="text-foreground">{cliente.plano || 'Nenhum'}</span></p>
+                              <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor)}</span></p>
+                              <p className="text-muted-foreground">Renovação: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
+                            </>
+                          )}
                         </div>
                         {cliente.tags && cliente.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 pt-2">
