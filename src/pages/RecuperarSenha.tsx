@@ -30,11 +30,11 @@ export default function RecuperarSenha() {
     setIsLoading(true);
 
     try {
-      // Buscar usuário no profiles
+      // Buscar usuário no profiles (case-insensitive por email)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('user_id, name, email, approval_status')
-        .eq('email', email.toLowerCase().trim())
+        .ilike('email', email.trim())
         .maybeSingle();
 
       if (profileError) {
