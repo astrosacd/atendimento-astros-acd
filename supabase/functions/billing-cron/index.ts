@@ -939,7 +939,12 @@ const handler = async (req: Request): Promise<Response> => {
         await processClient(cliente, messageType, template);
       }
     } else {
-      const today = new Date().toISOString().split('T')[0];
+      // Use Brasília timezone (UTC-3) for date comparison
+      const nowUTC = new Date();
+      const brasiliaOffset = -3 * 60 * 60 * 1000; // UTC-3
+      const brasiliaDate = new Date(nowUTC.getTime() + brasiliaOffset);
+      const today = brasiliaDate.toISOString().split('T')[0];
+      console.log(`Automatic billing - checking for date: ${today} (Brasília time)`);
 
       const messageTypes = [
         { type: 'd_menos_3', column: 'data_d_menos_3', template: config.message_d_menos_3 },
