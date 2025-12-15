@@ -196,36 +196,46 @@ const generatePaymentLink = async (
     const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
     const valorComTaxa = cliente.valor / (1 - taxaCartao);
 
+    console.log(`Generating payment link for ${cliente.nome}`);
+    console.log(`Original value: R$ ${cliente.valor}, With card fee: R$ ${valorComTaxa.toFixed(2)}`);
+    console.log(`Using token: ${accessToken.substring(0, 20)}...`);
+
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    const preferenceBody = {
+      items: [{
+        title: cliente.produto,
+        quantity: 1,
+        unit_price: parseFloat(valorComTaxa.toFixed(2)),
+      }],
+      expires: true,
+      expiration_date_from: now.toISOString(),
+      expiration_date_to: expiresAt.toISOString(),
+    };
+
+    console.log(`Payment link request body:`, JSON.stringify(preferenceBody, null, 2));
+
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        items: [{
-          title: cliente.produto,
-          quantity: 1,
-          unit_price: parseFloat(valorComTaxa.toFixed(2)),
-        }],
-        expires: true,
-        expiration_date_from: new Date().toISOString(),
-        expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        payer: {
-          email: cliente.email,
-          name: cliente.nome,
-        },
-      }),
+      body: JSON.stringify(preferenceBody),
     });
 
+    const responseText = await response.text();
+    console.log(`Payment link response status: ${response.status}`);
+    console.log(`Payment link response body: ${responseText}`);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Mercado Pago link error:', errorText);
+      console.error(`Mercado Pago link error (${response.status}):`, responseText);
       return null;
     }
 
-    const data = await response.json();
-    console.log(`Payment link generated for ${cliente.nome}: ${data.init_point}`);
+    const data = JSON.parse(responseText);
+    console.log(`Payment link generated successfully for ${cliente.nome}: ${data.init_point}`);
     return data.init_point;
   } catch (error) {
     console.error('Error generating payment link:', error);
@@ -270,6 +280,35 @@ const generateBoleto = async (
 
   try {
     const cleanCpf = cliente.cpf.replace(/\D/g, '');
+    const isCNPJ = cleanCpf.length === 14;
+    
+    console.log(`Generating boleto for ${cliente.nome} - CPF/CNPJ: ${cleanCpf} (${isCNPJ ? 'CNPJ' : 'CPF'})`);
+    console.log(`Value: R$ ${valorBoleto.toFixed(2)}, Product: ${cliente.produto}`);
+    
+    const paymentBody = {
+      transaction_amount: valorBoleto,
+      description: cliente.produto,
+      payment_method_id: 'bolbradesco',
+      payer: {
+        email: cliente.email,
+        first_name: cliente.nome.split(' ')[0],
+        last_name: cliente.nome.split(' ').slice(1).join(' ') || cliente.nome,
+        identification: {
+          type: isCNPJ ? 'CNPJ' : 'CPF',
+          number: cleanCpf,
+        },
+        address: {
+          zip_code: '60862-083',
+          street_name: 'Rua Tres Corações',
+          street_number: '181',
+          neighborhood: 'Passare',
+          city: 'Fortaleza',
+          federal_unit: 'CE',
+        },
+      },
+    };
+    
+    console.log(`Boleto request body:`, JSON.stringify(paymentBody, null, 2));
     
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
@@ -277,31 +316,21 @@ const generateBoleto = async (
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        transaction_amount: valorBoleto,
-        description: cliente.produto,
-        payment_method_id: 'bolbradesco',
-        payer: {
-          email: cliente.email,
-          first_name: cliente.nome.split(' ')[0],
-          last_name: cliente.nome.split(' ').slice(1).join(' ') || cliente.nome,
-          identification: {
-            type: 'CPF',
-            number: cleanCpf,
-          },
-        },
-      }),
+      body: JSON.stringify(paymentBody),
     });
 
+    const responseText = await response.text();
+    console.log(`Boleto response status: ${response.status}`);
+    console.log(`Boleto response body: ${responseText}`);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Mercado Pago boleto error:', errorText);
+      console.error(`Mercado Pago boleto error (${response.status}):`, responseText);
       return null;
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
     const boletoUrl = data.transaction_details?.external_resource_url;
-    console.log(`Boleto generated for ${cliente.nome}: ${boletoUrl}`);
+    console.log(`Boleto generated successfully for ${cliente.nome}: ${boletoUrl}`);
     return boletoUrl;
   } catch (error) {
     console.error('Error generating boleto:', error);
