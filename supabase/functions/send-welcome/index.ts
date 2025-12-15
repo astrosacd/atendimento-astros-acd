@@ -96,15 +96,18 @@ serve(async (req: Request) => {
           throw new Error("Gmail credentials required for email test");
         }
         
-         const rawSubject = subject || 'Teste de Boas-vindas';
-         const emailSubject = rawSubject.replace(/^\s*\[TESTE\]\s*/i, "");
-         const emailResult = await sendEmailViaSMTP(
-           gmailUser,
-           gmailPassword,
-           to,
-           emailSubject,
-           `[TESTE]\n\n${message}`
-         );
+        // Para emails de TESTE, adiciona [TESTE] no assunto para diferenciar
+        const rawSubject = subject || 'Teste de Boas-vindas';
+        const emailSubject = `[TESTE] ${rawSubject.replace(/^\s*\[TESTE\]\s*/gi, "").trim()}`;
+        console.log(`Test email subject: ${emailSubject}`);
+        
+        const emailResult = await sendEmailViaSMTP(
+          gmailUser,
+          gmailPassword,
+          to,
+          emailSubject,
+          message
+        );
         
         if (!emailResult.success) {
           throw new Error(emailResult.error || "Falha ao enviar e-mail");
@@ -221,7 +224,7 @@ serve(async (req: Request) => {
           const cleanedTemplate = rawTemplate.replace(/\[TESTE\]/gi, "").trim();
           const emailBody = replaceVariables(cleanedTemplate);
 
-          console.log(`Sending welcome email to ${userEmail}`);
+          console.log(`Sending REAL welcome email to ${userEmail} with subject: ${emailSubject}`);
           
           const emailResult = await sendEmailViaSMTP(
             gmailUser,
