@@ -96,13 +96,15 @@ serve(async (req: Request) => {
           throw new Error("Gmail credentials required for email test");
         }
         
-        const emailResult = await sendEmailViaSMTP(
-          gmailUser,
-          gmailPassword,
-          to,
-          subject || 'Teste de Boas-vindas',
-          `[TESTE]\n\n${message}`
-        );
+         const rawSubject = subject || 'Teste de Boas-vindas';
+         const emailSubject = rawSubject.replace(/^\s*\[TESTE\]\s*/i, "");
+         const emailResult = await sendEmailViaSMTP(
+           gmailUser,
+           gmailPassword,
+           to,
+           emailSubject,
+           `[TESTE]\n\n${message}`
+         );
         
         if (!emailResult.success) {
           throw new Error(emailResult.error || "Falha ao enviar e-mail");
