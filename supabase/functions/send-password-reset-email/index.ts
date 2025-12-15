@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -37,34 +37,42 @@ serve(async (req) => {
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiration
 
-    // Store the token in the database
-    const { error: insertError } = await supabase
-      .from("password_reset_tokens")
-      .insert({
-        user_id: userId,
-        email: email,
-        token: token,
-        expires_at: expiresAt.toISOString(),
-      });
+    // Store the token in the database using the secure function
+    const { data: tokenCreated, error: tokenError } = await supabase.rpc(
+      'create_password_reset_token',
+      {
+        p_user_id: userId,
+        p_email: email,
+        p_token: token,
+        p_expires_at: expiresAt.toISOString(),
+      }
+    );
 
-    if (insertError) {
-      console.error("Error inserting token:", insertError);
-      throw new Error("Erro ao gerar token de recuperação");
+    if (tokenError || !tokenCreated) {
+      console.error("Error creating token:", tokenError);
+      throw new Error("Limite de solicitações atingido. Tente novamente mais tarde.");
     }
 
-    // Create the reset link
-    const resetLink = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/auth?reset_token=${token}`;
+    // Create the reset link pointing to the app's redefinir-senha page
+    const appUrl = supabaseUrl.replace('.supabase.co', '.lovable.app');
+    const resetLink = `${appUrl}/redefinir-senha?token=${token}`;
 
     console.log(`Sending password reset email to: ${email}`);
 
-    // Send email using Gmail SMTP via fetch (Deno-compatible approach)
-    const emailContent = `
-From: Sistema de Clientes <${gmailUser}>
-To: ${email}
-Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent("Recuperação de Senha")))}?=
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
+    // Send email using Gmail SMTP
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: gmailUser,
+          password: gmailAppPassword,
+        },
+      },
+    });
 
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -83,33 +91,23 @@ Content-Type: text/html; charset=UTF-8
     <p style="font-size: 12px; color: #9ca3af;">Este link expira em 1 hora.</p>
     <p style="font-size: 12px; color: #9ca3af;">Se você não solicitou esta recuperação, ignore este email.</p>
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-    <p style="font-size: 11px; color: #9ca3af; text-align: center;">Sistema de Gerenciamento de Clientes</p>
+    <p style="font-size: 11px; color: #9ca3af; text-align: center;">Sistema de Gerenciamento de Clientes - Astros</p>
   </div>
 </body>
 </html>
     `.trim();
 
-    // Use base64 encoding for SMTP auth
-    const auth = btoa(`${gmailUser}:${gmailAppPassword}`);
-    
-    // Since Deno doesn't have native SMTP, we'll use a different approach
-    // We'll use the Resend-like approach with Gmail's OAuth or use a simple API
-    
-    // For now, let's use a simpler approach with nodemailer-compatible SMTP
-    // We'll make a request to Gmail's SMTP via a relay service
-    
-    // Alternative: Use Supabase's built-in email for password reset
-    const { error: resetError } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
+    await client.send({
+      from: gmailUser,
+      to: email,
+      subject: "Recuperação de Senha - Sistema Astros",
+      content: "Clique no link para redefinir sua senha",
+      html: emailHtml,
     });
 
-    if (resetError) {
-      console.error("Error generating recovery link:", resetError);
-      // Don't throw - we already saved our custom token
-    }
+    await client.close();
 
-    console.log(`Password reset email process completed for: ${email}`);
+    console.log(`Password reset email sent successfully to: ${email}`);
 
     return new Response(
       JSON.stringify({ 
