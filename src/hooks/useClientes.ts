@@ -17,6 +17,7 @@ export interface Cliente {
   valor: number;
   observacao: string | null;
   tags: string[] | null;
+  cobranca_ativa: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -33,6 +34,7 @@ export interface ClienteInput {
   valor: number;
   observacao?: string;
   tags?: string[];
+  cobranca_ativa?: boolean;
 }
 
 export const useClientes = () => {

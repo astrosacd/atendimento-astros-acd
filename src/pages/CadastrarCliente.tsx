@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Check, X, UserPlus, FileText, Tag } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -42,6 +43,7 @@ export default function CadastrarCliente() {
     valor: 0,
     observacao: '',
     tags: [],
+    cobranca_ativa: true,
   });
   
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -116,6 +118,7 @@ export default function CadastrarCliente() {
       valor: 0,
       observacao: '',
       tags: [],
+      cobranca_ativa: true,
     });
     setShowSuccess(false);
   };
@@ -297,6 +300,32 @@ export default function CadastrarCliente() {
                 />
               </div>
 
+              {/* Switch de Cobrança Ativa */}
+              <div className="mt-6 p-4 bg-secondary/50 rounded-xl border border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Repeat className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <Label htmlFor="cobranca_ativa" className="text-foreground font-medium">
+                        Cobrança Mensal Ativa
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {formData.cobranca_ativa 
+                          ? 'Cliente receberá cobranças automáticas' 
+                          : 'Acesso vitalício ou sem cobrança recorrente'}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="cobranca_ativa"
+                    checked={formData.cobranca_ativa}
+                    onCheckedChange={(checked) => setFormData({ ...formData, cobranca_ativa: checked })}
+                  />
+                </div>
+              </div>
+
               <Button 
                 type="submit" 
                 className="btn-3d w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium mt-4"
@@ -334,6 +363,11 @@ export default function CadastrarCliente() {
                 {formData.tags && formData.tags.length > 0 && (
                   <p className="text-muted-foreground mt-2">Tags: <span className="text-foreground">{formData.tags.join(', ')}</span></p>
                 )}
+                <p className="text-muted-foreground mt-2">
+                  Cobrança Mensal: <span className={formData.cobranca_ativa ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                    {formData.cobranca_ativa ? 'Ativa' : 'Desativada (Vitalício)'}
+                  </span>
+                </p>
               </div>
               <div className="flex justify-center gap-4">
                 <Button 

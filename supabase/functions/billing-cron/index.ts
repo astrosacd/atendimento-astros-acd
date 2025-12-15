@@ -17,6 +17,7 @@ interface Cliente {
   valor: number;
   cpf: string;
   data_renovacao: string;
+  cobranca_ativa: boolean;
 }
 
 interface BillingConfig {
@@ -1009,7 +1010,8 @@ const handler = async (req: Request): Promise<Response> => {
         const { data: clientes, error: clientesError } = await supabase
           .from('clientes')
           .select('*')
-          .eq(msgType.column, today);
+          .eq(msgType.column, today)
+          .eq('cobranca_ativa', true);
 
         if (clientesError) {
           console.error(`Error fetching clients for ${msgType.type}:`, clientesError);
