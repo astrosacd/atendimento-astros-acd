@@ -215,9 +215,11 @@ serve(async (req: Request) => {
       if (gmailUser && gmailPassword) {
         try {
           const rawSubject = configMap["welcome_email_subject"] || "Bem-vindo ao Sistema Astros!";
-          // Remove qualquer prefixo [TESTE] configurado no assunto para os envios reais
-          const emailSubject = rawSubject.replace(/^\s*\[TESTE\]\s*/i, "");
-          const emailBody = replaceVariables(configMap["welcome_email_template"] || `Olá ${userName}, sua conta foi criada!`);
+          // Remove qualquer ocorrência de [TESTE] configurada no assunto e no corpo para os envios reais
+          const emailSubject = rawSubject.replace(/\[TESTE\]/gi, "").trim();
+          const rawTemplate = configMap["welcome_email_template"] || `Olá ${userName}, sua conta foi criada!`;
+          const cleanedTemplate = rawTemplate.replace(/\[TESTE\]/gi, "").trim();
+          const emailBody = replaceVariables(cleanedTemplate);
 
           console.log(`Sending welcome email to ${userEmail}`);
           

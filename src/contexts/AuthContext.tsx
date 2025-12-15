@@ -131,18 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Garante que qualquer sessão anterior seja encerrada antes de um novo login
-    await supabase.auth.signOut();
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
-    // Se houver erro ou nenhuma sessão for criada, garante que nenhuma sessão antiga permaneça ativa
-    if (error || !data.session) {
-      await supabase.auth.signOut();
-    }
 
     return { error: error as Error | null };
   };
