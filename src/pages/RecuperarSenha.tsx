@@ -30,13 +30,35 @@ export default function RecuperarSenha() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/redefinir-senha`,
-      });
+      // Buscar usuário no profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .eq('email', email.toLowerCase().trim())
+        .maybeSingle();
 
-      if (error) {
-        throw error;
+      if (profileError) {
+        throw profileError;
       }
+
+      if (!profile) {
+        toast({
+          title: 'Usuário não encontrado',
+          description: 'Não existe uma conta cadastrada com este email.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Chamar Edge Function personalizada para enviar email via Gmail
+      const { data, error } = await supabase.functions.invoke('send-password-reset-email', {
+        body: {
+          userId: profile.user_id,
+          email: profile.email,
+          userName: profile.name,
+        },
+      });
 
       if (error) {
         throw error;
@@ -51,7 +73,7 @@ export default function RecuperarSenha() {
       console.error('Error sending reset email:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível enviar o email de recuperação. Tente novamente.',
+        description: error.message || 'Não foi possível enviar o email de recuperação. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
