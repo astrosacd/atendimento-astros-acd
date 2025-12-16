@@ -89,7 +89,7 @@ export default function AdminDivulgador() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_groups')
-        .select('*, divulgador_campaigns(name)')
+        .select('*, divulgador_campaigns(name), divulgador_instances(instance_name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -928,6 +928,7 @@ export default function AdminDivulgador() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Nome</TableHead>
+                          <TableHead>Instância</TableHead>
                           <TableHead>Campanha</TableHead>
                           <TableHead>Participantes</TableHead>
                           <TableHead>Link</TableHead>
@@ -938,6 +939,14 @@ export default function AdminDivulgador() {
                         {groups.map((group: any) => (
                           <TableRow key={group.id}>
                             <TableCell className="font-medium">{group.name}</TableCell>
+                            <TableCell>
+                              {group.divulgador_instances?.instance_name ? (
+                                <Badge variant="outline" className="gap-1">
+                                  <Wifi className="h-3 w-3" />
+                                  {group.divulgador_instances.instance_name}
+                                </Badge>
+                              ) : '-'}
+                            </TableCell>
                             <TableCell>{group.divulgador_campaigns?.name || '-'}</TableCell>
                             <TableCell>{group.participant_count}</TableCell>
                             <TableCell>
