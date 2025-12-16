@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
+import { AllParticipantsManager } from '@/components/divulgador/AllParticipantsManager';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
@@ -349,8 +350,12 @@ export default function AdminDivulgador() {
         body: { action: 'fetch-groups' },
       });
       if (error) throw error;
-      toast.success(`${data?.groups?.length || 0} grupos sincronizados!`);
+      const msg = data?.deleted > 0 
+        ? `${data?.saved || 0} grupos sincronizados, ${data?.deleted} removidos!`
+        : `${data?.groups?.length || 0} grupos sincronizados!`;
+      toast.success(msg);
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
     } catch (error: any) {
       toast.error('Erro ao sincronizar: ' + error.message);
     } finally {
@@ -868,9 +873,15 @@ export default function AdminDivulgador() {
 
           {/* TAB: BOAS-VINDAS */}
           <TabsContent value="welcome" className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
-              <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
+                <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
+              </div>
+              <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Sincronizar Grupos
+              </Button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -946,50 +957,9 @@ export default function AdminDivulgador() {
 
           {/* TAB: PARTICIPANTES */}
           <TabsContent value="participants" className="space-y-6">
+            <AllParticipantsManager />
+            
             <InactiveParticipantsManager />
-
-            <Card className="border-border/40">
-              <CardHeader>
-                <CardTitle>Participantes Recentes</CardTitle>
-                <CardDescription>Últimos 200 participantes registrados</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {participants.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum participante registrado</p>
-                ) : (
-                  <ScrollArea className="h-[300px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Número</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Grupo</TableHead>
-                          <TableHead>Entrada</TableHead>
-                          <TableHead>Boas-vindas</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {participants.map((p: any) => (
-                          <TableRow key={p.id}>
-                            <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
-                            <TableCell>{p.name || '-'}</TableCell>
-                            <TableCell><Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge></TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '-'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={p.welcome_sent ? 'default' : 'secondary'}>
-                                {p.welcome_sent ? 'Enviado' : 'Pendente'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
 
