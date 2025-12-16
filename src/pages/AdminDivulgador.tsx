@@ -145,6 +145,20 @@ export default function AdminDivulgador() {
     },
   });
 
+  // Fetch operation logs
+  const { data: operationLogs = [] } = useQuery({
+    queryKey: ['divulgador-operation-logs'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('divulgador_operation_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // ================== INSTANCE MANAGEMENT ==================
 
   const [instanceForm, setInstanceForm] = useState({
@@ -266,12 +280,38 @@ export default function AdminDivulgador() {
     }
   };
 
+  // Helper: Log operations to divulgador_operation_logs
+  const logDivulgadorOperation = async (operation: string, status: string, message?: string, metadata?: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await (supabase as any).from('divulgador_operation_logs').insert([{
+        user_id: user?.id || null,
+        operation,
+        status,
+        message,
+        metadata,
+      }]);
+    } catch (e) {
+      console.error('Failed to log operation:', e);
+    }
+  };
+
   const testConnection = async (instance: any) => {
     setTestingInstanceId(instance.id);
+    const url = `${instance.api_url}/instance/connectionState/${instance.instance_name}`;
     try {
-      const response = await fetch(`${instance.api_url}/instance/connectionState/${instance.instance_name}`, {
+      const response = await fetch(url, {
         headers: { 'apikey': instance.api_key },
       });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Evolution API returned non-JSON:', text.substring(0, 200));
+        toast.error('A API não retornou JSON. Verifique se a URL e o nome da instância estão corretos.');
+        await logDivulgadorOperation('test_connection', 'error', 'API retornou HTML/texto em vez de JSON', { instance_id: instance.id, url });
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -283,14 +323,19 @@ export default function AdminDivulgador() {
             .update({ is_connected: true, last_connected_at: new Date().toISOString() })
             .eq('id', instance.id);
           queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
+          await logDivulgadorOperation('test_connection', 'success', `Instância ${instance.instance_name} conectada`, { instance_id: instance.id, state });
         } else {
           toast.warning(`${instance.instance_name}: ${state || 'desconhecido'}`);
+          await logDivulgadorOperation('test_connection', 'warning', `Estado: ${state}`, { instance_id: instance.id, state });
         }
       } else {
-        toast.error('Falha na conexão');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(`Falha na conexão: ${errorData?.message || response.statusText}`);
+        await logDivulgadorOperation('test_connection', 'error', `HTTP ${response.status}`, { instance_id: instance.id, errorData });
       }
     } catch (error: any) {
-      toast.error('Erro: ' + error.message);
+      toast.error('Erro de rede: ' + error.message);
+      await logDivulgadorOperation('test_connection', 'error', error.message, { instance_id: instance.id, url });
     } finally {
       setTestingInstanceId(null);
     }
@@ -398,6 +443,7 @@ export default function AdminDivulgador() {
     
     setIsSyncing(true);
     try {
+      await logDivulgadorOperation('sync_groups', 'info', 'Iniciando sincronização de grupos');
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
         body: { action: 'fetch-groups' },
       });
@@ -406,6 +452,7 @@ export default function AdminDivulgador() {
         // Handle all instance-related messages as info, not error
         if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
           toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
+          await logDivulgadorOperation('sync_groups', 'warning', errorMsg);
           return;
         }
         throw error;
@@ -414,15 +461,19 @@ export default function AdminDivulgador() {
         ? `${data?.saved || 0} grupos sincronizados, ${data?.deleted} removidos!`
         : `${data?.groups?.length || 0} grupos sincronizados!`;
       toast.success(msg);
+      await logDivulgadorOperation('sync_groups', 'success', msg, { saved: data?.saved, deleted: data?.deleted });
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-operation-logs'] });
     } catch (error: any) {
       const errorMsg = error.message || '';
       // Handle all instance-related messages as info, not error
       if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
         toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
+        await logDivulgadorOperation('sync_groups', 'warning', errorMsg);
       } else {
         toast.error('Erro ao sincronizar: ' + errorMsg);
+        await logDivulgadorOperation('sync_groups', 'error', errorMsg);
       }
     } finally {
       setIsSyncing(false);
@@ -1187,6 +1238,86 @@ export default function AdminDivulgador() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Card: Histórico de Operações */}
+            <Card className="border-border/40">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-violet-500/10">
+                      <Clock className="h-5 w-5 text-violet-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Histórico de Operações</CardTitle>
+                      <CardDescription>
+                        Sincronizações, conexões, erros e demais ações do módulo
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                    {operationLogs.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {operationLogs.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum log de operação encontrado. Sincronizações e testes de conexão aparecerão aqui.
+                  </p>
+                ) : (
+                  <ScrollArea className="h-[400px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data/Hora</TableHead>
+                          <TableHead>Operação</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Mensagem</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {operationLogs.map((log: any) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {log.created_at ? format(new Date(log.created_at), 'dd/MM/yy HH:mm:ss', { locale: ptBR }) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.operation}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {log.status === 'success' ? (
+                                <Badge variant="default" className="bg-emerald-500 gap-1.5">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Sucesso
+                                </Badge>
+                              ) : log.status === 'error' ? (
+                                <Badge variant="destructive" className="gap-1.5">
+                                  <XCircle className="h-3 w-3" />
+                                  Erro
+                                </Badge>
+                              ) : log.status === 'warning' ? (
+                                <Badge variant="secondary" className="bg-amber-500/20 text-amber-600 gap-1.5">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Aviso
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="gap-1.5">
+                                  <Info className="h-3 w-3" />
+                                  Info
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[400px] text-sm text-muted-foreground">
+                              {log.message || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
@@ -1199,16 +1330,19 @@ export default function AdminDivulgador() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome da Instância</Label>
-                <Input value={instanceForm.instance_name} onChange={(e) => setInstanceForm({ ...instanceForm, instance_name: e.target.value })} placeholder="divulgador-01" />
+                <Label>URL da API Evolution</Label>
+                <Input value={instanceForm.api_url} onChange={(e) => setInstanceForm({ ...instanceForm, api_url: e.target.value })} placeholder="https://api.seudominio.com" />
+                <p className="text-xs text-muted-foreground">Endereço completo da sua Evolution API (ex: https://apievo.exemplo.com)</p>
               </div>
               <div className="space-y-2">
-                <Label>API URL</Label>
-                <Input value={instanceForm.api_url} onChange={(e) => setInstanceForm({ ...instanceForm, api_url: e.target.value })} placeholder="https://api.evolution.com" />
+                <Label>Nome da Instância (no painel Evolution)</Label>
+                <Input value={instanceForm.instance_name} onChange={(e) => setInstanceForm({ ...instanceForm, instance_name: e.target.value })} placeholder="Nome_Da_Instancia" />
+                <p className="text-xs text-muted-foreground">Nome exato da instância configurada na Evolution API</p>
               </div>
               <div className="space-y-2">
                 <Label>API Key</Label>
                 <Input type="password" value={instanceForm.api_key} onChange={(e) => setInstanceForm({ ...instanceForm, api_key: e.target.value })} placeholder="Sua API Key" />
+                <p className="text-xs text-muted-foreground">Chave de autenticação da Evolution API</p>
               </div>
             </div>
             <DialogFooter>
