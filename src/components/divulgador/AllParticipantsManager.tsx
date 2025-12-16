@@ -24,9 +24,9 @@ export function AllParticipantsManager() {
   const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch instances to check if any exist and if connected
+  // Fetch instances (status only) — use a dedicated queryKey to avoid cache collisions with the full instances query
   const { data: instances = [] } = useQuery({
-    queryKey: ['divulgador-instances'],
+    queryKey: ['divulgador-instances-status'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_instances')
