@@ -582,12 +582,21 @@ const AdminCobranca = () => {
     if (status === 'sent') {
       return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
     }
+    if (status === 'info') {
+      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30"><AlertCircle className="w-3 h-3 mr-1" />Info</Badge>;
+    }
+    if (status === 'skipped') {
+      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30"><AlertCircle className="w-3 h-3 mr-1" />Pulado</Badge>;
+    }
     return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" />Erro</Badge>;
   };
 
   const getChannelBadge = (channel: string) => {
     if (channel === 'email') {
       return <Badge variant="outline" className="border-blue-500/30 text-blue-400"><Mail className="w-3 h-3 mr-1" />Email</Badge>;
+    }
+    if (channel === 'sistema') {
+      return <Badge variant="outline" className="border-gray-500/30 text-gray-400"><Settings className="w-3 h-3 mr-1" />Sistema</Badge>;
     }
     return <Badge variant="outline" className="border-green-500/30 text-green-400"><MessageSquare className="w-3 h-3 mr-1" />WhatsApp</Badge>;
   };
