@@ -24,6 +24,19 @@ export function AllParticipantsManager() {
   const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
+  // Fetch instances to check if any exist
+  const { data: instances = [] } = useQuery({
+    queryKey: ['divulgador-instances'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('divulgador_instances')
+        .select('id')
+        .eq('is_active', true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Fetch groups
   const { data: groups = [] } = useQuery({
     queryKey: ['divulgador-groups'],
@@ -59,6 +72,12 @@ export function AllParticipantsManager() {
 
   // Sync groups from WhatsApp
   const syncGroups = async () => {
+    // Check if there are instances first
+    if (instances.length === 0) {
+      toast.info('Configure uma instância WhatsApp primeiro');
+      return;
+    }
+    
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
@@ -67,7 +86,8 @@ export function AllParticipantsManager() {
       
       if (error) {
         // Check if it's a "no instance" error - don't show error toast, just info
-        if (error.message?.includes('instância') || error.message?.includes('instance')) {
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma')) {
           toast.info('Configure uma instância WhatsApp primeiro');
           return;
         }
@@ -80,7 +100,7 @@ export function AllParticipantsManager() {
     } catch (error: any) {
       // Check for instance-related errors in response body
       const errorMsg = error.message || '';
-      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma instância')) {
+      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma')) {
         toast.info('Configure uma instância WhatsApp primeiro');
       } else {
         toast.error('Erro ao sincronizar: ' + errorMsg);
@@ -202,7 +222,7 @@ export function AllParticipantsManager() {
             variant="outline" 
             size="sm" 
             onClick={syncGroups} 
-            disabled={isSyncing}
+            disabled={isSyncing || instances.length === 0}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar Grupos do WhatsApp
@@ -211,14 +231,20 @@ export function AllParticipantsManager() {
             variant="outline" 
             size="sm" 
             onClick={syncParticipants} 
-            disabled={isSyncing || groups.length === 0}
+            disabled={isSyncing || groups.length === 0 || instances.length === 0}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : 'de Todos'}
           </Button>
-          <p className="text-xs text-muted-foreground self-center ml-2">
-            Sincronize para buscar dados atualizados do WhatsApp
-          </p>
+          {instances.length === 0 ? (
+            <p className="text-xs text-amber-500 self-center ml-2">
+              Configure uma instância WhatsApp primeiro
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground self-center ml-2">
+              Sincronize para buscar dados atualizados do WhatsApp
+            </p>
+          )}
         </div>
 
         {/* Filters */}
