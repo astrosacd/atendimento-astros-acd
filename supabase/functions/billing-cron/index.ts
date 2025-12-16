@@ -642,31 +642,55 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Authenticate request using CRON_SECRET
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Authenticate request using CRON_SECRET (from env OR from database)
   const authHeader = req.headers.get("authorization");
-  const cronSecret = Deno.env.get("CRON_SECRET");
   
+  // Try to get CRON_SECRET from environment variable first
+  let cronSecret = Deno.env.get("CRON_SECRET");
+  
+  // If not in env, try to get from database (billing_config)
   if (!cronSecret) {
-    console.error("CRON_SECRET not configured");
-    return new Response(
-      JSON.stringify({ error: "Server misconfiguration" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.log("CRON_SECRET not in env, checking database...");
+    const { data: configData } = await supabase
+      .from('billing_config')
+      .select('config_value')
+      .eq('config_key', 'cron_secret')
+      .single();
+    
+    if (configData?.config_value) {
+      cronSecret = configData.config_value;
+      console.log("CRON_SECRET loaded from database");
+    }
   }
   
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    console.error("Unauthorized billing-cron request");
+  // Also check database secret for validation (allows updating via panel only)
+  const { data: dbSecretData } = await supabase
+    .from('billing_config')
+    .select('config_value')
+    .eq('config_key', 'cron_secret')
+    .single();
+  
+  const dbSecret = dbSecretData?.config_value;
+  
+  // Accept authentication if header matches EITHER env secret OR database secret
+  const isValidAuth = authHeader && (
+    authHeader === `Bearer ${cronSecret}` || 
+    (dbSecret && authHeader === `Bearer ${dbSecret}`)
+  );
+  
+  if (!isValidAuth) {
+    console.error("Unauthorized billing-cron request - invalid or missing secret");
     return new Response(
-      JSON.stringify({ error: "Unauthorized" }),
+      JSON.stringify({ error: "Unauthorized", hint: "Configure o CRON Secret no painel de Cobrança (aba Geral)" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     let requestBody: RequestBody = {};
     try {
       const bodyText = await req.text();
