@@ -152,6 +152,45 @@ serve(async (req) => {
       const fetchedGroups = await fetchResponse.json();
       console.log(`[divulgador-groups] Fetched ${fetchedGroups.length || 0} groups from WhatsApp`);
       
+      // Get all WhatsApp group IDs from the fetched data
+      const whatsappGroupIds = new Set(
+        fetchedGroups.map((g: any) => g.id || g.jid).filter(Boolean)
+      );
+      
+      // Get all existing groups from database
+      const { data: existingGroups } = await supabase
+        .from('divulgador_groups')
+        .select('id, whatsapp_group_id');
+      
+      // Delete groups that no longer exist in WhatsApp
+      let deletedCount = 0;
+      if (existingGroups && existingGroups.length > 0) {
+        for (const existingGroup of existingGroups) {
+          if (!whatsappGroupIds.has(existingGroup.whatsapp_group_id)) {
+            // Delete participants first
+            await supabase
+              .from('divulgador_participants')
+              .delete()
+              .eq('group_id', existingGroup.id);
+            
+            // Delete welcome configs
+            await supabase
+              .from('divulgador_welcome_config')
+              .delete()
+              .eq('group_id', existingGroup.id);
+            
+            // Delete the group
+            await supabase
+              .from('divulgador_groups')
+              .delete()
+              .eq('id', existingGroup.id);
+            
+            deletedCount++;
+            console.log(`[divulgador-groups] Deleted group ${existingGroup.whatsapp_group_id} - no longer exists in WhatsApp`);
+          }
+        }
+      }
+      
       // Save/update groups in database
       const savedGroups = [];
       for (const group of fetchedGroups) {
@@ -196,9 +235,9 @@ serve(async (req) => {
         }
       }
       
-      console.log(`[divulgador-groups] Saved/updated ${savedGroups.length} groups`);
+      console.log(`[divulgador-groups] Saved/updated ${savedGroups.length} groups, deleted ${deletedCount}`);
       
-      return new Response(JSON.stringify({ groups: fetchedGroups, saved: savedGroups.length }), {
+      return new Response(JSON.stringify({ groups: fetchedGroups, saved: savedGroups.length, deleted: deletedCount }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
