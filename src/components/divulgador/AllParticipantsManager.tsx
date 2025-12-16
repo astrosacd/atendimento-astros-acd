@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,16 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Search, Users, Loader2 } from 'lucide-react';
+import { Download, Search, Users, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 export function AllParticipantsManager() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('_all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch groups
   const { data: groups = [] } = useQuery({
@@ -27,7 +30,7 @@ export function AllParticipantsManager() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_groups')
-        .select('id, name')
+        .select('id, name, whatsapp_group_id')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
@@ -53,6 +56,77 @@ export function AllParticipantsManager() {
       return data || [];
     },
   });
+
+  // Sync groups from WhatsApp
+  const syncGroups = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: { action: 'fetch-groups' }
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`Grupos sincronizados! ${data.saved || 0} grupos, ${data.deleted || 0} removidos`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['all-divulgador-participants'] });
+    } catch (error: any) {
+      toast.error('Erro ao sincronizar: ' + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Sync participants from selected group
+  const syncParticipants = async () => {
+    if (selectedGroupId === '_all') {
+      // Sync all groups
+      setIsSyncing(true);
+      try {
+        let syncedCount = 0;
+        for (const group of groups) {
+          const { error } = await supabase.functions.invoke('divulgador-groups', {
+            body: { 
+              action: 'sync-participants',
+              groupId: group.id,
+              whatsappGroupId: group.whatsapp_group_id
+            }
+          });
+          if (!error) syncedCount++;
+        }
+        toast.success(`Participantes sincronizados de ${syncedCount} grupos!`);
+        queryClient.invalidateQueries({ queryKey: ['all-divulgador-participants'] });
+      } catch (error: any) {
+        toast.error('Erro ao sincronizar: ' + error.message);
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      // Sync specific group
+      const group = groups.find((g: any) => g.id === selectedGroupId);
+      if (!group) return;
+      
+      setIsSyncing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+          body: { 
+            action: 'sync-participants',
+            groupId: group.id,
+            whatsappGroupId: group.whatsapp_group_id
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast.success(`Sincronizado! ${data.count || 0} participantes encontrados`);
+        queryClient.invalidateQueries({ queryKey: ['all-divulgador-participants'] });
+      } catch (error: any) {
+        toast.error('Erro ao sincronizar: ' + error.message);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+  };
 
   // Filter by search term
   const filteredParticipants = participants.filter((p: any) => {
@@ -109,6 +183,31 @@ export function AllParticipantsManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Sync buttons */}
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={syncGroups} 
+            disabled={isSyncing}
+          >
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Sincronizar Grupos do WhatsApp
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={syncParticipants} 
+            disabled={isSyncing || groups.length === 0}
+          >
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : 'de Todos'}
+          </Button>
+          <p className="text-xs text-muted-foreground self-center ml-2">
+            Sincronize para buscar dados atualizados do WhatsApp
+          </p>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px] space-y-2">
@@ -152,7 +251,9 @@ export function AllParticipantsManager() {
           </div>
         ) : filteredParticipants.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Nenhum participante encontrado
+            {groups.length === 0 
+              ? 'Nenhum grupo encontrado. Sincronize os grupos do WhatsApp primeiro.' 
+              : 'Nenhum participante encontrado. Sincronize os participantes.'}
           </p>
         ) : (
           <ScrollArea className="h-[400px]">
