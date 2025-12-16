@@ -1345,25 +1345,55 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
 - **Menções inteligentes**: Mencione todos os participantes
 - **Boas-vindas automáticas**: Mensagem privada para novos membros
 - **Controle de participantes**: Remoção automática ou manual
+- **Logs de operações**: Histórico completo de ações
 
-O módulo possui sua **própria instância do WhatsApp**, independente dos outros módulos.`
+O módulo possui sua **própria instância do WhatsApp**, independente dos outros módulos (cobrança, boas-vindas de usuários, etc.).`
         },
         {
           title: "Configurar Instância WhatsApp",
-          content: `1. Acesse o **Divulgador** (menu lateral)
-2. Na aba **WhatsApp**, clique em **"Nova Instância"**
-3. Preencha:
-   - **URL da API Evolution**: URL completa (ex: https://api.evolution.com.br)
-   - **Nome da Instância**: Identificador no painel Evolution
-   - **API Key**: Chave de autenticação
+          content: `**Passo a passo:**
 
+1. Acesse o **Divulgador** (menu lateral)
+2. Na aba **WhatsApp**, clique em **"+ Nova Instância"**
+3. Preencha:
+   - **Nome da Instância**: Identificador no painel Evolution
+   - **URL da API Evolution**: URL completa (ex: http://api.evolution.com.br)
+   - **API Key**: Chave de autenticação da instância
 4. Clique em **"Salvar"**
-5. Ative o switch **"Ativo"** na tabela
+5. Ative o switch **"Ativo"** na tabela de instâncias
 6. Clique no ícone de **atualizar (🔄)** para testar conexão
 
-✅ Se aparecer **"Conectado"** (verde), a instância está pronta!
+✅ Se aparecer **"Conectado"** (badge verde), a instância está pronta!
 
-⚠️ **Importante**: Esta instância é **exclusiva** para o Divulgador - não compartilhada com cobrança ou boas-vindas.`
+**Gerenciar instâncias:**
+- **Editar**: Clique no ícone de lápis para alterar dados
+- **Excluir**: Clique no ícone de lixeira (confirme no modal)
+- **Testar conexão**: Clique no ícone de refresh a qualquer momento
+
+⚠️ **Importante**: Esta instância é **exclusiva** para o Divulgador - não compartilhada com cobrança ou boas-vindas de usuários.
+
+🔧 O **webhook** é configurado automaticamente ao salvar/testar a instância.`
+        },
+        {
+          title: "Sincronizar Grupos",
+          content: `**Fluxo de sincronização (ordem obrigatória):**
+
+1. **Primeiro**: Conecte a instância WhatsApp (aba WhatsApp → ícone atualizar)
+2. **Segundo**: Na aba **Grupos**, clique em **"Sincronizar do WhatsApp"**
+
+**O que acontece:**
+- O sistema busca TODOS os grupos onde a instância é administradora
+- Grupos que não existem mais no WhatsApp são **removidos** do banco
+- Novos grupos são **adicionados** automaticamente
+
+**Na tabela de grupos você verá:**
+- Nome do grupo
+- Campanha vinculada (opcional)
+- Quantidade de participantes
+- Link de convite (botão copiar)
+- Status (Ativo/Inativo)
+
+**Importante:** Os grupos são importados do WhatsApp, não criados manualmente no sistema.`
         },
         {
           title: "Criar Campanhas",
@@ -1374,110 +1404,169 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 3. Preencha:
    - **Nome**: Identificação da campanha
    - **Descrição**: Objetivo da campanha
-   - **Prefixo do Grupo**: Nome base dos grupos (ex: "VENDAS")
-   - **Máx. Participantes**: Limite antes de criar novo grupo
+   - **Instância**: WhatsApp vinculado (opcional)
+   - **Min grupos vazios**: Quantidade mínima para auto-criação
+   - **Máx. participantes/grupo**: Limite antes de criar novo grupo
+   - **Auto-criar grupos**: Liga/desliga criação automática
 
-Exemplo: Campanha "Black Friday" com grupos "VENDAS-1", "VENDAS-2", etc.`
-        },
-        {
-          title: "Sincronizar Grupos",
-          content: `**Fluxo de sincronização (ordem correta):**
+**Editar/Excluir:**
+- Clique nos ícones de lápis ou lixeira na campanha
 
-1. **Primeiro**: Conecte a instância WhatsApp (aba WhatsApp → ícone atualizar)
-2. **Segundo**: Na aba **Grupos**, clique em **"Sincronizar do WhatsApp"**
-3. **Terceiro**: Na aba **Participantes**, sincronize os participantes
-
-**Importante:** Os grupos são importados do WhatsApp, não criados manualmente.
-O sistema busca TODOS os grupos onde a instância é administradora.
-
-**Na tabela de grupos você verá:**
-- Nome do grupo
-- Quantidade de participantes
-- Link de convite (se disponível)
-- Status (Ativo/Inativo)`
+Exemplo: Campanha "Black Friday" com grupos temáticos de vendas.`
         },
         {
           title: "Agendar Mensagens",
-          content: `**Envio para grupos:**
+          content: `**Criar mensagem agendada:**
+
 1. Acesse **Divulgador** → aba **Mensagens**
-2. Clique em **"Nova Mensagem"**
-3. Selecione o **grupo de destino** (ou "Todos os grupos")
-4. Escreva sua mensagem
-5. Adicione mídia (opcional): imagem, vídeo, áudio, arquivo
+2. Clique em **"+ Nova Mensagem"**
+3. Selecione o **grupo de destino** (ou todos os ativos)
+4. Escreva o **conteúdo** da mensagem
+5. Adicione mídia (opcional): selecione tipo e cole a URL
 6. Defina **data e horário** de envio
 7. Configure o **delay entre grupos** (recomendado: 2-5 seg)
 8. Ative **"Mencionar Todos"** se desejar
+9. Clique em **"Salvar"**
 
-**Tipos de conteúdo suportados:**
-- ✅ Texto simples
-- ✅ Imagens (URL)
-- ✅ Vídeos (URL)
-- ✅ Áudios (URL)
-- ✅ Documentos/Arquivos (URL)
+**Tipos de mídia suportados:**
+- ✅ Imagem (URL direta)
+- ✅ Vídeo (URL direta)
+- ✅ Áudio (URL direta)
+- ✅ Documento/Arquivo (URL direta)
 
-**Filtro por grupo:**
-Na lista de mensagens agendadas, use o filtro para ver apenas mensagens de um grupo específico.`
+**Filtrar mensagens:**
+Use o seletor de grupo para ver apenas mensagens de um grupo específico.
+
+**Status das mensagens:**
+- 🟡 **Pendente**: Aguardando horário de envio
+- 🟢 **Enviada**: Entregue com sucesso
+- 🔴 **Erro**: Falha no envio (veja logs)`
+        },
+        {
+          title: "CRON de Envio Automático",
+          content: `O Divulgador possui um **CRON** para envio automático de mensagens agendadas:
+
+**Configurar CRON (aba WhatsApp):**
+1. Role até a seção **"Configuração do CRON"**
+2. Defina o **intervalo em minutos** (ex: 5 = a cada 5 min)
+3. Clique em **"Atualizar CRON"**
+4. Para desativar, clique em **"Desativar CRON"**
+
+**Como funciona:**
+- O sistema verifica mensagens pendentes a cada X minutos
+- Mensagens com \`scheduled_at <= agora\` são enviadas
+- Após envio, status muda para "sent" ou "error"
+
+**Dica:** Use intervalos de 5-10 minutos para não sobrecarregar a API.`
         },
         {
           title: "Boas-vindas Automáticas",
           content: `Configure mensagem privada para novos participantes:
 
 1. Acesse **Divulgador** → aba **Boas-vindas**
-2. Ative **"Enviar mensagem de boas-vindas"**
-3. Personalize a mensagem usando variáveis:
-   - \`{nome}\` - Nome do participante
-   - \`{grupo}\` - Nome do grupo
+2. Clique em **"+ Nova Config"**
+3. Selecione o **grupo** específico (obrigatório)
+4. Escreva a **mensagem** de boas-vindas
+5. Defina o **delay** em segundos (recomendado: 5-10 seg)
+6. Ative a configuração
+7. Clique em **"Salvar"**
+
+**Variáveis disponíveis:**
+- \`{nome}\` - Nome do participante
+- \`{grupo}\` - Nome do grupo
 
 **Funcionamento:**
-Quando alguém entra em qualquer grupo vinculado:
-1. Sistema detecta a entrada
-2. Envia mensagem privada automaticamente
-3. Registra nos logs`
+Quando alguém entra no grupo vinculado:
+1. Webhook detecta o evento
+2. Sistema aguarda o delay configurado
+3. Envia mensagem privada ao novo membro
+4. Registra nos logs
+
+**Importante:** Cada configuração é **vinculada a um grupo específico**, permitindo mensagens diferentes por grupo.`
         },
         {
           title: "Gerenciar Participantes",
           content: `**Aba Participantes** tem duas seções:
 
 **1. Todos os Participantes:**
-- Sincronize grupos primeiro (botão "1. Sincronizar Grupos")
-- Depois sincronize participantes (botão "2. Sincronizar Participantes")
-- Filtre por grupo específico
-- Exporte para CSV
+
+*Fluxo de sincronização:*
+- **Passo 1**: Clique em "Sincronizar Grupos" (importa grupos do WhatsApp)
+- **Passo 2**: Clique em "Sincronizar Participantes" (busca membros)
+
+*Filtros e ações:*
+- Selecione um grupo específico ou "Todos os grupos"
+- Busque por número, nome ou grupo
+- Exporte para **CSV** com todos os dados
+
+*Informações exibidas:*
+- Número do WhatsApp
+- Nome (se disponível)
+- Grupo ao qual pertence
+- Data de entrada
+- Última mensagem
+- Status (Admin, Membro, Inativo)
 
 **2. Inativos:**
 - Configure critérios de inatividade (dias sem mensagem)
-- Visualize participantes inativos
-- Remova inativos em lote
+- Visualize participantes que não interagem
+- Remova inativos em lote de grupos específicos
 
-**Importante:** Sempre sincronize os grupos ANTES de sincronizar participantes!`
+⚠️ **Importante:** Sempre sincronize GRUPOS antes de PARTICIPANTES!`
+        },
+        {
+          title: "Logs de Operações",
+          content: `Na aba **Logs**, acompanhe todas as operações do módulo:
+
+**O que é registrado:**
+- ✅ Sincronização de grupos (início/fim)
+- ✅ Testes de conexão (sucesso/falha)
+- ✅ Configuração de webhook
+- ✅ Envio de mensagens
+- ✅ Erros e avisos
+
+**Informações em cada log:**
+- Data e hora
+- Tipo de operação
+- Status (sucesso/erro/aviso)
+- Mensagem descritiva
+- Metadados (quando aplicável)
+
+**Filtros:**
+Os logs são ordenados do mais recente ao mais antigo, limitados aos últimos 100 registros.
+
+**Dica:** Use os logs para **debugar problemas** de conexão ou envio.`
         },
         {
           title: "Relatórios e Métricas",
-          content: `Na aba **Relatórios**, acompanhe:
+          content: `Na aba **Relatórios**, acompanhe métricas do módulo:
 
 **Estatísticas gerais:**
-- Total de grupos ativos
+- Total de grupos sincronizados
 - Total de participantes
-- Mensagens enviadas (mês)
-- Taxa de engajamento
+- Mensagens enviadas
+- Taxa de sucesso/erro
 
-**Por Campanha:**
-- Leads gerados
-- Entrada vs Saída
-- Grupos mais ativos
+**Logs de envio:**
+- Histórico de mensagens enviadas
+- Status de cada envio (sucesso/erro)
+- Grupo de destino
+- Data e hora
 
 **Exportação:**
-Exporte dados em CSV para análise externa.`
+Exporte participantes em CSV para análise externa ou importação em outras ferramentas.`
         }
       ],
       tips: [
         "Use uma instância WhatsApp DEDICADA para o Divulgador",
-        "Configure criação automática para campanhas 24/7",
-        "Menções aumentam engajamento mas podem irritar alguns usuários",
+        "Sempre sincronize GRUPOS antes de PARTICIPANTES",
+        "O webhook é configurado automaticamente ao salvar/testar instância",
+        "Menções aumentam engajamento mas use com moderação",
         "Agende mensagens em horários comerciais para melhor resultado",
-        "Monitore a taxa de saída - muitas saídas indica problema no conteúdo",
-        "Use boas-vindas personalizadas para criar conexão",
-        "Exporte relatórios semanalmente para análise de performance"
+        "Configure o CRON com intervalos de 5-10 minutos",
+        "Use boas-vindas diferentes para cada grupo",
+        "Monitore os logs para identificar problemas de conexão",
+        "Exporte participantes regularmente para backup"
       ]
     }
   ];
