@@ -381,12 +381,25 @@ export default function AdminDivulgador() {
   };
 
   const syncGroupsFromWhatsApp = async () => {
+    // Check if there are instances first
+    if (instances.length === 0) {
+      toast.info('Configure uma instância WhatsApp primeiro na aba "WhatsApp"');
+      return;
+    }
+    
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
         body: { action: 'fetch-groups' },
       });
-      if (error) throw error;
+      if (error) {
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma instância')) {
+          toast.info('Configure uma instância WhatsApp primeiro');
+          return;
+        }
+        throw error;
+      }
       const msg = data?.deleted > 0 
         ? `${data?.saved || 0} grupos sincronizados, ${data?.deleted} removidos!`
         : `${data?.groups?.length || 0} grupos sincronizados!`;
@@ -394,7 +407,12 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
     } catch (error: any) {
-      toast.error('Erro ao sincronizar: ' + error.message);
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('instância') || errorMsg.includes('instance')) {
+        toast.info('Configure uma instância WhatsApp primeiro');
+      } else {
+        toast.error('Erro ao sincronizar: ' + errorMsg);
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -930,11 +948,25 @@ export default function AdminDivulgador() {
                 <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
                 <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
               </div>
-              <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing}>
+              <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0}>
                 {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Sincronizar Grupos
               </Button>
             </div>
+
+            {instances.length === 0 && (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-600 dark:text-amber-400">Nenhuma instância configurada</p>
+                      <p className="text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar grupos e configurar boas-vindas.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-border/40">
@@ -1009,6 +1041,20 @@ export default function AdminDivulgador() {
 
           {/* TAB: PARTICIPANTES */}
           <TabsContent value="participants" className="space-y-6">
+            {instances.length === 0 && (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-600 dark:text-amber-400">Nenhuma instância configurada</p>
+                      <p className="text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar participantes.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <AllParticipantsManager />
             
             <InactiveParticipantsManager />
