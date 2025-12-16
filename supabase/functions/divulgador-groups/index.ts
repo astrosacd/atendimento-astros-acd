@@ -149,10 +149,56 @@ serve(async (req) => {
         headers: { 'apikey': api_key },
       });
 
-      const groups = await fetchResponse.json();
-      console.log(`[divulgador-groups] Fetched ${groups.length || 0} groups from WhatsApp`);
+      const fetchedGroups = await fetchResponse.json();
+      console.log(`[divulgador-groups] Fetched ${fetchedGroups.length || 0} groups from WhatsApp`);
       
-      return new Response(JSON.stringify({ groups }), {
+      // Save/update groups in database
+      const savedGroups = [];
+      for (const group of fetchedGroups) {
+        const groupId = group.id || group.jid;
+        const groupName = group.subject || group.name || 'Sem nome';
+        const participantCount = group.participants?.length || group.size || 0;
+        
+        // Check if group already exists
+        const { data: existing } = await supabase
+          .from('divulgador_groups')
+          .select('id')
+          .eq('whatsapp_group_id', groupId)
+          .maybeSingle();
+        
+        if (existing) {
+          // Update existing group
+          const { data: updated } = await supabase
+            .from('divulgador_groups')
+            .update({
+              name: groupName,
+              participant_count: participantCount,
+              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          savedGroups.push(updated);
+        } else {
+          // Insert new group
+          const { data: inserted } = await supabase
+            .from('divulgador_groups')
+            .insert({
+              whatsapp_group_id: groupId,
+              name: groupName,
+              participant_count: participantCount,
+              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
+              is_active: true,
+            })
+            .select()
+            .single();
+          savedGroups.push(inserted);
+        }
+      }
+      
+      console.log(`[divulgador-groups] Saved/updated ${savedGroups.length} groups`);
+      
+      return new Response(JSON.stringify({ groups: fetchedGroups, saved: savedGroups.length }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
