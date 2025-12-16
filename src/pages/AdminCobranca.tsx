@@ -1703,6 +1703,8 @@ const AdminCobranca = () => {
                         <SelectItem value="sent">Sucesso</SelectItem>
                         <SelectItem value="error">Erro</SelectItem>
                         <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="info">Info</SelectItem>
+                        <SelectItem value="skipped">Pulado</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={logChannelFilter} onValueChange={setLogChannelFilter}>
@@ -1713,6 +1715,7 @@ const AdminCobranca = () => {
                         <SelectItem value="all">Todos Canais</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="sistema">Sistema</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
