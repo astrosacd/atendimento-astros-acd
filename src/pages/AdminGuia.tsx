@@ -580,13 +580,40 @@ Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
 
 **Filtro por Período:**
 - Hoje, últimos 7/30/90 dias ou todos os registros`
+        },
+        {
+          title: "Configurar CRON Secret (Agendamento Automático)",
+          content: `Para que a cobrança automática funcione diariamente, você precisa configurar o **CRON Secret**:
+
+**Passo 1: Definir o Secret**
+O CRON Secret é uma chave de segurança que autentica a execução automática do sistema.
+
+**Passo 2: Configurar no Painel**
+1. Vá em **Cobrança** → aba **Geral**
+2. Role até encontrar **"Autenticação do Cron"**
+3. Digite o valor do seu CRON Secret
+4. Clique em **"Salvar Configurações"**
+
+**Passo 3: Sincronizar com Edge Functions**
+O valor no painel DEVE ser **idêntico** ao configurado nos secrets das Edge Functions (variável CRON_SECRET).
+
+⚠️ **Importante**: Se os valores não forem iguais, a cobrança automática falhará com erro de autenticação.
+
+**Como criar um bom secret:**
+- Use uma string longa e aleatória (ex: 32+ caracteres)
+- Inclua letras, números e caracteres especiais
+- Nunca compartilhe ou exponha publicamente
+
+**Horário de Execução:**
+O sistema executa diariamente no horário configurado (padrão: 10h - horário de Brasília).`
         }
       ],
       tips: [
         "Configure Gmail E WhatsApp para maior alcance",
         "Monitore a aba Relatórios para ver taxas de sucesso",
         "Use a cobrança manual para casos urgentes",
-        "Use o filtro 'Info' para ver quando não havia clientes para cobrar"
+        "Use o filtro 'Info' para ver quando não havia clientes para cobrar",
+        "Configure o CRON Secret nos dois lugares: painel e secrets da Edge Function"
       ]
     },
     {
