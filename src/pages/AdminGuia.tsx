@@ -555,12 +555,38 @@ Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
 - Selecionar um modelo de IA (Gemini ou GPT)
 - Definir um prompt de contexto
 - O sistema gerará mensagens personalizadas automaticamente`
+        },
+        {
+          title: "Filtros do Histórico de Envios",
+          content: `Na aba **Histórico**, você pode filtrar os registros de cobrança:
+
+**Filtro por Status:**
+- 🟢 **Sucesso (sent)**: Mensagem enviada com sucesso
+- 🔴 **Erro (error)**: Falha no envio da mensagem
+- 🟡 **Pendente (pending)**: Aguardando processamento
+- 🔵 **Info**: Logs informativos (ex: "Nenhum cliente encontrado")
+- 🟠 **Pulado (skipped)**: Envio pulado por falta de dados (CPF, email inválido, etc.)
+
+**Filtro por Canal:**
+- 📧 **Email**: Mensagens enviadas por email
+- 📱 **WhatsApp**: Mensagens enviadas por WhatsApp
+- ⚙️ **Sistema**: Logs do sistema (execuções sem clientes, etc.)
+
+**Filtro por Tipo de Mensagem:**
+- **D-3**: Lembrete 3 dias antes
+- **D**: Cobrança no dia do vencimento
+- **D+1, D+2**: Follow-ups após vencimento
+- **D+15, D+30**: Cobranças de atraso prolongado
+
+**Filtro por Período:**
+- Hoje, últimos 7/30/90 dias ou todos os registros`
         }
       ],
       tips: [
         "Configure Gmail E WhatsApp para maior alcance",
         "Monitore a aba Relatórios para ver taxas de sucesso",
-        "Use a cobrança manual para casos urgentes"
+        "Use a cobrança manual para casos urgentes",
+        "Use o filtro 'Info' para ver quando não havia clientes para cobrar"
       ]
     },
     {
