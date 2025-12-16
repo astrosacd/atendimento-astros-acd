@@ -481,16 +481,10 @@ const sendEmail = async (
   subject: string,
   body: string,
   gmailUser: string,
-  gmailPassword: string,
-  attachmentUrl?: string
+  gmailPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    let emailBody = body;
-    
-    // Add boleto attachment note if available
-    if (attachmentUrl) {
-      emailBody += `\n\n📄 BOLETO: ${attachmentUrl}`;
-    }
+    const emailBody = body;
 
     // Use SMTP with Gmail App Password
     const client = new SMTPClient({
@@ -876,8 +870,7 @@ const handler = async (req: Request): Promise<Response> => {
             subject,
             message,
             config.billing_gmail_user,
-            config.billing_gmail_password,
-            paymentData.boletoUrl
+            config.billing_gmail_password
           );
 
           // Include payment skip reasons in error_message if any
@@ -1020,6 +1013,17 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (!clientes || clientes.length === 0) {
           console.log(`No clients found for ${msgType.type} on ${today}`);
+          // Log quando não há clientes para este tipo de mensagem
+          await supabase.from('billing_logs').insert({
+            cliente_id: null,
+            cliente_nome: 'Sistema',
+            cliente_email: null,
+            cliente_numero: null,
+            message_type: msgType.type,
+            channel: 'sistema',
+            status: 'info',
+            error_message: `Nenhum cliente encontrado para ${msgType.type} em ${today}`,
+          });
           continue;
         }
 
