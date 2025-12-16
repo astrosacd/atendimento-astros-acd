@@ -268,31 +268,25 @@ export default function AdminDivulgador() {
   });
 
   const configureWebhook = async (instance: any) => {
-    const webhookUrl = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/divulgador-welcome`;
     try {
-      const response = await fetch(`${instance.api_url}/webhook/set/${instance.instance_name}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': instance.api_key,
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'configure-webhook',
+          instanceId: instance.id,
         },
-        body: JSON.stringify({
-          url: webhookUrl,
-          webhook_by_events: true,
-          webhook_base64: false,
-          events: ['GROUP_PARTICIPANTS_UPDATE', 'GROUPS_UPSERT'],
-        }),
       });
 
-      if (response.ok) {
+      if (error) {
+        // Não mostrar erro de rede/CORS aqui — a configuração será reavaliada no teste de conexão
+        console.log('Webhook config error:', error);
+        return;
+      }
+
+      if (data?.success) {
         toast.success('Webhook configurado automaticamente!');
-      } else {
-        // Don't show confusing error - webhook will be configured when instance connects
-        console.log('Webhook config returned non-ok, will retry on connection');
       }
     } catch (error) {
-      // Don't show confusing error - webhook will be configured when instance connects
-      console.log('Webhook config failed, will retry on connection', error);
+      console.log('Webhook config failed:', error);
     }
   };
 
@@ -314,44 +308,45 @@ export default function AdminDivulgador() {
 
   const testConnection = async (instance: any) => {
     setTestingInstanceId(instance.id);
-    const url = `${instance.api_url}/instance/connectionState/${instance.instance_name}`;
     try {
-      const response = await fetch(url, {
-        headers: { 'apikey': instance.api_key },
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'test-connection',
+          instanceId: instance.id,
+        },
       });
 
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Evolution API returned non-JSON:', text.substring(0, 200));
-        toast.error('A API não retornou JSON. Verifique se a URL e o nome da instância estão corretos.');
-        await logDivulgadorOperation('test_connection', 'error', 'API retornou HTML/texto em vez de JSON', { instance_id: instance.id, url });
+      if (error) {
+        toast.error('Falha ao testar conexão: ' + error.message);
+        await logDivulgadorOperation('test_connection', 'error', error.message, { instance_id: instance.id });
         return;
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        const state = data?.instance?.state || data?.state;
-        if (state === 'open') {
-          toast.success(`${instance.instance_name}: Conectado!`);
-          await (supabase as any)
-            .from('divulgador_instances')
-            .update({ is_connected: true, last_connected_at: new Date().toISOString() })
-            .eq('id', instance.id);
-          queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
-          await logDivulgadorOperation('test_connection', 'success', `Instância ${instance.instance_name} conectada`, { instance_id: instance.id, state });
-        } else {
-          toast.warning(`${instance.instance_name}: ${state || 'desconhecido'}`);
-          await logDivulgadorOperation('test_connection', 'warning', `Estado: ${state}`, { instance_id: instance.id, state });
-        }
+      const state = data?.state;
+
+      if (state === 'open') {
+        toast.success(`${instance.instance_name}: Conectado!`);
+        await (supabase as any)
+          .from('divulgador_instances')
+          .update({ is_connected: true, last_connected_at: new Date().toISOString() })
+          .eq('id', instance.id);
+        queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
+        await logDivulgadorOperation('test_connection', 'success', `Instância ${instance.instance_name} conectada`, { instance_id: instance.id, state });
+
+        // Se conectou, tenta (re)configurar webhook
+        await configureWebhook(instance);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        toast.error(`Falha na conexão: ${errorData?.message || response.statusText}`);
-        await logDivulgadorOperation('test_connection', 'error', `HTTP ${response.status}`, { instance_id: instance.id, errorData });
+        toast.warning(`${instance.instance_name}: ${state || 'desconhecido'}`);
+        await (supabase as any)
+          .from('divulgador_instances')
+          .update({ is_connected: false })
+          .eq('id', instance.id);
+        queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
+        await logDivulgadorOperation('test_connection', 'warning', `Estado: ${state}`, { instance_id: instance.id, state });
       }
     } catch (error: any) {
-      toast.error('Erro de rede: ' + error.message);
-      await logDivulgadorOperation('test_connection', 'error', error.message, { instance_id: instance.id, url });
+      toast.error('Erro: ' + error.message);
+      await logDivulgadorOperation('test_connection', 'error', error.message, { instance_id: instance.id });
     } finally {
       setTestingInstanceId(null);
     }

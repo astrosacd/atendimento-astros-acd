@@ -17,8 +17,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
-    const { action, campaignId, groupName, groupDescription, participants, groupId, whatsappGroupId, numbers } = body;
-    console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}, GroupId: ${groupId}`);
+    const { action, instanceId, campaignId, groupName, groupDescription, participants, groupId, whatsappGroupId, numbers } = body;
+    console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}, GroupId: ${groupId}, InstanceId: ${instanceId}`);
 
     // Debug: list instances (helps identify mismatched flags)
     const { data: allInstances, error: allInstancesError } = await supabase
@@ -28,6 +28,96 @@ serve(async (req) => {
       .limit(10);
 
     console.log('[divulgador-groups] Instances snapshot:', JSON.stringify({ allInstances, allInstancesError }));
+
+    const getInstanceById = async (id: string) => {
+      const { data, error } = await supabase
+        .from('divulgador_instances')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data;
+    };
+
+    // Server-side test connection (avoids CORS/mixed-content in browser)
+    if (action === 'test-connection') {
+      if (!instanceId) {
+        return new Response(JSON.stringify({ error: 'instanceId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = await getInstanceById(instanceId);
+      const { api_url, api_key, instance_name } = instance;
+
+      const url = `${api_url}/instance/connectionState/${instance_name}`;
+      const res = await fetch(url, { headers: { apikey: api_key } });
+      const contentType = res.headers.get('content-type') || '';
+
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        return new Response(JSON.stringify({
+          ok: false,
+          state: null,
+          error: 'API retornou conteúdo não-JSON',
+          preview: text.substring(0, 200),
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const json = await res.json().catch(() => ({}));
+      const state = json?.instance?.state || json?.state || null;
+
+      return new Response(JSON.stringify({ ok: res.ok, state, raw: json }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Server-side webhook configuration (avoids CORS/mixed-content in browser)
+    if (action === 'configure-webhook') {
+      if (!instanceId) {
+        return new Response(JSON.stringify({ error: 'instanceId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = await getInstanceById(instanceId);
+      const { api_url, api_key, instance_name } = instance;
+      const webhookUrl = `${supabaseUrl}/functions/v1/divulgador-welcome`;
+
+      const res = await fetch(`${api_url}/webhook/set/${instance_name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: api_key,
+        },
+        body: JSON.stringify({
+          url: webhookUrl,
+          webhook_by_events: true,
+          webhook_base64: false,
+          events: ['GROUP_PARTICIPANTS_UPDATE', 'GROUPS_UPSERT'],
+        }),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await res.json().catch(() => ({}))
+        : { text: (await res.text()).substring(0, 200) };
+
+      return new Response(JSON.stringify({
+        success: res.ok,
+        status: res.status,
+        data: payload,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Pick an instance managed by the panel
     // Prefer active+connected; fallback to active; fallback to any (so we can return a better error)
