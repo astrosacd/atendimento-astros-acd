@@ -841,6 +841,13 @@ export type Database = {
         Returns: boolean
       }
       execute_billing_cron: { Args: never; Returns: undefined }
+      get_billing_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
       has_role:
         | {
             Args: {
