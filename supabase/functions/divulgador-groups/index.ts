@@ -405,25 +405,47 @@ serve(async (req) => {
 
     if (action === 'create') {
       // Create group via Evolution API
-      console.log(`[divulgador-groups] Creating group: ${groupName}`);
+      console.log(`[divulgador-groups] Creating group: ${groupName} with participants:`, participants);
+      
+      // Evolution API may require at least 1 participant to create a group
+      // If no participants provided, we'll attempt anyway and provide helpful error
+      const createPayload = {
+        subject: groupName,
+        description: groupDescription || '',
+        participants: participants || [],
+      };
+      
+      console.log('[divulgador-groups] Create payload:', JSON.stringify(createPayload));
+      
       const createResponse = await fetch(`${api_url}/group/create/${instance_name}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': api_key,
         },
-        body: JSON.stringify({
-          subject: groupName,
-          description: groupDescription || '',
-          participants: participants || [],
-        }),
+        body: JSON.stringify(createPayload),
       });
 
       const createData = await createResponse.json();
+      console.log('[divulgador-groups] Create response status:', createResponse.status);
       console.log('[divulgador-groups] Create response:', JSON.stringify(createData));
 
       if (!createResponse.ok) {
-        throw new Error(createData.message || 'Erro ao criar grupo');
+        // Provide more helpful error messages
+        const errorMsg = createData.message || createData.error || JSON.stringify(createData);
+        
+        // Check if it's a participant-related error
+        if (errorMsg.includes('participant') || errorMsg.includes('number') || (!participants || participants.length === 0)) {
+          console.error('[divulgador-groups] Group creation failed - may need participants');
+          return new Response(JSON.stringify({ 
+            error: 'Para criar um grupo via API, adicione pelo menos 1 participante (número WhatsApp). Você pode sincronizar grupos existentes do WhatsApp ao invés de criar novos.' 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(errorMsg);
       }
 
       // Save group to database
