@@ -612,6 +612,39 @@ export default function AdminDivulgador() {
     },
   });
 
+  // ================== REALTIME UPDATES ==================
+  
+  useEffect(() => {
+    // Subscribe to realtime updates for participants
+    const participantsChannel = supabase
+      .channel('divulgador-participants-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'divulgador_participants' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['divulgador-participants'] });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to realtime updates for groups
+    const groupsChannel = supabase
+      .channel('divulgador-groups-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'divulgador_groups' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(participantsChannel);
+      supabase.removeChannel(groupsChannel);
+    };
+  }, [queryClient]);
+
   // ================== STATS ==================
 
   const totalGroups = groups.length;

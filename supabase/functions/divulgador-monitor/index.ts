@@ -18,22 +18,22 @@ serve(async (req) => {
 
     console.log('[divulgador-monitor] Starting group monitoring');
 
-    // Get WhatsApp instance config
-    const { data: instance, error: instanceError } = await supabase
-      .from('divulgador_whatsapp_instance')
+    // Get ALL active and connected WhatsApp instances from correct table
+    const { data: instances, error: instanceError } = await supabase
+      .from('divulgador_instances')
       .select('*')
-      .limit(1)
-      .single();
+      .eq('is_active', true)
+      .eq('is_connected', true);
 
-    if (instanceError || !instance) {
-      console.error('[divulgador-monitor] No WhatsApp instance configured');
-      return new Response(JSON.stringify({ error: 'Instância não configurada' }), {
+    if (instanceError || !instances || instances.length === 0) {
+      console.error('[divulgador-monitor] No active/connected WhatsApp instances');
+      return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa e conectada. Configure pelo menos uma instância no painel.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { api_url, api_key, instance_name } = instance;
+    console.log(`[divulgador-monitor] Found ${instances.length} active instance(s)`);
 
     // Get all active campaigns with auto_create_groups enabled
     const { data: campaigns } = await supabase
@@ -44,7 +44,7 @@ serve(async (req) => {
 
     if (!campaigns || campaigns.length === 0) {
       console.log('[divulgador-monitor] No campaigns with auto-create enabled');
-      return new Response(JSON.stringify({ success: true, message: 'Nenhuma campanha para monitorar' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Nenhuma campanha com auto-criar ativa' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -53,6 +53,17 @@ serve(async (req) => {
 
     for (const campaign of campaigns) {
       console.log(`[divulgador-monitor] Checking campaign: ${campaign.name}`);
+
+      // Use campaign's assigned instance if available, otherwise pick first connected
+      let instance = instances[0];
+      if (campaign.instance_id) {
+        const campaignInstance = instances.find(i => i.id === campaign.instance_id);
+        if (campaignInstance) {
+          instance = campaignInstance;
+        }
+      }
+
+      const { api_url, api_key, instance_name } = instance;
 
       // Get groups for this campaign
       const { data: groups } = await supabase
@@ -79,6 +90,7 @@ serve(async (req) => {
 
           try {
             // Create group via Evolution API
+            // Note: Evolution API may require at least 1 participant, we try without first
             const createResponse = await fetch(`${api_url}/group/create/${instance_name}`, {
               method: 'POST',
               headers: {
@@ -88,7 +100,7 @@ serve(async (req) => {
               body: JSON.stringify({
                 subject: groupName,
                 description: campaign.description || `Grupo da campanha ${campaign.name}`,
-                participants: [],
+                participants: [], // Empty - some APIs allow this
               }),
             });
 
@@ -96,7 +108,7 @@ serve(async (req) => {
             console.log(`[divulgador-monitor] Created group: ${groupName}`, createData);
 
             if (createResponse.ok && (createData.id || createData.groupId)) {
-              // Save to database
+              // Save to database with instance_id
               await supabase.from('divulgador_groups').insert({
                 campaign_id: campaign.id,
                 whatsapp_group_id: createData.id || createData.groupId,
@@ -105,19 +117,21 @@ serve(async (req) => {
                 invite_link: createData.inviteLink || null,
                 participant_count: 0,
                 is_active: true,
+                instance_id: instance.id,
               });
 
               results.push({
                 campaign: campaign.name,
                 group: groupName,
                 status: 'created',
+                instance: instance_name,
               });
             } else {
               results.push({
                 campaign: campaign.name,
                 group: groupName,
                 status: 'error',
-                error: createData.message || 'Falha ao criar grupo',
+                error: createData.message || createData.error || 'Falha ao criar grupo',
               });
             }
 
@@ -145,7 +159,6 @@ serve(async (req) => {
       if (almostFullGroups.length > 0) {
         console.log(`[divulgador-monitor] ${almostFullGroups.length} groups approaching capacity in ${campaign.name}`);
         
-        // Update groups to mark as almost full (optional status)
         for (const group of almostFullGroups) {
           results.push({
             campaign: campaign.name,
@@ -157,12 +170,21 @@ serve(async (req) => {
         }
       }
 
-      // Sync participant counts from WhatsApp
+      // Sync participant counts from WhatsApp for all groups
       for (const group of groups || []) {
         try {
+          // Use group's own instance if available
+          let syncInstance = instance;
+          if (group.instance_id) {
+            const groupInstance = instances.find(i => i.id === group.instance_id);
+            if (groupInstance) {
+              syncInstance = groupInstance;
+            }
+          }
+
           const participantsResponse = await fetch(
-            `${api_url}/group/participants/${instance_name}?groupJid=${group.whatsapp_group_id}`,
-            { headers: { 'apikey': api_key } }
+            `${syncInstance.api_url}/group/participants/${syncInstance.instance_name}?groupJid=${group.whatsapp_group_id}`,
+            { headers: { 'apikey': syncInstance.api_key } }
           );
 
           if (participantsResponse.ok) {
@@ -189,7 +211,7 @@ serve(async (req) => {
 
     console.log('[divulgador-monitor] Monitoring complete:', JSON.stringify(results));
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    return new Response(JSON.stringify({ success: true, results, instancesUsed: instances.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
