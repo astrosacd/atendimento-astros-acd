@@ -702,6 +702,7 @@ export type Database = {
           campaign_id: string | null
           content: string
           created_at: string
+          delay_seconds: number | null
           id: string
           media_type: string | null
           media_url: string | null
@@ -715,6 +716,7 @@ export type Database = {
           campaign_id?: string | null
           content: string
           created_at?: string
+          delay_seconds?: number | null
           id?: string
           media_type?: string | null
           media_url?: string | null
@@ -728,6 +730,7 @@ export type Database = {
           campaign_id?: string | null
           content?: string
           created_at?: string
+          delay_seconds?: number | null
           id?: string
           media_type?: string | null
           media_url?: string | null

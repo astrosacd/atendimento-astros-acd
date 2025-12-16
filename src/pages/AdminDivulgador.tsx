@@ -387,6 +387,7 @@ export default function AdminDivulgador() {
     media_url: '',
     scheduled_at: '',
     mention_all: false,
+    delay_seconds: 2,
   });
 
   const saveMessageMutation = useMutation({
@@ -405,7 +406,7 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
       toast.success('Mensagem agendada!');
       setIsMessageDialogOpen(false);
-      setMessageForm({ campaign_id: '', content: '', media_type: 'text', media_url: '', scheduled_at: '', mention_all: false });
+      setMessageForm({ campaign_id: '', content: '', media_type: 'text', media_url: '', scheduled_at: '', mention_all: false, delay_seconds: 2 });
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
@@ -1093,10 +1094,26 @@ export default function AdminDivulgador() {
                 <Label>Data e hora</Label>
                 <Input type="datetime-local" value={messageForm.scheduled_at} onChange={(e) => setMessageForm({ ...messageForm, scheduled_at: e.target.value })} />
               </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={messageForm.mention_all} onCheckedChange={(c) => setMessageForm({ ...messageForm, mention_all: c })} />
-                <Label>Mencionar todos os participantes</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch checked={messageForm.mention_all} onCheckedChange={(c) => setMessageForm({ ...messageForm, mention_all: c })} />
+                  <Label>Mencionar todos</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label>Delay entre grupos (seg):</Label>
+                  <Input 
+                    type="number" 
+                    className="w-20" 
+                    min={1}
+                    max={60}
+                    value={messageForm.delay_seconds} 
+                    onChange={(e) => setMessageForm({ ...messageForm, delay_seconds: parseInt(e.target.value) || 2 })} 
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                O delay evita bloqueios ao enviar para múltiplos grupos. Recomendado: 2-5 segundos.
+              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>Cancelar</Button>

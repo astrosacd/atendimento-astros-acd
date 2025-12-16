@@ -18,22 +18,30 @@ serve(async (req) => {
 
     console.log('[divulgador-send-messages] Starting scheduled message processing');
 
-    // Get WhatsApp instance config
+    // Get WhatsApp instance from divulgador_instances (active and connected)
     const { data: instance, error: instanceError } = await supabase
-      .from('divulgador_whatsapp_instance')
+      .from('divulgador_instances')
       .select('*')
+      .eq('is_active', true)
+      .eq('is_connected', true)
+      .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (instanceError || !instance) {
-      console.error('[divulgador-send-messages] No WhatsApp instance configured');
-      return new Response(JSON.stringify({ error: 'Instância WhatsApp não configurada' }), {
+    if (instanceError) {
+      console.error('[divulgador-send-messages] Error fetching instance:', instanceError);
+    }
+
+    if (!instance) {
+      console.error('[divulgador-send-messages] No active/connected WhatsApp instance found');
+      return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa e conectada' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const { api_url, api_key, instance_name } = instance;
+    console.log(`[divulgador-send-messages] Using instance: ${instance_name}`);
 
     // Get pending messages that are scheduled for now or earlier
     const now = new Date().toISOString();
@@ -82,8 +90,14 @@ serve(async (req) => {
 
       let successCount = 0;
       let errorCount = 0;
+      
+      // Get delay from message config (default 2 seconds, minimum 1 second)
+      const delayMs = Math.max((message.delay_seconds || 2) * 1000, 1000);
+      console.log(`[divulgador-send-messages] Using delay of ${delayMs}ms between groups`);
 
-      for (const group of groups) {
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        
         try {
           let endpoint = '';
           let body: any = {};
@@ -129,7 +143,7 @@ serve(async (req) => {
             };
           }
 
-          console.log(`[divulgador-send-messages] Sending to group ${group.name}`);
+          console.log(`[divulgador-send-messages] Sending to group ${group.name} (${i + 1}/${groups.length})`);
 
           const sendResponse = await fetch(endpoint, {
             method: 'POST',
@@ -156,8 +170,11 @@ serve(async (req) => {
             errorCount++;
           }
 
-          // Delay between sends to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Apply delay between sends (skip delay after last group)
+          if (i < groups.length - 1) {
+            console.log(`[divulgador-send-messages] Waiting ${delayMs}ms before next group...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
 
         } catch (groupError: unknown) {
           const errMsg = groupError instanceof Error ? groupError.message : 'Erro desconhecido';
