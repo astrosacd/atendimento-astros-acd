@@ -16,8 +16,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, campaignId, groupName, groupDescription, participants } = await req.json();
-    console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}`);
+    const body = await req.json();
+    const { action, campaignId, groupName, groupDescription, participants, groupId, whatsappGroupId, numbers } = body;
+    console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}, GroupId: ${groupId}`);
 
     // Debug: list instances (helps identify mismatched flags)
     const { data: allInstances, error: allInstancesError } = await supabase
@@ -137,8 +138,6 @@ serve(async (req) => {
     }
 
     if (action === 'get-invite-link') {
-      const { groupId } = await req.json();
-      
       const linkResponse = await fetch(`${api_url}/group/inviteCode/${instance_name}?groupJid=${groupId}`, {
         headers: { 'apikey': api_key },
       });
@@ -151,8 +150,6 @@ serve(async (req) => {
     }
 
     if (action === 'add-participants') {
-      const { groupId, numbers } = await req.json();
-      
       const addResponse = await fetch(`${api_url}/group/updateParticipant/${instance_name}?groupJid=${groupId}`, {
         method: 'PUT',
         headers: {
@@ -173,8 +170,6 @@ serve(async (req) => {
     }
 
     if (action === 'remove-participants') {
-      const { groupId, numbers } = await req.json();
-      
       const removeResponse = await fetch(`${api_url}/group/updateParticipant/${instance_name}?groupJid=${groupId}`, {
         method: 'PUT',
         headers: {
@@ -294,8 +289,6 @@ serve(async (req) => {
     }
 
     if (action === 'sync-participants') {
-      const { groupId, whatsappGroupId } = await req.json();
-      
       // Get participants from WhatsApp
       const participantsResponse = await fetch(`${api_url}/group/participants/${instance_name}?groupJid=${whatsappGroupId}`, {
         headers: { 'apikey': api_key },
