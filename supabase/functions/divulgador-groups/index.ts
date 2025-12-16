@@ -24,12 +24,13 @@ serve(async (req) => {
       .from('divulgador_instances')
       .select('*')
       .eq('is_active', true)
-      .eq('is_connected', true)
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    console.log('[divulgador-groups] Instance query result:', JSON.stringify({ instance, instanceError }));
 
     if (instanceError || !instance) {
-      console.error('[divulgador-groups] No active WhatsApp instance configured');
+      console.error('[divulgador-groups] No active WhatsApp instance configured. Error:', instanceError);
       return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa configurada. Adicione uma instância no painel.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
