@@ -15,7 +15,8 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
-  Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info
+  Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
+  FileText, XCircle
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
@@ -584,13 +585,14 @@ export default function AdminDivulgador() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-7 h-auto p-1">
             <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">Campanhas</span></TabsTrigger>
             <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Grupos</span></TabsTrigger>
             <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Mensagens</span></TabsTrigger>
             <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Boas-vindas</span></TabsTrigger>
             <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">Participantes</span></TabsTrigger>
+            <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Logs</span></TabsTrigger>
           </TabsList>
 
           {/* TAB: INSTÂNCIAS WHATSAPP */}
@@ -977,6 +979,89 @@ export default function AdminDivulgador() {
             <AllParticipantsManager />
             
             <InactiveParticipantsManager />
+          </TabsContent>
+
+          {/* TAB: LOGS */}
+          <TabsContent value="logs" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold mb-1">Logs de Envio</h2>
+              <p className="text-sm text-muted-foreground">Histórico de mensagens enviadas, erros e detalhes</p>
+            </div>
+
+            <Card className="border-border/40">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Histórico de Envios</CardTitle>
+                      <CardDescription>
+                        {successLogs} enviados com sucesso, {errorLogs} com erro
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                    {sendLogs.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {sendLogs.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum log de envio encontrado. Agende e envie mensagens para ver os logs aqui.
+                  </p>
+                ) : (
+                  <ScrollArea className="h-[500px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data/Hora</TableHead>
+                          <TableHead>Grupo</TableHead>
+                          <TableHead>Mensagem</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Erro</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sendLogs.map((log: any) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {log.sent_at ? format(new Date(log.sent_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {log.divulgador_groups?.name || 'Grupo desconhecido'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[300px] truncate text-sm">
+                              {log.divulgador_messages?.content || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {log.status === 'sent' ? (
+                                <Badge variant="default" className="bg-emerald-500 gap-1.5">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Enviado
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="gap-1.5">
+                                  <XCircle className="h-3 w-3" />
+                                  Erro
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[250px] text-sm text-muted-foreground">
+                              {log.error_message || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
