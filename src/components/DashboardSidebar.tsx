@@ -116,16 +116,16 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   ];
 
   const adminItems: NavItem[] = [
-    { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers() },
+    { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500' },
     { title: 'Divulgador', icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-orange-500' },
-    { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions() },
-    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling() },
-    { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings() },
-    { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks() },
-    { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi() },
-    { title: 'Logs API', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs() },
-    { title: 'Atividades', icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs() },
-    { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: !canManageSettings() },
+    { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500' },
+    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500' },
+    { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500' },
+    { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500' },
+    { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500' },
+    { title: 'Logs API', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500' },
+    { title: 'Atividades', icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs(), color: 'text-teal-500' },
+    { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400' },
   ];
 
   const visibleClientItems = clientItems.filter(item => !item.adminOnly || isAdmin);
