@@ -232,15 +232,15 @@ export function AllParticipantsManager() {
             disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Sincronizar Grupos do WhatsApp
+            Sincronizar Grupos
           </Button>
           <Button 
-            variant="outline" 
+            variant="default" 
             size="sm" 
             onClick={syncParticipants} 
             disabled={isSyncing || groups.length === 0 || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
           >
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
             Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : 'de Todos'}
           </Button>
           {instances.length === 0 ? (
@@ -249,11 +249,11 @@ export function AllParticipantsManager() {
             </p>
           ) : !instances.some((i: any) => i.is_connected) ? (
             <p className="text-xs text-amber-500 self-center ml-2">
-              Conecte a instância primeiro (clique no ícone de atualizar na aba WhatsApp)
+              Conecte a instância (aba WhatsApp → ícone atualizar)
             </p>
           ) : (
             <p className="text-xs text-muted-foreground self-center ml-2">
-              Sincronize para buscar dados atualizados do WhatsApp
+              Buscar dados atualizados do WhatsApp
             </p>
           )}
         </div>
