@@ -38,7 +38,12 @@ export default function AdminDivulgador() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isSendingMessages, setIsSendingMessages] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Config form state
   const [instanceForm, setInstanceForm] = useState({
@@ -211,6 +216,87 @@ export default function AdminDivulgador() {
       toast.error('Erro: ' + error.message);
     } finally {
       setIsTestingConnection(false);
+    }
+  };
+
+  // Group form
+  const [groupForm, setGroupForm] = useState({
+    name: '', description: '', campaign_id: '',
+  });
+
+  // Create group via Edge Function
+  const createGroupViaAPI = async () => {
+    if (!groupForm.name) {
+      toast.error('Digite o nome do grupo');
+      return;
+    }
+    setIsCreatingGroup(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'create',
+          campaignId: groupForm.campaign_id || null,
+          groupName: groupForm.name,
+          groupDescription: groupForm.description,
+        },
+      });
+      if (error) throw error;
+      toast.success('Grupo criado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      setIsGroupDialogOpen(false);
+      setGroupForm({ name: '', description: '', campaign_id: '' });
+    } catch (error: any) {
+      toast.error('Erro ao criar grupo: ' + error.message);
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  };
+
+  // Send pending messages via Edge Function
+  const sendPendingMessages = async () => {
+    setIsSendingMessages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-send-messages');
+      if (error) throw error;
+      toast.success(`Mensagens processadas: ${data?.processed?.length || 0}`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-logs'] });
+    } catch (error: any) {
+      toast.error('Erro ao enviar: ' + error.message);
+    } finally {
+      setIsSendingMessages(false);
+    }
+  };
+
+  // Monitor and auto-create groups via Edge Function
+  const runMonitoring = async () => {
+    setIsMonitoring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-monitor');
+      if (error) throw error;
+      const created = data?.results?.filter((r: any) => r.status === 'created').length || 0;
+      toast.success(`Monitoramento concluído. ${created} grupos criados automaticamente.`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+    } catch (error: any) {
+      toast.error('Erro no monitoramento: ' + error.message);
+    } finally {
+      setIsMonitoring(false);
+    }
+  };
+
+  // Sync groups from WhatsApp
+  const syncGroupsFromWhatsApp = async () => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: { action: 'fetch-groups' },
+      });
+      if (error) throw error;
+      toast.success(`${data?.groups?.length || 0} grupos encontrados no WhatsApp`);
+    } catch (error: any) {
+      toast.error('Erro ao sincronizar: ' + error.message);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -488,9 +574,24 @@ export default function AdminDivulgador() {
 
           {/* GRUPOS */}
           <TabsContent value="groups" className="space-y-6">
+            <div className="flex justify-between items-center flex-wrap gap-2">
+              <h2 className="text-lg font-semibold">Grupos Vinculados</h2>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing}>
+                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Sincronizar
+                </Button>
+                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring}>
+                  {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                  Monitorar
+                </Button>
+                <Button onClick={() => setIsGroupDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />Criar Grupo
+                </Button>
+              </div>
+            </div>
             <Card className="border-border/40">
-              <CardHeader><CardTitle>Grupos Vinculados</CardTitle></CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 {groups.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Nenhum grupo criado ainda</p>
                 ) : (
@@ -531,9 +632,15 @@ export default function AdminDivulgador() {
 
           {/* MENSAGENS */}
           <TabsContent value="messages" className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <h2 className="text-lg font-semibold">Mensagens Agendadas</h2>
-              <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={sendPendingMessages} disabled={isSendingMessages || pendingMessages === 0}>
+                  {isSendingMessages ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Enviar Agora ({pendingMessages})
+                </Button>
+                <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
+              </div>
             </div>
             <Card className="border-border/40">
               <CardContent className="pt-6">
@@ -831,6 +938,43 @@ export default function AdminDivulgador() {
               <Button onClick={() => saveMessageMutation.mutate(messageForm)} disabled={saveMessageMutation.isPending || !messageForm.content}>
                 {saveMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                 Agendar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Criar Grupo */}
+        <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Grupo</DialogTitle>
+              <DialogDescription>O grupo será criado via Evolution API</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome do Grupo</Label>
+                <Input value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} placeholder="Nome do grupo no WhatsApp" />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição (opcional)</Label>
+                <Textarea rows={2} value={groupForm.description} onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Vincular à Campanha (opcional)</Label>
+                <Select value={groupForm.campaign_id} onValueChange={(v) => setGroupForm({ ...groupForm, campaign_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Nenhuma campanha" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhuma</SelectItem>
+                    {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsGroupDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name}>
+                {isCreatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Criar Grupo
               </Button>
             </DialogFooter>
           </DialogContent>
