@@ -20,7 +20,6 @@ serve(async (req) => {
     console.log('[divulgador-welcome] Received payload:', JSON.stringify(payload));
 
     // Evolution API sends different event formats
-    // GROUP_PARTICIPANTS_UPDATE event format
     let participantNumber: string | undefined;
     let groupJid: string | undefined;
     let participantName: string | undefined;
@@ -31,7 +30,6 @@ serve(async (req) => {
       const data = payload.data || payload;
       groupJid = data.groupJid || data.id || data.remoteJid;
       
-      // Evolution sends participants array
       const participants = data.participants || [];
       action = data.action;
 
@@ -99,34 +97,53 @@ async function processParticipant(
 ) {
   console.log(`[divulgador-welcome] Processing participant: ${participantNumber} in group: ${groupJid}`);
 
-  // Get WhatsApp instance config
-  const { data: instance, error: instanceError } = await supabase
-    .from('divulgador_whatsapp_instance')
-    .select('*')
-    .limit(1)
-    .single();
-
-  if (instanceError || !instance) {
-    console.error('[divulgador-welcome] No WhatsApp instance configured');
-    return { error: 'Instância não configurada' };
-  }
-
-  const { api_url, api_key, instance_name } = instance;
-
   // Clean group JID (remove @g.us if present)
   const cleanGroupJid = groupJid.includes('@') ? groupJid : `${groupJid}@g.us`;
+  const groupJidWithoutSuffix = cleanGroupJid.replace('@g.us', '');
 
   // Find the group in our database
   const { data: group } = await supabase
     .from('divulgador_groups')
-    .select('*, divulgador_campaigns(id)')
-    .or(`whatsapp_group_id.eq.${cleanGroupJid},whatsapp_group_id.eq.${groupJid}`)
+    .select('*, divulgador_campaigns(id, instance_id)')
+    .or(`whatsapp_group_id.eq.${cleanGroupJid},whatsapp_group_id.eq.${groupJidWithoutSuffix}`)
     .single();
 
   if (!group) {
     console.log('[divulgador-welcome] Group not found in database:', groupJid);
     return { error: 'Grupo não encontrado', groupJid };
   }
+
+  // Get WhatsApp instance config - prioritize campaign's instance, fallback to any active
+  let instance;
+  
+  if (group.divulgador_campaigns?.instance_id) {
+    const { data: campaignInstance } = await supabase
+      .from('divulgador_instances')
+      .select('*')
+      .eq('id', group.divulgador_campaigns.instance_id)
+      .eq('is_active', true)
+      .single();
+    instance = campaignInstance;
+  }
+  
+  if (!instance) {
+    // Fallback to first active instance
+    const { data: activeInstance } = await supabase
+      .from('divulgador_instances')
+      .select('*')
+      .eq('is_active', true)
+      .eq('is_connected', true)
+      .limit(1)
+      .single();
+    instance = activeInstance;
+  }
+
+  if (!instance) {
+    console.error('[divulgador-welcome] No WhatsApp instance configured');
+    return { error: 'Instância não configurada' };
+  }
+
+  const { api_url, api_key, instance_name } = instance;
 
   // Clean participant number
   const cleanNumber = participantNumber
@@ -165,19 +182,16 @@ async function processParticipant(
     console.log('[divulgador-welcome] Could not increment count:', e);
   }
 
-  // Get welcome message config
+  // Get welcome message config - now uses group_id instead of campaign_id
   let welcomeQuery = supabase
     .from('divulgador_welcome_config')
     .select('*')
     .eq('is_active', true);
 
-  if (group.campaign_id) {
-    welcomeQuery = welcomeQuery.or(`campaign_id.eq.${group.campaign_id},campaign_id.is.null`);
-  } else {
-    welcomeQuery = welcomeQuery.is('campaign_id', null);
-  }
+  // First try to find group-specific welcome message
+  welcomeQuery = welcomeQuery.or(`group_id.eq.${group.id},group_id.is.null`);
 
-  const { data: welcomeConfigs } = await welcomeQuery.order('campaign_id', { ascending: false, nullsFirst: false });
+  const { data: welcomeConfigs } = await welcomeQuery.order('group_id', { ascending: false, nullsFirst: false });
 
   if (!welcomeConfigs || welcomeConfigs.length === 0) {
     console.log('[divulgador-welcome] No welcome message configured');
@@ -198,7 +212,7 @@ async function processParticipant(
     .replace(/{numero}/gi, cleanNumber)
     .replace(/{grupo}/gi, group.name);
 
-  console.log(`[divulgador-welcome] Sending welcome to ${cleanNumber}`);
+  console.log(`[divulgador-welcome] Sending welcome to ${cleanNumber} via ${instance_name}`);
 
   // Send private message
   const sendResponse = await fetch(`${api_url}/message/sendText/${instance_name}`, {
@@ -224,7 +238,7 @@ async function processParticipant(
       .eq('whatsapp_number', cleanNumber);
 
     console.log('[divulgador-welcome] Welcome sent successfully to:', cleanNumber);
-    return { success: true, participant: cleanNumber, group: group.name };
+    return { success: true, participant: cleanNumber, group: group.name, instance: instance_name };
   } else {
     console.error('[divulgador-welcome] Failed to send welcome:', sendData);
     return { success: false, error: sendData, participant: cleanNumber };

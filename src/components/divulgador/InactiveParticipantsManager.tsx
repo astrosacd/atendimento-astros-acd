@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export function InactiveParticipantsManager() {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const { data: groups = [] } = useQuery({
     queryKey: ['divulgador-groups'],
@@ -43,12 +44,13 @@ export function InactiveParticipantsManager() {
     },
   });
 
-  const { data: participants = [], isLoading, refetch } = useQuery({
+  const { data: participants = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ['inactive-participants', selectedGroup, inactiveDays],
     queryFn: async () => {
       let query = (supabase as any)
         .from('divulgador_participants')
         .select('*, divulgador_groups(name, whatsapp_group_id)')
+        .is('left_at', null)
         .order('last_message_at', { ascending: true, nullsFirst: true });
 
       if (selectedGroup && selectedGroup !== '_all') {
@@ -67,7 +69,14 @@ export function InactiveParticipantsManager() {
         return new Date(p.last_message_at) < cutoffDate;
       });
     },
+    enabled: hasSearched,
   });
+
+  const handleSearch = useCallback(() => {
+    setHasSearched(true);
+    setSelectedParticipants([]);
+    refetch();
+  }, [refetch]);
 
   const toggleSelectAll = () => {
     if (selectedParticipants.length === participants.length) {
@@ -136,7 +145,7 @@ export function InactiveParticipantsManager() {
 
   const getInactivityInfo = (participant: any) => {
     if (!participant.last_message_at) {
-      return { text: 'Nunca enviou mensagem', days: null, color: 'text-destructive' };
+      return { text: 'Nunca enviou', days: null, color: 'text-destructive' };
     }
     const days = differenceInDays(new Date(), new Date(participant.last_message_at));
     if (days >= 60) return { text: `${days} dias`, days, color: 'text-destructive' };
@@ -152,7 +161,7 @@ export function InactiveParticipantsManager() {
           Remoção de Participantes Inativos
         </CardTitle>
         <CardDescription>
-          Identifique e remova participantes que não interagem no grupo
+          Identifique membros que não interagem e remova-os em massa dos grupos
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -182,9 +191,9 @@ export function InactiveParticipantsManager() {
               min={1}
             />
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <Search className="h-4 w-4 mr-2" />
-            Buscar
+          <Button onClick={handleSearch} disabled={isLoading || isFetching}>
+            {(isLoading || isFetching) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+            Buscar Inativos
           </Button>
           {selectedParticipants.length > 0 && (
             <Button
@@ -198,19 +207,23 @@ export function InactiveParticipantsManager() {
         </div>
 
         {/* Results */}
-        {isLoading ? (
+        {!hasSearched ? (
+          <div className="text-center py-8 border rounded-lg border-dashed">
+            <p className="text-muted-foreground">Configure os filtros e clique em "Buscar Inativos" para ver os resultados</p>
+          </div>
+        ) : (isLoading || isFetching) ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : participants.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            Nenhum participante inativo encontrado
-          </p>
+          <div className="text-center py-8 border rounded-lg border-dashed">
+            <p className="text-muted-foreground">Nenhum participante inativo encontrado com os critérios selecionados</p>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {participants.length} participantes inativos encontrados
+                <span className="font-medium text-foreground">{participants.length}</span> participantes inativos há mais de {inactiveDays} dias
               </p>
               <Button variant="ghost" size="sm" onClick={toggleSelectAll}>
                 {selectedParticipants.length === participants.length ? 'Desmarcar todos' : 'Selecionar todos'}
@@ -287,7 +300,7 @@ export function InactiveParticipantsManager() {
             </DialogTitle>
             <DialogDescription>
               Você está prestes a remover <strong>{selectedParticipants.length}</strong> participantes inativos dos grupos.
-              Esta ação não pode ser desfeita.
+              Eles serão removidos do WhatsApp e marcados como saídos no sistema.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
