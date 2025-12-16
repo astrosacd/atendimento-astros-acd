@@ -17,7 +17,10 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
-    const { action, instanceId, campaignId, groupName, groupDescription, participants, groupId, whatsappGroupId, numbers } = body;
+    const { 
+      action, instanceId, campaignId, groupName, groupDescription, participants, 
+      groupId, whatsappGroupId, numbers, groupPhoto, adminOnly 
+    } = body;
     console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}, GroupId: ${groupId}, InstanceId: ${instanceId}`);
 
     // Debug: list instances (helps identify mismatched flags)
@@ -376,8 +379,313 @@ serve(async (req) => {
       });
     }
 
-    // ========== Other actions require a single instance ==========
-    const instance = await pickInstance();
+    // ========== CREATE GROUP: Requires specific instance selection ==========
+    if (action === 'create') {
+      // Require instanceId for create action - no default
+      if (!instanceId) {
+        return new Response(JSON.stringify({ error: 'Selecione uma instância WhatsApp para criar o grupo' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = await getInstanceById(instanceId);
+      
+      if (!instance.is_active) {
+        return new Response(JSON.stringify({ error: 'A instância selecionada está desativada. Ative-a no painel.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!instance.is_connected) {
+        return new Response(JSON.stringify({ error: 'A instância selecionada não está conectada. Teste a conexão primeiro.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { api_url, api_key, instance_name } = instance;
+
+      // Create group via Evolution API
+      console.log(`[divulgador-groups] Creating group: ${groupName} on instance ${instance_name} with participants:`, participants);
+      
+      const createPayload: any = {
+        subject: groupName,
+        description: groupDescription || '',
+        participants: participants || [],
+      };
+      
+      console.log('[divulgador-groups] Create payload:', JSON.stringify(createPayload));
+      
+      const createResponse = await fetch(`${api_url}/group/create/${instance_name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': api_key,
+        },
+        body: JSON.stringify(createPayload),
+      });
+
+      const createData = await createResponse.json();
+      console.log('[divulgador-groups] Create response status:', createResponse.status);
+      console.log('[divulgador-groups] Create response:', JSON.stringify(createData));
+
+      if (!createResponse.ok) {
+        const errorMsg = createData.message || createData.error || JSON.stringify(createData);
+        
+        if (errorMsg.includes('participant') || errorMsg.includes('number') || (!participants || participants.length === 0)) {
+          console.error('[divulgador-groups] Group creation failed - may need participants');
+          return new Response(JSON.stringify({ 
+            error: 'Para criar um grupo via API, adicione pelo menos 1 participante (número WhatsApp). Você pode sincronizar grupos existentes do WhatsApp ao invés de criar novos.' 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(errorMsg);
+      }
+
+      const createdGroupId = createData.id || createData.groupId;
+
+      // Set group photo if provided
+      if (groupPhoto && createdGroupId) {
+        try {
+          await fetch(`${api_url}/group/updateGroupPicture/${instance_name}?groupJid=${createdGroupId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ image: groupPhoto }),
+          });
+          console.log('[divulgador-groups] Group photo set successfully');
+        } catch (photoError) {
+          console.error('[divulgador-groups] Failed to set group photo:', photoError);
+        }
+      }
+
+      // Set admin-only messages if requested
+      if (adminOnly && createdGroupId) {
+        try {
+          await fetch(`${api_url}/group/updateSetting/${instance_name}?groupJid=${createdGroupId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ action: 'announcement' }),
+          });
+          console.log('[divulgador-groups] Admin-only mode enabled');
+        } catch (settingError) {
+          console.error('[divulgador-groups] Failed to set admin-only:', settingError);
+        }
+      }
+
+      // Save group to database
+      const { data: savedGroup, error: saveError } = await supabase
+        .from('divulgador_groups')
+        .insert({
+          campaign_id: campaignId || null,
+          whatsapp_group_id: createdGroupId,
+          name: groupName,
+          description: groupDescription,
+          invite_link: createData.inviteLink || null,
+          participant_count: participants?.length || 0,
+          is_active: true,
+          instance_id: instance.id,
+        })
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('[divulgador-groups] Save error:', saveError);
+        throw saveError;
+      }
+
+      return new Response(JSON.stringify({ success: true, group: savedGroup, whatsappData: createData }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========== UPDATE GROUP: Edit name, description, photo, settings ==========
+    if (action === 'update-group') {
+      if (!groupId) {
+        return new Response(JSON.stringify({ error: 'groupId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get group from database to find the instance
+      const { data: groupData, error: groupError } = await supabase
+        .from('divulgador_groups')
+        .select('*, divulgador_instances(*)')
+        .eq('id', groupId)
+        .single();
+
+      if (groupError || !groupData) {
+        return new Response(JSON.stringify({ error: 'Grupo não encontrado' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = groupData.divulgador_instances;
+      if (!instance) {
+        return new Response(JSON.stringify({ error: 'Instância do grupo não encontrada' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { api_url, api_key, instance_name } = instance;
+      const wid = groupData.whatsapp_group_id;
+
+      // Update group name if provided
+      if (groupName && groupName !== groupData.name) {
+        try {
+          await fetch(`${api_url}/group/updateSubject/${instance_name}?groupJid=${wid}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ subject: groupName }),
+          });
+          console.log('[divulgador-groups] Group name updated');
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update name:', e);
+        }
+      }
+
+      // Update group description if provided
+      if (groupDescription !== undefined) {
+        try {
+          await fetch(`${api_url}/group/updateDescription/${instance_name}?groupJid=${wid}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ description: groupDescription }),
+          });
+          console.log('[divulgador-groups] Group description updated');
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update description:', e);
+        }
+      }
+
+      // Update group photo if provided
+      if (groupPhoto) {
+        try {
+          await fetch(`${api_url}/group/updateGroupPicture/${instance_name}?groupJid=${wid}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ image: groupPhoto }),
+          });
+          console.log('[divulgador-groups] Group photo updated');
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update photo:', e);
+        }
+      }
+
+      // Update admin-only setting if provided
+      if (adminOnly !== undefined) {
+        try {
+          const settingAction = adminOnly ? 'announcement' : 'not_announcement';
+          await fetch(`${api_url}/group/updateSetting/${instance_name}?groupJid=${wid}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ action: settingAction }),
+          });
+          console.log('[divulgador-groups] Admin-only setting updated:', settingAction);
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update settings:', e);
+        }
+      }
+
+      // Update database record
+      const updatePayload: any = {};
+      if (groupName) updatePayload.name = groupName;
+      if (groupDescription !== undefined) updatePayload.description = groupDescription;
+
+      if (Object.keys(updatePayload).length > 0) {
+        await supabase
+          .from('divulgador_groups')
+          .update(updatePayload)
+          .eq('id', groupId);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========== GET INVITE LINK ==========
+    if (action === 'get-invite-link') {
+      if (!groupId) {
+        return new Response(JSON.stringify({ error: 'groupId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get group from database to find the instance
+      const { data: groupData, error: groupError } = await supabase
+        .from('divulgador_groups')
+        .select('*, divulgador_instances(*)')
+        .eq('id', groupId)
+        .single();
+
+      if (groupError || !groupData) {
+        return new Response(JSON.stringify({ error: 'Grupo não encontrado' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = groupData.divulgador_instances;
+      if (!instance) {
+        return new Response(JSON.stringify({ error: 'Instância do grupo não encontrada' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { api_url, api_key, instance_name } = instance;
+      const wid = groupData.whatsapp_group_id;
+
+      const linkResponse = await fetch(`${api_url}/group/inviteCode/${instance_name}?groupJid=${wid}`, {
+        headers: { 'apikey': api_key },
+      });
+
+      const linkData = await linkResponse.json();
+      const inviteCode = linkData.inviteCode || linkData.code;
+      const inviteLink = inviteCode ? `https://chat.whatsapp.com/${inviteCode}` : null;
+
+      // Update database with the link
+      if (inviteLink) {
+        await supabase
+          .from('divulgador_groups')
+          .update({ invite_link: inviteLink })
+          .eq('id', groupId);
+      }
+
+      return new Response(JSON.stringify({ inviteLink, code: inviteCode }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========== Other actions require a single instance (legacy support) ==========
+    const instance = instanceId ? await getInstanceById(instanceId) : await pickInstance();
 
     if (!instance) {
       console.error('[divulgador-groups] No WhatsApp instance found in divulgador_instances');
@@ -402,89 +710,6 @@ serve(async (req) => {
     }
 
     const { api_url, api_key, instance_name } = instance;
-
-    if (action === 'create') {
-      // Create group via Evolution API
-      console.log(`[divulgador-groups] Creating group: ${groupName} with participants:`, participants);
-      
-      // Evolution API may require at least 1 participant to create a group
-      // If no participants provided, we'll attempt anyway and provide helpful error
-      const createPayload = {
-        subject: groupName,
-        description: groupDescription || '',
-        participants: participants || [],
-      };
-      
-      console.log('[divulgador-groups] Create payload:', JSON.stringify(createPayload));
-      
-      const createResponse = await fetch(`${api_url}/group/create/${instance_name}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': api_key,
-        },
-        body: JSON.stringify(createPayload),
-      });
-
-      const createData = await createResponse.json();
-      console.log('[divulgador-groups] Create response status:', createResponse.status);
-      console.log('[divulgador-groups] Create response:', JSON.stringify(createData));
-
-      if (!createResponse.ok) {
-        // Provide more helpful error messages
-        const errorMsg = createData.message || createData.error || JSON.stringify(createData);
-        
-        // Check if it's a participant-related error
-        if (errorMsg.includes('participant') || errorMsg.includes('number') || (!participants || participants.length === 0)) {
-          console.error('[divulgador-groups] Group creation failed - may need participants');
-          return new Response(JSON.stringify({ 
-            error: 'Para criar um grupo via API, adicione pelo menos 1 participante (número WhatsApp). Você pode sincronizar grupos existentes do WhatsApp ao invés de criar novos.' 
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        
-        throw new Error(errorMsg);
-      }
-
-      // Save group to database
-      const { data: savedGroup, error: saveError } = await supabase
-        .from('divulgador_groups')
-        .insert({
-          campaign_id: campaignId || null,
-          whatsapp_group_id: createData.id || createData.groupId,
-          name: groupName,
-          description: groupDescription,
-          invite_link: createData.inviteLink || null,
-          participant_count: participants?.length || 0,
-          is_active: true,
-          instance_id: instance.id,
-        })
-        .select()
-        .single();
-
-      if (saveError) {
-        console.error('[divulgador-groups] Save error:', saveError);
-        throw saveError;
-      }
-
-      return new Response(JSON.stringify({ success: true, group: savedGroup, whatsappData: createData }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'get-invite-link') {
-      const linkResponse = await fetch(`${api_url}/group/inviteCode/${instance_name}?groupJid=${groupId}`, {
-        headers: { 'apikey': api_key },
-      });
-
-      const linkData = await linkResponse.json();
-
-      return new Response(JSON.stringify({ inviteLink: linkData.inviteLink || linkData.code }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     if (action === 'add-participants') {
       const addResponse = await fetch(`${api_url}/group/updateParticipant/${instance_name}?groupJid=${groupId}`, {
