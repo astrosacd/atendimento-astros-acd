@@ -16,8 +16,9 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle, Upload
+  FileText, XCircle, Upload, Image, Lock
 } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -53,6 +54,10 @@ export default function AdminDivulgador() {
   const [messagesFilterGroup, setMessagesFilterGroup] = useState<string>('_all');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [defaultParticipant, setDefaultParticipant] = useState('');
+  const [isQuickMessageDialogOpen, setIsQuickMessageDialogOpen] = useState(false);
+  const [quickMessageGroup, setQuickMessageGroup] = useState<any>(null);
+  const [quickMessageForm, setQuickMessageForm] = useState({ content: '', mention_all: false });
+  const [isSendingQuickMessage, setIsSendingQuickMessage] = useState(false);
 
   // ================== QUERIES ==================
 
@@ -793,6 +798,45 @@ export default function AdminDivulgador() {
     }
   };
 
+  // Send quick message to a specific group
+  const sendQuickMessage = async () => {
+    if (!quickMessageGroup || !quickMessageForm.content) return;
+    
+    setIsSendingQuickMessage(true);
+    try {
+      // Insert message as immediate (no schedule, just pending)
+      const { data: messageData, error: insertError } = await (supabase as any)
+        .from('divulgador_messages')
+        .insert([{
+          content: quickMessageForm.content,
+          media_type: 'text',
+          group_id: quickMessageGroup.id,
+          mention_all: quickMessageForm.mention_all,
+          status: 'pending',
+          scheduled_at: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      
+      // Trigger send immediately
+      const { error: sendError } = await supabase.functions.invoke('divulgador-send-messages');
+      if (sendError) throw sendError;
+      
+      toast.success('Mensagem enviada!');
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-logs'] });
+      setIsQuickMessageDialogOpen(false);
+      setQuickMessageForm({ content: '', mention_all: false });
+      setQuickMessageGroup(null);
+    } catch (error: any) {
+      toast.error('Erro ao enviar: ' + error.message);
+    } finally {
+      setIsSendingQuickMessage(false);
+    }
+  };
+
   // ================== WELCOME MESSAGE MANAGEMENT ==================
 
   const [welcomeForm, setWelcomeForm] = useState({
@@ -1227,6 +1271,7 @@ export default function AdminDivulgador() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-12">Foto</TableHead>
                           <TableHead>Nome</TableHead>
                           <TableHead>Instância</TableHead>
                           <TableHead>Campanha</TableHead>
@@ -1239,6 +1284,16 @@ export default function AdminDivulgador() {
                       <TableBody>
                         {groups.map((group: any) => (
                           <TableRow key={group.id}>
+                            <TableCell>
+                              <Avatar className="h-8 w-8">
+                                {group.photo_url ? (
+                                  <AvatarImage src={group.photo_url} alt={group.name} />
+                                ) : null}
+                                <AvatarFallback className="bg-muted">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                </AvatarFallback>
+                              </Avatar>
+                            </TableCell>
                             <TableCell className="font-medium">{group.name}</TableCell>
                             <TableCell>
                               {group.divulgador_instances?.instance_name ? (
@@ -1274,6 +1329,18 @@ export default function AdminDivulgador() {
                             <TableCell><Badge variant={group.is_active ? "default" : "secondary"}>{group.is_active ? 'Ativo' : 'Inativo'}</Badge></TableCell>
                             <TableCell>
                               <div className="flex gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => {
+                                    setQuickMessageGroup(group);
+                                    setQuickMessageForm({ content: '', mention_all: false });
+                                    setIsQuickMessageDialogOpen(true);
+                                  }} 
+                                  title="Enviar mensagem"
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" onClick={() => openEditGroupDialog(group)} title="Editar grupo">
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -1991,14 +2058,26 @@ export default function AdminDivulgador() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Participante Inicial <span className="text-destructive">*</span></Label>
+                <Label className="flex items-center gap-2">
+                  Participante Inicial <span className="text-destructive">*</span>
+                  {defaultParticipant && (
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <Lock className="h-3 w-3" />
+                      Padrão configurado
+                    </Badge>
+                  )}
+                </Label>
                 <Input 
                   value={groupForm.initial_participant} 
                   onChange={(e) => setGroupForm({ ...groupForm, initial_participant: e.target.value })} 
-                  placeholder="Ex: 5511999999999" 
+                  placeholder="Ex: 5511999999999"
+                  disabled={!!defaultParticipant}
+                  className={defaultParticipant ? 'bg-muted' : ''}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Número WhatsApp com código do país e DDD. Obrigatório para criar grupo via API.
+                  {defaultParticipant 
+                    ? 'Utilizando participante padrão configurado na aba WhatsApp.' 
+                    : 'Número WhatsApp com código do país e DDD. Obrigatório para criar grupo via API.'}
                 </p>
               </div>
               <div className="space-y-2">
@@ -2044,6 +2123,16 @@ export default function AdminDivulgador() {
               </div>
               <div className="space-y-2">
                 <Label>Foto do Grupo</Label>
+                {/* Show current photo if available */}
+                {editingGroup?.photo_url && !editGroupForm.photo_url && (
+                  <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={editingGroup.photo_url} alt="Foto atual" />
+                      <AvatarFallback><Users className="h-6 w-6" /></AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-muted-foreground">Foto atual do grupo</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
@@ -2133,6 +2222,56 @@ export default function AdminDivulgador() {
               >
                 {deleteInstanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                 Excluir Instância
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Envio Rápido de Mensagem */}
+        <Dialog open={isQuickMessageDialogOpen} onOpenChange={setIsQuickMessageDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                Enviar Mensagem para {quickMessageGroup?.name}
+              </DialogTitle>
+              <DialogDescription>
+                Envie uma mensagem diretamente para este grupo
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Textarea 
+                  rows={4} 
+                  value={quickMessageForm.content} 
+                  onChange={(e) => setQuickMessageForm({ ...quickMessageForm, content: e.target.value })} 
+                  placeholder="Digite a mensagem..." 
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch 
+                  checked={quickMessageForm.mention_all} 
+                  onCheckedChange={(c) => setQuickMessageForm({ ...quickMessageForm, mention_all: c })} 
+                />
+                <Label>Mencionar todos os participantes</Label>
+              </div>
+              {quickMessageForm.mention_all && (
+                <Card className="border-amber-500/20 bg-amber-500/5">
+                  <CardContent className="py-2">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      Todos os membros do grupo serão mencionados na mensagem
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsQuickMessageDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={sendQuickMessage} disabled={isSendingQuickMessage || !quickMessageForm.content}>
+                {isSendingQuickMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                Enviar Agora
               </Button>
             </DialogFooter>
           </DialogContent>
