@@ -15,8 +15,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
-  Calendar, Clock, Trash2, Edit, Eye, Download, Image, Video, FileText,
-  Music, AlertCircle, CheckCircle2, Loader2, Copy, X
+  Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
@@ -31,55 +30,37 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
-import { WebhookConfigCard } from '@/components/divulgador/WebhookConfigCard';
-import { InstancesManager } from '@/components/divulgador/InstancesManager';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('config');
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [activeTab, setActiveTab] = useState('instances');
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [isInstanceDialogOpen, setIsInstanceDialogOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isSendingMessages, setIsSendingMessages] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [testingInstanceId, setTestingInstanceId] = useState<string | null>(null);
 
-  // Config form state
-  const [instanceForm, setInstanceForm] = useState({
-    instance_name: '',
-    api_url: '',
-    api_key: '',
-  });
+  // ================== QUERIES ==================
 
-  // Fetch WhatsApp instance
-  const { data: instance, isLoading: isLoadingInstance } = useQuery({
-    queryKey: ['divulgador-instance'],
+  // Fetch instances
+  const { data: instances = [], isLoading: isLoadingInstances } = useQuery({
+    queryKey: ['divulgador-instances'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from('divulgador_whatsapp_instance')
+        .from('divulgador_instances')
         .select('*')
-        .limit(1)
-        .maybeSingle();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
   });
-
-  // Update form when instance loads
-  useEffect(() => {
-    if (instance) {
-      setInstanceForm({
-        instance_name: instance.instance_name || '',
-        api_url: instance.api_url || '',
-        api_key: instance.api_key || '',
-      });
-    }
-  }, [instance]);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery({
@@ -87,7 +68,7 @@ export default function AdminDivulgador() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_campaigns')
-        .select('*')
+        .select('*, divulgador_instances(instance_name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -140,7 +121,7 @@ export default function AdminDivulgador() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_welcome_config')
-        .select('*, divulgador_campaigns(name)')
+        .select('*, divulgador_groups(name)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -161,58 +142,109 @@ export default function AdminDivulgador() {
     },
   });
 
-  // Save instance mutation
+  // ================== INSTANCE MANAGEMENT ==================
+
+  const [instanceForm, setInstanceForm] = useState({
+    instance_name: '',
+    api_url: '',
+    api_key: '',
+  });
+
   const saveInstanceMutation = useMutation({
     mutationFn: async (formData: typeof instanceForm) => {
-      if (instance?.id) {
-        const { error } = await (supabase as any)
-          .from('divulgador_whatsapp_instance')
-          .update(formData)
-          .eq('id', instance.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from('divulgador_whatsapp_instance')
-          .insert([formData]);
-        if (error) throw error;
-      }
+      const { data, error } = await (supabase as any)
+        .from('divulgador_instances')
+        .insert([formData])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (savedInstance) => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
+      toast.success('Instância salva! Configurando webhook...');
+      setIsInstanceDialogOpen(false);
+      setInstanceForm({ instance_name: '', api_url: '', api_key: '' });
+      
+      // Auto-configure webhook
+      await configureWebhook(savedInstance);
+    },
+    onError: (error: any) => toast.error('Erro: ' + error.message),
+  });
+
+  const toggleInstanceMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_instances')
+        .update({ is_active })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['divulgador-instance'] });
-      toast.success('Instância salva com sucesso!');
-    },
-    onError: (error: any) => {
-      toast.error('Erro ao salvar: ' + error.message);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
     },
   });
 
-  // Test connection
-  const testConnection = async () => {
-    if (!instanceForm.api_url || !instanceForm.api_key || !instanceForm.instance_name) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
+  const deleteInstanceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_instances')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
+      toast.success('Instância removida!');
+    },
+  });
 
-    setIsTestingConnection(true);
+  const configureWebhook = async (instance: any) => {
+    const webhookUrl = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/divulgador-welcome`;
     try {
-      const response = await fetch(`${instanceForm.api_url}/instance/connectionState/${instanceForm.instance_name}`, {
-        headers: { 'apikey': instanceForm.api_key },
+      const response = await fetch(`${instance.api_url}/webhook/set/${instance.instance_name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': instance.api_key,
+        },
+        body: JSON.stringify({
+          url: webhookUrl,
+          webhook_by_events: true,
+          webhook_base64: false,
+          events: ['GROUP_PARTICIPANTS_UPDATE', 'GROUPS_UPSERT'],
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Webhook configurado automaticamente!');
+      } else {
+        toast.warning('Instância salva, mas webhook precisa ser configurado manualmente.');
+      }
+    } catch (error) {
+      toast.warning('Instância salva, mas webhook precisa ser configurado manualmente.');
+    }
+  };
+
+  const testConnection = async (instance: any) => {
+    setTestingInstanceId(instance.id);
+    try {
+      const response = await fetch(`${instance.api_url}/instance/connectionState/${instance.instance_name}`, {
+        headers: { 'apikey': instance.api_key },
       });
 
       if (response.ok) {
         const data = await response.json();
         const state = data?.instance?.state || data?.state;
         if (state === 'open') {
-          toast.success('Conexão estabelecida!');
-          if (instance?.id) {
-            await (supabase as any)
-              .from('divulgador_whatsapp_instance')
-              .update({ is_connected: true, last_connected_at: new Date().toISOString() })
-              .eq('id', instance.id);
-            queryClient.invalidateQueries({ queryKey: ['divulgador-instance'] });
-          }
+          toast.success(`${instance.instance_name}: Conectado!`);
+          await (supabase as any)
+            .from('divulgador_instances')
+            .update({ is_connected: true, last_connected_at: new Date().toISOString() })
+            .eq('id', instance.id);
+          queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
         } else {
-          toast.warning(`Status: ${state || 'desconhecido'}`);
+          toast.warning(`${instance.instance_name}: ${state || 'desconhecido'}`);
         }
       } else {
         toast.error('Falha na conexão');
@@ -220,16 +252,69 @@ export default function AdminDivulgador() {
     } catch (error: any) {
       toast.error('Erro: ' + error.message);
     } finally {
-      setIsTestingConnection(false);
+      setTestingInstanceId(null);
     }
   };
 
-  // Group form
-  const [groupForm, setGroupForm] = useState({
-    name: '', description: '', campaign_id: '',
+  // ================== CAMPAIGN MANAGEMENT ==================
+
+  const [campaignForm, setCampaignForm] = useState({
+    name: '',
+    description: '',
+    instance_id: '',
+    min_empty_groups: 3,
+    max_participants_per_group: 250,
+    auto_create_groups: true,
   });
 
-  // Create group via Edge Function
+  const saveCampaignMutation = useMutation({
+    mutationFn: async (formData: typeof campaignForm) => {
+      const payload = {
+        ...formData,
+        instance_id: formData.instance_id || null,
+      };
+      if (editingCampaign) {
+        const { error } = await (supabase as any)
+          .from('divulgador_campaigns')
+          .update(payload)
+          .eq('id', editingCampaign.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('divulgador_campaigns')
+          .insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-campaigns'] });
+      toast.success(editingCampaign ? 'Campanha atualizada!' : 'Campanha criada!');
+      setIsCampaignDialogOpen(false);
+      setEditingCampaign(null);
+      setCampaignForm({ name: '', description: '', instance_id: '', min_empty_groups: 3, max_participants_per_group: 250, auto_create_groups: true });
+    },
+    onError: (error: any) => toast.error('Erro: ' + error.message),
+  });
+
+  const deleteCampaignMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('divulgador_campaigns').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-campaigns'] });
+      toast.success('Campanha excluída!');
+    },
+  });
+
+  // ================== GROUP MANAGEMENT ==================
+
+  const [groupForm, setGroupForm] = useState({
+    name: '',
+    description: '',
+    campaign_id: '',
+  });
+
   const createGroupViaAPI = async () => {
     if (!groupForm.name) {
       toast.error('Digite o nome do grupo');
@@ -257,39 +342,6 @@ export default function AdminDivulgador() {
     }
   };
 
-  // Send pending messages via Edge Function
-  const sendPendingMessages = async () => {
-    setIsSendingMessages(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('divulgador-send-messages');
-      if (error) throw error;
-      toast.success(`Mensagens processadas: ${data?.processed?.length || 0}`);
-      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['divulgador-logs'] });
-    } catch (error: any) {
-      toast.error('Erro ao enviar: ' + error.message);
-    } finally {
-      setIsSendingMessages(false);
-    }
-  };
-
-  // Monitor and auto-create groups via Edge Function
-  const runMonitoring = async () => {
-    setIsMonitoring(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('divulgador-monitor');
-      if (error) throw error;
-      const created = data?.results?.filter((r: any) => r.status === 'created').length || 0;
-      toast.success(`Monitoramento concluído. ${created} grupos criados automaticamente.`);
-      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
-    } catch (error: any) {
-      toast.error('Erro no monitoramento: ' + error.message);
-    } finally {
-      setIsMonitoring(false);
-    }
-  };
-
-  // Sync groups from WhatsApp
   const syncGroupsFromWhatsApp = async () => {
     setIsSyncing(true);
     try {
@@ -306,50 +358,30 @@ export default function AdminDivulgador() {
     }
   };
 
-  // Campaign form
-  const [campaignForm, setCampaignForm] = useState({
-    name: '', description: '', min_empty_groups: 3, max_participants_per_group: 250, auto_create_groups: true,
-  });
-
-  const saveCampaignMutation = useMutation({
-    mutationFn: async (formData: typeof campaignForm) => {
-      if (editingCampaign) {
-        const { error } = await (supabase as any)
-          .from('divulgador_campaigns')
-          .update(formData)
-          .eq('id', editingCampaign.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any)
-          .from('divulgador_campaigns')
-          .insert([formData]);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['divulgador-campaigns'] });
-      toast.success(editingCampaign ? 'Campanha atualizada!' : 'Campanha criada!');
-      setIsCampaignDialogOpen(false);
-      setEditingCampaign(null);
-      setCampaignForm({ name: '', description: '', min_empty_groups: 3, max_participants_per_group: 250, auto_create_groups: true });
-    },
-    onError: (error: any) => toast.error('Erro: ' + error.message),
-  });
-
-  const deleteCampaignMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('divulgador_campaigns').delete().eq('id', id);
+  const runMonitoring = async () => {
+    setIsMonitoring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-monitor');
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['divulgador-campaigns'] });
-      toast.success('Campanha excluída!');
-    },
-  });
+      const created = data?.results?.filter((r: any) => r.status === 'created').length || 0;
+      toast.success(`Monitoramento concluído. ${created} grupos criados automaticamente.`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+    } catch (error: any) {
+      toast.error('Erro no monitoramento: ' + error.message);
+    } finally {
+      setIsMonitoring(false);
+    }
+  };
 
-  // Message form
+  // ================== MESSAGE MANAGEMENT ==================
+
   const [messageForm, setMessageForm] = useState({
-    campaign_id: '', content: '', media_type: 'text', media_url: '', scheduled_at: '', mention_all: false,
+    campaign_id: '',
+    content: '',
+    media_type: 'text',
+    media_url: '',
+    scheduled_at: '',
+    mention_all: false,
   });
 
   const saveMessageMutation = useMutation({
@@ -384,34 +416,65 @@ export default function AdminDivulgador() {
     },
   });
 
-  // Welcome form
+  const sendPendingMessages = async () => {
+    setIsSendingMessages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-send-messages');
+      if (error) throw error;
+      toast.success(`Mensagens processadas: ${data?.processed?.length || 0}`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-logs'] });
+    } catch (error: any) {
+      toast.error('Erro ao enviar: ' + error.message);
+    } finally {
+      setIsSendingMessages(false);
+    }
+  };
+
+  // ================== WELCOME MESSAGE MANAGEMENT ==================
+
   const [welcomeForm, setWelcomeForm] = useState({
-    campaign_id: '', message: '', is_active: true, delay_seconds: 5,
+    group_id: '',
+    message: '',
+    is_active: true,
+    delay_seconds: 5,
   });
 
   const saveWelcomeMutation = useMutation({
     mutationFn: async (formData: typeof welcomeForm) => {
       const { error } = await (supabase as any)
         .from('divulgador_welcome_config')
-        .insert([{ ...formData, campaign_id: formData.campaign_id || null }]);
+        .insert([{ ...formData, group_id: formData.group_id || null }]);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
       toast.success('Boas-vindas salva!');
-      setWelcomeForm({ campaign_id: '', message: '', is_active: true, delay_seconds: 5 });
+      setWelcomeForm({ group_id: '', message: '', is_active: true, delay_seconds: 5 });
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
 
-  // Stats
+  const deleteWelcomeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('divulgador_welcome_config').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
+      toast.success('Template removido!');
+    },
+  });
+
+  // ================== STATS ==================
+
   const totalGroups = groups.length;
   const activeGroups = groups.filter((g: any) => g.is_active).length;
   const totalParticipants = participants.length;
   const pendingMessages = messages.filter((m: any) => m.status === 'pending').length;
-  const sentMessages = messages.filter((m: any) => m.status === 'sent').length;
   const successLogs = sendLogs.filter((l: any) => l.status === 'sent').length;
   const errorLogs = sendLogs.filter((l: any) => l.status === 'failed').length;
+  const activeInstances = instances.filter((i: any) => i.is_active && i.is_connected).length;
 
   return (
     <DashboardLayout>
@@ -432,14 +495,25 @@ export default function AdminDivulgador() {
               </div>
             </div>
           </div>
-          <Badge variant={instance?.is_connected ? "default" : "secondary"} className="gap-1.5">
-            {instance?.is_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {instance?.is_connected ? 'Conectado' : 'Desconectado'}
+          <Badge variant={activeInstances > 0 ? "default" : "secondary"} className="gap-1.5">
+            {activeInstances > 0 ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+            {activeInstances} {activeInstances === 1 ? 'instância' : 'instâncias'} ativas
           </Badge>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className="border-border/40 bg-card/50">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/10"><Wifi className="h-4 w-4 text-orange-500" /></div>
+                <div>
+                  <p className="text-2xl font-bold">{instances.length}</p>
+                  <p className="text-xs text-muted-foreground">Instâncias</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <Card className="border-border/40 bg-card/50">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
@@ -468,7 +542,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-emerald-500/10"><MessageSquare className="h-4 w-4 text-emerald-500" /></div>
                 <div>
                   <p className="text-2xl font-bold">{messages.length}</p>
-                  <p className="text-xs text-muted-foreground">Mensagens ({pendingMessages} pendentes)</p>
+                  <p className="text-xs text-muted-foreground">{pendingMessages} pendentes</p>
                 </div>
               </div>
             </CardContent>
@@ -488,72 +562,113 @@ export default function AdminDivulgador() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto p-1">
-            <TabsTrigger value="config" className="gap-2 py-2"><Settings className="h-4 w-4" /><span className="hidden sm:inline">Configuração</span></TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 h-auto p-1">
+            <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">Campanhas</span></TabsTrigger>
             <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Grupos</span></TabsTrigger>
             <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Mensagens</span></TabsTrigger>
             <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Boas-vindas</span></TabsTrigger>
             <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">Participantes</span></TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">Relatórios</span></TabsTrigger>
           </TabsList>
 
-          {/* CONFIGURAÇÃO */}
-          <TabsContent value="config" className="space-y-6">
+          {/* TAB: INSTÂNCIAS WHATSAPP */}
+          <TabsContent value="instances" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold">Instâncias WhatsApp</h2>
+                <p className="text-sm text-muted-foreground">Configure seus números Evolution API para envio de mensagens</p>
+              </div>
+              <Button onClick={() => setIsInstanceDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />Nova Instância
+              </Button>
+            </div>
+
+            <Card className="border-amber-500/20 bg-amber-500/5">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-600 dark:text-amber-400">Como funciona?</p>
+                    <p className="text-muted-foreground mt-1">
+                      Ao adicionar uma instância, o webhook é configurado automaticamente para detectar novos participantes 
+                      e enviar mensagens de boas-vindas. Você pode ter múltiplas instâncias para diferentes campanhas.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-border/40">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wifi className="h-5 w-5 text-orange-500" />Instância WhatsApp</CardTitle>
-                <CardDescription>Configure a instância Evolution API exclusiva para o Divulgador</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome da Instância</Label>
-                    <Input value={instanceForm.instance_name} onChange={(e) => setInstanceForm({ ...instanceForm, instance_name: e.target.value })} placeholder="divulgador-instance" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>API URL</Label>
-                    <Input value={instanceForm.api_url} onChange={(e) => setInstanceForm({ ...instanceForm, api_url: e.target.value })} placeholder="https://api.evolution.com" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>API Key</Label>
-                    <Input type="password" value={instanceForm.api_key} onChange={(e) => setInstanceForm({ ...instanceForm, api_key: e.target.value })} placeholder="Sua API Key" />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button onClick={() => saveInstanceMutation.mutate(instanceForm)} disabled={saveInstanceMutation.isPending}>
-                    {saveInstanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                    Salvar
-                  </Button>
-                  <Button variant="outline" onClick={testConnection} disabled={isTestingConnection}>
-                    {isTestingConnection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                    Testar Conexão
-                  </Button>
-                </div>
+              <CardContent className="pt-6">
+                {isLoadingInstances ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                ) : instances.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhuma instância configurada. Clique em "Nova Instância" para começar.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>API URL</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ativo</TableHead>
+                        <TableHead>Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {instances.map((inst: any) => (
+                        <TableRow key={inst.id}>
+                          <TableCell className="font-medium">{inst.instance_name}</TableCell>
+                          <TableCell className="text-muted-foreground max-w-[200px] truncate">{inst.api_url}</TableCell>
+                          <TableCell>
+                            <Badge variant={inst.is_connected ? "default" : "secondary"} className="gap-1">
+                              {inst.is_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                              {inst.is_connected ? 'Conectado' : 'Desconectado'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={inst.is_active}
+                              onCheckedChange={(checked) => toggleInstanceMutation.mutate({ id: inst.id, is_active: checked })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id}>
+                                {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteInstanceMutation.mutate(inst.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
 
             {/* CRON Configuration */}
             <CronConfigCard />
-
-            {/* Webhook Configuration */}
-            <WebhookConfigCard apiUrl={instanceForm.api_url} apiKey={instanceForm.api_key} instanceName={instanceForm.instance_name} />
-
-            {/* Multiple Instances */}
-            <InstancesManager />
           </TabsContent>
 
-          {/* CAMPANHAS */}
+          {/* TAB: CAMPANHAS */}
           <TabsContent value="campaigns" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Campanhas</h2>
-              <Button onClick={() => { setEditingCampaign(null); setCampaignForm({ name: '', description: '', min_empty_groups: 3, max_participants_per_group: 250, auto_create_groups: true }); setIsCampaignDialogOpen(true); }}>
+              <div>
+                <h2 className="text-lg font-semibold">Campanhas</h2>
+                <p className="text-sm text-muted-foreground">Organize seus grupos em campanhas para envio segmentado</p>
+              </div>
+              <Button onClick={() => { setEditingCampaign(null); setCampaignForm({ name: '', description: '', instance_id: '', min_empty_groups: 3, max_participants_per_group: 250, auto_create_groups: true }); setIsCampaignDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />Nova Campanha
               </Button>
             </div>
+
             <div className="grid gap-4">
               {campaigns.length === 0 ? (
-                <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Nenhuma campanha criada</CardContent></Card>
+                <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Nenhuma campanha criada. Campanhas ajudam a organizar grupos e mensagens.</CardContent></Card>
               ) : (
                 campaigns.map((campaign: any) => (
                   <Card key={campaign.id} className="border-border/40">
@@ -564,7 +679,13 @@ export default function AdminDivulgador() {
                           <div>
                             <h3 className="font-semibold">{campaign.name}</h3>
                             <p className="text-sm text-muted-foreground">{campaign.description || 'Sem descrição'}</p>
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {campaign.divulgador_instances?.instance_name && (
+                                <Badge variant="outline" className="gap-1">
+                                  <Wifi className="h-3 w-3" />
+                                  {campaign.divulgador_instances.instance_name}
+                                </Badge>
+                              )}
                               <Badge variant="outline">Min grupos vazios: {campaign.min_empty_groups}</Badge>
                               <Badge variant="outline">Max participantes: {campaign.max_participants_per_group}</Badge>
                               <Badge variant={campaign.is_active ? "default" : "secondary"}>{campaign.is_active ? 'Ativa' : 'Inativa'}</Badge>
@@ -572,7 +693,18 @@ export default function AdminDivulgador() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingCampaign(campaign); setCampaignForm({ name: campaign.name, description: campaign.description || '', min_empty_groups: campaign.min_empty_groups, max_participants_per_group: campaign.max_participants_per_group, auto_create_groups: campaign.auto_create_groups }); setIsCampaignDialogOpen(true); }}>
+                          <Button variant="ghost" size="icon" onClick={() => { 
+                            setEditingCampaign(campaign); 
+                            setCampaignForm({ 
+                              name: campaign.name, 
+                              description: campaign.description || '', 
+                              instance_id: campaign.instance_id || '',
+                              min_empty_groups: campaign.min_empty_groups, 
+                              max_participants_per_group: campaign.max_participants_per_group, 
+                              auto_create_groups: campaign.auto_create_groups 
+                            }); 
+                            setIsCampaignDialogOpen(true); 
+                          }}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteCampaignMutation.mutate(campaign.id)}>
@@ -587,28 +719,32 @@ export default function AdminDivulgador() {
             </div>
           </TabsContent>
 
-          {/* GRUPOS */}
+          {/* TAB: GRUPOS */}
           <TabsContent value="groups" className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <h2 className="text-lg font-semibold">Grupos Vinculados</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Grupos</h2>
+                <p className="text-sm text-muted-foreground">Gerencie os grupos vinculados às campanhas</p>
+              </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing}>
                   {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  Sincronizar
+                  Sincronizar do WhatsApp
                 </Button>
                 <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring}>
-                  {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                  Monitorar
+                  {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
+                  Auto-criar Grupos
                 </Button>
                 <Button onClick={() => setIsGroupDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />Criar Grupo
                 </Button>
               </div>
             </div>
+
             <Card className="border-border/40">
               <CardContent className="pt-6">
                 {groups.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum grupo criado ainda</p>
+                  <p className="text-center text-muted-foreground py-8">Nenhum grupo encontrado. Clique em "Sincronizar do WhatsApp" para importar grupos existentes.</p>
                 ) : (
                   <ScrollArea className="h-[400px]">
                     <Table>
@@ -645,10 +781,13 @@ export default function AdminDivulgador() {
             </Card>
           </TabsContent>
 
-          {/* MENSAGENS */}
+          {/* TAB: MENSAGENS */}
           <TabsContent value="messages" className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <h2 className="text-lg font-semibold">Mensagens Agendadas</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Mensagens Agendadas</h2>
+                <p className="text-sm text-muted-foreground">Agende mensagens para envio aos grupos das campanhas</p>
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={sendPendingMessages} disabled={isSendingMessages || pendingMessages === 0}>
                   {isSendingMessages ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
@@ -657,6 +796,7 @@ export default function AdminDivulgador() {
                 <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
               </div>
             </div>
+
             <Card className="border-border/40">
               <CardContent className="pt-6">
                 {messages.length === 0 ? (
@@ -699,113 +839,8 @@ export default function AdminDivulgador() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* BOAS-VINDAS */}
-          <TabsContent value="welcome" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-border/40">
-                <CardHeader><CardTitle>Nova Mensagem de Boas-vindas</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Campanha (opcional)</Label>
-                    <Select value={welcomeForm.campaign_id || "_all"} onValueChange={(v) => setWelcomeForm({ ...welcomeForm, campaign_id: v === "_all" ? "" : v })}>
-                      <SelectTrigger><SelectValue placeholder="Todas as campanhas" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_all">Todas</SelectItem>
-                        {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mensagem</Label>
-                    <Textarea rows={4} value={welcomeForm.message} onChange={(e) => setWelcomeForm({ ...welcomeForm, message: e.target.value })} placeholder="Olá! Bem-vindo ao grupo..." />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={welcomeForm.is_active} onCheckedChange={(c) => setWelcomeForm({ ...welcomeForm, is_active: c })} />
-                      <Label>Ativo</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label>Delay (seg):</Label>
-                      <Input type="number" className="w-20" value={welcomeForm.delay_seconds} onChange={(e) => setWelcomeForm({ ...welcomeForm, delay_seconds: parseInt(e.target.value) || 5 })} />
-                    </div>
-                  </div>
-                  <Button onClick={() => saveWelcomeMutation.mutate(welcomeForm)} disabled={saveWelcomeMutation.isPending || !welcomeForm.message}>
-                    <Save className="h-4 w-4 mr-2" />Salvar
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card className="border-border/40">
-                <CardHeader><CardTitle>Templates Salvos</CardTitle></CardHeader>
-                <CardContent>
-                  {welcomeConfigs.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">Nenhum template criado</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {welcomeConfigs.map((wc: any) => (
-                        <div key={wc.id} className="p-3 border rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <Badge variant={wc.is_active ? 'default' : 'secondary'}>{wc.is_active ? 'Ativo' : 'Inativo'}</Badge>
-                              <p className="text-sm mt-2">{wc.message}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Campanha: {wc.divulgador_campaigns?.name || 'Todas'} | Delay: {wc.delay_seconds}s</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* PARTICIPANTES */}
-          <TabsContent value="participants" className="space-y-6">
-            {/* Inactive Participants Manager */}
-            <InactiveParticipantsManager />
-
-            {/* All Participants List */}
-            <Card className="border-border/40">
-              <CardHeader><CardTitle>Todos os Participantes</CardTitle></CardHeader>
-              <CardContent>
-                {participants.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum participante registrado</p>
-                ) : (
-                  <ScrollArea className="h-[400px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Número</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Grupo</TableHead>
-                          <TableHead>Entrada</TableHead>
-                          <TableHead>Última Msg</TableHead>
-                          <TableHead>Boas-vindas</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {participants.map((p: any) => (
-                          <TableRow key={p.id}>
-                            <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
-                            <TableCell>{p.name || '-'}</TableCell>
-                            <TableCell>{p.divulgador_groups?.name || '-'}</TableCell>
-                            <TableCell>{p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy', { locale: ptBR }) : '-'}</TableCell>
-                            <TableCell>{p.last_message_at ? format(new Date(p.last_message_at), 'dd/MM/yy', { locale: ptBR }) : '-'}</TableCell>
-                            <TableCell><Badge variant={p.welcome_sent ? 'default' : 'secondary'}>{p.welcome_sent ? 'Enviada' : 'Pendente'}</Badge></TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* RELATÓRIOS */}
-          <TabsContent value="reports" className="space-y-6">
+            {/* Reports Section */}
             <div className="grid md:grid-cols-3 gap-4">
               <Card className="border-border/40">
                 <CardContent className="pt-6 text-center">
@@ -829,31 +864,124 @@ export default function AdminDivulgador() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* TAB: BOAS-VINDAS */}
+          <TabsContent value="welcome" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
+              <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-border/40">
+                <CardHeader>
+                  <CardTitle className="text-base">Nova Mensagem de Boas-vindas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Grupo</Label>
+                    <Select value={welcomeForm.group_id || "_all"} onValueChange={(v) => setWelcomeForm({ ...welcomeForm, group_id: v === "_all" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um grupo" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all">Todos os grupos</SelectItem>
+                        {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">A mensagem será enviada quando alguém entrar neste grupo</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mensagem</Label>
+                    <Textarea rows={4} value={welcomeForm.message} onChange={(e) => setWelcomeForm({ ...welcomeForm, message: e.target.value })} placeholder="Olá {nome}! Bem-vindo ao grupo..." />
+                    <p className="text-xs text-muted-foreground">Use {'{nome}'}, {'{numero}'} ou {'{grupo}'} para personalizar</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={welcomeForm.is_active} onCheckedChange={(c) => setWelcomeForm({ ...welcomeForm, is_active: c })} />
+                      <Label>Ativo</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label>Delay (seg):</Label>
+                      <Input type="number" className="w-20" value={welcomeForm.delay_seconds} onChange={(e) => setWelcomeForm({ ...welcomeForm, delay_seconds: parseInt(e.target.value) || 5 })} />
+                    </div>
+                  </div>
+                  <Button onClick={() => saveWelcomeMutation.mutate(welcomeForm)} disabled={saveWelcomeMutation.isPending || !welcomeForm.message}>
+                    <Save className="h-4 w-4 mr-2" />Salvar
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/40">
+                <CardHeader>
+                  <CardTitle className="text-base">Templates Configurados</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {welcomeConfigs.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">Nenhum template criado</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {welcomeConfigs.map((wc: any) => (
+                        <div key={wc.id} className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant={wc.is_active ? 'default' : 'secondary'}>{wc.is_active ? 'Ativo' : 'Inativo'}</Badge>
+                                <Badge variant="outline">{wc.divulgador_groups?.name || 'Todos os grupos'}</Badge>
+                              </div>
+                              <p className="text-sm">{wc.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">Delay: {wc.delay_seconds}s</p>
+                            </div>
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteWelcomeMutation.mutate(wc.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* TAB: PARTICIPANTES */}
+          <TabsContent value="participants" className="space-y-6">
+            <InactiveParticipantsManager />
+
             <Card className="border-border/40">
-              <CardHeader><CardTitle>Histórico de Envios</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle>Participantes Recentes</CardTitle>
+                <CardDescription>Últimos 200 participantes registrados</CardDescription>
+              </CardHeader>
               <CardContent>
-                {sendLogs.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum envio registrado</p>
+                {participants.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum participante registrado</p>
                 ) : (
                   <ScrollArea className="h-[300px]">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Data</TableHead>
+                          <TableHead>Número</TableHead>
+                          <TableHead>Nome</TableHead>
                           <TableHead>Grupo</TableHead>
-                          <TableHead>Mensagem</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Erro</TableHead>
+                          <TableHead>Entrada</TableHead>
+                          <TableHead>Boas-vindas</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sendLogs.map((log: any) => (
-                          <TableRow key={log.id}>
-                            <TableCell>{log.sent_at ? format(new Date(log.sent_at), 'dd/MM HH:mm', { locale: ptBR }) : '-'}</TableCell>
-                            <TableCell>{log.divulgador_groups?.name || '-'}</TableCell>
-                            <TableCell className="max-w-[150px] truncate">{log.divulgador_messages?.content || '-'}</TableCell>
-                            <TableCell><Badge variant={log.status === 'sent' ? 'default' : 'destructive'}>{log.status}</Badge></TableCell>
-                            <TableCell className="max-w-[150px] truncate text-destructive">{log.error_message || '-'}</TableCell>
+                        {participants.map((p: any) => (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
+                            <TableCell>{p.name || '-'}</TableCell>
+                            <TableCell><Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge></TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={p.welcome_sent ? 'default' : 'secondary'}>
+                                {p.welcome_sent ? 'Enviado' : 'Pendente'}
+                              </Badge>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -864,6 +992,37 @@ export default function AdminDivulgador() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialog: Nova Instância */}
+        <Dialog open={isInstanceDialogOpen} onOpenChange={setIsInstanceDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova Instância WhatsApp</DialogTitle>
+              <DialogDescription>Configure uma instância Evolution API. O webhook será configurado automaticamente.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome da Instância</Label>
+                <Input value={instanceForm.instance_name} onChange={(e) => setInstanceForm({ ...instanceForm, instance_name: e.target.value })} placeholder="divulgador-01" />
+              </div>
+              <div className="space-y-2">
+                <Label>API URL</Label>
+                <Input value={instanceForm.api_url} onChange={(e) => setInstanceForm({ ...instanceForm, api_url: e.target.value })} placeholder="https://api.evolution.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>API Key</Label>
+                <Input type="password" value={instanceForm.api_key} onChange={(e) => setInstanceForm({ ...instanceForm, api_key: e.target.value })} placeholder="Sua API Key" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsInstanceDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={() => saveInstanceMutation.mutate(instanceForm)} disabled={saveInstanceMutation.isPending || !instanceForm.instance_name || !instanceForm.api_url || !instanceForm.api_key}>
+                {saveInstanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog: Campanha */}
         <Dialog open={isCampaignDialogOpen} onOpenChange={setIsCampaignDialogOpen}>
@@ -880,6 +1039,21 @@ export default function AdminDivulgador() {
                 <Label>Descrição</Label>
                 <Textarea value={campaignForm.description} onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })} placeholder="Descrição opcional" />
               </div>
+              <div className="space-y-2">
+                <Label>Instância WhatsApp</Label>
+                <Select value={campaignForm.instance_id || "_none"} onValueChange={(v) => setCampaignForm({ ...campaignForm, instance_id: v === "_none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhuma (usar qualquer)</SelectItem>
+                    {instances.map((inst: any) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        {inst.instance_name} {inst.is_connected ? '(Conectado)' : '(Desconectado)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Vincule a campanha a um número WhatsApp específico</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Mín. grupos vazios</Label>
@@ -892,7 +1066,7 @@ export default function AdminDivulgador() {
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={campaignForm.auto_create_groups} onCheckedChange={(c) => setCampaignForm({ ...campaignForm, auto_create_groups: c })} />
-                <Label>Criar grupos automaticamente</Label>
+                <Label>Criar grupos automaticamente quando atingir limite</Label>
               </div>
             </div>
             <DialogFooter>
@@ -917,7 +1091,7 @@ export default function AdminDivulgador() {
                 <Select value={messageForm.campaign_id || "_all"} onValueChange={(v) => setMessageForm({ ...messageForm, campaign_id: v === "_all" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Todos os grupos" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_all">Todos</SelectItem>
+                    <SelectItem value="_all">Todos os grupos</SelectItem>
                     {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

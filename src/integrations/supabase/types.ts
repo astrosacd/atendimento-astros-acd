@@ -847,6 +847,7 @@ export type Database = {
           campaign_id: string | null
           created_at: string
           delay_seconds: number | null
+          group_id: string | null
           id: string
           is_active: boolean | null
           message: string
@@ -856,6 +857,7 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string
           delay_seconds?: number | null
+          group_id?: string | null
           id?: string
           is_active?: boolean | null
           message: string
@@ -865,6 +867,7 @@ export type Database = {
           campaign_id?: string | null
           created_at?: string
           delay_seconds?: number | null
+          group_id?: string | null
           id?: string
           is_active?: boolean | null
           message?: string
@@ -876,6 +879,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "divulgador_welcome_config_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_groups"
             referencedColumns: ["id"]
           },
         ]
