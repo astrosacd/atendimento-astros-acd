@@ -119,8 +119,18 @@ serve(async (req) => {
       });
     }
 
-    // Pick an instance managed by the panel
-    // Prefer active+connected; fallback to active; fallback to any (so we can return a better error)
+    // Get ALL active and connected instances for operations that need multiple instances
+    const getAllActiveConnectedInstances = async () => {
+      const { data } = await supabase
+        .from('divulgador_instances')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_connected', true)
+        .order('created_at', { ascending: false });
+      return data || [];
+    };
+
+    // Pick a single instance (for single-instance operations like create group)
     const pickInstance = async () => {
       const { data: activeConnected } = await supabase
         .from('divulgador_instances')
@@ -153,6 +163,220 @@ serve(async (req) => {
       return anyInst;
     };
 
+    // ========== FETCH-GROUPS: Sync from ALL connected instances ==========
+    if (action === 'fetch-groups') {
+      const connectedInstances = await getAllActiveConnectedInstances();
+      
+      if (connectedInstances.length === 0) {
+        return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa e conectada. Conecte ao menos uma instância.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log(`[divulgador-groups] Fetching groups from ${connectedInstances.length} instance(s)`);
+
+      // Collect all groups from all instances
+      const allFetchedGroups: any[] = [];
+      const instanceGroupMap: Record<string, string> = {}; // whatsapp_group_id -> instance_id
+
+      for (const inst of connectedInstances) {
+        try {
+          console.log(`[divulgador-groups] Fetching from instance: ${inst.instance_name}`);
+          const fetchResponse = await fetch(`${inst.api_url}/group/fetchAllGroups/${inst.instance_name}?getParticipants=true`, {
+            headers: { 'apikey': inst.api_key },
+          });
+
+          if (!fetchResponse.ok) {
+            console.log(`[divulgador-groups] Instance ${inst.instance_name} returned ${fetchResponse.status}`);
+            continue;
+          }
+
+          const fetchedGroups = await fetchResponse.json();
+          console.log(`[divulgador-groups] Instance ${inst.instance_name}: ${fetchedGroups?.length || 0} groups`);
+
+          for (const g of (fetchedGroups || [])) {
+            const gId = g.id || g.jid;
+            if (gId) {
+              // Avoid duplicates (same group might appear in multiple instances if shared)
+              if (!instanceGroupMap[gId]) {
+                instanceGroupMap[gId] = inst.id;
+                allFetchedGroups.push({ ...g, _instanceId: inst.id });
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`[divulgador-groups] Error fetching from ${inst.instance_name}:`, err);
+        }
+      }
+
+      console.log(`[divulgador-groups] Total unique groups fetched: ${allFetchedGroups.length}`);
+
+      // Get all WhatsApp group IDs from the fetched data
+      const whatsappGroupIds = new Set(
+        allFetchedGroups.map((g: any) => g.id || g.jid).filter(Boolean)
+      );
+
+      // Get all existing groups from database
+      const { data: existingGroups } = await supabase
+        .from('divulgador_groups')
+        .select('id, whatsapp_group_id');
+
+      // Delete groups that no longer exist in any WhatsApp instance
+      let deletedCount = 0;
+      if (existingGroups && existingGroups.length > 0) {
+        for (const existingGroup of existingGroups) {
+          if (!whatsappGroupIds.has(existingGroup.whatsapp_group_id)) {
+            // Delete participants first
+            await supabase
+              .from('divulgador_participants')
+              .delete()
+              .eq('group_id', existingGroup.id);
+
+            // Delete welcome configs
+            await supabase
+              .from('divulgador_welcome_config')
+              .delete()
+              .eq('group_id', existingGroup.id);
+
+            // Delete the group
+            await supabase
+              .from('divulgador_groups')
+              .delete()
+              .eq('id', existingGroup.id);
+
+            deletedCount++;
+            console.log(`[divulgador-groups] Deleted group ${existingGroup.whatsapp_group_id} - no longer exists`);
+          }
+        }
+      }
+
+      // Save/update groups in database
+      const savedGroups = [];
+      for (const group of allFetchedGroups) {
+        const groupId = group.id || group.jid;
+        const groupName = group.subject || group.name || 'Sem nome';
+        const participantCount = group.participants?.length || group.size || 0;
+        const instanceId = group._instanceId;
+
+        // Check if group already exists
+        const { data: existing } = await supabase
+          .from('divulgador_groups')
+          .select('id')
+          .eq('whatsapp_group_id', groupId)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing group
+          const { data: updated } = await supabase
+            .from('divulgador_groups')
+            .update({
+              name: groupName,
+              participant_count: participantCount,
+              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
+              instance_id: instanceId,
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          savedGroups.push(updated);
+        } else {
+          // Insert new group
+          const { data: inserted } = await supabase
+            .from('divulgador_groups')
+            .insert({
+              whatsapp_group_id: groupId,
+              name: groupName,
+              participant_count: participantCount,
+              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
+              is_active: true,
+              instance_id: instanceId,
+            })
+            .select()
+            .single();
+          savedGroups.push(inserted);
+        }
+      }
+
+      console.log(`[divulgador-groups] Saved/updated ${savedGroups.length} groups, deleted ${deletedCount}`);
+
+      return new Response(JSON.stringify({ groups: allFetchedGroups, saved: savedGroups.length, deleted: deletedCount, instancesUsed: connectedInstances.length }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========== SYNC-PARTICIPANTS: Use the instance linked to the group ==========
+    if (action === 'sync-participants') {
+      // Try to get the group's instance_id first
+      let instance;
+      
+      if (groupId) {
+        const { data: groupData } = await supabase
+          .from('divulgador_groups')
+          .select('instance_id')
+          .eq('id', groupId)
+          .single();
+        
+        if (groupData?.instance_id) {
+          const { data: groupInstance } = await supabase
+            .from('divulgador_instances')
+            .select('*')
+            .eq('id', groupData.instance_id)
+            .eq('is_active', true)
+            .eq('is_connected', true)
+            .single();
+          instance = groupInstance;
+        }
+      }
+      
+      // Fallback to any connected instance
+      if (!instance) {
+        instance = await pickInstance();
+      }
+
+      if (!instance) {
+        return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa e conectada' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { api_url, api_key, instance_name } = instance;
+
+      // Get participants from WhatsApp
+      const participantsResponse = await fetch(`${api_url}/group/participants/${instance_name}?groupJid=${whatsappGroupId}`, {
+        headers: { 'apikey': api_key },
+      });
+
+      const participantsData = await participantsResponse.json();
+      const participants_list = participantsData.participants || [];
+
+      // Update participant count in database
+      await supabase
+        .from('divulgador_groups')
+        .update({ participant_count: participants_list.length })
+        .eq('id', groupId);
+
+      // Sync participants to database
+      for (const p of participants_list) {
+        const number = p.id?.replace('@s.whatsapp.net', '') || p.number;
+
+        await supabase
+          .from('divulgador_participants')
+          .upsert({
+            group_id: groupId,
+            whatsapp_number: number,
+            name: p.name || p.pushName || null,
+            is_admin: p.admin === 'admin' || p.admin === 'superadmin',
+          }, { onConflict: 'group_id,whatsapp_number' });
+      }
+
+      return new Response(JSON.stringify({ success: true, count: participants_list.length }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ========== Other actions require a single instance ==========
     const instance = await pickInstance();
 
     if (!instance) {
@@ -213,6 +437,7 @@ serve(async (req) => {
           invite_link: createData.inviteLink || null,
           participant_count: participants?.length || 0,
           is_active: true,
+          instance_id: instance.id,
         })
         .select()
         .single();
@@ -233,7 +458,7 @@ serve(async (req) => {
       });
 
       const linkData = await linkResponse.json();
-      
+
       return new Response(JSON.stringify({ inviteLink: linkData.inviteLink || linkData.code }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -253,7 +478,7 @@ serve(async (req) => {
       });
 
       const addData = await addResponse.json();
-      
+
       return new Response(JSON.stringify({ success: true, data: addData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -273,141 +498,8 @@ serve(async (req) => {
       });
 
       const removeData = await removeResponse.json();
-      
+
       return new Response(JSON.stringify({ success: true, data: removeData }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'fetch-groups') {
-      // Fetch all groups from WhatsApp
-      const fetchResponse = await fetch(`${api_url}/group/fetchAllGroups/${instance_name}?getParticipants=true`, {
-        headers: { 'apikey': api_key },
-      });
-
-      const fetchedGroups = await fetchResponse.json();
-      console.log(`[divulgador-groups] Fetched ${fetchedGroups.length || 0} groups from WhatsApp`);
-      
-      // Get all WhatsApp group IDs from the fetched data
-      const whatsappGroupIds = new Set(
-        fetchedGroups.map((g: any) => g.id || g.jid).filter(Boolean)
-      );
-      
-      // Get all existing groups from database
-      const { data: existingGroups } = await supabase
-        .from('divulgador_groups')
-        .select('id, whatsapp_group_id');
-      
-      // Delete groups that no longer exist in WhatsApp
-      let deletedCount = 0;
-      if (existingGroups && existingGroups.length > 0) {
-        for (const existingGroup of existingGroups) {
-          if (!whatsappGroupIds.has(existingGroup.whatsapp_group_id)) {
-            // Delete participants first
-            await supabase
-              .from('divulgador_participants')
-              .delete()
-              .eq('group_id', existingGroup.id);
-            
-            // Delete welcome configs
-            await supabase
-              .from('divulgador_welcome_config')
-              .delete()
-              .eq('group_id', existingGroup.id);
-            
-            // Delete the group
-            await supabase
-              .from('divulgador_groups')
-              .delete()
-              .eq('id', existingGroup.id);
-            
-            deletedCount++;
-            console.log(`[divulgador-groups] Deleted group ${existingGroup.whatsapp_group_id} - no longer exists in WhatsApp`);
-          }
-        }
-      }
-      
-      // Save/update groups in database
-      const savedGroups = [];
-      for (const group of fetchedGroups) {
-        const groupId = group.id || group.jid;
-        const groupName = group.subject || group.name || 'Sem nome';
-        const participantCount = group.participants?.length || group.size || 0;
-        
-        // Check if group already exists
-        const { data: existing } = await supabase
-          .from('divulgador_groups')
-          .select('id')
-          .eq('whatsapp_group_id', groupId)
-          .maybeSingle();
-        
-        if (existing) {
-          // Update existing group
-          const { data: updated } = await supabase
-            .from('divulgador_groups')
-            .update({
-              name: groupName,
-              participant_count: participantCount,
-              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
-            })
-            .eq('id', existing.id)
-            .select()
-            .single();
-          savedGroups.push(updated);
-        } else {
-          // Insert new group
-          const { data: inserted } = await supabase
-            .from('divulgador_groups')
-            .insert({
-              whatsapp_group_id: groupId,
-              name: groupName,
-              participant_count: participantCount,
-              invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
-              is_active: true,
-            })
-            .select()
-            .single();
-          savedGroups.push(inserted);
-        }
-      }
-      
-      console.log(`[divulgador-groups] Saved/updated ${savedGroups.length} groups, deleted ${deletedCount}`);
-      
-      return new Response(JSON.stringify({ groups: fetchedGroups, saved: savedGroups.length, deleted: deletedCount }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'sync-participants') {
-      // Get participants from WhatsApp
-      const participantsResponse = await fetch(`${api_url}/group/participants/${instance_name}?groupJid=${whatsappGroupId}`, {
-        headers: { 'apikey': api_key },
-      });
-
-      const participantsData = await participantsResponse.json();
-      const participants_list = participantsData.participants || [];
-      
-      // Update participant count in database
-      await supabase
-        .from('divulgador_groups')
-        .update({ participant_count: participants_list.length })
-        .eq('id', groupId);
-
-      // Sync participants to database
-      for (const p of participants_list) {
-        const number = p.id?.replace('@s.whatsapp.net', '') || p.number;
-        
-        await supabase
-          .from('divulgador_participants')
-          .upsert({
-            group_id: groupId,
-            whatsapp_number: number,
-            name: p.name || p.pushName || null,
-            is_admin: p.admin === 'admin' || p.admin === 'superadmin',
-          }, { onConflict: 'group_id,whatsapp_number' });
-      }
-      
-      return new Response(JSON.stringify({ success: true, count: participants_list.length }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

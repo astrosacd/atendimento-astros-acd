@@ -620,6 +620,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          instance_id: string | null
           invite_link: string | null
           is_active: boolean | null
           name: string
@@ -632,6 +633,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
           name: string
@@ -644,6 +646,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
           name?: string
@@ -657,6 +660,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "divulgador_groups_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_instances"
             referencedColumns: ["id"]
           },
         ]
