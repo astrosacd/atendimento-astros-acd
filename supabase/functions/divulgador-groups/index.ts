@@ -19,19 +19,68 @@ serve(async (req) => {
     const { action, campaignId, groupName, groupDescription, participants } = await req.json();
     console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}`);
 
-    // Get WhatsApp instance config from divulgador_instances (managed by the panel)
-    const { data: instance, error: instanceError } = await supabase
+    // Debug: list instances (helps identify mismatched flags)
+    const { data: allInstances, error: allInstancesError } = await supabase
       .from('divulgador_instances')
-      .select('*')
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
+      .select('id, instance_name, is_active, is_connected, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-    console.log('[divulgador-groups] Instance query result:', JSON.stringify({ instance, instanceError }));
+    console.log('[divulgador-groups] Instances snapshot:', JSON.stringify({ allInstances, allInstancesError }));
 
-    if (instanceError || !instance) {
-      console.error('[divulgador-groups] No active WhatsApp instance configured. Error:', instanceError);
-      return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa configurada. Adicione uma instância no painel.' }), {
+    // Pick an instance managed by the panel
+    // Prefer active+connected; fallback to active; fallback to any (so we can return a better error)
+    const pickInstance = async () => {
+      const { data: activeConnected } = await supabase
+        .from('divulgador_instances')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_connected', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeConnected) return activeConnected;
+
+      const { data: activeAny } = await supabase
+        .from('divulgador_instances')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeAny) return activeAny;
+
+      const { data: anyInst } = await supabase
+        .from('divulgador_instances')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return anyInst;
+    };
+
+    const instance = await pickInstance();
+
+    if (!instance) {
+      console.error('[divulgador-groups] No WhatsApp instance found in divulgador_instances');
+      return new Response(JSON.stringify({ error: 'Nenhuma instância encontrada. Crie uma instância no painel (aba WhatsApp).' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!instance.is_active) {
+      return new Response(JSON.stringify({ error: 'Existe instância cadastrada, mas está desativada. Ative o switch "Ativo" no painel.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!instance.is_connected) {
+      return new Response(JSON.stringify({ error: 'Existe instância ativa, mas não conectada. Clique em testar/conectar (ícone de atualizar) no painel.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -42,7 +91,6 @@ serve(async (req) => {
     if (action === 'create') {
       // Create group via Evolution API
       console.log(`[divulgador-groups] Creating group: ${groupName}`);
-      
       const createResponse = await fetch(`${api_url}/group/create/${instance_name}`, {
         method: 'POST',
         headers: {
