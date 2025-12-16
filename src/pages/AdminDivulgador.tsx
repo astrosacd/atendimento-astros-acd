@@ -257,10 +257,12 @@ export default function AdminDivulgador() {
       if (response.ok) {
         toast.success('Webhook configurado automaticamente!');
       } else {
-        toast.warning('Instância salva, mas webhook precisa ser configurado manualmente.');
+        // Don't show confusing error - webhook will be configured when instance connects
+        console.log('Webhook config returned non-ok, will retry on connection');
       }
     } catch (error) {
-      toast.warning('Instância salva, mas webhook precisa ser configurado manualmente.');
+      // Don't show confusing error - webhook will be configured when instance connects
+      console.log('Webhook config failed, will retry on connection', error);
     }
   };
 
@@ -387,6 +389,13 @@ export default function AdminDivulgador() {
       return;
     }
     
+    // Check if any instance is connected
+    const hasConnected = instances.some((i: any) => i.is_connected);
+    if (!hasConnected) {
+      toast.info('Conecte uma instância primeiro. Clique no ícone de atualizar para testar a conexão.');
+      return;
+    }
+    
     setIsSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
@@ -394,8 +403,9 @@ export default function AdminDivulgador() {
       });
       if (error) {
         const errorMsg = error.message || '';
-        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma instância')) {
-          toast.info('Configure uma instância WhatsApp primeiro');
+        // Handle all instance-related messages as info, not error
+        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
+          toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
           return;
         }
         throw error;
@@ -408,8 +418,9 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
     } catch (error: any) {
       const errorMsg = error.message || '';
-      if (errorMsg.includes('instância') || errorMsg.includes('instance')) {
-        toast.info('Configure uma instância WhatsApp primeiro');
+      // Handle all instance-related messages as info, not error
+      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
+        toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
       } else {
         toast.error('Erro ao sincronizar: ' + errorMsg);
       }
@@ -789,15 +800,15 @@ export default function AdminDivulgador() {
                 <p className="text-sm text-muted-foreground">Gerencie os grupos vinculados às campanhas</p>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0}>
+                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                   {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                   Sincronizar do WhatsApp
                 </Button>
-                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring || instances.length === 0}>
+                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                   {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
                   Auto-criar Grupos
                 </Button>
-                <Button onClick={() => setIsGroupDialogOpen(true)} disabled={instances.length === 0}>
+                <Button onClick={() => setIsGroupDialogOpen(true)} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                   <Plus className="h-4 w-4 mr-2" />Criar Grupo
                 </Button>
               </div>
@@ -811,6 +822,17 @@ export default function AdminDivulgador() {
                   <p className="text-sm text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar grupos.</p>
                   <Button variant="outline" className="mt-4" onClick={() => setActiveTab('instances')}>
                     <Settings className="h-4 w-4 mr-2" />Configurar Instância
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : !instances.some((i: any) => i.is_connected) ? (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-8 text-center">
+                  <WifiOff className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+                  <p className="font-medium text-amber-600 dark:text-amber-400">Instância não conectada</p>
+                  <p className="text-sm text-muted-foreground mt-1">Clique no ícone de atualizar na aba "WhatsApp" para testar a conexão.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setActiveTab('instances')}>
+                    <RefreshCw className="h-4 w-4 mr-2" />Ir para Instâncias
                   </Button>
                 </CardContent>
               </Card>
@@ -948,13 +970,13 @@ export default function AdminDivulgador() {
                 <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
                 <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
               </div>
-              <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0}>
+              <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                 {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Sincronizar Grupos
               </Button>
             </div>
 
-            {instances.length === 0 && (
+            {instances.length === 0 ? (
               <Card className="border-amber-500/30 bg-amber-500/5">
                 <CardContent className="py-4">
                   <div className="flex items-start gap-3">
@@ -966,7 +988,19 @@ export default function AdminDivulgador() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : !instances.some((i: any) => i.is_connected) ? (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <WifiOff className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-600 dark:text-amber-400">Instância não conectada</p>
+                      <p className="text-muted-foreground mt-1">Clique no ícone de atualizar na aba "WhatsApp" para testar a conexão.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-border/40">
@@ -1041,7 +1075,7 @@ export default function AdminDivulgador() {
 
           {/* TAB: PARTICIPANTES */}
           <TabsContent value="participants" className="space-y-6">
-            {instances.length === 0 && (
+            {instances.length === 0 ? (
               <Card className="border-amber-500/30 bg-amber-500/5">
                 <CardContent className="py-4">
                   <div className="flex items-start gap-3">
@@ -1053,7 +1087,19 @@ export default function AdminDivulgador() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            ) : !instances.some((i: any) => i.is_connected) ? (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <WifiOff className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-600 dark:text-amber-400">Instância não conectada</p>
+                      <p className="text-muted-foreground mt-1">Clique no ícone de atualizar na aba "WhatsApp" para testar a conexão.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
             
             <AllParticipantsManager />
             

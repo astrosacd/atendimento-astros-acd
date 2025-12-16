@@ -24,13 +24,13 @@ export function AllParticipantsManager() {
   const [isSyncing, setIsSyncing] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch instances to check if any exist
+  // Fetch instances to check if any exist and if connected
   const { data: instances = [] } = useQuery({
     queryKey: ['divulgador-instances'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_instances')
-        .select('id')
+        .select('id, is_connected')
         .eq('is_active', true);
       if (error) throw error;
       return data || [];
@@ -77,6 +77,13 @@ export function AllParticipantsManager() {
       toast.info('Configure uma instância WhatsApp primeiro');
       return;
     }
+
+    // Check if any instance is connected
+    const hasConnected = instances.some((i: any) => i.is_connected);
+    if (!hasConnected) {
+      toast.info('Conecte uma instância primeiro. Clique no ícone de atualizar para testar a conexão.');
+      return;
+    }
     
     setIsSyncing(true);
     try {
@@ -85,10 +92,10 @@ export function AllParticipantsManager() {
       });
       
       if (error) {
-        // Check if it's a "no instance" error - don't show error toast, just info
+        // Check if it's an instance-related error - show as info, not error
         const errorMsg = error.message || '';
-        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma')) {
-          toast.info('Configure uma instância WhatsApp primeiro');
+        if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
+          toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
           return;
         }
         throw error;
@@ -100,8 +107,8 @@ export function AllParticipantsManager() {
     } catch (error: any) {
       // Check for instance-related errors in response body
       const errorMsg = error.message || '';
-      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma')) {
-        toast.info('Configure uma instância WhatsApp primeiro');
+      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma') || errorMsg.includes('conectada') || errorMsg.includes('desativada')) {
+        toast.info(errorMsg.replace('Error, ', '').replace(/[{}"]/g, ''));
       } else {
         toast.error('Erro ao sincronizar: ' + errorMsg);
       }
@@ -222,7 +229,7 @@ export function AllParticipantsManager() {
             variant="outline" 
             size="sm" 
             onClick={syncGroups} 
-            disabled={isSyncing || instances.length === 0}
+            disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar Grupos do WhatsApp
@@ -231,7 +238,7 @@ export function AllParticipantsManager() {
             variant="outline" 
             size="sm" 
             onClick={syncParticipants} 
-            disabled={isSyncing || groups.length === 0 || instances.length === 0}
+            disabled={isSyncing || groups.length === 0 || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
           >
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : 'de Todos'}
@@ -239,6 +246,10 @@ export function AllParticipantsManager() {
           {instances.length === 0 ? (
             <p className="text-xs text-amber-500 self-center ml-2">
               Configure uma instância WhatsApp primeiro
+            </p>
+          ) : !instances.some((i: any) => i.is_connected) ? (
+            <p className="text-xs text-amber-500 self-center ml-2">
+              Conecte a instância primeiro (clique no ícone de atualizar na aba WhatsApp)
             </p>
           ) : (
             <p className="text-xs text-muted-foreground self-center ml-2">
