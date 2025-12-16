@@ -30,6 +30,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
+import { WebhookConfigCard } from '@/components/divulgador/WebhookConfigCard';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
@@ -526,6 +528,12 @@ export default function AdminDivulgador() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* CRON Configuration */}
+            <CronConfigCard />
+
+            {/* Webhook Configuration */}
+            <WebhookConfigCard apiUrl={instanceForm.api_url} apiKey={instanceForm.api_key} instanceName={instanceForm.instance_name} />
           </TabsContent>
 
           {/* CAMPANHAS */}
