@@ -495,11 +495,68 @@ export default function AdminDivulgador() {
     description: '',
     campaign_id: '',
     initial_participant: '',
+    instance_id: '',
+    photo_url: '',
+    admin_only: false,
   });
+
+  const [editingGroup, setEditingGroup] = useState<any>(null);
+  const [isEditGroupDialogOpen, setIsEditGroupDialogOpen] = useState(false);
+  const [editGroupForm, setEditGroupForm] = useState({
+    name: '',
+    description: '',
+    photo_url: '',
+    admin_only: false,
+  });
+  const [isUploadingGroupPhoto, setIsUploadingGroupPhoto] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState<string | null>(null);
+  const [isUpdatingGroup, setIsUpdatingGroup] = useState(false);
+
+  const uploadGroupPhoto = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `group_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `group-photos/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('divulgador-media')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('divulgador-media')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const handleGroupPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingGroupPhoto(true);
+    try {
+      const url = await uploadGroupPhoto(file);
+      if (isEdit) {
+        setEditGroupForm({ ...editGroupForm, photo_url: url });
+      } else {
+        setGroupForm({ ...groupForm, photo_url: url });
+      }
+      toast.success('Foto carregada!');
+    } catch (error: any) {
+      toast.error('Erro ao enviar foto: ' + error.message);
+    } finally {
+      setIsUploadingGroupPhoto(false);
+    }
+  };
 
   const createGroupViaAPI = async () => {
     if (!groupForm.name) {
       toast.error('Digite o nome do grupo');
+      return;
+    }
+    if (!groupForm.instance_id) {
+      toast.error('Selecione uma instância WhatsApp');
       return;
     }
     if (!groupForm.initial_participant) {
@@ -507,7 +564,6 @@ export default function AdminDivulgador() {
       return;
     }
     
-    // Format number: remove non-digits and ensure it has the country code
     const formattedNumber = groupForm.initial_participant.replace(/\D/g, '');
     if (formattedNumber.length < 10) {
       toast.error('Número inválido. Digite com DDD (ex: 11999999999)');
@@ -519,22 +575,87 @@ export default function AdminDivulgador() {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
         body: {
           action: 'create',
+          instanceId: groupForm.instance_id,
           campaignId: groupForm.campaign_id || null,
           groupName: groupForm.name,
           groupDescription: groupForm.description,
           participants: [`${formattedNumber}@s.whatsapp.net`],
+          groupPhoto: groupForm.photo_url || null,
+          adminOnly: groupForm.admin_only,
         },
       });
       if (error) throw error;
       toast.success('Grupo criado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       setIsGroupDialogOpen(false);
-      setGroupForm({ name: '', description: '', campaign_id: '', initial_participant: '' });
+      setGroupForm({ name: '', description: '', campaign_id: '', initial_participant: '', instance_id: '', photo_url: '', admin_only: false });
     } catch (error: any) {
       toast.error('Erro ao criar grupo: ' + error.message);
     } finally {
       setIsCreatingGroup(false);
     }
+  };
+
+  const updateGroupViaAPI = async () => {
+    if (!editingGroup) return;
+    
+    setIsUpdatingGroup(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'update-group',
+          groupId: editingGroup.id,
+          groupName: editGroupForm.name,
+          groupDescription: editGroupForm.description,
+          groupPhoto: editGroupForm.photo_url || null,
+          adminOnly: editGroupForm.admin_only,
+        },
+      });
+      if (error) throw error;
+      toast.success('Grupo atualizado!');
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      setIsEditGroupDialogOpen(false);
+      setEditingGroup(null);
+    } catch (error: any) {
+      toast.error('Erro ao atualizar grupo: ' + error.message);
+    } finally {
+      setIsUpdatingGroup(false);
+    }
+  };
+
+  const generateInviteLink = async (group: any) => {
+    setIsGeneratingLink(group.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'get-invite-link',
+          groupId: group.id,
+        },
+      });
+      if (error) throw error;
+      if (data?.inviteLink) {
+        navigator.clipboard.writeText(data.inviteLink);
+        toast.success('Link gerado e copiado!');
+        queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      } else {
+        toast.error('Não foi possível gerar o link');
+      }
+    } catch (error: any) {
+      toast.error('Erro ao gerar link: ' + error.message);
+    } finally {
+      setIsGeneratingLink(null);
+    }
+  };
+
+  const openEditGroupDialog = (group: any) => {
+    setEditingGroup(group);
+    setEditGroupForm({
+      name: group.name || '',
+      description: group.description || '',
+      photo_url: '',
+      admin_only: false,
+    });
+    setIsEditGroupDialogOpen(true);
   };
 
   const syncGroupsFromWhatsApp = async () => {
@@ -1057,7 +1178,16 @@ export default function AdminDivulgador() {
                   Auto-criar Grupos
                 </Button>
                 <Button onClick={() => { 
-                  setGroupForm({ name: '', description: '', campaign_id: '', initial_participant: defaultParticipant });
+                  const connectedInstances = instances.filter((i: any) => i.is_connected);
+                  setGroupForm({ 
+                    name: '', 
+                    description: '', 
+                    campaign_id: '', 
+                    initial_participant: defaultParticipant,
+                    instance_id: connectedInstances.length === 1 ? connectedInstances[0].id : '',
+                    photo_url: '',
+                    admin_only: false,
+                  });
                   setIsGroupDialogOpen(true); 
                 }} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                   <Plus className="h-4 w-4 mr-2" />Criar Grupo
@@ -1103,6 +1233,7 @@ export default function AdminDivulgador() {
                           <TableHead>Participantes</TableHead>
                           <TableHead>Link</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1120,13 +1251,47 @@ export default function AdminDivulgador() {
                             <TableCell>{group.divulgador_campaigns?.name || '-'}</TableCell>
                             <TableCell>{group.participant_count}</TableCell>
                             <TableCell>
-                              {group.invite_link && (
+                              {group.invite_link ? (
                                 <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(group.invite_link); toast.success('Link copiado!'); }}>
                                   <Copy className="h-3 w-3 mr-1" />Copiar
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => generateInviteLink(group)}
+                                  disabled={isGeneratingLink === group.id}
+                                >
+                                  {isGeneratingLink === group.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  ) : (
+                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                  )}
+                                  Gerar Link
                                 </Button>
                               )}
                             </TableCell>
                             <TableCell><Badge variant={group.is_active ? "default" : "secondary"}>{group.is_active ? 'Ativo' : 'Inativo'}</Badge></TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => openEditGroupDialog(group)} title="Editar grupo">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => generateInviteLink(group)}
+                                  disabled={isGeneratingLink === group.id}
+                                  title="Gerar/atualizar link"
+                                >
+                                  {isGeneratingLink === group.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -1761,19 +1926,69 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Criar Grupo */}
         <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Criar Novo Grupo</DialogTitle>
-              <DialogDescription>O grupo será criado via Evolution API</DialogDescription>
+              <DialogDescription>O grupo será criado via Evolution API na instância selecionada</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
               <div className="space-y-2">
-                <Label>Nome do Grupo</Label>
+                <Label>Instância WhatsApp <span className="text-destructive">*</span></Label>
+                <Select value={groupForm.instance_id || "_none"} onValueChange={(v) => setGroupForm({ ...groupForm, instance_id: v === "_none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Selecione...</SelectItem>
+                    {instances.filter((i: any) => i.is_connected).map((inst: any) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        <div className="flex items-center gap-2">
+                          <Wifi className="h-3 w-3 text-emerald-500" />
+                          {inst.instance_name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">O grupo será criado no número desta instância</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Nome do Grupo <span className="text-destructive">*</span></Label>
                 <Input value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} placeholder="Ex: Lembrete de Demanda #1" />
               </div>
               <div className="space-y-2">
                 <Label>Descrição (opcional)</Label>
                 <Textarea rows={2} value={groupForm.description} onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Foto do Grupo (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="group-photo-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleGroupPhotoUpload(e, false)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('group-photo-upload')?.click()}
+                    disabled={isUploadingGroupPhoto}
+                  >
+                    {isUploadingGroupPhoto ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploadingGroupPhoto ? 'Enviando...' : 'Upload foto'}
+                  </Button>
+                  {groupForm.photo_url && (
+                    <Badge variant="outline" className="text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Foto carregada
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Participante Inicial <span className="text-destructive">*</span></Label>
@@ -1796,12 +2011,88 @@ export default function AdminDivulgador() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={groupForm.admin_only} onCheckedChange={(c) => setGroupForm({ ...groupForm, admin_only: c })} />
+                <Label>Somente admins podem enviar mensagens</Label>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsGroupDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name || !groupForm.initial_participant}>
+              <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name || !groupForm.initial_participant || !groupForm.instance_id}>
                 {isCreatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                 Criar Grupo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Editar Grupo */}
+        <Dialog open={isEditGroupDialogOpen} onOpenChange={setIsEditGroupDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Grupo</DialogTitle>
+              <DialogDescription>Altere as configurações do grupo "{editingGroup?.name}"</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nome do Grupo</Label>
+                <Input value={editGroupForm.name} onChange={(e) => setEditGroupForm({ ...editGroupForm, name: e.target.value })} placeholder="Nome do grupo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea rows={2} value={editGroupForm.description} onChange={(e) => setEditGroupForm({ ...editGroupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Foto do Grupo</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="edit-group-photo-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleGroupPhotoUpload(e, true)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('edit-group-photo-upload')?.click()}
+                    disabled={isUploadingGroupPhoto}
+                  >
+                    {isUploadingGroupPhoto ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploadingGroupPhoto ? 'Enviando...' : 'Alterar foto'}
+                  </Button>
+                  {editGroupForm.photo_url && (
+                    <Badge variant="outline" className="text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Nova foto carregada
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Deixe em branco para manter a foto atual</p>
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Switch checked={editGroupForm.admin_only} onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })} />
+                <Label>Somente admins podem enviar mensagens</Label>
+              </div>
+              <Card className="border-amber-500/20 bg-amber-500/5">
+                <CardContent className="py-3">
+                  <p className="text-xs text-muted-foreground">
+                    <Info className="h-3 w-3 inline mr-1" />
+                    As alterações serão aplicadas diretamente no WhatsApp via Evolution API
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditGroupDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={updateGroupViaAPI} disabled={isUpdatingGroup || !editGroupForm.name}>
+                {isUpdatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar Alterações
               </Button>
             </DialogFooter>
           </DialogContent>
