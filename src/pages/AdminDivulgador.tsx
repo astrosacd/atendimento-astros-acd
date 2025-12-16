@@ -16,7 +16,7 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle
+  FileText, XCircle, Upload
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
@@ -51,6 +51,8 @@ export default function AdminDivulgador() {
   const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
   const [editingInstance, setEditingInstance] = useState<any>(null);
   const [messagesFilterGroup, setMessagesFilterGroup] = useState<string>('_all');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [defaultParticipant, setDefaultParticipant] = useState('');
 
   // ================== QUERIES ==================
 
@@ -163,6 +165,85 @@ export default function AdminDivulgador() {
       return data || [];
     },
   });
+
+  // Fetch default participant config
+  const { data: divulgadorConfig = [] } = useQuery({
+    queryKey: ['divulgador-config'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('divulgador_config')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Set default participant when config loads
+  useEffect(() => {
+    const defaultParticipantConfig = divulgadorConfig.find((c: any) => c.config_key === 'default_participant');
+    if (defaultParticipantConfig) {
+      setDefaultParticipant(defaultParticipantConfig.config_value);
+    }
+  }, [divulgadorConfig]);
+
+  // Save default participant config
+  const saveDefaultParticipantMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const existing = divulgadorConfig.find((c: any) => c.config_key === 'default_participant');
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from('divulgador_config')
+          .update({ config_value: value })
+          .eq('config_key', 'default_participant');
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('divulgador_config')
+          .insert([{ config_key: 'default_participant', config_value: value }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-config'] });
+      toast.success('Participante padrão salvo!');
+    },
+    onError: (error: any) => toast.error('Erro: ' + error.message),
+  });
+
+  // Upload media file to storage
+  const uploadMediaFile = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `messages/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('divulgador-media')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('divulgador-media')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
+  const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingMedia(true);
+    try {
+      const url = await uploadMediaFile(file);
+      setMessageForm({ ...messageForm, media_url: url });
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error: any) {
+      toast.error('Erro ao enviar arquivo: ' + error.message);
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
 
   // ================== INSTANCE MANAGEMENT ==================
 
@@ -853,6 +934,45 @@ export default function AdminDivulgador() {
 
             {/* CRON Configuration */}
             <CronConfigCard />
+
+            {/* Default Participant Config */}
+            <Card className="border-border/40">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <Users className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Participante Padrão</CardTitle>
+                    <CardDescription>Número WhatsApp usado como participante inicial ao criar grupos</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={defaultParticipant}
+                    onChange={(e) => setDefaultParticipant(e.target.value)}
+                    placeholder="Ex: 5511999999999"
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={() => saveDefaultParticipantMutation.mutate(defaultParticipant)}
+                    disabled={saveDefaultParticipantMutation.isPending || !defaultParticipant}
+                  >
+                    {saveDefaultParticipantMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Salvar
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Este número será preenchido automaticamente ao criar novos grupos. Inclua o código do país (55 para Brasil).
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* TAB: CAMPANHAS */}
@@ -936,7 +1056,10 @@ export default function AdminDivulgador() {
                   {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
                   Auto-criar Grupos
                 </Button>
-                <Button onClick={() => setIsGroupDialogOpen(true)} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
+                <Button onClick={() => { 
+                  setGroupForm({ name: '', description: '', campaign_id: '', initial_participant: defaultParticipant });
+                  setIsGroupDialogOpen(true); 
+                }} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                   <Plus className="h-4 w-4 mr-2" />Criar Grupo
                 </Button>
               </div>
@@ -1553,8 +1676,52 @@ export default function AdminDivulgador() {
               </div>
               {messageForm.media_type !== 'text' && (
                 <div className="space-y-2">
-                  <Label>URL da mídia</Label>
-                  <Input value={messageForm.media_url} onChange={(e) => setMessageForm({ ...messageForm, media_url: e.target.value })} placeholder="https://..." />
+                  <Label>Arquivo de mídia</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={messageForm.media_url} 
+                      onChange={(e) => setMessageForm({ ...messageForm, media_url: e.target.value })} 
+                      placeholder="URL da mídia ou faça upload abaixo" 
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id="media-upload"
+                      className="hidden"
+                      accept={
+                        messageForm.media_type === 'image' ? 'image/*' :
+                        messageForm.media_type === 'video' ? 'video/*' :
+                        messageForm.media_type === 'audio' ? 'audio/*' :
+                        '*'
+                      }
+                      onChange={handleMediaUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('media-upload')?.click()}
+                      disabled={isUploadingMedia}
+                    >
+                      {isUploadingMedia ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingMedia ? 'Enviando...' : 'Upload do computador'}
+                    </Button>
+                    {messageForm.media_url && (
+                      <Badge variant="outline" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Arquivo carregado
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Faça upload de um arquivo do seu computador ou cole uma URL direta.
+                  </p>
                 </div>
               )}
               <div className="space-y-2">
