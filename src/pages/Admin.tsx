@@ -12,8 +12,7 @@ import {
   MessageCircle,
   ShieldCheck,
   BookOpen,
-  UserPlus,
-  Megaphone
+  UserPlus
 } from "lucide-react";
 
 const Admin = () => {
@@ -61,13 +60,6 @@ const Admin = () => {
       icon: BookOpen,
       path: "/admin/guia",
       color: "from-cyan-500/20 to-cyan-600/10"
-    },
-    {
-      title: "Divulgador Interno",
-      description: "Gerenciamento de grupos de WhatsApp em massa",
-      icon: Megaphone,
-      path: "/admin/divulgador",
-      color: "from-orange-500/20 to-orange-600/10"
     }
   ];
 
