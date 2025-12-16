@@ -1339,10 +1339,12 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
           title: "O que é o Divulgador Interno?",
           content: `O **Divulgador Interno** é um módulo completo para gerenciamento de grupos de WhatsApp:
 
-- **Criação automática de grupos**: Crie grupos via API Evolution
+- **Criação manual de grupos**: Crie grupos via API Evolution com foto, descrição e configurações
+- **Edição de grupos**: Altere nome, foto, descrição e permissões de grupos existentes
 - **Campanhas em massa**: Envie mensagens para múltiplos grupos
-- **Escala infinita**: Criação automática quando grupos lotam
-- **Menções inteligentes**: Mencione todos os participantes
+- **Envio rápido**: Envie mensagem direta para um grupo específico com menção todos
+- **Link de convite**: Gere e copie links de convite dos grupos
+- **Menções inteligentes**: Mencione todos os participantes automaticamente
 - **Boas-vindas automáticas**: Mensagem privada para novos membros
 - **Controle de participantes**: Remoção automática ou manual
 - **Logs de operações**: Histórico completo de ações
@@ -1364,6 +1366,11 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 6. Clique no ícone de **atualizar (🔄)** para testar conexão
 
 ✅ Se aparecer **"Conectado"** (badge verde), a instância está pronta!
+
+**Participante Padrão (opcional mas recomendado):**
+- Configure um **número de telefone padrão** no campo "Participante Padrão"
+- Este número será usado automaticamente ao criar novos grupos
+- Útil para incluir administradores fixos em todos os grupos
 
 **Gerenciar instâncias:**
 - **Editar**: Clique no ícone de lápis para alterar dados
@@ -1387,13 +1394,108 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 - Novos grupos são **adicionados** automaticamente
 
 **Na tabela de grupos você verá:**
+- **Foto do grupo** (miniatura)
 - Nome do grupo
 - Campanha vinculada (opcional)
 - Quantidade de participantes
 - Link de convite (botão copiar)
 - Status (Ativo/Inativo)
+- **Ações**: Editar, Enviar mensagem, Gerar link
 
-**Importante:** Os grupos são importados do WhatsApp, não criados manualmente no sistema.`
+**Importante:** Os grupos podem ser importados do WhatsApp ou criados manualmente no sistema.`
+        },
+        {
+          title: "Criar Grupos Manualmente",
+          content: `**Criar grupo com configurações avançadas:**
+
+1. Na aba **Grupos**, clique em **"Criar Grupo"**
+2. **Selecione a instância** onde o grupo será criado (obrigatório)
+3. Preencha:
+   - **Nome do Grupo**: Nome que aparecerá no WhatsApp
+   - **Participante Inicial**: Número do primeiro membro (obrigatório)
+   - **Foto do Grupo**: Faça upload de uma imagem (opcional)
+   - **Descrição**: Texto que aparece na info do grupo (opcional)
+   - **Apenas Admins enviam**: Restringe mensagens aos administradores
+
+**Sobre o Participante Inicial:**
+- Se você configurou um **Participante Padrão** na aba WhatsApp, o campo já vem preenchido e **bloqueado**
+- Se não configurou, preencha manualmente (formato: 5511999999999)
+- É obrigatório ter pelo menos 1 participante para criar o grupo
+
+**Após criar:**
+- O grupo aparece automaticamente na tabela
+- Link de convite é gerado
+- Você pode editar todas as configurações depois`
+        },
+        {
+          title: "Editar Grupos Existentes",
+          content: `**Editar configurações de um grupo:**
+
+1. Na aba **Grupos**, encontre o grupo desejado
+2. Clique no botão **"Editar"** (ícone de lápis) na coluna Ações
+3. No modal de edição, você pode alterar:
+   - **Nome do Grupo**: Atualiza o nome no WhatsApp
+   - **Descrição**: Texto da info do grupo
+   - **Foto do Grupo**: Upload de nova imagem (mostra foto atual)
+   - **Apenas Admins enviam**: Liga/desliga restrição de mensagens
+
+4. Clique em **"Salvar Alterações"**
+
+**Visualização da foto:**
+- A foto atual do grupo aparece tanto na **tabela** (miniatura) quanto no **modal de edição**
+- Ao fazer upload de nova foto, ela substitui a anterior
+
+**Dicas:**
+- Mudanças são aplicadas diretamente no WhatsApp via API
+- Todas as alterações são registradas nos logs
+- Se a instância desconectar, as edições falharão`
+        },
+        {
+          title: "Gerar Link de Convite",
+          content: `**Obter link de convite do grupo:**
+
+1. Na aba **Grupos**, encontre o grupo desejado
+2. Clique no botão **"Link"** (ícone de corrente) na coluna Ações
+3. O sistema busca o link via API Evolution
+4. O link é **copiado automaticamente** para sua área de transferência
+5. Uma notificação confirma a cópia
+
+**Onde usar o link:**
+- Divulgação em redes sociais
+- Convites por email ou WhatsApp
+- Sites e landing pages
+- QR Codes
+
+**Atualização:**
+- O link é buscado em tempo real da API
+- Se o link mudar no WhatsApp, clique novamente para obter o novo
+- Links expiram quando o grupo é configurado para tal`
+        },
+        {
+          title: "Envio Rápido para Grupo",
+          content: `**Enviar mensagem direta para um grupo específico:**
+
+1. Na aba **Grupos**, encontre o grupo desejado
+2. Clique no botão **"Enviar"** (ícone de avião) na coluna Ações
+3. No modal de envio rápido:
+   - Escreva a **mensagem** no campo de texto
+   - Ative **"Mencionar Todos"** se quiser marcar todos os participantes
+4. Clique em **"Enviar Mensagem"**
+
+**Diferença do agendamento:**
+- **Envio Rápido**: Envia IMEDIATAMENTE, sem agendar
+- **Mensagem Agendada**: Define data/hora futura para envio
+
+**Quando usar:**
+- Comunicados urgentes
+- Respostas rápidas
+- Teste de conectividade
+- Avisos pontuais
+
+**Menção Todos (@todos):**
+- Quando ativado, todos os participantes são notificados
+- Use com moderação para não gerar spam
+- Funciona mesmo em grupos grandes`
         },
         {
           title: "Criar Campanhas",
@@ -1422,20 +1524,22 @@ Exemplo: Campanha "Black Friday" com grupos temáticos de vendas.`
 2. Clique em **"+ Nova Mensagem"**
 3. Selecione o **grupo de destino** (ou todos os ativos)
 4. Escreva o **conteúdo** da mensagem
-5. Adicione mídia (opcional): selecione tipo e cole a URL
+5. Adicione mídia (opcional): faça **upload direto** ou cole URL
 6. Defina **data e horário** de envio
 7. Configure o **delay entre grupos** (recomendado: 2-5 seg)
 8. Ative **"Mencionar Todos"** se desejar
 9. Clique em **"Salvar"**
 
 **Tipos de mídia suportados:**
-- ✅ Imagem (URL direta)
-- ✅ Vídeo (URL direta)
-- ✅ Áudio (URL direta)
-- ✅ Documento/Arquivo (URL direta)
+- ✅ Imagem (upload ou URL direta)
+- ✅ Vídeo (upload ou URL direta)
+- ✅ Áudio (upload ou URL direta)
+- ✅ Documento/Arquivo (upload ou URL direta)
 
-**Filtrar mensagens:**
-Use o seletor de grupo para ver apenas mensagens de um grupo específico.
+**Upload de mídia:**
+- Clique em "Selecionar arquivo" ou arraste o arquivo
+- Arquivo é enviado para o storage e URL é gerada automaticamente
+- Elimina necessidade de hospedar arquivos externamente
 
 **Status das mensagens:**
 - 🟡 **Pendente**: Aguardando horário de envio
@@ -1522,7 +1626,9 @@ Quando alguém entra no grupo vinculado:
 - ✅ Sincronização de grupos (início/fim)
 - ✅ Testes de conexão (sucesso/falha)
 - ✅ Configuração de webhook
-- ✅ Envio de mensagens
+- ✅ Envio de mensagens (agendadas e rápidas)
+- ✅ Criação e edição de grupos
+- ✅ Geração de links de convite
 - ✅ Erros e avisos
 
 **Informações em cada log:**
@@ -1559,7 +1665,11 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
       ],
       tips: [
         "Use uma instância WhatsApp DEDICADA para o Divulgador",
+        "Configure um Participante Padrão para agilizar criação de grupos",
         "Sempre sincronize GRUPOS antes de PARTICIPANTES",
+        "Use Envio Rápido para comunicados urgentes",
+        "Edite grupos para manter informações atualizadas",
+        "Gere links de convite para facilitar a divulgação",
         "O webhook é configurado automaticamente ao salvar/testar instância",
         "Menções aumentam engajamento mas use com moderação",
         "Agende mensagens em horários comerciais para melhor resultado",
