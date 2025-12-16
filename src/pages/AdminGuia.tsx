@@ -607,6 +607,53 @@ O sistema executa diariamente no horário configurado (padrão: 10h - horário d
 
 **Se precisar alterar o secret:**
 Basta atualizar o valor no painel e salvar. A mudança é aplicada imediatamente.`
+        },
+        {
+          title: "Notificações de Erro por Email",
+          content: `O sistema pode enviar alertas por email quando houver falhas nas cobranças:
+
+**Como ativar:**
+1. Na aba **Geral** do módulo de Cobrança
+2. Ative **"Notificações de Erro"**
+3. Informe o **email para receber alertas**
+4. Salve as configurações
+
+**Quando você recebe alerta:**
+- ❌ Falha no envio de email ou WhatsApp
+- ❌ Erro ao gerar link de pagamento ou boleto
+- ❌ CPF/CNPJ inválido impedindo geração de boleto
+- ❌ Qualquer erro durante o processamento da cobrança
+
+**O email inclui:**
+- Quantidade de erros ocorridos
+- Detalhes de cada falha (cliente, motivo)
+- Timestamp da execução
+
+Isso permite agir rapidamente quando algo dá errado!`
+        },
+        {
+          title: "Monitoramento do Cron (Última/Próxima Execução)",
+          content: `O painel de cobrança mostra informações em tempo real sobre o agendamento:
+
+**Última Execução:**
+- Data e hora da última vez que o cron executou
+- Quantidade de envios realizados
+- Quantos foram sucesso ✓ e quantos erraram ✗
+
+**Próxima Execução:**
+- Data e hora prevista para próxima execução
+- Calculada automaticamente com base no horário configurado
+
+**Alerta de Cron Perdido:**
+Se o sistema detectar que o cron não executou no horário previsto:
+- ⚠️ Aparece um alerta vermelho no painel
+- Verifique se o CRON Secret está correto
+- Use o botão **"Executar Agora"** para rodar manualmente
+
+**Sincronização com Banco:**
+- O horário configurado no painel é comparado com o banco
+- ✓ Verde = sincronizado
+- ⚠️ Vermelho = divergente (salve para sincronizar)`
         }
       ],
       tips: [
@@ -614,7 +661,9 @@ Basta atualizar o valor no painel e salvar. A mudança é aplicada imediatamente
         "Monitore a aba Relatórios para ver taxas de sucesso",
         "Use a cobrança manual para casos urgentes",
         "Use o filtro 'Info' para ver quando não havia clientes para cobrar",
-        "O CRON Secret só precisa ser configurado no painel (sincroniza automaticamente)"
+        "O CRON Secret só precisa ser configurado no painel (sincroniza automaticamente)",
+        "Ative as notificações de erro para ser alertado quando cobranças falharem",
+        "Se o cron não executar, use 'Executar Agora' e verifique o CRON Secret"
       ]
     },
     {
