@@ -546,15 +546,16 @@ serve(async (req) => {
       // Update group name if provided
       if (groupName && groupName !== groupData.name) {
         try {
-          await fetch(`${api_url}/group/updateSubject/${instance_name}?groupJid=${wid}`, {
-            method: 'PUT',
+          const res = await fetch(`${api_url}/group/updateSubject/${instance_name}`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': api_key,
             },
-            body: JSON.stringify({ subject: groupName }),
+            body: JSON.stringify({ groupJid: wid, subject: groupName }),
           });
-          console.log('[divulgador-groups] Group name updated');
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Group name update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
         } catch (e) {
           console.error('[divulgador-groups] Failed to update name:', e);
         }
@@ -563,15 +564,16 @@ serve(async (req) => {
       // Update group description if provided
       if (groupDescription !== undefined) {
         try {
-          await fetch(`${api_url}/group/updateDescription/${instance_name}?groupJid=${wid}`, {
-            method: 'PUT',
+          const res = await fetch(`${api_url}/group/updateDescription/${instance_name}`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': api_key,
             },
-            body: JSON.stringify({ description: groupDescription }),
+            body: JSON.stringify({ groupJid: wid, description: groupDescription }),
           });
-          console.log('[divulgador-groups] Group description updated');
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Group description update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
         } catch (e) {
           console.error('[divulgador-groups] Failed to update description:', e);
         }
@@ -580,15 +582,16 @@ serve(async (req) => {
       // Update group photo if provided
       if (groupPhoto) {
         try {
-          await fetch(`${api_url}/group/updateGroupPicture/${instance_name}?groupJid=${wid}`, {
-            method: 'PUT',
+          const res = await fetch(`${api_url}/group/updateGroupPicture/${instance_name}`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': api_key,
             },
-            body: JSON.stringify({ image: groupPhoto }),
+            body: JSON.stringify({ groupJid: wid, image: groupPhoto }),
           });
-          console.log('[divulgador-groups] Group photo updated');
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Group photo update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
         } catch (e) {
           console.error('[divulgador-groups] Failed to update photo:', e);
         }
@@ -598,15 +601,16 @@ serve(async (req) => {
       if (adminOnly !== undefined) {
         try {
           const settingAction = adminOnly ? 'announcement' : 'not_announcement';
-          await fetch(`${api_url}/group/updateSetting/${instance_name}?groupJid=${wid}`, {
-            method: 'PUT',
+          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': api_key,
             },
-            body: JSON.stringify({ action: settingAction }),
+            body: JSON.stringify({ groupJid: wid, action: settingAction }),
           });
-          console.log('[divulgador-groups] Admin-only setting updated:', settingAction);
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Admin-only setting update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
         } catch (e) {
           console.error('[divulgador-groups] Failed to update settings:', e);
         }
