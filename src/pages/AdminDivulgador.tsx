@@ -48,6 +48,7 @@ export default function AdminDivulgador() {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [testingInstanceId, setTestingInstanceId] = useState<string | null>(null);
+  const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
 
   // ================== QUERIES ==================
 
@@ -210,10 +211,29 @@ export default function AdminDivulgador() {
           .delete()
           .eq('instance_name', instance.instance_name);
       }
+      
+      // Clear all groups, participants, welcome configs when no instance remains
+      const { data: remainingInstances } = await (supabase as any)
+        .from('divulgador_instances')
+        .select('id')
+        .limit(1);
+      
+      if (!remainingInstances || remainingInstances.length === 0) {
+        // Clear participants first (foreign key)
+        await (supabase as any).from('divulgador_participants').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        // Clear welcome configs
+        await (supabase as any).from('divulgador_welcome_config').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        // Clear groups
+        await (supabase as any).from('divulgador_groups').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
-      toast.success('Instância removida!');
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-participants'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
+      setInstanceToDelete(null);
+      toast.success('Instância removida e dados limpos!');
     },
   });
 
@@ -661,7 +681,7 @@ export default function AdminDivulgador() {
                               <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id}>
                                 {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                               </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteInstanceMutation.mutate(inst.id)}>
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setInstanceToDelete(inst)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -751,25 +771,37 @@ export default function AdminDivulgador() {
                 <p className="text-sm text-muted-foreground">Gerencie os grupos vinculados às campanhas</p>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing}>
+                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0}>
                   {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                   Sincronizar do WhatsApp
                 </Button>
-                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring}>
+                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring || instances.length === 0}>
                   {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
                   Auto-criar Grupos
                 </Button>
-                <Button onClick={() => setIsGroupDialogOpen(true)}>
+                <Button onClick={() => setIsGroupDialogOpen(true)} disabled={instances.length === 0}>
                   <Plus className="h-4 w-4 mr-2" />Criar Grupo
                 </Button>
               </div>
             </div>
 
-            <Card className="border-border/40">
-              <CardContent className="pt-6">
-                {groups.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum grupo encontrado. Clique em "Sincronizar do WhatsApp" para importar grupos existentes.</p>
-                ) : (
+            {instances.length === 0 ? (
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="py-8 text-center">
+                  <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+                  <p className="font-medium text-amber-600 dark:text-amber-400">Nenhuma instância configurada</p>
+                  <p className="text-sm text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar grupos.</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setActiveTab('instances')}>
+                    <Settings className="h-4 w-4 mr-2" />Configurar Instância
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border/40">
+                <CardContent className="pt-6">
+                  {groups.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">Nenhum grupo encontrado. Clique em "Sincronizar do WhatsApp" para importar grupos existentes.</p>
+                  ) : (
                   <ScrollArea className="h-[400px]">
                     <Table>
                       <TableHeader>
@@ -800,9 +832,10 @@ export default function AdminDivulgador() {
                       </TableBody>
                     </Table>
                   </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* TAB: MENSAGENS */}
@@ -1258,6 +1291,46 @@ export default function AdminDivulgador() {
               <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name}>
                 {isCreatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                 Criar Grupo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Confirmar exclusão de instância */}
+        <Dialog open={!!instanceToDelete} onOpenChange={(open) => !open && setInstanceToDelete(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar exclusão</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir a instância "{instanceToDelete?.instance_name}"?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-destructive">Atenção: Esta ação irá:</p>
+                      <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-1">
+                        <li>Remover permanentemente a instância</li>
+                        <li>Limpar todos os grupos sincronizados (se for a última instância)</li>
+                        <li>Remover participantes e configurações de boas-vindas associadas</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInstanceToDelete(null)}>Cancelar</Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => instanceToDelete && deleteInstanceMutation.mutate(instanceToDelete.id)}
+                disabled={deleteInstanceMutation.isPending}
+              >
+                {deleteInstanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Excluir Instância
               </Button>
             </DialogFooter>
           </DialogContent>
