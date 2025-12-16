@@ -1154,6 +1154,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
       get_billing_cron_schedule: {
@@ -1210,6 +1211,10 @@ export type Database = {
       }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
+      update_divulgador_cron_schedule: {
+        Args: { p_interval_minutes: number }
         Returns: boolean
       }
       validate_password_reset_token: {
