@@ -1350,16 +1350,20 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
         },
         {
           title: "Configurar Instância WhatsApp",
-          content: `1. Acesse **Painel Administrativo** → **Divulgador Interno**
-2. Na aba **Configuração**, configure sua instância:
-   - **API URL**: URL da Evolution API (ex: https://api.evolution.com.br)
+          content: `1. Acesse o **Divulgador** (menu lateral)
+2. Na aba **WhatsApp**, clique em **"Nova Instância"**
+3. Preencha:
+   - **URL da API Evolution**: URL completa (ex: https://api.evolution.com.br)
+   - **Nome da Instância**: Identificador no painel Evolution
    - **API Key**: Chave de autenticação
-   - **Nome da Instância**: Identificador da instância
 
-3. Clique em **"Salvar Configuração"**
-4. Clique em **"Testar Conexão"** para verificar
+4. Clique em **"Salvar"**
+5. Ative o switch **"Ativo"** na tabela
+6. Clique no ícone de **atualizar (🔄)** para testar conexão
 
-⚠️ **Importante**: Esta instância é **exclusiva** para grupos e não compartilhada com cobrança ou boas-vindas.`
+✅ Se aparecer **"Conectado"** (verde), a instância está pronta!
+
+⚠️ **Importante**: Esta instância é **exclusiva** para o Divulgador - não compartilhada com cobrança ou boas-vindas.`
         },
         {
           title: "Criar Campanhas",
@@ -1376,38 +1380,43 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 Exemplo: Campanha "Black Friday" com grupos "VENDAS-1", "VENDAS-2", etc.`
         },
         {
-          title: "Gerenciar Grupos",
-          content: `**Criar Grupo Manual:**
-1. Acesse **Divulgador** → aba **Grupos**
-2. Clique em **"Criar Grupo"**
-3. Defina nome, descrição e vincule a uma campanha
+          title: "Sincronizar Grupos",
+          content: `**Fluxo de sincronização (ordem correta):**
 
-**Criação Automática:**
-Configure a quantidade mínima de grupos vazios.
-Quando um grupo encher, o sistema cria outro automaticamente!
+1. **Primeiro**: Conecte a instância WhatsApp (aba WhatsApp → ícone atualizar)
+2. **Segundo**: Na aba **Grupos**, clique em **"Sincronizar do WhatsApp"**
+3. **Terceiro**: Na aba **Participantes**, sincronize os participantes
 
-**Monitoramento:**
-- Veja participantes em tempo real
-- Acompanhe entrada/saída
-- Identifique grupos próximos do limite`
+**Importante:** Os grupos são importados do WhatsApp, não criados manualmente.
+O sistema busca TODOS os grupos onde a instância é administradora.
+
+**Na tabela de grupos você verá:**
+- Nome do grupo
+- Quantidade de participantes
+- Link de convite (se disponível)
+- Status (Ativo/Inativo)`
         },
         {
           title: "Agendar Mensagens",
-          content: `**Envio para todos os grupos:**
+          content: `**Envio para grupos:**
 1. Acesse **Divulgador** → aba **Mensagens**
 2. Clique em **"Nova Mensagem"**
-3. Selecione a campanha (ou grupos específicos)
+3. Selecione o **grupo de destino** (ou "Todos os grupos")
 4. Escreva sua mensagem
 5. Adicione mídia (opcional): imagem, vídeo, áudio, arquivo
-6. Defina data e horário de envio
-7. Ative **"Mencionar Todos"** se desejar
+6. Defina **data e horário** de envio
+7. Configure o **delay entre grupos** (recomendado: 2-5 seg)
+8. Ative **"Mencionar Todos"** se desejar
 
 **Tipos de conteúdo suportados:**
-- ✅ Texto
-- ✅ Imagens
-- ✅ Vídeos
-- ✅ Áudios
-- ✅ Documentos/Arquivos`
+- ✅ Texto simples
+- ✅ Imagens (URL)
+- ✅ Vídeos (URL)
+- ✅ Áudios (URL)
+- ✅ Documentos/Arquivos (URL)
+
+**Filtro por grupo:**
+Na lista de mensagens agendadas, use o filtro para ver apenas mensagens de um grupo específico.`
         },
         {
           title: "Boas-vindas Automáticas",
@@ -1426,19 +1435,21 @@ Quando alguém entra em qualquer grupo vinculado:
 3. Registra nos logs`
         },
         {
-          title: "Controle de Participantes",
-          content: `**Remoção Manual:**
-- Remova participantes individualmente
-- Remova inativos com um clique
+          title: "Gerenciar Participantes",
+          content: `**Aba Participantes** tem duas seções:
 
-**Remoção Automática:**
-Configure regras para remoção automática:
-- Participantes que compraram (ao final de campanha)
-- Participantes duplicados em múltiplos grupos
-- Participantes inativos por X dias
+**1. Todos os Participantes:**
+- Sincronize grupos primeiro (botão "1. Sincronizar Grupos")
+- Depois sincronize participantes (botão "2. Sincronizar Participantes")
+- Filtre por grupo específico
+- Exporte para CSV
 
-**Limpeza de Grupo:**
-Botão para remover TODOS os participantes de uma vez.`
+**2. Inativos:**
+- Configure critérios de inatividade (dias sem mensagem)
+- Visualize participantes inativos
+- Remova inativos em lote
+
+**Importante:** Sempre sincronize os grupos ANTES de sincronizar participantes!`
         },
         {
           title: "Relatórios e Métricas",

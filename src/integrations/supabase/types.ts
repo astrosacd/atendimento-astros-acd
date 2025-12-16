@@ -703,6 +703,7 @@ export type Database = {
           content: string
           created_at: string
           delay_seconds: number | null
+          group_id: string | null
           id: string
           media_type: string | null
           media_url: string | null
@@ -717,6 +718,7 @@ export type Database = {
           content: string
           created_at?: string
           delay_seconds?: number | null
+          group_id?: string | null
           id?: string
           media_type?: string | null
           media_url?: string | null
@@ -731,6 +733,7 @@ export type Database = {
           content?: string
           created_at?: string
           delay_seconds?: number | null
+          group_id?: string | null
           id?: string
           media_type?: string | null
           media_url?: string | null
@@ -746,6 +749,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "divulgador_messages_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_groups"
             referencedColumns: ["id"]
           },
         ]

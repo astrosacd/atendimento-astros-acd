@@ -13,7 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Search, Users, Loader2, RefreshCw } from 'lucide-react';
+import { Download, Search, Users, Loader2, RefreshCw, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -223,39 +223,53 @@ export function AllParticipantsManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Sync buttons */}
-        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={syncGroups} 
-            disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
-          >
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Sincronizar Grupos
-          </Button>
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={syncParticipants} 
-            disabled={isSyncing || groups.length === 0 || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
-          >
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
-            Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : 'de Todos'}
-          </Button>
+        {/* Instructions and sync workflow */}
+        <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <div className="text-sm space-y-1">
+              <p className="font-medium">Fluxo de sincronização:</p>
+              <ol className="list-decimal list-inside text-muted-foreground space-y-0.5 text-xs">
+                <li><strong>Primeiro:</strong> Sincronize os grupos do WhatsApp</li>
+                <li><strong>Depois:</strong> Sincronize os participantes (por grupo ou todos)</li>
+              </ol>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={syncGroups} 
+              disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              1. Sincronizar Grupos
+            </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={syncParticipants} 
+              disabled={isSyncing || groups.length === 0}
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
+              2. Sincronizar Participantes {selectedGroupId !== '_all' ? 'do Grupo' : ''}
+            </Button>
+          </div>
+          
           {instances.length === 0 ? (
-            <p className="text-xs text-amber-500 self-center ml-2">
-              Configure uma instância WhatsApp primeiro
+            <p className="text-xs text-amber-500">
+              ⚠️ Configure uma instância WhatsApp primeiro (aba WhatsApp)
             </p>
           ) : !instances.some((i: any) => i.is_connected) ? (
-            <p className="text-xs text-amber-500 self-center ml-2">
-              Conecte a instância (aba WhatsApp → ícone atualizar)
+            <p className="text-xs text-amber-500">
+              ⚠️ Conecte a instância (aba WhatsApp → ícone atualizar)
             </p>
-          ) : (
-            <p className="text-xs text-muted-foreground self-center ml-2">
-              Buscar dados atualizados do WhatsApp
+          ) : groups.length === 0 ? (
+            <p className="text-xs text-amber-500">
+              ⚠️ Clique em "Sincronizar Grupos" primeiro para buscar grupos do WhatsApp
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Filters */}
