@@ -1057,6 +1057,49 @@ const AdminCobranca = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Cron Secret Config */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="w-5 h-5 text-purple-400" />
+                    Autenticação do Cron
+                  </CardTitle>
+                  <CardDescription>
+                    Secret para autenticação do job automático
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      CRON Secret
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="Digite o secret do cron..."
+                      value={config.cron_secret || ''}
+                      onChange={(e) => setConfig({ ...config, cron_secret: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Este valor deve ser igual ao configurado nos secrets da Edge Function (CRON_SECRET)
+                    </p>
+                  </div>
+                  <div className={`p-3 rounded-lg text-sm ${config.cron_secret ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'}`}>
+                    {config.cron_secret ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 inline mr-2" />
+                        CRON Secret configurado
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-4 h-4 inline mr-2" />
+                        Configure o CRON Secret para o agendamento automático funcionar
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="flex justify-end">
