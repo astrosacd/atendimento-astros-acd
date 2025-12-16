@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,17 @@ interface GuideGroup {
 const AdminGuia = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<string>("gmail");
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll suave ao topo quando a categoria muda
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  }, [activeCategory]);
 
   const { data: customRoles = [] } = useQuery({
     queryKey: ['custom-roles-guia'],
@@ -1313,8 +1324,8 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-auto">
-          <ScrollArea className="h-[calc(100vh-80px)]">
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-80px)]" ref={contentRef}>
             <div className="max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
               {activeGuide && (
                 <>
