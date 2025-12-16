@@ -19,16 +19,18 @@ serve(async (req) => {
     const { action, campaignId, groupName, groupDescription, participants } = await req.json();
     console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}`);
 
-    // Get WhatsApp instance config
+    // Get WhatsApp instance config from divulgador_instances (managed by the panel)
     const { data: instance, error: instanceError } = await supabase
-      .from('divulgador_whatsapp_instance')
+      .from('divulgador_instances')
       .select('*')
+      .eq('is_active', true)
+      .eq('is_connected', true)
       .limit(1)
       .single();
 
     if (instanceError || !instance) {
-      console.error('[divulgador-groups] No WhatsApp instance configured');
-      return new Response(JSON.stringify({ error: 'Instância WhatsApp não configurada' }), {
+      console.error('[divulgador-groups] No active WhatsApp instance configured');
+      return new Response(JSON.stringify({ error: 'Nenhuma instância WhatsApp ativa configurada. Adicione uma instância no painel.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
