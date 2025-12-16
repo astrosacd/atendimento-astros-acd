@@ -55,7 +55,7 @@ export default function AdminDivulgador() {
   // ================== QUERIES ==================
 
   // Fetch instances
-  const { data: instances = [], isLoading: isLoadingInstances } = useQuery({
+  const { data: instances = [], isLoading: isLoadingInstances, isFetching: isFetchingInstances } = useQuery({
     queryKey: ['divulgador-instances'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -65,7 +65,9 @@ export default function AdminDivulgador() {
       if (error) throw error;
       return data || [];
     },
-    staleTime: 5000, // Evita refetch muito frequente que pode causar flash de dados vazios
+    staleTime: 10000, // 10 segundos
+    gcTime: 60000, // Mantém cache por 1 minuto
+    refetchOnWindowFocus: false, // Evita refetch ao trocar de janela
   });
 
   // Fetch campaigns
@@ -100,7 +102,7 @@ export default function AdminDivulgador() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('divulgador_messages')
-        .select('*, divulgador_campaigns(name)')
+        .select('*, divulgador_campaigns(name), divulgador_groups(name)')
         .order('scheduled_at', { ascending: true });
       if (error) throw error;
       return data || [];
@@ -511,7 +513,7 @@ export default function AdminDivulgador() {
   // ================== MESSAGE MANAGEMENT ==================
 
   const [messageForm, setMessageForm] = useState({
-    campaign_id: '',
+    campaign_id: '', // Now used as group_id selection
     content: '',
     media_type: 'text',
     media_url: '',
@@ -522,12 +524,20 @@ export default function AdminDivulgador() {
 
   const saveMessageMutation = useMutation({
     mutationFn: async (formData: typeof messageForm) => {
+      // campaign_id field is now used to store group_id selection
+      const selectedGroupId = formData.campaign_id || null;
+      
       const { error } = await (supabase as any)
         .from('divulgador_messages')
         .insert([{
-          ...formData,
-          campaign_id: formData.campaign_id || null,
+          content: formData.content,
           media_type: formData.media_type || 'text',
+          media_url: formData.media_url || null,
+          scheduled_at: formData.scheduled_at,
+          mention_all: formData.mention_all,
+          delay_seconds: formData.delay_seconds,
+          group_id: selectedGroupId, // Store selected group
+          campaign_id: null, // No longer using campaign
           status: 'pending',
         }]);
       if (error) throw error;
@@ -755,8 +765,8 @@ export default function AdminDivulgador() {
                     <TableBody>
                       {instances.map((inst: any) => (
                         <TableRow key={inst.id}>
-                          <TableCell className="font-medium">{inst.instance_name}</TableCell>
-                          <TableCell className="text-muted-foreground max-w-[200px] truncate">{inst.api_url}</TableCell>
+                          <TableCell className="font-medium">{inst.instance_name || <span className="text-muted-foreground italic">Carregando...</span>}</TableCell>
+                          <TableCell className="text-muted-foreground max-w-[200px] truncate">{inst.api_url || '-'}</TableCell>
                           <TableCell>
                             <Badge variant={inst.is_connected ? "default" : "secondary"} className="gap-1">
                               {inst.is_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
@@ -995,7 +1005,7 @@ export default function AdminDivulgador() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Conteúdo</TableHead>
-                          <TableHead>Campanha</TableHead>
+                          <TableHead>Grupo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Status</TableHead>
@@ -1003,10 +1013,10 @@ export default function AdminDivulgador() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.campaign_id === messagesFilterGroup).map((msg: any) => (
+                        {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup).map((msg: any) => (
                           <TableRow key={msg.id}>
                             <TableCell className="max-w-[200px] truncate">{msg.content}</TableCell>
-                            <TableCell>{msg.divulgador_campaigns?.name || 'Todos'}</TableCell>
+                            <TableCell>{msg.divulgador_groups?.name || 'Todos os grupos'}</TableCell>
                             <TableCell><Badge variant="outline">{msg.media_type || 'text'}</Badge></TableCell>
                             <TableCell>{msg.scheduled_at ? format(new Date(msg.scheduled_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '-'}</TableCell>
                             <TableCell>
@@ -1458,14 +1468,15 @@ export default function AdminDivulgador() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Campanha</Label>
+                <Label>Grupo de destino</Label>
                 <Select value={messageForm.campaign_id || "_all"} onValueChange={(v) => setMessageForm({ ...messageForm, campaign_id: v === "_all" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Todos os grupos" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_all">Todos os grupos</SelectItem>
-                    {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Selecione um grupo específico ou "Todos" para enviar para todos os grupos sincronizados</p>
               </div>
               <div className="space-y-2">
                 <Label>Tipo de mídia</Label>

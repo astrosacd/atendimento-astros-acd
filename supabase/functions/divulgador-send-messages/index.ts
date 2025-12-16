@@ -70,12 +70,17 @@ serve(async (req) => {
         .update({ status: 'sending' })
         .eq('id', message.id);
 
-      // Get target groups
+      // Get target groups - check both group_id (single group) and campaign_id (legacy)
       let groupsQuery = supabase.from('divulgador_groups').select('*').eq('is_active', true);
       
-      if (message.campaign_id) {
+      if (message.group_id) {
+        // Single specific group
+        groupsQuery = groupsQuery.eq('id', message.group_id);
+      } else if (message.campaign_id) {
+        // Legacy: filter by campaign
         groupsQuery = groupsQuery.eq('campaign_id', message.campaign_id);
       }
+      // If neither, send to all active groups
 
       const { data: groups } = await groupsQuery;
 
