@@ -167,6 +167,7 @@ const AdminCobranca = () => {
     totalPaid: number;
     totalPending: number;
   } | null>(null);
+  const [dbCronSchedule, setDbCronSchedule] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -175,7 +176,29 @@ const AdminCobranca = () => {
     loadWhatsAppInstances();
     loadMetrics();
     loadPaymentStats();
+    loadDbCronSchedule();
   }, []);
+
+  const loadDbCronSchedule = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_billing_cron_schedule');
+      if (error) throw error;
+      if (data && data.length > 0) {
+        // Converter de UTC para Brasília (UTC-3)
+        const schedule = data[0].schedule;
+        const parts = schedule.split(' ');
+        if (parts.length >= 2) {
+          const utcMinute = parseInt(parts[0]);
+          let utcHour = parseInt(parts[1]);
+          let brHour = utcHour - 3;
+          if (brHour < 0) brHour += 24;
+          setDbCronSchedule(`${brHour.toString().padStart(2, '0')}:${utcMinute.toString().padStart(2, '0')}`);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar horário do cron:', error);
+    }
+  };
 
   const loadPaymentStats = async () => {
     const stats = await getPaymentStats();
@@ -412,6 +435,9 @@ const AdminCobranca = () => {
       if (cronError) {
         console.error('Erro ao atualizar cron:', cronError);
       }
+
+      // Recarregar o horário do cron para confirmar sincronização
+      await loadDbCronSchedule();
 
       toast({
         title: 'Configurações salvas!',
@@ -1068,6 +1094,19 @@ const AdminCobranca = () => {
                     <Clock className="w-4 h-4 inline mr-2" />
                     Execução: todos os dias às {(config.cron_hour || '10').padStart(2, '0')}:{(config.cron_minute || '0').padStart(2, '0')}
                   </div>
+                  {dbCronSchedule && (
+                    <div className={`p-3 rounded-lg text-sm ${
+                      dbCronSchedule === `${(config.cron_hour || '10').padStart(2, '0')}:${(config.cron_minute || '0').padStart(2, '0')}`
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                        : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                    }`}>
+                      <CheckCircle className="w-4 h-4 inline mr-2" />
+                      Cron no banco: {dbCronSchedule}
+                      {dbCronSchedule === `${(config.cron_hour || '10').padStart(2, '0')}:${(config.cron_minute || '0').padStart(2, '0')}`
+                        ? ' ✓ Sincronizado'
+                        : ' ⚠️ Divergente - Salve para sincronizar'}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
