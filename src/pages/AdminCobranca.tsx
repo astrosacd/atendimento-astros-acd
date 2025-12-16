@@ -168,6 +168,8 @@ const AdminCobranca = () => {
     totalPending: number;
   } | null>(null);
   const [dbCronSchedule, setDbCronSchedule] = useState<string | null>(null);
+  const [lastExecution, setLastExecution] = useState<string | null>(null);
+  const [nextExecution, setNextExecution] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -177,6 +179,7 @@ const AdminCobranca = () => {
     loadMetrics();
     loadPaymentStats();
     loadDbCronSchedule();
+    loadLastExecution();
   }, []);
 
   const loadDbCronSchedule = async () => {
@@ -193,10 +196,59 @@ const AdminCobranca = () => {
           let brHour = utcHour - 3;
           if (brHour < 0) brHour += 24;
           setDbCronSchedule(`${brHour.toString().padStart(2, '0')}:${utcMinute.toString().padStart(2, '0')}`);
+          
+          // Calcular próxima execução
+          calculateNextExecution(brHour, utcMinute);
         }
       }
     } catch (error) {
       console.error('Erro ao carregar horário do cron:', error);
+    }
+  };
+
+  const calculateNextExecution = (hour: number, minute: number) => {
+    const now = new Date();
+    // Converter para horário de Brasília
+    const brNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
+    const nextRun = new Date(brNow);
+    nextRun.setHours(hour, minute, 0, 0);
+    
+    // Se o horário já passou hoje, próxima execução é amanhã
+    if (nextRun <= brNow) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+    
+    setNextExecution(nextRun.toLocaleString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }));
+  };
+
+  const loadLastExecution = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('billing_logs')
+        .select('sent_at')
+        .order('sent_at', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const lastDate = new Date(data[0].sent_at);
+        setLastExecution(lastDate.toLocaleString('pt-BR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar última execução:', error);
     }
   };
 
@@ -1071,7 +1123,7 @@ const AdminCobranca = () => {
                       <Label>Hora</Label>
                       <Select value={config.cron_hour || '10'} onValueChange={(v) => setConfig({ ...config, cron_hour: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" className="max-h-60">
                           {Array.from({ length: 24 }, (_, i) => (
                             <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}h</SelectItem>
                           ))}
@@ -1082,7 +1134,7 @@ const AdminCobranca = () => {
                       <Label>Minuto</Label>
                       <Select value={config.cron_minute || '0'} onValueChange={(v) => setConfig({ ...config, cron_minute: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" className="max-h-60">
                           {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
                             <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')} min</SelectItem>
                           ))}
@@ -1107,6 +1159,28 @@ const AdminCobranca = () => {
                         : ' ⚠️ Divergente - Salve para sincronizar'}
                     </div>
                   )}
+                  
+                  {/* Última e Próxima Execução */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <History className="w-3 h-3" />
+                        Última execução
+                      </div>
+                      <div className="text-sm font-medium">
+                        {lastExecution || 'Nenhuma execução registrada'}
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Próxima execução
+                      </div>
+                      <div className="text-sm font-medium">
+                        {nextExecution || 'Não calculado'}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
