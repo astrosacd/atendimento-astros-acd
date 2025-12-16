@@ -168,7 +168,7 @@ const AdminCobranca = () => {
     totalPending: number;
   } | null>(null);
   const [dbCronSchedule, setDbCronSchedule] = useState<string | null>(null);
-  const [lastExecution, setLastExecution] = useState<string | null>(null);
+  const [lastExecution, setLastExecution] = useState<{ date: string; count: number; success: number; errors: number } | null>(null);
   const [nextExecution, setNextExecution] = useState<string | null>(null);
 
   useEffect(() => {
@@ -230,22 +230,46 @@ const AdminCobranca = () => {
 
   const loadLastExecution = async () => {
     try {
-      const { data, error } = await supabase
+      // Buscar o último log
+      const { data: lastLog, error: lastError } = await supabase
         .from('billing_logs')
         .select('sent_at')
         .order('sent_at', { ascending: false })
         .limit(1);
       
-      if (error) throw error;
-      if (data && data.length > 0) {
-        const lastDate = new Date(data[0].sent_at);
-        setLastExecution(lastDate.toLocaleString('pt-BR', { 
-          day: '2-digit', 
-          month: '2-digit', 
-          year: 'numeric',
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }));
+      if (lastError) throw lastError;
+      if (lastLog && lastLog.length > 0) {
+        const lastDate = new Date(lastLog[0].sent_at);
+        
+        // Definir janela de 5 minutos para considerar como mesma execução
+        const windowStart = new Date(lastDate.getTime() - 5 * 60 * 1000);
+        const windowEnd = new Date(lastDate.getTime() + 5 * 60 * 1000);
+        
+        // Contar logs nessa janela de tempo
+        const { data: logsInWindow, error: countError } = await supabase
+          .from('billing_logs')
+          .select('status')
+          .gte('sent_at', windowStart.toISOString())
+          .lte('sent_at', windowEnd.toISOString());
+        
+        if (countError) throw countError;
+        
+        const total = logsInWindow?.length || 0;
+        const success = logsInWindow?.filter(l => l.status === 'sent' || l.status === 'success').length || 0;
+        const errors = logsInWindow?.filter(l => l.status === 'error' || l.status === 'failed').length || 0;
+        
+        setLastExecution({
+          date: lastDate.toLocaleString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          count: total,
+          success,
+          errors
+        });
       }
     } catch (error) {
       console.error('Erro ao carregar última execução:', error);
@@ -1167,9 +1191,24 @@ const AdminCobranca = () => {
                         <History className="w-3 h-3" />
                         Última execução
                       </div>
-                      <div className="text-sm font-medium">
-                        {lastExecution || 'Nenhuma execução registrada'}
-                      </div>
+                      {lastExecution ? (
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">{lastExecution.date}</div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-muted-foreground">{lastExecution.count} envios</span>
+                            {lastExecution.success > 0 && (
+                              <span className="text-emerald-400">{lastExecution.success} ✓</span>
+                            )}
+                            {lastExecution.errors > 0 && (
+                              <span className="text-red-400">{lastExecution.errors} ✗</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Nenhuma execução registrada
+                        </div>
+                      )}
                     </div>
                     <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                       <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
