@@ -188,11 +188,27 @@ export default function AdminDivulgador() {
 
   const deleteInstanceMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Get instance name before deleting to also delete from legacy table
+      const { data: instance } = await (supabase as any)
+        .from('divulgador_instances')
+        .select('instance_name')
+        .eq('id', id)
+        .single();
+      
+      // Delete from main table
       const { error } = await (supabase as any)
         .from('divulgador_instances')
         .delete()
         .eq('id', id);
       if (error) throw error;
+      
+      // Also delete from legacy table to prevent re-sync
+      if (instance?.instance_name) {
+        await (supabase as any)
+          .from('divulgador_whatsapp_instance')
+          .delete()
+          .eq('instance_name', instance.instance_name);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
