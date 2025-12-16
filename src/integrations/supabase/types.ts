@@ -750,6 +750,36 @@ export type Database = {
           },
         ]
       }
+      divulgador_operation_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          operation: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          operation: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          operation?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       divulgador_participants: {
         Row: {
           created_at: string
