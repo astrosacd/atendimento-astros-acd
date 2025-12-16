@@ -49,6 +49,7 @@ export default function AdminDivulgador() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [testingInstanceId, setTestingInstanceId] = useState<string | null>(null);
   const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
+  const [editingInstance, setEditingInstance] = useState<any>(null);
 
   // ================== QUERIES ==================
 
@@ -169,22 +170,37 @@ export default function AdminDivulgador() {
 
   const saveInstanceMutation = useMutation({
     mutationFn: async (formData: typeof instanceForm) => {
-      const { data, error } = await (supabase as any)
-        .from('divulgador_instances')
-        .insert([formData])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      if (editingInstance) {
+        const { data, error } = await (supabase as any)
+          .from('divulgador_instances')
+          .update(formData)
+          .eq('id', editingInstance.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await (supabase as any)
+          .from('divulgador_instances')
+          .insert([formData])
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: async (savedInstance) => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-instances'] });
-      toast.success('Instância salva! Configurando webhook...');
+      toast.success(editingInstance ? 'Instância atualizada!' : 'Instância salva! Verificando conexão...');
       setIsInstanceDialogOpen(false);
       setInstanceForm({ instance_name: '', api_url: '', api_key: '' });
+      setEditingInstance(null);
       
       // Auto-configure webhook
       await configureWebhook(savedInstance);
+      
+      // Auto-test connection after creating/updating instance
+      setTimeout(() => testConnection(savedInstance), 500);
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
@@ -702,7 +718,7 @@ export default function AdminDivulgador() {
                 <h2 className="text-lg font-semibold">Instâncias WhatsApp</h2>
                 <p className="text-sm text-muted-foreground">Configure seus números Evolution API para envio de mensagens</p>
               </div>
-              <Button onClick={() => setIsInstanceDialogOpen(true)}>
+              <Button onClick={() => { setEditingInstance(null); setInstanceForm({ instance_name: '', api_url: '', api_key: '' }); setIsInstanceDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />Nova Instância
               </Button>
             </div>
@@ -760,6 +776,13 @@ export default function AdminDivulgador() {
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id}>
                                 {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => {
+                                setEditingInstance(inst);
+                                setInstanceForm({ instance_name: inst.instance_name, api_url: inst.api_url, api_key: inst.api_key });
+                                setIsInstanceDialogOpen(true);
+                              }}>
+                                <Edit className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setInstanceToDelete(inst)}>
                                 <Trash2 className="h-4 w-4" />
@@ -1321,12 +1344,12 @@ export default function AdminDivulgador() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialog: Nova Instância */}
-        <Dialog open={isInstanceDialogOpen} onOpenChange={setIsInstanceDialogOpen}>
+        {/* Dialog: Nova/Editar Instância */}
+        <Dialog open={isInstanceDialogOpen} onOpenChange={(open) => { setIsInstanceDialogOpen(open); if (!open) { setEditingInstance(null); setInstanceForm({ instance_name: '', api_url: '', api_key: '' }); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nova Instância WhatsApp</DialogTitle>
-              <DialogDescription>Configure uma instância Evolution API. O webhook será configurado automaticamente.</DialogDescription>
+              <DialogTitle>{editingInstance ? 'Editar Instância WhatsApp' : 'Nova Instância WhatsApp'}</DialogTitle>
+              <DialogDescription>{editingInstance ? 'Atualize os dados da instância Evolution API.' : 'Configure uma instância Evolution API. O webhook será configurado automaticamente.'}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -1346,10 +1369,10 @@ export default function AdminDivulgador() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsInstanceDialogOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => { setIsInstanceDialogOpen(false); setEditingInstance(null); setInstanceForm({ instance_name: '', api_url: '', api_key: '' }); }}>Cancelar</Button>
               <Button onClick={() => saveInstanceMutation.mutate(instanceForm)} disabled={saveInstanceMutation.isPending || !instanceForm.instance_name || !instanceForm.api_url || !instanceForm.api_key}>
                 {saveInstanceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Salvar
+                {editingInstance ? 'Atualizar' : 'Salvar'}
               </Button>
             </DialogFooter>
           </DialogContent>
