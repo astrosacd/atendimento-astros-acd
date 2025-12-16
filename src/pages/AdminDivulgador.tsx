@@ -50,6 +50,8 @@ export default function AdminDivulgador() {
   const [testingInstanceId, setTestingInstanceId] = useState<string | null>(null);
   const [instanceToDelete, setInstanceToDelete] = useState<any>(null);
   const [editingInstance, setEditingInstance] = useState<any>(null);
+  const [syncingGroupId, setSyncingGroupId] = useState<string | null>(null);
+  const [messagesFilterGroup, setMessagesFilterGroup] = useState<string>('_all');
 
   // ================== QUERIES ==================
 
@@ -506,6 +508,30 @@ export default function AdminDivulgador() {
     }
   };
 
+  // Sync participants for a specific group
+  const syncParticipantsForGroup = async (group: any) => {
+    setSyncingGroupId(group.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: { 
+          action: 'sync-participants',
+          groupId: group.id,
+          whatsappGroupId: group.whatsapp_group_id
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`${group.name}: ${data.count || 0} participantes sincronizados!`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
+      queryClient.invalidateQueries({ queryKey: ['divulgador-participants'] });
+      queryClient.invalidateQueries({ queryKey: ['all-divulgador-participants'] });
+    } catch (error: any) {
+      toast.error('Erro ao sincronizar participantes: ' + error.message);
+    } finally {
+      setSyncingGroupId(null);
+    }
+  };
   // ================== MESSAGE MANAGEMENT ==================
 
   const [messageForm, setMessageForm] = useState({
@@ -920,6 +946,7 @@ export default function AdminDivulgador() {
                           <TableHead>Participantes</TableHead>
                           <TableHead>Link</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -936,6 +963,17 @@ export default function AdminDivulgador() {
                               )}
                             </TableCell>
                             <TableCell><Badge variant={group.is_active ? "default" : "secondary"}>{group.is_active ? 'Ativo' : 'Inativo'}</Badge></TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => syncParticipantsForGroup(group)} 
+                                disabled={syncingGroupId === group.id}
+                              >
+                                {syncingGroupId === group.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                                Sync
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -949,17 +987,37 @@ export default function AdminDivulgador() {
 
           {/* TAB: MENSAGENS */}
           <TabsContent value="messages" className="space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex justify-between items-center flex-wrap gap-2 mb-2">
               <div>
                 <h2 className="text-lg font-semibold">Mensagens Agendadas</h2>
                 <p className="text-sm text-muted-foreground">Agende mensagens para envio aos grupos das campanhas</p>
               </div>
+            </div>
+            <div className="flex flex-wrap gap-4">
               <div className="flex gap-2">
+                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
+                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Sincronizar Grupos
+                </Button>
                 <Button variant="outline" onClick={sendPendingMessages} disabled={isSendingMessages || pendingMessages === 0}>
                   {isSendingMessages ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                   Enviar Agora ({pendingMessages})
                 </Button>
                 <Button onClick={() => setIsMessageDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Mensagem</Button>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <Label className="text-sm text-muted-foreground">Filtrar por grupo:</Label>
+                <Select value={messagesFilterGroup} onValueChange={setMessagesFilterGroup}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Todos os grupos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Todos os grupos</SelectItem>
+                    {groups.map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -981,7 +1039,7 @@ export default function AdminDivulgador() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {messages.map((msg: any) => (
+                        {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.campaign_id === messagesFilterGroup).map((msg: any) => (
                           <TableRow key={msg.id}>
                             <TableCell className="max-w-[200px] truncate">{msg.content}</TableCell>
                             <TableCell>{msg.divulgador_campaigns?.name || 'Todos'}</TableCell>
