@@ -840,6 +840,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      execute_billing_cron: { Args: never; Returns: undefined }
       has_role:
         | {
             Args: {
