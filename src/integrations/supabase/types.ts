@@ -1171,6 +1171,10 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { _role: string; _user_id: string }; Returns: boolean }
+      increment_participant_count: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
       insert_audit_log: {
         Args: {
           p_action: string
