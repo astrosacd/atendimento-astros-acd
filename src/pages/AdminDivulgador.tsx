@@ -694,10 +694,10 @@ export default function AdminDivulgador() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Campanha (opcional)</Label>
-                    <Select value={welcomeForm.campaign_id} onValueChange={(v) => setWelcomeForm({ ...welcomeForm, campaign_id: v })}>
+                    <Select value={welcomeForm.campaign_id || "_all"} onValueChange={(v) => setWelcomeForm({ ...welcomeForm, campaign_id: v === "_all" ? "" : v })}>
                       <SelectTrigger><SelectValue placeholder="Todas as campanhas" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
+                        <SelectItem value="_all">Todas</SelectItem>
                         {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -893,10 +893,10 @@ export default function AdminDivulgador() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Campanha</Label>
-                <Select value={messageForm.campaign_id} onValueChange={(v) => setMessageForm({ ...messageForm, campaign_id: v })}>
+                <Select value={messageForm.campaign_id || "_all"} onValueChange={(v) => setMessageForm({ ...messageForm, campaign_id: v === "_all" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Todos os grupos" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="_all">Todos</SelectItem>
                     {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -961,10 +961,10 @@ export default function AdminDivulgador() {
               </div>
               <div className="space-y-2">
                 <Label>Vincular à Campanha (opcional)</Label>
-                <Select value={groupForm.campaign_id} onValueChange={(v) => setGroupForm({ ...groupForm, campaign_id: v })}>
+                <Select value={groupForm.campaign_id || "_none"} onValueChange={(v) => setGroupForm({ ...groupForm, campaign_id: v === "_none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Nenhuma campanha" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="_none">Nenhuma</SelectItem>
                     {campaigns.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
