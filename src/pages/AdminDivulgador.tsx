@@ -413,6 +413,7 @@ export default function AdminDivulgador() {
     name: '',
     description: '',
     campaign_id: '',
+    initial_participant: '',
   });
 
   const createGroupViaAPI = async () => {
@@ -420,6 +421,18 @@ export default function AdminDivulgador() {
       toast.error('Digite o nome do grupo');
       return;
     }
+    if (!groupForm.initial_participant) {
+      toast.error('Digite o número WhatsApp do participante inicial (obrigatório para criar grupo via API)');
+      return;
+    }
+    
+    // Format number: remove non-digits and ensure it has the country code
+    const formattedNumber = groupForm.initial_participant.replace(/\D/g, '');
+    if (formattedNumber.length < 10) {
+      toast.error('Número inválido. Digite com DDD (ex: 11999999999)');
+      return;
+    }
+    
     setIsCreatingGroup(true);
     try {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
@@ -428,13 +441,14 @@ export default function AdminDivulgador() {
           campaignId: groupForm.campaign_id || null,
           groupName: groupForm.name,
           groupDescription: groupForm.description,
+          participants: [`${formattedNumber}@s.whatsapp.net`],
         },
       });
       if (error) throw error;
       toast.success('Grupo criado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       setIsGroupDialogOpen(false);
-      setGroupForm({ name: '', description: '', campaign_id: '' });
+      setGroupForm({ name: '', description: '', campaign_id: '', initial_participant: '' });
     } catch (error: any) {
       toast.error('Erro ao criar grupo: ' + error.message);
     } finally {
@@ -1588,11 +1602,22 @@ export default function AdminDivulgador() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome do Grupo</Label>
-                <Input value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} placeholder="Nome do grupo no WhatsApp" />
+                <Input value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} placeholder="Ex: Lembrete de Demanda #1" />
               </div>
               <div className="space-y-2">
                 <Label>Descrição (opcional)</Label>
                 <Textarea rows={2} value={groupForm.description} onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Participante Inicial <span className="text-destructive">*</span></Label>
+                <Input 
+                  value={groupForm.initial_participant} 
+                  onChange={(e) => setGroupForm({ ...groupForm, initial_participant: e.target.value })} 
+                  placeholder="Ex: 5511999999999" 
+                />
+                <p className="text-xs text-muted-foreground">
+                  Número WhatsApp com código do país e DDD. Obrigatório para criar grupo via API.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Vincular à Campanha (opcional)</Label>
@@ -1607,7 +1632,7 @@ export default function AdminDivulgador() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsGroupDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name}>
+              <Button onClick={createGroupViaAPI} disabled={isCreatingGroup || !groupForm.name || !groupForm.initial_participant}>
                 {isCreatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                 Criar Grupo
               </Button>
