@@ -35,3 +35,15 @@ verify_jwt = true
 
 [functions.webhook-proxy]
 verify_jwt = false
+
+[functions.divulgador-groups]
+verify_jwt = true
+
+[functions.divulgador-send-messages]
+verify_jwt = false
+
+[functions.divulgador-welcome]
+verify_jwt = false
+
+[functions.divulgador-monitor]
+verify_jwt = false
