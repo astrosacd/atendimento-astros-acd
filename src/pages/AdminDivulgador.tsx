@@ -199,7 +199,8 @@ export default function AdminDivulgador() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.state === 'open') {
+        const state = data?.instance?.state || data?.state;
+        if (state === 'open') {
           toast.success('Conexão estabelecida!');
           if (instance?.id) {
             await (supabase as any)
@@ -209,7 +210,7 @@ export default function AdminDivulgador() {
             queryClient.invalidateQueries({ queryKey: ['divulgador-instance'] });
           }
         } else {
-          toast.warning(`Status: ${data.state}`);
+          toast.warning(`Status: ${state || 'desconhecido'}`);
         }
       } else {
         toast.error('Falha na conexão');
