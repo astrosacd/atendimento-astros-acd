@@ -32,6 +32,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { WebhookConfigCard } from '@/components/divulgador/WebhookConfigCard';
+import { InstancesManager } from '@/components/divulgador/InstancesManager';
+import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
@@ -295,7 +297,8 @@ export default function AdminDivulgador() {
         body: { action: 'fetch-groups' },
       });
       if (error) throw error;
-      toast.success(`${data?.groups?.length || 0} grupos encontrados no WhatsApp`);
+      toast.success(`${data?.groups?.length || 0} grupos sincronizados!`);
+      queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
     } catch (error: any) {
       toast.error('Erro ao sincronizar: ' + error.message);
     } finally {
@@ -535,6 +538,9 @@ export default function AdminDivulgador() {
 
             {/* Webhook Configuration */}
             <WebhookConfigCard apiUrl={instanceForm.api_url} apiKey={instanceForm.api_key} instanceName={instanceForm.instance_name} />
+
+            {/* Multiple Instances */}
+            <InstancesManager />
           </TabsContent>
 
           {/* CAMPANHAS */}
@@ -757,8 +763,12 @@ export default function AdminDivulgador() {
 
           {/* PARTICIPANTES */}
           <TabsContent value="participants" className="space-y-6">
+            {/* Inactive Participants Manager */}
+            <InactiveParticipantsManager />
+
+            {/* All Participants List */}
             <Card className="border-border/40">
-              <CardHeader><CardTitle>Participantes dos Grupos</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Todos os Participantes</CardTitle></CardHeader>
               <CardContent>
                 {participants.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Nenhum participante registrado</p>
@@ -771,16 +781,18 @@ export default function AdminDivulgador() {
                           <TableHead>Nome</TableHead>
                           <TableHead>Grupo</TableHead>
                           <TableHead>Entrada</TableHead>
+                          <TableHead>Última Msg</TableHead>
                           <TableHead>Boas-vindas</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {participants.map((p: any) => (
                           <TableRow key={p.id}>
-                            <TableCell>{p.whatsapp_number}</TableCell>
+                            <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
                             <TableCell>{p.name || '-'}</TableCell>
                             <TableCell>{p.divulgador_groups?.name || '-'}</TableCell>
                             <TableCell>{p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy', { locale: ptBR }) : '-'}</TableCell>
+                            <TableCell>{p.last_message_at ? format(new Date(p.last_message_at), 'dd/MM/yy', { locale: ptBR }) : '-'}</TableCell>
                             <TableCell><Badge variant={p.welcome_sent ? 'default' : 'secondary'}>{p.welcome_sent ? 'Enviada' : 'Pendente'}</Badge></TableCell>
                           </TableRow>
                         ))}

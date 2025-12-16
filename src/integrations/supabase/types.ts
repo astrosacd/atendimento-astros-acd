@@ -549,6 +549,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          instance_id: string | null
           is_active: boolean | null
           max_participants_per_group: number | null
           min_empty_groups: number | null
@@ -560,6 +561,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           is_active?: boolean | null
           max_participants_per_group?: number | null
           min_empty_groups?: number | null
@@ -571,13 +573,22 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          instance_id?: string | null
           is_active?: boolean | null
           max_participants_per_group?: number | null
           min_empty_groups?: number | null
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_campaigns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       divulgador_config: {
         Row: {
@@ -650,6 +661,42 @@ export type Database = {
           },
         ]
       }
+      divulgador_instances: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string | null
+          id: string
+          instance_name: string
+          is_active: boolean | null
+          is_connected: boolean | null
+          last_connected_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string | null
+          id?: string
+          instance_name: string
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          is_active?: boolean | null
+          is_connected?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       divulgador_messages: {
         Row: {
           campaign_id: string | null
@@ -706,8 +753,11 @@ export type Database = {
           group_id: string | null
           id: string
           is_admin: boolean | null
+          is_inactive: boolean | null
           joined_at: string | null
+          last_message_at: string | null
           left_at: string | null
+          message_count: number | null
           name: string | null
           welcome_sent: boolean | null
           whatsapp_number: string
@@ -717,8 +767,11 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_admin?: boolean | null
+          is_inactive?: boolean | null
           joined_at?: string | null
+          last_message_at?: string | null
           left_at?: string | null
+          message_count?: number | null
           name?: string | null
           welcome_sent?: boolean | null
           whatsapp_number: string
@@ -728,8 +781,11 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_admin?: boolean | null
+          is_inactive?: boolean | null
           joined_at?: string | null
+          last_message_at?: string | null
           left_at?: string | null
+          message_count?: number | null
           name?: string | null
           welcome_sent?: boolean | null
           whatsapp_number?: string
