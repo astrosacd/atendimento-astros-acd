@@ -170,6 +170,7 @@ const AdminCobranca = () => {
   const [dbCronSchedule, setDbCronSchedule] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<{ date: string; count: number; success: number; errors: number } | null>(null);
   const [nextExecution, setNextExecution] = useState<string | null>(null);
+  const [cronMissed, setCronMissed] = useState<boolean>(false);
 
   useEffect(() => {
     loadConfig();
@@ -270,9 +271,75 @@ const AdminCobranca = () => {
           success,
           errors
         });
+
+        // Verificar se o cron perdeu a execução de hoje
+        checkCronMissed(lastDate);
+      } else {
+        // Sem logs = verificar se deveria ter executado
+        checkCronMissed(null);
       }
     } catch (error) {
       console.error('Erro ao carregar última execução:', error);
+    }
+  };
+
+  const checkCronMissed = async (lastExecutionDate: Date | null) => {
+    try {
+      // Buscar configuração de horário do cron
+      const { data: configData } = await supabase
+        .from('billing_config')
+        .select('config_key, config_value')
+        .in('config_key', ['cron_hour', 'cron_minute', 'billing_enabled']);
+      
+      const configMap: Record<string, string> = {};
+      configData?.forEach(item => {
+        configMap[item.config_key] = item.config_value;
+      });
+
+      // Se billing não está habilitado, não verificar
+      if (configMap.billing_enabled !== 'true') {
+        setCronMissed(false);
+        return;
+      }
+
+      const cronHour = parseInt(configMap.cron_hour || '10');
+      const cronMinute = parseInt(configMap.cron_minute || '0');
+
+      // Obter horário atual em Brasília
+      const now = new Date();
+      const brNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      
+      // Calcular quando deveria ter executado hoje
+      const expectedToday = new Date(brNow);
+      expectedToday.setHours(cronHour, cronMinute, 0, 0);
+
+      // Se ainda não chegou o horário de hoje, verificar ontem
+      if (brNow < expectedToday) {
+        expectedToday.setDate(expectedToday.getDate() - 1);
+      }
+
+      // Adicionar margem de 30 minutos após o horário esperado
+      const expectedWithMargin = new Date(expectedToday.getTime() + 30 * 60 * 1000);
+
+      // Se já passou o horário esperado + margem
+      if (brNow > expectedWithMargin) {
+        if (!lastExecutionDate) {
+          // Nunca executou
+          setCronMissed(true);
+        } else {
+          // Verificar se última execução foi antes do horário esperado de hoje
+          const lastExecBr = new Date(lastExecutionDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+          if (lastExecBr < expectedToday) {
+            setCronMissed(true);
+          } else {
+            setCronMissed(false);
+          }
+        }
+      } else {
+        setCronMissed(false);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar execução do cron:', error);
     }
   };
 
@@ -1184,9 +1251,20 @@ const AdminCobranca = () => {
                     </div>
                   )}
                   
+                  {/* Alerta de Cron Perdido */}
+                  {cronMissed && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                      <AlertCircle className="w-4 h-4 inline mr-2" />
+                      <span className="font-medium">Atenção:</span> O cron não executou no horário previsto hoje!
+                      <p className="text-xs mt-1 text-red-400/70">
+                        Verifique se o CRON Secret está configurado corretamente ou execute manualmente.
+                      </p>
+                    </div>
+                  )}
+                  
                   {/* Última e Próxima Execução */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                    <div className={`p-3 rounded-lg border ${cronMissed ? 'bg-red-500/5 border-red-500/20' : 'bg-muted/50 border-border/50'}`}>
                       <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                         <History className="w-3 h-3" />
                         Última execução
