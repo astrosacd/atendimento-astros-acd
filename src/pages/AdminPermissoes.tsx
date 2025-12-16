@@ -13,7 +13,8 @@ import { toast } from 'sonner';
 import { 
   ArrowLeft, Shield, Users, Eye, UserPlus, Edit, Trash2, 
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
-  Plus, Save, X, Check, Pencil, Download, Tag
+  Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
+  MessageSquare, Send, UserMinus, BarChart3
 } from 'lucide-react';
 import {
   Dialog,
@@ -79,6 +80,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   clientes: <Users className="h-4 w-4" />,
   admin: <Settings className="h-4 w-4" />,
   tags: <Tag className="h-4 w-4" />,
+  divulgador: <Megaphone className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -95,6 +97,13 @@ const permissionIcons: Record<string, React.ReactNode> = {
   manage_api: <Key className="h-4 w-4" />,
   view_logs: <FileText className="h-4 w-4" />,
   manage_settings: <Settings className="h-4 w-4" />,
+  view_divulgador: <Megaphone className="h-4 w-4" />,
+  manage_divulgador_config: <Settings className="h-4 w-4" />,
+  manage_divulgador_campaigns: <Send className="h-4 w-4" />,
+  manage_divulgador_groups: <Users className="h-4 w-4" />,
+  manage_divulgador_messages: <MessageSquare className="h-4 w-4" />,
+  manage_divulgador_participants: <UserMinus className="h-4 w-4" />,
+  view_divulgador_reports: <BarChart3 className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {
@@ -309,6 +318,7 @@ export default function AdminPermissoes() {
     clientes: 'Clientes',
     admin: 'Administração',
     tags: 'Tags',
+    divulgador: 'Divulgador Interno',
   };
 
   return (

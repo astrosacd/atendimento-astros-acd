@@ -44,6 +44,13 @@ export function usePermissions() {
   const canManageApi = () => hasPermission('manage_api');
   const canViewLogs = () => hasPermission('view_logs');
   const canManageSettings = () => hasPermission('manage_settings');
+  const canViewDivulgador = () => hasPermission('view_divulgador');
+  const canManageDivulgadorConfig = () => hasPermission('manage_divulgador_config');
+  const canManageDivulgadorCampaigns = () => hasPermission('manage_divulgador_campaigns');
+  const canManageDivulgadorGroups = () => hasPermission('manage_divulgador_groups');
+  const canManageDivulgadorMessages = () => hasPermission('manage_divulgador_messages');
+  const canManageDivulgadorParticipants = () => hasPermission('manage_divulgador_participants');
+  const canViewDivulgadorReports = () => hasPermission('view_divulgador_reports');
 
   return {
     permissions,
@@ -61,5 +68,12 @@ export function usePermissions() {
     canManageApi,
     canViewLogs,
     canManageSettings,
+    canViewDivulgador,
+    canManageDivulgadorConfig,
+    canManageDivulgadorCampaigns,
+    canManageDivulgadorGroups,
+    canManageDivulgadorMessages,
+    canManageDivulgadorParticipants,
+    canViewDivulgadorReports,
   };
 }

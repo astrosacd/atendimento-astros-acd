@@ -35,7 +35,12 @@ import {
   Settings,
   Zap,
   FileText,
-  LucideIcon
+  LucideIcon,
+  Megaphone,
+  Send,
+  UserMinus,
+  Clock,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -146,6 +151,13 @@ const AdminGuia = () => {
       icon: FileText,
       color: "text-amber-400",
       categories: ["tags", "clientes-registro"]
+    },
+    {
+      id: "divulgacao",
+      title: "Divulgação",
+      icon: Megaphone,
+      color: "text-orange-400",
+      categories: ["divulgador"]
     },
     {
       id: "sistema",
@@ -1313,6 +1325,148 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
         "Sempre verifique os logs primeiro",
         "Problemas de conexão geralmente são credenciais incorretas",
         "Recarregue a página após fazer alterações de configuração"
+      ]
+    },
+    {
+      id: "divulgador",
+      title: "Divulgador Interno",
+      icon: Megaphone,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Gerencie grupos de WhatsApp e campanhas em massa",
+      steps: [
+        {
+          title: "O que é o Divulgador Interno?",
+          content: `O **Divulgador Interno** é um módulo completo para gerenciamento de grupos de WhatsApp:
+
+- **Criação automática de grupos**: Crie grupos via API Evolution
+- **Campanhas em massa**: Envie mensagens para múltiplos grupos
+- **Escala infinita**: Criação automática quando grupos lotam
+- **Menções inteligentes**: Mencione todos os participantes
+- **Boas-vindas automáticas**: Mensagem privada para novos membros
+- **Controle de participantes**: Remoção automática ou manual
+
+O módulo possui sua **própria instância do WhatsApp**, independente dos outros módulos.`
+        },
+        {
+          title: "Configurar Instância WhatsApp",
+          content: `1. Acesse **Painel Administrativo** → **Divulgador Interno**
+2. Na aba **Configuração**, configure sua instância:
+   - **API URL**: URL da Evolution API (ex: https://api.evolution.com.br)
+   - **API Key**: Chave de autenticação
+   - **Nome da Instância**: Identificador da instância
+
+3. Clique em **"Salvar Configuração"**
+4. Clique em **"Testar Conexão"** para verificar
+
+⚠️ **Importante**: Esta instância é **exclusiva** para grupos e não compartilhada com cobrança ou boas-vindas.`
+        },
+        {
+          title: "Criar Campanhas",
+          content: `Campanhas organizam seus grupos por objetivo:
+
+1. Acesse **Divulgador** → aba **Campanhas**
+2. Clique em **"Nova Campanha"**
+3. Preencha:
+   - **Nome**: Identificação da campanha
+   - **Descrição**: Objetivo da campanha
+   - **Prefixo do Grupo**: Nome base dos grupos (ex: "VENDAS")
+   - **Máx. Participantes**: Limite antes de criar novo grupo
+
+Exemplo: Campanha "Black Friday" com grupos "VENDAS-1", "VENDAS-2", etc.`
+        },
+        {
+          title: "Gerenciar Grupos",
+          content: `**Criar Grupo Manual:**
+1. Acesse **Divulgador** → aba **Grupos**
+2. Clique em **"Criar Grupo"**
+3. Defina nome, descrição e vincule a uma campanha
+
+**Criação Automática:**
+Configure a quantidade mínima de grupos vazios.
+Quando um grupo encher, o sistema cria outro automaticamente!
+
+**Monitoramento:**
+- Veja participantes em tempo real
+- Acompanhe entrada/saída
+- Identifique grupos próximos do limite`
+        },
+        {
+          title: "Agendar Mensagens",
+          content: `**Envio para todos os grupos:**
+1. Acesse **Divulgador** → aba **Mensagens**
+2. Clique em **"Nova Mensagem"**
+3. Selecione a campanha (ou grupos específicos)
+4. Escreva sua mensagem
+5. Adicione mídia (opcional): imagem, vídeo, áudio, arquivo
+6. Defina data e horário de envio
+7. Ative **"Mencionar Todos"** se desejar
+
+**Tipos de conteúdo suportados:**
+- ✅ Texto
+- ✅ Imagens
+- ✅ Vídeos
+- ✅ Áudios
+- ✅ Documentos/Arquivos`
+        },
+        {
+          title: "Boas-vindas Automáticas",
+          content: `Configure mensagem privada para novos participantes:
+
+1. Acesse **Divulgador** → aba **Boas-vindas**
+2. Ative **"Enviar mensagem de boas-vindas"**
+3. Personalize a mensagem usando variáveis:
+   - \`{nome}\` - Nome do participante
+   - \`{grupo}\` - Nome do grupo
+
+**Funcionamento:**
+Quando alguém entra em qualquer grupo vinculado:
+1. Sistema detecta a entrada
+2. Envia mensagem privada automaticamente
+3. Registra nos logs`
+        },
+        {
+          title: "Controle de Participantes",
+          content: `**Remoção Manual:**
+- Remova participantes individualmente
+- Remova inativos com um clique
+
+**Remoção Automática:**
+Configure regras para remoção automática:
+- Participantes que compraram (ao final de campanha)
+- Participantes duplicados em múltiplos grupos
+- Participantes inativos por X dias
+
+**Limpeza de Grupo:**
+Botão para remover TODOS os participantes de uma vez.`
+        },
+        {
+          title: "Relatórios e Métricas",
+          content: `Na aba **Relatórios**, acompanhe:
+
+**Estatísticas gerais:**
+- Total de grupos ativos
+- Total de participantes
+- Mensagens enviadas (mês)
+- Taxa de engajamento
+
+**Por Campanha:**
+- Leads gerados
+- Entrada vs Saída
+- Grupos mais ativos
+
+**Exportação:**
+Exporte dados em CSV para análise externa.`
+        }
+      ],
+      tips: [
+        "Use uma instância WhatsApp DEDICADA para o Divulgador",
+        "Configure criação automática para campanhas 24/7",
+        "Menções aumentam engajamento mas podem irritar alguns usuários",
+        "Agende mensagens em horários comerciais para melhor resultado",
+        "Monitore a taxa de saída - muitas saídas indica problema no conteúdo",
+        "Use boas-vindas personalizadas para criar conexão",
+        "Exporte relatórios semanalmente para análise de performance"
       ]
     }
   ];
