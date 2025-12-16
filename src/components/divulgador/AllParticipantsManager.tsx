@@ -65,13 +65,26 @@ export function AllParticipantsManager() {
         body: { action: 'fetch-groups' }
       });
       
-      if (error) throw error;
+      if (error) {
+        // Check if it's a "no instance" error - don't show error toast, just info
+        if (error.message?.includes('instância') || error.message?.includes('instance')) {
+          toast.info('Configure uma instância WhatsApp primeiro');
+          return;
+        }
+        throw error;
+      }
       
       toast.success(`Grupos sincronizados! ${data.saved || 0} grupos, ${data.deleted || 0} removidos`);
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       queryClient.invalidateQueries({ queryKey: ['all-divulgador-participants'] });
     } catch (error: any) {
-      toast.error('Erro ao sincronizar: ' + error.message);
+      // Check for instance-related errors in response body
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('instância') || errorMsg.includes('instance') || errorMsg.includes('Nenhuma instância')) {
+        toast.info('Configure uma instância WhatsApp primeiro');
+      } else {
+        toast.error('Erro ao sincronizar: ' + errorMsg);
+      }
     } finally {
       setIsSyncing(false);
     }
