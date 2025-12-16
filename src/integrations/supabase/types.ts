@@ -543,6 +543,320 @@ export type Database = {
         }
         Relationships: []
       }
+      divulgador_campaigns: {
+        Row: {
+          auto_create_groups: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_participants_per_group: number | null
+          min_empty_groups: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          auto_create_groups?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants_per_group?: number | null
+          min_empty_groups?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          auto_create_groups?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_participants_per_group?: number | null
+          min_empty_groups?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      divulgador_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      divulgador_groups: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          invite_link: string | null
+          is_active: boolean | null
+          name: string
+          participant_count: number | null
+          updated_at: string
+          whatsapp_group_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_link?: string | null
+          is_active?: boolean | null
+          name: string
+          participant_count?: number | null
+          updated_at?: string
+          whatsapp_group_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          invite_link?: string | null
+          is_active?: boolean | null
+          name?: string
+          participant_count?: number | null
+          updated_at?: string
+          whatsapp_group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divulgador_messages: {
+        Row: {
+          campaign_id: string | null
+          content: string
+          created_at: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          mention_all: boolean | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          mention_all?: boolean | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          mention_all?: boolean | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divulgador_participants: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          is_admin: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          name: string | null
+          welcome_sent: boolean | null
+          whatsapp_number: string
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          name?: string | null
+          welcome_sent?: boolean | null
+          whatsapp_number: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          name?: string | null
+          welcome_sent?: boolean | null
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_participants_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divulgador_send_logs: {
+        Row: {
+          error_message: string | null
+          group_id: string | null
+          id: string
+          message_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          error_message?: string | null
+          group_id?: string | null
+          id?: string
+          message_id?: string | null
+          sent_at?: string | null
+          status: string
+        }
+        Update: {
+          error_message?: string | null
+          group_id?: string | null
+          id?: string
+          message_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_send_logs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "divulgador_send_logs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divulgador_welcome_config: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          delay_seconds: number | null
+          id: string
+          is_active: boolean | null
+          message: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          delay_seconds?: number | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          delay_seconds?: number | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_welcome_config_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      divulgador_whatsapp_instance: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string
+          id: string
+          instance_name: string
+          is_connected: boolean | null
+          last_connected_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string
+          id?: string
+          instance_name: string
+          is_connected?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string
+          id?: string
+          instance_name?: string
+          is_connected?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       password_recovery_logs: {
         Row: {
           created_at: string
