@@ -15,12 +15,29 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const cronSecret = Deno.env.get("CRON_SECRET");
+    
+    // Try to get CRON_SECRET from environment variable first
+    let cronSecret = Deno.env.get("CRON_SECRET");
+    
+    // If not in env, try to get from database (billing_config)
+    if (!cronSecret) {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: configData } = await supabaseAdmin
+        .from('billing_config')
+        .select('config_value')
+        .eq('config_key', 'cron_secret')
+        .single();
+      
+      if (configData?.config_value) {
+        cronSecret = configData.config_value;
+        console.log("CRON_SECRET loaded from database");
+      }
+    }
 
     if (!cronSecret) {
-      console.error("CRON_SECRET not configured");
+      console.error("CRON_SECRET not configured (neither in env nor database)");
       return new Response(
-        JSON.stringify({ error: "Server misconfiguration" }),
+        JSON.stringify({ error: "CRON Secret não configurado. Configure no painel de Cobrança (aba Geral)." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
