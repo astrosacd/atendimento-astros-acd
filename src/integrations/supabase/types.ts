@@ -875,6 +875,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      update_billing_cron_schedule: {
+        Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
       validate_password_reset_token: {
         Args: { p_token: string }
         Returns: {

@@ -400,9 +400,22 @@ const AdminCobranca = () => {
           .upsert({ config_key: key, config_value: value }, { onConflict: 'config_key' });
       }
 
+      // Sincronizar horário do cron job no banco
+      const hour = parseInt(config.cron_hour || '10');
+      const minute = parseInt(config.cron_minute || '0');
+      
+      const { error: cronError } = await supabase.rpc('update_billing_cron_schedule', {
+        p_hour: hour,
+        p_minute: minute
+      });
+
+      if (cronError) {
+        console.error('Erro ao atualizar cron:', cronError);
+      }
+
       toast({
         title: 'Configurações salvas!',
-        description: 'Todas as configurações foram atualizadas.',
+        description: 'Todas as configurações e agendamento do cron foram atualizados.',
       });
     } catch (error: any) {
       toast({
@@ -1044,7 +1057,7 @@ const AdminCobranca = () => {
                       <Select value={config.cron_minute || '0'} onValueChange={(v) => setConfig({ ...config, cron_minute: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {[0, 15, 30, 45].map((m) => (
+                          {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
                             <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')} min</SelectItem>
                           ))}
                         </SelectContent>
