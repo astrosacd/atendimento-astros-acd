@@ -64,6 +64,8 @@ export default function AdminDivulgador() {
   });
   const [isSendingQuickMessage, setIsSendingQuickMessage] = useState(false);
   const [isUploadingQuickMedia, setIsUploadingQuickMedia] = useState(false);
+  const [apiDebugResponse, setApiDebugResponse] = useState<any>(null);
+  const [isApiDebugDialogOpen, setIsApiDebugDialogOpen] = useState(false);
 
   // ================== QUERIES ==================
 
@@ -627,7 +629,27 @@ export default function AdminDivulgador() {
         },
       });
       if (error) throw error;
-      toast.success('Grupo atualizado!');
+      
+      // Show debug modal with API responses
+      if (data?.apiResponses) {
+        setApiDebugResponse({
+          action: 'update-group',
+          groupName: editGroupForm.name,
+          instance: data.instance,
+          groupJid: data.groupJid,
+          responses: data.apiResponses,
+          success: data.success,
+          nameUpdated: data.nameUpdated,
+        });
+        setIsApiDebugDialogOpen(true);
+      }
+      
+      const hasErrors = data?.apiResponses?.some((r: any) => !r.ok);
+      if (hasErrors) {
+        toast.warning('Algumas operações falharam. Verifique os detalhes.');
+      } else {
+        toast.success('Grupo atualizado!');
+      }
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       setIsEditGroupDialogOpen(false);
       setEditingGroup(null);
@@ -858,8 +880,23 @@ export default function AdminDivulgador() {
       if (insertError) throw insertError;
       
       // Trigger send immediately
-      const { error: sendError } = await supabase.functions.invoke('divulgador-send-messages');
+      const { data: sendData, error: sendError } = await supabase.functions.invoke('divulgador-send-messages');
       if (sendError) throw sendError;
+      
+      // Show debug modal with send results
+      if (sendData?.processed) {
+        const processedMsg = sendData.processed.find((p: any) => p.messageId === messageData.id);
+        setApiDebugResponse({
+          action: 'send-message',
+          groupName: quickMessageGroup.name,
+          content: quickMessageForm.content,
+          mediaType: quickMessageForm.media_type,
+          mentionAll: quickMessageForm.mention_all,
+          result: processedMsg || { status: 'sent via batch', processed: sendData.processed },
+          success: sendData.success,
+        });
+        setIsApiDebugDialogOpen(true);
+      }
       
       toast.success('Mensagem enviada!');
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
@@ -1360,14 +1397,33 @@ export default function AdminDivulgador() {
                             <TableCell>{group.participant_count}</TableCell>
                             <TableCell>
                               <div className="flex gap-1 flex-wrap">
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1" title="Envio de mensagens">
-                                  <MessageSquare className="h-2.5 w-2.5" />
-                                  {group.announce ? 'Admins' : 'Todos'}
-                                </Badge>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1" title="Edição do grupo">
-                                  <Edit className="h-2.5 w-2.5" />
-                                  {group.restrict ? 'Admins' : 'Todos'}
-                                </Badge>
+                                <span title="Quem pode enviar mensagens no grupo">
+                                  <Badge 
+                                    variant={group.announce ? "default" : "outline"} 
+                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.announce ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : ''}`}
+                                  >
+                                    <MessageSquare className="h-2.5 w-2.5" />
+                                    {group.announce ? 'Admins' : 'Todos'}
+                                  </Badge>
+                                </span>
+                                <span title="Quem pode editar nome e descrição do grupo">
+                                  <Badge 
+                                    variant={group.restrict ? "default" : "outline"} 
+                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.restrict ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}
+                                  >
+                                    <Edit className="h-2.5 w-2.5" />
+                                    {group.restrict ? 'Admins' : 'Todos'}
+                                  </Badge>
+                                </span>
+                                <span title="Novos membros precisam de aprovação de admin">
+                                  <Badge 
+                                    variant={group.memberAddMode ? "default" : "outline"} 
+                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.memberAddMode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
+                                  >
+                                    <Lock className="h-2.5 w-2.5" />
+                                    {group.memberAddMode ? 'Aprovação' : 'Auto'}
+                                  </Badge>
+                                </span>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -2480,6 +2536,112 @@ export default function AdminDivulgador() {
               <Button onClick={sendQuickMessage} disabled={isSendingQuickMessage || !quickMessageForm.content}>
                 {isSendingQuickMessage ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                 Enviar Agora
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Debug da API */}
+        <Dialog open={isApiDebugDialogOpen} onOpenChange={setIsApiDebugDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Detalhes da Resposta da API
+              </DialogTitle>
+              <DialogDescription>
+                Informações de debug das chamadas à Evolution API
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              {apiDebugResponse && (
+                <div className="space-y-4">
+                  {/* Header Info */}
+                  <Card className="border-border/50">
+                    <CardContent className="py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Ação:</span>
+                        <Badge variant="outline">{apiDebugResponse.action}</Badge>
+                      </div>
+                      {apiDebugResponse.groupName && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Grupo:</span>
+                          <span className="text-sm">{apiDebugResponse.groupName}</span>
+                        </div>
+                      )}
+                      {apiDebugResponse.instance && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Instância:</span>
+                          <Badge variant="secondary">{apiDebugResponse.instance}</Badge>
+                        </div>
+                      )}
+                      {apiDebugResponse.groupJid && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Group JID:</span>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">{apiDebugResponse.groupJid}</code>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Status Geral:</span>
+                        {apiDebugResponse.success ? (
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Sucesso
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive">
+                            <XCircle className="h-3 w-3 mr-1" /> Falha
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* API Responses */}
+                  {apiDebugResponse.responses && apiDebugResponse.responses.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Respostas das Chamadas:</h4>
+                      {apiDebugResponse.responses.map((resp: any, idx: number) => (
+                        <Card key={idx} className={`border-l-4 ${resp.ok ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                          <CardContent className="py-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm">{resp.label}</span>
+                              <Badge variant={resp.ok ? "default" : "destructive"} className="text-xs">
+                                {resp.ok ? 'OK' : `Erro ${resp.status || ''}`}
+                              </Badge>
+                            </div>
+                            {resp.data && (
+                              <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-h-32 overflow-y-auto">
+                                {JSON.stringify(resp.data, null, 2)}
+                              </pre>
+                            )}
+                            {resp.error && (
+                              <p className="text-xs text-destructive">{resp.error}</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Send Message Result */}
+                  {apiDebugResponse.result && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Resultado do Envio:</h4>
+                      <Card className="border-border/50">
+                        <CardContent className="py-3">
+                          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-h-40 overflow-y-auto">
+                            {JSON.stringify(apiDebugResponse.result, null, 2)}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              )}
+            </ScrollArea>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsApiDebugDialogOpen(false)}>
+                Fechar
               </Button>
             </DialogFooter>
           </DialogContent>
