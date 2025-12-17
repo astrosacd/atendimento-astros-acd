@@ -936,6 +936,7 @@ export default function AdminDivulgador() {
     message: '',
     is_active: true,
     delay_seconds: 5,
+    message_type: 'join' as 'join' | 'leave',
   });
 
   const saveWelcomeMutation = useMutation({
@@ -947,8 +948,8 @@ export default function AdminDivulgador() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
-      toast.success('Boas-vindas salva!');
-      setWelcomeForm({ group_id: '', message: '', is_active: true, delay_seconds: 5 });
+      toast.success(welcomeForm.message_type === 'join' ? 'Boas-vindas salva!' : 'Mensagem de saída salva!');
+      setWelcomeForm({ group_id: '', message: '', is_active: true, delay_seconds: 5, message_type: 'join' });
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
@@ -1639,9 +1640,24 @@ export default function AdminDivulgador() {
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="border-border/40">
                 <CardHeader>
-                  <CardTitle className="text-base">Nova Mensagem de Boas-vindas</CardTitle>
+                  <CardTitle className="text-base">Nova Mensagem Automática</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Evento</Label>
+                    <Select value={welcomeForm.message_type} onValueChange={(v: 'join' | 'leave') => setWelcomeForm({ ...welcomeForm, message_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="join">Entrada no grupo (Boas-vindas)</SelectItem>
+                        <SelectItem value="leave">Saída do grupo (Despedida)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {welcomeForm.message_type === 'join' 
+                        ? 'Mensagem enviada quando alguém entra no grupo' 
+                        : 'Mensagem enviada quando alguém sai do grupo'}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label>Grupo</Label>
                     <Select value={welcomeForm.group_id || "_all"} onValueChange={(v) => setWelcomeForm({ ...welcomeForm, group_id: v === "_all" ? "" : v })}>
@@ -1651,11 +1667,18 @@ export default function AdminDivulgador() {
                         {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">A mensagem será enviada quando alguém entrar neste grupo</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Mensagem</Label>
-                    <Textarea rows={4} value={welcomeForm.message} onChange={(e) => setWelcomeForm({ ...welcomeForm, message: e.target.value })} placeholder="Olá {nome}! Bem-vindo ao grupo..." />
+                    <Textarea 
+                      rows={4} 
+                      value={welcomeForm.message} 
+                      onChange={(e) => setWelcomeForm({ ...welcomeForm, message: e.target.value })} 
+                      placeholder={welcomeForm.message_type === 'join' 
+                        ? "Olá {nome}! Bem-vindo ao grupo {grupo}..." 
+                        : "Até mais {nome}! Sentiremos sua falta no grupo {grupo}..."
+                      } 
+                    />
                     <p className="text-xs text-muted-foreground">Use {'{nome}'}, {'{numero}'} ou {'{grupo}'} para personalizar</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1682,25 +1705,30 @@ export default function AdminDivulgador() {
                   {welcomeConfigs.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">Nenhum template criado</p>
                   ) : (
-                    <div className="space-y-3">
-                      {welcomeConfigs.map((wc: any) => (
-                        <div key={wc.id} className="p-3 border rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant={wc.is_active ? 'default' : 'secondary'}>{wc.is_active ? 'Ativo' : 'Inativo'}</Badge>
-                                <Badge variant="outline">{wc.divulgador_groups?.name || 'Todos os grupos'}</Badge>
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-3">
+                        {welcomeConfigs.map((wc: any) => (
+                          <div key={wc.id} className="p-3 border rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <Badge variant={wc.is_active ? 'default' : 'secondary'}>{wc.is_active ? 'Ativo' : 'Inativo'}</Badge>
+                                  <Badge variant={wc.message_type === 'leave' ? 'destructive' : 'outline'} className={wc.message_type === 'leave' ? 'bg-red-500/20 text-red-400 border-red-500/30' : ''}>
+                                    {wc.message_type === 'leave' ? 'Saída' : 'Entrada'}
+                                  </Badge>
+                                  <Badge variant="outline">{wc.divulgador_groups?.name || 'Todos os grupos'}</Badge>
+                                </div>
+                                <p className="text-sm">{wc.message}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Delay: {wc.delay_seconds}s</p>
                               </div>
-                              <p className="text-sm">{wc.message}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Delay: {wc.delay_seconds}s</p>
+                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteWelcomeMutation.mutate(wc.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteWelcomeMutation.mutate(wc.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   )}
                 </CardContent>
               </Card>
