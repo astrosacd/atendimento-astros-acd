@@ -1345,7 +1345,7 @@ A verificação automática NÃO funciona. Marque manualmente como pago.`
 - **Envio rápido**: Envie mensagem direta para um grupo específico com menção todos
 - **Link de convite**: Gere e copie links de convite dos grupos
 - **Menções inteligentes**: Mencione todos os participantes automaticamente
-- **Boas-vindas automáticas**: Mensagem privada para novos membros
+- **Mensagens automáticas**: Mensagens privadas para entrada e saída de participantes
 - **Controle de participantes**: Remoção automática ou manual
 - **Logs de operações**: Histórico completo de ações
 
@@ -1612,7 +1612,7 @@ Exemplo: Campanha "Black Friday" com grupos temáticos de vendas.`
 - \`{grupo}\` - Nome do grupo
 
 **Funcionamento:**
-- **Entrada**: Quando alguém entra no grupo, recebe mensagem privada de boas-vindas
+- **Entrada**: Quando alguém entra no grupo, recebe mensagem privada automática
 - **Saída**: Quando alguém sai do grupo, recebe mensagem privada de despedida
 
 **Indicadores visuais:**
@@ -1707,7 +1707,7 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         "Menções aumentam engajamento mas use com moderação",
         "Agende mensagens em horários comerciais para melhor resultado",
         "Configure o CRON com intervalos de 5-10 minutos",
-        "Use boas-vindas diferentes para cada grupo",
+        "Use mensagens automáticas diferentes para cada grupo",
         "Monitore os logs para identificar problemas de conexão",
         "Exporte participantes regularmente para backup",
         "Use modo Admins para grupos de comunicados oficiais",

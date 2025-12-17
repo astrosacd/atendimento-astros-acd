@@ -950,7 +950,7 @@ export default function AdminDivulgador() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
-      toast.success(welcomeForm.message_type === 'join' ? 'Boas-vindas salva!' : 'Mensagem de saída salva!');
+      toast.success(welcomeForm.message_type === 'join' ? 'Mensagem de entrada salva!' : 'Mensagem de saída salva!');
       setWelcomeForm({ group_id: '', message: '', is_active: true, delay_seconds: 5, message_type: 'join' });
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
@@ -1623,7 +1623,7 @@ export default function AdminDivulgador() {
                     <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
                     <div className="text-sm">
                       <p className="font-medium text-amber-600 dark:text-amber-400">Nenhuma instância configurada</p>
-                      <p className="text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar grupos e configurar boas-vindas.</p>
+                      <p className="text-muted-foreground mt-1">Configure uma instância WhatsApp na aba "WhatsApp" para sincronizar grupos e configurar mensagens automáticas.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -2434,7 +2434,7 @@ export default function AdminDivulgador() {
                       <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-1">
                         <li>Remover permanentemente a instância</li>
                         <li>Limpar todos os grupos sincronizados (se for a última instância)</li>
-                        <li>Remover participantes e configurações de boas-vindas associadas</li>
+                        <li>Remover participantes e configurações de mensagens automáticas</li>
                       </ul>
                     </div>
                   </div>
