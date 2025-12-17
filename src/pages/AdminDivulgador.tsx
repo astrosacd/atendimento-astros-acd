@@ -521,7 +521,6 @@ export default function AdminDivulgador() {
     photo_url: '',
     admin_only: false,
     locked: false, // Only admins can edit group info
-    approval_mode: false, // Member add permission (from WhatsApp: memberAddMode)
   });
   const [isUploadingGroupPhoto, setIsUploadingGroupPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState<string | null>(null);
@@ -694,7 +693,6 @@ export default function AdminDivulgador() {
       photo_url: '',
       admin_only: group.announce || false,
       locked: group.restrict || false,
-      approval_mode: group.member_add_mode || false,
     });
     setIsEditGroupDialogOpen(true);
     
@@ -711,7 +709,6 @@ export default function AdminDivulgador() {
           description: data.settings.desc || prev.description,
           admin_only: data.settings.announce || false,
           locked: data.settings.restrict || false,
-          approval_mode: data.settings.memberAddMode || false,
         }));
       }
     } catch (error) {
@@ -1398,31 +1395,22 @@ export default function AdminDivulgador() {
                             <TableCell>{group.participant_count}</TableCell>
                             <TableCell className="max-w-[120px]">
                               <div 
-                                className="flex flex-col gap-0.5 cursor-help"
-                                title={`Enviar: ${group.announce ? 'Só Admins' : 'Todos'}\nEditar: ${group.restrict ? 'Só Admins' : 'Todos'}\nAdicionar: ${group.member_add_mode ? 'Só Admins' : 'Todos'}`}
+                                className="flex gap-1 cursor-help"
+                                title={`Enviar: ${group.announce ? 'Só Admins' : 'Todos'}\nEditar: ${group.restrict ? 'Só Admins' : 'Todos'}`}
                               >
-                                <div className="flex gap-1">
-                                  <Badge 
-                                    variant={group.announce ? "default" : "outline"} 
-                                    className={`text-[10px] px-1 py-0 gap-0.5 ${group.announce ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : ''}`}
-                                  >
-                                    <MessageSquare className="h-2.5 w-2.5" />
-                                    {group.announce ? 'Adm' : 'Tds'}
-                                  </Badge>
-                                  <Badge 
-                                    variant={group.restrict ? "default" : "outline"} 
-                                    className={`text-[10px] px-1 py-0 gap-0.5 ${group.restrict ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}
-                                  >
-                                    <Edit className="h-2.5 w-2.5" />
-                                    {group.restrict ? 'Adm' : 'Tds'}
-                                  </Badge>
-                                </div>
                                 <Badge 
-                                  variant={group.member_add_mode ? "default" : "outline"} 
-                                  className={`text-[10px] px-1 py-0 gap-0.5 w-fit ${group.member_add_mode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
+                                  variant={group.announce ? "default" : "outline"} 
+                                  className={`text-[10px] px-1 py-0 gap-0.5 ${group.announce ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : ''}`}
                                 >
-                                  <Lock className="h-2.5 w-2.5" />
-                                  {group.member_add_mode ? 'Adm' : 'Tds'}
+                                  <MessageSquare className="h-2.5 w-2.5" />
+                                  {group.announce ? 'Adm' : 'Tds'}
+                                </Badge>
+                                <Badge 
+                                  variant={group.restrict ? "default" : "outline"} 
+                                  className={`text-[10px] px-1 py-0 gap-0.5 ${group.restrict ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}
+                                >
+                                  <Edit className="h-2.5 w-2.5" />
+                                  {group.restrict ? 'Adm' : 'Tds'}
                                 </Badge>
                               </div>
                             </TableCell>
@@ -2370,24 +2358,6 @@ export default function AdminDivulgador() {
                         />
                       </div>
                     </div>
-                    
-                    {/* Quem pode adicionar membros (a API atual não permite ALTERAR via painel) */}
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="space-y-0.5 min-w-0">
-                        <Label className="text-sm">Adicionar Membros</Label>
-                        <p className="text-xs text-muted-foreground">
-                          {editGroupForm.approval_mode ? 'Somente administradores' : 'Todos os membros'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-xs">Somente leitura</Badge>
-                        <Switch checked={editGroupForm.approval_mode} disabled />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      <Lock className="h-3 w-3 inline mr-1" />
-                      A Evolution API desta instância não suporta alterar “Adicionar membros” via painel. Altere no WhatsApp e depois clique em “Sincronizar Grupos”.
-                    </p>
                   </CardContent>
                 </Card>
                 
