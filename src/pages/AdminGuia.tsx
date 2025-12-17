@@ -1438,7 +1438,13 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 **No modal de edição você pode alterar:**
 - **Nome do Grupo**: Atualiza o nome no WhatsApp em tempo real
 - **Descrição**: Texto da info do grupo
-- **Foto do Grupo**: Upload de nova imagem (mostra foto atual)
+- **Foto do Grupo**: Exibe a foto atual (se existir) e permite upload de nova imagem
+
+**Foto do Grupo:**
+- O sistema busca a foto atual do grupo via API automaticamente
+- Durante o carregamento, aparece um spinner no lugar da foto
+- Se o grupo tem foto, ela é exibida no modal
+- Para alterar, clique em "Alterar foto" e faça upload de uma nova imagem
 
 **Permissões do Grupo (configuráveis pelo painel):**
 
@@ -1452,12 +1458,11 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 
 **Indicadores visuais na tabela:**
 - A coluna **"Permissões"** mostra badges com o status atual
-- Passe o mouse para ver o detalhe completo
 - **Msg (Adm/Tds)**: Quem pode enviar mensagens
 - **Edit (Adm/Tds)**: Quem pode editar informações do grupo
 
 **Sincronização automática:**
-- Ao abrir o modal de edição, as permissões são buscadas do WhatsApp
+- Ao abrir o modal de edição, as configurações (incluindo foto) são buscadas do WhatsApp
 - Um spinner indica enquanto carrega as configurações reais
 
 **Dicas:**
@@ -1588,29 +1593,33 @@ Exemplo: Campanha "Black Friday" com grupos temáticos de vendas.`
 **Dica:** Use intervalos de 5-10 minutos para não sobrecarregar a API.`
         },
         {
-          title: "Boas-vindas Automáticas",
-          content: `Configure mensagem privada para novos participantes:
+          title: "Mensagens Automáticas (Entrada/Saída)",
+          content: `Configure mensagens privadas para participantes que entram ou saem:
 
-1. Acesse **Divulgador** → aba **Boas-vindas**
-2. Clique em **"+ Nova Config"**
-3. Selecione o **grupo** específico (obrigatório)
-4. Escreva a **mensagem** de boas-vindas
+1. Acesse **Divulgador** → aba **Mensagens Automáticas**
+2. Selecione o **Tipo de Evento**:
+   - **Entrada (Boas-vindas)**: Quando alguém entra no grupo
+   - **Saída (Despedida)**: Quando alguém sai do grupo
+3. Selecione o **grupo** específico
+4. Escreva a **mensagem** apropriada
 5. Defina o **delay** em segundos (recomendado: 5-10 seg)
 6. Ative a configuração
 7. Clique em **"Salvar"**
 
 **Variáveis disponíveis:**
 - \`{nome}\` - Nome do participante
+- \`{numero}\` - Número do WhatsApp
 - \`{grupo}\` - Nome do grupo
 
 **Funcionamento:**
-Quando alguém entra no grupo vinculado:
-1. Webhook detecta o evento
-2. Sistema aguarda o delay configurado
-3. Envia mensagem privada ao novo membro
-4. Registra nos logs
+- **Entrada**: Quando alguém entra no grupo, recebe mensagem privada de boas-vindas
+- **Saída**: Quando alguém sai do grupo, recebe mensagem privada de despedida
 
-**Importante:** Cada configuração é **vinculada a um grupo específico**, permitindo mensagens diferentes por grupo.`
+**Indicadores visuais:**
+- Templates de **Entrada** aparecem com badge verde
+- Templates de **Saída** aparecem com badge vermelho
+
+**Importante:** Cada configuração é **vinculada a um grupo específico**, permitindo mensagens diferentes por grupo e por tipo de evento.`
         },
         {
           title: "Gerenciar Participantes",

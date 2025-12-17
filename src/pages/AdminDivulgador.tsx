@@ -707,8 +707,14 @@ export default function AdminDivulgador() {
           ...prev,
           name: data.settings.subject || prev.name,
           description: data.settings.desc || prev.description,
+          photo_url: data.settings.pictureUrl || prev.photo_url,
           admin_only: data.settings.announce || false,
           locked: data.settings.restrict || false,
+        }));
+        // Also update the editing group reference to show current photo
+        setEditingGroup((prev: any) => ({
+          ...prev,
+          photo_url: data.settings.pictureUrl || prev?.photo_url,
         }));
       }
     } catch (error) {
@@ -1584,12 +1590,12 @@ export default function AdminDivulgador() {
             </div>
           </TabsContent>
 
-          {/* TAB: BOAS-VINDAS */}
+          {/* TAB: MENSAGENS AUTOMÁTICAS (ENTRADA/SAÍDA) */}
           <TabsContent value="welcome" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-semibold">Mensagens de Boas-vindas</h2>
-                <p className="text-sm text-muted-foreground">Configure mensagens automáticas enviadas no privado quando participantes entram nos grupos</p>
+                <h2 className="text-lg font-semibold">Mensagens Automáticas</h2>
+                <p className="text-sm text-muted-foreground">Configure mensagens enviadas no privado quando participantes entram ou saem dos grupos</p>
               </div>
               <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
                 {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -1624,9 +1630,15 @@ export default function AdminDivulgador() {
             ) : null}
 
             <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border-border/40">
+              <Card className={`border-border/40 ${welcomeForm.message_type === 'leave' ? 'border-red-500/30' : 'border-emerald-500/30'}`}>
                 <CardHeader>
-                  <CardTitle className="text-base">Nova Mensagem Automática</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {welcomeForm.message_type === 'leave' ? (
+                      <><UserMinus className="h-4 w-4 text-red-500" /> Nova Mensagem de Saída</>
+                    ) : (
+                      <><Sparkles className="h-4 w-4 text-emerald-500" /> Nova Mensagem de Entrada</>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -2269,13 +2281,22 @@ export default function AdminDivulgador() {
                 </div>
                 <div className="space-y-2">
                   <Label>Foto do Grupo</Label>
-                  {editingGroup?.photo_url && !editGroupForm.photo_url && (
+                  {isLoadingGroupSettings ? (
+                    <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Carregando foto do grupo...</span>
+                    </div>
+                  ) : (editingGroup?.photo_url || editGroupForm.photo_url) && (
                     <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={editingGroup.photo_url} alt="Foto atual" />
+                        <AvatarImage src={editGroupForm.photo_url || editingGroup?.photo_url} alt="Foto atual" />
                         <AvatarFallback><Users className="h-6 w-6" /></AvatarFallback>
                       </Avatar>
-                      <span className="text-sm text-muted-foreground">Foto atual do grupo</span>
+                      <span className="text-sm text-muted-foreground">
+                        {editGroupForm.photo_url ? 'Nova foto carregada' : 'Foto atual do grupo'}
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">

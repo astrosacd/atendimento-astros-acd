@@ -573,6 +573,7 @@ serve(async (req) => {
               memberAddMode: targetGroup.memberAddMode || false, // approval mode
               subject: targetGroup.subject,
               desc: targetGroup.desc,
+              pictureUrl: targetGroup.pictureUrl || null, // group photo URL
             }
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
