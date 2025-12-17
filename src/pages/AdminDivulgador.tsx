@@ -1101,7 +1101,7 @@ export default function AdminDivulgador() {
             <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">Campanhas</span></TabsTrigger>
             <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Grupos</span></TabsTrigger>
             <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Mensagens</span></TabsTrigger>
-            <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Boas-vindas</span></TabsTrigger>
+            <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Automáticas</span></TabsTrigger>
             <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">Participantes</span></TabsTrigger>
             <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Logs</span></TabsTrigger>
           </TabsList>
@@ -1110,14 +1110,128 @@ export default function AdminDivulgador() {
           <TabsContent value="instances" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-semibold">Instâncias WhatsApp</h2>
-                <p className="text-sm text-muted-foreground">Configure seus números Evolution API para envio de mensagens</p>
+                <h2 className="text-lg font-semibold">Configuração WhatsApp</h2>
+                <p className="text-sm text-muted-foreground">Gerencie instâncias Evolution API e automações</p>
               </div>
-              <Button onClick={() => { setEditingInstance(null); setInstanceForm({ instance_name: '', api_url: '', api_key: '' }); setIsInstanceDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" />Nova Instância
-              </Button>
             </div>
 
+            {/* Instâncias */}
+            <Card className="border-border/40">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-500/10">
+                      <Wifi className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">Instâncias WhatsApp</CardTitle>
+                      <CardDescription>Números Evolution API para envio de mensagens</CardDescription>
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => { setEditingInstance(null); setInstanceForm({ instance_name: '', api_url: '', api_key: '' }); setIsInstanceDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />Nova Instância
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingInstances ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+                ) : instances.length === 0 ? (
+                  <div className="text-center py-6">
+                    <WifiOff className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">Nenhuma instância configurada</p>
+                    <p className="text-xs text-muted-foreground mt-1">Adicione uma instância para começar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {instances.map((inst: any) => (
+                      <div key={inst.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${inst.is_connected ? 'bg-emerald-500/10' : 'bg-muted'}`}>
+                            {inst.is_connected ? <Wifi className="h-4 w-4 text-emerald-500" /> : <WifiOff className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                          <div>
+                            <p className="font-medium">{inst.instance_name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">{inst.api_url}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={inst.is_connected ? "default" : "secondary"} className="gap-1">
+                            {inst.is_connected ? 'Conectado' : 'Desconectado'}
+                          </Badge>
+                          <Switch
+                            checked={inst.is_active}
+                            onCheckedChange={(checked) => toggleInstanceMutation.mutate({ id: inst.id, is_active: checked })}
+                          />
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id} title="Testar conexão">
+                              {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => {
+                              setEditingInstance(inst);
+                              setInstanceForm({ instance_name: inst.instance_name, api_url: inst.api_url, api_key: inst.api_key });
+                              setIsInstanceDialogOpen(true);
+                            }} title="Editar">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setInstanceToDelete(inst)} title="Excluir">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Grid com CRON e Participante Padrão */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* CRON Configuration */}
+              <CronConfigCard />
+
+              {/* Default Participant Config */}
+              <Card className="border-border/40">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Users className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">Participante Padrão</CardTitle>
+                      <CardDescription>Número inicial ao criar grupos</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={defaultParticipant}
+                      onChange={(e) => setDefaultParticipant(e.target.value)}
+                      placeholder="Ex: 5511999999999"
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={() => saveDefaultParticipantMutation.mutate(defaultParticipant)}
+                      disabled={saveDefaultParticipantMutation.isPending || !defaultParticipant}
+                    >
+                      {saveDefaultParticipantMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Inclua o código do país (55 para Brasil).
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Info Card */}
             <Card className="border-amber-500/20 bg-amber-500/5">
               <CardContent className="py-4">
                 <div className="flex items-start gap-3">
@@ -1125,112 +1239,11 @@ export default function AdminDivulgador() {
                   <div className="text-sm">
                     <p className="font-medium text-amber-600 dark:text-amber-400">Como funciona?</p>
                     <p className="text-muted-foreground mt-1">
-                      Ao adicionar uma instância, o webhook é configurado automaticamente para detectar novos participantes 
-                      e enviar mensagens de boas-vindas. Você pode ter múltiplas instâncias para diferentes campanhas.
+                      Ao adicionar uma instância, o webhook é configurado automaticamente para detectar novos participantes. 
+                      O CRON processa mensagens agendadas automaticamente no intervalo configurado.
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/40">
-              <CardContent className="pt-6">
-                {isLoadingInstances ? (
-                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                ) : instances.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhuma instância configurada. Clique em "Nova Instância" para começar.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>API URL</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Ativo</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {instances.map((inst: any) => (
-                        <TableRow key={inst.id}>
-                          <TableCell className="font-medium">{inst.instance_name || <span className="text-muted-foreground italic">Carregando...</span>}</TableCell>
-                          <TableCell className="text-muted-foreground max-w-[200px] truncate">{inst.api_url || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant={inst.is_connected ? "default" : "secondary"} className="gap-1">
-                              {inst.is_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                              {inst.is_connected ? 'Conectado' : 'Desconectado'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={inst.is_active}
-                              onCheckedChange={(checked) => toggleInstanceMutation.mutate({ id: inst.id, is_active: checked })}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id}>
-                                {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                setEditingInstance(inst);
-                                setInstanceForm({ instance_name: inst.instance_name, api_url: inst.api_url, api_key: inst.api_key });
-                                setIsInstanceDialogOpen(true);
-                              }}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setInstanceToDelete(inst)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* CRON Configuration */}
-            <CronConfigCard />
-
-            {/* Default Participant Config */}
-            <Card className="border-border/40">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10">
-                    <Users className="h-5 w-5 text-emerald-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">Participante Padrão</CardTitle>
-                    <CardDescription>Número WhatsApp usado como participante inicial ao criar grupos</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    value={defaultParticipant}
-                    onChange={(e) => setDefaultParticipant(e.target.value)}
-                    placeholder="Ex: 5511999999999"
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={() => saveDefaultParticipantMutation.mutate(defaultParticipant)}
-                    disabled={saveDefaultParticipantMutation.isPending || !defaultParticipant}
-                  >
-                    {saveDefaultParticipantMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    Salvar
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Este número será preenchido automaticamente ao criar novos grupos. Inclua o código do país (55 para Brasil).
-                </p>
               </CardContent>
             </Card>
           </TabsContent>
