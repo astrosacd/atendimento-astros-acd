@@ -19,7 +19,7 @@ serve(async (req) => {
     const body = await req.json();
     const { 
       action, instanceId, campaignId, groupName, groupDescription, participants, 
-      groupId, whatsappGroupId, numbers, groupPhoto, adminOnly 
+      groupId, whatsappGroupId, numbers, groupPhoto, adminOnly, locked, approvalMode 
     } = body;
     console.log(`[divulgador-groups] Action: ${action}, Campaign: ${campaignId}, GroupId: ${groupId}, InstanceId: ${instanceId}`);
 
@@ -597,7 +597,7 @@ serve(async (req) => {
         }
       }
 
-      // Update admin-only setting if provided
+      // Update admin-only setting (announcement mode) if provided
       if (adminOnly !== undefined) {
         try {
           const settingAction = adminOnly ? 'announcement' : 'not_announcement';
@@ -612,7 +612,45 @@ serve(async (req) => {
           const resData = await res.json().catch(() => ({}));
           console.log('[divulgador-groups] Admin-only setting update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
         } catch (e) {
-          console.error('[divulgador-groups] Failed to update settings:', e);
+          console.error('[divulgador-groups] Failed to update announcement settings:', e);
+        }
+      }
+
+      // Update locked setting (only admins can edit group info) if provided
+      if (locked !== undefined) {
+        try {
+          const settingAction = locked ? 'locked' : 'unlocked';
+          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ groupJid: wid, action: settingAction }),
+          });
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Locked setting update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update locked settings:', e);
+        }
+      }
+
+      // Update approval mode (membership approval required) if provided
+      if (approvalMode !== undefined) {
+        try {
+          const settingAction = approvalMode ? 'membership_approval_request' : 'membership_approval_reject';
+          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ groupJid: wid, action: settingAction }),
+          });
+          const resData = await res.json().catch(() => ({}));
+          console.log('[divulgador-groups] Approval mode update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+        } catch (e) {
+          console.error('[divulgador-groups] Failed to update approval mode:', e);
         }
       }
 
