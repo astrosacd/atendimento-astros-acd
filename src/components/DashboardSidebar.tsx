@@ -45,6 +45,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   };
 
   // Load user profile name on mount - cache in sessionStorage to prevent flickering
+  // Note: Chat enabled is always fetched fresh to ensure admin changes are reflected immediately
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
@@ -52,28 +53,19 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     }
 
     const cacheKey = `profile_name_${user.id}`;
-    const chatCacheKey = `chat_enabled`;
     const cached = sessionStorage.getItem(cacheKey);
-    const chatCached = sessionStorage.getItem(chatCacheKey);
     
-    // If we have cached data, use it immediately and don't refetch
-    if (cached) {
-      setUserName(cached);
-      setChatEnabled(chatCached === 'true');
-      setIsLoading(false);
-      return;
-    }
-
     let isMounted = true;
     
     const loadData = async () => {
+      // Always fetch chat_enabled fresh (no cache) to reflect admin changes immediately
       const [chatResult, profileResult] = await Promise.all([
         supabase
           .from('billing_config')
           .select('config_value')
           .eq('config_key', 'chat_enabled')
           .maybeSingle(),
-        supabase
+        cached ? Promise.resolve({ data: { name: cached } }) : supabase
           .from('profiles')
           .select('name')
           .eq('user_id', user.id)
@@ -83,11 +75,12 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       if (isMounted) {
         const chatValue = chatResult.data?.config_value === 'true';
         setChatEnabled(chatValue);
-        sessionStorage.setItem(chatCacheKey, String(chatValue));
         
         const name = profileResult.data?.name || user.email?.split('@')[0] || 'Usuário';
         setUserName(name);
-        sessionStorage.setItem(cacheKey, name);
+        if (!cached) {
+          sessionStorage.setItem(cacheKey, name);
+        }
         setIsLoading(false);
       }
     };

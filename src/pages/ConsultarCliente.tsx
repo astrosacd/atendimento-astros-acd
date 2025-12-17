@@ -170,6 +170,22 @@ export default function ConsultarCliente() {
     setLoadingHistory(false);
   };
 
+  // Refresh a specific client's data in the results list
+  const refreshClienteData = async (clienteId: string) => {
+    const { data } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('id', clienteId)
+      .single();
+    
+    if (data) {
+      // Update in results
+      setResults(prev => prev ? prev.map(c => c.id === clienteId ? data : c) : null);
+      // Update in allClientes
+      setAllClientes(prev => prev.map(c => c.id === clienteId ? data : c));
+    }
+  };
+
   const formatDate = (dateString: string) => {
     // Adiciona horário meio-dia para evitar problema de timezone
     const date = new Date(dateString + 'T12:00:00');
@@ -617,6 +633,7 @@ export default function ConsultarCliente() {
           clienteName={paymentClienteName}
           isOpen={!!paymentClienteId}
           onClose={() => setPaymentClienteId(null)}
+          onPaymentUpdate={() => paymentClienteId && refreshClienteData(paymentClienteId)}
         />
 
         {/* Files Dialog */}
