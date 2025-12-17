@@ -1426,10 +1426,13 @@ export default function AdminDivulgador() {
                                 {group.is_instance_admin !== undefined && (
                                   <Badge 
                                     variant="outline" 
-                                    className={`text-[10px] gap-0.5 ${group.is_instance_admin ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
+                                    className={`text-[10px] gap-0.5 cursor-help ${group.is_instance_admin ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
+                                    title={group.is_instance_admin 
+                                      ? `O número da instância ${group.divulgador_instances?.instance_name || ''} é ADMIN neste grupo`
+                                      : `O número da instância ${group.divulgador_instances?.instance_name || ''} é apenas MEMBRO neste grupo (não pode editar)`}
                                   >
                                     <Shield className="h-2.5 w-2.5" />
-                                    {group.is_instance_admin ? 'Admin' : 'Membro'}
+                                    {group.is_instance_admin ? 'Admin no Grupo' : 'Membro no Grupo'}
                                   </Badge>
                                 )}
                               </div>
