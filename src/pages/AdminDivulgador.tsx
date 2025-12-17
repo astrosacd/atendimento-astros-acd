@@ -662,7 +662,9 @@ export default function AdminDivulgador() {
     }
   };
 
-  const openEditGroupDialog = (group: any) => {
+  const [isLoadingGroupSettings, setIsLoadingGroupSettings] = useState(false);
+
+  const openEditGroupDialog = async (group: any) => {
     setEditingGroup(group);
     setEditGroupForm({
       name: group.name || '',
@@ -673,6 +675,28 @@ export default function AdminDivulgador() {
       approval_mode: false,
     });
     setIsEditGroupDialogOpen(true);
+    
+    // Fetch real settings from WhatsApp
+    setIsLoadingGroupSettings(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: { action: 'get-group-settings', groupId: group.id },
+      });
+      if (data?.success && data?.settings) {
+        setEditGroupForm(prev => ({
+          ...prev,
+          name: data.settings.subject || prev.name,
+          description: data.settings.desc || prev.description,
+          admin_only: data.settings.announce || false,
+          locked: data.settings.restrict || false,
+          approval_mode: data.settings.memberAddMode || false,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch group settings:', error);
+    } finally {
+      setIsLoadingGroupSettings(false);
+    }
   };
 
   const syncGroupsFromWhatsApp = async () => {
@@ -1297,15 +1321,15 @@ export default function AdminDivulgador() {
                   {groups.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">Nenhum grupo encontrado. Clique em "Sincronizar do WhatsApp" para importar grupos existentes.</p>
                   ) : (
-                  <ScrollArea className="h-[400px]">
+                  <ScrollArea className="h-[500px]">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">Foto</TableHead>
                           <TableHead>Nome</TableHead>
                           <TableHead>Instância</TableHead>
-                          <TableHead>Campanha</TableHead>
                           <TableHead>Participantes</TableHead>
+                          <TableHead>Permissões</TableHead>
                           <TableHead>Link</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Ações</TableHead>
@@ -1324,7 +1348,7 @@ export default function AdminDivulgador() {
                                 </AvatarFallback>
                               </Avatar>
                             </TableCell>
-                            <TableCell className="font-medium">{group.name}</TableCell>
+                            <TableCell className="font-medium max-w-[150px] truncate" title={group.name}>{group.name}</TableCell>
                             <TableCell>
                               {group.divulgador_instances?.instance_name ? (
                                 <Badge variant="outline" className="gap-1">
@@ -1333,8 +1357,19 @@ export default function AdminDivulgador() {
                                 </Badge>
                               ) : '-'}
                             </TableCell>
-                            <TableCell>{group.divulgador_campaigns?.name || '-'}</TableCell>
                             <TableCell>{group.participant_count}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1 flex-wrap">
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1" title="Envio de mensagens">
+                                  <MessageSquare className="h-2.5 w-2.5" />
+                                  {group.announce ? 'Admins' : 'Todos'}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-1" title="Edição do grupo">
+                                  <Edit className="h-2.5 w-2.5" />
+                                  {group.restrict ? 'Admins' : 'Todos'}
+                                </Badge>
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {group.invite_link ? (
                                 <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(group.invite_link); toast.success('Link copiado!'); }}>
@@ -2137,143 +2172,154 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Editar Grupo */}
         <Dialog open={isEditGroupDialogOpen} onOpenChange={setIsEditGroupDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Editar Grupo</DialogTitle>
               <DialogDescription>Altere as configurações do grupo "{editingGroup?.name}"</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Nome do Grupo</Label>
-                <Input value={editGroupForm.name} onChange={(e) => setEditGroupForm({ ...editGroupForm, name: e.target.value })} placeholder="Nome do grupo" />
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea rows={2} value={editGroupForm.description} onChange={(e) => setEditGroupForm({ ...editGroupForm, description: e.target.value })} placeholder="Descrição do grupo" />
-              </div>
-              <div className="space-y-2">
-                <Label>Foto do Grupo</Label>
-                {/* Show current photo if available */}
-                {editingGroup?.photo_url && !editGroupForm.photo_url && (
-                  <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={editingGroup.photo_url} alt="Foto atual" />
-                      <AvatarFallback><Users className="h-6 w-6" /></AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm text-muted-foreground">Foto atual do grupo</span>
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="space-y-4 py-4">
+                {isLoadingGroupSettings && (
+                  <div className="flex items-center justify-center py-4 text-sm text-muted-foreground gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando configurações do WhatsApp...
                   </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    id="edit-group-photo-upload"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => handleGroupPhotoUpload(e, true)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById('edit-group-photo-upload')?.click()}
-                    disabled={isUploadingGroupPhoto}
-                  >
-                    {isUploadingGroupPhoto ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
-                    {isUploadingGroupPhoto ? 'Enviando...' : 'Alterar foto'}
-                  </Button>
-                  {editGroupForm.photo_url && (
-                    <Badge variant="outline" className="text-xs">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Nova foto carregada
-                    </Badge>
-                  )}
+                <div className="space-y-2">
+                  <Label>Nome do Grupo</Label>
+                  <Input value={editGroupForm.name} onChange={(e) => setEditGroupForm({ ...editGroupForm, name: e.target.value })} placeholder="Nome do grupo" />
                 </div>
-                <p className="text-xs text-muted-foreground">Deixe em branco para manter a foto atual</p>
+                <div className="space-y-2">
+                  <Label>Descrição</Label>
+                  <Textarea rows={2} value={editGroupForm.description} onChange={(e) => setEditGroupForm({ ...editGroupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Foto do Grupo</Label>
+                  {editingGroup?.photo_url && !editGroupForm.photo_url && (
+                    <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={editingGroup.photo_url} alt="Foto atual" />
+                        <AvatarFallback><Users className="h-6 w-6" /></AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-muted-foreground">Foto atual do grupo</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id="edit-group-photo-upload"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleGroupPhotoUpload(e, true)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('edit-group-photo-upload')?.click()}
+                      disabled={isUploadingGroupPhoto}
+                    >
+                      {isUploadingGroupPhoto ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingGroupPhoto ? 'Enviando...' : 'Alterar foto'}
+                    </Button>
+                    {editGroupForm.photo_url && (
+                      <Badge variant="outline" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Nova foto carregada
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Deixe em branco para manter a foto atual</p>
+                </div>
+                {/* Permissões do Grupo */}
+                <Card className="border-border/50">
+                  <CardHeader className="py-3 px-4">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      Permissões do Grupo
+                      {isLoadingGroupSettings && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-3 px-4 space-y-4">
+                    {/* Quem pode enviar mensagens */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Enviar Mensagens</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {editGroupForm.admin_only ? 'Somente administradores' : 'Todos os membros'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={editGroupForm.admin_only ? "default" : "secondary"} className="text-xs">
+                          {editGroupForm.admin_only ? 'Admins' : 'Todos'}
+                        </Badge>
+                        <Switch 
+                          checked={editGroupForm.admin_only} 
+                          onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })}
+                          disabled={isLoadingGroupSettings}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Quem pode editar informações */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Editar Informações</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {editGroupForm.locked ? 'Somente administradores' : 'Todos os membros'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={editGroupForm.locked ? "default" : "secondary"} className="text-xs">
+                          {editGroupForm.locked ? 'Admins' : 'Todos'}
+                        </Badge>
+                        <Switch 
+                          checked={editGroupForm.locked} 
+                          onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, locked: c })}
+                          disabled={isLoadingGroupSettings}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Aprovação de novos membros */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Novos Membros</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {editGroupForm.approval_mode ? 'Requer aprovação de admin' : 'Entram automaticamente'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={editGroupForm.approval_mode ? "default" : "secondary"} className="text-xs">
+                          {editGroupForm.approval_mode ? 'Aprovação' : 'Automático'}
+                        </Badge>
+                        <Switch 
+                          checked={editGroupForm.approval_mode} 
+                          onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, approval_mode: c })}
+                          disabled={isLoadingGroupSettings}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-amber-500/20 bg-amber-500/5">
+                  <CardContent className="py-3">
+                    <p className="text-xs text-muted-foreground">
+                      <Info className="h-3 w-3 inline mr-1" />
+                      As alterações serão aplicadas diretamente no WhatsApp via Evolution API
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
-              {/* Permissões do Grupo */}
-              <Card className="border-border/50">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Permissões do Grupo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="py-3 px-4 space-y-4">
-                  {/* Quem pode enviar mensagens */}
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm">Enviar Mensagens</Label>
-                      <p className="text-xs text-muted-foreground">
-                        {editGroupForm.admin_only ? 'Somente administradores' : 'Todos os membros'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={editGroupForm.admin_only ? "default" : "secondary"} className="text-xs">
-                        {editGroupForm.admin_only ? 'Admins' : 'Todos'}
-                      </Badge>
-                      <Switch 
-                        checked={editGroupForm.admin_only} 
-                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })} 
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Quem pode editar informações */}
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm">Editar Informações</Label>
-                      <p className="text-xs text-muted-foreground">
-                        {editGroupForm.locked ? 'Somente administradores' : 'Todos os membros'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={editGroupForm.locked ? "default" : "secondary"} className="text-xs">
-                        {editGroupForm.locked ? 'Admins' : 'Todos'}
-                      </Badge>
-                      <Switch 
-                        checked={editGroupForm.locked} 
-                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, locked: c })} 
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Aprovação de novos membros */}
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm">Novos Membros</Label>
-                      <p className="text-xs text-muted-foreground">
-                        {editGroupForm.approval_mode ? 'Requer aprovação de admin' : 'Entram automaticamente'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={editGroupForm.approval_mode ? "default" : "secondary"} className="text-xs">
-                        {editGroupForm.approval_mode ? 'Aprovação' : 'Automático'}
-                      </Badge>
-                      <Switch 
-                        checked={editGroupForm.approval_mode} 
-                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, approval_mode: c })} 
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-amber-500/20 bg-amber-500/5">
-                <CardContent className="py-3">
-                  <p className="text-xs text-muted-foreground">
-                    <Info className="h-3 w-3 inline mr-1" />
-                    As alterações serão aplicadas diretamente no WhatsApp via Evolution API
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            </ScrollArea>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditGroupDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={updateGroupViaAPI} disabled={isUpdatingGroup || !editGroupForm.name}>
+              <Button onClick={updateGroupViaAPI} disabled={isUpdatingGroup || !editGroupForm.name || isLoadingGroupSettings}>
                 {isUpdatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Salvar Alterações
               </Button>
