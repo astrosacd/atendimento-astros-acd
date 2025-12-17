@@ -261,6 +261,11 @@ serve(async (req) => {
         const groupName = group.subject || group.name || 'Sem nome';
         const participantCount = group.participants?.length || group.size || 0;
         const instanceId = group._instanceId;
+        
+        // Extract permissions from WhatsApp group metadata
+        const announce = group.announce || false;
+        const restrict = group.restrict || false;
+        const memberAddMode = group.memberAddMode || false;
 
         // Check if group already exists
         const { data: existing } = await supabase
@@ -270,7 +275,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          // Update existing group
+          // Update existing group with permissions
           const { data: updated } = await supabase
             .from('divulgador_groups')
             .update({
@@ -278,13 +283,16 @@ serve(async (req) => {
               participant_count: participantCount,
               invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
               instance_id: instanceId,
+              announce,
+              restrict,
+              member_add_mode: memberAddMode,
             })
             .eq('id', existing.id)
             .select()
             .single();
           savedGroups.push(updated);
         } else {
-          // Insert new group
+          // Insert new group with permissions
           const { data: inserted } = await supabase
             .from('divulgador_groups')
             .insert({
@@ -294,6 +302,9 @@ serve(async (req) => {
               invite_link: group.inviteCode ? `https://chat.whatsapp.com/${group.inviteCode}` : null,
               is_active: true,
               instance_id: instanceId,
+              announce,
+              restrict,
+              member_add_mode: memberAddMode,
             })
             .select()
             .single();
@@ -731,10 +742,14 @@ serve(async (req) => {
         }
       }
 
-      // Update database record (always update if name was provided)
+      // Update database record including permissions
       const updatePayload: any = {};
       if (groupName) updatePayload.name = groupName;
       if (groupDescription !== undefined) updatePayload.description = groupDescription;
+      // Always persist permission state to database
+      if (adminOnly !== undefined) updatePayload.announce = adminOnly;
+      if (locked !== undefined) updatePayload.restrict = locked;
+      if (approvalMode !== undefined) updatePayload.member_add_mode = approvalMode;
 
       if (Object.keys(updatePayload).length > 0) {
         await supabase

@@ -688,17 +688,18 @@ export default function AdminDivulgador() {
 
   const openEditGroupDialog = async (group: any) => {
     setEditingGroup(group);
+    // Initialize from DB values first
     setEditGroupForm({
       name: group.name || '',
       description: group.description || '',
       photo_url: '',
-      admin_only: false,
-      locked: false,
-      approval_mode: false,
+      admin_only: group.announce || false,
+      locked: group.restrict || false,
+      approval_mode: group.member_add_mode || false,
     });
     setIsEditGroupDialogOpen(true);
     
-    // Fetch real settings from WhatsApp
+    // Then fetch real-time settings from WhatsApp to verify
     setIsLoadingGroupSettings(true);
     try {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
@@ -1417,11 +1418,11 @@ export default function AdminDivulgador() {
                                 </span>
                                 <span title="Novos membros precisam de aprovação de admin">
                                   <Badge 
-                                    variant={group.memberAddMode ? "default" : "outline"} 
-                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.memberAddMode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
+                                    variant={group.member_add_mode ? "default" : "outline"} 
+                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.member_add_mode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
                                   >
                                     <Lock className="h-2.5 w-2.5" />
-                                    {group.memberAddMode ? 'Aprovação' : 'Auto'}
+                                    {group.member_add_mode ? 'Aprovação' : 'Auto'}
                                   </Badge>
                                 </span>
                               </div>
@@ -1994,10 +1995,12 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Mensagem */}
         <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Agendar Mensagem</DialogTitle>
+              <DialogDescription>Agende uma mensagem para envio aos grupos selecionados</DialogDescription>
             </DialogHeader>
+            <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Grupo de destino</Label>
@@ -2102,6 +2105,7 @@ export default function AdminDivulgador() {
                 O delay evita bloqueios ao enviar para múltiplos grupos. Recomendado: 2-5 segundos.
               </p>
             </div>
+            </ScrollArea>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>Cancelar</Button>
               <Button onClick={() => saveMessageMutation.mutate(messageForm)} disabled={saveMessageMutation.isPending || !messageForm.content}>
