@@ -521,7 +521,7 @@ export default function AdminDivulgador() {
     photo_url: '',
     admin_only: false,
     locked: false, // Only admins can edit group info
-    approval_mode: false, // Approval required to join
+    approval_mode: false, // Member add permission (from WhatsApp: memberAddMode)
   });
   const [isUploadingGroupPhoto, setIsUploadingGroupPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState<string | null>(null);
@@ -625,7 +625,6 @@ export default function AdminDivulgador() {
           groupPhoto: editGroupForm.photo_url || null,
           adminOnly: editGroupForm.admin_only,
           locked: editGroupForm.locked,
-          approvalMode: editGroupForm.approval_mode,
         },
       });
       if (error) throw error;
@@ -1417,13 +1416,13 @@ export default function AdminDivulgador() {
                                     {group.restrict ? 'Admins' : 'Todos'}
                                   </Badge>
                                 </span>
-                                <span title="Novos membros precisam de aprovação de admin">
+                                <span title="Quem pode adicionar novos membros ao grupo">
                                   <Badge 
                                     variant={group.member_add_mode ? "default" : "outline"} 
                                     className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.member_add_mode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
                                   >
                                     <Lock className="h-2.5 w-2.5" />
-                                    {group.member_add_mode ? 'Aprovação' : 'Auto'}
+                                    {group.member_add_mode ? 'Admins' : 'Todos'}
                                   </Badge>
                                 </span>
                               </div>
@@ -2373,24 +2372,22 @@ export default function AdminDivulgador() {
                       </div>
                     </div>
                     
-                    {/* Aprovação de novos membros (nem todas as versões suportam) */}
+                    {/* Quem pode adicionar membros (a API atual não permite ALTERAR via painel) */}
                     <div className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5 min-w-0">
-                        <Label className="text-sm">Novos Membros</Label>
+                        <Label className="text-sm">Adicionar Membros</Label>
                         <p className="text-xs text-muted-foreground">
-                          {editGroupForm.approval_mode ? 'Requer aprovação de admin' : 'Entram automaticamente'}
+                          {editGroupForm.approval_mode ? 'Somente administradores' : 'Todos os membros'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className="text-xs">
-                          Indisponível
-                        </Badge>
+                        <Badge variant="outline" className="text-xs">Somente leitura</Badge>
                         <Switch checked={editGroupForm.approval_mode} disabled />
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       <Lock className="h-3 w-3 inline mr-1" />
-                      Sua versão da Evolution API não permite alterar “Aprovação de membros”.
+                      A Evolution API desta instância não suporta alterar “Adicionar membros” via painel. Altere no WhatsApp e depois clique em “Sincronizar Grupos”.
                     </p>
                   </CardContent>
                 </Card>
@@ -2593,23 +2590,21 @@ export default function AdminDivulgador() {
                     <CardContent className="py-3 space-y-2">
                       <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 gap-y-2">
                         <span className="text-sm font-medium">Ação:</span>
-                        <div className="justify-self-end">
-                          <Badge variant="outline" className="max-w-full truncate">{apiDebugResponse.action}</Badge>
+                        <div className="justify-self-end max-w-full text-right">
+                          <code className="text-xs bg-muted px-2 py-1 rounded break-all inline-block max-w-full">{apiDebugResponse.action}</code>
                         </div>
 
                         {apiDebugResponse.groupName && (
                           <>
                             <span className="text-sm font-medium">Grupo:</span>
-                            <span className="text-sm justify-self-end max-w-full truncate">{apiDebugResponse.groupName}</span>
+                            <span className="text-sm justify-self-end max-w-full break-words text-right">{apiDebugResponse.groupName}</span>
                           </>
                         )}
 
                         {apiDebugResponse.instance && (
                           <>
                             <span className="text-sm font-medium">Instância:</span>
-                            <div className="justify-self-end max-w-full">
-                              <Badge variant="secondary" className="max-w-full truncate">{apiDebugResponse.instance}</Badge>
-                            </div>
+                            <span className="text-sm justify-self-end max-w-full break-words text-right">{apiDebugResponse.instance}</span>
                           </>
                         )}
 
