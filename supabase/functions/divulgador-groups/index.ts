@@ -231,7 +231,8 @@ serve(async (req) => {
       for (const inst of connectedInstances) {
         try {
           console.log(`[divulgador-groups] Fetching from instance: ${inst.instance_name}`);
-          const fetchResponse = await fetch(`${inst.api_url}/group/fetchAllGroups/${inst.instance_name}`, {
+          // Use getParticipants=true to get participants in single call
+          const fetchResponse = await fetch(`${inst.api_url}/group/fetchAllGroups/${inst.instance_name}?getParticipants=true`, {
             headers: { 'apikey': inst.api_key },
           });
 
@@ -244,58 +245,41 @@ serve(async (req) => {
           console.log(`[divulgador-groups] Instance ${inst.instance_name}: ${fetchedGroups?.length || 0} groups`);
 
           const instancePhone = instancePhoneNumbers[inst.id];
+          const cleanInstancePhone = instancePhone ? instancePhone.replace(/\D/g, '') : '';
 
           for (const g of (fetchedGroups || [])) {
             const gId = g.id || g.jid;
             if (gId) {
-              // Avoid duplicates (same group might appear in multiple instances if shared)
+              // Avoid duplicates
               if (!instanceGroupMap[gId]) {
                 instanceGroupMap[gId] = inst.id;
                 
-                // Check if instance is admin of this group by fetching participants separately
+                // Check if instance is admin of this group
                 let isInstanceAdmin = false;
                 
-                if (instancePhone) {
-                  try {
-                    // Fetch participants for this specific group using the correct endpoint
-                    const participantsRes = await fetch(
-                      `${inst.api_url}/group/participants/${inst.instance_name}?groupJid=${encodeURIComponent(gId)}`,
-                      { headers: { 'apikey': inst.api_key } }
-                    );
+                // Try to find admin status from participants if available
+                const participants = g.participants || [];
+                if (cleanInstancePhone && participants.length > 0) {
+                  for (const p of participants) {
+                    const pNumber = (p.id || p.jid || '').replace('@s.whatsapp.net', '').replace(':*', '').replace(/\D/g, '');
                     
-                    if (participantsRes.ok) {
-                      const participantsData = await participantsRes.json();
-                      const participantsList = participantsData.participants || participantsData || [];
-                      
-                      console.log(`[divulgador-groups] Group ${g.subject || gId}: ${participantsList.length} participants`);
-                      
-                      // Find the instance's participant entry
-                      for (const p of participantsList) {
-                        const pNumber = (p.id || p.jid || '').replace('@s.whatsapp.net', '').replace(':*', '').replace(/\D/g, '');
-                        const cleanInstancePhone = instancePhone.replace(/\D/g, '');
-                        
-                        // Compare normalized phone numbers
-                        const phoneMatches = pNumber === cleanInstancePhone || 
-                                            pNumber.endsWith(cleanInstancePhone) || 
-                                            cleanInstancePhone.endsWith(pNumber);
-                        
-                        if (phoneMatches) {
-                          // Evolution API returns admin status in different ways
-                          const adminStatus = p.admin || p.isAdmin || p.role;
-                          isInstanceAdmin = adminStatus === 'admin' || adminStatus === 'superadmin' || 
-                                           adminStatus === true || p.isSuperAdmin === true;
-                          console.log(`[divulgador-groups] Group ${g.subject || gId}: Instance phone ${cleanInstancePhone} found as ${pNumber}, admin=${adminStatus}, isAdmin=${isInstanceAdmin}`);
-                          break;
-                        }
-                      }
-                    } else {
-                      console.log(`[divulgador-groups] Group ${g.subject || gId}: Failed to fetch participants (${participantsRes.status})`);
+                    if (pNumber && cleanInstancePhone && 
+                        (pNumber === cleanInstancePhone || pNumber.endsWith(cleanInstancePhone) || cleanInstancePhone.endsWith(pNumber))) {
+                      const adminStatus = p.admin || p.isAdmin || p.role;
+                      isInstanceAdmin = adminStatus === 'admin' || adminStatus === 'superadmin' || adminStatus === true || p.isSuperAdmin === true;
+                      console.log(`[divulgador-groups] Group ${g.subject}: Phone ${pNumber} admin=${adminStatus} isAdmin=${isInstanceAdmin}`);
+                      break;
                     }
-                  } catch (pErr) {
-                    console.log(`[divulgador-groups] Group ${g.subject || gId}: Error fetching participants:`, pErr);
                   }
-                } else {
-                  console.log(`[divulgador-groups] Group ${g.subject || gId}: No instancePhone available`);
+                }
+                
+                // Fallback: check if instance owns the group
+                if (!isInstanceAdmin && cleanInstancePhone) {
+                  const ownerNumber = (g.owner || g.subjectOwner || '').replace('@s.whatsapp.net', '').replace(':*', '').replace(/\D/g, '');
+                  if (ownerNumber && (ownerNumber === cleanInstancePhone || ownerNumber.endsWith(cleanInstancePhone) || cleanInstancePhone.endsWith(ownerNumber))) {
+                    isInstanceAdmin = true;
+                    console.log(`[divulgador-groups] Group ${g.subject}: Instance is owner`);
+                  }
                 }
                 
                 allFetchedGroups.push({ ...g, _instanceId: inst.id, _isInstanceAdmin: isInstanceAdmin });
