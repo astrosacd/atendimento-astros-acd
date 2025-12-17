@@ -614,108 +614,86 @@ serve(async (req) => {
       const wid = groupData.whatsapp_group_id;
 
       let nameUpdated = false;
+      const apiResponses: any[] = [];
 
-      // Update group name if provided
+      // Helper to make API call and collect response for debug
+      const makeApiCall = async (endpoint: string, method: string, body: any, label: string) => {
+        const res = await fetch(endpoint, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: api_key,
+          },
+          body: JSON.stringify(body),
+        });
+        const resData = await res.json().catch(() => ({}));
+        const result = { label, ok: res.ok, status: res.status, data: resData };
+        console.log(`[divulgador-groups] ${label} response:`, JSON.stringify(result));
+        apiResponses.push(result);
+        return { ok: res.ok, data: resData };
+      };
+
+      // Update group name if provided - Evolution API v2: POST with groupJid in body
       if (groupName !== undefined) {
         try {
           console.log(`[divulgador-groups] Updating group name to: ${groupName}`);
-          const res = await fetch(
-            `${api_url}/group/updateSubject/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                apikey: api_key,
-              },
-              body: JSON.stringify({ subject: groupName }),
-            }
+          const result = await makeApiCall(
+            `${api_url}/group/updateGroupSubject/${instance_name}`,
+            'POST',
+            { groupJid: wid, subject: groupName },
+            'Atualizar Nome'
           );
-          const resData = await res.json().catch(() => ({}));
-          console.log(
-            '[divulgador-groups] Group name update response:',
-            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
-          );
-          if (res.ok) nameUpdated = true;
+          if (result.ok) nameUpdated = true;
         } catch (e) {
           console.error('[divulgador-groups] Failed to update name:', e);
+          apiResponses.push({ label: 'Atualizar Nome', ok: false, error: String(e) });
         }
       }
 
-      // Update group description if provided
+      // Update group description if provided - Evolution API v2: POST with groupJid in body
       if (groupDescription !== undefined) {
         try {
-          const res = await fetch(
-            `${api_url}/group/updateDescription/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                apikey: api_key,
-              },
-              body: JSON.stringify({ description: groupDescription }),
-            }
-          );
-          const resData = await res.json().catch(() => ({}));
-          console.log(
-            '[divulgador-groups] Group description update response:',
-            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+          await makeApiCall(
+            `${api_url}/group/updateGroupDescription/${instance_name}`,
+            'POST',
+            { groupJid: wid, description: groupDescription },
+            'Atualizar Descrição'
           );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update description:', e);
+          apiResponses.push({ label: 'Atualizar Descrição', ok: false, error: String(e) });
         }
       }
 
-      // Update group photo if provided
+      // Update group photo if provided - Evolution API v2: POST with groupJid in body
       if (groupPhoto) {
         try {
-          const res = await fetch(
-            `${api_url}/group/updateGroupPicture/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                apikey: api_key,
-              },
-              body: JSON.stringify({ image: groupPhoto }),
-            }
-          );
-          const resData = await res.json().catch(() => ({}));
-          console.log(
-            '[divulgador-groups] Group photo update response:',
-            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+          await makeApiCall(
+            `${api_url}/group/updateGroupPicture/${instance_name}`,
+            'POST',
+            { groupJid: wid, image: groupPhoto },
+            'Atualizar Foto'
           );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update photo:', e);
+          apiResponses.push({ label: 'Atualizar Foto', ok: false, error: String(e) });
         }
       }
 
-      const updateSetting = async (action: string, label: string) => {
-        const res = await fetch(
-          `${api_url}/group/updateSetting/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: api_key,
-            },
-            body: JSON.stringify({ action }),
-          }
-        );
-        const resData = await res.json().catch(() => ({}));
-        console.log(
-          `[divulgador-groups] ${label} update response:`,
-          JSON.stringify({ ok: res.ok, status: res.status, data: resData })
-        );
-        return res.ok;
-      };
-
       // Update admin-only setting (announcement mode) if provided
+      // Evolution API: PUT /group/updateSetting with groupJid in body
       if (adminOnly !== undefined) {
         try {
           const settingAction = adminOnly ? 'announcement' : 'not_announcement';
-          await updateSetting(settingAction, 'Admin-only (announcement)');
+          await makeApiCall(
+            `${api_url}/group/updateSetting/${instance_name}`,
+            'PUT',
+            { groupJid: wid, action: settingAction },
+            'Permissão Envio'
+          );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update announcement settings:', e);
+          apiResponses.push({ label: 'Permissão Envio', ok: false, error: String(e) });
         }
       }
 
@@ -723,28 +701,33 @@ serve(async (req) => {
       if (locked !== undefined) {
         try {
           const settingAction = locked ? 'locked' : 'unlocked';
-          await updateSetting(settingAction, 'Locked');
+          await makeApiCall(
+            `${api_url}/group/updateSetting/${instance_name}`,
+            'PUT',
+            { groupJid: wid, action: settingAction },
+            'Permissão Edição'
+          );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update locked settings:', e);
+          apiResponses.push({ label: 'Permissão Edição', ok: false, error: String(e) });
         }
       }
 
       // Update approval mode (membership approval required) if provided
+      // Note: membership_approval_request/reject may not be supported in all API versions
       if (approvalMode !== undefined) {
         try {
+          // Try the standard approach first
           const settingAction = approvalMode ? 'membership_approval_request' : 'membership_approval_reject';
-          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, action: settingAction }),
-          });
-          const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Approval mode update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          await makeApiCall(
+            `${api_url}/group/updateSetting/${instance_name}`,
+            'PUT',
+            { groupJid: wid, action: settingAction },
+            'Aprovação Membros'
+          );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update approval mode:', e);
+          apiResponses.push({ label: 'Aprovação Membros', ok: false, error: String(e) });
         }
       }
 
@@ -760,7 +743,13 @@ serve(async (req) => {
           .eq('id', groupId);
       }
 
-      return new Response(JSON.stringify({ success: true, nameUpdated }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        nameUpdated, 
+        apiResponses,
+        instance: instance_name,
+        groupJid: wid
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
