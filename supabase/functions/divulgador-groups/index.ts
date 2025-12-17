@@ -565,8 +565,22 @@ serve(async (req) => {
         
         if (targetGroup) {
           console.log('[divulgador-groups] Group settings fetched:', JSON.stringify(targetGroup));
+          
+          // Detect if it's a community - communities have isCommunity flag or specific structure
+          // Also detect by checking if it's a community announcement group or linked community
+          const isCommunity = Boolean(
+            targetGroup.isCommunity || 
+            targetGroup.linkedParent || // linked to a parent community
+            targetGroup.isParentGroup || // is a parent community group
+            (wid && wid.includes('@newsletter')) || // newsletter/channel
+            (targetGroup.announce && !targetGroup.pictureUrl && !targetGroup.desc) // likely community if announce-only with no info
+          );
+          
+          console.log('[divulgador-groups] Is community:', isCommunity, 'wid:', wid);
+          
           return new Response(JSON.stringify({ 
             success: true, 
+            isCommunity,
             settings: {
               announce: targetGroup.announce || false, // admin only messages
               restrict: targetGroup.restrict || false, // locked (admin only edit info)
@@ -580,7 +594,13 @@ serve(async (req) => {
           });
         }
         
-        return new Response(JSON.stringify({ success: false, error: 'Grupo não encontrado no WhatsApp' }), {
+        // Group not found in WhatsApp - might be a community or deleted
+        console.log('[divulgador-groups] Group not found in WhatsApp groups list, might be a community');
+        return new Response(JSON.stringify({ 
+          success: false, 
+          isCommunity: true, // Assume community if not found in regular groups list
+          error: 'Grupo não encontrado na lista de grupos. Pode ser uma comunidade que não pode ser editada.' 
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (e) {
