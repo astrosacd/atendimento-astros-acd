@@ -2373,25 +2373,25 @@ export default function AdminDivulgador() {
                       </div>
                     </div>
                     
-                    {/* Aprovação de novos membros */}
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
+                    {/* Aprovação de novos membros (nem todas as versões suportam) */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-0.5 min-w-0">
                         <Label className="text-sm">Novos Membros</Label>
                         <p className="text-xs text-muted-foreground">
                           {editGroupForm.approval_mode ? 'Requer aprovação de admin' : 'Entram automaticamente'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={editGroupForm.approval_mode ? "default" : "secondary"} className="text-xs">
-                          {editGroupForm.approval_mode ? 'Aprovação' : 'Automático'}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="text-xs">
+                          Indisponível
                         </Badge>
-                        <Switch 
-                          checked={editGroupForm.approval_mode} 
-                          onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, approval_mode: c })}
-                          disabled={isLoadingGroupSettings}
-                        />
+                        <Switch checked={editGroupForm.approval_mode} disabled />
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3 inline mr-1" />
+                      Sua versão da Evolution API não permite alterar “Aprovação de membros”.
+                    </p>
                   </CardContent>
                 </Card>
                 
@@ -2575,7 +2575,7 @@ export default function AdminDivulgador() {
 
         {/* Dialog: Debug da API */}
         <Dialog open={isApiDebugDialogOpen} onOpenChange={setIsApiDebugDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[min(92vw,48rem)] max-w-none">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -2585,45 +2585,55 @@ export default function AdminDivulgador() {
                 Informações de debug das chamadas à Evolution API
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[60vh]">
+            <ScrollArea className="max-h-[70vh] pr-4">
               {apiDebugResponse && (
                 <div className="space-y-4">
                   {/* Header Info */}
                   <Card className="border-border/50">
                     <CardContent className="py-3 space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="grid grid-cols-[auto,1fr] items-center gap-x-4 gap-y-2">
                         <span className="text-sm font-medium">Ação:</span>
-                        <Badge variant="outline">{apiDebugResponse.action}</Badge>
-                      </div>
-                      {apiDebugResponse.groupName && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Grupo:</span>
-                          <span className="text-sm">{apiDebugResponse.groupName}</span>
+                        <div className="justify-self-end">
+                          <Badge variant="outline" className="max-w-full truncate">{apiDebugResponse.action}</Badge>
                         </div>
-                      )}
-                      {apiDebugResponse.instance && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Instância:</span>
-                          <Badge variant="secondary">{apiDebugResponse.instance}</Badge>
-                        </div>
-                      )}
-                      {apiDebugResponse.groupJid && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Group JID:</span>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">{apiDebugResponse.groupJid}</code>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Status Geral:</span>
-                        {apiDebugResponse.success ? (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                            <CheckCircle2 className="h-3 w-3 mr-1" /> Sucesso
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <XCircle className="h-3 w-3 mr-1" /> Falha
-                          </Badge>
+
+                        {apiDebugResponse.groupName && (
+                          <>
+                            <span className="text-sm font-medium">Grupo:</span>
+                            <span className="text-sm justify-self-end max-w-full truncate">{apiDebugResponse.groupName}</span>
+                          </>
                         )}
+
+                        {apiDebugResponse.instance && (
+                          <>
+                            <span className="text-sm font-medium">Instância:</span>
+                            <div className="justify-self-end max-w-full">
+                              <Badge variant="secondary" className="max-w-full truncate">{apiDebugResponse.instance}</Badge>
+                            </div>
+                          </>
+                        )}
+
+                        {apiDebugResponse.groupJid && (
+                          <>
+                            <span className="text-sm font-medium">Group JID:</span>
+                            <code className="text-xs bg-muted px-2 py-1 rounded justify-self-end max-w-full break-all">
+                              {apiDebugResponse.groupJid}
+                            </code>
+                          </>
+                        )}
+
+                        <span className="text-sm font-medium">Status Geral:</span>
+                        <div className="justify-self-end">
+                          {apiDebugResponse.success ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Sucesso
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <XCircle className="h-3 w-3 mr-1" /> Falha
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
