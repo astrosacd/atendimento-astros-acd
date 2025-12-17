@@ -1447,6 +1447,12 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 2. Clique no botão **"Editar"** (ícone de lápis) na coluna Ações
 3. O sistema busca automaticamente as **configurações atuais** do WhatsApp
 
+⚠️ **Bloqueio automático para não-admins:**
+- Se a instância NÃO é admin do grupo, o botão de edição aparece com ícone de **cadeado** e desabilitado
+- Isso porque a API Evolution não permite editar grupos onde você não é administrador
+- O badge vermelho **"Membro"** na coluna indica que a instância não é admin
+- Para editar, você precisa ser promovido a admin diretamente no WhatsApp
+
 **No modal de edição você pode alterar:**
 - **Nome do Grupo**: Atualiza o nome no WhatsApp em tempo real
 - **Descrição**: Texto da info do grupo
@@ -1472,6 +1478,8 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 - A coluna **"Permissões"** mostra badges com o status atual
 - **Msg (Adm/Tds)**: Quem pode enviar mensagens
 - **Edit (Adm/Tds)**: Quem pode editar informações do grupo
+- 🟢 **Admin**: Instância é administradora - pode editar
+- 🔴 **Membro**: Instância é apenas membro - edição bloqueada
 
 **Sincronização automática:**
 - Ao abrir o modal de edição, as configurações (incluindo foto) são buscadas do WhatsApp
