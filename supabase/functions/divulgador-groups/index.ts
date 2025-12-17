@@ -638,7 +638,7 @@ serve(async (req) => {
           body: JSON.stringify(body),
         });
         const resData = await res.json().catch(() => ({}));
-        const result = { label, ok: res.ok, status: res.status, data: resData };
+        const result = { label, ok: res.ok, status: res.status, data: resData, method, endpoint };
         console.log(`[divulgador-groups] ${label} response:`, JSON.stringify(result));
         apiResponses.push(result);
         return { ok: res.ok, data: resData };
