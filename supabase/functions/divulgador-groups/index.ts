@@ -179,27 +179,50 @@ serve(async (req) => {
 
       console.log(`[divulgador-groups] Fetching groups from ${connectedInstances.length} instance(s)`);
 
-      // Get instance phone numbers for admin checking
+      // Get instance phone numbers for admin checking using multiple methods
       const instancePhoneNumbers: Record<string, string> = {};
       for (const inst of connectedInstances) {
         try {
-          // Get the instance's own number
-          const profileRes = await fetch(`${inst.api_url}/instance/fetchInstances`, {
+          // Method 1: Try connectionState which often has the owner number
+          const connStateRes = await fetch(`${inst.api_url}/instance/connectionState/${inst.instance_name}`, {
             headers: { 'apikey': inst.api_key },
           });
-          if (profileRes.ok) {
-            const instances = await profileRes.json();
-            const thisInstance = instances?.find((i: any) => i.name === inst.instance_name || i.instance?.instanceName === inst.instance_name);
-            const ownerJid = thisInstance?.ownerJid || thisInstance?.instance?.ownerJid || thisInstance?.owner;
+          if (connStateRes.ok) {
+            const connData = await connStateRes.json();
+            const ownerJid = connData?.instance?.wuid || connData?.instance?.ownerJid || connData?.wuid;
             if (ownerJid) {
-              instancePhoneNumbers[inst.id] = ownerJid.replace('@s.whatsapp.net', '');
-              console.log(`[divulgador-groups] Instance ${inst.instance_name} phone: ${instancePhoneNumbers[inst.id]}`);
+              instancePhoneNumbers[inst.id] = ownerJid.replace('@s.whatsapp.net', '').replace(':*', '');
+              console.log(`[divulgador-groups] Instance ${inst.instance_name} phone from connectionState: ${instancePhoneNumbers[inst.id]}`);
+            }
+          }
+
+          // Method 2: If still no phone, try fetchInstances
+          if (!instancePhoneNumbers[inst.id]) {
+            const profileRes = await fetch(`${inst.api_url}/instance/fetchInstances`, {
+              headers: { 'apikey': inst.api_key },
+            });
+            if (profileRes.ok) {
+              const instancesList = await profileRes.json();
+              const thisInstance = instancesList?.find((i: any) => 
+                i.name === inst.instance_name || 
+                i.instance?.instanceName === inst.instance_name ||
+                i.instanceName === inst.instance_name
+              );
+              const ownerJid = thisInstance?.ownerJid || thisInstance?.instance?.ownerJid || 
+                              thisInstance?.owner || thisInstance?.instance?.owner ||
+                              thisInstance?.number || thisInstance?.instance?.number;
+              if (ownerJid) {
+                instancePhoneNumbers[inst.id] = String(ownerJid).replace('@s.whatsapp.net', '').replace(':*', '');
+                console.log(`[divulgador-groups] Instance ${inst.instance_name} phone from fetchInstances: ${instancePhoneNumbers[inst.id]}`);
+              }
             }
           }
         } catch (e) {
           console.log(`[divulgador-groups] Could not get phone for ${inst.instance_name}:`, e);
         }
       }
+
+      console.log(`[divulgador-groups] Instance phone numbers:`, JSON.stringify(instancePhoneNumbers));
 
       // Collect all groups from all instances
       const allFetchedGroups: any[] = [];
@@ -220,6 +243,8 @@ serve(async (req) => {
           const fetchedGroups = await fetchResponse.json();
           console.log(`[divulgador-groups] Instance ${inst.instance_name}: ${fetchedGroups?.length || 0} groups`);
 
+          const instancePhone = instancePhoneNumbers[inst.id];
+
           for (const g of (fetchedGroups || [])) {
             const gId = g.id || g.jid;
             if (gId) {
@@ -228,15 +253,27 @@ serve(async (req) => {
                 instanceGroupMap[gId] = inst.id;
                 
                 // Check if instance is admin of this group
-                const instancePhone = instancePhoneNumbers[inst.id];
                 let isInstanceAdmin = false;
                 
-                if (instancePhone && g.participants) {
-                  const instanceParticipant = g.participants.find((p: any) => {
-                    const pNumber = (p.id || '').replace('@s.whatsapp.net', '');
-                    return pNumber === instancePhone || pNumber.endsWith(instancePhone) || instancePhone.endsWith(pNumber);
-                  });
-                  isInstanceAdmin = instanceParticipant?.admin === 'admin' || instanceParticipant?.admin === 'superadmin';
+                if (instancePhone && g.participants && Array.isArray(g.participants)) {
+                  // Find the instance's participant entry
+                  for (const p of g.participants) {
+                    const pNumber = (p.id || p.jid || '').replace('@s.whatsapp.net', '').replace(':*', '');
+                    // Compare with different possible formats
+                    const phoneMatches = pNumber === instancePhone || 
+                                        pNumber.endsWith(instancePhone) || 
+                                        instancePhone.endsWith(pNumber) ||
+                                        pNumber.includes(instancePhone) ||
+                                        instancePhone.includes(pNumber);
+                    
+                    if (phoneMatches) {
+                      isInstanceAdmin = p.admin === 'admin' || p.admin === 'superadmin';
+                      console.log(`[divulgador-groups] Group ${g.subject || gId}: Found instance participant ${pNumber}, admin=${p.admin}, isAdmin=${isInstanceAdmin}`);
+                      break;
+                    }
+                  }
+                } else {
+                  console.log(`[divulgador-groups] Group ${g.subject || gId}: No instancePhone (${instancePhone}) or no participants (${g.participants?.length || 0})`);
                 }
                 
                 allFetchedGroups.push({ ...g, _instanceId: inst.id, _isInstanceAdmin: isInstanceAdmin });

@@ -1492,8 +1492,15 @@ export default function AdminDivulgador() {
                                 >
                                   <Send className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openEditGroupDialog(group)} title="Editar grupo">
-                                  <Edit className="h-4 w-4" />
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => openEditGroupDialog(group)} 
+                                  title={group.is_instance_admin === false ? "Você não é admin deste grupo" : "Editar grupo"}
+                                  disabled={group.is_instance_admin === false}
+                                  className={group.is_instance_admin === false ? "opacity-50 cursor-not-allowed" : ""}
+                                >
+                                  {group.is_instance_admin === false ? <Lock className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
                                 </Button>
                                 <Button 
                                   variant="ghost" 
