@@ -480,13 +480,13 @@ serve(async (req) => {
       // Set admin-only messages if requested
       if (adminOnly && createdGroupId) {
         try {
-          await fetch(`${api_url}/group/updateSetting/${instance_name}?groupJid=${createdGroupId}`, {
-            method: 'PUT',
+          await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'apikey': api_key,
             },
-            body: JSON.stringify({ action: 'announcement' }),
+            body: JSON.stringify({ groupJid: createdGroupId, action: 'announcement' }),
           });
           console.log('[divulgador-groups] Admin-only mode enabled');
         } catch (settingError) {
@@ -692,13 +692,13 @@ serve(async (req) => {
       }
 
       // Update admin-only setting (announcement mode) if provided
-      // Evolution API: PUT /group/updateSetting with groupJid in body
+      // Evolution API: updateSetting expects groupJid + action in body (method varies by version)
       if (adminOnly !== undefined) {
         try {
           const settingAction = adminOnly ? 'announcement' : 'not_announcement';
           await makeApiCall(
             `${api_url}/group/updateSetting/${instance_name}`,
-            'PUT',
+            'POST',
             { groupJid: wid, action: settingAction },
             'Permissão Envio'
           );
@@ -714,7 +714,7 @@ serve(async (req) => {
           const settingAction = locked ? 'locked' : 'unlocked';
           await makeApiCall(
             `${api_url}/group/updateSetting/${instance_name}`,
-            'PUT',
+            'POST',
             { groupJid: wid, action: settingAction },
             'Permissão Edição'
           );
@@ -732,7 +732,7 @@ serve(async (req) => {
           const settingAction = approvalMode ? 'membership_approval_request' : 'membership_approval_reject';
           await makeApiCall(
             `${api_url}/group/updateSetting/${instance_name}`,
-            'PUT',
+            'POST',
             { groupJid: wid, action: settingAction },
             'Aprovação Membros'
           );
