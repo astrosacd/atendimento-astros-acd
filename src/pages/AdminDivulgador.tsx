@@ -1423,18 +1423,21 @@ export default function AdminDivulgador() {
                                     {group.divulgador_instances.instance_name}
                                   </Badge>
                                 ) : '-'}
-                                {group.is_instance_admin !== undefined && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-[10px] gap-0.5 cursor-help ${group.is_instance_admin ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
-                                    title={group.is_instance_admin 
-                                      ? `O número da instância ${group.divulgador_instances?.instance_name || ''} é ADMIN neste grupo`
-                                      : `O número da instância ${group.divulgador_instances?.instance_name || ''} é apenas MEMBRO neste grupo (não pode editar)`}
-                                  >
-                                    <Shield className="h-2.5 w-2.5" />
-                                    {group.is_instance_admin ? 'Admin no Grupo' : 'Membro no Grupo'}
-                                  </Badge>
-                                )}
+                                {(() => {
+                                  const isCommunityGroup = group.whatsapp_group_id?.includes('@newsletter') || 
+                                                          group.whatsapp_group_id?.includes('community') ||
+                                                          group.name?.toLowerCase().includes('canal');
+                                  return (
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-[10px] gap-0.5 cursor-help ${isCommunityGroup ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}
+                                      title={isCommunityGroup ? 'Este é um canal/comunidade do WhatsApp' : 'Este é um grupo comum do WhatsApp'}
+                                    >
+                                      <Users className="h-2.5 w-2.5" />
+                                      {isCommunityGroup ? 'Comunidade' : 'Grupo'}
+                                    </Badge>
+                                  );
+                                })()}
                               </div>
                             </TableCell>
                             <TableCell>{group.participant_count}</TableCell>
