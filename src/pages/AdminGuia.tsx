@@ -1447,22 +1447,14 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 2. Clique no botão **"Editar"** (ícone de lápis) na coluna Ações
 3. O sistema busca automaticamente as **configurações atuais** do WhatsApp
 
-⚠️ **Status Admin/Membro no Grupo:**
+⚠️ **Status Admin/Membro no Grupo (informativo):**
 - O sistema detecta se o **número de telefone** da instância WhatsApp é **admin ou membro** em cada grupo
 - Isso é verificado consultando a lista de participantes de cada grupo via API Evolution
-- **🟢 "Admin no Grupo"**: O número da instância é administrador deste grupo - pode editar configurações
-- **🔴 "Membro no Grupo"**: O número da instância é apenas participante comum - NÃO pode editar
+- **🟢 "Admin no Grupo"**: O número da instância é administrador deste grupo
+- **🔴 "Membro no Grupo"**: O número da instância é apenas participante comum
+- Passe o mouse sobre o badge para ver detalhes
 
-**Bloqueio automático para não-admins:**
-- Se a instância é apenas **membro** do grupo, o botão de edição aparece com ícone de **cadeado** e desabilitado
-- Isso porque a API Evolution não permite editar grupos onde você não é administrador
-- Para poder editar, você precisa ser promovido a admin diretamente no WhatsApp pelo dono do grupo
-- Passe o mouse sobre o badge para ver detalhes do status
-
-**Exemplo prático:**
-- Instância "GravumSuplementos" (número 5585XXXX) 
-- Grupo "Clientes VIP" onde este número é admin → Badge verde "Admin no Grupo" → Pode editar
-- Grupo "Parceiros" onde este número é apenas membro → Badge vermelho "Membro no Grupo" → Edição bloqueada
+**Importante:** Se você tentar editar um grupo onde a instância é apenas membro, a API pode retornar erro. Neste caso, você precisa ser promovido a admin diretamente no WhatsApp.
 
 **No modal de edição você pode alterar:**
 - **Nome do Grupo**: Atualiza o nome no WhatsApp em tempo real
@@ -1487,7 +1479,7 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 
 **Indicadores visuais na tabela de grupos:**
 - **Badge de Instância**: Mostra qual instância (número) está associada ao grupo
-- **Badge Admin/Membro**: Indica se esse número é admin OU membro NO grupo específico
+- **Badge Admin/Membro**: Indica se esse número é admin OU membro NO grupo específico (informativo)
 
 **Sincronização automática:**
 - Ao abrir o modal de edição, as configurações (incluindo foto) são buscadas do WhatsApp
