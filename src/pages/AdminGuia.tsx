@@ -1447,14 +1447,16 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 2. Clique no botão **"Editar"** (ícone de lápis) na coluna Ações
 3. O sistema busca automaticamente as **configurações atuais** do WhatsApp
 
-⚠️ **Status Admin/Membro no Grupo (informativo):**
-- O sistema detecta se o **número de telefone** da instância WhatsApp é **admin ou membro** em cada grupo
-- Isso é verificado consultando a lista de participantes de cada grupo via API Evolution
-- **🟢 "Admin no Grupo"**: O número da instância é administrador deste grupo
-- **🔴 "Membro no Grupo"**: O número da instância é apenas participante comum
+⚠️ **Tipo de Grupo (Comunidade ou Grupo):**
+- O sistema identifica automaticamente se é um **grupo comum** ou uma **comunidade/canal** do WhatsApp
+- **🟣 "Comunidade"** (roxo): Canais e comunidades do WhatsApp (têm restrições de edição)
+- **🔵 "Grupo"** (azul): Grupos comuns do WhatsApp
 - Passe o mouse sobre o badge para ver detalhes
 
-**Importante:** Se você tentar editar um grupo onde a instância é apenas membro, a API pode retornar erro. Neste caso, você precisa ser promovido a admin diretamente no WhatsApp.
+**Importante sobre Comunidades:**
+- Comunidades/canais têm restrições de edição pela própria API do WhatsApp
+- Se tentar editar uma comunidade, a API pode retornar erro
+- Grupos comuns podem ser editados normalmente se você for admin
 
 **No modal de edição você pode alterar:**
 - **Nome do Grupo**: Atualiza o nome no WhatsApp em tempo real
@@ -1479,7 +1481,7 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 
 **Indicadores visuais na tabela de grupos:**
 - **Badge de Instância**: Mostra qual instância (número) está associada ao grupo
-- **Badge Admin/Membro**: Indica se esse número é admin OU membro NO grupo específico (informativo)
+- **Badge Tipo**: Indica se é Comunidade (roxo) ou Grupo comum (azul)
 
 **Sincronização automática:**
 - Ao abrir o modal de edição, as configurações (incluindo foto) são buscadas do WhatsApp
