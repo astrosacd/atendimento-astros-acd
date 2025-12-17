@@ -616,6 +616,7 @@ export type Database = {
       }
       divulgador_groups: {
         Row: {
+          announce: boolean
           campaign_id: string | null
           created_at: string
           description: string | null
@@ -623,12 +624,15 @@ export type Database = {
           instance_id: string | null
           invite_link: string | null
           is_active: boolean | null
+          member_add_mode: boolean
           name: string
           participant_count: number | null
+          restrict: boolean
           updated_at: string
           whatsapp_group_id: string
         }
         Insert: {
+          announce?: boolean
           campaign_id?: string | null
           created_at?: string
           description?: string | null
@@ -636,12 +640,15 @@ export type Database = {
           instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
+          member_add_mode?: boolean
           name: string
           participant_count?: number | null
+          restrict?: boolean
           updated_at?: string
           whatsapp_group_id: string
         }
         Update: {
+          announce?: boolean
           campaign_id?: string | null
           created_at?: string
           description?: string | null
@@ -649,8 +656,10 @@ export type Database = {
           instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
+          member_add_mode?: boolean
           name?: string
           participant_count?: number | null
+          restrict?: boolean
           updated_at?: string
           whatsapp_group_id?: string
         }
