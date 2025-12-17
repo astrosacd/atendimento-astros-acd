@@ -1442,27 +1442,29 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 
 **Permissões do Grupo (seção especial):**
 
-1. **Enviar Mensagens**:
+1. **Enviar Mensagens** *(configurável pelo painel)*:
    - **Todos**: Qualquer membro pode enviar mensagens
    - **Admins**: Apenas administradores podem enviar (modo anúncio)
 
-2. **Editar Informações**:
+2. **Editar Informações** *(configurável pelo painel)*:
    - **Todos**: Qualquer membro pode alterar nome/descrição/foto
    - **Admins**: Apenas administradores podem editar o grupo
 
-3. **Novos Membros**:
-   - **Automático**: Membros entram direto ao usar link de convite
-   - **Aprovação**: Admin deve aprovar entrada de novos membros
+3. **Adicionar Membros** *(quem pode adicionar novos membros)*:
+   - **Todos**: Qualquer membro pode adicionar pessoas
+   - **Admins**: Apenas administradores podem adicionar pessoas
+
+⚠️ **Importante sobre “Adicionar Membros”**
+A API da Evolution **nem sempre oferece** um endpoint para alterar essa permissão. 
+Quando a sua instância não suportar, o painel mostra **Somente leitura** e você deve alterar no WhatsApp e depois clicar em **Sincronizar do WhatsApp**.
 
 **Indicadores visuais na tabela:**
-- A coluna **"Permissões"** mostra badges indicando as configurações atuais
-- Ícone de mensagem: mostra se envio é "Admins" ou "Todos"
-- Ícone de edição: mostra se edição é "Admins" ou "Todos"
+- A coluna **"Permissões"** fica em **2 linhas fixas** e mostra um resumo
+- Passe o mouse (hover) para ver o **detalhe completo**
 
 **Sincronização automática:**
 - Ao abrir o modal de edição, as permissões são buscadas do WhatsApp
 - Um spinner indica enquanto carrega as configurações reais
-- Isso garante que você sempre vê o status atual do grupo
 
 **Dicas:**
 - Mudanças são aplicadas diretamente no WhatsApp via API
