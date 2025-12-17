@@ -725,21 +725,26 @@ serve(async (req) => {
       }
 
       // Update approval mode (membership approval required) if provided
-      // Note: membership_approval_request/reject may not be supported in all API versions
+      // NOTE: This Evolution API instance only supports: announcement, not_announcement, locked, unlocked
+      // So we don't attempt membership approval here.
       if (approvalMode !== undefined) {
-        try {
-          // Try the standard approach first
-          const settingAction = approvalMode ? 'membership_approval_request' : 'membership_approval_reject';
-          await makeApiCall(
-            `${api_url}/group/updateSetting/${instance_name}`,
-            'POST',
-            { groupJid: wid, action: settingAction },
-            'Aprovação Membros'
-          );
-        } catch (e) {
-          console.error('[divulgador-groups] Failed to update approval mode:', e);
-          apiResponses.push({ label: 'Aprovação Membros', ok: false, error: String(e) });
-        }
+        apiResponses.push({
+          label: 'Aprovação Membros',
+          ok: false,
+          status: 400,
+          data: {
+            status: 400,
+            error: 'Bad Request',
+            response: {
+              message: [
+                {
+                  property: 'action',
+                  message: 'Aprovação de membros não é suportada nesta versão (actions suportadas: announcement, not_announcement, locked, unlocked)',
+                },
+              ],
+            },
+          },
+        });
       }
 
       // Update database record including permissions
@@ -749,7 +754,7 @@ serve(async (req) => {
       // Always persist permission state to database
       if (adminOnly !== undefined) updatePayload.announce = adminOnly;
       if (locked !== undefined) updatePayload.restrict = locked;
-      if (approvalMode !== undefined) updatePayload.member_add_mode = approvalMode;
+      // approvalMode is not supported by the API version (kept as-is from sync/get settings)
 
       if (Object.keys(updatePayload).length > 0) {
         await supabase
