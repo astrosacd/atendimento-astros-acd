@@ -56,8 +56,14 @@ export default function AdminDivulgador() {
   const [defaultParticipant, setDefaultParticipant] = useState('');
   const [isQuickMessageDialogOpen, setIsQuickMessageDialogOpen] = useState(false);
   const [quickMessageGroup, setQuickMessageGroup] = useState<any>(null);
-  const [quickMessageForm, setQuickMessageForm] = useState({ content: '', mention_all: false });
+  const [quickMessageForm, setQuickMessageForm] = useState({ 
+    content: '', 
+    mention_all: false, 
+    media_type: 'text',
+    media_url: '' 
+  });
   const [isSendingQuickMessage, setIsSendingQuickMessage] = useState(false);
+  const [isUploadingQuickMedia, setIsUploadingQuickMedia] = useState(false);
 
   // ================== QUERIES ==================
 
@@ -512,6 +518,8 @@ export default function AdminDivulgador() {
     description: '',
     photo_url: '',
     admin_only: false,
+    locked: false, // Only admins can edit group info
+    approval_mode: false, // Approval required to join
   });
   const [isUploadingGroupPhoto, setIsUploadingGroupPhoto] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState<string | null>(null);
@@ -614,6 +622,8 @@ export default function AdminDivulgador() {
           groupDescription: editGroupForm.description,
           groupPhoto: editGroupForm.photo_url || null,
           adminOnly: editGroupForm.admin_only,
+          locked: editGroupForm.locked,
+          approvalMode: editGroupForm.approval_mode,
         },
       });
       if (error) throw error;
@@ -659,6 +669,8 @@ export default function AdminDivulgador() {
       description: group.description || '',
       photo_url: '',
       admin_only: false,
+      locked: false,
+      approval_mode: false,
     });
     setIsEditGroupDialogOpen(true);
   };
@@ -809,7 +821,8 @@ export default function AdminDivulgador() {
         .from('divulgador_messages')
         .insert([{
           content: quickMessageForm.content,
-          media_type: 'text',
+          media_type: quickMessageForm.media_type || 'text',
+          media_url: quickMessageForm.media_url || null,
           group_id: quickMessageGroup.id,
           mention_all: quickMessageForm.mention_all,
           status: 'pending',
@@ -828,12 +841,29 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
       queryClient.invalidateQueries({ queryKey: ['divulgador-logs'] });
       setIsQuickMessageDialogOpen(false);
-      setQuickMessageForm({ content: '', mention_all: false });
+      setQuickMessageForm({ content: '', mention_all: false, media_type: 'text', media_url: '' });
       setQuickMessageGroup(null);
     } catch (error: any) {
       toast.error('Erro ao enviar: ' + error.message);
     } finally {
       setIsSendingQuickMessage(false);
+    }
+  };
+
+  // Handle quick message media upload
+  const handleQuickMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingQuickMedia(true);
+    try {
+      const url = await uploadMediaFile(file);
+      setQuickMessageForm({ ...quickMessageForm, media_url: url });
+      toast.success('Arquivo enviado!');
+    } catch (error: any) {
+      toast.error('Erro ao enviar arquivo: ' + error.message);
+    } finally {
+      setIsUploadingQuickMedia(false);
     }
   };
 
@@ -1334,9 +1364,9 @@ export default function AdminDivulgador() {
                                   size="icon" 
                                   onClick={() => {
                                     setQuickMessageGroup(group);
-                                    setQuickMessageForm({ content: '', mention_all: false });
+                                    setQuickMessageForm({ content: '', mention_all: false, media_type: 'text', media_url: '' });
                                     setIsQuickMessageDialogOpen(true);
-                                  }} 
+                                  }}
                                   title="Enviar mensagem"
                                 >
                                   <Send className="h-4 w-4" />
@@ -2164,10 +2194,74 @@ export default function AdminDivulgador() {
                 </div>
                 <p className="text-xs text-muted-foreground">Deixe em branco para manter a foto atual</p>
               </div>
-              <div className="flex items-center gap-2 pt-2">
-                <Switch checked={editGroupForm.admin_only} onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })} />
-                <Label>Somente admins podem enviar mensagens</Label>
-              </div>
+              {/* Permissões do Grupo */}
+              <Card className="border-border/50">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Permissões do Grupo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="py-3 px-4 space-y-4">
+                  {/* Quem pode enviar mensagens */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Enviar Mensagens</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {editGroupForm.admin_only ? 'Somente administradores' : 'Todos os membros'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={editGroupForm.admin_only ? "default" : "secondary"} className="text-xs">
+                        {editGroupForm.admin_only ? 'Admins' : 'Todos'}
+                      </Badge>
+                      <Switch 
+                        checked={editGroupForm.admin_only} 
+                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })} 
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Quem pode editar informações */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Editar Informações</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {editGroupForm.locked ? 'Somente administradores' : 'Todos os membros'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={editGroupForm.locked ? "default" : "secondary"} className="text-xs">
+                        {editGroupForm.locked ? 'Admins' : 'Todos'}
+                      </Badge>
+                      <Switch 
+                        checked={editGroupForm.locked} 
+                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, locked: c })} 
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Aprovação de novos membros */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm">Novos Membros</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {editGroupForm.approval_mode ? 'Requer aprovação de admin' : 'Entram automaticamente'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={editGroupForm.approval_mode ? "default" : "secondary"} className="text-xs">
+                        {editGroupForm.approval_mode ? 'Aprovação' : 'Automático'}
+                      </Badge>
+                      <Switch 
+                        checked={editGroupForm.approval_mode} 
+                        onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, approval_mode: c })} 
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
               <Card className="border-amber-500/20 bg-amber-500/5">
                 <CardContent className="py-3">
                   <p className="text-xs text-muted-foreground">
@@ -2240,6 +2334,24 @@ export default function AdminDivulgador() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Tipo de mídia */}
+              <div className="space-y-2">
+                <Label>Tipo de Conteúdo</Label>
+                <Select 
+                  value={quickMessageForm.media_type} 
+                  onValueChange={(v) => setQuickMessageForm({ ...quickMessageForm, media_type: v, media_url: '' })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">Texto</SelectItem>
+                    <SelectItem value="image">Imagem</SelectItem>
+                    <SelectItem value="video">Vídeo</SelectItem>
+                    <SelectItem value="audio">Áudio</SelectItem>
+                    <SelectItem value="document">Documento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="space-y-2">
                 <Label>Mensagem</Label>
                 <Textarea 
@@ -2249,6 +2361,56 @@ export default function AdminDivulgador() {
                   placeholder="Digite a mensagem..." 
                 />
               </div>
+              
+              {/* Upload de mídia */}
+              {quickMessageForm.media_type !== 'text' && (
+                <div className="space-y-2">
+                  <Label>Arquivo de Mídia</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={quickMessageForm.media_url} 
+                      onChange={(e) => setQuickMessageForm({ ...quickMessageForm, media_url: e.target.value })} 
+                      placeholder="URL da mídia ou faça upload abaixo" 
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id="quick-media-upload"
+                      className="hidden"
+                      accept={
+                        quickMessageForm.media_type === 'image' ? 'image/*' :
+                        quickMessageForm.media_type === 'video' ? 'video/*' :
+                        quickMessageForm.media_type === 'audio' ? 'audio/*' :
+                        '*'
+                      }
+                      onChange={handleQuickMediaUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById('quick-media-upload')?.click()}
+                      disabled={isUploadingQuickMedia}
+                    >
+                      {isUploadingQuickMedia ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingQuickMedia ? 'Enviando...' : 'Upload'}
+                    </Button>
+                    {quickMessageForm.media_url && (
+                      <Badge variant="outline" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Arquivo carregado
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center gap-2">
                 <Switch 
                   checked={quickMessageForm.mention_all} 
