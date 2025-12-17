@@ -66,6 +66,7 @@ export default function AdminDivulgador() {
   const [isUploadingQuickMedia, setIsUploadingQuickMedia] = useState(false);
   const [apiDebugResponse, setApiDebugResponse] = useState<any>(null);
   const [isApiDebugDialogOpen, setIsApiDebugDialogOpen] = useState(false);
+  const [isCommunity, setIsCommunity] = useState(false);
 
   // ================== QUERIES ==================
 
@@ -686,6 +687,7 @@ export default function AdminDivulgador() {
 
   const openEditGroupDialog = async (group: any) => {
     setEditingGroup(group);
+    setIsCommunity(false); // Reset community status
     // Initialize from DB values first
     setEditGroupForm({
       name: group.name || '',
@@ -702,6 +704,13 @@ export default function AdminDivulgador() {
       const { data, error } = await supabase.functions.invoke('divulgador-groups', {
         body: { action: 'get-group-settings', groupId: group.id },
       });
+      
+      // Check if it's a community - block editing
+      if (data?.isCommunity) {
+        setIsCommunity(true);
+        console.log('[Divulgador] Detected community - editing blocked');
+      }
+      
       if (data?.success && data?.settings) {
         setEditGroupForm(prev => ({
           ...prev,
@@ -716,6 +725,9 @@ export default function AdminDivulgador() {
           ...prev,
           photo_url: data.settings.pictureUrl || prev?.photo_url,
         }));
+      } else if (!data?.success && data?.isCommunity) {
+        // Group not found in regular groups - likely a community
+        setIsCommunity(true);
       }
     } catch (error) {
       console.error('Failed to fetch group settings:', error);
@@ -2284,13 +2296,37 @@ export default function AdminDivulgador() {
                     Carregando configurações do WhatsApp...
                   </div>
                 )}
+                {isCommunity && (
+                  <Card className="border-amber-500/30 bg-amber-500/5">
+                    <CardContent className="py-3">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-600 dark:text-amber-400">Este é um grupo de comunidade</p>
+                          <p className="text-muted-foreground mt-1">Comunidades não podem ser editadas a menos que você seja administrador dela. Apenas visualização disponível.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 <div className="space-y-2">
                   <Label>Nome do Grupo</Label>
-                  <Input value={editGroupForm.name} onChange={(e) => setEditGroupForm({ ...editGroupForm, name: e.target.value })} placeholder="Nome do grupo" />
+                  <Input 
+                    value={editGroupForm.name} 
+                    onChange={(e) => setEditGroupForm({ ...editGroupForm, name: e.target.value })} 
+                    placeholder="Nome do grupo" 
+                    disabled={isCommunity}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Descrição</Label>
-                  <Textarea rows={2} value={editGroupForm.description} onChange={(e) => setEditGroupForm({ ...editGroupForm, description: e.target.value })} placeholder="Descrição do grupo" />
+                  <Textarea 
+                    rows={2} 
+                    value={editGroupForm.description} 
+                    onChange={(e) => setEditGroupForm({ ...editGroupForm, description: e.target.value })} 
+                    placeholder="Descrição do grupo"
+                    disabled={isCommunity}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Foto do Grupo</Label>
@@ -2325,7 +2361,7 @@ export default function AdminDivulgador() {
                       variant="outline"
                       size="sm"
                       onClick={() => document.getElementById('edit-group-photo-upload')?.click()}
-                      disabled={isUploadingGroupPhoto}
+                      disabled={isUploadingGroupPhoto || isCommunity}
                     >
                       {isUploadingGroupPhoto ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -2368,7 +2404,7 @@ export default function AdminDivulgador() {
                         <Switch 
                           checked={editGroupForm.admin_only} 
                           onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, admin_only: c })}
-                          disabled={isLoadingGroupSettings}
+                          disabled={isLoadingGroupSettings || isCommunity}
                         />
                       </div>
                     </div>
@@ -2388,7 +2424,7 @@ export default function AdminDivulgador() {
                         <Switch 
                           checked={editGroupForm.locked} 
                           onCheckedChange={(c) => setEditGroupForm({ ...editGroupForm, locked: c })}
-                          disabled={isLoadingGroupSettings}
+                          disabled={isLoadingGroupSettings || isCommunity}
                         />
                       </div>
                     </div>
@@ -2406,11 +2442,15 @@ export default function AdminDivulgador() {
               </div>
             </ScrollArea>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditGroupDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={updateGroupViaAPI} disabled={isUpdatingGroup || !editGroupForm.name || isLoadingGroupSettings}>
-                {isUpdatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                Salvar Alterações
+              <Button variant="outline" onClick={() => setIsEditGroupDialogOpen(false)}>
+                {isCommunity ? 'Fechar' : 'Cancelar'}
               </Button>
+              {!isCommunity && (
+                <Button onClick={updateGroupViaAPI} disabled={isUpdatingGroup || !editGroupForm.name || isLoadingGroupSettings}>
+                  {isUpdatingGroup ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                  Salvar Alterações
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
