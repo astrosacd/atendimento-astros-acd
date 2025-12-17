@@ -615,20 +615,26 @@ serve(async (req) => {
 
       let nameUpdated = false;
 
-      // Update group name if provided (always try to update)
-      if (groupName) {
+      // Update group name if provided
+      if (groupName !== undefined) {
         try {
           console.log(`[divulgador-groups] Updating group name to: ${groupName}`);
-          const res = await fetch(`${api_url}/group/updateSubject/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, subject: groupName }),
-          });
+          const res = await fetch(
+            `${api_url}/group/updateSubject/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: api_key,
+              },
+              body: JSON.stringify({ subject: groupName }),
+            }
+          );
           const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Group name update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          console.log(
+            '[divulgador-groups] Group name update response:',
+            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+          );
           if (res.ok) nameUpdated = true;
         } catch (e) {
           console.error('[divulgador-groups] Failed to update name:', e);
@@ -638,16 +644,22 @@ serve(async (req) => {
       // Update group description if provided
       if (groupDescription !== undefined) {
         try {
-          const res = await fetch(`${api_url}/group/updateDescription/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, description: groupDescription }),
-          });
+          const res = await fetch(
+            `${api_url}/group/updateDescription/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: api_key,
+              },
+              body: JSON.stringify({ description: groupDescription }),
+            }
+          );
           const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Group description update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          console.log(
+            '[divulgador-groups] Group description update response:',
+            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+          );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update description:', e);
         }
@@ -656,35 +668,52 @@ serve(async (req) => {
       // Update group photo if provided
       if (groupPhoto) {
         try {
-          const res = await fetch(`${api_url}/group/updateGroupPicture/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, image: groupPhoto }),
-          });
+          const res = await fetch(
+            `${api_url}/group/updateGroupPicture/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: api_key,
+              },
+              body: JSON.stringify({ image: groupPhoto }),
+            }
+          );
           const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Group photo update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          console.log(
+            '[divulgador-groups] Group photo update response:',
+            JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+          );
         } catch (e) {
           console.error('[divulgador-groups] Failed to update photo:', e);
         }
       }
 
+      const updateSetting = async (action: string, label: string) => {
+        const res = await fetch(
+          `${api_url}/group/updateSetting/${instance_name}?groupJid=${encodeURIComponent(wid)}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: api_key,
+            },
+            body: JSON.stringify({ action }),
+          }
+        );
+        const resData = await res.json().catch(() => ({}));
+        console.log(
+          `[divulgador-groups] ${label} update response:`,
+          JSON.stringify({ ok: res.ok, status: res.status, data: resData })
+        );
+        return res.ok;
+      };
+
       // Update admin-only setting (announcement mode) if provided
       if (adminOnly !== undefined) {
         try {
           const settingAction = adminOnly ? 'announcement' : 'not_announcement';
-          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, action: settingAction }),
-          });
-          const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Admin-only setting update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          await updateSetting(settingAction, 'Admin-only (announcement)');
         } catch (e) {
           console.error('[divulgador-groups] Failed to update announcement settings:', e);
         }
@@ -694,16 +723,7 @@ serve(async (req) => {
       if (locked !== undefined) {
         try {
           const settingAction = locked ? 'locked' : 'unlocked';
-          const res = await fetch(`${api_url}/group/updateSetting/${instance_name}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': api_key,
-            },
-            body: JSON.stringify({ groupJid: wid, action: settingAction }),
-          });
-          const resData = await res.json().catch(() => ({}));
-          console.log('[divulgador-groups] Locked setting update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          await updateSetting(settingAction, 'Locked');
         } catch (e) {
           console.error('[divulgador-groups] Failed to update locked settings:', e);
         }
