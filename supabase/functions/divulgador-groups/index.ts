@@ -179,6 +179,28 @@ serve(async (req) => {
 
       console.log(`[divulgador-groups] Fetching groups from ${connectedInstances.length} instance(s)`);
 
+      // Get instance phone numbers for admin checking
+      const instancePhoneNumbers: Record<string, string> = {};
+      for (const inst of connectedInstances) {
+        try {
+          // Get the instance's own number
+          const profileRes = await fetch(`${inst.api_url}/instance/fetchInstances`, {
+            headers: { 'apikey': inst.api_key },
+          });
+          if (profileRes.ok) {
+            const instances = await profileRes.json();
+            const thisInstance = instances?.find((i: any) => i.name === inst.instance_name || i.instance?.instanceName === inst.instance_name);
+            const ownerJid = thisInstance?.ownerJid || thisInstance?.instance?.ownerJid || thisInstance?.owner;
+            if (ownerJid) {
+              instancePhoneNumbers[inst.id] = ownerJid.replace('@s.whatsapp.net', '');
+              console.log(`[divulgador-groups] Instance ${inst.instance_name} phone: ${instancePhoneNumbers[inst.id]}`);
+            }
+          }
+        } catch (e) {
+          console.log(`[divulgador-groups] Could not get phone for ${inst.instance_name}:`, e);
+        }
+      }
+
       // Collect all groups from all instances
       const allFetchedGroups: any[] = [];
       const instanceGroupMap: Record<string, string> = {}; // whatsapp_group_id -> instance_id
@@ -204,7 +226,20 @@ serve(async (req) => {
               // Avoid duplicates (same group might appear in multiple instances if shared)
               if (!instanceGroupMap[gId]) {
                 instanceGroupMap[gId] = inst.id;
-                allFetchedGroups.push({ ...g, _instanceId: inst.id });
+                
+                // Check if instance is admin of this group
+                const instancePhone = instancePhoneNumbers[inst.id];
+                let isInstanceAdmin = false;
+                
+                if (instancePhone && g.participants) {
+                  const instanceParticipant = g.participants.find((p: any) => {
+                    const pNumber = (p.id || '').replace('@s.whatsapp.net', '');
+                    return pNumber === instancePhone || pNumber.endsWith(instancePhone) || instancePhone.endsWith(pNumber);
+                  });
+                  isInstanceAdmin = instanceParticipant?.admin === 'admin' || instanceParticipant?.admin === 'superadmin';
+                }
+                
+                allFetchedGroups.push({ ...g, _instanceId: inst.id, _isInstanceAdmin: isInstanceAdmin });
               }
             }
           }
@@ -261,6 +296,7 @@ serve(async (req) => {
         const groupName = group.subject || group.name || 'Sem nome';
         const participantCount = group.participants?.length || group.size || 0;
         const instanceId = group._instanceId;
+        const isInstanceAdmin = group._isInstanceAdmin || false;
         
         // Extract permissions from WhatsApp group metadata
         const announce = group.announce || false;
@@ -275,7 +311,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          // Update existing group with permissions
+          // Update existing group with permissions and admin status
           const { data: updated } = await supabase
             .from('divulgador_groups')
             .update({
@@ -286,13 +322,14 @@ serve(async (req) => {
               announce,
               restrict,
               member_add_mode: memberAddMode,
+              is_instance_admin: isInstanceAdmin,
             })
             .eq('id', existing.id)
             .select()
             .single();
           savedGroups.push(updated);
         } else {
-          // Insert new group with permissions
+          // Insert new group with permissions and admin status
           const { data: inserted } = await supabase
             .from('divulgador_groups')
             .insert({
@@ -305,6 +342,7 @@ serve(async (req) => {
               announce,
               restrict,
               member_add_mode: memberAddMode,
+              is_instance_admin: isInstanceAdmin,
             })
             .select()
             .single();

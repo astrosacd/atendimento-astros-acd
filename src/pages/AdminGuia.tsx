@@ -1396,11 +1396,23 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 **Na tabela de grupos você verá:**
 - **Foto do grupo** (miniatura)
 - Nome do grupo
-- Campanha vinculada (opcional)
+- **Instância**: Nome da instância WhatsApp vinculada
+- **Status Admin**: Badge verde "Admin" ou vermelho "Membro" indicando se a instância é administradora do grupo
 - Quantidade de participantes
+- **Permissões**: Badges indicando quem pode enviar mensagens e editar o grupo
 - Link de convite (botão copiar)
 - Status (Ativo/Inativo)
 - **Ações**: Editar, Enviar mensagem, Gerar link
+
+**Status Admin - O que significa:**
+- 🟢 **Admin**: A instância é administradora do grupo, pode editar configurações, foto, permissões e gerenciar participantes
+- 🔴 **Membro**: A instância é apenas participante, NÃO pode editar o grupo pelo painel (ações de edição serão bloqueadas pela API)
+
+**Comunidades:**
+- Comunidades do WhatsApp aparecem na sincronização mas **NÃO podem ser editadas** pelo painel
+- Ao tentar editar uma comunidade, aparece um aviso explicando a limitação
+- Isso ocorre porque comunidades têm estrutura diferente de grupos normais
+- Você ainda pode enviar mensagens para comunidades se for admin nela
 
 **Importante:** Os grupos podem ser importados do WhatsApp ou criados manualmente no sistema.`
         },

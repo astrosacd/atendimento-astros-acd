@@ -624,6 +624,7 @@ export type Database = {
           instance_id: string | null
           invite_link: string | null
           is_active: boolean | null
+          is_instance_admin: boolean | null
           member_add_mode: boolean
           name: string
           participant_count: number | null
@@ -640,6 +641,7 @@ export type Database = {
           instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
+          is_instance_admin?: boolean | null
           member_add_mode?: boolean
           name: string
           participant_count?: number | null
@@ -656,6 +658,7 @@ export type Database = {
           instance_id?: string | null
           invite_link?: string | null
           is_active?: boolean | null
+          is_instance_admin?: boolean | null
           member_add_mode?: boolean
           name?: string
           participant_count?: number | null
