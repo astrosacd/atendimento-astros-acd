@@ -1580,17 +1580,22 @@ Exemplo: Campanha "Black Friday" com grupos temáticos de vendas.`
           content: `O Divulgador possui um **CRON** para envio automático de mensagens agendadas:
 
 **Configurar CRON (aba WhatsApp):**
-1. Role até a seção **"Configuração do CRON"**
-2. Defina o **intervalo em minutos** (ex: 5 = a cada 5 min)
-3. Clique em **"Atualizar CRON"**
-4. Para desativar, clique em **"Desativar CRON"**
+1. Role até a seção **"Envio Automático (CRON)"**
+2. Ative o switch **"Ativar Envio Automático"**
+3. Defina o **intervalo** no dropdown (1 a 60 minutos)
+4. Clique em **"Salvar Configuração"**
+
+**Status do CRON:**
+- Um badge mostra o status atual (ex: "Ativo: */5 * * * *")
+- O CRON é salvo automaticamente no banco ao clicar em salvar
+- Alterações têm efeito imediato
 
 **Como funciona:**
 - O sistema verifica mensagens pendentes a cada X minutos
 - Mensagens com \`scheduled_at <= agora\` são enviadas
 - Após envio, status muda para "sent" ou "error"
 
-**Dica:** Use intervalos de 5-10 minutos para não sobrecarregar a API.`
+**Dica:** Use intervalos de 5-10 minutos para equilíbrio entre velocidade e carga na API.`
         },
         {
           title: "Mensagens Automáticas (Entrada/Saída)",
