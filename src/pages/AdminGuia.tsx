@@ -1428,22 +1428,41 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 - Você pode editar todas as configurações depois`
         },
         {
-          title: "Editar Grupos Existentes",
+          title: "Editar Grupos e Permissões",
           content: `**Editar configurações de um grupo:**
 
 1. Na aba **Grupos**, encontre o grupo desejado
 2. Clique no botão **"Editar"** (ícone de lápis) na coluna Ações
-3. No modal de edição, você pode alterar:
-   - **Nome do Grupo**: Atualiza o nome no WhatsApp
-   - **Descrição**: Texto da info do grupo
-   - **Foto do Grupo**: Upload de nova imagem (mostra foto atual)
-   - **Apenas Admins enviam**: Liga/desliga restrição de mensagens
+3. O sistema busca automaticamente as **configurações atuais** do WhatsApp
 
-4. Clique em **"Salvar Alterações"**
+**No modal de edição você pode alterar:**
+- **Nome do Grupo**: Atualiza o nome no WhatsApp em tempo real
+- **Descrição**: Texto da info do grupo
+- **Foto do Grupo**: Upload de nova imagem (mostra foto atual)
 
-**Visualização da foto:**
-- A foto atual do grupo aparece tanto na **tabela** (miniatura) quanto no **modal de edição**
-- Ao fazer upload de nova foto, ela substitui a anterior
+**Permissões do Grupo (seção especial):**
+
+1. **Enviar Mensagens**:
+   - **Todos**: Qualquer membro pode enviar mensagens
+   - **Admins**: Apenas administradores podem enviar (modo anúncio)
+
+2. **Editar Informações**:
+   - **Todos**: Qualquer membro pode alterar nome/descrição/foto
+   - **Admins**: Apenas administradores podem editar o grupo
+
+3. **Novos Membros**:
+   - **Automático**: Membros entram direto ao usar link de convite
+   - **Aprovação**: Admin deve aprovar entrada de novos membros
+
+**Indicadores visuais na tabela:**
+- A coluna **"Permissões"** mostra badges indicando as configurações atuais
+- Ícone de mensagem: mostra se envio é "Admins" ou "Todos"
+- Ícone de edição: mostra se edição é "Admins" ou "Todos"
+
+**Sincronização automática:**
+- Ao abrir o modal de edição, as permissões são buscadas do WhatsApp
+- Um spinner indica enquanto carrega as configurações reais
+- Isso garante que você sempre vê o status atual do grupo
 
 **Dicas:**
 - Mudanças são aplicadas diretamente no WhatsApp via API
@@ -1472,30 +1491,39 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 - Links expiram quando o grupo é configurado para tal`
         },
         {
-          title: "Envio Rápido para Grupo",
+          title: "Envio Rápido com Mídia",
           content: `**Enviar mensagem direta para um grupo específico:**
 
 1. Na aba **Grupos**, encontre o grupo desejado
 2. Clique no botão **"Enviar"** (ícone de avião) na coluna Ações
 3. No modal de envio rápido:
    - Escreva a **mensagem** no campo de texto
+   - Selecione o **tipo de mídia** (texto, imagem, vídeo, áudio, documento)
+   - Faça **upload do arquivo** se necessário
    - Ative **"Mencionar Todos"** se quiser marcar todos os participantes
 4. Clique em **"Enviar Mensagem"**
+
+**Tipos de mídia suportados:**
+- ✅ **Texto**: Mensagem simples
+- ✅ **Imagem**: JPG, PNG, GIF
+- ✅ **Vídeo**: MP4, MOV
+- ✅ **Áudio**: MP3, OGG, M4A
+- ✅ **Documento**: PDF, DOC, XLS, etc.
+
+**Upload de mídia:**
+- Clique em "Selecionar arquivo" ou arraste
+- Arquivo é enviado para storage do sistema
+- URL é gerada automaticamente
 
 **Diferença do agendamento:**
 - **Envio Rápido**: Envia IMEDIATAMENTE, sem agendar
 - **Mensagem Agendada**: Define data/hora futura para envio
 
 **Quando usar:**
-- Comunicados urgentes
-- Respostas rápidas
-- Teste de conectividade
-- Avisos pontuais
-
-**Menção Todos (@todos):**
-- Quando ativado, todos os participantes são notificados
-- Use com moderação para não gerar spam
-- Funciona mesmo em grupos grandes`
+- Comunicados urgentes com anexos
+- Envio de comprovantes ou documentos
+- Mídia promocional
+- Avisos pontuais com imagens`
         },
         {
           title: "Criar Campanhas",
@@ -1667,8 +1695,8 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         "Use uma instância WhatsApp DEDICADA para o Divulgador",
         "Configure um Participante Padrão para agilizar criação de grupos",
         "Sempre sincronize GRUPOS antes de PARTICIPANTES",
-        "Use Envio Rápido para comunicados urgentes",
-        "Edite grupos para manter informações atualizadas",
+        "Use Envio Rápido para comunicados urgentes com ou sem mídia",
+        "Edite grupos para manter informações e permissões atualizadas",
         "Gere links de convite para facilitar a divulgação",
         "O webhook é configurado automaticamente ao salvar/testar instância",
         "Menções aumentam engajamento mas use com moderação",
@@ -1676,7 +1704,10 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         "Configure o CRON com intervalos de 5-10 minutos",
         "Use boas-vindas diferentes para cada grupo",
         "Monitore os logs para identificar problemas de conexão",
-        "Exporte participantes regularmente para backup"
+        "Exporte participantes regularmente para backup",
+        "Use modo Admins para grupos de comunicados oficiais",
+        "A coluna Permissões mostra o status atual de cada grupo",
+        "As permissões são sincronizadas do WhatsApp ao abrir edição"
       ]
     }
   ];

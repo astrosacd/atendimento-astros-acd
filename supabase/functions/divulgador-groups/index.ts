@@ -509,6 +509,76 @@ serve(async (req) => {
       });
     }
 
+    // ========== GET GROUP SETTINGS: Fetch current permissions from WhatsApp ==========
+    if (action === 'get-group-settings') {
+      if (!groupId) {
+        return new Response(JSON.stringify({ error: 'groupId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Get group from database to find the instance
+      const { data: groupData, error: groupError } = await supabase
+        .from('divulgador_groups')
+        .select('*, divulgador_instances(*)')
+        .eq('id', groupId)
+        .single();
+
+      if (groupError || !groupData) {
+        return new Response(JSON.stringify({ error: 'Grupo não encontrado' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = groupData.divulgador_instances;
+      if (!instance) {
+        return new Response(JSON.stringify({ error: 'Instância do grupo não encontrada' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { api_url, api_key, instance_name } = instance;
+      const wid = groupData.whatsapp_group_id;
+
+      try {
+        // Fetch group metadata from WhatsApp
+        const res = await fetch(`${api_url}/group/fetchAllGroups/${instance_name}?getParticipants=false`, {
+          headers: { 'apikey': api_key },
+        });
+        
+        const allGroups = await res.json();
+        const targetGroup = allGroups?.find((g: any) => (g.id || g.jid) === wid);
+        
+        if (targetGroup) {
+          console.log('[divulgador-groups] Group settings fetched:', JSON.stringify(targetGroup));
+          return new Response(JSON.stringify({ 
+            success: true, 
+            settings: {
+              announce: targetGroup.announce || false, // admin only messages
+              restrict: targetGroup.restrict || false, // locked (admin only edit info)
+              memberAddMode: targetGroup.memberAddMode || false, // approval mode
+              subject: targetGroup.subject,
+              desc: targetGroup.desc,
+            }
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        return new Response(JSON.stringify({ success: false, error: 'Grupo não encontrado no WhatsApp' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('[divulgador-groups] Failed to fetch group settings:', e);
+        return new Response(JSON.stringify({ success: false, error: 'Erro ao buscar configurações' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // ========== UPDATE GROUP: Edit name, description, photo, settings ==========
     if (action === 'update-group') {
       if (!groupId) {
@@ -543,9 +613,12 @@ serve(async (req) => {
       const { api_url, api_key, instance_name } = instance;
       const wid = groupData.whatsapp_group_id;
 
-      // Update group name if provided
-      if (groupName && groupName !== groupData.name) {
+      let nameUpdated = false;
+
+      // Update group name if provided (always try to update)
+      if (groupName) {
         try {
+          console.log(`[divulgador-groups] Updating group name to: ${groupName}`);
           const res = await fetch(`${api_url}/group/updateSubject/${instance_name}`, {
             method: 'POST',
             headers: {
@@ -556,6 +629,7 @@ serve(async (req) => {
           });
           const resData = await res.json().catch(() => ({}));
           console.log('[divulgador-groups] Group name update response:', JSON.stringify({ ok: res.ok, status: res.status, data: resData }));
+          if (res.ok) nameUpdated = true;
         } catch (e) {
           console.error('[divulgador-groups] Failed to update name:', e);
         }
@@ -654,7 +728,7 @@ serve(async (req) => {
         }
       }
 
-      // Update database record
+      // Update database record (always update if name was provided)
       const updatePayload: any = {};
       if (groupName) updatePayload.name = groupName;
       if (groupDescription !== undefined) updatePayload.description = groupDescription;
@@ -666,7 +740,7 @@ serve(async (req) => {
           .eq('id', groupId);
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, nameUpdated }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
