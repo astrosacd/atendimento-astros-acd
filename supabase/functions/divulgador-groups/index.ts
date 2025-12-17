@@ -724,12 +724,13 @@ serve(async (req) => {
         }
       }
 
-      // Update approval mode (membership approval required) if provided
-      // NOTE: This Evolution API instance only supports: announcement, not_announcement, locked, unlocked
-      // So we don't attempt membership approval here.
+      // Member add permission (who can add new members) if provided
+      // NOTE: The updateSetting endpoint documented for this API version only supports:
+      // announcement, not_announcement, locked, unlocked
+      // So we don't attempt to change "memberAddMode" here.
       if (approvalMode !== undefined) {
         apiResponses.push({
-          label: 'Aprovação Membros',
+          label: 'Adicionar membros',
           ok: false,
           status: 400,
           data: {
@@ -739,7 +740,7 @@ serve(async (req) => {
               message: [
                 {
                   property: 'action',
-                  message: 'Aprovação de membros não é suportada nesta versão (actions suportadas: announcement, not_announcement, locked, unlocked)',
+                  message: 'Alterar "Adicionar membros" não é suportado nesta versão (actions suportadas: announcement, not_announcement, locked, unlocked).',
                 },
               ],
             },
