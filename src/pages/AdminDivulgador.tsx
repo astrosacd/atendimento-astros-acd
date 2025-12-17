@@ -1396,35 +1396,34 @@ export default function AdminDivulgador() {
                               ) : '-'}
                             </TableCell>
                             <TableCell>{group.participant_count}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1 flex-wrap">
-                                <span title="Quem pode enviar mensagens no grupo">
+                            <TableCell className="max-w-[120px]">
+                              <div 
+                                className="flex flex-col gap-0.5 cursor-help"
+                                title={`Enviar: ${group.announce ? 'Só Admins' : 'Todos'}\nEditar: ${group.restrict ? 'Só Admins' : 'Todos'}\nAdicionar: ${group.member_add_mode ? 'Só Admins' : 'Todos'}`}
+                              >
+                                <div className="flex gap-1">
                                   <Badge 
                                     variant={group.announce ? "default" : "outline"} 
-                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.announce ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : ''}`}
+                                    className={`text-[10px] px-1 py-0 gap-0.5 ${group.announce ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : ''}`}
                                   >
                                     <MessageSquare className="h-2.5 w-2.5" />
-                                    {group.announce ? 'Admins' : 'Todos'}
+                                    {group.announce ? 'Adm' : 'Tds'}
                                   </Badge>
-                                </span>
-                                <span title="Quem pode editar nome e descrição do grupo">
                                   <Badge 
                                     variant={group.restrict ? "default" : "outline"} 
-                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.restrict ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}
+                                    className={`text-[10px] px-1 py-0 gap-0.5 ${group.restrict ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}
                                   >
                                     <Edit className="h-2.5 w-2.5" />
-                                    {group.restrict ? 'Admins' : 'Todos'}
+                                    {group.restrict ? 'Adm' : 'Tds'}
                                   </Badge>
-                                </span>
-                                <span title="Quem pode adicionar novos membros ao grupo">
-                                  <Badge 
-                                    variant={group.member_add_mode ? "default" : "outline"} 
-                                    className={`text-[10px] px-1.5 py-0 gap-1 cursor-help ${group.member_add_mode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
-                                  >
-                                    <Lock className="h-2.5 w-2.5" />
-                                    {group.member_add_mode ? 'Admins' : 'Todos'}
-                                  </Badge>
-                                </span>
+                                </div>
+                                <Badge 
+                                  variant={group.member_add_mode ? "default" : "outline"} 
+                                  className={`text-[10px] px-1 py-0 gap-0.5 w-fit ${group.member_add_mode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : ''}`}
+                                >
+                                  <Lock className="h-2.5 w-2.5" />
+                                  {group.member_add_mode ? 'Adm' : 'Tds'}
+                                </Badge>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -2640,12 +2639,18 @@ export default function AdminDivulgador() {
                       {apiDebugResponse.responses.map((resp: any, idx: number) => (
                         <Card key={idx} className={`border-l-4 ${resp.ok ? 'border-l-green-500' : 'border-l-red-500'}`}>
                           <CardContent className="py-3 space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
                               <span className="font-medium text-sm">{resp.label}</span>
                               <Badge variant={resp.ok ? "default" : "destructive"} className="text-xs">
                                 {resp.ok ? 'OK' : `Erro ${resp.status || ''}`}
                               </Badge>
                             </div>
+                            {(resp.method || resp.endpoint) && (
+                              <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded font-mono break-all">
+                                <span className="font-semibold text-foreground">{resp.method || 'POST'}</span>{' '}
+                                {resp.endpoint || '-'}
+                              </div>
+                            )}
                             {resp.data && (
                               <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-h-32 overflow-y-auto">
                                 {JSON.stringify(resp.data, null, 2)}
