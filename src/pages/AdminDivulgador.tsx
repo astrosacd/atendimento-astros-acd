@@ -16,7 +16,7 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle, Upload, Image, Lock
+  FileText, XCircle, Upload, Image, Lock, Shield
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -1416,12 +1416,23 @@ export default function AdminDivulgador() {
                             </TableCell>
                             <TableCell className="font-medium max-w-[150px] truncate" title={group.name}>{group.name}</TableCell>
                             <TableCell>
-                              {group.divulgador_instances?.instance_name ? (
-                                <Badge variant="outline" className="gap-1">
-                                  <Wifi className="h-3 w-3" />
-                                  {group.divulgador_instances.instance_name}
-                                </Badge>
-                              ) : '-'}
+                              <div className="flex flex-col gap-1">
+                                {group.divulgador_instances?.instance_name ? (
+                                  <Badge variant="outline" className="gap-1">
+                                    <Wifi className="h-3 w-3" />
+                                    {group.divulgador_instances.instance_name}
+                                  </Badge>
+                                ) : '-'}
+                                {group.is_instance_admin !== undefined && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-[10px] gap-0.5 ${group.is_instance_admin ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}
+                                  >
+                                    <Shield className="h-2.5 w-2.5" />
+                                    {group.is_instance_admin ? 'Admin' : 'Membro'}
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>{group.participant_count}</TableCell>
                             <TableCell className="max-w-[120px]">
