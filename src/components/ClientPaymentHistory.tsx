@@ -34,9 +34,10 @@ interface ClientPaymentHistoryProps {
   clienteName: string;
   isOpen: boolean;
   onClose: () => void;
+  onPaymentUpdate?: () => void;
 }
 
-export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose }: ClientPaymentHistoryProps) {
+export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, onPaymentUpdate }: ClientPaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -60,6 +61,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose }
     const success = await markPaymentAsPaid(paymentId);
     if (success) {
       await loadPayments();
+      // Notify parent to refresh client data
+      onPaymentUpdate?.();
     }
     setActionLoading(null);
   };
@@ -69,6 +72,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose }
     const success = await cancelPayment(paymentId);
     if (success) {
       await loadPayments();
+      // Notify parent to refresh client data
+      onPaymentUpdate?.();
     }
     setActionLoading(null);
   };
