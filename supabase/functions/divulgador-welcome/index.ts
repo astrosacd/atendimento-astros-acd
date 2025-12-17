@@ -33,9 +33,9 @@ serve(async (req) => {
       const participants = data.participants || [];
       action = data.action;
 
-      // Only process 'add' actions (new participants)
-      if (action !== 'add') {
-        console.log('[divulgador-welcome] Ignoring non-add action:', action);
+      // Handle 'add' (join) and 'remove' (leave) actions
+      if (action !== 'add' && action !== 'remove') {
+        console.log('[divulgador-welcome] Ignoring non-add/non-remove action:', action);
         return new Response(JSON.stringify({ success: true, ignored: true, action }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -52,7 +52,8 @@ serve(async (req) => {
       const results = [];
       for (const participant of participants) {
         const number = typeof participant === 'string' ? participant : participant.id || participant;
-        const result = await processParticipant(supabase, number, groupJid, participantName);
+        const messageType = action === 'add' ? 'join' : 'leave';
+        const result = await processParticipant(supabase, number, groupJid, participantName, messageType);
         results.push(result);
       }
 
@@ -73,7 +74,7 @@ serve(async (req) => {
       });
     }
 
-    const result = await processParticipant(supabase, participantNumber, groupJid, participantName);
+    const result = await processParticipant(supabase, participantNumber, groupJid, participantName, 'join');
     
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -93,9 +94,10 @@ async function processParticipant(
   supabase: any,
   participantNumber: string,
   groupJid: string,
-  participantName?: string
+  participantName?: string,
+  messageType: 'join' | 'leave' = 'join'
 ) {
-  console.log(`[divulgador-welcome] Processing participant: ${participantNumber} in group: ${groupJid}`);
+  console.log(`[divulgador-welcome] Processing ${messageType} for participant: ${participantNumber} in group: ${groupJid}`);
 
   // Clean group JID (remove @g.us if present)
   const cleanGroupJid = groupJid.includes('@') ? groupJid : `${groupJid}@g.us`;
@@ -151,6 +153,71 @@ async function processParticipant(
     .replace('@c.us', '')
     .replace(/\D/g, '');
 
+  // Handle LEAVE event
+  if (messageType === 'leave') {
+    // Update participant left_at timestamp
+    await supabase
+      .from('divulgador_participants')
+      .update({ left_at: new Date().toISOString() })
+      .eq('group_id', group.id)
+      .eq('whatsapp_number', cleanNumber);
+
+    // Find exit message config for this group
+    let exitQuery = supabase
+      .from('divulgador_welcome_config')
+      .select('*')
+      .eq('is_active', true)
+      .eq('message_type', 'leave');
+
+    exitQuery = exitQuery.or(`group_id.eq.${group.id},group_id.is.null`);
+    const { data: exitConfigs } = await exitQuery.order('group_id', { ascending: false, nullsFirst: false });
+
+    if (!exitConfigs || exitConfigs.length === 0) {
+      console.log('[divulgador-welcome] No exit message configured');
+      return { success: true, noExitConfig: true, participant: cleanNumber };
+    }
+
+    const exitConfig = exitConfigs[0];
+
+    // Apply delay if configured
+    if (exitConfig.delay_seconds > 0) {
+      console.log(`[divulgador-welcome] Waiting ${exitConfig.delay_seconds}s before sending exit message...`);
+      await new Promise(resolve => setTimeout(resolve, exitConfig.delay_seconds * 1000));
+    }
+
+    // Replace placeholders in message
+    let exitMessage = exitConfig.message
+      .replace(/{nome}/gi, participantName || 'Participante')
+      .replace(/{numero}/gi, cleanNumber)
+      .replace(/{grupo}/gi, group.name);
+
+    console.log(`[divulgador-welcome] Sending exit message to ${cleanNumber} via ${instance_name}`);
+
+    // Send private message
+    const sendResponse = await fetch(`${api_url}/message/sendText/${instance_name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': api_key,
+      },
+      body: JSON.stringify({
+        number: cleanNumber,
+        text: exitMessage,
+      }),
+    });
+
+    const sendData = await sendResponse.json();
+
+    if (sendResponse.ok) {
+      console.log('[divulgador-welcome] Exit message sent successfully to:', cleanNumber);
+      return { success: true, type: 'leave', participant: cleanNumber, group: group.name, instance: instance_name };
+    } else {
+      console.error('[divulgador-welcome] Failed to send exit message:', sendData);
+      return { success: false, type: 'leave', error: sendData, participant: cleanNumber };
+    }
+  }
+
+  // Handle JOIN event (original logic)
   // Check if participant already exists and welcome was sent
   const { data: existingParticipant } = await supabase
     .from('divulgador_participants')
@@ -173,6 +240,7 @@ async function processParticipant(
       name: participantName || null,
       joined_at: new Date().toISOString(),
       welcome_sent: false,
+      left_at: null, // Clear left_at if rejoining
     }, { onConflict: 'group_id,whatsapp_number' });
 
   // Update group participant count
@@ -182,11 +250,12 @@ async function processParticipant(
     console.log('[divulgador-welcome] Could not increment count:', e);
   }
 
-  // Get welcome message config - now uses group_id instead of campaign_id
+  // Get welcome message config - now uses group_id and message_type
   let welcomeQuery = supabase
     .from('divulgador_welcome_config')
     .select('*')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .eq('message_type', 'join');
 
   // First try to find group-specific welcome message
   welcomeQuery = welcomeQuery.or(`group_id.eq.${group.id},group_id.is.null`);
@@ -238,9 +307,9 @@ async function processParticipant(
       .eq('whatsapp_number', cleanNumber);
 
     console.log('[divulgador-welcome] Welcome sent successfully to:', cleanNumber);
-    return { success: true, participant: cleanNumber, group: group.name, instance: instance_name };
+    return { success: true, type: 'join', participant: cleanNumber, group: group.name, instance: instance_name };
   } else {
     console.error('[divulgador-welcome] Failed to send welcome:', sendData);
-    return { success: false, error: sendData, participant: cleanNumber };
+    return { success: false, type: 'join', error: sendData, participant: cleanNumber };
   }
 }
