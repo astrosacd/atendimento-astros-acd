@@ -182,11 +182,60 @@ Deno.serve(async (req) => {
 
     // POST / - Create a new number
     if (req.method === 'POST') {
-      const body = await req.json();
-
-      if (!body.numero) {
+      let body: Record<string, unknown>;
+      try {
+        body = await req.json();
+      } catch {
         return new Response(
-          JSON.stringify({ error: 'numero is required', code: 'VALIDATION_ERROR' }),
+          JSON.stringify({ 
+            error: 'Body JSON inválido ou ausente',
+            code: 'VALIDATION_ERROR',
+            campos_obrigatorios: {
+              numero: 'Número do telefone (ex: +5511999999999)',
+              status_id: 'UUID do status (obter via GET /status)',
+              modelo_id: 'UUID do modelo (obter via GET /modelos)'
+            },
+            campos_opcionais: {
+              observacoes: 'Observações sobre o número'
+            },
+            exemplo: {
+              numero: '+5511999999999',
+              status_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              modelo_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              observacoes: 'Número novo para aquecimento'
+            }
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Validate required fields
+      const errors: string[] = [];
+      if (!body.numero) errors.push('numero é obrigatório');
+      if (!body.status_id && !body.status_nome) errors.push('status_id ou status_nome é obrigatório');
+      if (!body.modelo_id && !body.modelo_nome) errors.push('modelo_id ou modelo_nome é obrigatório');
+
+      if (errors.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Campos obrigatórios faltando',
+            code: 'VALIDATION_ERROR',
+            campos_faltando: errors,
+            campos_obrigatorios: {
+              numero: 'Número do telefone (ex: +5511999999999)',
+              status_id: 'UUID do status (obter via GET /status) ou status_nome',
+              modelo_id: 'UUID do modelo (obter via GET /modelos) ou modelo_nome'
+            },
+            campos_opcionais: {
+              observacoes: 'Observações sobre o número'
+            },
+            exemplo: {
+              numero: '+5511999999999',
+              status_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              modelo_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              observacoes: 'Número novo para aquecimento'
+            }
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -217,12 +266,40 @@ Deno.serve(async (req) => {
         return status?.id ?? null;
       };
 
+      const resolvedModeloId = await resolveModeloId(body.modelo_id ?? body.modelo_nome);
+      const resolvedStatusId = await resolveStatusId(body.status_id ?? body.status_nome);
+
+      // Validate that IDs were resolved
+      if (!resolvedModeloId) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Modelo não encontrado',
+            code: 'VALIDATION_ERROR',
+            detalhe: `O modelo "${body.modelo_id ?? body.modelo_nome}" não existe`,
+            dica: 'Use GET /modelos para listar modelos disponíveis'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!resolvedStatusId) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Status não encontrado',
+            code: 'VALIDATION_ERROR',
+            detalhe: `O status "${body.status_id ?? body.status_nome}" não existe`,
+            dica: 'Use GET /status para listar status disponíveis'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const ultima_atividade = formatUltimaAtividade('cadastro');
 
       const insertData = {
         numero: body.numero,
-        modelo_id: await resolveModeloId(body.modelo_id ?? body.modelo_nome),
-        status_id: await resolveStatusId(body.status_id ?? body.status_nome),
+        modelo_id: resolvedModeloId,
+        status_id: resolvedStatusId,
         observacoes: body.observacoes || null,
         ultima_atividade,
       };
@@ -236,7 +313,11 @@ Deno.serve(async (req) => {
       if (error) {
         if (error.code === '23505') {
           return new Response(
-            JSON.stringify({ error: 'Number already exists', code: 'DUPLICATE' }),
+            JSON.stringify({ 
+              error: 'Número já existe no sistema',
+              code: 'DUPLICATE',
+              detalhe: `O número "${body.numero}" já está cadastrado`
+            }),
             { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -275,8 +356,81 @@ Deno.serve(async (req) => {
 
     // PUT /:id - Update a number
     if (req.method === 'PUT') {
-      const body = await req.json();
       const numeroId = endpoint;
+
+      // Validate UUID in URL
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(numeroId);
+      if (!isValidUuid || numeroId === 'api-numeros-aquecimento') {
+        return new Response(
+          JSON.stringify({ 
+            error: 'ID do número é obrigatório na URL',
+            code: 'VALIDATION_ERROR',
+            campos_obrigatorios: {
+              url: 'ID do número (UUID) na URL: /api-numeros-aquecimento/{id}'
+            },
+            campos_atualizaveis: {
+              numero: 'Novo número do telefone',
+              status_id: 'UUID do novo status (ou status_nome)',
+              modelo_id: 'UUID do novo modelo (ou modelo_nome)',
+              observacoes: 'Novas observações'
+            },
+            exemplo: {
+              url: 'PUT /api-numeros-aquecimento/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              body: '{ "status_id": "...", "observacoes": "..." }'
+            }
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let body: Record<string, unknown>;
+      try {
+        body = await req.json();
+      } catch {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Body JSON inválido ou ausente',
+            code: 'VALIDATION_ERROR',
+            detalhe: 'Envie pelo menos um campo para atualizar',
+            campos_atualizaveis: {
+              numero: 'Novo número do telefone',
+              status_id: 'UUID do novo status (ou status_nome)',
+              modelo_id: 'UUID do novo modelo (ou modelo_nome)',
+              observacoes: 'Novas observações'
+            },
+            exemplo: {
+              status_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              observacoes: 'Atualização de observação'
+            }
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if at least one field to update
+      const hasUpdateField = body.numero !== undefined || 
+                            body.status_id !== undefined || 
+                            body.status_nome !== undefined ||
+                            body.modelo_id !== undefined || 
+                            body.modelo_nome !== undefined ||
+                            body.observacoes !== undefined;
+      
+      if (!hasUpdateField) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Nenhum campo para atualizar',
+            code: 'VALIDATION_ERROR',
+            detalhe: 'Envie pelo menos um campo para atualizar',
+            campos_atualizaveis: {
+              numero: 'Novo número do telefone',
+              status_id: 'UUID do novo status (ou status_nome)',
+              modelo_id: 'UUID do novo modelo (ou modelo_nome)',
+              observacoes: 'Novas observações'
+            }
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       const isUuid = (value: unknown) =>
         typeof value === 'string' &&
@@ -316,7 +470,11 @@ Deno.serve(async (req) => {
       if (fetchError) throw fetchError;
       if (!currentData) {
         return new Response(
-          JSON.stringify({ error: 'Number not found', code: 'NOT_FOUND' }),
+          JSON.stringify({ 
+            error: 'Número não encontrado',
+            code: 'NOT_FOUND',
+            detalhe: `Nenhum número encontrado com o ID "${numeroId}"`
+          }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
