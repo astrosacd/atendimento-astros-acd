@@ -16,7 +16,7 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle, Upload, Image, Lock, Shield, CalendarIcon
+  FileText, XCircle, Upload, Image, Lock, Shield, CalendarIcon, Pencil
 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -84,6 +84,10 @@ export default function AdminDivulgador() {
   const [isCommunity, setIsCommunity] = useState(false);
   const [rescheduleMessage, setRescheduleMessage] = useState<any>(null);
   const [rescheduleDateTime, setRescheduleDateTime] = useState('');
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [editMessageForm, setEditMessageForm] = useState({ content: '', scheduled_at: '' });
+  const [duplicateMessage, setDuplicateMessage] = useState<any>(null);
+  const [duplicateDateTime, setDuplicateDateTime] = useState('');
 
   // ================== QUERIES ==================
 
@@ -891,6 +895,52 @@ export default function AdminDivulgador() {
       setRescheduleDateTime('');
     },
     onError: (error: any) => toast.error('Erro ao reagendar: ' + error.message),
+  });
+
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ id, content, scheduled_at }: { id: string; content: string; scheduled_at: string }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_messages')
+        .update({ 
+          content,
+          scheduled_at: scheduled_at ? toUtcFromLocal(scheduled_at) : null
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      toast.success('Mensagem atualizada com sucesso!');
+      setEditingMessage(null);
+      setEditMessageForm({ content: '', scheduled_at: '' });
+    },
+    onError: (error: any) => toast.error('Erro ao editar: ' + error.message),
+  });
+
+  const duplicateMessageMutation = useMutation({
+    mutationFn: async ({ originalMessage, newDateTime }: { originalMessage: any; newDateTime: string }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_messages')
+        .insert([{
+          content: originalMessage.content,
+          media_type: originalMessage.media_type,
+          media_url: originalMessage.media_url,
+          scheduled_at: toUtcFromLocal(newDateTime),
+          mention_all: originalMessage.mention_all,
+          delay_seconds: originalMessage.delay_seconds,
+          group_id: originalMessage.group_id,
+          campaign_id: originalMessage.campaign_id,
+          status: 'pending',
+        }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      toast.success('Mensagem duplicada com sucesso!');
+      setDuplicateMessage(null);
+      setDuplicateDateTime('');
+    },
+    onError: (error: any) => toast.error('Erro ao duplicar: ' + error.message),
   });
 
   const sendPendingMessages = async () => {
@@ -1708,6 +1758,35 @@ export default function AdminDivulgador() {
                                     <CalendarIcon className="h-4 w-4" />
                                   </Button>
                                 )}
+                                {msg.status === 'pending' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-muted-foreground hover:text-blue-500"
+                                    onClick={() => {
+                                      setEditingMessage(msg);
+                                      setEditMessageForm({ 
+                                        content: msg.content, 
+                                        scheduled_at: msg.scheduled_at ? format(new Date(msg.scheduled_at), "yyyy-MM-dd'T'HH:mm") : '' 
+                                      });
+                                    }}
+                                    title="Editar"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-muted-foreground hover:text-emerald-500"
+                                  onClick={() => {
+                                    setDuplicateMessage(msg);
+                                    setDuplicateDateTime('');
+                                  }}
+                                  title="Duplicar"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -2952,6 +3031,114 @@ export default function AdminDivulgador() {
                 disabled={!rescheduleDateTime || rescheduleMessageMutation.isPending}
               >
                 {rescheduleMessageMutation.isPending ? 'Reagendando...' : 'Reagendar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Editar Mensagem */}
+        <Dialog open={!!editingMessage} onOpenChange={(open) => !open && setEditingMessage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pencil className="h-5 w-5" />
+                Editar Mensagem
+              </DialogTitle>
+              <DialogDescription>
+                Edite o conteúdo e horário da mensagem pendente
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Conteúdo</Label>
+                <Textarea
+                  value={editMessageForm.content}
+                  onChange={(e) => setEditMessageForm({ ...editMessageForm, content: e.target.value })}
+                  rows={4}
+                  placeholder="Conteúdo da mensagem..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data e horário de envio</Label>
+                <Input
+                  type="datetime-local"
+                  value={editMessageForm.scheduled_at}
+                  onChange={(e) => setEditMessageForm({ ...editMessageForm, scheduled_at: e.target.value })}
+                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingMessage(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editingMessage && editMessageForm.content) {
+                    editMessageMutation.mutate({ 
+                      id: editingMessage.id, 
+                      content: editMessageForm.content,
+                      scheduled_at: editMessageForm.scheduled_at
+                    });
+                  }
+                }}
+                disabled={!editMessageForm.content || editMessageMutation.isPending}
+              >
+                {editMessageMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Duplicar Mensagem */}
+        <Dialog open={!!duplicateMessage} onOpenChange={(open) => !open && setDuplicateMessage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                Duplicar Mensagem
+              </DialogTitle>
+              <DialogDescription>
+                Crie uma cópia desta mensagem com uma nova data de envio
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium mb-1">Conteúdo:</p>
+                <p className="text-sm text-muted-foreground line-clamp-3">{duplicateMessage?.content}</p>
+              </div>
+              {duplicateMessage?.divulgador_groups?.name && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium mb-1">Grupo destino:</p>
+                  <p className="text-sm text-muted-foreground">{duplicateMessage.divulgador_groups.name}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Nova data e horário</Label>
+                <Input
+                  type="datetime-local"
+                  value={duplicateDateTime}
+                  onChange={(e) => setDuplicateDateTime(e.target.value)}
+                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDuplicateMessage(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (duplicateMessage && duplicateDateTime) {
+                    duplicateMessageMutation.mutate({ 
+                      originalMessage: duplicateMessage, 
+                      newDateTime: duplicateDateTime 
+                    });
+                  }
+                }}
+                disabled={!duplicateDateTime || duplicateMessageMutation.isPending}
+              >
+                {duplicateMessageMutation.isPending ? 'Duplicando...' : 'Duplicar'}
               </Button>
             </DialogFooter>
           </DialogContent>
