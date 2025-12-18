@@ -97,19 +97,12 @@ const modelsByProvider: Record<string, { name: string; value: string; descriptio
   ],
 };
 
-// Topics the AI can discuss - mapped to permission categories
-const aiTopics = [
-  { key: 'dashboard', name: 'Dashboard', description: 'Estatísticas e visão geral do sistema' },
-  { key: 'clientes', name: 'Clientes', description: 'Cadastro, consulta, atualização e exclusão de clientes' },
-  { key: 'cobranca', name: 'Cobrança', description: 'Sistema de cobrança e pagamentos' },
-  { key: 'usuarios', name: 'Usuários', description: 'Gerenciamento de usuários e aprovações' },
-  { key: 'permissoes', name: 'Permissões', description: 'Roles e permissões do sistema' },
-  { key: 'webhooks', name: 'Webhooks', description: 'Integrações via webhooks' },
-  { key: 'api', name: 'API REST', description: 'Chaves de API e integrações externas' },
-  { key: 'divulgador', name: 'Divulgador', description: 'Módulo de divulgação em grupos WhatsApp' },
-  { key: 'logs', name: 'Logs', description: 'Logs de atividade e auditoria' },
-  { key: 'configuracoes', name: 'Configurações', description: 'Configurações gerais do sistema' },
-];
+interface AITopic {
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+}
 
 const AdminChatConfig = () => {
   const navigate = useNavigate();
@@ -167,6 +160,34 @@ Instruções:
         .order('name');
       if (error) throw error;
       return data as CustomRole[];
+    },
+  });
+
+  // Fetch system permissions as AI topics
+  const { data: aiTopics = [] } = useQuery({
+    queryKey: ['system-permissions-topics'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_permissions')
+        .select('key, name, description, category')
+        .order('category, name');
+      if (error) throw error;
+      
+      // Group by category and return unique categories as topics
+      const categoryMap = new Map<string, AITopic>();
+      data.forEach(permission => {
+        const categoryKey = permission.category.toLowerCase().replace(/\s+/g, '_');
+        if (!categoryMap.has(categoryKey)) {
+          categoryMap.set(categoryKey, {
+            key: categoryKey,
+            name: permission.category,
+            description: `Permissões relacionadas a ${permission.category}`,
+            category: permission.category
+          });
+        }
+      });
+      
+      return Array.from(categoryMap.values());
     },
   });
 
