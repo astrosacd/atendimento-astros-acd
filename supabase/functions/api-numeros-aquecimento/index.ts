@@ -485,6 +485,10 @@ async function triggerWebhooks(supabase: any, event: string, data: any) {
 
     for (const webhook of webhooks) {
       try {
+        const ts = new Date().toISOString();
+        const isObject = data && typeof data === 'object' && !Array.isArray(data);
+        const { modelo, status, ...numeroOnly } = (isObject ? data : { value: data }) as any;
+
         await fetch(webhook.url, {
           method: 'POST',
           headers: {
@@ -492,9 +496,14 @@ async function triggerWebhooks(supabase: any, event: string, data: any) {
             ...(webhook.secret_key ? { 'X-Webhook-Secret': webhook.secret_key } : {}),
           },
           body: JSON.stringify({
+            // Backward/forward compatible payload
             event,
+            evento: event,
+            timestamp: ts,
             data,
-            timestamp: new Date().toISOString(),
+            numero: isObject ? numeroOnly : data,
+            modelo: modelo ?? null,
+            status: status ?? null,
           }),
         });
         console.log(`[Webhook] Sent ${event} to ${webhook.nome}`);
