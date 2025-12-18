@@ -155,10 +155,10 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           navigate(item.path);
         }}
         className={cn(
-          "w-full justify-start gap-3 h-11 px-3 relative group",
-          isActive 
-            ? "bg-primary/10 text-primary font-medium" 
-            : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+          "w-full justify-start gap-3 h-11 px-3 relative group transition-none",
+          isActive
+            ? "bg-primary/10 text-primary font-medium hover:bg-primary/10 hover:text-primary active:bg-primary/10"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted/50",
           collapsed && "justify-center px-0"
         )}
       >
