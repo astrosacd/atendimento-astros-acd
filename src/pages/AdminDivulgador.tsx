@@ -90,6 +90,7 @@ export default function AdminDivulgador() {
   const [duplicateDateTime, setDuplicateDateTime] = useState('');
   const [checkingWebhookId, setCheckingWebhookId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<any>(null);
+  const [isReconfiguringWebhook, setIsReconfiguringWebhook] = useState(false);
   // ================== QUERIES ==================
 
   // Fetch instances
@@ -1471,23 +1472,29 @@ export default function AdminDivulgador() {
                     </div>
 
                     <DialogFooter className="gap-2 sm:gap-0">
-                      <Button variant="outline" onClick={() => setWebhookStatus(null)}>
+                      <Button variant="outline" onClick={() => setWebhookStatus(null)} disabled={isReconfiguringWebhook}>
                         Fechar
                       </Button>
 
                       {!webhookStatus.isConfigured || !webhookStatus.hasGroupEvent ? (
                         <Button
+                          disabled={isReconfiguringWebhook}
                           onClick={async () => {
                             const instance = instances.find((i: any) => i.id === webhookStatus.instanceId);
                             if (instance) {
-                              await configureWebhook(instance);
-                              toast.success('Webhook reconfigurado! Clique em verificar novamente.');
-                              setWebhookStatus(null);
+                              setIsReconfiguringWebhook(true);
+                              try {
+                                await configureWebhook(instance);
+                                toast.success('Webhook reconfigurado! Clique em verificar novamente.');
+                                setWebhookStatus(null);
+                              } finally {
+                                setIsReconfiguringWebhook(false);
+                              }
                             }
                           }}
                         >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Configurar/Reconfigurar
+                          {isReconfiguringWebhook ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                          {isReconfiguringWebhook ? 'Configurando...' : 'Configurar/Reconfigurar'}
                         </Button>
                       ) : null}
                     </DialogFooter>
