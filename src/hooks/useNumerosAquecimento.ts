@@ -690,15 +690,7 @@ export function useDeleteApiKey() {
 // Trigger webhook helper
 async function triggerWebhook(event: string, data: unknown) {
   try {
-    const { data: webhooks } = await supabase
-      .from('numeros_aquecimento_webhooks')
-      .select('*')
-      .eq('is_active', true)
-      .contains('eventos', [event]);
-
-    if (!webhooks || webhooks.length === 0) return;
-
-    // Format data for better readability
+    // Build a clean payload (avoids sending DB internals and keeps webhook consistent)
     const numeroData = data as Record<string, unknown>;
     const formattedPayload = {
       evento: event,
@@ -714,37 +706,25 @@ async function triggerWebhook(event: string, data: unknown) {
         created_at: numeroData.created_at,
         updated_at: numeroData.updated_at,
       },
-      // Include deletion info if present
-      ...(numeroData.motivo_exclusao ? {
-        exclusao: {
-          motivo: numeroData.motivo_exclusao,
-          data: numeroData.data_exclusao || new Date().toISOString(),
-        }
-      } : {}),
-      // Include model info if available
-      ...(numeroData.modelo ? {
-        modelo: numeroData.modelo,
-      } : {}),
-      // Include status info if available
-      ...(numeroData.status ? {
-        status: numeroData.status,
-      } : {}),
+      ...(numeroData.motivo_exclusao
+        ? {
+            exclusao: {
+              motivo: numeroData.motivo_exclusao,
+              data: numeroData.data_exclusao || new Date().toISOString(),
+            },
+          }
+        : {}),
+      ...(numeroData.modelo ? { modelo: numeroData.modelo } : {}),
+      ...(numeroData.status ? { status: numeroData.status } : {}),
     };
 
-    for (const webhook of webhooks) {
-      try {
-        await fetch(webhook.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(webhook.secret_key ? { 'X-Webhook-Secret': webhook.secret_key } : {}),
-          },
-          body: JSON.stringify(formattedPayload, null, 2),
-          mode: 'no-cors',
-        });
-      } catch (err) {
-        console.error(`Webhook ${webhook.nome} failed:`, err);
-      }
+    // Send from backend (avoids browser CORS/no-cors, and n8n will parse JSON correctly)
+    const { error } = await supabase.functions.invoke('numeros-webhook-proxy', {
+      body: formattedPayload,
+    });
+
+    if (error) {
+      console.error('numeros-webhook-proxy error:', error);
     }
   } catch (err) {
     console.error('Error triggering webhooks:', err);
