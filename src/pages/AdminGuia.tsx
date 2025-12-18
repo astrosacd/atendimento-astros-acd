@@ -2068,19 +2068,19 @@ curl -X DELETE "/functions/v1/api-numeros-aquecimento/UUID" \\
           title: "API REST - Recursos Auxiliares",
           content: `**Listar status disponíveis:**
 \`\`\`bash
-curl -X GET "/functions/v1/api-numeros-aquecimento?resource=status" \\
+curl -X GET "/functions/v1/api-numeros-aquecimento/status" \\
   -H "x-api-key: sua_chave"
 \`\`\`
 
 **Listar modelos disponíveis:**
 \`\`\`bash
-curl -X GET "/functions/v1/api-numeros-aquecimento?resource=modelos" \\
+curl -X GET "/functions/v1/api-numeros-aquecimento/modelos" \\
   -H "x-api-key: sua_chave"
 \`\`\`
 
 **Consultar histórico:**
 \`\`\`bash
-curl -X GET "/functions/v1/api-numeros-aquecimento?resource=history&numero_id=uuid" \\
+curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
   -H "x-api-key: sua_chave"
 \`\`\`
 
