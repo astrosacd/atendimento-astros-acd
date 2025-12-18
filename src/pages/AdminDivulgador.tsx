@@ -842,7 +842,7 @@ export default function AdminDivulgador() {
           content: formData.content,
           media_type: formData.media_type || 'text',
           media_url: formData.media_url || null,
-          scheduled_at: formData.scheduled_at ? toUtcFromBrazil(formData.scheduled_at) : null,
+          scheduled_at: formData.scheduled_at ? toUtcFromLocal(formData.scheduled_at) : null,
           mention_all: formData.mention_all,
           delay_seconds: formData.delay_seconds,
           group_id: selectedGroupId, // Store selected group
