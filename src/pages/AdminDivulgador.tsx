@@ -34,21 +34,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, addHours, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Helper para converter data local para ISO com timezone de Brasília para salvar no banco
-const toUtcFromBrazil = (localDateString: string): string => {
-  // localDateString é tipo "2024-12-18T12:35"
-  // Precisamos converter para UTC adicionando 3 horas (Brasília é UTC-3)
-  const localDate = new Date(localDateString);
-  const utcDate = new Date(localDate.getTime() + (3 * 60 * 60 * 1000));
-  return utcDate.toISOString();
+// Helper para converter data local para ISO - o navegador já lida com timezone
+const toUtcFromLocal = (localDateString: string): string => {
+  // O input datetime-local fornece a hora local do usuário
+  // new Date() interpreta como local e toISOString() converte para UTC automaticamente
+  return new Date(localDateString).toISOString();
 };
 
-// Helper para exibir data UTC como horário de Brasília
+// Helper para exibir data UTC como horário local do navegador
 const formatFromUtc = (utcDateString: string, formatStr: string): string => {
-  const utcDate = new Date(utcDateString);
-  // Subtrair 3 horas para converter de UTC para Brasília
-  const brazilDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
-  return format(brazilDate, formatStr, { locale: ptBR });
+  // new Date() converte de UTC para o timezone local do navegador automaticamente
+  return format(new Date(utcDateString), formatStr, { locale: ptBR });
 };
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
