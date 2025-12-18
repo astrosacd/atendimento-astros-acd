@@ -1340,20 +1340,20 @@ function CurlBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative mt-2">
-      <pre className="bg-muted p-2 pr-10 rounded text-xs overflow-x-auto">
+    <div className="relative mt-2 group">
+      <pre className="bg-muted p-3 pr-12 rounded text-xs overflow-x-auto whitespace-pre-wrap break-all">
         {code}
       </pre>
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="absolute top-1 right-1 h-7 w-7"
+        className="absolute top-2 right-2 h-7 w-7 bg-background/80 hover:bg-background border-border/50"
         onClick={handleCopy}
       >
         {copied ? (
-          <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+          <CheckCircle className="h-4 w-4 text-green-500" />
         ) : (
-          <Copy className="h-3.5 w-3.5" />
+          <Copy className="h-4 w-4" />
         )}
       </Button>
     </div>
@@ -1367,20 +1367,20 @@ function ApiDocumentation() {
     <div className="space-y-6 text-sm">
       <div>
         <h3 className="font-semibold text-lg mb-2">Base URL</h3>
-        <div className="relative">
-          <code className="block bg-muted p-2 pr-10 rounded text-xs break-all">
+        <div className="relative group">
+          <code className="block bg-muted p-3 pr-12 rounded text-xs break-all">
             {baseUrl}
           </code>
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="absolute top-1 right-1 h-7 w-7"
+            className="absolute top-2 right-2 h-7 w-7 bg-background/80 hover:bg-background border-border/50"
             onClick={() => {
               navigator.clipboard.writeText(baseUrl);
               toast.success('URL copiada!');
             }}
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-4 w-4" />
           </Button>
         </div>
       </div>
