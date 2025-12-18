@@ -26,6 +26,52 @@ interface AIConfig {
   systemPrompt: string;
   openaiApiKey?: string;
   groqApiKey?: string;
+  roleRestrictionEnabled: boolean;
+  roleTopics: Record<string, string[]>;
+  denialMessage: string;
+}
+
+// Topic keywords for content filtering
+const topicKeywords: Record<string, string[]> = {
+  dashboard: ['dashboard', 'estatísticas', 'visão geral', 'métricas', 'resumo', 'início', 'home'],
+  clientes: ['cliente', 'clientes', 'cadastro', 'cadastrar', 'consultar', 'atualizar', 'excluir', 'cpf', 'cnpj', 'renovação', 'produto', 'plano', 'valor'],
+  cobranca: ['cobrança', 'cobranças', 'pagamento', 'pagamentos', 'boleto', 'pix', 'mercado pago', 'fatura', 'billing', 'inadimplente', 'vencimento'],
+  usuarios: ['usuário', 'usuários', 'user', 'users', 'aprovação', 'pendente', 'conta', 'login', 'senha', 'acesso'],
+  permissoes: ['permissão', 'permissões', 'role', 'roles', 'cargo', 'cargos', 'acesso', 'privilégio'],
+  webhooks: ['webhook', 'webhooks', 'integração', 'n8n', 'automação', 'evento', 'trigger'],
+  api: ['api', 'chave', 'key', 'rest', 'endpoint', 'integração externa'],
+  divulgador: ['divulgador', 'divulgação', 'grupo', 'grupos', 'whatsapp', 'campanha', 'mensagem', 'participante', 'broadcast'],
+  logs: ['log', 'logs', 'atividade', 'auditoria', 'histórico', 'registro'],
+  configuracoes: ['configuração', 'configurações', 'config', 'settings', 'preferências', 'sistema'],
+};
+
+function detectTopicsInMessage(message: string): string[] {
+  const lowerMessage = message.toLowerCase();
+  const detectedTopics: string[] = [];
+  
+  for (const [topic, keywords] of Object.entries(topicKeywords)) {
+    if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+      detectedTopics.push(topic);
+    }
+  }
+  
+  return detectedTopics;
+}
+
+function isAllowedToAsk(userRole: string, detectedTopics: string[], roleTopics: Record<string, string[]>, isAdmin: boolean): boolean {
+  // Admins can ask anything
+  if (isAdmin || userRole === 'admin') {
+    return true;
+  }
+  
+  // If no topics detected, allow (general question)
+  if (detectedTopics.length === 0) {
+    return true;
+  }
+  
+  // Check if user's role has access to at least one detected topic
+  const allowedTopics = roleTopics[userRole] || [];
+  return detectedTopics.some(topic => allowedTopics.includes(topic));
 }
 
 async function callLovableAI(messages: any[], config: AIConfig): Promise<string> {
@@ -148,7 +194,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, conversationId, userId } = await req.json();
+    const { messages, conversationId, userId, userRole, isAdmin } = await req.json();
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -157,6 +203,9 @@ serve(async (req) => {
       provider: 'lovable',
       model: 'google/gemini-2.5-flash',
       systemPrompt: defaultSystemPrompt,
+      roleRestrictionEnabled: false,
+      roleTopics: {},
+      denialMessage: 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso.',
     };
     
     let supabase: any = null;
@@ -173,7 +222,10 @@ serve(async (req) => {
             'chat_ai_model', 
             'chat_ai_provider',
             'chat_openai_api_key',
-            'chat_groq_api_key'
+            'chat_groq_api_key',
+            'chat_role_restriction_enabled',
+            'chat_role_topics',
+            'chat_denial_message'
           ]);
         
         if (configData) {
@@ -193,6 +245,19 @@ serve(async (req) => {
             if (item.config_key === 'chat_groq_api_key' && item.config_value) {
               aiConfig.groqApiKey = item.config_value;
             }
+            if (item.config_key === 'chat_role_restriction_enabled') {
+              aiConfig.roleRestrictionEnabled = item.config_value === 'true';
+            }
+            if (item.config_key === 'chat_role_topics' && item.config_value) {
+              try {
+                aiConfig.roleTopics = JSON.parse(item.config_value);
+              } catch {
+                aiConfig.roleTopics = {};
+              }
+            }
+            if (item.config_key === 'chat_denial_message' && item.config_value) {
+              aiConfig.denialMessage = item.config_value;
+            }
           }
         }
       } catch (dbError) {
@@ -201,6 +266,31 @@ serve(async (req) => {
     }
 
     console.log("Using AI provider:", aiConfig.provider, "model:", aiConfig.model);
+    console.log("Role restriction enabled:", aiConfig.roleRestrictionEnabled, "User role:", userRole, "Is admin:", isAdmin);
+
+    // Check role-based access if enabled
+    if (aiConfig.roleRestrictionEnabled && userRole && !isAdmin) {
+      const lastUserMessage = messages[messages.length - 1];
+      if (lastUserMessage && lastUserMessage.content) {
+        const detectedTopics = detectTopicsInMessage(lastUserMessage.content);
+        console.log("Detected topics:", detectedTopics);
+        
+        if (!isAllowedToAsk(userRole, detectedTopics, aiConfig.roleTopics, isAdmin)) {
+          console.log("Access denied for role:", userRole, "topics:", detectedTopics);
+          return new Response(
+            JSON.stringify({ 
+              response: aiConfig.denialMessage, 
+              model: aiConfig.model, 
+              provider: aiConfig.provider,
+              accessDenied: true 
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+    }
 
     // Call the appropriate AI provider
     let assistantResponse: string;
