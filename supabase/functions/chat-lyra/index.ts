@@ -20,6 +20,128 @@ Instruções:
 - Se não souber a resposta, indique que o usuário pode entrar em contato com o suporte
 - Mantenha um tom amigável e profissional`;
 
+interface AIConfig {
+  provider: string;
+  model: string;
+  systemPrompt: string;
+  openaiApiKey?: string;
+  groqApiKey?: string;
+}
+
+async function callLovableAI(messages: any[], config: AIConfig): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: "system", content: config.systemPrompt },
+        ...messages,
+      ],
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT");
+    }
+    if (response.status === 402) {
+      throw new Error("PAYMENT_REQUIRED");
+    }
+    const errorText = await response.text();
+    console.error("Lovable AI error:", response.status, errorText);
+    throw new Error("Erro ao processar mensagem");
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+}
+
+async function callOpenAI(messages: any[], config: AIConfig): Promise<string> {
+  if (!config.openaiApiKey) {
+    throw new Error("OpenAI API Key não configurada. Configure a chave no painel de administração.");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.openaiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: "system", content: config.systemPrompt },
+        ...messages,
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT");
+    }
+    if (response.status === 401) {
+      throw new Error("API Key da OpenAI inválida. Verifique a configuração.");
+    }
+    if (response.status === 402 || response.status === 403) {
+      throw new Error("Limite de uso da OpenAI atingido ou acesso negado.");
+    }
+    const errorText = await response.text();
+    console.error("OpenAI error:", response.status, errorText);
+    throw new Error("Erro ao processar mensagem com OpenAI");
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+}
+
+async function callGroq(messages: any[], config: AIConfig): Promise<string> {
+  if (!config.groqApiKey) {
+    throw new Error("Groq API Key não configurada. Configure a chave no painel de administração.");
+  }
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.groqApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [
+        { role: "system", content: config.systemPrompt },
+        ...messages,
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT");
+    }
+    if (response.status === 401) {
+      throw new Error("API Key da Groq inválida. Verifique a configuração.");
+    }
+    const errorText = await response.text();
+    console.error("Groq error:", response.status, errorText);
+    throw new Error("Erro ao processar mensagem com Groq");
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,17 +149,16 @@ serve(async (req) => {
 
   try {
     const { messages, conversationId, userId } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    // Fetch configuration from database
-    let systemPrompt = defaultSystemPrompt;
-    let aiModel = "google/gemini-2.5-flash";
+    // Default configuration
+    const aiConfig: AIConfig = {
+      provider: 'lovable',
+      model: 'google/gemini-2.5-flash',
+      systemPrompt: defaultSystemPrompt,
+    };
+    
     let supabase: any = null;
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -47,15 +168,30 @@ serve(async (req) => {
         const { data: configData } = await supabase
           .from('billing_config')
           .select('config_key, config_value')
-          .in('config_key', ['chat_ai_prompt', 'chat_ai_model']);
+          .in('config_key', [
+            'chat_ai_prompt', 
+            'chat_ai_model', 
+            'chat_ai_provider',
+            'chat_openai_api_key',
+            'chat_groq_api_key'
+          ]);
         
         if (configData) {
           for (const item of configData) {
             if (item.config_key === 'chat_ai_prompt' && item.config_value) {
-              systemPrompt = item.config_value;
+              aiConfig.systemPrompt = item.config_value;
             }
             if (item.config_key === 'chat_ai_model' && item.config_value) {
-              aiModel = item.config_value;
+              aiConfig.model = item.config_value;
+            }
+            if (item.config_key === 'chat_ai_provider' && item.config_value) {
+              aiConfig.provider = item.config_value;
+            }
+            if (item.config_key === 'chat_openai_api_key' && item.config_value) {
+              aiConfig.openaiApiKey = item.config_value;
+            }
+            if (item.config_key === 'chat_groq_api_key' && item.config_value) {
+              aiConfig.groqApiKey = item.config_value;
             }
           }
         }
@@ -64,50 +200,58 @@ serve(async (req) => {
       }
     }
 
-    console.log("Using AI model:", aiModel);
+    console.log("Using AI provider:", aiConfig.provider, "model:", aiConfig.model);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: aiModel,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: false,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
+    // Call the appropriate AI provider
+    let assistantResponse: string;
+    
+    try {
+      switch (aiConfig.provider) {
+        case 'openai':
+          assistantResponse = await callOpenAI(messages, aiConfig);
+          break;
+        case 'groq':
+          assistantResponse = await callGroq(messages, aiConfig);
+          break;
+        case 'lovable':
+        default:
+          assistantResponse = await callLovableAI(messages, aiConfig);
+          break;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "RATE_LIMIT") {
+          return new Response(
+            JSON.stringify({ error: "Muitas requisições. Aguarde um momento e tente novamente." }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        if (error.message === "PAYMENT_REQUIRED") {
+          return new Response(
+            JSON.stringify({ error: "Limite de uso atingido. Entre em contato com o suporte." }),
+            {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        // Return other errors as user-friendly messages
         return new Response(
-          JSON.stringify({ error: "Muitas requisições. Aguarde um momento e tente novamente." }),
+          JSON.stringify({ 
+            error: error.message,
+            response: error.message 
+          }),
           {
-            status: 429,
+            status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Limite de uso atingido. Entre em contato com o suporte." }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Erro ao processar mensagem");
+      throw error;
     }
-
-    const data = await response.json();
-    const assistantResponse = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
 
     // Save messages to database if conversationId and userId provided
     if (supabase && conversationId && userId) {
@@ -152,7 +296,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ response: assistantResponse, model: aiModel }),
+      JSON.stringify({ response: assistantResponse, model: aiConfig.model, provider: aiConfig.provider }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
