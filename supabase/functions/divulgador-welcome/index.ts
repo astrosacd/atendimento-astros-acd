@@ -57,7 +57,11 @@ serve(async (req) => {
           : (participant.phoneNumber || participant.id || (participant as any).jid || participant);
 
         const number = typeof raw === 'string' ? raw : (raw?.phoneNumber || raw?.id || String(raw));
-        const name = typeof participant === 'object' ? (participant as any).name : undefined;
+
+        // Prefer push name / notify if available (common in Evolution payloads)
+        const name = typeof participant === 'object'
+          ? ((participant as any).pushName || (participant as any).notify || (participant as any).profileName || (participant as any).name)
+          : undefined;
 
         const messageType = action === 'add' ? 'join' : 'leave';
         const result = await processParticipant(supabase, number, groupJid, name, messageType);
@@ -178,26 +182,46 @@ async function processParticipant(
   // Fetch WhatsApp profile name if not provided
   let finalName = participantName;
   if (!finalName || finalName === 'Participante') {
+    const jidNumber = `${cleanNumber}@s.whatsapp.net`;
+
     try {
-      console.log(`[divulgador-welcome] Fetching profile for ${cleanNumber}...`);
+      console.log(`[divulgador-welcome] Fetching profile for ${jidNumber}...`);
+
       const profileRes = await fetch(`${api_url}/chat/fetchProfile/${instance_name}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': api_key,
         },
-        body: JSON.stringify({ number: cleanNumber }),
+        body: JSON.stringify({ number: jidNumber }),
       });
-      
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        // Evolution API returns name in different fields depending on version
-        const fetchedName = profileData?.name || profileData?.pushName || profileData?.verifiedName || 
-                           profileData?.profileName || profileData?.notify || null;
-        if (fetchedName) {
-          finalName = fetchedName;
-          console.log(`[divulgador-welcome] Got profile name: ${finalName}`);
-        }
+
+      console.log(`[divulgador-welcome] fetchProfile status: ${profileRes.status}`);
+
+      const rawText = await profileRes.text();
+      let profileData: any = null;
+      try {
+        profileData = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        profileData = null;
+      }
+
+      // Evolution API returns name in different fields depending on version/instance
+      const fetchedName =
+        profileData?.name ||
+        profileData?.pushName ||
+        profileData?.verifiedName ||
+        profileData?.profileName ||
+        profileData?.notify ||
+        profileData?.profile?.pushName ||
+        profileData?.profile?.notify ||
+        null;
+
+      if (fetchedName) {
+        finalName = fetchedName;
+        console.log(`[divulgador-welcome] Got profile name: ${finalName}`);
+      } else {
+        console.log(`[divulgador-welcome] Profile fetched but no name fields found. Body: ${rawText?.slice(0, 500)}`);
       }
     } catch (e) {
       console.log(`[divulgador-welcome] Could not fetch profile:`, e);
