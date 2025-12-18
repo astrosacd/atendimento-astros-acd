@@ -366,32 +366,35 @@ export default function AdminNumerosAquecimento() {
                 <CardContent className="flex flex-col flex-1 overflow-hidden">
                   <ScrollArea className="flex-1">
                     <div className="space-y-2 pr-2">
-                      {statusList.map((status) => (
-                        <div key={status.id} className="flex items-center justify-between p-2 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full bg-${status.cor}-500`} />
-                            <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
-                              {status.nome}
-                            </Badge>
-                          </div>
-                          {canManageStatus && (
-                            <div className="flex items-center gap-1">
-                              <EditStatusDialog 
-                                status={status} 
-                                onUpdate={(data) => updateStatus.mutate({ id: status.id, data })} 
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => deleteStatus.mutate(status.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                      {statusList.map((status) => {
+                        const count = numeros.filter(n => n.status_id === status.id).length;
+                        return (
+                          <div key={status.id} className="flex items-center justify-between p-2 border rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full bg-${status.cor}-500`} />
+                              <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
+                                {status.nome}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {count} número{count !== 1 ? 's' : ''}
+                              </Badge>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {canManageStatus && (
+                              <div className="flex items-center gap-1">
+                                <EditStatusDialog 
+                                  status={status} 
+                                  onUpdate={(data) => updateStatus.mutate({ id: status.id, data })} 
+                                />
+                                <DeleteStatusDialog
+                                  status={status}
+                                  count={count}
+                                  onDelete={deleteStatus.mutate}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                   {canManageStatus && (
@@ -414,32 +417,37 @@ export default function AdminNumerosAquecimento() {
                 <CardContent className="flex flex-col flex-1 overflow-hidden">
                   <ScrollArea className="flex-1">
                     <div className="space-y-2 pr-2">
-                      {modelosList.map((modelo) => (
-                        <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
-                          <div>
-                            <span className="font-medium">{modelo.nome}</span>
-                            {modelo.marca && (
-                              <span className="text-muted-foreground text-sm ml-2">({modelo.marca})</span>
+                      {modelosList.map((modelo) => {
+                        const count = numeros.filter(n => n.modelo_id === modelo.id).length;
+                        return (
+                          <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <span className="font-medium">{modelo.nome}</span>
+                                {modelo.marca && (
+                                  <span className="text-muted-foreground text-sm ml-2">({modelo.marca})</span>
+                                )}
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {count} número{count !== 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                            {canManageModelos && (
+                              <div className="flex items-center gap-1">
+                                <EditModeloDialog 
+                                  modelo={modelo} 
+                                  onUpdate={(data) => updateModelo.mutate({ id: modelo.id, data })} 
+                                />
+                                <DeleteModeloDialog
+                                  modelo={modelo}
+                                  count={count}
+                                  onDelete={deleteModelo.mutate}
+                                />
+                              </div>
                             )}
                           </div>
-                          {canManageModelos && (
-                            <div className="flex items-center gap-1">
-                              <EditModeloDialog 
-                                modelo={modelo} 
-                                onUpdate={(data) => updateModelo.mutate({ id: modelo.id, data })} 
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => deleteModelo.mutate(modelo.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                   {canManageModelos && (
@@ -1210,6 +1218,166 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={handleSubmit}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteStatusDialog({ 
+  status, 
+  count, 
+  onDelete 
+}: { 
+  status: NumeroStatus; 
+  count: number;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [observacao, setObservacao] = useState('');
+
+  const handleDelete = () => {
+    if (!observacao.trim()) {
+      toast.error('Informe o motivo da exclusão');
+      return;
+    }
+    onDelete(status.id);
+    setOpen(false);
+    setObservacao('');
+    toast.success(`Status "${status.nome}" excluído`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Excluir Status
+          </DialogTitle>
+          <DialogDescription>
+            Você está prestes a excluir o status <strong>{status.nome}</strong>.
+            {count > 0 && (
+              <span className="block mt-2 text-amber-600 dark:text-amber-400">
+                ⚠️ Existem {count} número{count !== 1 ? 's' : ''} usando este status.
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="motivo-status" className="text-sm font-medium">
+              Motivo da exclusão <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="motivo-status"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Informe o motivo da exclusão deste status..."
+              className="min-h-[100px]"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => {
+            setOpen(false);
+            setObservacao('');
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDelete}
+            disabled={!observacao.trim()}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Confirmar Exclusão
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteModeloDialog({ 
+  modelo, 
+  count, 
+  onDelete 
+}: { 
+  modelo: NumeroModelo; 
+  count: number;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [observacao, setObservacao] = useState('');
+
+  const handleDelete = () => {
+    if (!observacao.trim()) {
+      toast.error('Informe o motivo da exclusão');
+      return;
+    }
+    onDelete(modelo.id);
+    setOpen(false);
+    setObservacao('');
+    toast.success(`Modelo "${modelo.nome}" excluído`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Excluir Modelo
+          </DialogTitle>
+          <DialogDescription>
+            Você está prestes a excluir o modelo <strong>{modelo.nome}</strong>.
+            {count > 0 && (
+              <span className="block mt-2 text-amber-600 dark:text-amber-400">
+                ⚠️ Existem {count} número{count !== 1 ? 's' : ''} usando este modelo.
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="motivo-modelo" className="text-sm font-medium">
+              Motivo da exclusão <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="motivo-modelo"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Informe o motivo da exclusão deste modelo..."
+              className="min-h-[100px]"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => {
+            setOpen(false);
+            setObservacao('');
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDelete}
+            disabled={!observacao.trim()}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Confirmar Exclusão
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
