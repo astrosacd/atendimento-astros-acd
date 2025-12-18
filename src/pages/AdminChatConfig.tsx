@@ -173,6 +173,25 @@ Instruções:
         .order('category, name');
       if (error) throw error;
       
+      // Helper to capitalize category names
+      const formatCategoryName = (category: string): string => {
+        const categoryNames: Record<string, string> = {
+          'admin': 'Administração',
+          'clientes': 'Clientes',
+          'dashboard': 'Dashboard',
+          'divulgador': 'Divulgador',
+          'cobranca': 'Cobrança',
+          'usuarios': 'Usuários',
+          'permissoes': 'Permissões',
+          'webhooks': 'Webhooks',
+          'api': 'API REST',
+          'logs': 'Logs',
+          'configuracoes': 'Configurações',
+        };
+        return categoryNames[category.toLowerCase()] || 
+          category.charAt(0).toUpperCase() + category.slice(1);
+      };
+      
       // Group by category and return unique categories as topics
       const categoryMap = new Map<string, AITopic>();
       data.forEach(permission => {
@@ -180,8 +199,8 @@ Instruções:
         if (!categoryMap.has(categoryKey)) {
           categoryMap.set(categoryKey, {
             key: categoryKey,
-            name: permission.category,
-            description: `Permissões relacionadas a ${permission.category}`,
+            name: formatCategoryName(permission.category),
+            description: `Permissões relacionadas a ${formatCategoryName(permission.category)}`,
             category: permission.category
           });
         }
