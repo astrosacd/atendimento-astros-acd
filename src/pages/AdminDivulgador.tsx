@@ -1451,7 +1451,20 @@ export default function AdminDivulgador() {
                       </div>
                       <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
                         <span className="text-muted-foreground">URL Esperada:</span>
-                        <span className="font-mono text-xs truncate max-w-[380px]">{webhookStatus.expectedUrl}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs truncate max-w-[320px]">{webhookStatus.expectedUrl}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(webhookStatus.expectedUrl);
+                              toast.success('URL copiada!');
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
                         <span className="text-muted-foreground">Eventos configurados:</span>
