@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.divulgador-monitor]
 verify_jwt = false
+
+[functions.api-numeros-aquecimento]
+verify_jwt = false
