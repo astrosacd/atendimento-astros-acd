@@ -25,10 +25,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isApproved, setIsApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Keeps the latest user id accessible inside auth event callbacks
+  // Track if initial auth check has completed - once true, we won't show global loader again
+  // unless the user actually changes (different account)
+  const initialLoadCompleteRef = useRef(false);
   const currentUserIdRef = useRef<string | null>(null);
-
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -87,13 +87,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsApproved(approved);
         }
         
-        setIsDataLoaded(true);
+        initialLoadCompleteRef.current = true;
         setIsLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (isMounted) {
+          initialLoadCompleteRef.current = true;
           setIsLoading(false);
-          setIsDataLoaded(true);
         }
       }
     };
@@ -110,23 +110,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         const incomingUserId = session?.user?.id ?? null;
-        const currentUserId = currentUserIdRef.current;
+        const previousUserId = currentUserIdRef.current;
         currentUserIdRef.current = incomingUserId;
 
-        // Prevent the global "Carregando..." from appearing during background auth events
-        // (e.g. token refresh) while the user is simply navigating between pages.
-        const isSameUser = !!incomingUserId && incomingUserId === currentUserId;
-
-        if (isSameUser && event !== 'SIGNED_OUT') {
-          // Keep UI stable; we already have role/approval loaded.
+        // After initial load is complete, ONLY show loading if user actually changed
+        // This prevents "Carregando..." when switching browser tabs
+        if (initialLoadCompleteRef.current) {
+          const isSameUser = incomingUserId && incomingUserId === previousUserId;
+          
+          if (isSameUser) {
+            // Same user - no need to refetch or show loading
+            return;
+          }
+          
+          // User changed (logged out or different user logged in)
+          if (!session?.user) {
+            // User signed out
+            setUserRole(null);
+            setIsApproved(false);
+            return;
+          }
+          
+          // Different user signed in - fetch their data (rare case)
+          const { role, approved } = await fetchUserData(session.user.id);
+          if (!isMounted) return;
+          setUserRole(role);
+          setIsApproved(approved);
           return;
         }
 
+        // Initial load not complete yet - this shouldn't normally happen
+        // but handle it just in case
         if (session?.user) {
-          // Only show loading when we actually need to refetch role/approval (user changed / signed in)
           setIsLoading(true);
-
-          // Use setTimeout to avoid deadlock
           setTimeout(async () => {
             if (!isMounted) return;
             const { role, approved } = await fetchUserData(session.user.id);
@@ -188,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return { error: error as Error | null };
   };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
