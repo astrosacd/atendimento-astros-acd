@@ -1235,8 +1235,13 @@ function DeleteStatusDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const hasNumbers = count > 0;
 
   const handleDelete = () => {
+    if (hasNumbers) {
+      toast.error('Reatribua os números antes de excluir');
+      return;
+    }
     if (!observacao.trim()) {
       toast.error('Informe o motivo da exclusão');
       return;
@@ -1258,46 +1263,54 @@ function DeleteStatusDialog({
         <DialogHeader>
           <DialogTitle className="text-destructive flex items-center gap-2">
             <Trash2 className="h-5 w-5" />
-            Excluir Status
+            {hasNumbers ? 'Exclusão Bloqueada' : 'Excluir Status'}
           </DialogTitle>
           <DialogDescription>
-            Você está prestes a excluir o status <strong>{status.nome}</strong>.
-            {count > 0 && (
-              <span className="block mt-2 text-amber-600 dark:text-amber-400">
-                ⚠️ Existem {count} número{count !== 1 ? 's' : ''} usando este status.
+            {hasNumbers ? (
+              <span className="block text-destructive">
+                Não é possível excluir o status <strong>{status.nome}</strong> porque existem{' '}
+                <strong>{count} número{count !== 1 ? 's' : ''}</strong> atribuído{count !== 1 ? 's' : ''} a ele.
+                <br /><br />
+                Reatribua os números para outro status antes de excluir.
               </span>
+            ) : (
+              <>Você está prestes a excluir o status <strong>{status.nome}</strong>.</>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="motivo-status" className="text-sm font-medium">
-              Motivo da exclusão <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="motivo-status"
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Informe o motivo da exclusão deste status..."
-              className="min-h-[100px]"
-            />
+        {!hasNumbers && (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivo-status" className="text-sm font-medium">
+                Motivo da exclusão <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="motivo-status"
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                placeholder="Informe o motivo da exclusão deste status..."
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
-        </div>
+        )}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => {
             setOpen(false);
             setObservacao('');
           }}>
-            Cancelar
+            {hasNumbers ? 'Fechar' : 'Cancelar'}
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete}
-            disabled={!observacao.trim()}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Confirmar Exclusão
-          </Button>
+          {!hasNumbers && (
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={!observacao.trim()}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Confirmar Exclusão
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1315,8 +1328,13 @@ function DeleteModeloDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [observacao, setObservacao] = useState('');
+  const hasNumbers = count > 0;
 
   const handleDelete = () => {
+    if (hasNumbers) {
+      toast.error('Reatribua os números antes de excluir');
+      return;
+    }
     if (!observacao.trim()) {
       toast.error('Informe o motivo da exclusão');
       return;
@@ -1338,46 +1356,54 @@ function DeleteModeloDialog({
         <DialogHeader>
           <DialogTitle className="text-destructive flex items-center gap-2">
             <Trash2 className="h-5 w-5" />
-            Excluir Modelo
+            {hasNumbers ? 'Exclusão Bloqueada' : 'Excluir Modelo'}
           </DialogTitle>
           <DialogDescription>
-            Você está prestes a excluir o modelo <strong>{modelo.nome}</strong>.
-            {count > 0 && (
-              <span className="block mt-2 text-amber-600 dark:text-amber-400">
-                ⚠️ Existem {count} número{count !== 1 ? 's' : ''} usando este modelo.
+            {hasNumbers ? (
+              <span className="block text-destructive">
+                Não é possível excluir o modelo <strong>{modelo.nome}</strong> porque existem{' '}
+                <strong>{count} número{count !== 1 ? 's' : ''}</strong> atribuído{count !== 1 ? 's' : ''} a ele.
+                <br /><br />
+                Reatribua os números para outro modelo antes de excluir.
               </span>
+            ) : (
+              <>Você está prestes a excluir o modelo <strong>{modelo.nome}</strong>.</>
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="motivo-modelo" className="text-sm font-medium">
-              Motivo da exclusão <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="motivo-modelo"
-              value={observacao}
-              onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Informe o motivo da exclusão deste modelo..."
-              className="min-h-[100px]"
-            />
+        {!hasNumbers && (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivo-modelo" className="text-sm font-medium">
+                Motivo da exclusão <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="motivo-modelo"
+                value={observacao}
+                onChange={(e) => setObservacao(e.target.value)}
+                placeholder="Informe o motivo da exclusão deste modelo..."
+                className="min-h-[100px]"
+              />
+            </div>
           </div>
-        </div>
+        )}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => {
             setOpen(false);
             setObservacao('');
           }}>
-            Cancelar
+            {hasNumbers ? 'Fechar' : 'Cancelar'}
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete}
-            disabled={!observacao.trim()}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Confirmar Exclusão
-          </Button>
+          {!hasNumbers && (
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={!observacao.trim()}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Confirmar Exclusão
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
