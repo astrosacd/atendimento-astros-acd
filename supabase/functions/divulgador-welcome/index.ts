@@ -51,9 +51,16 @@ serve(async (req) => {
       // Process each participant
       const results = [];
       for (const participant of participants) {
-        const number = typeof participant === 'string' ? participant : participant.id || participant;
+        // Evolution may send either a string JID or an object with id/phoneNumber
+        const raw = typeof participant === 'string'
+          ? participant
+          : (participant.phoneNumber || participant.id || (participant as any).jid || participant);
+
+        const number = typeof raw === 'string' ? raw : (raw?.phoneNumber || raw?.id || String(raw));
+        const name = typeof participant === 'object' ? (participant as any).name : undefined;
+
         const messageType = action === 'add' ? 'join' : 'leave';
-        const result = await processParticipant(supabase, number, groupJid, participantName, messageType);
+        const result = await processParticipant(supabase, number, groupJid, name, messageType);
         results.push(result);
       }
 
@@ -115,10 +122,24 @@ async function processParticipant(
     return { error: 'Grupo não encontrado', groupJid };
   }
 
-  // Get WhatsApp instance config - prioritize campaign's instance, fallback to any active
+  // Get WhatsApp instance config
+  // Priority:
+  // 1) the instance that owns the group (group.instance_id)
+  // 2) campaign's instance_id (if group belongs to a campaign)
+  // 3) any active + connected instance
   let instance;
-  
-  if (group.divulgador_campaigns?.instance_id) {
+
+  if (group.instance_id) {
+    const { data: groupInstance } = await supabase
+      .from('divulgador_instances')
+      .select('*')
+      .eq('id', group.instance_id)
+      .eq('is_active', true)
+      .single();
+    instance = groupInstance;
+  }
+
+  if (!instance && group.divulgador_campaigns?.instance_id) {
     const { data: campaignInstance } = await supabase
       .from('divulgador_instances')
       .select('*')
@@ -127,7 +148,7 @@ async function processParticipant(
       .single();
     instance = campaignInstance;
   }
-  
+
   if (!instance) {
     // Fallback to first active instance
     const { data: activeInstance } = await supabase
