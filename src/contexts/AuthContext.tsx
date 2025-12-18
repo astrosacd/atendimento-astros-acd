@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,6 +24,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isApproved, setIsApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Keeps the latest user id accessible inside auth event callbacks
+  const currentUserIdRef = useRef<string | null>(null);
+
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const fetchUserData = async (userId: string) => {
@@ -74,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setSession(session);
         setUser(session?.user ?? null);
+        currentUserIdRef.current = session?.user?.id ?? null;
 
         if (session?.user) {
           const { role, approved } = await fetchUserData(session.user.id);
@@ -100,13 +105,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!isMounted) return;
 
+        // Avoid "app reload" feeling on background token refresh.
+        // TOKEN_REFRESHED can happen while the user is navigating and would
+        // temporarily flip isLoading=true, showing a full-page loader.
+        const isSameUser = session?.user?.id && session.user.id === currentUserIdRef.current;
+        if (event === 'TOKEN_REFRESHED' && isSameUser) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          currentUserIdRef.current = session?.user?.id ?? null;
+          return;
+        }
+
+        // Always keep the session in sync
         setSession(session);
         setUser(session?.user ?? null);
+        currentUserIdRef.current = session?.user?.id ?? null;
 
         if (session?.user) {
-          // Set loading while fetching user data
+          // Only show loading when we actually need to refetch role/approval
           setIsLoading(true);
-          
+
           // Use setTimeout to avoid deadlock
           setTimeout(async () => {
             if (!isMounted) return;
