@@ -82,6 +82,8 @@ export default function AdminDivulgador() {
   const [apiDebugResponse, setApiDebugResponse] = useState<any>(null);
   const [isApiDebugDialogOpen, setIsApiDebugDialogOpen] = useState(false);
   const [isCommunity, setIsCommunity] = useState(false);
+  const [rescheduleMessage, setRescheduleMessage] = useState<any>(null);
+  const [rescheduleDateTime, setRescheduleDateTime] = useState('');
 
   // ================== QUERIES ==================
 
@@ -869,6 +871,26 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
       toast.success('Mensagem removida!');
     },
+  });
+
+  const rescheduleMessageMutation = useMutation({
+    mutationFn: async ({ id, newDateTime }: { id: string; newDateTime: string }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_messages')
+        .update({ 
+          scheduled_at: toUtcFromLocal(newDateTime),
+          status: 'pending'
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
+      toast.success('Mensagem reagendada com sucesso!');
+      setRescheduleMessage(null);
+      setRescheduleDateTime('');
+    },
+    onError: (error: any) => toast.error('Erro ao reagendar: ' + error.message),
   });
 
   const sendPendingMessages = async () => {
@@ -1671,9 +1693,25 @@ export default function AdminDivulgador() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                {(msg.status === 'pending' || msg.status === 'failed') && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-muted-foreground hover:text-primary"
+                                    onClick={() => {
+                                      setRescheduleMessage(msg);
+                                      setRescheduleDateTime('');
+                                    }}
+                                    title="Reagendar"
+                                  >
+                                    <CalendarIcon className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -2866,6 +2904,54 @@ export default function AdminDivulgador() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsApiDebugDialogOpen(false)}>
                 Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Reagendar Mensagem */}
+        <Dialog open={!!rescheduleMessage} onOpenChange={(open) => !open && setRescheduleMessage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5" />
+                Reagendar Mensagem
+              </DialogTitle>
+              <DialogDescription>
+                Escolha uma nova data e horário para enviar esta mensagem
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium mb-1">Conteúdo:</p>
+                <p className="text-sm text-muted-foreground line-clamp-3">{rescheduleMessage?.content}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Nova data e horário</Label>
+                <Input
+                  type="datetime-local"
+                  value={rescheduleDateTime}
+                  onChange={(e) => setRescheduleDateTime(e.target.value)}
+                  min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRescheduleMessage(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (rescheduleMessage && rescheduleDateTime) {
+                    rescheduleMessageMutation.mutate({ 
+                      id: rescheduleMessage.id, 
+                      newDateTime: rescheduleDateTime 
+                    });
+                  }
+                }}
+                disabled={!rescheduleDateTime || rescheduleMessageMutation.isPending}
+              >
+                {rescheduleMessageMutation.isPending ? 'Reagendando...' : 'Reagendar'}
               </Button>
             </DialogFooter>
           </DialogContent>
