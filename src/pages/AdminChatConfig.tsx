@@ -21,8 +21,14 @@ import {
   Brain,
   ListChecks,
   Plus,
-  Trash2
+  Trash2,
+  Key,
+  Eye,
+  EyeOff,
+  Zap,
+  CheckCircle2
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const themeColors = [
   { name: 'Roxo', value: 'purple', gradient: 'from-purple-600 to-purple-800' },
@@ -33,14 +39,49 @@ const themeColors = [
   { name: 'Rosa', value: 'pink', gradient: 'from-pink-600 to-pink-800' },
 ];
 
-const aiModels = [
-  { name: 'Gemini 2.5 Flash (Recomendado)', value: 'google/gemini-2.5-flash', description: 'Rápido e eficiente' },
-  { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro', description: 'Mais poderoso, melhor para tarefas complexas' },
-  { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite', description: 'Mais rápido e barato' },
-  { name: 'GPT-5', value: 'openai/gpt-5', description: 'OpenAI GPT-5, muito poderoso' },
-  { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini', description: 'GPT-5 mais rápido e barato' },
-  { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano', description: 'GPT-5 mais leve e econômico' },
+const aiProviders = [
+  { 
+    name: 'Lovable AI (Gratuito)', 
+    value: 'lovable', 
+    description: 'Usa a API gratuita do Lovable AI',
+    requiresApiKey: false 
+  },
+  { 
+    name: 'OpenAI', 
+    value: 'openai', 
+    description: 'Requer API Key da OpenAI',
+    requiresApiKey: true 
+  },
+  { 
+    name: 'Groq', 
+    value: 'groq', 
+    description: 'Requer API Key da Groq',
+    requiresApiKey: true 
+  },
 ];
+
+const modelsByProvider: Record<string, { name: string; value: string; description: string }[]> = {
+  lovable: [
+    { name: 'Gemini 2.5 Flash (Recomendado)', value: 'google/gemini-2.5-flash', description: 'Rápido e eficiente' },
+    { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro', description: 'Mais poderoso, melhor para tarefas complexas' },
+    { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite', description: 'Mais rápido e barato' },
+    { name: 'GPT-5', value: 'openai/gpt-5', description: 'OpenAI GPT-5, muito poderoso' },
+    { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini', description: 'GPT-5 mais rápido e barato' },
+    { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano', description: 'GPT-5 mais leve e econômico' },
+  ],
+  openai: [
+    { name: 'GPT-4o Mini (Recomendado)', value: 'gpt-4o-mini', description: 'Rápido e econômico' },
+    { name: 'GPT-4o', value: 'gpt-4o', description: 'Mais poderoso, melhor qualidade' },
+    { name: 'GPT-4 Turbo', value: 'gpt-4-turbo', description: 'Alto desempenho' },
+    { name: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo', description: 'Mais econômico' },
+  ],
+  groq: [
+    { name: 'Llama 3.3 70B (Recomendado)', value: 'llama-3.3-70b-versatile', description: 'Muito rápido e poderoso' },
+    { name: 'Llama 3.1 8B', value: 'llama-3.1-8b-instant', description: 'Ultra rápido' },
+    { name: 'Mixtral 8x7B', value: 'mixtral-8x7b-32768', description: 'Bom equilíbrio' },
+    { name: 'Gemma2 9B', value: 'gemma2-9b-it', description: 'Compacto e eficiente' },
+  ],
+};
 
 const AdminChatConfig = () => {
   const navigate = useNavigate();
@@ -73,10 +114,15 @@ Instruções:
 - Se não souber a resposta, indique que o usuário pode entrar em contato com o suporte
 - Mantenha um tom amigável e profissional`,
     chat_quick_replies: '[]',
+    chat_ai_provider: 'lovable',
     chat_ai_model: 'google/gemini-2.5-flash',
+    chat_openai_api_key: '',
+    chat_groq_api_key: '',
   });
 
   const [quickReplies, setQuickReplies] = useState<{ trigger: string; response: string }[]>([]);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+  const [showGroqKey, setShowGroqKey] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -109,7 +155,10 @@ Instruções:
           chat_offline_message: configMap.chat_offline_message || 'Estamos fora do horário de atendimento. Retornaremos em breve!',
           chat_ai_prompt: configMap.chat_ai_prompt || config.chat_ai_prompt,
           chat_quick_replies: configMap.chat_quick_replies || '[]',
+          chat_ai_provider: configMap.chat_ai_provider || 'lovable',
           chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
+          chat_openai_api_key: configMap.chat_openai_api_key || '',
+          chat_groq_api_key: configMap.chat_groq_api_key || '',
         });
 
         try {
@@ -143,7 +192,10 @@ Instruções:
         { config_key: 'chat_offline_message', config_value: config.chat_offline_message },
         { config_key: 'chat_ai_prompt', config_value: config.chat_ai_prompt },
         { config_key: 'chat_quick_replies', config_value: JSON.stringify(quickReplies) },
+        { config_key: 'chat_ai_provider', config_value: config.chat_ai_provider },
         { config_key: 'chat_ai_model', config_value: config.chat_ai_model },
+        { config_key: 'chat_openai_api_key', config_value: config.chat_openai_api_key },
+        { config_key: 'chat_groq_api_key', config_value: config.chat_groq_api_key },
       ];
 
       for (const update of updates) {
@@ -560,6 +612,145 @@ Instruções:
 
           {/* Tab IA */}
           <TabsContent value="ia" className="space-y-6">
+            {/* Provedor */}
+            <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-violet-500" />
+                  </div>
+                  <div>
+                    <CardTitle>Provedor de IA</CardTitle>
+                    <CardDescription>Escolha o serviço de IA para gerar respostas</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {aiProviders.map((provider) => (
+                    <button
+                      key={provider.value}
+                      onClick={() => {
+                        const defaultModel = modelsByProvider[provider.value]?.[0]?.value || 'google/gemini-2.5-flash';
+                        setConfig({ ...config, chat_ai_provider: provider.value, chat_ai_model: defaultModel });
+                      }}
+                      className={`p-4 rounded-xl border-2 transition-all text-left relative ${
+                        config.chat_ai_provider === provider.value 
+                          ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
+                          : 'border-border/40 hover:border-border bg-background/50'
+                      }`}
+                    >
+                      {config.chat_ai_provider === provider.value && (
+                        <CheckCircle2 className="absolute top-3 right-3 h-5 w-5 text-primary" />
+                      )}
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="font-medium text-foreground">{provider.name}</p>
+                        {!provider.requiresApiKey && (
+                          <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600">
+                            Gratuito
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{provider.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* API Keys - show only for providers that require them */}
+            {config.chat_ai_provider === 'openai' && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm border-orange-500/30">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                      <Key className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <CardTitle>API Key da OpenAI</CardTitle>
+                      <CardDescription>Configure sua chave de API da OpenAI</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="openai-key">OpenAI API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="openai-key"
+                        type={showOpenAIKey ? 'text' : 'password'}
+                        value={config.chat_openai_api_key}
+                        onChange={(e) => setConfig({ ...config, chat_openai_api_key: e.target.value })}
+                        placeholder="sk-..."
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                      >
+                        {showOpenAIKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha sua API Key em{' '}
+                      <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        platform.openai.com/api-keys
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {config.chat_ai_provider === 'groq' && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm border-blue-500/30">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Key className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <CardTitle>API Key da Groq</CardTitle>
+                      <CardDescription>Configure sua chave de API da Groq</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="groq-key">Groq API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="groq-key"
+                        type={showGroqKey ? 'text' : 'password'}
+                        value={config.chat_groq_api_key}
+                        onChange={(e) => setConfig({ ...config, chat_groq_api_key: e.target.value })}
+                        placeholder="gsk_..."
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowGroqKey(!showGroqKey)}
+                      >
+                        {showGroqKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha sua API Key em{' '}
+                      <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        console.groq.com/keys
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Modelo */}
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader>
@@ -574,8 +765,8 @@ Instruções:
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiModels.map((model) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(modelsByProvider[config.chat_ai_provider] || []).map((model) => (
                     <button
                       key={model.value}
                       onClick={() => setConfig({ ...config, chat_ai_model: model.value })}
@@ -592,7 +783,8 @@ Instruções:
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">
-                  Modelo atual: <span className="font-mono text-primary">{config.chat_ai_model}</span>
+                  Provedor: <span className="font-mono text-primary">{aiProviders.find(p => p.value === config.chat_ai_provider)?.name}</span>
+                  {' | '}Modelo: <span className="font-mono text-primary">{config.chat_ai_model}</span>
                 </p>
               </CardContent>
             </Card>
