@@ -224,12 +224,12 @@ export default function AdminNumerosAquecimento() {
                       />
                     </div>
                   </div>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filtrar por status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os status</SelectItem>
+                      <SelectItem value="__all__">Todos os status</SelectItem>
                       {statusList.map((status) => (
                         <SelectItem key={status.id} value={status.id}>
                           {status.nome}
@@ -237,12 +237,12 @@ export default function AdminNumerosAquecimento() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={modeloFilter} onValueChange={setModeloFilter}>
+                  <Select value={modeloFilter || '__all__'} onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filtrar por modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os modelos</SelectItem>
+                      <SelectItem value="__all__">Todos os modelos</SelectItem>
                       {modelosList.map((modelo) => (
                         <SelectItem key={modelo.id} value={modelo.id}>
                           {modelo.nome}
