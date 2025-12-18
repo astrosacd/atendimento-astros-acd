@@ -230,7 +230,8 @@ Deno.serve(async (req) => {
         numero_valor: data.numero,
         acao: 'cadastro',
         dados_novos: data,
-        usuario_email: `API: ${keyData.nome}`,
+        usuario_email: `API REST: ${keyData.nome}`,
+        campos_alterados: ['cadastro_via_api'],
       });
 
       // Trigger webhooks with enriched data (includes modelo and status objects)
@@ -353,8 +354,8 @@ Deno.serve(async (req) => {
         acao: 'edicao',
         dados_anteriores: currentData,
         dados_novos: data,
-        campos_alterados: changedFields,
-        usuario_email: `API: ${keyData.nome}`,
+        campos_alterados: [...changedFields, 'edicao_via_api'],
+        usuario_email: `API REST: ${keyData.nome}`,
       });
 
       // Trigger webhooks with enriched data
@@ -377,18 +378,52 @@ Deno.serve(async (req) => {
     if (req.method === 'DELETE') {
       const numeroId = endpoint;
 
-      // Parse body for motivo (deletion reason)
-      let motivo = '';
-      try {
-        const body = await req.json();
-        motivo = body.motivo || '';
-      } catch {
-        // Body is optional for DELETE
+      // Validate UUID format
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(numeroId);
+      if (!isValidUuid || numeroId === 'api-numeros-aquecimento') {
+        return new Response(
+          JSON.stringify({ 
+            error: 'ID do número é obrigatório na URL',
+            code: 'VALIDATION_ERROR',
+            campos_obrigatorios: {
+              url: 'ID do número (UUID) na URL: /api-numeros-aquecimento/{id}',
+              body: {
+                observacao: 'Motivo/observação da exclusão (obrigatório)'
+              }
+            },
+            exemplo: {
+              url: 'DELETE /api-numeros-aquecimento/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              body: '{ "observacao": "Número banido pelo WhatsApp" }'
+            }
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      if (!motivo) {
+      // Parse body for observacao (deletion reason)
+      let observacao = '';
+      try {
+        const body = await req.json();
+        observacao = body.observacao || body.motivo || '';
+      } catch {
+        // Body parsing failed
+      }
+
+      if (!observacao) {
         return new Response(
-          JSON.stringify({ error: 'motivo is required for deletion', code: 'VALIDATION_ERROR' }),
+          JSON.stringify({ 
+            error: 'Observação é obrigatória para exclusão',
+            code: 'VALIDATION_ERROR',
+            campos_obrigatorios: {
+              url: 'ID do número (UUID) na URL: /api-numeros-aquecimento/{id}',
+              body: {
+                observacao: 'Motivo/observação da exclusão (obrigatório)'
+              }
+            },
+            exemplo: {
+              curl: `curl -X DELETE -H "x-api-key: SUA_KEY" -H "Content-Type: application/json" -d '{"observacao": "Número banido"}' "https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-numeros-aquecimento/${numeroId}"`
+            }
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -407,7 +442,7 @@ Deno.serve(async (req) => {
       if (fetchError) throw fetchError;
       if (!currentData) {
         return new Response(
-          JSON.stringify({ error: 'Number not found', code: 'NOT_FOUND' }),
+          JSON.stringify({ error: 'Número não encontrado', code: 'NOT_FOUND' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -421,10 +456,11 @@ Deno.serve(async (req) => {
         acao: 'exclusao',
         dados_anteriores: {
           ...currentData,
-          motivo_exclusao: motivo,
+          observacao_exclusao: observacao,
           data_exclusao: dataExclusao,
         },
-        usuario_email: `API: ${keyData.nome}`,
+        usuario_email: `API REST: ${keyData.nome}`,
+        campos_alterados: ['exclusao_via_api'],
       });
 
       const { error } = await supabase
@@ -437,18 +473,22 @@ Deno.serve(async (req) => {
       // Trigger webhooks with enriched data including deletion reason
       await triggerWebhooks(supabase, 'numero.deleted', {
         ...currentData,
-        motivo_exclusao: motivo,
+        observacao_exclusao: observacao,
         data_exclusao: dataExclusao,
+        origem: 'API REST',
+        api_key_nome: keyData.nome,
       });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Number deleted successfully',
+          message: 'Número excluído com sucesso',
           data: {
+            id: currentData.id,
             numero: currentData.numero,
-            motivo_exclusao: motivo,
+            observacao_exclusao: observacao,
             data_exclusao: dataExclusao,
+            origem: 'API REST',
           }
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
