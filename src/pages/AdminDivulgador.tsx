@@ -121,7 +121,7 @@ export default function AdminDivulgador() {
       const { data, error } = await (supabase as any)
         .from('divulgador_messages')
         .select('*, divulgador_campaigns(name), divulgador_groups(name)')
-        .order('scheduled_at', { ascending: true });
+        .order('scheduled_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
