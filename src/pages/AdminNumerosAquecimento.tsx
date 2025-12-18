@@ -1492,10 +1492,27 @@ function ApiDocumentation() {
               <Badge className="bg-green-600">POST</Badge>
               <code>/</code>
             </div>
-            <p className="text-muted-foreground text-xs">Cria um novo número</p>
-            <CurlBlock code={`curl -X POST -H "x-api-key: KEY" \\
+            <p className="text-muted-foreground text-xs mb-2">Cria um novo número</p>
+            <div className="text-xs text-muted-foreground mb-2 space-y-1">
+              <p><strong>Campos obrigatórios:</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>numero</code> - Número do telefone (ex: +5511999999999)</li>
+                <li><code>status_id</code> - UUID do status (obter via GET /status)</li>
+                <li><code>modelo_id</code> - UUID do modelo (obter via GET /modelos)</li>
+              </ul>
+              <p><strong>Campos opcionais:</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>observacoes</code> - Observações sobre o número</li>
+              </ul>
+            </div>
+            <CurlBlock code={`curl -X POST -H "x-api-key: SUA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"numero": "+55...", "status_id": "...", "modelo_id": "..."}' \\
+  -d '{
+    "numero": "+5511999999999",
+    "status_id": "UUID_DO_STATUS",
+    "modelo_id": "UUID_DO_MODELO",
+    "observacoes": "Observação opcional"
+  }' \\
   "${baseUrl}"`} />
           </div>
 
@@ -1504,11 +1521,28 @@ function ApiDocumentation() {
               <Badge className="bg-amber-600">PUT</Badge>
               <code>/:id</code>
             </div>
-            <p className="text-muted-foreground text-xs">Atualiza um número</p>
-            <CurlBlock code={`curl -X PUT -H "x-api-key: KEY" \\
+            <p className="text-muted-foreground text-xs mb-2">Atualiza um número existente</p>
+            <div className="text-xs text-muted-foreground mb-2 space-y-1">
+              <p><strong>Parâmetro na URL:</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>:id</code> - UUID do número a ser atualizado</li>
+              </ul>
+              <p><strong>Campos atualizáveis (todos opcionais):</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>numero</code> - Novo número do telefone</li>
+                <li><code>status_id</code> - UUID do novo status</li>
+                <li><code>modelo_id</code> - UUID do novo modelo</li>
+                <li><code>observacoes</code> - Novas observações</li>
+              </ul>
+            </div>
+            <CurlBlock code={`curl -X PUT -H "x-api-key: SUA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"status_id": "...", "observacoes": "..."}' \\
-  "${baseUrl}/UUID"`} />
+  -d '{
+    "status_id": "UUID_DO_NOVO_STATUS",
+    "modelo_id": "UUID_DO_NOVO_MODELO",
+    "observacoes": "Atualização de observação"
+  }' \\
+  "${baseUrl}/UUID_DO_NUMERO"`} />
           </div>
 
           <div className="border rounded p-3">
@@ -1516,11 +1550,23 @@ function ApiDocumentation() {
               <Badge className="bg-red-600">DELETE</Badge>
               <code>/:id</code>
             </div>
-            <p className="text-muted-foreground text-xs">Exclui um número</p>
-            <CurlBlock code={`curl -X DELETE -H "x-api-key: KEY" \\
+            <p className="text-muted-foreground text-xs mb-2">Exclui um número</p>
+            <div className="text-xs text-muted-foreground mb-2 space-y-1">
+              <p><strong>Parâmetro na URL:</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>:id</code> - UUID do número a ser excluído</li>
+              </ul>
+              <p><strong>Campos opcionais no body:</strong></p>
+              <ul className="list-disc list-inside ml-2">
+                <li><code>observacao</code> - Motivo da exclusão (registrado no histórico)</li>
+              </ul>
+            </div>
+            <CurlBlock code={`curl -X DELETE -H "x-api-key: SUA_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"observacao": "Motivo da exclusão"}' \\
-  "${baseUrl}/UUID"`} />
+  -d '{
+    "observacao": "Motivo da exclusão do número"
+  }' \\
+  "${baseUrl}/UUID_DO_NUMERO"`} />
           </div>
 
           <div className="border rounded p-3">
