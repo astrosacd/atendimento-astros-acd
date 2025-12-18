@@ -298,11 +298,12 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     }
 
     const userMessage: Message = { role: 'user', content: input };
+    const userInput = input; // Capture input before clearing
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
     // Check for quick replies first
-    const quickReply = checkQuickReplies(input);
+    const quickReply = checkQuickReplies(userInput);
     if (quickReply) {
       setMessages((prev) => [...prev, { role: 'assistant', content: quickReply }]);
       return;
@@ -333,9 +334,12 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
         }
       }
 
+      // Build messages array with the new user message included
+      const allMessages = [...messages, userMessage];
+
       const { data, error } = await supabase.functions.invoke('chat-lyra', {
         body: { 
-          messages: [...messages, userMessage],
+          messages: allMessages,
           conversationId: convId,
           userId: user?.id,
           userRole,
