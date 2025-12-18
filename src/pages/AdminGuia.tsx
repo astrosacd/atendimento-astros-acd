@@ -1484,10 +1484,47 @@ O módulo possui sua **própria instância do WhatsApp**, independente dos outro
 - **Editar**: Clique no ícone de lápis para alterar dados
 - **Excluir**: Clique no ícone de lixeira (confirme no modal)
 - **Testar conexão**: Clique no ícone de refresh a qualquer momento
+- **Verificar webhook**: Clique no ícone de escudo para diagnosticar webhook
 
-⚠️ **Importante**: Esta instância é **exclusiva** para o Divulgador - não compartilhada com cobrança ou boas-vindas de usuários.
+⚠️ **Importante**: Esta instância é **exclusiva** para o Divulgador - não compartilhada com cobrança ou boas-vindas de usuários.`
+        },
+        {
+          title: "Configurar Webhook (Mensagens Automáticas)",
+          content: `Para que as **mensagens automáticas** de entrada/saída funcionem, o webhook precisa estar configurado corretamente na sua instância Evolution API.
 
-🔧 O **webhook** é configurado automaticamente ao salvar/testar a instância.`
+**Diagnóstico de Webhook:**
+
+1. Na aba **WhatsApp**, clique no ícone **🛡️ (escudo)** na coluna Ações da instância
+2. O sistema verifica automaticamente:
+   - ✅ URL atual configurada
+   - ✅ URL esperada pelo sistema
+   - ✅ Eventos configurados
+   - ✅ Evento GROUP_PARTICIPANTS_UPDATE
+
+**Se o webhook NÃO estiver configurado:**
+
+1. **Copie a URL Esperada** clicando no botão de copiar ao lado dela
+2. Acesse o painel da **Evolution API** (onde você gerencia suas instâncias)
+3. Vá em **Configurações da Instância** → **Webhook**
+4. Cole a **URL** que você copiou
+5. Marque o evento: **GROUP_PARTICIPANTS_UPDATE**
+6. Salve as configurações
+
+**URL Esperada (formato):**
+\`https://[projeto].supabase.co/functions/v1/divulgador-welcome\`
+
+**Evento obrigatório:**
+- **GROUP_PARTICIPANTS_UPDATE**: Dispara quando alguém entra ou sai de um grupo
+
+**Configuração automática (alternativa):**
+- Clique no botão **"Configurar/Reconfigurar"** no modal de diagnóstico
+- O sistema tenta configurar automaticamente via API Evolution
+- Nem todas as versões da Evolution suportam configuração remota
+
+**Após configurar:**
+- Aguarde alguns segundos
+- Teste tendo alguém entrando/saindo de um grupo
+- Verifique nos **Logs** se o evento foi recebido`
         },
         {
           title: "Sincronizar Grupos",
