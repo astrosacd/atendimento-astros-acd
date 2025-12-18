@@ -691,7 +691,30 @@ export function useDeleteApiKey() {
 async function triggerWebhook(event: string, data: unknown) {
   try {
     // Build a clean payload (avoids sending DB internals and keeps webhook consistent)
-    const numeroData = data as Record<string, unknown>;
+    const numeroData = data as Record<string, any>;
+
+    // Ensure we have modelo/status objects when we only have IDs
+    let modelo = numeroData.modelo ?? null;
+    let status = numeroData.status ?? null;
+
+    if (!modelo && numeroData.modelo_id) {
+      const { data: m } = await supabase
+        .from('numeros_aquecimento_modelos')
+        .select('*')
+        .eq('id', String(numeroData.modelo_id))
+        .maybeSingle();
+      modelo = m ?? null;
+    }
+
+    if (!status && numeroData.status_id) {
+      const { data: s } = await supabase
+        .from('numeros_aquecimento_status')
+        .select('*')
+        .eq('id', String(numeroData.status_id))
+        .maybeSingle();
+      status = s ?? null;
+    }
+
     const formattedPayload = {
       evento: event,
       timestamp: new Date().toISOString(),
@@ -700,12 +723,20 @@ async function triggerWebhook(event: string, data: unknown) {
         numero: numeroData.numero,
         modelo_id: numeroData.modelo_id,
         status_id: numeroData.status_id,
+        modelo,
+        status,
+        modelo_nome: modelo?.nome ?? null,
+        status_nome: status?.nome ?? null,
         ultima_atividade: numeroData.ultima_atividade,
         observacoes: numeroData.observacoes || null,
         created_by: numeroData.created_by,
         created_at: numeroData.created_at,
         updated_at: numeroData.updated_at,
       },
+      modelo,
+      status,
+      modelo_nome: modelo?.nome ?? null,
+      status_nome: status?.nome ?? null,
       ...(numeroData.motivo_exclusao
         ? {
             exclusao: {
@@ -714,8 +745,6 @@ async function triggerWebhook(event: string, data: unknown) {
             },
           }
         : {}),
-      ...(numeroData.modelo ? { modelo: numeroData.modelo } : {}),
-      ...(numeroData.status ? { status: numeroData.status } : {}),
     };
 
     // Send from backend (avoids browser CORS/no-cors, and n8n will parse JSON correctly)

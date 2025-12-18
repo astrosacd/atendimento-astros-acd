@@ -46,6 +46,52 @@ serve(async (req) => {
       });
     }
 
+    // Enrich payload with modelo/status when only IDs were provided
+    const numero = (payload?.numero ?? null) as any;
+    const modeloId = typeof numero?.modelo_id === "string" ? numero.modelo_id : null;
+    const statusId = typeof numero?.status_id === "string" ? numero.status_id : null;
+
+    let modelo = (payload?.modelo ?? numero?.modelo ?? null) as any;
+    let status = (payload?.status ?? numero?.status ?? null) as any;
+
+    if (!modelo && modeloId) {
+      const { data: m } = await supabase
+        .from("numeros_aquecimento_modelos")
+        .select("*")
+        .eq("id", modeloId)
+        .maybeSingle();
+      modelo = m ?? null;
+    }
+
+    if (!status && statusId) {
+      const { data: s } = await supabase
+        .from("numeros_aquecimento_status")
+        .select("*")
+        .eq("id", statusId)
+        .maybeSingle();
+      status = s ?? null;
+    }
+
+    const enrichedPayload: IncomingPayload = {
+      ...payload,
+      // Top-level convenience
+      modelo,
+      status,
+      modelo_nome: (modelo as any)?.nome ?? null,
+      status_nome: (status as any)?.nome ?? null,
+      // n8n-friendly structure
+      numero: numero && typeof numero === "object"
+        ? {
+            ...numero,
+            modelo,
+            status,
+            modelo_nome: (modelo as any)?.nome ?? null,
+            status_nome: (status as any)?.nome ?? null,
+          }
+        : numero,
+      timestamp: payload.timestamp ?? new Date().toISOString(),
+    };
+
     const { data: webhooks, error: webhooksError } = await supabase
       .from("numeros_aquecimento_webhooks")
       .select("*")
@@ -72,7 +118,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
             ...(webhook.secret_key ? { "X-Webhook-Secret": webhook.secret_key } : {}),
           },
-          body: JSON.stringify({ ...payload, timestamp: payload.timestamp ?? new Date().toISOString() }),
+          body: JSON.stringify(enrichedPayload),
         });
 
         const ok = res.ok;
