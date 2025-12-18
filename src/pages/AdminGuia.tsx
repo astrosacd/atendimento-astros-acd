@@ -41,7 +41,8 @@ import {
   Send,
   UserMinus,
   Clock,
-  Calendar
+  Calendar,
+  Smartphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +93,7 @@ const categoryToTopic: Record<string, string> = {
   'tags': 'clientes',
   'clientes-registro': 'clientes',
   'divulgador': 'divulgador',
+  'status-numeros': 'numeros',
   'chat': 'configuracoes',
   'dashboard': 'dashboard',
   'logs-atividade': 'logs',
@@ -216,6 +218,13 @@ const AdminGuia = () => {
       icon: Megaphone,
       color: "text-orange-400",
       categories: ["divulgador"]
+    },
+    {
+      id: "numeros",
+      title: "Números",
+      icon: Smartphone,
+      color: "text-lime-400",
+      categories: ["status-numeros"]
     },
     {
       id: "sistema",
@@ -1839,6 +1848,262 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         "Use modo Admins para grupos de comunicados oficiais",
         "A coluna Permissões mostra o status atual de cada grupo",
         "As permissões são sincronizadas do WhatsApp ao abrir edição"
+      ]
+    },
+    {
+      id: "status-numeros",
+      title: "Status de Números",
+      icon: Smartphone,
+      color: "text-lime-400",
+      bgColor: "bg-lime-500/10",
+      description: "Gerencie números aquecidos com histórico completo, webhooks e API REST",
+      steps: [
+        {
+          title: "O que é o Status de Números?",
+          content: `O módulo **Status de Números** permite gerenciar números de telefone (chips) aquecidos:
+
+- **Cadastro completo**: Número, modelo do aparelho, status e observações
+- **Status dinâmicos**: Crie e personalize status (Ativo, Em Aquecimento, Bloqueado, Vendido)
+- **Modelos de aparelho**: Catalogue os modelos utilizados
+- **Histórico completo**: Auditoria de todas as alterações
+- **Webhooks nativos**: Notifique sistemas externos sobre eventos
+- **API REST**: Integração completa para automações
+
+O módulo é **totalmente independente** dos outros módulos do sistema.`
+        },
+        {
+          title: "Cadastrar Números",
+          content: `**Passo a passo:**
+
+1. Acesse **Status de Números** no menu lateral
+2. Clique no botão **"+ Novo Número"**
+3. Preencha:
+   - **Número**: Formato completo com DDD (ex: 5511999999999)
+   - **Modelo do Aparelho**: Selecione da lista de modelos
+   - **Status**: Selecione o status inicial
+   - **Observações**: Notas adicionais (opcional)
+4. Clique em **"Cadastrar"**
+
+**Última Atividade:**
+O sistema registra automaticamente o tipo de ação e a data:
+- \`cadastro - DD/MM/YYYY\`: Número recém cadastrado
+- \`st - DD/MM/YYYY\`: Status foi alterado
+- \`obs - DD/MM/YYYY\`: Observações foram alteradas
+- \`st + obs - DD/MM/YYYY\`: Status E observações alterados juntos`
+        },
+        {
+          title: "Gerenciar Status (Tags)",
+          content: `**Acessar gerenciamento de status:**
+
+1. Na aba **Configurações** do módulo
+2. Seção **"Gerenciar Status"** à esquerda
+
+**Criar novo status:**
+- Clique em **"+ Novo Status"**
+- Defina o **nome** (ex: "Em Verificação")
+- Escolha a **cor** do badge
+- Adicione descrição (opcional)
+
+**Editar/Excluir:**
+- Clique nos ícones de lápis ou lixeira
+
+**Cores disponíveis:**
+- 🟢 Verde: Para números ativos
+- 🟡 Âmbar: Para aquecimento
+- 🔴 Vermelho: Para bloqueados
+- 🔵 Azul: Para vendidos
+- ⚫ Cinza: Para outros status`
+        },
+        {
+          title: "Gerenciar Modelos de Aparelho",
+          content: `**Acessar gerenciamento de modelos:**
+
+1. Na aba **Configurações** do módulo
+2. Seção **"Gerenciar Modelos"** à direita
+
+**Criar novo modelo:**
+- Clique em **"+ Novo Modelo"**
+- Informe o **nome** (ex: "iPhone 14 Pro")
+- Adicione a **marca** (ex: "Apple")
+- Descrição opcional
+
+**Editar/Excluir:**
+- Clique nos ícones de lápis ou lixeira
+
+**Dica:** Crie modelos padronizados para facilitar relatórios e análises.`
+        },
+        {
+          title: "Filtros e Exportação",
+          content: `**Filtrar números:**
+
+Na aba **Números**, use os campos de filtro:
+- **Busca**: Por número ou observações
+- **Status**: Filtre por status específico
+- **Modelo**: Filtre por modelo de aparelho
+
+**Exportar CSV:**
+1. Aplique os filtros desejados
+2. Clique em **"Exportar CSV"**
+3. O arquivo inclui:
+   - Número
+   - Modelo
+   - Status
+   - Última Atividade
+   - Observações
+   - Data de criação
+
+**Permissão necessária:** \`export_numeros\``
+        },
+        {
+          title: "Histórico e Auditoria",
+          content: `**Acessar histórico:**
+
+1. Na aba **Histórico** do módulo
+2. Veja todas as ações registradas
+
+**Informações registradas:**
+- **Ação**: Cadastro, Edição ou Exclusão
+- **Número**: Qual número foi afetado
+- **Usuário**: Quem realizou a ação
+- **Data/Hora**: Quando aconteceu
+- **Alterações**: Dados anteriores e novos
+
+**Detalhes da ação:**
+Clique no ícone de **olho** para ver:
+- Dados anteriores (em edições/exclusões)
+- Dados novos (em cadastros/edições)
+- Campos específicos que mudaram
+
+**Permissão necessária:** \`view_numeros_history\``
+        },
+        {
+          title: "Configurar Webhooks",
+          content: `**Acessar webhooks:**
+
+1. Na aba **Webhooks** do módulo
+2. Clique em **"+ Novo Webhook"**
+
+**Configurar webhook:**
+- **Nome**: Identificação (ex: "Notificar n8n")
+- **URL**: Endpoint que receberá os dados
+- **Eventos**: Selecione quais eventos disparam:
+  - \`numero.created\`: Número cadastrado
+  - \`numero.updated\`: Número atualizado
+  - \`numero.status_updated\`: Status alterado
+  - \`numero.obs_updated\`: Observações alteradas
+  - \`numero.deleted\`: Número excluído
+- **Chave Secreta**: Para validar autenticidade (opcional)
+
+**Payload enviado:**
+\`\`\`json
+{
+  "event": "numero.created",
+  "data": { ... dados do número ... },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+\`\`\`
+
+**Permissão necessária:** \`manage_numeros_webhooks\``
+        },
+        {
+          title: "API REST - Visão Geral",
+          content: `**Acessar configuração da API:**
+
+1. Na aba **API REST** do módulo
+2. Gerencie suas API Keys
+
+**Criar API Key:**
+- Clique em **"+ Nova API Key"**
+- Defina o **nome** (ex: "Integração Automação")
+- A chave é gerada automaticamente
+- ⚠️ **Copie imediatamente!** A chave só é exibida uma vez
+
+**Autenticação:**
+Envie o header \`x-api-key\` com sua chave em todas as requisições.
+
+**URL Base:**
+\`/functions/v1/api-numeros-aquecimento\`
+
+**Permissão necessária:** \`manage_numeros_api\``
+        },
+        {
+          title: "API REST - Endpoints",
+          content: `**Listar números:**
+\`\`\`bash
+curl -X GET "/functions/v1/api-numeros-aquecimento" \\
+  -H "x-api-key: sua_chave"
+\`\`\`
+
+**Buscar número específico:**
+\`\`\`bash
+curl -X GET "/functions/v1/api-numeros-aquecimento?id=uuid" \\
+  -H "x-api-key: sua_chave"
+\`\`\`
+
+**Criar número:**
+\`\`\`bash
+curl -X POST "/functions/v1/api-numeros-aquecimento" \\
+  -H "x-api-key: sua_chave" \\
+  -H "Content-Type: application/json" \\
+  -d '{"numero": "5511999999999", "status_id": "uuid", "modelo_id": "uuid"}'
+\`\`\`
+
+**Atualizar número:**
+\`\`\`bash
+curl -X PUT "/functions/v1/api-numeros-aquecimento?id=uuid" \\
+  -H "x-api-key: sua_chave" \\
+  -d '{"status_id": "novo_status_uuid", "observacoes": "Nova obs"}'
+\`\`\`
+
+**Excluir número:**
+\`\`\`bash
+curl -X DELETE "/functions/v1/api-numeros-aquecimento?id=uuid" \\
+  -H "x-api-key: sua_chave"
+\`\`\``
+        },
+        {
+          title: "API REST - Recursos Auxiliares",
+          content: `**Listar status disponíveis:**
+\`\`\`bash
+curl -X GET "/functions/v1/api-numeros-aquecimento?resource=status" \\
+  -H "x-api-key: sua_chave"
+\`\`\`
+
+**Listar modelos disponíveis:**
+\`\`\`bash
+curl -X GET "/functions/v1/api-numeros-aquecimento?resource=modelos" \\
+  -H "x-api-key: sua_chave"
+\`\`\`
+
+**Consultar histórico:**
+\`\`\`bash
+curl -X GET "/functions/v1/api-numeros-aquecimento?resource=history&numero_id=uuid" \\
+  -H "x-api-key: sua_chave"
+\`\`\`
+
+**Resposta de erro:**
+\`\`\`json
+{
+  "error": "Descrição do erro",
+  "code": "INVALID_API_KEY"
+}
+\`\`\`
+
+**Códigos de erro comuns:**
+- \`INVALID_API_KEY\`: Chave inválida ou inativa
+- \`NOT_FOUND\`: Recurso não encontrado
+- \`VALIDATION_ERROR\`: Dados inválidos`
+        }
+      ],
+      tips: [
+        "Use status padronizados para facilitar relatórios",
+        "A 'Última Atividade' é atualizada automaticamente",
+        "Histórico não pode ser editado (auditoria)",
+        "Webhooks disparam apenas quando ativos",
+        "Crie API Keys separadas para cada integração",
+        "Exporte CSV regularmente como backup",
+        "Use filtros para encontrar números rapidamente",
+        "Observações são úteis para anotações de manutenção"
       ]
     }
   ];
