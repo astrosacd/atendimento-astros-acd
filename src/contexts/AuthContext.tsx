@@ -105,24 +105,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!isMounted) return;
 
-        // Avoid "app reload" feeling on background token refresh.
-        // TOKEN_REFRESHED can happen while the user is navigating and would
-        // temporarily flip isLoading=true, showing a full-page loader.
-        const isSameUser = session?.user?.id && session.user.id === currentUserIdRef.current;
-        if (event === 'TOKEN_REFRESHED' && isSameUser) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          currentUserIdRef.current = session?.user?.id ?? null;
-          return;
-        }
-
         // Always keep the session in sync
         setSession(session);
         setUser(session?.user ?? null);
-        currentUserIdRef.current = session?.user?.id ?? null;
+
+        const incomingUserId = session?.user?.id ?? null;
+        const currentUserId = currentUserIdRef.current;
+        currentUserIdRef.current = incomingUserId;
+
+        // Prevent the global "Carregando..." from appearing during background auth events
+        // (e.g. token refresh) while the user is simply navigating between pages.
+        const isSameUser = !!incomingUserId && incomingUserId === currentUserId;
+
+        if (isSameUser && event !== 'SIGNED_OUT') {
+          // Keep UI stable; we already have role/approval loaded.
+          return;
+        }
 
         if (session?.user) {
-          // Only show loading when we actually need to refetch role/approval
+          // Only show loading when we actually need to refetch role/approval (user changed / signed in)
           setIsLoading(true);
 
           // Use setTimeout to avoid deadlock
