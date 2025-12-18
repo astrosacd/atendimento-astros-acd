@@ -313,7 +313,7 @@ export default function AdminNumerosAquecimento() {
                                   canDelete={canDelete}
                                   canViewHistory={canViewHistory}
                                   onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
-                                  onDelete={() => deleteNumero.mutate(numero)}
+                                  onDelete={(motivo) => deleteNumero.mutate({ numero, motivo })}
                                 />
                               </TableCell>
                             </TableRow>
@@ -499,6 +499,30 @@ export default function AdminNumerosAquecimento() {
                               )}
                               {dadosNovos?.observacoes && (
                                 <div><span className="text-muted-foreground">Nova obs:</span> {String(dadosNovos.observacoes)}</div>
+                              )}
+                            </div>
+                          )}
+                          {item.acao === 'exclusao' && dadosAnteriores && (
+                            <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs space-y-1">
+                              {dadosAnteriores.motivo_exclusao && (
+                                <div>
+                                  <span className="text-muted-foreground font-medium">Motivo:</span>{' '}
+                                  <span className="text-foreground">{String(dadosAnteriores.motivo_exclusao)}</span>
+                                </div>
+                              )}
+                              {dadosAnteriores.data_exclusao && (
+                                <div>
+                                  <span className="text-muted-foreground font-medium">Data da exclusão:</span>{' '}
+                                  <span className="text-foreground">
+                                    {new Date(String(dadosAnteriores.data_exclusao)).toLocaleString('pt-BR')}
+                                  </span>
+                                </div>
+                              )}
+                              {dadosAnteriores.observacoes && (
+                                <div>
+                                  <span className="text-muted-foreground font-medium">Observações do número:</span>{' '}
+                                  <span className="text-foreground">{String(dadosAnteriores.observacoes)}</span>
+                                </div>
                               )}
                             </div>
                           )}
@@ -771,9 +795,11 @@ function NumeroActionsMenu({
   canDelete: boolean;
   canViewHistory: boolean;
   onUpdate: (data: Partial<NumeroAquecimento>) => void;
-  onDelete: () => void;
+  onDelete: (motivo: string) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
@@ -794,6 +820,16 @@ function NumeroActionsMenu({
     setEditOpen(false);
   };
 
+  const handleDelete = () => {
+    if (!deleteMotivo.trim()) {
+      toast.error('Informe o motivo da exclusão');
+      return;
+    }
+    onDelete(deleteMotivo.trim());
+    setDeleteOpen(false);
+    setDeleteMotivo('');
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -812,7 +848,7 @@ function NumeroActionsMenu({
           {canDelete && (
             <DropdownMenuItem 
               className="text-destructive"
-              onClick={onDelete}
+              onClick={() => setDeleteOpen(true)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Excluir
@@ -821,6 +857,7 @@ function NumeroActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -908,6 +945,52 @@ function NumeroActionsMenu({
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Você está prestes a excluir o número <strong>{numero.numero}</strong>. 
+              Esta ação não pode ser desfeita, mas o histórico será preservado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivo-exclusao" className="text-sm font-medium">
+                Motivo da exclusão <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="motivo-exclusao"
+                value={deleteMotivo}
+                onChange={(e) => setDeleteMotivo(e.target.value)}
+                placeholder="Informe o motivo da exclusão deste número..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setDeleteOpen(false);
+              setDeleteMotivo('');
+            }}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={!deleteMotivo.trim()}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Confirmar Exclusão
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

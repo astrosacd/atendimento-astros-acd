@@ -360,19 +360,23 @@ export function useDeleteNumero() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (numero: NumeroAquecimento) => {
+    mutationFn: async ({ numero, motivo }: { numero: NumeroAquecimento; motivo: string }) => {
       const { data: profile } = await supabase
         .from('profiles')
         .select('email')
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      // Log history before delete (will cascade)
+      // Log history before delete - set numero_id to null so history persists
       await supabase.from('numeros_aquecimento_history').insert([{
-        numero_id: numero.id,
+        numero_id: null, // Set to null so FK doesn't cascade delete
         numero_valor: numero.numero,
         acao: 'exclusao',
-        dados_anteriores: numero as unknown as Json,
+        dados_anteriores: {
+          ...numero,
+          motivo_exclusao: motivo,
+          data_exclusao: new Date().toISOString(),
+        } as unknown as Json,
         usuario_id: user?.id,
         usuario_email: profile?.email || user?.email,
       }]);
@@ -384,8 +388,8 @@ export function useDeleteNumero() {
 
       if (error) throw error;
 
-      // Trigger webhook
-      await triggerWebhook('numero.deleted', numero);
+      // Trigger webhook with motivo
+      await triggerWebhook('numero.deleted', { ...numero, motivo_exclusao: motivo });
 
       return numero;
     },
