@@ -579,54 +579,50 @@ export default function AdminNumerosAquecimento() {
 
           {/* API Tab */}
           <TabsContent value="api" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* API Keys */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Key className="h-5 w-5" />
-                      API Keys
-                    </CardTitle>
-                    <CardDescription>Gerencie suas chaves de API</CardDescription>
-                  </div>
-                  <CreateApiKeyDialog onCreate={createApiKey.mutate} />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {apiKeys.map((key) => (
-                      <ApiKeyCard 
-                        key={key.id} 
-                        apiKey={key}
-                        onToggle={(checked) => updateApiKey.mutate({ id: key.id, data: { is_active: checked } })}
-                        onDelete={() => deleteApiKey.mutate(key.id)}
-                      />
-                    ))}
-                    {apiKeys.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Nenhuma API key criada
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* API Documentation */}
-              <Card>
-                <CardHeader>
+            {/* API Keys */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
-                    <FileCode className="h-5 w-5" />
-                    Documentação da API
+                    <Key className="h-5 w-5" />
+                    API Keys
                   </CardTitle>
-                  <CardDescription>Referência completa dos endpoints</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[400px]">
-                    <ApiDocumentation />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </div>
+                  <CardDescription>Gerencie suas chaves de API</CardDescription>
+                </div>
+                <CreateApiKeyDialog onCreate={createApiKey.mutate} />
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {apiKeys.map((key) => (
+                    <ApiKeyCard 
+                      key={key.id} 
+                      apiKey={key}
+                      onToggle={(checked) => updateApiKey.mutate({ id: key.id, data: { is_active: checked } })}
+                      onDelete={() => deleteApiKey.mutate(key.id)}
+                    />
+                  ))}
+                </div>
+                {apiKeys.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhuma API key criada
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* API Documentation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileCode className="h-5 w-5" />
+                  Documentação da API
+                </CardTitle>
+                <CardDescription>Referência completa dos endpoints</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ApiDocumentation />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
