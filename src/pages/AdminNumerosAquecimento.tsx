@@ -353,9 +353,9 @@ export default function AdminNumerosAquecimento() {
 
           {/* Config Tab */}
           <TabsContent value="config" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-4 items-stretch">
               {/* Status Management */}
-              <Card>
+              <Card className="flex flex-col h-[400px]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
@@ -363,8 +363,8 @@ export default function AdminNumerosAquecimento() {
                   </CardTitle>
                   <CardDescription>Crie e edite os status disponíveis</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col">
-                  <ScrollArea className="h-[250px] flex-1">
+                <CardContent className="flex flex-col flex-1 overflow-hidden">
+                  <ScrollArea className="flex-1">
                     <div className="space-y-2 pr-2">
                       {statusList.map((status) => (
                         <div key={status.id} className="flex items-center justify-between p-2 border rounded-lg">
@@ -403,7 +403,7 @@ export default function AdminNumerosAquecimento() {
               </Card>
 
               {/* Modelos Management */}
-              <Card>
+              <Card className="flex flex-col h-[400px]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Smartphone className="h-5 w-5" />
@@ -411,8 +411,8 @@ export default function AdminNumerosAquecimento() {
                   </CardTitle>
                   <CardDescription>Crie e edite os modelos de aparelho</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col">
-                  <ScrollArea className="h-[250px] flex-1">
+                <CardContent className="flex flex-col flex-1 overflow-hidden">
+                  <ScrollArea className="flex-1">
                     <div className="space-y-2 pr-2">
                       {modelosList.map((modelo) => (
                         <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
@@ -781,6 +781,10 @@ function NumeroActionsMenu({
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
+  
+  // Fetch observation history for this number
+  const { data: obsHistory = [] } = useNumeroHistory(numero.id);
+  const obsChanges = obsHistory.filter(h => h.campos_alterados?.includes('observacoes'));
 
   const handleSave = () => {
     const updates: Partial<NumeroAquecimento> = {};
@@ -822,7 +826,7 @@ function NumeroActionsMenu({
       </DropdownMenu>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Número</DialogTitle>
             <DialogDescription>{numero.numero}</DialogDescription>
@@ -865,10 +869,36 @@ function NumeroActionsMenu({
             {canChangeObs && (
               <div className="space-y-2">
                 <Label>Observações</Label>
-                {numero.observacoes && observacoes !== numero.observacoes && (
-                  <div className="p-2 bg-muted/50 rounded-lg text-sm">
-                    <span className="text-muted-foreground text-xs">Observação anterior:</span>
-                    <p className="text-muted-foreground italic mt-1">{numero.observacoes}</p>
+                {obsChanges.length > 0 && (
+                  <div className="border rounded-lg">
+                    <div className="p-2 bg-muted/50 border-b text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <History className="h-3 w-3" />
+                      Histórico de Observações
+                    </div>
+                    <ScrollArea className="h-[120px]">
+                      <div className="p-2 space-y-2">
+                        {obsChanges.map((h) => {
+                          const dadosAnteriores = h.dados_anteriores as Record<string, unknown> | null;
+                          const dadosNovos = h.dados_novos as Record<string, unknown> | null;
+                          return (
+                            <div key={h.id} className="text-xs p-2 bg-background rounded border">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-muted-foreground">
+                                  {new Date(h.created_at).toLocaleString('pt-BR')}
+                                </span>
+                                <span className="text-primary text-[10px]">{h.usuario_email}</span>
+                              </div>
+                              {dadosAnteriores?.observacoes && (
+                                <p className="text-muted-foreground line-through">{String(dadosAnteriores.observacoes)}</p>
+                              )}
+                              {dadosNovos?.observacoes && (
+                                <p className="text-foreground">{String(dadosNovos.observacoes)}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
                   </div>
                 )}
                 <Textarea 
