@@ -31,8 +31,8 @@ interface AIConfig {
   denialMessage: string;
 }
 
-// Topic keywords for content filtering
-const topicKeywords: Record<string, string[]> = {
+// Default topic keywords for content filtering (fallback)
+const defaultTopicKeywords: Record<string, string[]> = {
   dashboard: ['dashboard', 'estatísticas', 'visão geral', 'métricas', 'resumo', 'início', 'home'],
   clientes: ['cliente', 'clientes', 'cadastro', 'cadastrar', 'consultar', 'atualizar', 'excluir', 'cpf', 'cnpj', 'renovação', 'produto', 'plano', 'valor'],
   cobranca: ['cobrança', 'cobranças', 'pagamento', 'pagamentos', 'boleto', 'pix', 'mercado pago', 'fatura', 'billing', 'inadimplente', 'vencimento'],
@@ -45,7 +45,67 @@ const topicKeywords: Record<string, string[]> = {
   configuracoes: ['configuração', 'configurações', 'config', 'settings', 'preferências', 'sistema'],
 };
 
-function detectTopicsInMessage(message: string): string[] {
+async function loadTopicKeywordsFromDB(supabase: any): Promise<Record<string, string[]>> {
+  try {
+    const { data: permissions } = await supabase
+      .from('system_permissions')
+      .select('key, name, category');
+    
+    if (!permissions || permissions.length === 0) {
+      return defaultTopicKeywords;
+    }
+    
+    const topicKeywords: Record<string, string[]> = {};
+    
+    // Group permissions by category and build keywords
+    permissions.forEach((permission: any) => {
+      const categoryKey = permission.category.toLowerCase().replace(/\s+/g, '_');
+      
+      if (!topicKeywords[categoryKey]) {
+        // Start with category name as keyword
+        topicKeywords[categoryKey] = [
+          permission.category.toLowerCase(),
+          categoryKey.replace(/_/g, ' ')
+        ];
+      }
+      
+      // Add permission name as keyword
+      const permName = permission.name.toLowerCase();
+      if (!topicKeywords[categoryKey].includes(permName)) {
+        topicKeywords[categoryKey].push(permName);
+      }
+      
+      // Add key parts as keywords
+      const keyParts = permission.key.split('_');
+      keyParts.forEach((part: string) => {
+        const lowPart = part.toLowerCase();
+        if (lowPart.length > 2 && !topicKeywords[categoryKey].includes(lowPart)) {
+          topicKeywords[categoryKey].push(lowPart);
+        }
+      });
+    });
+    
+    // Merge with default keywords for better coverage
+    Object.entries(defaultTopicKeywords).forEach(([key, keywords]) => {
+      if (topicKeywords[key]) {
+        keywords.forEach(kw => {
+          if (!topicKeywords[key].includes(kw)) {
+            topicKeywords[key].push(kw);
+          }
+        });
+      } else {
+        topicKeywords[key] = keywords;
+      }
+    });
+    
+    return topicKeywords;
+  } catch (error) {
+    console.error("Error loading topic keywords from DB:", error);
+    return defaultTopicKeywords;
+  }
+}
+
+function detectTopicsInMessage(message: string, topicKeywords: Record<string, string[]>): string[] {
   const lowerMessage = message.toLowerCase();
   const detectedTopics: string[] = [];
   
@@ -269,10 +329,12 @@ serve(async (req) => {
     console.log("Role restriction enabled:", aiConfig.roleRestrictionEnabled, "User role:", userRole, "Is admin:", isAdmin);
 
     // Check role-based access if enabled
-    if (aiConfig.roleRestrictionEnabled && userRole && !isAdmin) {
+    if (aiConfig.roleRestrictionEnabled && userRole && !isAdmin && supabase) {
       const lastUserMessage = messages[messages.length - 1];
       if (lastUserMessage && lastUserMessage.content) {
-        const detectedTopics = detectTopicsInMessage(lastUserMessage.content);
+        // Load topic keywords from database
+        const topicKeywords = await loadTopicKeywordsFromDB(supabase);
+        const detectedTopics = detectTopicsInMessage(lastUserMessage.content, topicKeywords);
         console.log("Detected topics:", detectedTopics);
         
         if (!isAllowedToAsk(userRole, detectedTopics, aiConfig.roleTopics, isAdmin)) {
