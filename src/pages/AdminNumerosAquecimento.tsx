@@ -1518,6 +1518,8 @@ function ApiDocumentation() {
             </div>
             <p className="text-muted-foreground text-xs">Exclui um número</p>
             <CurlBlock code={`curl -X DELETE -H "x-api-key: KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"observacao": "Motivo da exclusão"}' \\
   "${baseUrl}/UUID"`} />
           </div>
 

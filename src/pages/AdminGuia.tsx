@@ -2055,11 +2055,14 @@ curl -X PUT "/functions/v1/api-numeros-aquecimento?id=uuid" \\
   -d '{"status_id": "novo_status_uuid", "observacoes": "Nova obs"}'
 \`\`\`
 
-**Excluir número:**
+**Excluir número (observação obrigatória):**
 \`\`\`bash
-curl -X DELETE "/functions/v1/api-numeros-aquecimento?id=uuid" \\
-  -H "x-api-key: sua_chave"
-\`\`\``
+curl -X DELETE "/functions/v1/api-numeros-aquecimento/UUID" \\
+  -H "x-api-key: sua_chave" \\
+  -H "Content-Type: application/json" \\
+  -d '{"observacao": "Motivo da exclusão"}'
+\`\`\`
+`
         },
         {
           title: "API REST - Recursos Auxiliares",
