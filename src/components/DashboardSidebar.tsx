@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros } = usePermissions();
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize from cache immediately to prevent flicker on navigation
@@ -124,6 +124,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const adminItems: NavItem[] = [
     { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500' },
     { title: 'Divulgador', icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-orange-500' },
+    { title: 'Status Números', icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500' },
     { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500' },
     { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500' },
     { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500' },

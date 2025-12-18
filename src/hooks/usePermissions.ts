@@ -53,6 +53,18 @@ export function usePermissions() {
   const canManageDivulgadorMessages = () => hasPermission('manage_divulgador_messages');
   const canManageDivulgadorParticipants = () => hasPermission('manage_divulgador_participants');
   const canViewDivulgadorReports = () => hasPermission('view_divulgador_reports');
+  
+  // Status de Números permissions
+  const canViewNumeros = () => hasPermission('view_numeros');
+  const canCreateNumeros = () => hasPermission('create_numeros');
+  const canEditNumeros = () => hasPermission('edit_numeros');
+  const canChangeNumerosStatus = () => hasPermission('change_numeros_status');
+  const canChangeNumerosObs = () => hasPermission('change_numeros_obs');
+  const canDeleteNumeros = () => hasPermission('delete_numeros');
+  const canExportNumeros = () => hasPermission('export_numeros');
+  const canViewNumerosHistory = () => hasPermission('view_numeros_history');
+  const canManageNumerosWebhooks = () => hasPermission('manage_numeros_webhooks');
+  const canManageNumerosApi = () => hasPermission('manage_numeros_api');
 
   return {
     permissions,
@@ -77,5 +89,15 @@ export function usePermissions() {
     canManageDivulgadorMessages,
     canManageDivulgadorParticipants,
     canViewDivulgadorReports,
+    canViewNumeros,
+    canCreateNumeros,
+    canEditNumeros,
+    canChangeNumerosStatus,
+    canChangeNumerosObs,
+    canDeleteNumeros,
+    canExportNumeros,
+    canViewNumerosHistory,
+    canManageNumerosWebhooks,
+    canManageNumerosApi,
   };
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface NumeroAquecimento {
   id: string;
@@ -232,10 +233,10 @@ export function useCreateNumero() {
         numero_id: numero.id,
         numero_valor: numero.numero,
         acao: 'cadastro',
-        dados_novos: numero as unknown as Record<string, unknown>,
+        dados_novos: numero as Json,
         usuario_id: user?.id,
         usuario_email: profile?.email || user?.email,
-      });
+      }]);
 
       // Trigger webhooks
       await triggerWebhook('numero.created', numero);
@@ -312,8 +313,8 @@ export function useUpdateNumero() {
         numero_id: numero.id,
         numero_valor: numero.numero,
         acao: 'edicao',
-        dados_anteriores: previousData as unknown as Record<string, unknown>,
-        dados_novos: numero as unknown as Record<string, unknown>,
+        dados_anteriores: previousData as unknown as Json,
+        dados_novos: numero as Json,
         campos_alterados: changedFields,
         usuario_id: user?.id,
         usuario_email: profile?.email || user?.email,
@@ -354,11 +355,11 @@ export function useDeleteNumero() {
         .maybeSingle();
 
       // Log history before delete (will cascade)
-      await supabase.from('numeros_aquecimento_history').insert({
+      await supabase.from('numeros_aquecimento_history').insert([{
         numero_id: numero.id,
         numero_valor: numero.numero,
         acao: 'exclusao',
-        dados_anteriores: numero,
+        dados_anteriores: numero as unknown as Json,
         usuario_id: user?.id,
         usuario_email: profile?.email || user?.email,
       }]);
