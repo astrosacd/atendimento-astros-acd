@@ -172,7 +172,37 @@ async function processParticipant(
   const cleanNumber = participantNumber
     .replace('@s.whatsapp.net', '')
     .replace('@c.us', '')
+    .replace('@lid', '')
     .replace(/\D/g, '');
+
+  // Fetch WhatsApp profile name if not provided
+  let finalName = participantName;
+  if (!finalName || finalName === 'Participante') {
+    try {
+      console.log(`[divulgador-welcome] Fetching profile for ${cleanNumber}...`);
+      const profileRes = await fetch(`${api_url}/chat/fetchProfile/${instance_name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': api_key,
+        },
+        body: JSON.stringify({ number: cleanNumber }),
+      });
+      
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        // Evolution API returns name in different fields depending on version
+        const fetchedName = profileData?.name || profileData?.pushName || profileData?.verifiedName || 
+                           profileData?.profileName || profileData?.notify || null;
+        if (fetchedName) {
+          finalName = fetchedName;
+          console.log(`[divulgador-welcome] Got profile name: ${finalName}`);
+        }
+      }
+    } catch (e) {
+      console.log(`[divulgador-welcome] Could not fetch profile:`, e);
+    }
+  }
 
   // Handle LEAVE event
   if (messageType === 'leave') {
@@ -208,7 +238,7 @@ async function processParticipant(
 
     // Replace placeholders in message
     let exitMessage = exitConfig.message
-      .replace(/{nome}/gi, participantName || 'Participante')
+      .replace(/{nome}/gi, finalName || 'Participante')
       .replace(/{numero}/gi, cleanNumber)
       .replace(/{grupo}/gi, group.name);
 
@@ -298,7 +328,7 @@ async function processParticipant(
 
   // Replace placeholders in message
   let welcomeMessage = welcomeConfig.message
-    .replace(/{nome}/gi, participantName || 'Participante')
+    .replace(/{nome}/gi, finalName || 'Participante')
     .replace(/{numero}/gi, cleanNumber)
     .replace(/{grupo}/gi, group.name);
 
