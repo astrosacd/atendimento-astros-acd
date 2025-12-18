@@ -16,8 +16,10 @@ import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
   Trash2, Edit, Copy, Loader2, CheckCircle2, AlertCircle, Clock, Info,
-  FileText, XCircle, Upload, Image, Lock, Shield
+  FileText, XCircle, Upload, Image, Lock, Shield, CalendarIcon
 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
@@ -1578,7 +1580,7 @@ export default function AdminDivulgador() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Conteúdo</TableHead>
-                          <TableHead>Grupo</TableHead>
+                          <TableHead>Destino</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Status</TableHead>
@@ -1588,14 +1590,72 @@ export default function AdminDivulgador() {
                       <TableBody>
                         {messages.filter((msg: any) => messagesFilterGroup === '_all' || msg.group_id === messagesFilterGroup).map((msg: any) => (
                           <TableRow key={msg.id}>
-                            <TableCell className="max-w-[200px] truncate">{msg.content}</TableCell>
-                            <TableCell>{msg.divulgador_groups?.name || 'Todos os grupos'}</TableCell>
-                            <TableCell><Badge variant="outline">{msg.media_type || 'text'}</Badge></TableCell>
-                            <TableCell>{msg.scheduled_at ? format(new Date(msg.scheduled_at), 'dd/MM/yy HH:mm', { locale: ptBR }) : '-'}</TableCell>
+                            <TableCell className="max-w-[200px]">
+                              <div className="truncate" title={msg.content}>{msg.content}</div>
+                              {msg.mention_all && (
+                                <Badge variant="outline" className="mt-1 text-[10px] gap-0.5">
+                                  <Users className="h-2.5 w-2.5" />@todos
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell>
-                              <Badge variant={msg.status === 'sent' ? 'default' : msg.status === 'failed' ? 'destructive' : 'secondary'}>
-                                {msg.status}
+                              {msg.divulgador_groups?.name ? (
+                                <div className="flex flex-col gap-1">
+                                  <span className="font-medium text-sm truncate max-w-[150px]" title={msg.divulgador_groups.name}>
+                                    {msg.divulgador_groups.name}
+                                  </span>
+                                  <Badge variant="outline" className="text-[10px] w-fit gap-0.5 bg-blue-500/10 text-blue-400 border-blue-500/30">
+                                    <Target className="h-2.5 w-2.5" />Grupo específico
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1">
+                                  <span className="font-medium text-sm">Todos os grupos</span>
+                                  <Badge variant="outline" className="text-[10px] w-fit gap-0.5 bg-purple-500/10 text-purple-400 border-purple-500/30">
+                                    <Users className="h-2.5 w-2.5" />Broadcast
+                                  </Badge>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="gap-1">
+                                {msg.media_type === 'image' && <Image className="h-3 w-3" />}
+                                {msg.media_type === 'text' && <MessageSquare className="h-3 w-3" />}
+                                {msg.media_type || 'text'}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-sm">
+                                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                  {msg.scheduled_at ? format(new Date(msg.scheduled_at), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                </div>
+                                {msg.scheduled_at && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    {format(new Date(msg.scheduled_at), 'HH:mm', { locale: ptBR })}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {msg.status === 'sent' ? (
+                                <Badge className="gap-1 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                  <CheckCircle2 className="h-3 w-3" />Enviado
+                                </Badge>
+                              ) : msg.status === 'failed' ? (
+                                <Badge variant="destructive" className="gap-1">
+                                  <XCircle className="h-3 w-3" />Falhou
+                                </Badge>
+                              ) : msg.status === 'sending' ? (
+                                <Badge className="gap-1 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                  <Loader2 className="h-3 w-3 animate-spin" />Enviando
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="gap-1 bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                  <Clock className="h-3 w-3" />Pendente
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMessageMutation.mutate(msg.id)}>
@@ -2155,7 +2215,50 @@ export default function AdminDivulgador() {
               )}
               <div className="space-y-2">
                 <Label>Data e hora</Label>
-                <Input type="datetime-local" value={messageForm.scheduled_at} onChange={(e) => setMessageForm({ ...messageForm, scheduled_at: e.target.value })} />
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`flex-1 justify-start text-left font-normal ${!messageForm.scheduled_at && "text-muted-foreground"}`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {messageForm.scheduled_at 
+                          ? format(new Date(messageForm.scheduled_at), "dd/MM/yyyy", { locale: ptBR })
+                          : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={messageForm.scheduled_at ? new Date(messageForm.scheduled_at) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const currentTime = messageForm.scheduled_at 
+                              ? messageForm.scheduled_at.split('T')[1] || '09:00'
+                              : '09:00';
+                            const newDate = format(date, 'yyyy-MM-dd') + 'T' + currentTime;
+                            setMessageForm({ ...messageForm, scheduled_at: newDate });
+                          }
+                        }}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input 
+                    type="time" 
+                    className="w-28"
+                    value={messageForm.scheduled_at ? messageForm.scheduled_at.split('T')[1]?.substring(0, 5) || '' : ''} 
+                    onChange={(e) => {
+                      const currentDate = messageForm.scheduled_at 
+                        ? messageForm.scheduled_at.split('T')[0]
+                        : format(new Date(), 'yyyy-MM-dd');
+                      setMessageForm({ ...messageForm, scheduled_at: currentDate + 'T' + e.target.value });
+                    }} 
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
