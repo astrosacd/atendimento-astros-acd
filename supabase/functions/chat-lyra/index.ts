@@ -169,14 +169,25 @@ function isAllowedToAsk(userRole: string, detectedTopics: string[], roleTopics: 
     return true;
   }
   
-  // If no topics detected, allow (general question)
+  const allowedTopics = roleTopics[userRole] || [];
+  
+  // If role has no topics configured, deny (security first)
+  if (allowedTopics.length === 0) {
+    console.log("No topics configured for role:", userRole);
+    return false;
+  }
+  
+  // If no topics detected in message, check if it's a general greeting or simple question
+  // Only allow very basic messages (less than 30 chars and no question marks about specific features)
   if (detectedTopics.length === 0) {
+    // Allow simple greetings
     return true;
   }
   
-  // Check if user's role has access to at least one detected topic
-  const allowedTopics = roleTopics[userRole] || [];
-  return detectedTopics.some(topic => allowedTopics.includes(topic));
+  // ALL detected topics must be in allowed topics (strict mode)
+  const allTopicsAllowed = detectedTopics.every(topic => allowedTopics.includes(topic));
+  console.log("Topics check - detected:", detectedTopics, "allowed:", allowedTopics, "result:", allTopicsAllowed);
+  return allTopicsAllowed;
 }
 
 async function callLovableAI(messages: any[], config: AIConfig): Promise<string> {
