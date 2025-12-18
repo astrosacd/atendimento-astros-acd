@@ -94,31 +94,60 @@ serve(async (req) => {
       const expectedWebhookUrl = `${supabaseUrl}/functions/v1/divulgador-welcome`;
 
       console.log(`[divulgador-groups] Checking webhook status for ${instance_name}`);
+      console.log(`[divulgador-groups] API URL: ${api_url}/webhook/find/${instance_name}`);
 
       const res = await fetch(`${api_url}/webhook/find/${instance_name}`, {
         method: 'GET',
         headers: {
-          apikey: api_key,
+          'apikey': api_key,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log(`[divulgador-groups] Webhook find response status: ${res.status}`);
+      
       const contentType = res.headers.get('content-type') || '';
-      const payload = contentType.includes('application/json')
-        ? await res.json().catch(() => ({}))
-        : { text: (await res.text()).substring(0, 200) };
+      let payload: any = null;
+      
+      if (contentType.includes('application/json')) {
+        payload = await res.json().catch((e) => {
+          console.log(`[divulgador-groups] Error parsing JSON:`, e);
+          return null;
+        });
+      } else {
+        const text = await res.text();
+        console.log(`[divulgador-groups] Non-JSON response:`, text.substring(0, 500));
+        payload = { text: text.substring(0, 200) };
+      }
 
-      console.log(`[divulgador-groups] Webhook status response:`, JSON.stringify(payload));
+      console.log(`[divulgador-groups] Webhook status raw response:`, JSON.stringify(payload));
 
-      // Check if webhook is properly configured
-      const webhookUrl = payload?.url || payload?.webhook?.url || null;
-      const events = payload?.events || payload?.webhook?.events || [];
-      const isConfigured = webhookUrl === expectedWebhookUrl;
-      const hasGroupEvent = events.includes('GROUP_PARTICIPANTS_UPDATE');
+      // Evolution API v2 returns different structures, handle all cases
+      // Could be: { url, events, ... } or { webhook: { ... } } or array of webhooks
+      let webhookData = payload;
+      
+      // Handle array response (some versions return array)
+      if (Array.isArray(payload)) {
+        webhookData = payload.length > 0 ? payload[0] : null;
+        console.log(`[divulgador-groups] Response is array, using first item`);
+      }
+      
+      // Handle nested webhook object
+      if (webhookData?.webhook) {
+        webhookData = webhookData.webhook;
+      }
+
+      const webhookUrl = webhookData?.url || webhookData?.webhookUrl || null;
+      const events = webhookData?.events || [];
+      const isConfigured = webhookUrl && webhookUrl.includes('divulgador-welcome');
+      const hasGroupEvent = Array.isArray(events) && events.includes('GROUP_PARTICIPANTS_UPDATE');
+
+      console.log(`[divulgador-groups] Parsed: url=${webhookUrl}, events=${JSON.stringify(events)}, isConfigured=${isConfigured}`);
 
       return new Response(JSON.stringify({
         success: res.ok,
         status: res.status,
-        isConfigured,
+        isConfigured: !!isConfigured,
         hasGroupEvent,
         currentUrl: webhookUrl,
         expectedUrl: expectedWebhookUrl,
