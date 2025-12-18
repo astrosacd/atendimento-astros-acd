@@ -213,6 +213,17 @@ Deno.serve(async (req) => {
         throw error;
       }
 
+      // Fetch with full modelo and status for webhook
+      const { data: enrichedData } = await supabase
+        .from('numeros_aquecimento')
+        .select(`
+          *,
+          modelo:numeros_aquecimento_modelos(*),
+          status:numeros_aquecimento_status(*)
+        `)
+        .eq('id', data.id)
+        .single();
+
       // Log history
       await supabase.from('numeros_aquecimento_history').insert({
         numero_id: data.id,
@@ -222,11 +233,11 @@ Deno.serve(async (req) => {
         usuario_email: `API: ${keyData.nome}`,
       });
 
-      // Trigger webhooks
-      await triggerWebhooks(supabase, 'numero.created', data);
+      // Trigger webhooks with enriched data (includes modelo and status objects)
+      await triggerWebhooks(supabase, 'numero.created', enrichedData || data);
 
       return new Response(
-        JSON.stringify({ success: true, data }),
+        JSON.stringify({ success: true, data: enrichedData || data }),
         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -324,6 +335,17 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
 
+      // Fetch with full modelo and status for webhook
+      const { data: enrichedData } = await supabase
+        .from('numeros_aquecimento')
+        .select(`
+          *,
+          modelo:numeros_aquecimento_modelos(*),
+          status:numeros_aquecimento_status(*)
+        `)
+        .eq('id', data.id)
+        .single();
+
       // Log history
       await supabase.from('numeros_aquecimento_history').insert({
         numero_id: data.id,
@@ -335,17 +357,18 @@ Deno.serve(async (req) => {
         usuario_email: `API: ${keyData.nome}`,
       });
 
-      // Trigger webhooks
+      // Trigger webhooks with enriched data
+      const webhookData = enrichedData || data;
       if (statusChanged) {
-        await triggerWebhooks(supabase, 'numero.status_updated', data);
+        await triggerWebhooks(supabase, 'numero.status_updated', webhookData);
       }
       if (obsChanged) {
-        await triggerWebhooks(supabase, 'numero.obs_updated', data);
+        await triggerWebhooks(supabase, 'numero.obs_updated', webhookData);
       }
-      await triggerWebhooks(supabase, 'numero.updated', data);
+      await triggerWebhooks(supabase, 'numero.updated', webhookData);
 
       return new Response(
-        JSON.stringify({ success: true, data }),
+        JSON.stringify({ success: true, data: enrichedData || data }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -354,10 +377,14 @@ Deno.serve(async (req) => {
     if (req.method === 'DELETE') {
       const numeroId = endpoint;
 
-      // Get current data
+      // Get current data with full modelo and status for webhook
       const { data: currentData, error: fetchError } = await supabase
         .from('numeros_aquecimento')
-        .select('*')
+        .select(`
+          *,
+          modelo:numeros_aquecimento_modelos(*),
+          status:numeros_aquecimento_status(*)
+        `)
         .eq('id', numeroId)
         .maybeSingle();
 
@@ -385,7 +412,7 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
 
-      // Trigger webhooks
+      // Trigger webhooks with enriched data
       await triggerWebhooks(supabase, 'numero.deleted', currentData);
 
       return new Response(
