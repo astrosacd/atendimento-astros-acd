@@ -991,6 +991,230 @@ export type Database = {
         }
         Relationships: []
       }
+      numeros_aquecimento: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          modelo_id: string | null
+          numero: string
+          observacoes: string | null
+          status_id: string | null
+          ultima_atividade: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modelo_id?: string | null
+          numero: string
+          observacoes?: string | null
+          status_id?: string | null
+          ultima_atividade: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modelo_id?: string | null
+          numero?: string
+          observacoes?: string | null
+          status_id?: string | null
+          ultima_atividade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "numeros_aquecimento_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "numeros_aquecimento_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      numeros_aquecimento_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      numeros_aquecimento_history: {
+        Row: {
+          acao: string
+          campos_alterados: string[] | null
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          numero_id: string | null
+          numero_valor: string
+          usuario_email: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          campos_alterados?: string[] | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          numero_id?: string | null
+          numero_valor: string
+          usuario_email?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          campos_alterados?: string[] | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          numero_id?: string | null
+          numero_valor?: string
+          usuario_email?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "numeros_aquecimento_history_numero_id_fkey"
+            columns: ["numero_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      numeros_aquecimento_modelos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          marca: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          marca?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          marca?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      numeros_aquecimento_status: {
+        Row: {
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      numeros_aquecimento_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          eventos: string[]
+          id: string
+          is_active: boolean
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       password_recovery_logs: {
         Row: {
           created_at: string
