@@ -28,6 +28,7 @@ import AdminTags from "./pages/AdminTags";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import AdminDivulgador from "./pages/AdminDivulgador";
+import AdminNumerosAquecimento from "./pages/AdminNumerosAquecimento";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/admin/boas-vindas" element={<ProtectedRoute permission="manage_settings"><AdminBoasVindas /></ProtectedRoute>} />
       <Route path="/admin/tags" element={<ProtectedRoute permission="manage_settings"><AdminTags /></ProtectedRoute>} />
       <Route path="/admin/divulgador" element={<ProtectedRoute permission="view_divulgador"><AdminDivulgador /></ProtectedRoute>} />
+      <Route path="/admin/numeros" element={<ProtectedRoute permission="view_numeros"><AdminNumerosAquecimento /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
