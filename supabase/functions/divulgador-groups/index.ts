@@ -80,6 +80,56 @@ serve(async (req) => {
       });
     }
 
+    // Get webhook status from Evolution API
+    if (action === 'get-webhook-status') {
+      if (!instanceId) {
+        return new Response(JSON.stringify({ error: 'instanceId é obrigatório' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const instance = await getInstanceById(instanceId);
+      const { api_url, api_key, instance_name } = instance;
+      const expectedWebhookUrl = `${supabaseUrl}/functions/v1/divulgador-welcome`;
+
+      console.log(`[divulgador-groups] Checking webhook status for ${instance_name}`);
+
+      const res = await fetch(`${api_url}/webhook/find/${instance_name}`, {
+        method: 'GET',
+        headers: {
+          apikey: api_key,
+        },
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await res.json().catch(() => ({}))
+        : { text: (await res.text()).substring(0, 200) };
+
+      console.log(`[divulgador-groups] Webhook status response:`, JSON.stringify(payload));
+
+      // Check if webhook is properly configured
+      const webhookUrl = payload?.url || payload?.webhook?.url || null;
+      const events = payload?.events || payload?.webhook?.events || [];
+      const isConfigured = webhookUrl === expectedWebhookUrl;
+      const hasGroupEvent = events.includes('GROUP_PARTICIPANTS_UPDATE');
+
+      return new Response(JSON.stringify({
+        success: res.ok,
+        status: res.status,
+        isConfigured,
+        hasGroupEvent,
+        currentUrl: webhookUrl,
+        expectedUrl: expectedWebhookUrl,
+        events,
+        raw: payload,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Server-side webhook configuration (avoids CORS/mixed-content in browser)
     if (action === 'configure-webhook') {
       if (!instanceId) {
@@ -92,6 +142,8 @@ serve(async (req) => {
       const instance = await getInstanceById(instanceId);
       const { api_url, api_key, instance_name } = instance;
       const webhookUrl = `${supabaseUrl}/functions/v1/divulgador-welcome`;
+
+      console.log(`[divulgador-groups] Configuring webhook for ${instance_name} -> ${webhookUrl}`);
 
       const res = await fetch(`${api_url}/webhook/set/${instance_name}`, {
         method: 'POST',
@@ -112,9 +164,12 @@ serve(async (req) => {
         ? await res.json().catch(() => ({}))
         : { text: (await res.text()).substring(0, 200) };
 
+      console.log(`[divulgador-groups] Webhook configure response:`, JSON.stringify(payload));
+
       return new Response(JSON.stringify({
         success: res.ok,
         status: res.status,
+        webhookUrl,
         data: payload,
       }), {
         status: 200,

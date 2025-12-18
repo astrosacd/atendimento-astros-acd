@@ -88,7 +88,8 @@ export default function AdminDivulgador() {
   const [editMessageForm, setEditMessageForm] = useState({ content: '', scheduled_at: '' });
   const [duplicateMessage, setDuplicateMessage] = useState<any>(null);
   const [duplicateDateTime, setDuplicateDateTime] = useState('');
-
+  const [checkingWebhookId, setCheckingWebhookId] = useState<string | null>(null);
+  const [webhookStatus, setWebhookStatus] = useState<any>(null);
   // ================== QUERIES ==================
 
   // Fetch instances
@@ -469,6 +470,39 @@ export default function AdminDivulgador() {
       await logDivulgadorOperation('test_connection', 'error', error.message, { instance_id: instance.id });
     } finally {
       setTestingInstanceId(null);
+    }
+  };
+
+  // Check webhook status for an instance
+  const checkWebhookStatus = async (instance: any) => {
+    setCheckingWebhookId(instance.id);
+    setWebhookStatus(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('divulgador-groups', {
+        body: {
+          action: 'get-webhook-status',
+          instanceId: instance.id,
+        },
+      });
+
+      if (error) {
+        toast.error('Erro ao verificar webhook: ' + error.message);
+        return;
+      }
+
+      setWebhookStatus({ ...data, instanceName: instance.instance_name, instanceId: instance.id });
+      
+      if (data?.isConfigured && data?.hasGroupEvent) {
+        toast.success(`Webhook configurado corretamente para ${instance.instance_name}!`);
+      } else if (data?.currentUrl) {
+        toast.warning(`Webhook configurado com URL diferente ou eventos incorretos`);
+      } else {
+        toast.error(`Webhook NÃO configurado para ${instance.instance_name}`);
+      }
+    } catch (error: any) {
+      toast.error('Erro: ' + error.message);
+    } finally {
+      setCheckingWebhookId(null);
     }
   };
 
@@ -1310,6 +1344,16 @@ export default function AdminDivulgador() {
                             <Button variant="ghost" size="icon" onClick={() => testConnection(inst)} disabled={testingInstanceId === inst.id} title="Testar conexão">
                               {testingInstanceId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                             </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => checkWebhookStatus(inst)} 
+                              disabled={checkingWebhookId === inst.id}
+                              title="Verificar Webhook"
+                              className="text-muted-foreground hover:text-amber-500"
+                            >
+                              {checkingWebhookId === inst.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => {
                               setEditingInstance(inst);
                               setInstanceForm({ instance_name: inst.instance_name, api_url: inst.api_url, api_key: inst.api_key });
@@ -1373,6 +1417,85 @@ export default function AdminDivulgador() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Webhook Status Card */}
+            {webhookStatus && (
+              <Card className={`border-border/40 ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+                        <Shield className={`h-5 w-5 ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'text-emerald-500' : 'text-amber-500'}`} />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">Diagnóstico do Webhook - {webhookStatus.instanceName}</CardTitle>
+                        <CardDescription>
+                          {webhookStatus.isConfigured && webhookStatus.hasGroupEvent 
+                            ? 'Webhook configurado corretamente' 
+                            : 'Webhook precisa ser reconfigurado'}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setWebhookStatus(null)}>
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">URL Atual:</span>
+                      <span className={`font-mono text-xs truncate max-w-[300px] ${webhookStatus.currentUrl === webhookStatus.expectedUrl ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        {webhookStatus.currentUrl || 'Não configurado'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">URL Esperada:</span>
+                      <span className="font-mono text-xs truncate max-w-[300px]">{webhookStatus.expectedUrl}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Eventos configurados:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {webhookStatus.events?.length > 0 ? webhookStatus.events.map((e: string) => (
+                          <Badge key={e} variant="outline" className="text-xs">
+                            {e}
+                          </Badge>
+                        )) : <span className="text-amber-500">Nenhum</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-muted-foreground">Evento GROUP_PARTICIPANTS_UPDATE:</span>
+                      <Badge variant={webhookStatus.hasGroupEvent ? 'default' : 'destructive'}>
+                        {webhookStatus.hasGroupEvent ? 'Ativo' : 'Não configurado'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {!webhookStatus.isConfigured || !webhookStatus.hasGroupEvent ? (
+                    <div className="pt-2">
+                      <Button 
+                        onClick={async () => {
+                          const instance = instances.find((i: any) => i.id === webhookStatus.instanceId);
+                          if (instance) {
+                            await configureWebhook(instance);
+                            toast.success('Webhook reconfigurado! Clique em verificar novamente.');
+                            setWebhookStatus(null);
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Reconfigurar Webhook
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-emerald-600 dark:text-emerald-400 pt-2">
+                      ✅ Webhook está configurado corretamente. Se as mensagens automáticas não estão funcionando, verifique se a Evolution API está enviando os eventos.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Info Card */}
             <Card className="border-amber-500/20 bg-amber-500/5">
