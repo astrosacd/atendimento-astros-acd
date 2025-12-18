@@ -377,6 +377,22 @@ Deno.serve(async (req) => {
     if (req.method === 'DELETE') {
       const numeroId = endpoint;
 
+      // Parse body for motivo (deletion reason)
+      let motivo = '';
+      try {
+        const body = await req.json();
+        motivo = body.motivo || '';
+      } catch {
+        // Body is optional for DELETE
+      }
+
+      if (!motivo) {
+        return new Response(
+          JSON.stringify({ error: 'motivo is required for deletion', code: 'VALIDATION_ERROR' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Get current data with full modelo and status for webhook
       const { data: currentData, error: fetchError } = await supabase
         .from('numeros_aquecimento')
@@ -396,12 +412,18 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Log history before deletion
+      const dataExclusao = new Date().toISOString();
+
+      // Log history before deletion - set numero_id to null so history persists
       await supabase.from('numeros_aquecimento_history').insert({
-        numero_id: currentData.id,
+        numero_id: null, // Set to null so FK doesn't cascade delete
         numero_valor: currentData.numero,
         acao: 'exclusao',
-        dados_anteriores: currentData,
+        dados_anteriores: {
+          ...currentData,
+          motivo_exclusao: motivo,
+          data_exclusao: dataExclusao,
+        },
         usuario_email: `API: ${keyData.nome}`,
       });
 
@@ -412,11 +434,23 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
 
-      // Trigger webhooks with enriched data
-      await triggerWebhooks(supabase, 'numero.deleted', currentData);
+      // Trigger webhooks with enriched data including deletion reason
+      await triggerWebhooks(supabase, 'numero.deleted', {
+        ...currentData,
+        motivo_exclusao: motivo,
+        data_exclusao: dataExclusao,
+      });
 
       return new Response(
-        JSON.stringify({ success: true, message: 'Number deleted successfully' }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'Number deleted successfully',
+          data: {
+            numero: currentData.numero,
+            motivo_exclusao: motivo,
+            data_exclusao: dataExclusao,
+          }
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
