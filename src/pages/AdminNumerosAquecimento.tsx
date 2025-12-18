@@ -1329,16 +1329,60 @@ function ApiKeyCard({
   );
 }
 
+function CurlBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    toast.success('Curl copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative mt-2">
+      <pre className="bg-muted p-2 pr-10 rounded text-xs overflow-x-auto">
+        {code}
+      </pre>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-1 h-7 w-7"
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </Button>
+    </div>
+  );
+}
+
 function ApiDocumentation() {
-  const baseUrl = `${window.location.origin.replace('localhost', 'udxaxemoozddkwpitngq.supabase.co')}/functions/v1/api-numeros-aquecimento`;
+  const baseUrl = 'https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-numeros-aquecimento';
 
   return (
     <div className="space-y-6 text-sm">
       <div>
         <h3 className="font-semibold text-lg mb-2">Base URL</h3>
-        <code className="block bg-muted p-2 rounded text-xs break-all">
-          https://udxaxemoozddkwpitngq.supabase.co/functions/v1/api-numeros-aquecimento
-        </code>
+        <div className="relative">
+          <code className="block bg-muted p-2 pr-10 rounded text-xs break-all">
+            {baseUrl}
+          </code>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-7 w-7"
+            onClick={() => {
+              navigator.clipboard.writeText(baseUrl);
+              toast.success('URL copiada!');
+            }}
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div>
@@ -1346,10 +1390,8 @@ function ApiDocumentation() {
         <p className="text-muted-foreground mb-2">
           Todas as requisições devem incluir o header <code className="bg-muted px-1 rounded">x-api-key</code>
         </p>
-        <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`curl -H "x-api-key: sua_api_key" \\
-  https://...`}
-        </pre>
+        <CurlBlock code={`curl -H "x-api-key: sua_api_key" \\
+  ${baseUrl}`} />
       </div>
 
       <div>
@@ -1362,10 +1404,8 @@ function ApiDocumentation() {
               <code>/</code>
             </div>
             <p className="text-muted-foreground text-xs">Lista todos os números</p>
-            <pre className="bg-muted p-2 rounded text-xs mt-2">
-{`curl -X GET -H "x-api-key: KEY" \\
-  "https://.../api-numeros-aquecimento"`}
-            </pre>
+            <CurlBlock code={`curl -X GET -H "x-api-key: KEY" \\
+  "${baseUrl}"`} />
           </div>
 
           <div className="border rounded p-3">
@@ -1374,12 +1414,10 @@ function ApiDocumentation() {
               <code>/</code>
             </div>
             <p className="text-muted-foreground text-xs">Cria um novo número</p>
-            <pre className="bg-muted p-2 rounded text-xs mt-2">
-{`curl -X POST -H "x-api-key: KEY" \\
+            <CurlBlock code={`curl -X POST -H "x-api-key: KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"numero": "+55...", "status_id": "...", "modelo_id": "..."}' \\
-  "https://.../api-numeros-aquecimento"`}
-            </pre>
+  "${baseUrl}"`} />
           </div>
 
           <div className="border rounded p-3">
@@ -1388,12 +1426,10 @@ function ApiDocumentation() {
               <code>/:id</code>
             </div>
             <p className="text-muted-foreground text-xs">Atualiza um número</p>
-            <pre className="bg-muted p-2 rounded text-xs mt-2">
-{`curl -X PUT -H "x-api-key: KEY" \\
+            <CurlBlock code={`curl -X PUT -H "x-api-key: KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"status_id": "...", "observacoes": "..."}' \\
-  "https://.../api-numeros-aquecimento/UUID"`}
-            </pre>
+  "${baseUrl}/UUID"`} />
           </div>
 
           <div className="border rounded p-3">
@@ -1402,10 +1438,8 @@ function ApiDocumentation() {
               <code>/:id</code>
             </div>
             <p className="text-muted-foreground text-xs">Exclui um número</p>
-            <pre className="bg-muted p-2 rounded text-xs mt-2">
-{`curl -X DELETE -H "x-api-key: KEY" \\
-  "https://.../api-numeros-aquecimento/UUID"`}
-            </pre>
+            <CurlBlock code={`curl -X DELETE -H "x-api-key: KEY" \\
+  "${baseUrl}/UUID"`} />
           </div>
 
           <div className="border rounded p-3">
@@ -1414,10 +1448,8 @@ function ApiDocumentation() {
               <code>/history/:id</code>
             </div>
             <p className="text-muted-foreground text-xs">Consulta histórico de um número</p>
-            <pre className="bg-muted p-2 rounded text-xs mt-2">
-{`curl -X GET -H "x-api-key: KEY" \\
-  "https://.../api-numeros-aquecimento/history/UUID"`}
-            </pre>
+            <CurlBlock code={`curl -X GET -H "x-api-key: KEY" \\
+  "${baseUrl}/history/UUID"`} />
           </div>
         </div>
       </div>
