@@ -1040,6 +1040,11 @@ export default function AdminDivulgador() {
     message_type: 'join' as 'join' | 'leave',
   });
 
+  // States for editing and duplicating welcome configs
+  const [editingWelcome, setEditingWelcome] = useState<any>(null);
+  const [duplicatingWelcome, setDuplicatingWelcome] = useState<any>(null);
+  const [duplicateWelcomeGroupId, setDuplicateWelcomeGroupId] = useState<string>('');
+
   const saveWelcomeMutation = useMutation({
     mutationFn: async (formData: typeof welcomeForm) => {
       const { error } = await (supabase as any)
@@ -1051,6 +1056,45 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
       toast.success(welcomeForm.message_type === 'join' ? 'Mensagem de entrada salva!' : 'Mensagem de saída salva!');
       setWelcomeForm({ group_id: '', message: '', is_active: true, delay_seconds: 5, message_type: 'join' });
+    },
+    onError: (error: any) => toast.error('Erro: ' + error.message),
+  });
+
+  const updateWelcomeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof welcomeForm> }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_welcome_config')
+        .update({ ...data, group_id: data.group_id || null })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
+      toast.success('Template atualizado!');
+      setEditingWelcome(null);
+    },
+    onError: (error: any) => toast.error('Erro: ' + error.message),
+  });
+
+  const duplicateWelcomeMutation = useMutation({
+    mutationFn: async ({ original, newGroupId }: { original: any; newGroupId: string }) => {
+      const { error } = await (supabase as any)
+        .from('divulgador_welcome_config')
+        .insert([{
+          message: original.message,
+          message_type: original.message_type,
+          is_active: original.is_active,
+          delay_seconds: original.delay_seconds,
+          group_id: newGroupId || null,
+          campaign_id: original.campaign_id || null,
+        }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divulgador-welcome'] });
+      toast.success('Template duplicado!');
+      setDuplicatingWelcome(null);
+      setDuplicateWelcomeGroupId('');
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
@@ -1944,21 +1988,53 @@ export default function AdminDivulgador() {
                       <div className="space-y-3">
                         {welcomeConfigs.map((wc: any) => (
                           <div key={wc.id} className="p-3 border rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <Badge variant={wc.is_active ? 'default' : 'secondary'}>{wc.is_active ? 'Ativo' : 'Inativo'}</Badge>
                                   <Badge variant={wc.message_type === 'leave' ? 'destructive' : 'outline'} className={wc.message_type === 'leave' ? 'bg-red-500/20 text-red-400 border-red-500/30' : ''}>
                                     {wc.message_type === 'leave' ? 'Saída' : 'Entrada'}
                                   </Badge>
-                                  <Badge variant="outline">{wc.divulgador_groups?.name || 'Todos os grupos'}</Badge>
                                 </div>
-                                <p className="text-sm">{wc.message}</p>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <span className="text-sm font-medium truncate">{wc.divulgador_groups?.name || 'Todos os grupos'}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{wc.message}</p>
                                 <p className="text-xs text-muted-foreground mt-1">Delay: {wc.delay_seconds}s</p>
                               </div>
-                              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteWelcomeMutation.mutate(wc.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-muted-foreground hover:text-blue-500"
+                                  onClick={() => setEditingWelcome(wc)}
+                                  title="Editar"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-muted-foreground hover:text-emerald-500"
+                                  onClick={() => {
+                                    setDuplicatingWelcome(wc);
+                                    setDuplicateWelcomeGroupId('');
+                                  }}
+                                  title="Duplicar para outro grupo"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-destructive" 
+                                  onClick={() => deleteWelcomeMutation.mutate(wc.id)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -3139,6 +3215,167 @@ export default function AdminDivulgador() {
                 disabled={!duplicateDateTime || duplicateMessageMutation.isPending}
               >
                 {duplicateMessageMutation.isPending ? 'Duplicando...' : 'Duplicar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Editar Template de Mensagem Automática */}
+        <Dialog open={!!editingWelcome} onOpenChange={(open) => !open && setEditingWelcome(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pencil className="h-5 w-5" />
+                Editar Mensagem Automática
+              </DialogTitle>
+              <DialogDescription>
+                Edite o template de mensagem automática
+              </DialogDescription>
+            </DialogHeader>
+            {editingWelcome && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Evento</Label>
+                  <Select 
+                    value={editingWelcome.message_type} 
+                    onValueChange={(v) => setEditingWelcome({ ...editingWelcome, message_type: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="join">Entrada no grupo (Boas-vindas)</SelectItem>
+                      <SelectItem value="leave">Saída do grupo (Despedida)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Grupo</Label>
+                  <Select 
+                    value={editingWelcome.group_id || "_all"} 
+                    onValueChange={(v) => setEditingWelcome({ ...editingWelcome, group_id: v === "_all" ? null : v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_all">Todos os grupos</SelectItem>
+                      {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Mensagem</Label>
+                  <Textarea
+                    value={editingWelcome.message}
+                    onChange={(e) => setEditingWelcome({ ...editingWelcome, message: e.target.value })}
+                    rows={4}
+                    placeholder="Mensagem automática..."
+                  />
+                  <p className="text-xs text-muted-foreground">Use {'{nome}'}, {'{numero}'} ou {'{grupo}'} para personalizar</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={editingWelcome.is_active} 
+                      onCheckedChange={(c) => setEditingWelcome({ ...editingWelcome, is_active: c })} 
+                    />
+                    <Label>Ativo</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label>Delay (seg):</Label>
+                    <Input 
+                      type="number" 
+                      className="w-20" 
+                      value={editingWelcome.delay_seconds} 
+                      onChange={(e) => setEditingWelcome({ ...editingWelcome, delay_seconds: parseInt(e.target.value) || 5 })} 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingWelcome(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editingWelcome) {
+                    updateWelcomeMutation.mutate({ 
+                      id: editingWelcome.id, 
+                      data: {
+                        message: editingWelcome.message,
+                        message_type: editingWelcome.message_type,
+                        group_id: editingWelcome.group_id,
+                        is_active: editingWelcome.is_active,
+                        delay_seconds: editingWelcome.delay_seconds,
+                      }
+                    });
+                  }
+                }}
+                disabled={!editingWelcome?.message || updateWelcomeMutation.isPending}
+              >
+                {updateWelcomeMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Duplicar Template de Mensagem Automática */}
+        <Dialog open={!!duplicatingWelcome} onOpenChange={(open) => !open && setDuplicatingWelcome(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5" />
+                Duplicar para Outro Grupo
+              </DialogTitle>
+              <DialogDescription>
+                Crie uma cópia deste template para um grupo específico
+              </DialogDescription>
+            </DialogHeader>
+            {duplicatingWelcome && (
+              <div className="space-y-4 py-4">
+                <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={duplicatingWelcome.message_type === 'leave' ? 'destructive' : 'outline'}>
+                      {duplicatingWelcome.message_type === 'leave' ? 'Saída' : 'Entrada'}
+                    </Badge>
+                    <Badge variant="secondary">
+                      {duplicatingWelcome.divulgador_groups?.name || 'Todos os grupos'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3">{duplicatingWelcome.message}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Novo Grupo Destino</Label>
+                  <Select 
+                    value={duplicateWelcomeGroupId || "_all"} 
+                    onValueChange={(v) => setDuplicateWelcomeGroupId(v === "_all" ? "" : v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione o grupo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_all">Todos os grupos</SelectItem>
+                      {groups.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O template será copiado com a mesma mensagem, tipo e configurações para o grupo selecionado
+                  </p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDuplicatingWelcome(null)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (duplicatingWelcome) {
+                    duplicateWelcomeMutation.mutate({ 
+                      original: duplicatingWelcome, 
+                      newGroupId: duplicateWelcomeGroupId 
+                    });
+                  }
+                }}
+                disabled={duplicateWelcomeMutation.isPending}
+              >
+                {duplicateWelcomeMutation.isPending ? 'Duplicando...' : 'Duplicar'}
               </Button>
             </DialogFooter>
           </DialogContent>
