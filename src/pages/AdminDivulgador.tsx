@@ -31,8 +31,25 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { format, addHours, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Helper para converter data local para ISO com timezone de Brasília para salvar no banco
+const toUtcFromBrazil = (localDateString: string): string => {
+  // localDateString é tipo "2024-12-18T12:35"
+  // Precisamos converter para UTC adicionando 3 horas (Brasília é UTC-3)
+  const localDate = new Date(localDateString);
+  const utcDate = new Date(localDate.getTime() + (3 * 60 * 60 * 1000));
+  return utcDate.toISOString();
+};
+
+// Helper para exibir data UTC como horário de Brasília
+const formatFromUtc = (utcDateString: string, formatStr: string): string => {
+  const utcDate = new Date(utcDateString);
+  // Subtrair 3 horas para converter de UTC para Brasília
+  const brazilDate = new Date(utcDate.getTime() - (3 * 60 * 60 * 1000));
+  return format(brazilDate, formatStr, { locale: ptBR });
+};
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
 import { AllParticipantsManager } from '@/components/divulgador/AllParticipantsManager';
@@ -829,7 +846,7 @@ export default function AdminDivulgador() {
           content: formData.content,
           media_type: formData.media_type || 'text',
           media_url: formData.media_url || null,
-          scheduled_at: formData.scheduled_at,
+          scheduled_at: formData.scheduled_at ? toUtcFromBrazil(formData.scheduled_at) : null,
           mention_all: formData.mention_all,
           delay_seconds: formData.delay_seconds,
           group_id: selectedGroupId, // Store selected group
@@ -1628,12 +1645,12 @@ export default function AdminDivulgador() {
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1.5 text-sm">
                                   <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                                  {msg.scheduled_at ? format(new Date(msg.scheduled_at), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                                  {msg.scheduled_at ? formatFromUtc(msg.scheduled_at, 'dd/MM/yyyy') : '-'}
                                 </div>
                                 {msg.scheduled_at && (
                                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                     <Clock className="h-3 w-3" />
-                                    {format(new Date(msg.scheduled_at), 'HH:mm', { locale: ptBR })}
+                                    {formatFromUtc(msg.scheduled_at, 'HH:mm')}
                                   </div>
                                 )}
                               </div>
