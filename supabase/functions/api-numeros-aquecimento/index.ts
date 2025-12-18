@@ -527,7 +527,20 @@ async function triggerWebhooks(supabase: any, event: string, data: any) {
       try {
         const ts = new Date().toISOString();
         const isObject = data && typeof data === 'object' && !Array.isArray(data);
-        const { modelo, status, ...numeroOnly } = (isObject ? data : { value: data }) as any;
+
+        const original = (isObject ? data : { value: data }) as any;
+        const modeloObj = original?.modelo ?? null;
+        const statusObj = original?.status ?? null;
+
+        // Keep the original payload in "data" but also provide a structured "numero" object
+        // that includes modelo/status inside it (this is what n8n users usually inspect).
+        const numeroPayload = isObject
+          ? {
+              ...original,
+              modelo: modeloObj,
+              status: statusObj,
+            }
+          : original;
 
         await fetch(webhook.url, {
           method: 'POST',
@@ -540,10 +553,18 @@ async function triggerWebhooks(supabase: any, event: string, data: any) {
             event,
             evento: event,
             timestamp: ts,
-            data,
-            numero: isObject ? numeroOnly : data,
-            modelo: modelo ?? null,
-            status: status ?? null,
+
+            // Original data
+            data: original,
+
+            // What n8n users usually inspect
+            numero: numeroPayload,
+
+            // Convenience fields
+            modelo: modeloObj,
+            status: statusObj,
+            modelo_nome: modeloObj?.nome ?? null,
+            status_nome: statusObj?.nome ?? null,
           }),
         });
         console.log(`[Webhook] Sent ${event} to ${webhook.nome}`);
