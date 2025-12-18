@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ interface Conversation {
   id: string;
   title: string;
   created_at: string;
+  preview?: string;
 }
 
 interface ChatConfig {
@@ -62,6 +63,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [currentModel, setCurrentModel] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [config, setConfig] = useState<ChatConfig>({
     name: 'Lyra',
     welcomeMessage: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudá-lo hoje?',
@@ -140,19 +142,47 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data: convData, error } = await supabase
         .from('chat_conversations')
         .select('id, title, created_at')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
-      setConversations(data || []);
+      
+      // Load first message preview for each conversation
+      const conversationsWithPreview: Conversation[] = [];
+      for (const conv of convData || []) {
+        const { data: msgData } = await supabase
+          .from('chat_messages')
+          .select('content')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        
+        conversationsWithPreview.push({
+          ...conv,
+          preview: msgData?.[0]?.content?.slice(0, 100) || ''
+        });
+      }
+      
+      setConversations(conversationsWithPreview);
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
   };
+
+  // Filter conversations by search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    
+    const query = searchQuery.toLowerCase();
+    return conversations.filter(conv => 
+      conv.title.toLowerCase().includes(query) ||
+      (conv.preview && conv.preview.toLowerCase().includes(query))
+    );
+  }, [conversations, searchQuery]);
 
   const loadConversation = async (conversationId: string) => {
     try {
@@ -167,6 +197,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
       setMessages(data?.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })) || []);
       setCurrentConversationId(conversationId);
       setShowHistory(false);
+      setSearchQuery('');
     } catch (error) {
       console.error('Error loading conversation:', error);
     }
@@ -216,6 +247,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     setCurrentConversationId(null);
     setMessages([]);
     setShowHistory(false);
+    setSearchQuery('');
   };
 
   // Check operating hours
@@ -389,45 +421,70 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
 
       {showHistory ? (
         /* History View */
-        <ScrollArea className="h-80 p-4 bg-secondary/50">
-          {conversations.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-8">
-              Nenhuma conversa salva ainda.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between group ${
-                    currentConversationId === conv.id 
-                      ? 'border-primary bg-primary/10' 
-                      : 'border-border/40 hover:border-border hover:bg-background/50'
-                  }`}
-                  onClick={() => loadConversation(conv.id)}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{conv.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(conv.created_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteConversation(conv.id);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
+        <div className="flex flex-col h-80 bg-secondary/50">
+          {/* Search Input */}
+          <div className="p-3 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por palavras-chave..."
+                className="pl-9 bg-background/50 border-border/50 h-9 text-sm"
+              />
             </div>
-          )}
-        </ScrollArea>
+          </div>
+          
+          <ScrollArea className="flex-1 p-3">
+            {filteredConversations.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-8">
+                {searchQuery ? 'Nenhuma conversa encontrada.' : 'Nenhuma conversa salva ainda.'}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {filteredConversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between group ${
+                      currentConversationId === conv.id 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-border/40 hover:border-border hover:bg-background/50'
+                    }`}
+                    onClick={() => loadConversation(conv.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{conv.title}</p>
+                      {conv.preview && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {conv.preview}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        {new Date(conv.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversation(conv.id);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       ) : (
         /* Chat View */
         <>
