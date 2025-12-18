@@ -155,7 +155,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           navigate(item.path);
         }}
         className={cn(
-          "w-full justify-start gap-3 h-11 px-3 transition-all duration-200 relative group",
+          "w-full justify-start gap-3 h-11 px-3 relative group",
           isActive 
             ? "bg-primary/10 text-primary font-medium" 
             : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
@@ -166,7 +166,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
         )}
         <item.icon className={cn(
-          "h-5 w-5 shrink-0 transition-colors",
+          "h-5 w-5 shrink-0",
           isActive ? "text-primary" : item.color || "text-muted-foreground group-hover:text-foreground"
         )} />
         {!collapsed && (
