@@ -363,38 +363,42 @@ export default function AdminNumerosAquecimento() {
                   </CardTitle>
                   <CardDescription>Crie e edite os status disponíveis</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {statusList.map((status) => (
-                      <div key={status.id} className="flex items-center justify-between p-2 border rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full bg-${status.cor}-500`} />
-                          <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
-                            {status.nome}
-                          </Badge>
-                        </div>
-                        {canManageStatus && (
-                          <div className="flex items-center gap-1">
-                            <EditStatusDialog 
-                              status={status} 
-                              onUpdate={(data) => updateStatus.mutate({ id: status.id, data })} 
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => deleteStatus.mutate(status.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                <CardContent className="flex flex-col">
+                  <ScrollArea className="h-[250px] flex-1">
+                    <div className="space-y-2 pr-2">
+                      {statusList.map((status) => (
+                        <div key={status.id} className="flex items-center justify-between p-2 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full bg-${status.cor}-500`} />
+                            <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
+                              {status.nome}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                    {canManageStatus && (
+                          {canManageStatus && (
+                            <div className="flex items-center gap-1">
+                              <EditStatusDialog 
+                                status={status} 
+                                onUpdate={(data) => updateStatus.mutate({ id: status.id, data })} 
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => deleteStatus.mutate(status.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  {canManageStatus && (
+                    <div className="pt-3 border-t mt-3">
                       <CreateStatusDialog onCreate={createStatus.mutate} />
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -407,9 +411,9 @@ export default function AdminNumerosAquecimento() {
                   </CardTitle>
                   <CardDescription>Crie e edite os modelos de aparelho</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
+                <CardContent className="flex flex-col">
+                  <ScrollArea className="h-[250px] flex-1">
+                    <div className="space-y-2 pr-2">
                       {modelosList.map((modelo) => (
                         <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
                           <div>
@@ -436,11 +440,13 @@ export default function AdminNumerosAquecimento() {
                           )}
                         </div>
                       ))}
-                      {canManageModelos && (
-                        <CreateModeloDialog onCreate={createModelo.mutate} />
-                      )}
                     </div>
                   </ScrollArea>
+                  {canManageModelos && (
+                    <div className="pt-3 border-t mt-3">
+                      <CreateModeloDialog onCreate={createModelo.mutate} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
