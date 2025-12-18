@@ -698,6 +698,39 @@ async function triggerWebhook(event: string, data: unknown) {
 
     if (!webhooks || webhooks.length === 0) return;
 
+    // Format data for better readability
+    const numeroData = data as Record<string, unknown>;
+    const formattedPayload = {
+      evento: event,
+      timestamp: new Date().toISOString(),
+      numero: {
+        id: numeroData.id,
+        numero: numeroData.numero,
+        modelo_id: numeroData.modelo_id,
+        status_id: numeroData.status_id,
+        ultima_atividade: numeroData.ultima_atividade,
+        observacoes: numeroData.observacoes || null,
+        created_by: numeroData.created_by,
+        created_at: numeroData.created_at,
+        updated_at: numeroData.updated_at,
+      },
+      // Include deletion info if present
+      ...(numeroData.motivo_exclusao ? {
+        exclusao: {
+          motivo: numeroData.motivo_exclusao,
+          data: numeroData.data_exclusao || new Date().toISOString(),
+        }
+      } : {}),
+      // Include model info if available
+      ...(numeroData.modelo ? {
+        modelo: numeroData.modelo,
+      } : {}),
+      // Include status info if available
+      ...(numeroData.status ? {
+        status: numeroData.status,
+      } : {}),
+    };
+
     for (const webhook of webhooks) {
       try {
         await fetch(webhook.url, {
@@ -706,11 +739,7 @@ async function triggerWebhook(event: string, data: unknown) {
             'Content-Type': 'application/json',
             ...(webhook.secret_key ? { 'X-Webhook-Secret': webhook.secret_key } : {}),
           },
-          body: JSON.stringify({
-            event,
-            data,
-            timestamp: new Date().toISOString(),
-          }),
+          body: JSON.stringify(formattedPayload, null, 2),
           mode: 'no-cors',
         });
       } catch (err) {
