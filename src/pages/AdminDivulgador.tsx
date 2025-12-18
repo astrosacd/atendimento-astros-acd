@@ -1418,84 +1418,83 @@ export default function AdminDivulgador() {
               </Card>
             </div>
 
-            {/* Webhook Status Card */}
-            {webhookStatus && (
-              <Card className={`border-border/40 ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-                        <Shield className={`h-5 w-5 ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'text-emerald-500' : 'text-amber-500'}`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">Diagnóstico do Webhook - {webhookStatus.instanceName}</CardTitle>
-                        <CardDescription>
-                          {webhookStatus.isConfigured && webhookStatus.hasGroupEvent 
-                            ? 'Webhook configurado corretamente' 
-                            : 'Webhook precisa ser reconfigurado'}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => setWebhookStatus(null)}>
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <span className="text-muted-foreground">URL Atual:</span>
-                      <span className={`font-mono text-xs truncate max-w-[300px] ${webhookStatus.currentUrl === webhookStatus.expectedUrl ? 'text-emerald-500' : 'text-amber-500'}`}>
-                        {webhookStatus.currentUrl || 'Não configurado'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <span className="text-muted-foreground">URL Esperada:</span>
-                      <span className="font-mono text-xs truncate max-w-[300px]">{webhookStatus.expectedUrl}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <span className="text-muted-foreground">Eventos configurados:</span>
-                      <div className="flex gap-1 flex-wrap">
-                        {webhookStatus.events?.length > 0 ? webhookStatus.events.map((e: string) => (
-                          <Badge key={e} variant="outline" className="text-xs">
-                            {e}
-                          </Badge>
-                        )) : <span className="text-amber-500">Nenhum</span>}
+            {/* Webhook Status Modal */}
+            <Dialog open={!!webhookStatus} onOpenChange={(open) => { if (!open) setWebhookStatus(null); }}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Diagnóstico do Webhook{webhookStatus?.instanceName ? ` — ${webhookStatus.instanceName}` : ''}
+                  </DialogTitle>
+                  <DialogDescription>
+                    O webhook é uma configuração na sua instância da Evolution API para avisar o nosso backend quando alguém entra/sai do grupo.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {webhookStatus && (
+                  <div className="space-y-4">
+                    <div className={`rounded-lg border p-3 ${webhookStatus.isConfigured && webhookStatus.hasGroupEvent ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
+                      <div className="text-sm">
+                        {webhookStatus.isConfigured && webhookStatus.hasGroupEvent
+                          ? 'Webhook configurado corretamente.'
+                          : 'Webhook precisa ser configurado (ou está com eventos/URL incorretos).'}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <span className="text-muted-foreground">Evento GROUP_PARTICIPANTS_UPDATE:</span>
-                      <Badge variant={webhookStatus.hasGroupEvent ? 'default' : 'destructive'}>
-                        {webhookStatus.hasGroupEvent ? 'Ativo' : 'Não configurado'}
-                      </Badge>
+
+                    <div className="grid gap-2 text-sm">
+                      <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                        <span className="text-muted-foreground">URL Atual:</span>
+                        <span className={`font-mono text-xs truncate max-w-[380px] ${webhookStatus.currentUrl === webhookStatus.expectedUrl ? 'text-emerald-500' : 'text-amber-500'}`}>
+                          {webhookStatus.currentUrl || 'Não configurado'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                        <span className="text-muted-foreground">URL Esperada:</span>
+                        <span className="font-mono text-xs truncate max-w-[380px]">{webhookStatus.expectedUrl}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                        <span className="text-muted-foreground">Eventos configurados:</span>
+                        <div className="flex gap-1 flex-wrap justify-end">
+                          {webhookStatus.events?.length > 0 ? webhookStatus.events.map((e: string) => (
+                            <Badge key={e} variant="outline" className="text-xs">
+                              {e}
+                            </Badge>
+                          )) : <span className="text-amber-500">Nenhum</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded">
+                        <span className="text-muted-foreground">Evento GROUP_PARTICIPANTS_UPDATE:</span>
+                        <Badge variant={webhookStatus.hasGroupEvent ? 'default' : 'destructive'}>
+                          {webhookStatus.hasGroupEvent ? 'Ativo' : 'Não configurado'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {!webhookStatus.isConfigured || !webhookStatus.hasGroupEvent ? (
-                    <div className="pt-2">
-                      <Button 
-                        onClick={async () => {
-                          const instance = instances.find((i: any) => i.id === webhookStatus.instanceId);
-                          if (instance) {
-                            await configureWebhook(instance);
-                            toast.success('Webhook reconfigurado! Clique em verificar novamente.');
-                            setWebhookStatus(null);
-                          }
-                        }}
-                        className="w-full"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Reconfigurar Webhook
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button variant="outline" onClick={() => setWebhookStatus(null)}>
+                        Fechar
                       </Button>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400 pt-2">
-                      ✅ Webhook está configurado corretamente. Se as mensagens automáticas não estão funcionando, verifique se a Evolution API está enviando os eventos.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+
+                      {!webhookStatus.isConfigured || !webhookStatus.hasGroupEvent ? (
+                        <Button
+                          onClick={async () => {
+                            const instance = instances.find((i: any) => i.id === webhookStatus.instanceId);
+                            if (instance) {
+                              await configureWebhook(instance);
+                              toast.success('Webhook reconfigurado! Clique em verificar novamente.');
+                              setWebhookStatus(null);
+                            }
+                          }}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Configurar/Reconfigurar
+                        </Button>
+                      ) : null}
+                    </DialogFooter>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Info Card */}
             <Card className="border-amber-500/20 bg-amber-500/5">
