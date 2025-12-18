@@ -35,25 +35,37 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
   const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador } = usePermissions();
-  const [chatEnabled, setChatEnabled] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navRef = useRef<HTMLDivElement | null>(null);
+
+  // Initialize from cache immediately to prevent flicker on navigation
+  const cacheKey = user?.id ? `profile_name_${user.id}` : null;
+  const chatCacheKey = 'sidebar_chat_enabled';
+  const cachedName = cacheKey ? sessionStorage.getItem(cacheKey) : null;
+  const cachedChat = sessionStorage.getItem(chatCacheKey);
+  
+  const [chatEnabled, setChatEnabled] = useState(() => cachedChat === 'true');
+  const [userName, setUserName] = useState<string | null>(() => cachedName || user?.email?.split('@')[0] || null);
+  const [isLoading, setIsLoading] = useState(() => !cachedName);
 
   const handleToggle = () => {
     onCollapsedChange?.(!collapsed);
   };
 
-  // Load user profile name on mount - cache in sessionStorage to prevent flickering
-  // Note: Chat enabled is always fetched fresh to ensure admin changes are reflected immediately
+  // Load user profile name on mount - use cache to prevent flickering
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
       return;
     }
 
-    const cacheKey = `profile_name_${user.id}`;
-    const cached = sessionStorage.getItem(cacheKey);
+    const profileCacheKey = `profile_name_${user.id}`;
+    const cached = sessionStorage.getItem(profileCacheKey);
+    
+    // If we have cached data, don't show loading
+    if (cached) {
+      setUserName(cached);
+      setIsLoading(false);
+    }
     
     let isMounted = true;
     
@@ -75,11 +87,12 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       if (isMounted) {
         const chatValue = chatResult.data?.config_value === 'true';
         setChatEnabled(chatValue);
+        sessionStorage.setItem(chatCacheKey, chatValue ? 'true' : 'false');
         
         const name = profileResult.data?.name || user.email?.split('@')[0] || 'Usuário';
         setUserName(name);
         if (!cached) {
-          sessionStorage.setItem(cacheKey, name);
+          sessionStorage.setItem(profileCacheKey, name);
         }
         setIsLoading(false);
       }
@@ -90,7 +103,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     return () => {
       isMounted = false;
     };
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   // Restore sidebar scroll position between navigations
   useEffect(() => {
