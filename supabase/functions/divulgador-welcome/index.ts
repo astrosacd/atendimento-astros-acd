@@ -207,7 +207,7 @@ async function processParticipant(
       }
 
       // Evolution API returns name in different fields depending on version/instance
-      const fetchedName =
+      let fetchedName =
         profileData?.name ||
         profileData?.pushName ||
         profileData?.verifiedName ||
@@ -216,6 +216,44 @@ async function processParticipant(
         profileData?.profile?.pushName ||
         profileData?.profile?.notify ||
         null;
+
+      if (!fetchedName) {
+        // Fallback: Find Contacts tends to return pushName/notify when available
+        try {
+          const findRes = await fetch(`${api_url}/chat/findContacts/${instance_name}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': api_key,
+            },
+            body: JSON.stringify({ where: { id: jidNumber } }),
+          });
+
+          console.log(`[divulgador-welcome] findContacts status: ${findRes.status}`);
+          const findText = await findRes.text();
+          let findData: any = null;
+          try {
+            findData = findText ? JSON.parse(findText) : null;
+          } catch {
+            findData = null;
+          }
+
+          // Some versions return array, others return { data: [...] }
+          const contact = Array.isArray(findData) ? findData[0] : (findData?.data?.[0] ?? findData?.data ?? findData);
+          fetchedName =
+            contact?.pushName ||
+            contact?.notify ||
+            contact?.name ||
+            contact?.profileName ||
+            null;
+
+          if (!fetchedName) {
+            console.log(`[divulgador-welcome] findContacts returned no name fields. Body: ${findText?.slice(0, 500)}`);
+          }
+        } catch (e) {
+          console.log('[divulgador-welcome] findContacts failed:', e);
+        }
+      }
 
       if (fetchedName) {
         finalName = fetchedName;
@@ -233,7 +271,7 @@ async function processParticipant(
     // Update participant left_at timestamp
     await supabase
       .from('divulgador_participants')
-      .update({ left_at: new Date().toISOString() })
+      .update({ left_at: new Date().toISOString(), welcome_sent: false })
       .eq('group_id', group.id)
       .eq('whatsapp_number', cleanNumber);
 
@@ -296,12 +334,13 @@ async function processParticipant(
   // Check if participant already exists and welcome was sent
   const { data: existingParticipant } = await supabase
     .from('divulgador_participants')
-    .select('id, welcome_sent')
+    .select('id, welcome_sent, left_at')
     .eq('group_id', group.id)
     .eq('whatsapp_number', cleanNumber)
     .single();
 
-  if (existingParticipant?.welcome_sent) {
+  // If the participant never left and we already sent a welcome, don't spam
+  if (existingParticipant?.welcome_sent && !existingParticipant?.left_at) {
     console.log('[divulgador-welcome] Welcome already sent to:', cleanNumber);
     return { success: true, alreadySent: true, participant: cleanNumber };
   }
@@ -312,7 +351,7 @@ async function processParticipant(
     .upsert({
       group_id: group.id,
       whatsapp_number: cleanNumber,
-      name: participantName || null,
+      name: finalName || null,
       joined_at: new Date().toISOString(),
       welcome_sent: false,
       left_at: null, // Clear left_at if rejoining
