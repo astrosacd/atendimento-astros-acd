@@ -457,32 +457,48 @@ export default function AdminNumerosAquecimento() {
                 <CardDescription>Auditoria completa de todas as ações realizadas</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[500px]">
+              <ScrollArea className="h-[500px]">
                   <div className="space-y-3">
-                    {history.map((item) => (
-                      <div key={item.id} className="p-3 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant={
-                            item.acao === 'cadastro' ? 'default' :
-                            item.acao === 'exclusao' ? 'destructive' : 'secondary'
-                          }>
-                            {item.acao.toUpperCase()}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(item.created_at).toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-medium">{item.numero_valor}</span>
-                          <span className="text-muted-foreground ml-2">por {item.usuario_email || 'Sistema'}</span>
-                        </div>
-                        {item.campos_alterados && item.campos_alterados.length > 0 && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Campos alterados: {item.campos_alterados.join(', ')}
+                    {history.map((item) => {
+                      const dadosAnteriores = item.dados_anteriores as Record<string, unknown> | null;
+                      const dadosNovos = item.dados_novos as Record<string, unknown> | null;
+                      return (
+                        <div key={item.id} className="p-3 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant={
+                              item.acao === 'cadastro' ? 'default' :
+                              item.acao === 'exclusao' ? 'destructive' : 'secondary'
+                            }>
+                              {item.acao.toUpperCase()}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(item.created_at).toLocaleString('pt-BR')}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className="text-sm">
+                            <span className="font-medium">{item.numero_valor}</span>
+                          </div>
+                          <div className="text-sm text-primary font-medium mt-1">
+                            {item.usuario_email || 'Sistema'}
+                          </div>
+                          {item.campos_alterados && item.campos_alterados.length > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Campos alterados: {item.campos_alterados.join(', ')}
+                            </div>
+                          )}
+                          {item.acao === 'edicao' && item.campos_alterados?.includes('observacoes') && (
+                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                              {dadosAnteriores?.observacoes && (
+                                <div><span className="text-muted-foreground">Obs anterior:</span> <span className="line-through">{String(dadosAnteriores.observacoes)}</span></div>
+                              )}
+                              {dadosNovos?.observacoes && (
+                                <div><span className="text-muted-foreground">Nova obs:</span> {String(dadosNovos.observacoes)}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {history.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
                         Nenhum histórico encontrado
@@ -841,11 +857,18 @@ function NumeroActionsMenu({
               </div>
             )}
             {canChangeObs && (
-              <div>
+              <div className="space-y-2">
                 <Label>Observações</Label>
+                {numero.observacoes && observacoes !== numero.observacoes && (
+                  <div className="p-2 bg-muted/50 rounded-lg text-sm">
+                    <span className="text-muted-foreground text-xs">Observação anterior:</span>
+                    <p className="text-muted-foreground italic mt-1">{numero.observacoes}</p>
+                  </div>
+                )}
                 <Textarea 
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
+                  placeholder="Nova observação..."
                 />
               </div>
             )}
@@ -1090,7 +1113,9 @@ function CreateWebhookDialog({ onCreate }: { onCreate: (data: any) => void }) {
     'numero.updated',
     'numero.status_updated',
     'numero.obs_updated',
+    'numero.modelo_updated',
     'numero.deleted',
+    'status.created',
   ];
 
   const handleSubmit = () => {
