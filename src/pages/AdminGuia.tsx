@@ -981,23 +981,64 @@ Isso facilita encontrar clientes específicos por categoria.`
         {
           title: "Personalizar o chat",
           content: `1. Acesse **Painel Administrativo** → **Chat Lyra**
-2. Configure:
+2. Na aba **Geral**, configure:
    - **Nome do Chat**: Como o assistente se apresenta
    - **Mensagem de Boas-vindas**: Primeira mensagem exibida
    - **Placeholder**: Texto do campo de input
-   - **Cor do Tema**: Cor principal do chat`
+   - **Cor do Tema**: Cor principal do chat
+3. Configure **Horário de Funcionamento** se desejar limitar atendimento`
         },
         {
-          title: "Configurar IA",
-          content: `- Selecione o **modelo de IA** (Gemini ou GPT)
-- O chat usa o Lovable AI Gateway, sem necessidade de API key
-- Você tem uso gratuito mensal incluído`
+          title: "Configurar Provedor de IA",
+          content: `Na aba **IA**, você pode escolher entre 3 provedores:
+
+**Lovable AI (Gratuito):**
+- Não requer API Key
+- Modelos: Gemini 2.5 Flash/Pro, GPT-5
+- Uso gratuito mensal incluído
+
+**OpenAI:**
+- Requer sua API Key da OpenAI
+- Modelos: GPT-4o, GPT-4o Mini, GPT-4 Turbo, GPT-3.5 Turbo
+- Custos diretos na sua conta OpenAI
+
+**Groq:**
+- Requer API Key da Groq
+- Modelos: Llama 3.3 70B, Llama 3.1 8B, Mixtral 8x7B
+- Alta velocidade e custo reduzido`
+        },
+        {
+          title: "Configurar Permissões por Role",
+          content: `Na aba **Permissões**, você controla o que cada cargo pode perguntar à IA:
+
+1. **Ativar Restrições**: Ligue o switch para habilitar controle por role
+2. **Mensagem de Negação**: Configure a resposta quando acesso é negado
+3. **Tópicos por Role**: Marque quais assuntos cada cargo pode consultar
+
+**Exemplo prático:**
+- Role "Financeiro" → Apenas tópicos de Cobrança
+- Role "Operador" → Clientes e Dashboard
+- Admin sempre tem acesso total
+
+**Importante:** Os tópicos são sincronizados automaticamente com as categorias de Permissões do Sistema.`
+        },
+        {
+          title: "Respostas Automáticas",
+          content: `Na aba **Respostas**, configure atalhos para perguntas frequentes:
+
+1. Clique em **Adicionar Resposta**
+2. Configure o **Gatilho** (palavra-chave que ativa)
+3. Configure a **Resposta** automática
+
+**Dica:** Use para perguntas simples como horário de atendimento, contatos, etc.`
         }
       ],
       tips: [
-        "Configure horário de funcionamento se não quiser 24/7",
-        "Adicione respostas automáticas para perguntas frequentes",
-        "O histórico de conversas fica salvo por usuário"
+        "Configure horário de funcionamento se não quiser atendimento 24/7",
+        "Use Lovable AI para começar sem custos adicionais",
+        "Restrinja tópicos sensíveis por cargo para maior segurança",
+        "O histórico de conversas fica salvo por usuário",
+        "Novas permissões criadas aparecem automaticamente nos tópicos"
       ]
     },
     {
