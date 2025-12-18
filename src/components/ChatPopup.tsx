@@ -286,11 +286,29 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
         convId = await createNewConversation();
       }
 
+      // Get user role from user_roles table
+      let userRole = 'user';
+      let isAdmin = false;
+      if (user) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (roleData) {
+          userRole = roleData.role;
+          isAdmin = roleData.role === 'admin';
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('chat-lyra', {
         body: { 
           messages: [...messages, userMessage],
           conversationId: convId,
-          userId: user?.id
+          userId: user?.id,
+          userRole,
+          isAdmin
         },
       });
 

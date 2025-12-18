@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { 
   ArrowLeft,
   MessageCircle,
@@ -26,9 +27,22 @@ import {
   Eye,
   EyeOff,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Shield,
+  Info
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+
+interface CustomRole {
+  id: string;
+  name: string;
+  display_name: string;
+}
+
+interface RoleTopicConfig {
+  [roleName: string]: string[];
+}
 
 const themeColors = [
   { name: 'Roxo', value: 'purple', gradient: 'from-purple-600 to-purple-800' },
@@ -83,6 +97,20 @@ const modelsByProvider: Record<string, { name: string; value: string; descriptio
   ],
 };
 
+// Topics the AI can discuss - mapped to permission categories
+const aiTopics = [
+  { key: 'dashboard', name: 'Dashboard', description: 'Estatísticas e visão geral do sistema' },
+  { key: 'clientes', name: 'Clientes', description: 'Cadastro, consulta, atualização e exclusão de clientes' },
+  { key: 'cobranca', name: 'Cobrança', description: 'Sistema de cobrança e pagamentos' },
+  { key: 'usuarios', name: 'Usuários', description: 'Gerenciamento de usuários e aprovações' },
+  { key: 'permissoes', name: 'Permissões', description: 'Roles e permissões do sistema' },
+  { key: 'webhooks', name: 'Webhooks', description: 'Integrações via webhooks' },
+  { key: 'api', name: 'API REST', description: 'Chaves de API e integrações externas' },
+  { key: 'divulgador', name: 'Divulgador', description: 'Módulo de divulgação em grupos WhatsApp' },
+  { key: 'logs', name: 'Logs', description: 'Logs de atividade e auditoria' },
+  { key: 'configuracoes', name: 'Configurações', description: 'Configurações gerais do sistema' },
+];
+
 const AdminChatConfig = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -118,11 +146,29 @@ Instruções:
     chat_ai_model: 'google/gemini-2.5-flash',
     chat_openai_api_key: '',
     chat_groq_api_key: '',
+    // Role-based access settings
+    chat_role_restriction_enabled: false,
+    chat_role_topics: '{}',
+    chat_denial_message: 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso. Entre em contato com um administrador se precisar de mais informações.',
   });
 
   const [quickReplies, setQuickReplies] = useState<{ trigger: string; response: string }[]>([]);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [showGroqKey, setShowGroqKey] = useState(false);
+  const [roleTopics, setRoleTopics] = useState<RoleTopicConfig>({});
+
+  // Fetch custom roles
+  const { data: customRoles = [] } = useQuery({
+    queryKey: ['custom-roles-chat-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .select('id, name, display_name')
+        .order('name');
+      if (error) throw error;
+      return data as CustomRole[];
+    },
+  });
 
   useEffect(() => {
     loadConfig();
@@ -159,6 +205,9 @@ Instruções:
           chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
           chat_openai_api_key: configMap.chat_openai_api_key || '',
           chat_groq_api_key: configMap.chat_groq_api_key || '',
+          chat_role_restriction_enabled: configMap.chat_role_restriction_enabled === 'true',
+          chat_role_topics: configMap.chat_role_topics || '{}',
+          chat_denial_message: configMap.chat_denial_message || 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso. Entre em contato com um administrador se precisar de mais informações.',
         });
 
         try {
@@ -166,6 +215,13 @@ Instruções:
           setQuickReplies(parsedReplies);
         } catch {
           setQuickReplies([]);
+        }
+
+        try {
+          const parsedTopics = JSON.parse(configMap.chat_role_topics || '{}');
+          setRoleTopics(parsedTopics);
+        } catch {
+          setRoleTopics({});
         }
       }
     } catch (error) {
@@ -196,6 +252,9 @@ Instruções:
         { config_key: 'chat_ai_model', config_value: config.chat_ai_model },
         { config_key: 'chat_openai_api_key', config_value: config.chat_openai_api_key },
         { config_key: 'chat_groq_api_key', config_value: config.chat_groq_api_key },
+        { config_key: 'chat_role_restriction_enabled', config_value: config.chat_role_restriction_enabled ? 'true' : 'false' },
+        { config_key: 'chat_role_topics', config_value: JSON.stringify(roleTopics) },
+        { config_key: 'chat_denial_message', config_value: config.chat_denial_message },
       ];
 
       for (const update of updates) {
@@ -223,6 +282,30 @@ Instruções:
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleRoleTopic = (roleName: string, topicKey: string) => {
+    setRoleTopics(prev => {
+      const current = prev[roleName] || [];
+      const newTopics = current.includes(topicKey)
+        ? current.filter(t => t !== topicKey)
+        : [...current, topicKey];
+      return { ...prev, [roleName]: newTopics };
+    });
+  };
+
+  const selectAllTopicsForRole = (roleName: string) => {
+    setRoleTopics(prev => ({
+      ...prev,
+      [roleName]: aiTopics.map(t => t.key)
+    }));
+  };
+
+  const clearAllTopicsForRole = (roleName: string) => {
+    setRoleTopics(prev => ({
+      ...prev,
+      [roleName]: []
+    }));
   };
 
   const addQuickReply = () => {
@@ -283,7 +366,7 @@ Instruções:
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="geral" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="geral" className="gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">Geral</span>
@@ -303,6 +386,10 @@ Instruções:
             <TabsTrigger value="ia" className="gap-2">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">IA</span>
+            </TabsTrigger>
+            <TabsTrigger value="permissoes" className="gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Permissões</span>
             </TabsTrigger>
           </TabsList>
 
@@ -820,6 +907,151 @@ Instruções:
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Tab Permissões */}
+          <TabsContent value="permissoes" className="space-y-6">
+            {/* Toggle Restrição */}
+            <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <CardTitle>Controle de Acesso por Role</CardTitle>
+                    <CardDescription>Restrinja as respostas da IA com base no cargo do usuário</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="role-restriction" className="font-medium">Habilitar Restrição por Role</Label>
+                    <p className="text-sm text-muted-foreground">A IA só responderá sobre assuntos permitidos para o cargo do usuário</p>
+                  </div>
+                  <Switch
+                    id="role-restriction"
+                    checked={config.chat_role_restriction_enabled}
+                    onCheckedChange={(checked) => setConfig({ ...config, chat_role_restriction_enabled: checked })}
+                  />
+                </div>
+
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div className="text-sm text-blue-200">
+                    <p className="font-medium">Como funciona:</p>
+                    <ul className="list-disc list-inside mt-1 space-y-1 text-blue-300/80">
+                      <li>Administradores sempre têm acesso total</li>
+                      <li>Configure quais tópicos cada role pode acessar</li>
+                      <li>Perguntas fora do escopo exibem mensagem de negação</li>
+                      <li>O Guia do Usuário também respeita essas permissões</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mensagem de Negação */}
+            {config.chat_role_restriction_enabled && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                      <MessageSquare className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Mensagem de Negação</CardTitle>
+                      <CardDescription>Resposta quando o usuário pergunta algo fora do seu escopo</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={config.chat_denial_message}
+                    onChange={(e) => setConfig({ ...config, chat_denial_message: e.target.value })}
+                    placeholder="Desculpe, não tenho permissão para responder sobre esse assunto..."
+                    rows={3}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Matriz de Permissões */}
+            {config.chat_role_restriction_enabled && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                      <ListChecks className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Tópicos por Role</CardTitle>
+                      <CardDescription>Selecione quais assuntos cada role pode perguntar à IA</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {customRoles.filter(r => r.name !== 'admin').map(role => (
+                      <div key={role.id} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{role.display_name}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              ({(roleTopics[role.name] || []).length} de {aiTopics.length} tópicos)
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => selectAllTopicsForRole(role.name)}
+                              className="text-xs"
+                            >
+                              Marcar todos
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => clearAllTopicsForRole(role.name)}
+                              className="text-xs text-muted-foreground"
+                            >
+                              Limpar
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                          {aiTopics.map(topic => (
+                            <div
+                              key={topic.key}
+                              className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                                (roleTopics[role.name] || []).includes(topic.key)
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border/40 hover:border-border'
+                              }`}
+                              onClick={() => toggleRoleTopic(role.name, topic.key)}
+                            >
+                              <Checkbox
+                                checked={(roleTopics[role.name] || []).includes(topic.key)}
+                                className="pointer-events-none"
+                              />
+                              <span className="text-sm">{topic.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {customRoles.filter(r => r.name !== 'admin').length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Nenhuma role customizada encontrada. Crie roles em Permissões para configurar acesso.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>

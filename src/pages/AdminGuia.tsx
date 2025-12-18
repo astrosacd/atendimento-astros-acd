@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -65,6 +66,7 @@ interface GuideCategory {
   description: string;
   steps: GuideStep[];
   tips: string[];
+  topicKey?: string; // Maps to AI topic for permission filtering
 }
 
 interface GuideGroup {
@@ -75,8 +77,33 @@ interface GuideGroup {
   categories: string[];
 }
 
+// Mapping guide categories to AI topics for permission filtering
+const categoryToTopic: Record<string, string> = {
+  'gmail': 'configuracoes',
+  'evolution': 'configuracoes',
+  'boas-vindas': 'usuarios',
+  'webhooks': 'webhooks',
+  'api': 'api',
+  'mercadopago': 'cobranca',
+  'usuarios': 'usuarios',
+  'permissoes': 'permissoes',
+  'cobranca': 'cobranca',
+  'verificacao-pagamento': 'cobranca',
+  'tags': 'clientes',
+  'clientes-registro': 'clientes',
+  'divulgador': 'divulgador',
+  'chat': 'configuracoes',
+  'dashboard': 'dashboard',
+  'logs-atividade': 'logs',
+  'restauracao': 'clientes',
+  'notificacoes': 'configuracoes',
+  'backup': 'configuracoes',
+  'troubleshooting': 'configuracoes',
+};
+
 const AdminGuia = () => {
   const navigate = useNavigate();
+  const { isAdmin, userRole } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>("gmail");
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +116,37 @@ const AdminGuia = () => {
       });
     }
   }, [activeCategory]);
+
+  // Fetch role-based topic permissions
+  const { data: roleConfig } = useQuery({
+    queryKey: ['chat-role-config-guia'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('billing_config')
+        .select('config_key, config_value')
+        .in('config_key', ['chat_role_restriction_enabled', 'chat_role_topics']);
+      
+      if (error) throw error;
+      
+      let enabled = false;
+      let topics: Record<string, string[]> = {};
+      
+      data?.forEach(item => {
+        if (item.config_key === 'chat_role_restriction_enabled') {
+          enabled = item.config_value === 'true';
+        }
+        if (item.config_key === 'chat_role_topics' && item.config_value) {
+          try {
+            topics = JSON.parse(item.config_value);
+          } catch {
+            topics = {};
+          }
+        }
+      });
+      
+      return { enabled, topics };
+    },
+  });
 
   const { data: customRoles = [] } = useQuery({
     queryKey: ['custom-roles-guia'],
@@ -1795,17 +1853,33 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         <div className="w-72 border-r border-border/40 bg-card/30 hidden lg:block">
           <ScrollArea className="h-[calc(100vh-80px)]">
             <div className="p-4 space-y-6">
-              {guideGroups.map((group) => (
-                <div key={group.id}>
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2">
-                    <group.icon className={cn("h-4 w-4", group.color)} />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {group.title}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {group.categories.map((catId) => {
-                      const category = guideCategories.find(c => c.id === catId);
+              {guideGroups.map((group) => {
+                // Filter categories based on permissions
+                const visibleCategories = group.categories.filter(catId => {
+                  if (isAdmin) return true;
+                  if (!roleConfig?.enabled) return true;
+                  
+                  const topic = categoryToTopic[catId];
+                  if (!topic) return true;
+                  
+                  const allowedTopics = roleConfig?.topics?.[userRole || ''] || [];
+                  return allowedTopics.includes(topic);
+                });
+                
+                if (visibleCategories.length === 0) return null;
+                
+                return (
+                  <div key={group.id}>
+                    <div className="flex items-center gap-2 px-3 py-2 mb-2">
+                      <group.icon className={cn("h-4 w-4", group.color)} />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {group.title}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {visibleCategories.map((catId) => {
+                        const category = guideCategories.find(c => c.id === catId);
+                        if (!category) return null;
                       if (!category) return null;
                       const isActive = activeCategory === catId;
                       return (
@@ -1827,7 +1901,8 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
                     })}
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </ScrollArea>
         </div>
@@ -1835,7 +1910,14 @@ Exporte participantes em CSV para análise externa ou importação em outras fer
         {/* Mobile Navigation */}
         <div className="lg:hidden border-b border-border/40 bg-card/30 overflow-x-auto">
           <div className="flex gap-2 p-3">
-            {guideCategories.map((category) => (
+            {guideCategories.filter(category => {
+              if (isAdmin) return true;
+              if (!roleConfig?.enabled) return true;
+              const topic = categoryToTopic[category.id];
+              if (!topic) return true;
+              const allowedTopics = roleConfig?.topics?.[userRole || ''] || [];
+              return allowedTopics.includes(topic);
+            }).map((category) => (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
