@@ -161,12 +161,40 @@ Deno.serve(async (req) => {
         );
       }
 
+      const isUuid = (value: unknown) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+      const resolveModeloId = async (value: unknown) => {
+        if (!value) return null;
+        if (isUuid(value)) return value as string;
+        const { data: modelo } = await supabase
+          .from('numeros_aquecimento_modelos')
+          .select('id')
+          .eq('nome', String(value))
+          .maybeSingle();
+        return modelo?.id ?? null;
+      };
+
+      const resolveStatusId = async (value: unknown) => {
+        if (!value) return null;
+        if (isUuid(value)) return value as string;
+        const { data: status } = await supabase
+          .from('numeros_aquecimento_status')
+          .select('id')
+          .eq('nome', String(value))
+          .maybeSingle();
+        return status?.id ?? null;
+      };
+
+      const ultima_atividade = formatUltimaAtividade('cadastro');
+
       const insertData = {
         numero: body.numero,
-        modelo_id: body.modelo_id || null,
-        status_id: body.status_id || null,
+        modelo_id: await resolveModeloId(body.modelo_id ?? body.modelo_nome),
+        status_id: await resolveStatusId(body.status_id ?? body.status_nome),
         observacoes: body.observacoes || null,
-        ultima_atividade: formatUltimaAtividade('cadastro'),
+        ultima_atividade,
       };
 
       const { data, error } = await supabase
@@ -208,6 +236,34 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const numeroId = endpoint;
 
+      const isUuid = (value: unknown) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+      const resolveModeloId = async (value: unknown) => {
+        if (value === undefined) return undefined;
+        if (!value) return null;
+        if (isUuid(value)) return value as string;
+        const { data: modelo } = await supabase
+          .from('numeros_aquecimento_modelos')
+          .select('id')
+          .eq('nome', String(value))
+          .maybeSingle();
+        return modelo?.id ?? null;
+      };
+
+      const resolveStatusId = async (value: unknown) => {
+        if (value === undefined) return undefined;
+        if (!value) return null;
+        if (isUuid(value)) return value as string;
+        const { data: status } = await supabase
+          .from('numeros_aquecimento_status')
+          .select('id')
+          .eq('nome', String(value))
+          .maybeSingle();
+        return status?.id ?? null;
+      };
+
       // Get current data
       const { data: currentData, error: fetchError } = await supabase
         .from('numeros_aquecimento')
@@ -223,11 +279,19 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Normalize incoming IDs (accept uuid or nome)
+      const normalizedStatusId = body.status_id !== undefined
+        ? await resolveStatusId(body.status_id ?? body.status_nome)
+        : undefined;
+      const normalizedModeloId = body.modelo_id !== undefined
+        ? await resolveModeloId(body.modelo_id ?? body.modelo_nome)
+        : undefined;
+
       // Determine what changed
       const changedFields: string[] = [];
-      const statusChanged = body.status_id !== undefined && body.status_id !== currentData.status_id;
+      const statusChanged = normalizedStatusId !== undefined && normalizedStatusId !== currentData.status_id;
       const obsChanged = body.observacoes !== undefined && body.observacoes !== currentData.observacoes;
-      const modeloChanged = body.modelo_id !== undefined && body.modelo_id !== currentData.modelo_id;
+      const modeloChanged = normalizedModeloId !== undefined && normalizedModeloId !== currentData.modelo_id;
 
       if (statusChanged) changedFields.push('status');
       if (obsChanged) changedFields.push('observacoes');
@@ -247,8 +311,8 @@ Deno.serve(async (req) => {
         ultima_atividade: formatUltimaAtividade(tipo),
       };
       if (body.numero !== undefined) updateData.numero = body.numero;
-      if (body.modelo_id !== undefined) updateData.modelo_id = body.modelo_id;
-      if (body.status_id !== undefined) updateData.status_id = body.status_id;
+      if (normalizedModeloId !== undefined) updateData.modelo_id = normalizedModeloId;
+      if (normalizedStatusId !== undefined) updateData.status_id = normalizedStatusId;
       if (body.observacoes !== undefined) updateData.observacoes = body.observacoes;
 
       const { data, error } = await supabase
