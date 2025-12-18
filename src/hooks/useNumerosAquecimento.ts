@@ -74,9 +74,26 @@ export interface NumeroApiKey {
 }
 
 // Format date for "Última Atividade"
-export function formatUltimaAtividade(tipo: 'cadastro' | 'st' | 'obs' | 'st + obs'): string {
+export type AtividadeTipo = 'cadastro' | 'st' | 'obs' | 'mod' | 'st + obs' | 'st + mod' | 'obs + mod' | 'st + obs + mod';
+
+export function formatUltimaAtividade(tipo: AtividadeTipo): string {
   const date = new Date().toLocaleDateString('pt-BR');
   return `${tipo} - ${date}`;
+}
+
+// Calculate activity type based on what changed
+export function calcularTipoAtividade(
+  statusChanged: boolean,
+  obsChanged: boolean,
+  modeloChanged: boolean
+): AtividadeTipo {
+  const parts: string[] = [];
+  if (statusChanged) parts.push('st');
+  if (obsChanged) parts.push('obs');
+  if (modeloChanged) parts.push('mod');
+  
+  if (parts.length === 0) return 'obs'; // fallback
+  return parts.join(' + ') as AtividadeTipo;
 }
 
 // Hook for main numbers list
@@ -284,15 +301,8 @@ export function useUpdateNumero() {
       if (obsChanged) changedFields.push('observacoes');
       if (modeloChanged) changedFields.push('modelo');
 
-      // Determine ultima_atividade type
-      let tipo: 'st' | 'obs' | 'st + obs' = 'obs';
-      if (statusChanged && obsChanged) {
-        tipo = 'st + obs';
-      } else if (statusChanged) {
-        tipo = 'st';
-      } else if (obsChanged) {
-        tipo = 'obs';
-      }
+      // Determine ultima_atividade type using the helper
+      const tipo = calcularTipoAtividade(statusChanged, obsChanged, modeloChanged);
 
       const updateData = {
         ...data,
@@ -326,6 +336,9 @@ export function useUpdateNumero() {
       }
       if (obsChanged) {
         await triggerWebhook('numero.obs_updated', numero);
+      }
+      if (modeloChanged) {
+        await triggerWebhook('numero.modelo_updated', numero);
       }
       await triggerWebhook('numero.updated', numero);
 
@@ -399,6 +412,10 @@ export function useCreateStatus() {
         .select()
         .single();
       if (error) throw error;
+      
+      // Trigger webhook for status creation
+      await triggerWebhook('status.created', status);
+      
       return status;
     },
     onSuccess: () => {
