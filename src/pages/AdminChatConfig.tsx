@@ -114,7 +114,6 @@ const AdminChatConfig = () => {
     chat_name: 'Lyra',
     chat_welcome_message: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudar?',
     chat_placeholder: 'Digite sua mensagem...',
-    chat_auto_open: false,
     chat_response_delay: '0',
     chat_theme_color: 'purple',
     chat_operating_hours_enabled: false,
@@ -232,7 +231,6 @@ Instruções:
           chat_name: configMap.chat_name || 'Lyra',
           chat_welcome_message: configMap.chat_welcome_message || 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudar?',
           chat_placeholder: configMap.chat_placeholder || 'Digite sua mensagem...',
-          chat_auto_open: configMap.chat_auto_open === 'true',
           chat_response_delay: configMap.chat_response_delay || '0',
           chat_theme_color: configMap.chat_theme_color || 'purple',
           chat_operating_hours_enabled: configMap.chat_operating_hours_enabled === 'true',
@@ -279,7 +277,6 @@ Instruções:
         { config_key: 'chat_name', config_value: config.chat_name },
         { config_key: 'chat_welcome_message', config_value: config.chat_welcome_message },
         { config_key: 'chat_placeholder', config_value: config.chat_placeholder },
-        { config_key: 'chat_auto_open', config_value: config.chat_auto_open ? 'true' : 'false' },
         { config_key: 'chat_response_delay', config_value: config.chat_response_delay },
         { config_key: 'chat_theme_color', config_value: config.chat_theme_color },
         { config_key: 'chat_operating_hours_enabled', config_value: config.chat_operating_hours_enabled ? 'true' : 'false' },
@@ -459,17 +456,6 @@ Instruções:
                       id="chat-enabled"
                       checked={config.chat_enabled}
                       onCheckedChange={(checked) => setConfig({ ...config, chat_enabled: checked })}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="chat-auto-open" className="font-medium">Abrir Automaticamente</Label>
-                      <p className="text-sm text-muted-foreground">Abrir chat quando usuário acessa o sistema</p>
-                    </div>
-                    <Switch
-                      id="chat-auto-open"
-                      checked={config.chat_auto_open}
-                      onCheckedChange={(checked) => setConfig({ ...config, chat_auto_open: checked })}
                     />
                   </div>
                 </CardContent>

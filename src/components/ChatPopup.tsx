@@ -185,7 +185,6 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
       if (error) throw error;
       
       setCurrentConversationId(data.id);
-      setMessages([]);
       loadConversations();
       return data.id;
     } catch (error) {
