@@ -1532,6 +1532,26 @@ function ApiDocumentation() {
             <CurlBlock code={`curl -X GET -H "x-api-key: KEY" \\
   "${baseUrl}/history/UUID"`} />
           </div>
+
+          <div className="border rounded p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge className="bg-cyan-600">GET</Badge>
+              <code>/modelos</code>
+            </div>
+            <p className="text-muted-foreground text-xs">Lista todos os modelos disponíveis</p>
+            <CurlBlock code={`curl -X GET -H "x-api-key: KEY" \\
+  "${baseUrl}/modelos"`} />
+          </div>
+
+          <div className="border rounded p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge className="bg-cyan-600">GET</Badge>
+              <code>/status</code>
+            </div>
+            <p className="text-muted-foreground text-xs">Lista todos os status disponíveis</p>
+            <CurlBlock code={`curl -X GET -H "x-api-key: KEY" \\
+  "${baseUrl}/status"`} />
+          </div>
         </div>
       </div>
     </div>

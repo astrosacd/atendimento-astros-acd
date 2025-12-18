@@ -105,6 +105,36 @@ Deno.serve(async (req) => {
       );
     }
 
+    // GET /modelos - List all modelos
+    if (req.method === 'GET' && endpoint === 'modelos') {
+      const { data, error } = await supabase
+        .from('numeros_aquecimento_modelos')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ success: true, data, count: data.length }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // GET /status - List all status
+    if (req.method === 'GET' && endpoint === 'status') {
+      const { data, error } = await supabase
+        .from('numeros_aquecimento_status')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ success: true, data, count: data.length }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // GET / - List all numbers
     if (req.method === 'GET' && endpoint === 'api-numeros-aquecimento') {
       const { data, error } = await supabase
@@ -539,6 +569,8 @@ async function triggerWebhooks(supabase: any, event: string, data: any) {
               ...original,
               modelo: modeloObj,
               status: statusObj,
+              modelo_nome: modeloObj?.nome ?? null,
+              status_nome: statusObj?.nome ?? null,
             }
           : original;
 
