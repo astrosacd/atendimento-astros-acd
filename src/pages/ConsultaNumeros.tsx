@@ -54,6 +54,7 @@ export default function ConsultaNumeros() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<NumeroResult | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [newObservacao, setNewObservacao] = useState(''); // Texto temporário para nova observação
 
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -380,12 +381,23 @@ export default function ConsultaNumeros() {
       }
     });
     setEditValues(values);
+    setNewObservacao('');
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
     if (!selectedRow) return;
-    updateMutation.mutate({ rowId: selectedRow.id, data: editValues });
+
+    // Merge nova observação com as anteriores (se houver)
+    const finalValues = { ...editValues };
+    const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
+    if (obsField && newObservacao.trim()) {
+      const timestamp = new Date().toLocaleString('pt-BR');
+      const separator = editValues[obsField.name] ? '\n---\n' : '';
+      finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${newObservacao.trim()}`;
+    }
+
+    updateMutation.mutate({ rowId: selectedRow.id, data: finalValues });
   };
 
   const handleExport = async () => {
@@ -800,19 +812,11 @@ export default function ConsultaNumeros() {
                         </div>
                       )}
                       <Textarea
-                        value={isObservacoes ? '' : (editValues[field.name] || '')}
+                        value={isObservacoes ? newObservacao : (editValues[field.name] || '')}
                         onChange={(e) => {
                           if (!isNonEditable) {
                             if (isObservacoes) {
-                              const newObs = e.target.value;
-                              if (newObs) {
-                                const timestamp = new Date().toLocaleString('pt-BR');
-                                const separator = editValues[field.name] ? '\n---\n' : '';
-                                setEditValues(prev => ({
-                                  ...prev,
-                                  [field.name]: `${prev[field.name] || ''}${separator}[${timestamp}] ${newObs}`
-                                }));
-                              }
+                              setNewObservacao(e.target.value);
                             } else {
                               setEditValues(prev => ({ ...prev, [field.name]: e.target.value }));
                             }
