@@ -162,6 +162,30 @@ async function updateBaserowRow(config: BaserowConfig, rowId: string, data: any)
   return await response.json();
 }
 
+// Create Baserow row
+async function createBaserowRow(config: BaserowConfig, data: any) {
+  const url = `${config.api_url}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
+
+  console.log('Creating Baserow row:', data);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${config.api_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Baserow create error:', errorText);
+    throw new Error(`Baserow error: ${response.status} - ${errorText}`);
+  }
+
+  return await response.json();
+}
+
 // Log action to history
 async function logAction(
   supabase: any,
@@ -522,6 +546,67 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, data: updatedRow }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // POST /cadastrar - Create new number
+    if (req.method === 'POST' && endpoint === 'cadastrar') {
+      const body = await req.json();
+      const { numero, status, observacoes, origem: origemCadastro } = body;
+
+      if (!numero) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Número é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Build create data
+      const createData: any = {
+        'Número': numero,
+      };
+
+      if (status) {
+        createData['Status'] = status;
+      }
+      if (observacoes) {
+        createData['Observações'] = observacoes;
+      }
+      if (origemCadastro) {
+        createData['Origem'] = origemCadastro;
+      }
+
+      // Create in Baserow
+      const newRow = await createBaserowRow(config, createData);
+
+      // Log action
+      await logAction(
+        supabase,
+        numero,
+        newRow.id?.toString() || null,
+        'cadastro',
+        origem,
+        null,
+        newRow,
+        ['numero', status ? 'status' : null, observacoes ? 'observacoes' : null].filter(Boolean) as string[],
+        userId,
+        userEmail,
+        apiKeyId,
+        webhookId,
+        ipAddress,
+        userAgent
+      );
+
+      // Trigger webhooks
+      await triggerWebhooks(supabase, 'cadastro', {
+        numero,
+        row_id: newRow.id,
+        data: newRow,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, data: newRow }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

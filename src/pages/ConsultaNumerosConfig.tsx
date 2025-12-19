@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Save, RefreshCw, Database, Settings, Link2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowLeft, Save, RefreshCw, Database, Link2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -123,6 +124,8 @@ export default function ConsultaNumerosConfig() {
     },
   });
 
+  const [testingConnection, setTestingConnection] = useState(false);
+
   // Test connection
   const testConnection = async () => {
     if (!config.baserow_api_url || !config.baserow_api_token || !config.baserow_table_id) {
@@ -130,6 +133,7 @@ export default function ConsultaNumerosConfig() {
       return;
     }
 
+    setTestingConnection(true);
     try {
       const url = `${config.baserow_api_url}/api/database/rows/table/${config.baserow_table_id}/?user_field_names=true&size=1`;
       const response = await fetch(url, {
@@ -146,6 +150,8 @@ export default function ConsultaNumerosConfig() {
       }
     } catch (error: any) {
       toast({ title: 'Erro na conexão', description: error.message, variant: 'destructive' });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -172,8 +178,23 @@ export default function ConsultaNumerosConfig() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="space-y-6">
+            <Skeleton className="h-10 w-64" />
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-72" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <Skeleton className="h-10 w-48" />
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <Tabs defaultValue="connection" className="space-y-6">
@@ -249,12 +270,20 @@ export default function ConsultaNumerosConfig() {
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={testConnection} variant="outline">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Testar Conexão
+                    <Button onClick={testConnection} variant="outline" disabled={testingConnection}>
+                      {testingConnection ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      {testingConnection ? 'Testando...' : 'Testar Conexão'}
                     </Button>
                     <Button onClick={() => saveConfigMutation.mutate()} disabled={saveConfigMutation.isPending}>
-                      <Save className="h-4 w-4 mr-2" />
+                      {saveConfigMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configurações'}
                     </Button>
                   </div>
@@ -313,7 +342,11 @@ export default function ConsultaNumerosConfig() {
 
                   <div className="flex justify-end mt-4">
                     <Button onClick={() => saveMappingsMutation.mutate()} disabled={saveMappingsMutation.isPending}>
-                      <Save className="h-4 w-4 mr-2" />
+                      {saveMappingsMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       {saveMappingsMutation.isPending ? 'Salvando...' : 'Salvar Mapeamentos'}
                     </Button>
                   </div>
