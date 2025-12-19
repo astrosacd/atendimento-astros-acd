@@ -767,6 +767,11 @@ export default function ConsultaNumeros() {
           </DialogHeader>
           <div className="space-y-4">
             {visibleFields.map((field) => {
+              // Ocultar campo data_da_ultima_consulta no modal de edição
+              if (field.name.toLowerCase() === 'data_da_ultima_consulta') {
+                return null;
+              }
+              
               const isNonEditable = nonEditableFields.has(field.name.toLowerCase());
               const isMaskedField = maskedFieldsConfig.includes(field.name);
               const isObservacoes = field.name.toLowerCase() === 'observacoes';
