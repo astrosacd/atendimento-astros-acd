@@ -548,6 +548,20 @@ const sendWhatsApp = async (
   }
 };
 
+// SECURITY: Sanitize PII from error messages to prevent data leakage
+const sanitizePII = (text: string): string => {
+  return text
+    // Redact emails
+    .replace(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[EMAIL]')
+    // Redact CPF patterns (XXX.XXX.XXX-XX or 11 digits)
+    .replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, '[CPF]')
+    .replace(/\b\d{11}\b/g, '[CPF]')
+    // Redact phone patterns (10-11 digits)
+    .replace(/\b\d{10,11}\b/g, '[PHONE]')
+    // Redact potential names (First Last pattern) - be conservative
+    .replace(/\b[A-Z][a-záàâãéèêíïóôõúç]+ [A-Z][a-záàâãéèêíïóôõúç]+\b/g, '[NOME]');
+};
+
 const sendErrorNotification = async (
   errorCount: number,
   errorDetails: { cliente: string; channel: string; error: string }[],
@@ -558,9 +572,10 @@ const sendErrorNotification = async (
   if (!notificationEmail || !gmailUser || !gmailPassword || errorCount === 0) return;
   
   try {
+    // SECURITY: Sanitize customer names and errors to prevent PII leakage
     const errorList = errorDetails
       .slice(0, 10)
-      .map(e => `• ${e.cliente} (${e.channel}): ${e.error}`)
+      .map((e, idx) => `• Cliente #${idx + 1} (${e.channel}): ${sanitizePII(e.error)}`)
       .join('\n');
     
     const body = `⚠️ ALERTA: ${errorCount} erro(s) detectado(s) no sistema de cobrança
@@ -646,46 +661,25 @@ const handler = async (req: Request): Promise<Response> => {
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Authenticate request using CRON_SECRET (from env OR from database)
+  // Authenticate request using CRON_SECRET from environment variable ONLY
+  // SECURITY: Database storage was removed to prevent plaintext secret exposure
   const authHeader = req.headers.get("authorization");
+  const cronSecret = Deno.env.get("CRON_SECRET");
   
-  // Try to get CRON_SECRET from environment variable first
-  let cronSecret = Deno.env.get("CRON_SECRET");
-  
-  // If not in env, try to get from database (billing_config)
   if (!cronSecret) {
-    console.log("CRON_SECRET not in env, checking database...");
-    const { data: configData } = await supabase
-      .from('billing_config')
-      .select('config_value')
-      .eq('config_key', 'cron_secret')
-      .single();
-    
-    if (configData?.config_value) {
-      cronSecret = configData.config_value;
-      console.log("CRON_SECRET loaded from database");
-    }
+    console.error("CRON_SECRET not configured in environment variables");
+    return new Response(
+      JSON.stringify({ error: "CRON_SECRET not configured", hint: "Configure CRON_SECRET nas variáveis de ambiente do projeto" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
   
-  // Also check database secret for validation (allows updating via panel only)
-  const { data: dbSecretData } = await supabase
-    .from('billing_config')
-    .select('config_value')
-    .eq('config_key', 'cron_secret')
-    .single();
-  
-  const dbSecret = dbSecretData?.config_value;
-  
-  // Accept authentication if header matches EITHER env secret OR database secret
-  const isValidAuth = authHeader && (
-    authHeader === `Bearer ${cronSecret}` || 
-    (dbSecret && authHeader === `Bearer ${dbSecret}`)
-  );
+  const isValidAuth = authHeader === `Bearer ${cronSecret}`;
   
   if (!isValidAuth) {
     console.error("Unauthorized billing-cron request - invalid or missing secret");
     return new Response(
-      JSON.stringify({ error: "Unauthorized", hint: "Configure o CRON Secret no painel de Cobrança (aba Geral)" }),
+      JSON.stringify({ error: "Unauthorized" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

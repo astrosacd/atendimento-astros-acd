@@ -2150,9 +2150,21 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
 
   const activeGuide = guideCategories.find(c => c.id === activeCategory);
 
-  const renderMarkdown = (text: string) => {
-    // Simple markdown rendering for bold text and code blocks
+  // SECURITY: Escape HTML to prevent XSS before applying markdown formatting
+  const escapeHtml = (text: string): string => {
     return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const renderMarkdown = (text: string) => {
+    // SECURITY: First escape HTML, then apply markdown formatting
+    // This prevents XSS if guide content ever becomes user-editable
+    const escaped = escapeHtml(text);
+    return escaped
       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>')
       .replace(/`(.*?)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-primary">$1</code>')
       .replace(/^- /gm, '• ')
