@@ -163,9 +163,11 @@ export default function ConsultaNumeros() {
       .sort((a, b) => a.order - b.order);
   }, [baserowFields]);
 
-  // Find status field for filter options
+  // Find Status field (prefer exact name match)
   const statusField = useMemo(() => {
-    return baserowFields.find(f => f.type === 'single_select' && f.select_options?.length);
+    const byName = baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length && f.name?.toLowerCase() === 'status');
+    if (byName) return byName;
+    return baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length);
   }, [baserowFields]);
 
   // Query numbers
