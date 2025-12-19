@@ -485,6 +485,7 @@ export default function ConsultaNumerosGuia() {
                   <h4 className="font-medium">Eventos Disponíveis</h4>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {[
+                      { key: 'cadastro', desc: 'Quando um novo número é cadastrado' },
                       { key: 'consulta', desc: 'Quando uma consulta é realizada' },
                       { key: 'atualizacao_status', desc: 'Quando o status é atualizado' },
                       { key: 'atualizacao_obs', desc: 'Quando observações são atualizadas' },

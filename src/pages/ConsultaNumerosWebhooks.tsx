@@ -29,6 +29,7 @@ interface WebhookConfig {
 }
 
 const AVAILABLE_EVENTS = [
+  { key: 'cadastro', label: 'Número cadastrado' },
   { key: 'consulta', label: 'Consulta realizada' },
   { key: 'atualizacao_status', label: 'Status atualizado' },
   { key: 'atualizacao_obs', label: 'Observações atualizadas' },
