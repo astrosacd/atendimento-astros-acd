@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -88,7 +88,7 @@ export default function ConsultaNumeros() {
   });
 
   // Query numbers
-  const { data: queryResult, isLoading, refetch } = useQuery({
+  const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['consulta-numeros', searchQuery, statusFilter, currentPage, pageSize],
     queryFn: async () => {
       if (!canQuery) return { data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
@@ -116,7 +116,11 @@ export default function ConsultaNumeros() {
       return json;
     },
     enabled: canQuery,
+    retry: false,
   });
+
+  // Check if error is configuration-related
+  const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração');
 
   // Update mutation
   const updateMutation = useMutation({
@@ -284,7 +288,21 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isConfigError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Configuração Necessária</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  O Baserow ainda não está configurado. Configure a conexão com o Baserow para começar a consultar números.
+                </p>
+                {canManageConfig && (
+                  <Button onClick={() => window.location.href = '/admin/consulta-numeros/config'}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurar Baserow
+                  </Button>
+                )}
+              </div>
+            ) : isLoading ? (
               <div className="flex justify-center py-8">
                 <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
