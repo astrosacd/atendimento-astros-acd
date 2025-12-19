@@ -66,6 +66,33 @@ export default function ConsultaNumeros() {
   const canManageConfig = isAdmin || hasPermission('manage_config_consulta_numeros');
   const canManageWebhooks = isAdmin || hasPermission('manage_webhooks_consulta_numeros');
   const canManageApi = isAdmin || hasPermission('api_consulta_numeros');
+  const canViewUnmasked = isAdmin || hasPermission('view_unmasked_consulta_numeros');
+
+  // Fetch masked fields configuration
+  const { data: maskedFieldsConfig = [] } = useQuery({
+    queryKey: ['consulta-numeros-masked-fields'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_masked_fields')
+        .select('*')
+        .eq('is_masked', true);
+      if (error) throw error;
+      return data?.map(f => f.field_name) || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Helper function to mask sensitive data
+  const maskValue = (value: string | null | undefined, fieldName: string): string => {
+    if (!value) return '-';
+    if (canViewUnmasked) return value;
+    if (!maskedFieldsConfig.includes(fieldName)) return value;
+    
+    // Apply blur/mask effect
+    const str = value.toString();
+    if (str.length <= 3) return '***';
+    return str.substring(0, 2) + '•'.repeat(Math.min(str.length - 2, 8)) + str.substring(str.length - 1);
+  };
 
   // Fetch Baserow fields - this determines which columns to show
   const { data: baserowFields = [] } = useQuery<BaserowField[]>({
@@ -260,9 +287,15 @@ export default function ConsultaNumeros() {
           const field = visibleFields.find(f => f.name === h);
           const val = row[h];
           // Handle single_select objects
-          const displayVal = field?.type === 'single_select' && val && typeof val === 'object' && 'value' in val
+          let displayVal = field?.type === 'single_select' && val && typeof val === 'object' && 'value' in val
             ? val.value
             : val;
+          
+          // Apply masking if needed
+          if (maskedFieldsConfig.includes(h) && !canViewUnmasked) {
+            displayVal = maskValue(displayVal?.toString(), h);
+          }
+          
           return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
         }).join(',')
       ),
@@ -404,18 +437,27 @@ export default function ConsultaNumeros() {
                           {visibleFields.map((field) => {
                             const cellValue = row[field.name];
                             // Handle single_select fields which come as {id, value, color} objects
-                            const displayValue = field.type === 'single_select' && cellValue && typeof cellValue === 'object' && 'value' in cellValue
+                            const rawValue = field.type === 'single_select' && cellValue && typeof cellValue === 'object' && 'value' in cellValue
                               ? cellValue.value
                               : cellValue;
                             
+                            // Check if this field should be masked
+                            const isMaskedField = maskedFieldsConfig.includes(field.name);
+                            const displayValue = isMaskedField && !canViewUnmasked 
+                              ? maskValue(rawValue?.toString(), field.name)
+                              : rawValue;
+                            
                             return (
-                              <TableCell key={field.id} className="max-w-[200px] truncate">
+                              <TableCell 
+                                key={field.id} 
+                                className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[2px] select-none' : ''}`}
+                              >
                                 {field.type === 'single_select' ? (
                                   <Badge variant="secondary">{displayValue || '-'}</Badge>
                                 ) : field.type === 'boolean' ? (
-                                  displayValue ? 'Sim' : 'Não'
+                                  rawValue ? 'Sim' : 'Não'
                                 ) : field.type === 'date' ? (
-                                  displayValue ? new Date(displayValue).toLocaleDateString('pt-BR') : '-'
+                                  rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
                                 ) : (
                                   displayValue?.toString() || '-'
                                 )}

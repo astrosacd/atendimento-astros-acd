@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Save, RefreshCw, Database, Link2, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,12 +19,10 @@ interface ConfigItem {
   config_value: string;
 }
 
-interface FieldMapping {
+interface MaskedField {
   id: string;
   field_name: string;
-  baserow_field_id: string;
-  baserow_field_name: string;
-  is_required: boolean;
+  is_masked: boolean;
 }
 
 export default function ConsultaNumerosConfig() {
@@ -36,7 +35,7 @@ export default function ConsultaNumerosConfig() {
     baserow_database_id: '',
   });
   
-  const [mappings, setMappings] = useState<FieldMapping[]>([]);
+  const [newFieldName, setNewFieldName] = useState('');
 
   // Fetch config
   const { data: configData, isLoading: loadingConfig } = useQuery({
@@ -52,15 +51,16 @@ export default function ConsultaNumerosConfig() {
     gcTime: 15 * 60 * 1000,
   });
 
-  // Fetch mappings
-  const { data: mappingsData, isLoading: loadingMappings } = useQuery({
-    queryKey: ['consulta-numeros-mappings'],
+  // Fetch masked fields
+  const { data: maskedFields = [], isLoading: loadingMaskedFields } = useQuery({
+    queryKey: ['consulta-numeros-masked-fields'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('consulta_numeros_field_mappings')
-        .select('*');
+        .from('consulta_numeros_masked_fields')
+        .select('*')
+        .order('field_name');
       if (error) throw error;
-      return data as FieldMapping[];
+      return data as MaskedField[];
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
@@ -75,12 +75,6 @@ export default function ConsultaNumerosConfig() {
       setConfig(prev => ({ ...prev, ...newConfig }));
     }
   }, [configData]);
-
-  useEffect(() => {
-    if (mappingsData) {
-      setMappings(mappingsData);
-    }
-  }, [mappingsData]);
 
   // Save config mutation
   const saveConfigMutation = useMutation({
@@ -102,25 +96,56 @@ export default function ConsultaNumerosConfig() {
     },
   });
 
-  // Save mappings mutation
-  const saveMappingsMutation = useMutation({
-    mutationFn: async () => {
-      for (const mapping of mappings) {
-        await supabase
-          .from('consulta_numeros_field_mappings')
-          .update({
-            baserow_field_id: mapping.baserow_field_id,
-            baserow_field_name: mapping.baserow_field_name,
-          })
-          .eq('id', mapping.id);
-      }
+  // Toggle masked field mutation
+  const toggleMaskedMutation = useMutation({
+    mutationFn: async ({ id, is_masked }: { id: string; is_masked: boolean }) => {
+      const { error } = await supabase
+        .from('consulta_numeros_masked_fields')
+        .update({ is_masked, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: 'Mapeamentos salvos!' });
-      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-mappings'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-masked-fields'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Add masked field mutation
+  const addFieldMutation = useMutation({
+    mutationFn: async (field_name: string) => {
+      const { error } = await supabase
+        .from('consulta_numeros_masked_fields')
+        .insert({ field_name, is_masked: true });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Campo adicionado!' });
+      setNewFieldName('');
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-masked-fields'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao adicionar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Delete masked field mutation
+  const deleteFieldMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('consulta_numeros_masked_fields')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Campo removido!' });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-masked-fields'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -155,13 +180,15 @@ export default function ConsultaNumerosConfig() {
     }
   };
 
-  const updateMapping = (id: string, field: keyof FieldMapping, value: string) => {
-    setMappings(prev => prev.map(m => 
-      m.id === id ? { ...m, [field]: value } : m
-    ));
+  const handleAddField = () => {
+    if (!newFieldName.trim()) {
+      toast({ title: 'Digite o nome do campo', variant: 'destructive' });
+      return;
+    }
+    addFieldMutation.mutate(newFieldName.trim());
   };
 
-  const isLoading = loadingConfig || loadingMappings;
+  const isLoading = loadingConfig || loadingMaskedFields;
 
   return (
     <DashboardLayout>
@@ -203,9 +230,9 @@ export default function ConsultaNumerosConfig() {
                 <Database className="h-4 w-4" />
                 Conexão
               </TabsTrigger>
-              <TabsTrigger value="mappings" className="gap-2">
-                <Link2 className="h-4 w-4" />
-                Mapeamento de Campos
+              <TabsTrigger value="maskedFields" className="gap-2">
+                <EyeOff className="h-4 w-4" />
+                Campos Mascarados
               </TabsTrigger>
             </TabsList>
 
@@ -291,64 +318,92 @@ export default function ConsultaNumerosConfig() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="mappings">
+            <TabsContent value="maskedFields">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Link2 className="h-5 w-5" />
-                    Mapeamento de Campos
+                    <EyeOff className="h-5 w-5" />
+                    Campos Mascarados
                   </CardTitle>
                   <CardDescription>
-                    Associe os campos do sistema aos campos da tabela do Baserow
+                    Configure quais campos devem ser mascarados (embaçados) para usuários sem permissão.
+                    Usuários com a permissão "Ver dados sem máscara" verão os dados normalmente.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Nome do campo (ex: email, CPF, telefone)"
+                      value={newFieldName}
+                      onChange={(e) => setNewFieldName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddField()}
+                    />
+                    <Button onClick={handleAddField} disabled={addFieldMutation.isPending}>
+                      {addFieldMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Digite o nome exato do campo como aparece no Baserow (case-sensitive)
+                  </p>
+
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Campo do Sistema</TableHead>
-                          <TableHead>Nome no Baserow</TableHead>
-                          <TableHead>ID do Campo (opcional)</TableHead>
-                          <TableHead>Obrigatório</TableHead>
+                          <TableHead>Nome do Campo</TableHead>
+                          <TableHead className="w-[120px]">Mascarado</TableHead>
+                          <TableHead className="w-[80px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mappings.map((mapping) => (
-                          <TableRow key={mapping.id}>
-                            <TableCell className="font-medium">{mapping.field_name}</TableCell>
-                            <TableCell>
-                              <Input
-                                value={mapping.baserow_field_name}
-                                onChange={(e) => updateMapping(mapping.id, 'baserow_field_name', e.target.value)}
-                                placeholder="Nome do campo no Baserow"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                value={mapping.baserow_field_id}
-                                onChange={(e) => updateMapping(mapping.id, 'baserow_field_id', e.target.value)}
-                                placeholder="ID do campo"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {mapping.is_required ? 'Sim' : 'Não'}
+                        {maskedFields.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                              Nenhum campo configurado
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : (
+                          maskedFields.map((field) => (
+                            <TableRow key={field.id}>
+                              <TableCell className="font-medium">{field.field_name}</TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={field.is_masked}
+                                  onCheckedChange={(checked) => 
+                                    toggleMaskedMutation.mutate({ id: field.id, is_masked: checked })
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => deleteFieldMutation.mutate(field.id)}
+                                  disabled={deleteFieldMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </div>
 
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={() => saveMappingsMutation.mutate()} disabled={saveMappingsMutation.isPending}>
-                      {saveMappingsMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {saveMappingsMutation.isPending ? 'Salvando...' : 'Salvar Mapeamentos'}
-                    </Button>
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Como funciona:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Campos marcados como "Mascarado" terão seus valores embaçados na tabela</li>
+                      <li>• Admins sempre veem todos os dados sem máscara</li>
+                      <li>• Outros usuários precisam da permissão "Ver dados sem máscara" para ver os valores reais</li>
+                      <li>• Configure as permissões em Admin → Permissões</li>
+                    </ul>
                   </div>
                 </CardContent>
               </Card>
