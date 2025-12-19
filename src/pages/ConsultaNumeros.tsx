@@ -100,13 +100,13 @@ export default function ConsultaNumeros() {
   };
 
   // Fetch Baserow fields - this determines which columns to show
-  const { data: baserowFields = [] } = useQuery<BaserowField[]>({
+  const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError } = useQuery<BaserowField[]>({
     queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
         console.error('Session error:', sessionError);
-        return [];
+        throw new Error('Sessão inválida');
       }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
@@ -118,15 +118,19 @@ export default function ConsultaNumeros() {
       );
       if (res.status === 401) {
         await supabase.auth.signOut();
-        return [];
+        throw new Error('Sessão expirada');
       }
-      if (!res.ok) return [];
+      if (!res.ok) {
+        throw new Error('Erro ao carregar campos');
+      }
       const json = await res.json();
-      return json.success ? json.data : [];
+      if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
+      return json.data || [];
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    retry: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Determine visible columns from fields (exclude internal fields)
@@ -178,14 +182,16 @@ export default function ConsultaNumeros() {
       if (!json.success) throw new Error(json.error);
       return json;
     },
-    enabled: canQuery,
-    retry: false,
+    enabled: canQuery && visibleFields.length > 0, // Only query when fields are loaded
+    retry: 2,
+    retryDelay: 1000,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
   // Check if error is configuration-related
-  const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração');
+  const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
+  const isFieldsLoading = loadingFields && !fieldsError;
 
   // Update mutation
   const updateMutation = useMutation({
@@ -449,9 +455,24 @@ export default function ConsultaNumeros() {
                   </Button>
                 )}
               </div>
-            ) : isLoading ? (
-              <div className="flex justify-center py-8">
+            ) : isFieldsLoading || isLoading ? (
+              <div className="flex flex-col items-center justify-center py-8">
                 <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mt-2">
+                  {isFieldsLoading ? 'Carregando campos...' : 'Carregando dados...'}
+                </p>
+              </div>
+            ) : visibleFields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhum campo disponível</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Não foi possível carregar os campos do Baserow. Verifique a configuração.
+                </p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Tentar novamente
+                </Button>
               </div>
             ) : queryResult?.data?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
