@@ -245,8 +245,18 @@ export default function GerenciarUsuarios() {
       // Send welcome message on approval with user's phone from profile
       if (userToApprove) {
         try {
-          // Generate a new password for the user
-          const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+          // SECURITY: Generate cryptographically secure temporary password
+          const generateSecurePassword = (length = 16): string => {
+            const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            const array = new Uint32Array(length);
+            crypto.getRandomValues(array);
+            let password = '';
+            for (let i = 0; i < length; i++) {
+              password += charset[array[i] % charset.length];
+            }
+            return password;
+          };
+          const tempPassword = generateSecurePassword(16);
           
           await supabase.functions.invoke('send-welcome', {
             body: {
