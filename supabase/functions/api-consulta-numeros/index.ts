@@ -393,68 +393,38 @@ Deno.serve(async (req) => {
       apiKeyId = apiKeyData.id;
       origem = 'api';
     } else if (authHeader) {
-      // Verify JWT token
+      // JWT is already verified by the platform (verify_jwt=true). Here we only extract user info.
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
       const parts = token.split('.');
 
       if (parts.length !== 3) {
-        console.error('[api-consulta-numeros] Invalid token format', {
-          endpoint,
-          hasAuthHeader: true,
-          parts: parts.length,
-        });
         return new Response(
           JSON.stringify({ success: false, error: 'Token inválido' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Best-effort decode (debug only)
       try {
         const payloadRaw = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         const payloadJson = atob(payloadRaw.padEnd(payloadRaw.length + (4 - (payloadRaw.length % 4)) % 4, '='));
         const payload = JSON.parse(payloadJson);
-        console.log('[api-consulta-numeros] JWT payload (debug)', {
-          iss: payload?.iss,
-          aud: payload?.aud,
-          exp: payload?.exp,
-          sub: payload?.sub,
-          endpoint,
-        });
-      } catch (_e) {
-        console.log('[api-consulta-numeros] Could not decode JWT payload (debug)', { endpoint });
-      }
 
-      console.log('[api-consulta-numeros] Auth debug', {
-        endpoint,
-        tokenLength: token.length,
-        anonKeyPresent: !!anonKey,
-        anonKeyPrefix: anonKey ? anonKey.slice(0, 3) : null,
-      });
+        userId = payload?.sub || null;
+        userEmail = payload?.email || null;
 
-      if (!anonKey) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Configuração de autenticação ausente' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const authSupabase = createClient(supabaseUrl, anonKey);
-      const { data: { user }, error } = await authSupabase.auth.getUser(token);
-
-      if (error || !user) {
-        console.error('[api-consulta-numeros] Invalid token', {
-          endpoint,
-          hasAuthHeader: true,
-          error: error?.message,
-        });
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Token inválido' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (e) {
+        console.error('[api-consulta-numeros] Failed to parse JWT payload', { endpoint, error: String(e) });
         return new Response(
           JSON.stringify({ success: false, error: 'Token inválido' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      userId = user.id;
-      userEmail = user.email || null;
     }
 
     // Get IP and User-Agent
