@@ -626,7 +626,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'PATCH' || req.method === 'PUT') {
       const body = await req.json();
-      const { row_id, status, observacoes, numero } = body;
+      const { row_id, ...fieldsToUpdate } = body;
 
       if (!row_id) {
         return new Response(
@@ -643,24 +643,18 @@ Deno.serve(async (req) => {
         console.error('Error getting previous data:', e);
       }
 
-      // Get field mappings for proper field names
-      const fieldMappings = await getFieldMappings(supabase);
-
-      // Build update data using field mappings
+      // Build update data - accept all fields sent by frontend
       const updateData: any = {};
       const changedFields: string[] = [];
 
-      if (status !== undefined) {
-        const statusFieldName = getBaserowFieldName(fieldMappings, 'status');
-        updateData[statusFieldName] = status;
-        changedFields.push('status');
+      for (const [key, value] of Object.entries(fieldsToUpdate)) {
+        if (value !== undefined) {
+          updateData[key] = value;
+          changedFields.push(key);
+        }
       }
 
-      if (observacoes !== undefined) {
-        const obsFieldName = getBaserowFieldName(fieldMappings, 'observacoes');
-        updateData[obsFieldName] = observacoes;
-        changedFields.push('observacoes');
-      }
+      console.log('[api-consulta-numeros] PATCH updateData:', JSON.stringify(updateData, null, 2));
 
       if (Object.keys(updateData).length === 0) {
         return new Response(
@@ -683,9 +677,10 @@ Deno.serve(async (req) => {
       }
 
       // Log action
+      const numeroField = updatedRow['numero'] || updatedRow['Número'] || row_id;
       await logAction(
         supabase,
-        numero || updatedRow['Número'] || row_id,
+        numeroField,
         row_id,
         acao,
         origem,
@@ -702,7 +697,7 @@ Deno.serve(async (req) => {
 
       // Trigger webhooks
       await triggerWebhooks(supabase, acao, {
-        numero: numero || updatedRow['Número'],
+        numero: numeroField,
         row_id,
         changes: updateData,
         previous: previousData,
