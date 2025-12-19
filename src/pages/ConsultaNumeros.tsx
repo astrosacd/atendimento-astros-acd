@@ -453,7 +453,7 @@ export default function ConsultaNumeros() {
                   <SelectContent>
                     <SelectItem value="__all__">Todos os status</SelectItem>
                     {statusField?.select_options?.map((s) => (
-                      <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
+                      <SelectItem key={s.id} value={s.id.toString()}>{s.value}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
