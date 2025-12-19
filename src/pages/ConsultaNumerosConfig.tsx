@@ -47,6 +47,8 @@ export default function ConsultaNumerosConfig() {
       if (error) throw error;
       return data as ConfigItem[];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   // Fetch mappings
@@ -59,6 +61,8 @@ export default function ConsultaNumerosConfig() {
       if (error) throw error;
       return data as FieldMapping[];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -155,7 +159,7 @@ export default function ConsultaNumerosConfig() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => window.location.href = '/admin/consulta-numeros'}>
             <ArrowLeft className="h-4 w-4 mr-2" />
