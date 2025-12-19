@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.api-numeros-aquecimento]
 verify_jwt = false
+
+[functions.api-consulta-numeros]
+verify_jwt = false

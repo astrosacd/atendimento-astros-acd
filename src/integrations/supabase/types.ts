@@ -510,6 +510,192 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          nome: string
+          permissions: string[]
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome?: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulta_numeros_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulta_numeros_field_mappings: {
+        Row: {
+          baserow_field_id: string
+          baserow_field_name: string
+          created_at: string
+          field_name: string
+          id: string
+          is_required: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          baserow_field_id: string
+          baserow_field_name: string
+          created_at?: string
+          field_name: string
+          id?: string
+          is_required?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          baserow_field_id?: string
+          baserow_field_name?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          is_required?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulta_numeros_history: {
+        Row: {
+          acao: string
+          api_key_id: string | null
+          baserow_row_id: string | null
+          campos_alterados: string[] | null
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          ip_address: string | null
+          numero: string
+          origem: string
+          user_agent: string | null
+          usuario_email: string | null
+          usuario_id: string | null
+          webhook_id: string | null
+        }
+        Insert: {
+          acao: string
+          api_key_id?: string | null
+          baserow_row_id?: string | null
+          campos_alterados?: string[] | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          numero: string
+          origem: string
+          user_agent?: string | null
+          usuario_email?: string | null
+          usuario_id?: string | null
+          webhook_id?: string | null
+        }
+        Update: {
+          acao?: string
+          api_key_id?: string | null
+          baserow_row_id?: string | null
+          campos_alterados?: string[] | null
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          numero?: string
+          origem?: string
+          user_agent?: string | null
+          usuario_email?: string | null
+          usuario_id?: string | null
+          webhook_id?: string | null
+        }
+        Relationships: []
+      }
+      consulta_numeros_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          eventos: string[]
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       custom_roles: {
         Row: {
           color: string | null
