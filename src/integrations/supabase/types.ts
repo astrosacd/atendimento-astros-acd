@@ -657,6 +657,30 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_masked_fields: {
+        Row: {
+          created_at: string
+          field_name: string
+          id: string
+          is_masked: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          id?: string
+          is_masked?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          id?: string
+          is_masked?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_webhooks: {
         Row: {
           created_at: string
