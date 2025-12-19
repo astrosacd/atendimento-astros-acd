@@ -236,17 +236,56 @@ async function queryBaserow(
 
   console.log('Querying Baserow:', url.toString());
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const doFetch = async (u: URL) =>
+    fetch(u.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+  let response = await doFetch(url);
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Baserow query error:', errorText);
+
+    // Fallback: some Baserow deployments don't accept the JSON `filters=` param.
+    // If we detect this error, retry using the simple filter query param format.
+    const hasJsonFilters = url.searchParams.has('filters');
+    const isFilterFieldNotFound = errorText.includes('ERROR_FILTER_FIELD_NOT_FOUND');
+
+    if (hasJsonFilters && isFilterFieldNotFound && statusFilters && statusFilters.length > 0) {
+      const fields = await getBaserowFields(config);
+      const statusFieldCandidate =
+        fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
+        fields.find(
+          (f: any) =>
+            f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0
+        );
+
+      const statusFieldId = Number(statusFieldCandidate?.id);
+      const firstStatusId = Number.parseInt(String(statusFilters[0]), 10);
+
+      if (Number.isFinite(statusFieldId) && Number.isFinite(firstStatusId)) {
+        const retryUrl = new URL(url.toString());
+        retryUrl.searchParams.delete('filters');
+        retryUrl.searchParams.set(`filter__field_${statusFieldId}__single_select_equal`, String(firstStatusId));
+
+        console.warn('[api-consulta-numeros] Retrying with legacy filter param:', retryUrl.toString());
+        response = await doFetch(retryUrl);
+
+        if (!response.ok) {
+          const retryText = await response.text();
+          console.error('Baserow query error (retry):', retryText);
+          throw new Error(`Baserow error: ${response.status} - ${retryText}`);
+        }
+
+        return await response.json();
+      }
+    }
+
     throw new Error(`Baserow error: ${response.status} - ${errorText}`);
   }
 
