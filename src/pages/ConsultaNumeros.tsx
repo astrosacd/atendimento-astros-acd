@@ -392,10 +392,16 @@ export default function ConsultaNumeros() {
       return;
     }
 
-    // Validate email if provided
+    // Email é obrigatório
     const emailField = visibleFields.find(f => f.name.toLowerCase() === 'email');
     const emailValue = newValues[emailField?.name || 'email'];
-    if (emailValue && !isValidEmail(emailValue)) {
+
+    if (!emailValue?.trim()) {
+      toast({ title: 'E-mail é obrigatório', variant: 'destructive' });
+      return;
+    }
+
+    if (!isValidEmail(emailValue)) {
       toast({ title: 'E-mail inválido', variant: 'destructive' });
       return;
     }

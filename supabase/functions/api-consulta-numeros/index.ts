@@ -721,18 +721,25 @@ Deno.serve(async (req) => {
       const createData: any = {};
       let numeroValue: string | null = null;
       let numeroFieldName: string | null = null;
+      let emailValue: string | null = null;
 
       // Copy all fields from the request body directly to createData
       for (const [key, value] of Object.entries(body)) {
         if (value !== undefined && value !== null && value !== '') {
           createData[key] = value;
-          
+
+          const keyLower = key.toLowerCase();
+
           // Track the numero field for logging - specifically look for the main "numero" field
           // Avoid matching "numero_de_compra" or other compound fields
-          const keyLower = key.toLowerCase();
           if (keyLower === 'numero' || keyLower === 'número') {
             numeroValue = String(value);
             numeroFieldName = key;
+          }
+
+          // Email obrigatório
+          if (keyLower === 'email') {
+            emailValue = String(value);
           }
         }
       }
@@ -746,62 +753,85 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Check for duplicate number before creating
+      if (!emailValue || !emailValue.trim()) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'E-mail é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check for duplicate number before creating (EXACT match using Baserow filter)
       if (numeroValue) {
-        console.log('Checking for duplicate number:', numeroValue);
+        console.log('Checking for duplicate number (exact):', numeroValue);
         try {
-          const duplicateCheck = await queryBaserow(config, numeroValue, 1, 50);
-          
-          console.log('Duplicate check results count:', duplicateCheck.results?.length || 0);
-          
-          if (duplicateCheck.results && duplicateCheck.results.length > 0) {
-            console.log('First result keys:', Object.keys(duplicateCheck.results[0]));
-            console.log('First result sample:', JSON.stringify(duplicateCheck.results[0], null, 2));
-            
-            // Check if any result has an exact match for the numero field
-            const exactMatch = duplicateCheck.results.find((row: any) => {
-              // Check all possible numero field names
-              const possibleFields = ['numero', 'Numero', 'Número', 'número', 'NUMERO'];
-              for (const field of possibleFields) {
-                const fieldValue = row[field];
-                if (fieldValue !== undefined && fieldValue !== null) {
-                  const normalizedFieldValue = String(fieldValue).trim().toLowerCase();
-                  const normalizedNumeroValue = numeroValue?.trim().toLowerCase();
-                  console.log(`Comparing field ${field}: "${normalizedFieldValue}" vs "${normalizedNumeroValue}"`);
-                  if (normalizedFieldValue === normalizedNumeroValue) {
-                    return true;
-                  }
-                }
+          const fields = await getBaserowFields(config);
+          const numeroField =
+            fields.find((f: any) => (f?.name || '').toLowerCase() === 'numero') ||
+            fields.find((f: any) => (f?.name || '').toLowerCase() === 'número') ||
+            fields.find((f: any) => (f?.name || '').toLowerCase().includes('numero') && Boolean(f?.primary));
+
+          const numeroFieldId = Number.parseInt(String(numeroField?.id), 10);
+
+          if (Number.isFinite(numeroFieldId)) {
+            const exactUrl = new URL(`${config.api_url}/api/database/rows/table/${config.table_id}/`);
+            exactUrl.searchParams.set('user_field_names', 'true');
+            exactUrl.searchParams.set('size', '1');
+            exactUrl.searchParams.set('page', '1');
+            exactUrl.searchParams.set(`filter__field_${numeroFieldId}__equal`, String(numeroValue).trim());
+
+            console.log('Exact duplicate check URL:', exactUrl.toString());
+
+            const resp = await fetch(exactUrl.toString(), {
+              method: 'GET',
+              headers: {
+                'Authorization': `Token ${config.api_token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (resp.ok) {
+              const json = await resp.json();
+              const found = json?.results?.[0];
+              if (found) {
+                console.log('Duplicate number found (exact):', found.id);
+                return new Response(
+                  JSON.stringify({
+                    success: false,
+                    error: `Número ${numeroValue} já existe no sistema. Não é possível cadastrar números duplicados.`,
+                    duplicate: true,
+                    existing_row_id: found.id,
+                  }),
+                  { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
               }
-              // Also check using the detected field name
-              if (numeroFieldName && row[numeroFieldName]) {
-                const normalizedFieldValue = String(row[numeroFieldName]).trim().toLowerCase();
-                const normalizedNumeroValue = numeroValue?.trim().toLowerCase();
-                console.log(`Comparing detected field ${numeroFieldName}: "${normalizedFieldValue}" vs "${normalizedNumeroValue}"`);
-                if (normalizedFieldValue === normalizedNumeroValue) {
-                  return true;
-                }
-              }
-              return false;
+            } else {
+              const errorText = await resp.text();
+              console.error('Exact duplicate check failed:', errorText);
+            }
+          } else {
+            console.warn('Could not resolve numero field id for exact duplicate check; falling back to search');
+
+            // fallback (best-effort)
+            const duplicateCheck = await queryBaserow(config, numeroValue, 1, 50);
+            const exactMatch = duplicateCheck?.results?.find((row: any) => {
+              const val = row?.[numeroFieldName || 'numero'] ?? row?.numero ?? row?.['Número'];
+              return val !== undefined && val !== null && String(val).trim() === String(numeroValue).trim();
             });
 
             if (exactMatch) {
-              console.log('Duplicate number found:', exactMatch.id);
               return new Response(
-                JSON.stringify({ 
-                  success: false, 
+                JSON.stringify({
+                  success: false,
                   error: `Número ${numeroValue} já existe no sistema. Não é possível cadastrar números duplicados.`,
                   duplicate: true,
-                  existing_row_id: exactMatch.id
+                  existing_row_id: exactMatch.id,
                 }),
                 { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
-            } else {
-              console.log('No exact match found in results');
             }
           }
         } catch (e) {
-          console.error('Error checking for duplicates:', e);
+          console.error('Error checking for duplicates (exact):', e);
           // Continue with creation if duplicate check fails
         }
       }
