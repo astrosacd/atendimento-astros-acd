@@ -59,6 +59,9 @@ export default function ConsultaNumeros() {
 
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createTypeDialogOpen, setCreateTypeDialogOpen] = useState(false);
+  const [createType, setCreateType] = useState<'interno' | 'externo' | null>(null);
+  const [selectedSeguro, setSelectedSeguro] = useState<string>('');
   const [newValues, setNewValues] = useState<Record<string, string>>({});
 
   // Fields that should not be editable in Edit dialog
@@ -332,10 +335,28 @@ export default function ConsultaNumeros() {
 
   const resetCreateForm = () => {
     setNewValues({ data_cadastro: generateDataCadastro() });
+    setCreateType(null);
+    setSelectedSeguro('');
   };
 
   const openCreateDialog = () => {
-    setNewValues({ data_cadastro: generateDataCadastro() });
+    // Abre o modal de seleção de tipo primeiro
+    setCreateTypeDialogOpen(true);
+  };
+
+  const handleSelectCreateType = (type: 'interno' | 'externo') => {
+    setCreateType(type);
+    setCreateTypeDialogOpen(false);
+    
+    const initialValues: Record<string, string> = { data_cadastro: generateDataCadastro() };
+    
+    if (type === 'externo') {
+      // Para número externo, observações já vem preenchido
+      initialValues['observacoes'] = 'Numero Externo';
+    }
+    
+    setNewValues(initialValues);
+    setSelectedSeguro('');
     setCreateDialogOpen(true);
   };
 
@@ -362,8 +383,22 @@ export default function ConsultaNumeros() {
       toast({ title: 'E-mail inválido', variant: 'destructive' });
       return;
     }
+
+    // Validação obrigatória de seguro para números internos
+    if (createType === 'interno' && !selectedSeguro) {
+      toast({ title: 'Selecione uma opção de seguro', description: 'É obrigatório escolher "SEM SEGURO" ou "COM SEGURO"', variant: 'destructive' });
+      return;
+    }
+
+    // Montar os dados finais
+    const finalData = { ...newValues };
     
-    createMutation.mutate(newValues);
+    // Para número interno, definir observações com a opção de seguro
+    if (createType === 'interno') {
+      finalData['observacoes'] = selectedSeguro;
+    }
+    
+    createMutation.mutate(finalData);
   };
 
   // Apply filters/search
@@ -960,11 +995,43 @@ export default function ConsultaNumeros() {
         </DialogContent>
       </Dialog>
 
+      {/* Create Type Selection Dialog */}
+      <Dialog open={createTypeDialogOpen} onOpenChange={setCreateTypeDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tipo de Cadastro</DialogTitle>
+            <DialogDescription>
+              Selecione o tipo de número que deseja cadastrar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col gap-2 hover:bg-primary/10 hover:border-primary"
+              onClick={() => handleSelectCreateType('interno')}
+            >
+              <span className="text-2xl">📱</span>
+              <span className="font-semibold">Número Interno</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col gap-2 hover:bg-primary/10 hover:border-primary"
+              onClick={() => handleSelectCreateType('externo')}
+            >
+              <span className="text-2xl">🌐</span>
+              <span className="font-semibold">Número Externo</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={(open) => { if (!open) resetCreateForm(); setCreateDialogOpen(open); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Registro</DialogTitle>
+            <DialogTitle>
+              Cadastrar {createType === 'interno' ? 'Número Interno' : 'Número Externo'}
+            </DialogTitle>
             <DialogDescription>
               Preencha os campos abaixo
             </DialogDescription>
@@ -976,6 +1043,59 @@ export default function ConsultaNumeros() {
                 const isNumeroField = field.name.toLowerCase().includes('numero');
                 const isEmailField = field.name.toLowerCase() === 'email';
                 const isDataCadastro = field.name.toLowerCase() === 'data_cadastro';
+                const isObservacoes = field.name.toLowerCase() === 'observacoes';
+
+                // Para o campo observações, tratamento especial baseado no tipo
+                if (isObservacoes) {
+                  if (createType === 'externo') {
+                    // Número externo: mostra "Numero Externo" como readonly
+                    return (
+                      <div key={field.id} className="space-y-2">
+                        <Label>{field.name}</Label>
+                        <Input
+                          value="Numero Externo"
+                          readOnly
+                          disabled
+                          className="bg-muted"
+                        />
+                      </div>
+                    );
+                  } else if (createType === 'interno') {
+                    // Número interno: mostra opções de seguro obrigatórias
+                    return (
+                      <div key={field.id} className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          {field.name} <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            type="button"
+                            variant={selectedSeguro === '🚫 SEM SEGURO' ? 'default' : 'outline'}
+                            className={`h-16 flex flex-col gap-1 ${selectedSeguro === '🚫 SEM SEGURO' ? 'ring-2 ring-destructive' : ''}`}
+                            onClick={() => setSelectedSeguro('🚫 SEM SEGURO')}
+                          >
+                            <span className="text-xl">🚫</span>
+                            <span className="text-sm font-medium">SEM SEGURO</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={selectedSeguro === '✅ COM SEGURO' ? 'default' : 'outline'}
+                            className={`h-16 flex flex-col gap-1 ${selectedSeguro === '✅ COM SEGURO' ? 'ring-2 ring-green-500' : ''}`}
+                            onClick={() => setSelectedSeguro('✅ COM SEGURO')}
+                          >
+                            <span className="text-xl">✅</span>
+                            <span className="text-sm font-medium">COM SEGURO</span>
+                          </Button>
+                        </div>
+                        {!selectedSeguro && (
+                          <p className="text-xs text-muted-foreground">
+                            Selecione uma opção acima (obrigatório)
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+                }
 
                 return (
                   <div key={field.id} className="space-y-2">
