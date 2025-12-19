@@ -65,14 +65,6 @@ export default function ConsultaNumeros() {
     queryKey: ['consulta-numeros-statuses'],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
-      const response = await supabase.functions.invoke('api-consulta-numeros', {
-        body: null,
-        headers: {
-          'Authorization': `Bearer ${session.session?.access_token}`,
-        },
-      });
-      
-      // Fetch statuses via query param
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/statuses`,
         {
@@ -81,10 +73,12 @@ export default function ConsultaNumeros() {
           },
         }
       );
+      if (!res.ok) return [];
       const json = await res.json();
       return json.success ? json.data : [];
     },
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   // Query numbers
