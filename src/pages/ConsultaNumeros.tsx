@@ -98,12 +98,16 @@ export default function ConsultaNumeros() {
   const { data: baserowFields = [] } = useQuery<BaserowField[]>({
     queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        console.error('Session error:', sessionError);
+        return [];
+      }
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
         {
           headers: {
-            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
         }
       );
@@ -134,7 +138,11 @@ export default function ConsultaNumeros() {
     queryFn: async () => {
       if (!canQuery) return { data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
       
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
+      
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -147,7 +155,7 @@ export default function ConsultaNumeros() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
         {
           headers: {
-            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
         }
       );
@@ -168,14 +176,17 @@ export default function ConsultaNumeros() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ rowId, data }: { rowId: number; data: Record<string, any> }) => {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
       
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros`,
         {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -203,14 +214,17 @@ export default function ConsultaNumeros() {
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
       
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/cadastrar`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(data),

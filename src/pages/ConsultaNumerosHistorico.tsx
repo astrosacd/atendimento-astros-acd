@@ -37,7 +37,11 @@ export default function ConsultaNumerosHistorico() {
   const { data: historyResult, isLoading, refetch } = useQuery({
     queryKey: ['consulta-numeros-history', searchQuery, currentPage, pageSize],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
+      
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
@@ -49,7 +53,7 @@ export default function ConsultaNumerosHistorico() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/historico?${params}`,
         {
           headers: {
-            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
         }
       );
