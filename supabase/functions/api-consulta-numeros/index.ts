@@ -142,7 +142,7 @@ function getBaserowFieldName(mappings: FieldMapping[], systemFieldName: string):
 }
 
 // Query Baserow
-async function queryBaserow(config: BaserowConfig, searchQuery: string, page: number = 1, pageSize: number = 25, statusFilter?: string) {
+async function queryBaserow(config: BaserowConfig, searchQuery: string, page: number = 1, pageSize: number = 25, statusFilters?: string[]) {
   const url = new URL(`${config.api_url}/api/database/rows/table/${config.table_id}/`);
   url.searchParams.append('user_field_names', 'true');
   url.searchParams.append('page', page.toString());
@@ -152,9 +152,17 @@ async function queryBaserow(config: BaserowConfig, searchQuery: string, page: nu
     url.searchParams.append('search', searchQuery);
   }
   
-  // For single_select fields in Baserow, use single_select_equal filter with option ID
-  if (statusFilter) {
-    url.searchParams.append('filter__Status__single_select_equal', statusFilter);
+  // For multiple single_select filters, use filter_type=OR and multiple filter params
+  if (statusFilters && statusFilters.length > 0) {
+    if (statusFilters.length === 1) {
+      url.searchParams.append('filter__Status__single_select_equal', statusFilters[0]);
+    } else {
+      // Multiple status filters - use OR filter type
+      url.searchParams.append('filter_type', 'OR');
+      statusFilters.forEach((statusId, index) => {
+        url.searchParams.append(`filter__Status__single_select_equal`, statusId);
+      });
+    }
   }
 
   console.log('Querying Baserow:', url.toString());
@@ -457,9 +465,10 @@ Deno.serve(async (req) => {
         const searchQuery = url.searchParams.get('q') || '';
         const page = parseInt(url.searchParams.get('page') || '1');
         const pageSize = parseInt(url.searchParams.get('size') || '25');
-        const statusFilter = url.searchParams.get('status') || undefined;
+        const statusParam = url.searchParams.get('status');
+        const statusFilters = statusParam ? statusParam.split(',').filter(s => s.trim()) : undefined;
 
-        const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilter);
+        const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilters);
         
         // Return data directly from Baserow without transformation
         const normalizedData = normalizeBaserowData(result.results || []);
@@ -472,7 +481,7 @@ Deno.serve(async (req) => {
           'consulta',
           origem,
           null,
-          { query: searchQuery, page, pageSize, statusFilter, resultCount: result.count },
+          { query: searchQuery, page, pageSize, statusFilters, resultCount: result.count },
           null,
           userId,
           userEmail,
