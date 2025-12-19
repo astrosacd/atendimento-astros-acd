@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User, AlertCircle, Loader2, Ban, Unlock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,6 +53,9 @@ interface UserWithRole {
   rejection_reason: string | null;
   user_response: string | null;
   created_at: string;
+  is_blocked: boolean;
+  blocked_reason: string | null;
+  blocked_at: string | null;
 }
 
 interface ApprovalHistoryEntry {
@@ -104,6 +107,13 @@ export default function GerenciarUsuarios() {
   const [isResending, setIsResending] = useState(false);
   const [approveRole, setApproveRole] = useState<string>('user');
 
+  // Block/Unblock dialog state
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockingUserId, setBlockingUserId] = useState<string | null>(null);
+  const [blockingUserName, setBlockingUserName] = useState<string>('');
+  const [blockReason, setBlockReason] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
+
   // Fetch custom roles from database
   const { data: customRoles = [] } = useQuery({
     queryKey: ['custom-roles'],
@@ -147,6 +157,9 @@ export default function GerenciarUsuarios() {
           rejection_reason: profile.rejection_reason,
           user_response: profile.user_response,
           created_at: profile.created_at,
+          is_blocked: profile.is_blocked || false,
+          blocked_reason: profile.blocked_reason || null,
+          blocked_at: profile.blocked_at || null,
         };
       });
 
@@ -429,7 +442,85 @@ export default function GerenciarUsuarios() {
     },
   });
 
-  // Check if email already exists
+  // Block user mutation
+  const blockMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_blocked: true,
+          blocked_reason: reason,
+          blocked_at: new Date().toISOString(),
+          blocked_by: currentUser?.id,
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      setBlockDialogOpen(false);
+      setBlockingUserId(null);
+      setBlockingUserName('');
+      setBlockReason('');
+      toast({
+        title: 'Usuário bloqueado!',
+        description: 'O usuário não poderá mais acessar o sistema.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível bloquear o usuário.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Unblock user mutation
+  const unblockMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          is_blocked: false,
+          blocked_reason: null,
+          blocked_at: null,
+          blocked_by: null,
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast({
+        title: 'Usuário desbloqueado!',
+        description: 'O usuário pode acessar o sistema novamente.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível desbloquear o usuário.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleBlockUser = (user: UserWithRole) => {
+    setBlockingUserId(user.id);
+    setBlockingUserName(user.name);
+    setBlockReason('');
+    setBlockDialogOpen(true);
+  };
+
+  const confirmBlock = () => {
+    if (blockingUserId && blockReason.trim()) {
+      blockMutation.mutate({ userId: blockingUserId, reason: blockReason });
+    }
+  };
+
   const checkEmailExists = async (email: string) => {
     if (!email || !email.includes('@')) {
       setEmailError(null);
@@ -967,18 +1058,31 @@ export default function GerenciarUsuarios() {
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
                       <TableHead>Tipo</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Criado em</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {approvedUsers.map((user) => (
-                      <TableRow key={user.id} className="border-border">
+                      <TableRow key={user.id} className={cn("border-border", user.is_blocked && "opacity-60")}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           {getRoleBadge(user.role)}
                         </TableCell>
+                        <TableCell>
+                          {user.is_blocked ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <Ban className="h-3 w-3" />
+                              Bloqueado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-green-500 text-green-500 gap-1">
+                              <Check className="h-3 w-3" />
+                              Ativo
+                            </Badge>
+                          )}</TableCell>
                         <TableCell>
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>
@@ -1014,6 +1118,47 @@ export default function GerenciarUsuarios() {
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
+                              {user.is_blocked ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                      title="Desbloquear usuário"
+                                    >
+                                      <Unlock className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Desbloquear usuário?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja desbloquear <strong>{user.name}</strong>? O usuário poderá acessar o sistema novamente.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => unblockMutation.mutate(user.id)}
+                                        className="bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        Desbloquear
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => handleBlockUser(user)}
+                                  className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white"
+                                  title="Bloquear usuário"
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="icon" variant="destructive">
@@ -1261,6 +1406,47 @@ export default function GerenciarUsuarios() {
               >
                 <Send className="h-4 w-4 mr-2" />
                 {isResending ? 'Enviando...' : 'Enviar Credenciais'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Block User Dialog */}
+        <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <Ban className="h-5 w-5" />
+                Bloquear Usuário
+              </DialogTitle>
+              <DialogDescription>
+                Você está prestes a bloquear <strong>{blockingUserName}</strong>. 
+                O usuário não poderá mais acessar o sistema e verá o motivo do bloqueio.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="block-reason">Motivo do Bloqueio</Label>
+                <Textarea
+                  id="block-reason"
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  placeholder="Ex: Violação dos termos de uso, comportamento inadequado..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmBlock}
+                disabled={!blockReason.trim() || blockMutation.isPending}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                {blockMutation.isPending ? 'Bloqueando...' : 'Confirmar Bloqueio'}
               </Button>
             </DialogFooter>
           </DialogContent>

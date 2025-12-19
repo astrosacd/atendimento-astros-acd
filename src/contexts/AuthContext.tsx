@@ -11,6 +11,8 @@ interface AuthContextType {
   isApproved: boolean;
   isLoading: boolean;
   isAdmin: boolean;
+  isBlocked: boolean;
+  blockedReason: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -24,6 +26,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isApproved, setIsApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
 
   // Track if initial auth check has completed - once true, we won't show global loader again
   // unless the user actually changes (different account)
@@ -43,10 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching user role:', roleError);
       }
 
-      // Fetch approval status
+      // Fetch approval status and blocked status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('approval_status')
+        .select('approval_status, is_blocked, blocked_reason')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -56,14 +60,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // User is approved ONLY if approval_status is explicitly 'approved'
       const isUserApproved = profileData?.approval_status === 'approved';
+      const isUserBlocked = profileData?.is_blocked === true;
+      const userBlockedReason = profileData?.blocked_reason || null;
 
       return {
         role: roleData?.role as UserRole | null,
         approved: isUserApproved,
+        blocked: isUserBlocked,
+        blockedReason: userBlockedReason,
       };
     } catch (error) {
       console.error('Error fetching user data:', error);
-      return { role: null, approved: false };
+      return { role: null, approved: false, blocked: false, blockedReason: null };
     }
   };
 
@@ -81,10 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUserIdRef.current = session?.user?.id ?? null;
 
         if (session?.user) {
-          const { role, approved } = await fetchUserData(session.user.id);
+          const { role, approved, blocked, blockedReason } = await fetchUserData(session.user.id);
           if (!isMounted) return;
           setUserRole(role);
           setIsApproved(approved);
+          setIsBlocked(blocked);
+          setBlockedReason(blockedReason);
         }
         
         initialLoadCompleteRef.current = true;
@@ -128,14 +138,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // User signed out
             setUserRole(null);
             setIsApproved(false);
+            setIsBlocked(false);
+            setBlockedReason(null);
             return;
           }
           
           // Different user signed in - fetch their data (rare case)
-          const { role, approved } = await fetchUserData(session.user.id);
+          const { role, approved, blocked, blockedReason } = await fetchUserData(session.user.id);
           if (!isMounted) return;
           setUserRole(role);
           setIsApproved(approved);
+          setIsBlocked(blocked);
+          setBlockedReason(blockedReason);
           return;
         }
 
@@ -145,15 +159,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(true);
           setTimeout(async () => {
             if (!isMounted) return;
-            const { role, approved } = await fetchUserData(session.user.id);
+            const { role, approved, blocked, blockedReason } = await fetchUserData(session.user.id);
             if (!isMounted) return;
             setUserRole(role);
             setIsApproved(approved);
+            setIsBlocked(blocked);
+            setBlockedReason(blockedReason);
             setIsLoading(false);
           }, 0);
         } else {
           setUserRole(null);
           setIsApproved(false);
+          setIsBlocked(false);
+          setBlockedReason(null);
           setIsLoading(false);
         }
       }
@@ -211,6 +229,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
     setUserRole(null);
     setIsApproved(false);
+    setIsBlocked(false);
+    setBlockedReason(null);
   };
 
   return (
@@ -222,6 +242,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isApproved,
         isLoading,
         isAdmin: userRole === 'admin',
+        isBlocked,
+        blockedReason,
         signIn,
         signUp,
         signOut,
