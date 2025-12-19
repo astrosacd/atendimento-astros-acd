@@ -351,7 +351,11 @@ export default function ConsultaNumeros() {
 
   // Apply filters/search
   const handleSearch = () => {
-    // Reset to page 1; the query will re-run because `currentPage` is part of the queryKey.
+    // If already on page 1, force a refetch; otherwise just go to page 1 (queryKey changes).
+    if (currentPage === 1) {
+      refetch();
+      return;
+    }
     setCurrentPage(1);
   };
 
