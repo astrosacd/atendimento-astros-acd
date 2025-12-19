@@ -319,6 +319,14 @@ export default function ConsultaNumeros() {
       }
       
       const json = await res.json();
+      
+      // Check specifically for duplicate error
+      if (res.status === 409 && json.duplicate) {
+        const error = new Error(json.error) as Error & { duplicate?: boolean };
+        error.duplicate = true;
+        throw error;
+      }
+      
       if (!json.success) throw new Error(json.error);
       return json;
     },
@@ -328,8 +336,16 @@ export default function ConsultaNumeros() {
       setCreateDialogOpen(false);
       resetCreateForm();
     },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+    onError: (error: Error & { duplicate?: boolean }) => {
+      if (error.duplicate) {
+        toast({ 
+          title: '⚠️ Número duplicado!', 
+          description: error.message, 
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+      }
     },
   });
 
