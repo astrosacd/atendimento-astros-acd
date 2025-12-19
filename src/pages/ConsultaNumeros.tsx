@@ -249,12 +249,12 @@ export default function ConsultaNumeros() {
                 />
               </div>
               <div className="w-full md:w-48">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter || "__all__"} onValueChange={(val) => setStatusFilter(val === "__all__" ? "" : val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filtrar por status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os status</SelectItem>
+                    <SelectItem value="__all__">Todos os status</SelectItem>
                     {statuses.map((s) => (
                       <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
                     ))}
