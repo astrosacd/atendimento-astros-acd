@@ -720,6 +720,7 @@ Deno.serve(async (req) => {
       // The frontend sends all fields directly using Baserow field names
       const createData: any = {};
       let numeroValue: string | null = null;
+      let numeroFieldName: string | null = null;
 
       // Copy all fields from the request body directly to createData
       for (const [key, value] of Object.entries(body)) {
@@ -727,8 +728,9 @@ Deno.serve(async (req) => {
           createData[key] = value;
           
           // Track the numero field for logging (could be "numero", "Número", etc.)
-          if (key.toLowerCase().includes('numero')) {
+          if (key.toLowerCase().includes('numero') || key.toLowerCase() === 'número') {
             numeroValue = String(value);
+            numeroFieldName = key;
           }
         }
       }
@@ -740,6 +742,48 @@ Deno.serve(async (req) => {
           JSON.stringify({ success: false, error: 'Nenhum dado para cadastrar' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      }
+
+      // Check for duplicate number before creating
+      if (numeroValue) {
+        console.log('Checking for duplicate number:', numeroValue);
+        try {
+          const duplicateCheck = await queryBaserow(config, numeroValue, 1, 10);
+          
+          if (duplicateCheck.results && duplicateCheck.results.length > 0) {
+            // Check if any result has an exact match for the numero field
+            const exactMatch = duplicateCheck.results.find((row: any) => {
+              // Check all possible numero field names
+              const possibleFields = ['numero', 'Numero', 'Número', 'número', 'NUMERO'];
+              for (const field of possibleFields) {
+                if (row[field] && String(row[field]).trim() === numeroValue?.trim()) {
+                  return true;
+                }
+              }
+              // Also check using the detected field name
+              if (numeroFieldName && row[numeroFieldName] && String(row[numeroFieldName]).trim() === numeroValue?.trim()) {
+                return true;
+              }
+              return false;
+            });
+
+            if (exactMatch) {
+              console.log('Duplicate number found:', exactMatch);
+              return new Response(
+                JSON.stringify({ 
+                  success: false, 
+                  error: `Número ${numeroValue} já existe no sistema. Não é possível cadastrar números duplicados.`,
+                  duplicate: true,
+                  existing_row_id: exactMatch.id
+                }),
+                { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        } catch (e) {
+          console.error('Error checking for duplicates:', e);
+          // Continue with creation if duplicate check fails
+        }
       }
 
       // Create in Baserow
