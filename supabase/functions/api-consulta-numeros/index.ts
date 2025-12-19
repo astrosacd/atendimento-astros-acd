@@ -142,26 +142,44 @@ function getBaserowFieldName(mappings: FieldMapping[], systemFieldName: string):
 }
 
 // Query Baserow
-async function queryBaserow(config: BaserowConfig, searchQuery: string, page: number = 1, pageSize: number = 25, statusFilters?: string[]) {
+async function queryBaserow(
+  config: BaserowConfig,
+  searchQuery: string,
+  page: number = 1,
+  pageSize: number = 25,
+  statusFilters?: string[],
+) {
   const url = new URL(`${config.api_url}/api/database/rows/table/${config.table_id}/`);
   url.searchParams.append('user_field_names', 'true');
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', pageSize.toString());
-  
+
   if (searchQuery) {
     url.searchParams.append('search', searchQuery);
   }
-  
-  // For multiple single_select filters, use filter_type=OR and multiple filter params
+
+  // Robust filtering: use JSON filters with field ID (works regardless of field name casing)
   if (statusFilters && statusFilters.length > 0) {
-    if (statusFilters.length === 1) {
-      url.searchParams.append('filter__Status__single_select_equal', statusFilters[0]);
-    } else {
-      // Multiple status filters - use OR filter type
-      url.searchParams.append('filter_type', 'OR');
-      statusFilters.forEach((statusId, index) => {
-        url.searchParams.append(`filter__Status__single_select_equal`, statusId);
+    const fields = await getBaserowFields(config);
+    const statusField =
+      fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
+      fields.find((f: any) => f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0);
+
+    if (!statusField?.id) {
+      console.warn('[api-consulta-numeros] No single_select field found for status filter; skipping', {
+        availableFields: fields.map((f: any) => ({ name: f.name, type: f.type })),
       });
+    } else {
+      const filters = {
+        filter_type: 'OR',
+        filters: statusFilters.map((statusId) => ({
+          field: statusField.id,
+          type: 'single_select_equal',
+          value: statusId,
+        })),
+      };
+
+      url.searchParams.append('filters', JSON.stringify(filters));
     }
   }
 
