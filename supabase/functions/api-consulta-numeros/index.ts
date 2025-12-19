@@ -152,8 +152,9 @@ async function queryBaserow(config: BaserowConfig, searchQuery: string, page: nu
     url.searchParams.append('search', searchQuery);
   }
   
+  // For single_select fields in Baserow, use single_select_equal filter with option ID
   if (statusFilter) {
-    url.searchParams.append('filter__Status__equal', statusFilter);
+    url.searchParams.append('filter__Status__single_select_equal', statusFilter);
   }
 
   console.log('Querying Baserow:', url.toString());
