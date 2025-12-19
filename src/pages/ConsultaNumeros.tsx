@@ -77,7 +77,8 @@ export default function ConsultaNumeros() {
       const json = await res.json();
       return json.success ? json.data : [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     retry: false,
   });
 
@@ -111,6 +112,8 @@ export default function ConsultaNumeros() {
     },
     enabled: canQuery,
     retry: false,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // Check if error is configuration-related
@@ -206,6 +209,7 @@ export default function ConsultaNumeros() {
 
   return (
     <DashboardLayout>
+      <div className="p-4 md:p-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -421,6 +425,7 @@ export default function ConsultaNumeros() {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
 
       {/* Edit Dialog */}
