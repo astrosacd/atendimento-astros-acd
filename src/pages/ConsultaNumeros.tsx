@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,10 @@ export default function ConsultaNumeros() {
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newValues, setNewValues] = useState<Record<string, string>>({});
+
+  const nonEditableFields = useMemo(() => {
+    return new Set(['nome', 'numero', 'email', 'data_cadastro', 'data_da_ultima_consulta']);
+  }, []);
 
   // Permissions
   const canQuery = isAdmin || hasPermission('query_consulta_numeros');
@@ -470,19 +475,32 @@ export default function ConsultaNumeros() {
                           {visibleFields.map((field) => {
                             const cellValue = row[field.name];
                             // Handle single_select fields which come as {id, value, color} objects
-                            const rawValue = field.type === 'single_select' && cellValue && typeof cellValue === 'object' && 'value' in cellValue
-                              ? cellValue.value
-                              : cellValue;
-                            
+                            const rawValue =
+                              field.type === 'single_select' &&
+                              cellValue &&
+                              typeof cellValue === 'object' &&
+                              'value' in cellValue
+                                ? cellValue.value
+                                : cellValue;
+
                             // Check if this field should be masked
                             const isMaskedField = maskedFieldsConfig.includes(field.name);
-                            const displayValue = isMaskedField && !canViewUnmasked 
-                              ? maskValue(rawValue?.toString(), field.name)
-                              : rawValue;
-                            
+                            const displayValue =
+                              isMaskedField && !canViewUnmasked
+                                ? maskValue(rawValue?.toString(), field.name)
+                                : rawValue;
+
+                            const isObservacoes = field.name.toLowerCase() === 'observacoes';
+                            const asText = (displayValue?.toString() || '').trim();
+                            const showTooltip =
+                              isObservacoes &&
+                              !!asText &&
+                              asText.length > 32 &&
+                              (!isMaskedField || canViewUnmasked);
+
                             return (
-                              <TableCell 
-                                key={field.id} 
+                              <TableCell
+                                key={field.id}
                                 className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[2px] select-none' : ''}`}
                               >
                                 {field.type === 'single_select' ? (
@@ -491,6 +509,17 @@ export default function ConsultaNumeros() {
                                   rawValue ? 'Sim' : 'Não'
                                 ) : field.type === 'date' ? (
                                   rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                ) : showTooltip ? (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="cursor-help">{asText}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-[420px] whitespace-pre-wrap">
+                                        {asText}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 ) : (
                                   displayValue?.toString() || '-'
                                 )}
@@ -599,52 +628,62 @@ export default function ConsultaNumeros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {visibleFields.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <Label>{field.name}</Label>
-                {field.type === 'single_select' && field.select_options ? (
-                  <Select 
-                    value={editValues[field.name] || ''} 
-                    onValueChange={(val) => setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={`Selecione ${field.name}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {field.select_options.map((opt) => (
-                        <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : field.type === 'long_text' ? (
-                  <Textarea
-                    value={editValues[field.name] || ''}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    placeholder={`Digite ${field.name}...`}
-                    rows={3}
-                  />
-                ) : field.type === 'boolean' ? (
-                  <Select 
-                    value={editValues[field.name] || ''} 
-                    onValueChange={(val) => setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Sim</SelectItem>
-                      <SelectItem value="false">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={editValues[field.name] || ''}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    placeholder={`Digite ${field.name}...`}
-                  />
-                )}
-              </div>
-            ))}
+            {visibleFields.map((field) => {
+              const isNonEditable = nonEditableFields.has(field.name.toLowerCase());
+
+              return (
+                <div key={field.id} className="space-y-2">
+                  <Label>{field.name}</Label>
+                  {field.type === 'single_select' && field.select_options ? (
+                    <Select
+                      value={editValues[field.name] || ''}
+                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable}
+                    >
+                      <SelectTrigger disabled={isNonEditable}>
+                        <SelectValue placeholder={`Selecione ${field.name}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.select_options.map((opt) => (
+                          <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : field.type === 'long_text' ? (
+                    <Textarea
+                      value={editValues[field.name] || ''}
+                      onChange={(e) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
+                      rows={3}
+                      disabled={isNonEditable}
+                      readOnly={isNonEditable}
+                    />
+                  ) : field.type === 'boolean' ? (
+                    <Select
+                      value={editValues[field.name] || ''}
+                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable}
+                    >
+                      <SelectTrigger disabled={isNonEditable}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Sim</SelectItem>
+                        <SelectItem value="false">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={editValues[field.name] || ''}
+                      onChange={(e) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
+                      disabled={isNonEditable}
+                      readOnly={isNonEditable}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
