@@ -232,7 +232,13 @@ export default function ConsultaNumeros() {
     // Initialize edit values with current row values
     const values: Record<string, string> = {};
     visibleFields.forEach(f => {
-      values[f.name] = row[f.name]?.toString() || '';
+      const val = row[f.name];
+      // Handle single_select fields which come as {id, value, color} objects
+      if (f.type === 'single_select' && val && typeof val === 'object' && 'value' in val) {
+        values[f.name] = val.value || '';
+      } else {
+        values[f.name] = val?.toString() || '';
+      }
     });
     setEditValues(values);
     setEditDialogOpen(true);
@@ -250,7 +256,15 @@ export default function ConsultaNumeros() {
     const csvContent = [
       headers.join(','),
       ...queryResult.data.map((row: NumeroResult) =>
-        headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(',')
+        headers.map((h) => {
+          const field = visibleFields.find(f => f.name === h);
+          const val = row[h];
+          // Handle single_select objects
+          const displayVal = field?.type === 'single_select' && val && typeof val === 'object' && 'value' in val
+            ? val.value
+            : val;
+          return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
+        }).join(',')
       ),
     ].join('\n');
 
@@ -387,19 +401,27 @@ export default function ConsultaNumeros() {
                     <TableBody>
                       {queryResult?.data?.map((row: NumeroResult) => (
                         <TableRow key={row.id}>
-                          {visibleFields.map((field) => (
-                            <TableCell key={field.id} className="max-w-[200px] truncate">
-                              {field.type === 'single_select' ? (
-                                <Badge variant="secondary">{row[field.name] || '-'}</Badge>
-                              ) : field.type === 'boolean' ? (
-                                row[field.name] ? 'Sim' : 'Não'
-                              ) : field.type === 'date' ? (
-                                row[field.name] ? new Date(row[field.name]).toLocaleDateString('pt-BR') : '-'
-                              ) : (
-                                row[field.name]?.toString() || '-'
-                              )}
-                            </TableCell>
-                          ))}
+                          {visibleFields.map((field) => {
+                            const cellValue = row[field.name];
+                            // Handle single_select fields which come as {id, value, color} objects
+                            const displayValue = field.type === 'single_select' && cellValue && typeof cellValue === 'object' && 'value' in cellValue
+                              ? cellValue.value
+                              : cellValue;
+                            
+                            return (
+                              <TableCell key={field.id} className="max-w-[200px] truncate">
+                                {field.type === 'single_select' ? (
+                                  <Badge variant="secondary">{displayValue || '-'}</Badge>
+                                ) : field.type === 'boolean' ? (
+                                  displayValue ? 'Sim' : 'Não'
+                                ) : field.type === 'date' ? (
+                                  displayValue ? new Date(displayValue).toLocaleDateString('pt-BR') : '-'
+                                ) : (
+                                  displayValue?.toString() || '-'
+                                )}
+                              </TableCell>
+                            );
+                          })}
                           <TableCell>
                             {(canUpdateStatus || canUpdateObs || canUpdateBoth) && (
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
