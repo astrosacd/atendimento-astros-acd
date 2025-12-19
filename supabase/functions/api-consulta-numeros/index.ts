@@ -393,12 +393,11 @@ Deno.serve(async (req) => {
       apiKeyId = apiKeyData.id;
       origem = 'api';
     } else if (authHeader) {
-      // Verify JWT token using an anon-key client with the caller's Authorization header
-      const authSupabase = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
+      // Verify JWT token
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const authSupabase = createClient(supabaseUrl, anonKey);
 
-      const { data: { user }, error } = await authSupabase.auth.getUser();
+      const { data: { user }, error } = await authSupabase.auth.getUser(token);
 
       if (error || !user) {
         console.error('[api-consulta-numeros] Invalid token', {
