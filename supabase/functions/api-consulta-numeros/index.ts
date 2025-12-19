@@ -84,6 +84,77 @@ async function getFieldMappings(supabase: any): Promise<FieldMapping[]> {
   return data || [];
 }
 
+// Map Baserow data using field mappings - translate from Baserow column names to standard names
+function mapBaserowData(rows: any[], mappings: FieldMapping[]): any[] {
+  if (!mappings || mappings.length === 0) {
+    // If no mappings, return data as-is
+    return rows;
+  }
+
+  return rows.map(row => {
+    const mappedRow: any = {
+      id: row.id,
+      order: row.order,
+    };
+
+    // Map each field using the configured mappings
+    for (const mapping of mappings) {
+      const baserowFieldName = mapping.baserow_field_name;
+      const systemFieldName = mapping.field_name;
+      
+      // Try to get value using baserow field name
+      if (row[baserowFieldName] !== undefined) {
+        // Map to standardized names that frontend expects
+        switch (systemFieldName) {
+          case 'numero':
+            mappedRow['Número'] = row[baserowFieldName];
+            break;
+          case 'status':
+            mappedRow['Status'] = row[baserowFieldName];
+            break;
+          case 'observacoes':
+            mappedRow['Observações'] = row[baserowFieldName];
+            break;
+          case 'origem':
+            mappedRow['Origem'] = row[baserowFieldName];
+            break;
+          case 'data_cadastro':
+            mappedRow['Data de Cadastro'] = row[baserowFieldName];
+            break;
+          default:
+            mappedRow[systemFieldName] = row[baserowFieldName];
+        }
+      }
+    }
+
+    // Also keep original fields for any unmapped data
+    for (const key of Object.keys(row)) {
+      if (!mappedRow.hasOwnProperty(key) && key !== 'id' && key !== 'order') {
+        mappedRow[key] = row[key];
+      }
+    }
+
+    return mappedRow;
+  });
+}
+
+// Get Baserow field name from system field name
+function getBaserowFieldName(mappings: FieldMapping[], systemFieldName: string): string {
+  const mapping = mappings.find(m => m.field_name === systemFieldName);
+  if (mapping) {
+    return mapping.baserow_field_name;
+  }
+  // Default fallback to Portuguese names if no mapping found
+  const defaults: Record<string, string> = {
+    'numero': 'Número',
+    'status': 'Status',
+    'observacoes': 'Observações',
+    'origem': 'Origem',
+    'data_cadastro': 'Data de Cadastro',
+  };
+  return defaults[systemFieldName] || systemFieldName;
+}
+
 // Query Baserow
 async function queryBaserow(config: BaserowConfig, searchQuery: string, page: number = 1, pageSize: number = 25, statusFilter?: string) {
   const url = new URL(`${config.api_url}/api/database/rows/table/${config.table_id}/`);
@@ -370,6 +441,10 @@ Deno.serve(async (req) => {
         const statusFilter = url.searchParams.get('status') || undefined;
 
         const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilter);
+        
+        // Get field mappings and apply them to results
+        const fieldMappings = await getFieldMappings(supabase);
+        const mappedData = mapBaserowData(result.results || [], fieldMappings);
 
         // Log consultation
         await logAction(
@@ -392,7 +467,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: true,
-            data: result.results,
+            data: mappedData,
             pagination: {
               count: result.count,
               page,
@@ -483,17 +558,22 @@ Deno.serve(async (req) => {
         console.error('Error getting previous data:', e);
       }
 
-      // Build update data
+      // Get field mappings for proper field names
+      const fieldMappings = await getFieldMappings(supabase);
+
+      // Build update data using field mappings
       const updateData: any = {};
       const changedFields: string[] = [];
 
       if (status !== undefined) {
-        updateData['Status'] = status;
+        const statusFieldName = getBaserowFieldName(fieldMappings, 'status');
+        updateData[statusFieldName] = status;
         changedFields.push('status');
       }
 
       if (observacoes !== undefined) {
-        updateData['Observações'] = observacoes;
+        const obsFieldName = getBaserowFieldName(fieldMappings, 'observacoes');
+        updateData[obsFieldName] = observacoes;
         changedFields.push('observacoes');
       }
 
@@ -562,19 +642,26 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Build create data
+      // Get field mappings for proper field names
+      const fieldMappings = await getFieldMappings(supabase);
+
+      // Build create data using field mappings
+      const numeroFieldName = getBaserowFieldName(fieldMappings, 'numero');
       const createData: any = {
-        'Número': numero,
+        [numeroFieldName]: numero,
       };
 
       if (status) {
-        createData['Status'] = status;
+        const statusFieldName = getBaserowFieldName(fieldMappings, 'status');
+        createData[statusFieldName] = status;
       }
       if (observacoes) {
-        createData['Observações'] = observacoes;
+        const obsFieldName = getBaserowFieldName(fieldMappings, 'observacoes');
+        createData[obsFieldName] = observacoes;
       }
       if (origemCadastro) {
-        createData['Origem'] = origemCadastro;
+        const origemFieldName = getBaserowFieldName(fieldMappings, 'origem');
+        createData[origemFieldName] = origemCadastro;
       }
 
       // Create in Baserow
