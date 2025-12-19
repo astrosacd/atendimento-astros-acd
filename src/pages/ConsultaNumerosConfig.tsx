@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -23,6 +23,12 @@ interface MaskedField {
   id: string;
   field_name: string;
   is_masked: boolean;
+}
+
+interface ObsTag {
+  id: string;
+  nome: string;
+  cor: string;
 }
 
 interface BaserowField {
@@ -44,6 +50,8 @@ export default function ConsultaNumerosConfig() {
   });
   
   const [newFieldName, setNewFieldName] = useState('');
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#ef4444');
 
   // Fetch config
   const { data: configData, isLoading: loadingConfig } = useQuery({
@@ -93,6 +101,21 @@ export default function ConsultaNumerosConfig() {
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: false,
+  });
+
+  // Fetch observation tags
+  const { data: obsTags = [], isLoading: loadingObsTags } = useQuery({
+    queryKey: ['consulta-numeros-obs-tags'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_obs_tags')
+        .select('*')
+        .order('nome');
+      if (error) throw error;
+      return data as ObsTag[];
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -178,6 +201,43 @@ export default function ConsultaNumerosConfig() {
     },
   });
 
+  // Add observation tag mutation
+  const addObsTagMutation = useMutation({
+    mutationFn: async ({ nome, cor }: { nome: string; cor: string }) => {
+      const { error } = await supabase
+        .from('consulta_numeros_obs_tags')
+        .insert({ nome, cor });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Tag adicionada!' });
+      setNewTagName('');
+      setNewTagColor('#ef4444');
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-tags'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao adicionar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Delete observation tag mutation
+  const deleteObsTagMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('consulta_numeros_obs_tags')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Tag removida!' });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-obs-tags'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Auto-sync: ensure every Baserow field exists in masked fields table (default: not masked)
   const syncMaskedFieldsMutation = useMutation({
     mutationFn: async (fieldNames: string[]) => {
@@ -251,7 +311,15 @@ export default function ConsultaNumerosConfig() {
     addFieldMutation.mutate(newFieldName.trim());
   };
 
-  const isLoading = loadingConfig || loadingMaskedFields;
+  const handleAddObsTag = () => {
+    if (!newTagName.trim()) {
+      toast({ title: 'Digite o nome da tag', variant: 'destructive' });
+      return;
+    }
+    addObsTagMutation.mutate({ nome: newTagName.trim(), cor: newTagColor });
+  };
+
+  const isLoading = loadingConfig || loadingMaskedFields || loadingObsTags;
 
   return (
     <DashboardLayout>
@@ -296,6 +364,10 @@ export default function ConsultaNumerosConfig() {
               <TabsTrigger value="maskedFields" className="gap-2">
                 <EyeOff className="h-4 w-4" />
                 Campos Mascarados
+              </TabsTrigger>
+              <TabsTrigger value="obsTags" className="gap-2">
+                <Tag className="h-4 w-4" />
+                Tags de Observação
               </TabsTrigger>
             </TabsList>
 
@@ -466,6 +538,111 @@ export default function ConsultaNumerosConfig() {
                       <li>• Admins sempre veem todos os dados sem máscara</li>
                       <li>• Outros usuários precisam da permissão "Ver dados sem máscara" para ver os valores reais</li>
                       <li>• Configure as permissões em Admin → Permissões</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="obsTags">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Tags de Observação
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie as tags rápidas que podem ser usadas no campo de observações ao editar registros
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Nome da tag (ex: SIM não aprovisionado)"
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddObsTag()}
+                      className="flex-1"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="tagColor" className="text-xs text-muted-foreground whitespace-nowrap">Cor:</Label>
+                      <input
+                        type="color"
+                        id="tagColor"
+                        value={newTagColor}
+                        onChange={(e) => setNewTagColor(e.target.value)}
+                        className="w-10 h-10 rounded border cursor-pointer"
+                      />
+                    </div>
+                    <Button onClick={handleAddObsTag} disabled={addObsTagMutation.isPending}>
+                      {addObsTagMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tag</TableHead>
+                          <TableHead className="w-[100px]">Cor</TableHead>
+                          <TableHead className="w-[80px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {obsTags.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                              Nenhuma tag configurada
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          obsTags.map((tag) => (
+                            <TableRow key={tag.id}>
+                              <TableCell>
+                                <span
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                  style={{
+                                    backgroundColor: tag.cor,
+                                    color: '#fff',
+                                  }}
+                                >
+                                  {tag.nome}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <div
+                                  className="w-6 h-6 rounded border"
+                                  style={{ backgroundColor: tag.cor }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => deleteObsTagMutation.mutate(tag.id)}
+                                  disabled={deleteObsTagMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Como funciona:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• As tags aparecem ao editar um registro no campo de observações</li>
+                      <li>• O usuário pode selecionar uma ou mais tags clicando nelas</li>
+                      <li>• As tags selecionadas são adicionadas automaticamente à observação</li>
+                      <li>• O usuário também pode digitar texto livre além das tags</li>
                     </ul>
                   </div>
                 </CardContent>

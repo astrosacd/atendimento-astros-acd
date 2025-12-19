@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2 } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2, X, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -54,6 +54,7 @@ export default function ConsultaNumeros() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<NumeroResult | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [selectedObsTags, setSelectedObsTags] = useState<string[]>([]);
   const [newObservacao, setNewObservacao] = useState(''); // Texto temporário para nova observação
 
   // Create number state
@@ -108,6 +109,20 @@ export default function ConsultaNumeros() {
         .eq('is_masked', true);
       if (error) throw error;
       return data?.map(f => f.field_name) || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch observation tags for quick selection
+  const { data: obsTags = [] } = useQuery({
+    queryKey: ['consulta-numeros-obs-tags'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_obs_tags')
+        .select('*')
+        .order('nome');
+      if (error) throw error;
+      return data || [];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -382,19 +397,46 @@ export default function ConsultaNumeros() {
     });
     setEditValues(values);
     setNewObservacao('');
+    setSelectedObsTags([]);
     setEditDialogOpen(true);
+  };
+
+  const handleAddObsTag = (tagName: string) => {
+    if (!selectedObsTags.includes(tagName)) {
+      setSelectedObsTags(prev => [...prev, tagName]);
+    }
+  };
+
+  const handleRemoveObsTag = (tagName: string) => {
+    setSelectedObsTags(prev => prev.filter(t => t !== tagName));
   };
 
   const handleSaveEdit = () => {
     if (!selectedRow) return;
 
-    // Merge nova observação com as anteriores (se houver)
+    // Merge nova observação e tags com as anteriores (se houver)
     const finalValues = { ...editValues };
     const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
-    if (obsField && newObservacao.trim()) {
-      const timestamp = new Date().toLocaleString('pt-BR');
-      const separator = editValues[obsField.name] ? '\n---\n' : '';
-      finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${newObservacao.trim()}`;
+    
+    if (obsField) {
+      const hasNewObs = newObservacao.trim();
+      const hasTags = selectedObsTags.length > 0;
+      
+      if (hasNewObs || hasTags) {
+        const timestamp = new Date().toLocaleString('pt-BR');
+        const separator = editValues[obsField.name] ? '\n---\n' : '';
+        
+        // Build the new observation entry
+        const parts: string[] = [];
+        if (hasTags) {
+          parts.push(`[TAGS: ${selectedObsTags.join(', ')}]`);
+        }
+        if (hasNewObs) {
+          parts.push(newObservacao.trim());
+        }
+        
+        finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
+      }
     }
 
     updateMutation.mutate({ rowId: selectedRow.id, data: finalValues });
@@ -816,13 +858,53 @@ export default function ConsultaNumeros() {
                       </SelectContent>
                     </Select>
                   ) : field.type === 'long_text' || isObservacoes ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {isObservacoes && editValues[field.name] && (
                         <div className="border rounded-md p-3 bg-muted/30 max-h-32 overflow-y-auto">
                           <p className="text-xs text-muted-foreground mb-1">Observações anteriores:</p>
                           <pre className="text-sm whitespace-pre-wrap font-sans">{editValues[field.name]}</pre>
                         </div>
                       )}
+                      
+                      {/* Tag selection for observacoes */}
+                      {isObservacoes && obsTags.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Tag className="h-3 w-3" />
+                            Selecione tags rápidas:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {obsTags.map((tag) => {
+                              const isSelected = selectedObsTags.includes(tag.nome);
+                              return (
+                                <Badge
+                                  key={tag.id}
+                                  variant={isSelected ? "default" : "outline"}
+                                  className="cursor-pointer transition-all hover:scale-105"
+                                  style={{
+                                    backgroundColor: isSelected ? tag.cor : 'transparent',
+                                    borderColor: tag.cor,
+                                    color: isSelected ? '#fff' : tag.cor,
+                                  }}
+                                  onClick={() => isSelected ? handleRemoveObsTag(tag.nome) : handleAddObsTag(tag.nome)}
+                                >
+                                  {tag.nome}
+                                  {isSelected && <X className="h-3 w-3 ml-1" />}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Selected tags preview */}
+                          {selectedObsTags.length > 0 && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>Tags selecionadas:</span>
+                              <span className="font-medium text-foreground">{selectedObsTags.join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <Textarea
                         value={isObservacoes ? newObservacao : (editValues[field.name] || '')}
                         onChange={(e) => {
@@ -834,7 +916,7 @@ export default function ConsultaNumeros() {
                             }
                           }
                         }}
-                        placeholder={isObservacoes ? 'Adicione uma nova observação...' : (isNonEditable ? '' : `Digite ${field.name}...`)}
+                        placeholder={isObservacoes ? 'Adicione uma nova observação (opcional)...' : (isNonEditable ? '' : `Digite ${field.name}...`)}
                         rows={isObservacoes ? 2 : 3}
                         disabled={isNonEditable}
                         readOnly={isNonEditable}
