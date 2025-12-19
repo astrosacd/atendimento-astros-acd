@@ -45,7 +45,8 @@ export default function ConsultaNumeros() {
   const { isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
   
-  const [searchQuery, setSearchQuery] = useState('');
+  const [inputSearchQuery, setInputSearchQuery] = useState('');
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(25);
@@ -184,23 +185,23 @@ export default function ConsultaNumeros() {
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', searchQuery, statusFilters, currentPage, pageSize],
+    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize],
     queryFn: async () => {
       if (!canQuery) return { data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
-      
+
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
         throw new Error('Sessão inválida. Faça login novamente.');
       }
-      
+
       const params = new URLSearchParams({
         page: currentPage.toString(),
         size: pageSize.toString(),
       });
-      
-      if (searchQuery) params.append('q', searchQuery);
+
+      if (appliedSearchQuery) params.append('q', appliedSearchQuery);
       if (statusFilters.length > 0) params.append('status', statusFilters.join(','));
-      
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
         {
@@ -351,11 +352,17 @@ export default function ConsultaNumeros() {
 
   // Apply filters/search
   const handleSearch = () => {
-    // If already on page 1, force a refetch; otherwise just go to page 1 (queryKey changes).
-    if (currentPage === 1) {
+    const nextQuery = inputSearchQuery.trim();
+
+    // Apply the typed query and reset to first page.
+    setAppliedSearchQuery(nextQuery);
+
+    // If already on page 1 and query didn't change, force a refetch.
+    if (currentPage === 1 && nextQuery === appliedSearchQuery) {
       refetch();
       return;
     }
+
     setCurrentPage(1);
   };
 
@@ -461,8 +468,8 @@ export default function ConsultaNumeros() {
               <div className="flex-1">
                 <Input
                   placeholder="Digite o número para buscar..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={inputSearchQuery}
+                  onChange={(e) => setInputSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
