@@ -727,8 +727,10 @@ Deno.serve(async (req) => {
         if (value !== undefined && value !== null && value !== '') {
           createData[key] = value;
           
-          // Track the numero field for logging (could be "numero", "Número", etc.)
-          if (key.toLowerCase().includes('numero') || key.toLowerCase() === 'número') {
+          // Track the numero field for logging - specifically look for the main "numero" field
+          // Avoid matching "numero_de_compra" or other compound fields
+          const keyLower = key.toLowerCase();
+          if (keyLower === 'numero' || keyLower === 'número') {
             numeroValue = String(value);
             numeroFieldName = key;
           }
