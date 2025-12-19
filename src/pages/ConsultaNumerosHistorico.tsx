@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Search, ArrowLeft, Download, ChevronLeft, ChevronRight, Eye, RefreshCw } from 'lucide-react';
+import { Search, ArrowLeft, Download, ChevronLeft, ChevronRight, Eye, RefreshCw, User, Globe, Key, Webhook, Pencil, FileText, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -22,20 +23,26 @@ interface HistoryEntry {
   dados_anteriores: any;
   dados_novos: any;
   campos_alterados: string[] | null;
+  usuario_id: string | null;
   usuario_email: string | null;
+  api_key_id: string | null;
+  webhook_id: string | null;
   ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 
 export default function ConsultaNumerosHistorico() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [acaoFilter, setAcaoFilter] = useState<string>('');
+  const [origemFilter, setOrigemFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
 
   const { data: historyResult, isLoading, refetch } = useQuery({
-    queryKey: ['consulta-numeros-history', searchQuery, currentPage, pageSize],
+    queryKey: ['consulta-numeros-history', searchQuery, acaoFilter, origemFilter, currentPage, pageSize],
     queryFn: async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
@@ -48,6 +55,8 @@ export default function ConsultaNumerosHistorico() {
       });
       
       if (searchQuery) params.append('numero', searchQuery);
+      if (acaoFilter) params.append('acao', acaoFilter);
+      if (origemFilter) params.append('origem', origemFilter);
       
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/historico?${params}`,
@@ -72,32 +81,54 @@ export default function ConsultaNumerosHistorico() {
   const getAcaoLabel = (acao: string) => {
     const labels: Record<string, string> = {
       'consulta': 'Consulta',
-      'consulta_webhook': 'Consulta (Webhook)',
-      'atualizacao': 'Atualização',
-      'atualizacao_status': 'Atualização de Status',
-      'atualizacao_obs': 'Atualização de Observações',
-      'atualizacao_status_obs': 'Atualização de Status + Obs',
-      'atualizacao_webhook': 'Atualização (Webhook)',
+      'atualizacao': 'Edição',
+      'cadastro': 'Cadastro',
+      'exclusao': 'Exclusão',
     };
     return labels[acao] || acao;
   };
 
-  const getAcaoVariant = (acao: string): 'default' | 'secondary' | 'outline' => {
-    if (acao.includes('consulta')) return 'secondary';
-    if (acao.includes('atualizacao')) return 'default';
-    return 'outline';
+  const getAcaoIcon = (acao: string) => {
+    if (acao.includes('consulta')) return <FileText className="h-3 w-3" />;
+    if (acao.includes('atualizacao')) return <Pencil className="h-3 w-3" />;
+    if (acao.includes('cadastro')) return <FileText className="h-3 w-3" />;
+    if (acao.includes('exclusao')) return <Trash2 className="h-3 w-3" />;
+    return <FileText className="h-3 w-3" />;
   };
 
-  const getOrigemVariant = (origem: string): 'default' | 'secondary' | 'outline' => {
-    if (origem === 'api') return 'default';
-    if (origem === 'webhook') return 'outline';
-    return 'secondary';
+  const getAcaoColor = (acao: string): string => {
+    if (acao.includes('consulta')) return 'bg-blue-500/10 text-blue-600 border-blue-500/30';
+    if (acao.includes('atualizacao')) return 'bg-amber-500/10 text-amber-600 border-amber-500/30';
+    if (acao.includes('cadastro')) return 'bg-green-500/10 text-green-600 border-green-500/30';
+    if (acao.includes('exclusao')) return 'bg-red-500/10 text-red-600 border-red-500/30';
+    return 'bg-muted text-muted-foreground';
+  };
+
+  const getOrigemIcon = (origem: string) => {
+    if (origem === 'api') return <Key className="h-3 w-3" />;
+    if (origem === 'webhook') return <Webhook className="h-3 w-3" />;
+    return <Globe className="h-3 w-3" />;
+  };
+
+  const getOrigemLabel = (origem: string) => {
+    const labels: Record<string, string> = {
+      'painel': 'Painel Web',
+      'api': 'API REST',
+      'webhook': 'Webhook',
+    };
+    return labels[origem] || origem;
+  };
+
+  const getOrigemColor = (origem: string): string => {
+    if (origem === 'api') return 'bg-purple-500/10 text-purple-600 border-purple-500/30';
+    if (origem === 'webhook') return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30';
+    return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30';
   };
 
   const handleExport = () => {
     if (!historyResult?.data) return;
 
-    const headers = ['Data/Hora', 'Número', 'Ação', 'Origem', 'Usuário', 'IP'];
+    const headers = ['Data/Hora', 'Número', 'Ação', 'Origem', 'Usuário', 'IP', 'Campos Alterados'];
     const csvContent = [
       headers.join(','),
       ...historyResult.data.map((entry: HistoryEntry) =>
@@ -105,9 +136,10 @@ export default function ConsultaNumerosHistorico() {
           format(new Date(entry.created_at), 'dd/MM/yyyy HH:mm:ss'),
           entry.numero,
           getAcaoLabel(entry.acao),
-          entry.origem,
-          entry.usuario_email || '-',
+          getOrigemLabel(entry.origem),
+          entry.usuario_email || (entry.api_key_id ? 'Via API Key' : '-'),
           entry.ip_address || '-',
+          entry.campos_alterados?.join('; ') || '-',
         ].map(v => `"${v}"`).join(',')
       ),
     ].join('\n');
@@ -121,6 +153,11 @@ export default function ConsultaNumerosHistorico() {
     URL.revokeObjectURL(url);
     
     toast({ title: 'Exportação concluída!' });
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    refetch();
   };
 
   return (
@@ -146,16 +183,43 @@ export default function ConsultaNumerosHistorico() {
         {/* Search */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <Input
                   placeholder="Buscar por número..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && refetch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
-              <Button onClick={() => { setCurrentPage(1); refetch(); }} disabled={isLoading}>
+              <div className="w-full md:w-40">
+                <Select value={acaoFilter || "__all__"} onValueChange={(val) => setAcaoFilter(val === "__all__" ? "" : val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar ação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas ações</SelectItem>
+                    <SelectItem value="consulta">Consulta</SelectItem>
+                    <SelectItem value="atualizacao">Edição</SelectItem>
+                    <SelectItem value="cadastro">Cadastro</SelectItem>
+                    <SelectItem value="exclusao">Exclusão</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-full md:w-40">
+                <Select value={origemFilter || "__all__"} onValueChange={(val) => setOrigemFilter(val === "__all__" ? "" : val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas origens</SelectItem>
+                    <SelectItem value="painel">Painel Web</SelectItem>
+                    <SelectItem value="api">API REST</SelectItem>
+                    <SelectItem value="webhook">Webhook</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleSearch} disabled={isLoading}>
                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                 Buscar
               </Button>
@@ -182,7 +246,7 @@ export default function ConsultaNumerosHistorico() {
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -190,30 +254,68 @@ export default function ConsultaNumerosHistorico() {
                         <TableHead>Número</TableHead>
                         <TableHead>Ação</TableHead>
                         <TableHead>Origem</TableHead>
-                        <TableHead>Usuário</TableHead>
+                        <TableHead>Usuário / API</TableHead>
                         <TableHead>IP</TableHead>
+                        <TableHead>Campos Alterados</TableHead>
                         <TableHead className="w-[80px]">Detalhes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {historyResult?.data?.map((entry: HistoryEntry) => (
                         <TableRow key={entry.id}>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-sm whitespace-nowrap">
                             {format(new Date(entry.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
                           </TableCell>
                           <TableCell className="font-mono">{entry.numero}</TableCell>
                           <TableCell>
-                            <Badge variant={getAcaoVariant(entry.acao)}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getAcaoColor(entry.acao)}`}>
+                              {getAcaoIcon(entry.acao)}
                               {getAcaoLabel(entry.acao)}
-                            </Badge>
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={getOrigemVariant(entry.origem)}>
-                              {entry.origem}
-                            </Badge>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getOrigemColor(entry.origem)}`}>
+                              {getOrigemIcon(entry.origem)}
+                              {getOrigemLabel(entry.origem)}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-sm">{entry.usuario_email || '-'}</TableCell>
-                          <TableCell className="text-sm font-mono">{entry.ip_address || '-'}</TableCell>
+                          <TableCell className="text-sm">
+                            <div className="flex items-center gap-1.5">
+                              {entry.usuario_email ? (
+                                <>
+                                  <User className="h-3 w-3 text-muted-foreground" />
+                                  <span className="truncate max-w-[140px]">{entry.usuario_email}</span>
+                                </>
+                              ) : entry.api_key_id ? (
+                                <>
+                                  <Key className="h-3 w-3 text-purple-500" />
+                                  <span className="text-purple-600">Via API Key</span>
+                                </>
+                              ) : entry.webhook_id ? (
+                                <>
+                                  <Webhook className="h-3 w-3 text-cyan-500" />
+                                  <span className="text-cyan-600">Via Webhook</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm font-mono text-muted-foreground">{entry.ip_address || '-'}</TableCell>
+                          <TableCell>
+                            {entry.campos_alterados && entry.campos_alterados.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                {entry.campos_alterados.slice(0, 2).map((campo, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">{campo}</Badge>
+                                ))}
+                                {entry.campos_alterados.length > 2 && (
+                                  <Badge variant="secondary" className="text-xs">+{entry.campos_alterados.length - 2}</Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -286,19 +388,40 @@ export default function ConsultaNumerosHistorico() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Ação</p>
-                  <Badge variant={getAcaoVariant(selectedEntry.acao)}>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getAcaoColor(selectedEntry.acao)}`}>
+                    {getAcaoIcon(selectedEntry.acao)}
                     {getAcaoLabel(selectedEntry.acao)}
-                  </Badge>
+                  </span>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Origem</p>
-                  <Badge variant={getOrigemVariant(selectedEntry.origem)}>
-                    {selectedEntry.origem}
-                  </Badge>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getOrigemColor(selectedEntry.origem)}`}>
+                    {getOrigemIcon(selectedEntry.origem)}
+                    {getOrigemLabel(selectedEntry.origem)}
+                  </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Usuário</p>
-                  <p>{selectedEntry.usuario_email || '-'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Usuário / Identificação</p>
+                  <div className="flex items-center gap-1.5">
+                    {selectedEntry.usuario_email ? (
+                      <>
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span>{selectedEntry.usuario_email}</span>
+                      </>
+                    ) : selectedEntry.api_key_id ? (
+                      <>
+                        <Key className="h-3 w-3 text-purple-500" />
+                        <span className="text-purple-600">API Key: {selectedEntry.api_key_id.slice(0, 8)}...</span>
+                      </>
+                    ) : selectedEntry.webhook_id ? (
+                      <>
+                        <Webhook className="h-3 w-3 text-cyan-500" />
+                        <span className="text-cyan-600">Webhook: {selectedEntry.webhook_id.slice(0, 8)}...</span>
+                      </>
+                    ) : (
+                      '-'
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">IP</p>
@@ -306,10 +429,17 @@ export default function ConsultaNumerosHistorico() {
                 </div>
               </div>
 
+              {selectedEntry.user_agent && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">User Agent</p>
+                  <p className="text-sm text-muted-foreground font-mono bg-muted px-2 py-1 rounded truncate">{selectedEntry.user_agent}</p>
+                </div>
+              )}
+
               {selectedEntry.campos_alterados && selectedEntry.campos_alterados.length > 0 && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Campos Alterados</p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {selectedEntry.campos_alterados.map((campo, i) => (
                       <Badge key={i} variant="outline">{campo}</Badge>
                     ))}
@@ -320,7 +450,7 @@ export default function ConsultaNumerosHistorico() {
               {selectedEntry.dados_anteriores && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Dados Anteriores</p>
-                  <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                  <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto max-h-48">
                     {JSON.stringify(selectedEntry.dados_anteriores, null, 2)}
                   </pre>
                 </div>
@@ -329,7 +459,7 @@ export default function ConsultaNumerosHistorico() {
               {selectedEntry.dados_novos && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Dados Novos</p>
-                  <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto">
+                  <pre className="bg-muted p-3 rounded-md text-sm overflow-x-auto max-h-48">
                     {JSON.stringify(selectedEntry.dados_novos, null, 2)}
                   </pre>
                 </div>
