@@ -111,6 +111,10 @@ export default function ConsultaNumeros() {
           },
         }
       );
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        return [];
+      }
       if (!res.ok) return [];
       const json = await res.json();
       return json.success ? json.data : [];
@@ -159,6 +163,11 @@ export default function ConsultaNumeros() {
           },
         }
       );
+
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
       
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -195,6 +204,11 @@ export default function ConsultaNumeros() {
           }),
         }
       );
+
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
       
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -230,6 +244,11 @@ export default function ConsultaNumeros() {
           body: JSON.stringify(data),
         }
       );
+
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
       
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
