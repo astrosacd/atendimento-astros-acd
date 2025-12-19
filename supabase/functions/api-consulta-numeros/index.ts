@@ -161,21 +161,23 @@ async function queryBaserow(
   // Robust filtering: use JSON filters with field ID (works regardless of field name casing)
   if (statusFilters && statusFilters.length > 0) {
     const fields = await getBaserowFields(config);
+    console.log('[api-consulta-numeros] Available fields for filter:', fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type })));
+    
     const statusField =
       fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
       fields.find((f: any) => f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0);
 
     if (!statusField?.id) {
-      console.warn('[api-consulta-numeros] No single_select field found for status filter; skipping', {
-        availableFields: fields.map((f: any) => ({ name: f.name, type: f.type })),
-      });
+      console.warn('[api-consulta-numeros] No single_select field found for status filter; skipping filter');
     } else {
+      console.log('[api-consulta-numeros] Using status field:', { id: statusField.id, name: statusField.name });
+      
       const filters = {
         filter_type: 'OR',
         filters: statusFilters.map((statusId) => ({
           field: statusField.id,
           type: 'single_select_equal',
-          value: statusId,
+          value: parseInt(statusId, 10), // Ensure integer value
         })),
       };
 
