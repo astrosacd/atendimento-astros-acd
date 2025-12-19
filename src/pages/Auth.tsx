@@ -44,12 +44,17 @@ export default function Auth() {
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
   useEffect(() => {
+    // Wait for auth to finish loading
     if (authLoading) return;
     
+    // If user is approved, redirect immediately
     if (user && isApproved) {
       navigate('/');
-    } else if (user && !isApproved) {
-      // Fetch detailed profile status
+      return;
+    }
+    
+    // If user exists but not approved, fetch profile status
+    if (user && !isApproved) {
       fetchProfileStatus();
     }
   }, [user, isApproved, authLoading, navigate]);

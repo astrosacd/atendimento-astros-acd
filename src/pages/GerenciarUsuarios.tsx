@@ -102,7 +102,6 @@ export default function GerenciarUsuarios() {
   // Resend credentials dialog state
   const [resendDialogOpen, setResendDialogOpen] = useState(false);
   const [resendingUser, setResendingUser] = useState<{ id: string; email: string; name: string } | null>(null);
-  const [resendPassword, setResendPassword] = useState('');
   const [resendPhone, setResendPhone] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [approveRole, setApproveRole] = useState<string>('user');
@@ -681,31 +680,47 @@ export default function GerenciarUsuarios() {
     updateRoleMutation.mutate({ userId, newRole });
   };
 
-  // Resend credentials function
+  // Generate secure password function
+  const generateSecurePassword = (length = 16): string => {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const array = new Uint32Array(length);
+    crypto.getRandomValues(array);
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += charset[array[i] % charset.length];
+    }
+    return password;
+  };
+
+  // Resend credentials function - generates new password and updates it
   const handleResendCredentials = async () => {
-    if (!resendingUser || !resendPassword) return;
+    if (!resendingUser) return;
     
     setIsResending(true);
     try {
+      // Generate a new secure password
+      const newPassword = generateSecurePassword(16);
+      
       await supabase.functions.invoke('send-welcome', {
         body: {
           userName: resendingUser.name,
           userEmail: resendingUser.email,
-          userPassword: resendPassword,
+          userPassword: newPassword,
           userPhone: resendPhone || undefined,
           sendEmail: true,
           sendWhatsapp: !!resendPhone,
+          updatePassword: true,
+          userId: resendingUser.id,
         },
       });
 
       toast({
         title: 'Credenciais reenviadas!',
-        description: `As credenciais foram enviadas para ${resendingUser.email}.`,
+        description: `Uma nova senha foi gerada e enviada para ${resendingUser.email}.`,
       });
 
       setResendDialogOpen(false);
       setResendingUser(null);
-      setResendPassword('');
       setResendPhone('');
     } catch (error: any) {
       toast({
@@ -1109,7 +1124,6 @@ export default function GerenciarUsuarios() {
                                 variant="outline"
                                 onClick={() => {
                                   setResendingUser({ id: user.id, email: user.email, name: user.name });
-                                  setResendPassword('');
                                   setResendPhone('');
                                   setResendDialogOpen(true);
                                 }}
@@ -1367,21 +1381,14 @@ export default function GerenciarUsuarios() {
             <DialogHeader>
               <DialogTitle>Reenviar Credenciais</DialogTitle>
               <DialogDescription>
-                Envie as credenciais de acesso para <strong>{resendingUser?.name}</strong> ({resendingUser?.email})
+                Uma nova senha segura será gerada automaticamente e enviada para <strong>{resendingUser?.name}</strong> ({resendingUser?.email})
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="resend-password">Nova Senha (obrigatória)</Label>
-                <Input
-                  id="resend-password"
-                  type="password"
-                  value={resendPassword}
-                  onChange={(e) => setResendPassword(e.target.value)}
-                  placeholder="Digite a nova senha"
-                  minLength={6}
-                  className="border-border"
-                />
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-sm text-yellow-500">
+                  Uma nova senha forte será gerada e a senha atual será substituída.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="resend-phone">WhatsApp (opcional)</Label>
@@ -1401,11 +1408,11 @@ export default function GerenciarUsuarios() {
               </Button>
               <Button
                 onClick={handleResendCredentials}
-                disabled={!resendPassword || resendPassword.length < 6 || isResending}
+                disabled={isResending}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Send className="h-4 w-4 mr-2" />
-                {isResending ? 'Enviando...' : 'Enviar Credenciais'}
+                {isResending ? 'Gerando e enviando...' : 'Gerar Nova Senha'}
               </Button>
             </DialogFooter>
           </DialogContent>
