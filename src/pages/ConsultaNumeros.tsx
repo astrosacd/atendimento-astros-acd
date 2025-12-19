@@ -795,14 +795,17 @@ export default function ConsultaNumeros() {
                     </div>
                   ) : field.type === 'single_select' && field.select_options ? (
                     <Select
-                      value={editValues[field.name] || ''}
-                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      value={editValues[field.name] || '__empty__'}
+                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val === '__empty__' ? '' : val }))}
                       disabled={isNonEditable}
                     >
                       <SelectTrigger disabled={isNonEditable}>
                         <SelectValue placeholder={`Selecione ${field.name}`} />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__empty__">
+                          <span className="text-muted-foreground">Nenhum</span>
+                        </SelectItem>
                         {field.select_options.map((opt) => (
                           <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
                         ))}
