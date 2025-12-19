@@ -650,50 +650,50 @@ Deno.serve(async (req) => {
     // POST /cadastrar - Create new number
     if (req.method === 'POST' && endpoint === 'cadastrar') {
       const body = await req.json();
-      const { numero, status, observacoes, origem: origemCadastro } = body;
+      
+      console.log('Received cadastrar body:', JSON.stringify(body, null, 2));
 
-      if (!numero) {
+      // Check if body has direct fields or needs extraction
+      // The frontend sends all fields directly using Baserow field names
+      const createData: any = {};
+      let numeroValue: string | null = null;
+
+      // Copy all fields from the request body directly to createData
+      for (const [key, value] of Object.entries(body)) {
+        if (value !== undefined && value !== null && value !== '') {
+          createData[key] = value;
+          
+          // Track the numero field for logging (could be "numero", "Número", etc.)
+          if (key.toLowerCase().includes('numero')) {
+            numeroValue = String(value);
+          }
+        }
+      }
+
+      console.log('Create data to send to Baserow:', JSON.stringify(createData, null, 2));
+
+      if (Object.keys(createData).length === 0) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Número é obrigatório' }),
+          JSON.stringify({ success: false, error: 'Nenhum dado para cadastrar' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-
-      // Get field mappings for proper field names
-      const fieldMappings = await getFieldMappings(supabase);
-
-      // Build create data using field mappings
-      const numeroFieldName = getBaserowFieldName(fieldMappings, 'numero');
-      const createData: any = {
-        [numeroFieldName]: numero,
-      };
-
-      if (status) {
-        const statusFieldName = getBaserowFieldName(fieldMappings, 'status');
-        createData[statusFieldName] = status;
-      }
-      if (observacoes) {
-        const obsFieldName = getBaserowFieldName(fieldMappings, 'observacoes');
-        createData[obsFieldName] = observacoes;
-      }
-      if (origemCadastro) {
-        const origemFieldName = getBaserowFieldName(fieldMappings, 'origem');
-        createData[origemFieldName] = origemCadastro;
       }
 
       // Create in Baserow
       const newRow = await createBaserowRow(config, createData);
 
+      console.log('Baserow response:', JSON.stringify(newRow, null, 2));
+
       // Log action
       await logAction(
         supabase,
-        numero,
+        numeroValue || 'N/A',
         newRow.id?.toString() || null,
         'cadastro',
         origem,
         null,
         newRow,
-        ['numero', status ? 'status' : null, observacoes ? 'observacoes' : null].filter(Boolean) as string[],
+        Object.keys(createData),
         userId,
         userEmail,
         apiKeyId,
@@ -704,7 +704,7 @@ Deno.serve(async (req) => {
 
       // Trigger webhooks
       await triggerWebhooks(supabase, 'cadastro', {
-        numero,
+        numero: numeroValue,
         row_id: newRow.id,
         data: newRow,
       });
