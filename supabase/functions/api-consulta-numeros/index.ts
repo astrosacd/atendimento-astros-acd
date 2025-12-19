@@ -183,109 +183,59 @@ async function queryBaserow(
     url.searchParams.append('search', searchQuery);
   }
 
-  // Robust filtering: use JSON filters with field ID (works regardless of field name casing)
+  // Status filtering (legacy query param by field id)
+  // Avoid JSON `filters=` entirely to prevent "field None" / compatibility issues.
   if (statusFilters && statusFilters.length > 0) {
     const fields = await getBaserowFields(config);
 
-    // If we can't fetch fields, do NOT send filters at all.
     if (!fields || fields.length === 0) {
       console.warn('[api-consulta-numeros] Could not fetch Baserow fields; skipping status filter');
     } else {
-      console.log(
-        '[api-consulta-numeros] Available fields for filter:',
-        fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
-      );
-
       const statusFieldCandidate =
+        fields.find((f: any) => (f?.name || '').toLowerCase() === 'excluido_da_base') ||
         fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
         fields.find(
           (f: any) =>
             f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0
         );
 
-      const statusFieldId = Number(statusFieldCandidate?.id);
-      const validStatusIds = statusFilters
-        .map((s) => Number.parseInt(String(s), 10))
-        .filter((n) => Number.isFinite(n));
+      const statusFieldId = Number.parseInt(String(statusFieldCandidate?.id), 10);
+      const firstStatusId = Number.parseInt(String(statusFilters[0]), 10);
 
-      console.log('[api-consulta-numeros] Status filter resolution:', {
-        statusFieldCandidate: statusFieldCandidate
-          ? { id: statusFieldCandidate.id, name: statusFieldCandidate.name, type: statusFieldCandidate.type }
-          : null,
-        statusFieldId,
-        statusFilters,
-        validStatusIds,
-      });
-
-      if (!Number.isFinite(statusFieldId) || validStatusIds.length === 0) {
-        console.warn('[api-consulta-numeros] Invalid status filter; skipping');
+      if (Number.isFinite(statusFieldId) && Number.isFinite(firstStatusId)) {
+        if (statusFilters.length > 1) {
+          console.warn(
+            '[api-consulta-numeros] Multiple status filters provided; using the first one only for compatibility.',
+            statusFilters
+          );
+        }
+        url.searchParams.set(
+          `filter__field_${statusFieldId}__single_select_equal`,
+          String(firstStatusId)
+        );
       } else {
-        const filters = {
-          filter_type: 'OR',
-          filters: validStatusIds.map((statusId) => ({
-            field: statusFieldId,
-            type: 'single_select_equal',
-            value: statusId,
-          })),
-        };
-
-        url.searchParams.set('filters', JSON.stringify(filters));
+        console.warn('[api-consulta-numeros] Invalid status filter resolution; skipping', {
+          statusFieldCandidate,
+          statusFieldId,
+          statusFilters,
+        });
       }
     }
   }
 
   console.log('Querying Baserow:', url.toString());
 
-  const doFetch = async (u: URL) =>
-    fetch(u.toString(), {
-      method: 'GET',
-      headers: {
-        'Authorization': `Token ${config.api_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-  let response = await doFetch(url);
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${config.api_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Baserow query error:', errorText);
-
-    // Fallback: some Baserow deployments don't accept the JSON `filters=` param.
-    // If we detect this error, retry using the simple filter query param format.
-    const hasJsonFilters = url.searchParams.has('filters');
-    const isFilterFieldNotFound = errorText.includes('ERROR_FILTER_FIELD_NOT_FOUND');
-
-    if (hasJsonFilters && isFilterFieldNotFound && statusFilters && statusFilters.length > 0) {
-      const fields = await getBaserowFields(config);
-      const statusFieldCandidate =
-        fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
-        fields.find(
-          (f: any) =>
-            f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0
-        );
-
-      const statusFieldId = Number(statusFieldCandidate?.id);
-      const firstStatusId = Number.parseInt(String(statusFilters[0]), 10);
-
-      if (Number.isFinite(statusFieldId) && Number.isFinite(firstStatusId)) {
-        const retryUrl = new URL(url.toString());
-        retryUrl.searchParams.delete('filters');
-        retryUrl.searchParams.set(`filter__field_${statusFieldId}__single_select_equal`, String(firstStatusId));
-
-        console.warn('[api-consulta-numeros] Retrying with legacy filter param:', retryUrl.toString());
-        response = await doFetch(retryUrl);
-
-        if (!response.ok) {
-          const retryText = await response.text();
-          console.error('Baserow query error (retry):', retryText);
-          throw new Error(`Baserow error: ${response.status} - ${retryText}`);
-        }
-
-        return await response.json();
-      }
-    }
-
     throw new Error(`Baserow error: ${response.status} - ${errorText}`);
   }
 
