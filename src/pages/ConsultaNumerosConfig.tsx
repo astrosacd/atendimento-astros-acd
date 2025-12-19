@@ -244,7 +244,7 @@ export default function ConsultaNumerosConfig() {
                       onChange={(e) => setConfig(prev => ({ ...prev, baserow_api_token: e.target.value }))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Token gerado nas configurações do Baserow
+                      Apenas o valor do token (sem a palavra "Token" na frente)
                     </p>
                   </div>
 
