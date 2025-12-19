@@ -361,8 +361,11 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Admin client for DB operations
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
@@ -375,7 +378,7 @@ Deno.serve(async (req) => {
     let webhookId: string | null = null;
     let origem = 'painel';
 
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     const apiKeyHeader = req.headers.get('x-api-key');
 
     // Check API key first
@@ -390,11 +393,19 @@ Deno.serve(async (req) => {
       apiKeyId = apiKeyData.id;
       origem = 'api';
     } else if (authHeader) {
-      // Verify JWT token
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      
+      // Verify JWT token using an anon-key client with the caller's Authorization header
+      const authSupabase = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error } = await authSupabase.auth.getUser();
+
       if (error || !user) {
+        console.error('[api-consulta-numeros] Invalid token', {
+          endpoint,
+          hasAuthHeader: true,
+          error: error?.message,
+        });
         return new Response(
           JSON.stringify({ success: false, error: 'Token inválido' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
