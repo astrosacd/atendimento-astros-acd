@@ -750,27 +750,43 @@ Deno.serve(async (req) => {
       if (numeroValue) {
         console.log('Checking for duplicate number:', numeroValue);
         try {
-          const duplicateCheck = await queryBaserow(config, numeroValue, 1, 10);
+          const duplicateCheck = await queryBaserow(config, numeroValue, 1, 50);
+          
+          console.log('Duplicate check results count:', duplicateCheck.results?.length || 0);
           
           if (duplicateCheck.results && duplicateCheck.results.length > 0) {
+            console.log('First result keys:', Object.keys(duplicateCheck.results[0]));
+            console.log('First result sample:', JSON.stringify(duplicateCheck.results[0], null, 2));
+            
             // Check if any result has an exact match for the numero field
             const exactMatch = duplicateCheck.results.find((row: any) => {
               // Check all possible numero field names
               const possibleFields = ['numero', 'Numero', 'Número', 'número', 'NUMERO'];
               for (const field of possibleFields) {
-                if (row[field] && String(row[field]).trim() === numeroValue?.trim()) {
-                  return true;
+                const fieldValue = row[field];
+                if (fieldValue !== undefined && fieldValue !== null) {
+                  const normalizedFieldValue = String(fieldValue).trim().toLowerCase();
+                  const normalizedNumeroValue = numeroValue?.trim().toLowerCase();
+                  console.log(`Comparing field ${field}: "${normalizedFieldValue}" vs "${normalizedNumeroValue}"`);
+                  if (normalizedFieldValue === normalizedNumeroValue) {
+                    return true;
+                  }
                 }
               }
               // Also check using the detected field name
-              if (numeroFieldName && row[numeroFieldName] && String(row[numeroFieldName]).trim() === numeroValue?.trim()) {
-                return true;
+              if (numeroFieldName && row[numeroFieldName]) {
+                const normalizedFieldValue = String(row[numeroFieldName]).trim().toLowerCase();
+                const normalizedNumeroValue = numeroValue?.trim().toLowerCase();
+                console.log(`Comparing detected field ${numeroFieldName}: "${normalizedFieldValue}" vs "${normalizedNumeroValue}"`);
+                if (normalizedFieldValue === normalizedNumeroValue) {
+                  return true;
+                }
               }
               return false;
             });
 
             if (exactMatch) {
-              console.log('Duplicate number found:', exactMatch);
+              console.log('Duplicate number found:', exactMatch.id);
               return new Response(
                 JSON.stringify({ 
                   success: false, 
@@ -780,6 +796,8 @@ Deno.serve(async (req) => {
                 }),
                 { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
               );
+            } else {
+              console.log('No exact match found in results');
             }
           }
         } catch (e) {
