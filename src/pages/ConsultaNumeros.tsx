@@ -56,9 +56,30 @@ export default function ConsultaNumeros() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newValues, setNewValues] = useState<Record<string, string>>({});
 
+  // Fields that should not be editable in Edit dialog
   const nonEditableFields = useMemo(() => {
     return new Set(['nome', 'numero', 'email', 'data_cadastro', 'data_da_ultima_consulta']);
   }, []);
+
+  // Fields to hide in Create dialog
+  const hiddenCreateFields = useMemo(() => {
+    return new Set(['data_cadastro', 'data_da_ultima_consulta', 'excluido_da_base']);
+  }, []);
+
+  // Auto-generate data_cadastro when opening create dialog
+  const generateDataCadastro = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
+  // Validation helpers
+  const isValidNumber = (value: string) => /^\d*$/.test(value);
+  const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   // Permissions
   const canQuery = isAdmin || hasPermission('query_consulta_numeros');
@@ -277,7 +298,12 @@ export default function ConsultaNumeros() {
   });
 
   const resetCreateForm = () => {
-    setNewValues({});
+    setNewValues({ data_cadastro: generateDataCadastro() });
+  };
+
+  const openCreateDialog = () => {
+    setNewValues({ data_cadastro: generateDataCadastro() });
+    setCreateDialogOpen(true);
   };
 
   const handleCreate = () => {
@@ -287,6 +313,20 @@ export default function ConsultaNumeros() {
     
     if (!numeroValue?.trim()) {
       toast({ title: 'Número é obrigatório', variant: 'destructive' });
+      return;
+    }
+
+    // Validate numero is only numbers
+    if (!isValidNumber(numeroValue)) {
+      toast({ title: 'Número deve conter apenas dígitos', variant: 'destructive' });
+      return;
+    }
+
+    // Validate email if provided
+    const emailField = visibleFields.find(f => f.name.toLowerCase() === 'email');
+    const emailValue = newValues[emailField?.name || 'email'];
+    if (emailValue && !isValidEmail(emailValue)) {
+      toast({ title: 'E-mail inválido', variant: 'destructive' });
       return;
     }
     
@@ -367,7 +407,7 @@ export default function ConsultaNumeros() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {canCreate && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
+              <Button onClick={openCreateDialog}>
                 <Plus className="h-4 w-4 mr-2" />
                 Cadastrar Número
               </Button>
@@ -651,17 +691,25 @@ export default function ConsultaNumeros() {
           <div className="space-y-4">
             {visibleFields.map((field) => {
               const isNonEditable = nonEditableFields.has(field.name.toLowerCase());
+              const isMaskedField = maskedFieldsConfig.includes(field.name);
+              const isObservacoes = field.name.toLowerCase() === 'observacoes';
+              
+              // If field is masked and user cannot view unmasked, show as readonly
+              const shouldMask = isMaskedField && !canViewUnmasked;
 
               return (
                 <div key={field.id} className="space-y-2">
-                  <Label>{field.name}</Label>
+                  <Label className="flex items-center gap-2">
+                    {field.name}
+                    {isMaskedField && <Badge variant="outline" className="text-xs">Mascarado</Badge>}
+                  </Label>
                   {field.type === 'single_select' && field.select_options ? (
                     <Select
                       value={editValues[field.name] || ''}
-                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                      disabled={isNonEditable}
+                      onValueChange={(val) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable || shouldMask}
                     >
-                      <SelectTrigger disabled={isNonEditable}>
+                      <SelectTrigger disabled={isNonEditable || shouldMask}>
                         <SelectValue placeholder={`Selecione ${field.name}`} />
                       </SelectTrigger>
                       <SelectContent>
@@ -670,22 +718,48 @@ export default function ConsultaNumeros() {
                         ))}
                       </SelectContent>
                     </Select>
-                  ) : field.type === 'long_text' ? (
-                    <Textarea
-                      value={editValues[field.name] || ''}
-                      onChange={(e) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                      placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
-                      rows={3}
-                      disabled={isNonEditable}
-                      readOnly={isNonEditable}
-                    />
+                  ) : field.type === 'long_text' || isObservacoes ? (
+                    <div className="space-y-2">
+                      {isObservacoes && editValues[field.name] && (
+                        <div className="border rounded-md p-3 bg-muted/30 max-h-32 overflow-y-auto">
+                          <p className="text-xs text-muted-foreground mb-1">Observações anteriores:</p>
+                          <pre className="text-sm whitespace-pre-wrap font-sans">{editValues[field.name]}</pre>
+                        </div>
+                      )}
+                      <Textarea
+                        value={isObservacoes ? '' : (editValues[field.name] || '')}
+                        onChange={(e) => {
+                          if (!isNonEditable && !shouldMask) {
+                            if (isObservacoes) {
+                              // Append new observation with timestamp
+                              const newObs = e.target.value;
+                              if (newObs) {
+                                const timestamp = new Date().toLocaleString('pt-BR');
+                                const separator = editValues[field.name] ? '\n---\n' : '';
+                                setEditValues(prev => ({
+                                  ...prev,
+                                  [field.name]: `${prev[field.name] || ''}${separator}[${timestamp}] ${newObs}`
+                                }));
+                              }
+                            } else {
+                              setEditValues(prev => ({ ...prev, [field.name]: e.target.value }));
+                            }
+                          }
+                        }}
+                        placeholder={isObservacoes ? 'Adicione uma nova observação...' : (isNonEditable ? '' : `Digite ${field.name}...`)}
+                        rows={isObservacoes ? 2 : 3}
+                        disabled={isNonEditable || shouldMask}
+                        readOnly={isNonEditable || shouldMask}
+                        className={shouldMask ? 'blur-[2px]' : ''}
+                      />
+                    </div>
                   ) : field.type === 'boolean' ? (
                     <Select
                       value={editValues[field.name] || ''}
-                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                      disabled={isNonEditable}
+                      onValueChange={(val) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable || shouldMask}
                     >
-                      <SelectTrigger disabled={isNonEditable}>
+                      <SelectTrigger disabled={isNonEditable || shouldMask}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -695,11 +769,12 @@ export default function ConsultaNumeros() {
                     </Select>
                   ) : (
                     <Input
-                      value={editValues[field.name] || ''}
-                      onChange={(e) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                      value={shouldMask ? maskValue(editValues[field.name], field.name) : (editValues[field.name] || '')}
+                      onChange={(e) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
                       placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
-                      disabled={isNonEditable}
-                      readOnly={isNonEditable}
+                      disabled={isNonEditable || shouldMask}
+                      readOnly={isNonEditable || shouldMask}
+                      className={shouldMask ? 'blur-[2px]' : ''}
                     />
                   )}
                 </div>
@@ -727,52 +802,87 @@ export default function ConsultaNumeros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {visibleFields.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <Label>{field.name} {field.primary && '*'}</Label>
-                {field.type === 'single_select' && field.select_options ? (
-                  <Select 
-                    value={newValues[field.name] || ''} 
-                    onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={`Selecione ${field.name}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {field.select_options.map((opt) => (
-                        <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : field.type === 'long_text' ? (
-                  <Textarea
-                    value={newValues[field.name] || ''}
-                    onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    placeholder={`Digite ${field.name}...`}
-                    rows={3}
-                  />
-                ) : field.type === 'boolean' ? (
-                  <Select 
-                    value={newValues[field.name] || ''} 
-                    onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Sim</SelectItem>
-                      <SelectItem value="false">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={newValues[field.name] || ''}
-                    onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    placeholder={`Digite ${field.name}...`}
-                  />
-                )}
-              </div>
-            ))}
+            {visibleFields
+              .filter((field) => !hiddenCreateFields.has(field.name.toLowerCase()))
+              .map((field) => {
+                const isNumeroField = field.name.toLowerCase().includes('numero');
+                const isEmailField = field.name.toLowerCase() === 'email';
+                const isDataCadastro = field.name.toLowerCase() === 'data_cadastro';
+
+                return (
+                  <div key={field.id} className="space-y-2">
+                    <Label>{field.name} {field.primary && '*'}</Label>
+                    {field.type === 'single_select' && field.select_options ? (
+                      <Select 
+                        value={newValues[field.name] || ''} 
+                        onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={`Selecione ${field.name}`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {field.select_options.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : field.type === 'long_text' ? (
+                      <Textarea
+                        value={newValues[field.name] || ''}
+                        onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        placeholder={`Digite ${field.name}...`}
+                        rows={3}
+                      />
+                    ) : field.type === 'boolean' ? (
+                      <Select 
+                        value={newValues[field.name] || ''} 
+                        onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Sim</SelectItem>
+                          <SelectItem value="false">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : isDataCadastro ? (
+                      <Input
+                        value={newValues[field.name] || ''}
+                        readOnly
+                        disabled
+                        className="bg-muted"
+                      />
+                    ) : isNumeroField ? (
+                      <Input
+                        value={newValues[field.name] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (isValidNumber(val)) {
+                            setNewValues(prev => ({ ...prev, [field.name]: val }));
+                          }
+                        }}
+                        placeholder="Digite apenas números..."
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    ) : isEmailField ? (
+                      <Input
+                        type="email"
+                        value={newValues[field.name] || ''}
+                        onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        placeholder="Digite o e-mail..."
+                      />
+                    ) : (
+                      <Input
+                        value={newValues[field.name] || ''}
+                        onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        placeholder={`Digite ${field.name}...`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { resetCreateForm(); setCreateDialogOpen(false); }}>
