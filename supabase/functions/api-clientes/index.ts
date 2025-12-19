@@ -20,6 +20,31 @@ async function getNotificationConfig(supabase: SupabaseClient) {
   }, {} as Record<string, string>);
 }
 
+// SECURITY: Sanitize PII from error messages to prevent data leakage
+function sanitizePII(text: string): string {
+  return text
+    // Redact emails
+    .replace(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[EMAIL]')
+    // Redact CPF patterns (XXX.XXX.XXX-XX or 11 digits)
+    .replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, '[CPF]')
+    .replace(/\b\d{11}\b/g, '[CPF]')
+    // Redact phone patterns (10-11 digits)
+    .replace(/\b\d{10,11}\b/g, '[PHONE]')
+    // Redact potential names (First Last pattern) - be conservative
+    .replace(/\b[A-Z][a-záàâãéèêíïóôõúç]+ [A-Z][a-záàâãéèêíïóôõúç]+\b/g, '[NOME]');
+}
+
+// SECURITY: Mask IP address for privacy
+function maskIP(ip: string): string {
+  if (!ip) return '[IP_HIDDEN]';
+  // Keep only first two octets for IPv4
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    return `${parts[0]}.${parts[1]}.*.*`;
+  }
+  return '[IP_HIDDEN]';
+}
+
 async function sendErrorNotification(
   config: Record<string, string>,
   errorDetails: {
@@ -37,6 +62,10 @@ async function sendErrorNotification(
   }
 
   try {
+    // SECURITY: Sanitize error message to remove PII and mask IP
+    const sanitizedError = sanitizePII(errorDetails.error);
+    const maskedIP = maskIP(errorDetails.ip);
+    
     const emailBody = `
       <h2>⚠️ Erro na API - Sistema de Clientes</h2>
       <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
@@ -44,8 +73,8 @@ async function sendErrorNotification(
         <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Método</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.method}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Path</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.path}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Status</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.status}</td></tr>
-        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Erro</strong></td><td style="padding: 8px; border: 1px solid #ddd; color: red;">${errorDetails.error}</td></tr>
-        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>IP</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.ip}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Erro</strong></td><td style="padding: 8px; border: 1px solid #ddd; color: red;">${sanitizedError}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>IP</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${maskedIP}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;"><strong>Data/Hora</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${errorDetails.timestamp}</td></tr>
       </table>
       <p style="margin-top: 20px; color: #666;">Este é um email automático do sistema de monitoramento.</p>
