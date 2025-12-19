@@ -1290,9 +1290,13 @@ export type Database = {
         Row: {
           approval_status: string | null
           approved: boolean
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           created_at: string
           email: string | null
           id: string
+          is_blocked: boolean | null
           name: string
           phone: string | null
           rejection_reason: string | null
@@ -1303,9 +1307,13 @@ export type Database = {
         Insert: {
           approval_status?: string | null
           approved?: boolean
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
           name: string
           phone?: string | null
           rejection_reason?: string | null
@@ -1316,9 +1324,13 @@ export type Database = {
         Update: {
           approval_status?: string | null
           approved?: boolean
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
           name?: string
           phone?: string | null
           rejection_reason?: string | null
