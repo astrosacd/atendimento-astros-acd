@@ -30,19 +30,16 @@ export default function RecuperarSenha() {
     setIsLoading(true);
 
     try {
-      // Buscar usuário no profiles (case-insensitive por email)
-      const normalizedEmail = email.trim().toLowerCase();
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, name, email, approval_status')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      // Use secure edge function to verify email (no direct profile access)
+      const { data: verifyResult, error: verifyError } = await supabase.functions.invoke('verify-email-for-recovery', {
+        body: { email: email.trim() },
+      });
 
-      if (profileError) {
-        throw profileError;
+      if (verifyError) {
+        throw verifyError;
       }
 
-      if (!profile) {
+      if (!verifyResult.found) {
         toast({
           title: 'Usuário não encontrado',
           description: 'Não existe uma conta cadastrada com este email.',
@@ -52,11 +49,10 @@ export default function RecuperarSenha() {
         return;
       }
 
-      if (profile.approval_status && profile.approval_status !== 'approved') {
-        const isPending = profile.approval_status === 'pending';
+      if (!verifyResult.canRecover) {
         toast({
-          title: isPending ? 'Conta ainda não aprovada' : 'Conta rejeitada',
-          description: isPending
+          title: verifyResult.isPending ? 'Conta ainda não aprovada' : 'Conta rejeitada',
+          description: verifyResult.isPending
             ? 'Sua solicitação de acesso ainda está aguardando aprovação do administrador.'
             : 'Seu acesso foi rejeitado pelo administrador. Você pode enviar uma nova solicitação na tela de cadastro.',
           variant: 'destructive',
@@ -64,6 +60,12 @@ export default function RecuperarSenha() {
         setIsLoading(false);
         return;
       }
+
+      const profile = {
+        user_id: verifyResult.userId,
+        email: verifyResult.userEmail,
+        name: verifyResult.userName,
+      };
 
       // Chamar Edge Function personalizada para enviar email via Gmail
       const { data, error } = await supabase.functions.invoke('send-password-reset-email', {

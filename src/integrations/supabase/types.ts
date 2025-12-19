@@ -1529,6 +1529,7 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role:
         | {
             Args: {
@@ -1583,6 +1584,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      verify_email_exists: { Args: { p_email: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "operador" | "gerente"
