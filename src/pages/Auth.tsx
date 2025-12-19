@@ -44,20 +44,28 @@ export default function Auth() {
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return;
-    
+
     // If user is approved, redirect immediately
     if (user && isApproved) {
       navigate('/');
       return;
     }
-    
-    // If user exists but not approved, fetch profile status
-    if (user && !isApproved) {
-      fetchProfileStatus();
+
+    // If user exists but not approved yet, wait briefly before fetching status.
+    // This avoids a flash when approval status is loaded moments after login.
+    if (user && !isApproved && !profileStatus) {
+      let cancelled = false;
+      const t = window.setTimeout(() => {
+        if (!cancelled) fetchProfileStatus();
+      }, 200);
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(t);
+      };
     }
-  }, [user, isApproved, authLoading, navigate]);
+  }, [user, isApproved, authLoading, navigate, profileStatus]);
 
   const fetchProfileStatus = async () => {
     if (!user) return;
@@ -274,7 +282,7 @@ export default function Auth() {
     }
   };
 
-  if (authLoading || (user && !isApproved && isLoadingProfile)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
@@ -407,6 +415,11 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {user && !isApproved && isLoadingProfile && (
+            <div className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              Verificando status da sua conta…
+            </div>
+          )}
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary">
               <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
