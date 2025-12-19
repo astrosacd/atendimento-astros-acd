@@ -403,25 +403,27 @@ export default function ConsultaNumeros() {
   const handleExport = async () => {
     if (!queryResult?.data) return;
 
-    const headers = visibleFields.map(f => f.name);
+    const headers = ['Linha', ...visibleFields.map(f => f.name)];
     const csvContent = [
       headers.join(','),
       ...queryResult.data.map((row: NumeroResult) =>
-        headers.map((h) => {
-          const field = visibleFields.find(f => f.name === h);
-          const val = row[h];
-          // Handle single_select objects
-          let displayVal = field?.type === 'single_select' && val && typeof val === 'object' && 'value' in val
-            ? val.value
-            : val;
-          
-          // Apply masking if needed
-          if (maskedFieldsConfig.includes(h) && !canViewUnmasked) {
-            displayVal = maskValue(displayVal?.toString(), h);
-          }
-          
-          return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
-        }).join(',')
+        [
+          `"${row.id}"`,
+          ...visibleFields.map((field) => {
+            const val = row[field.name];
+            // Handle single_select objects
+            let displayVal = field?.type === 'single_select' && val && typeof val === 'object' && 'value' in val
+              ? val.value
+              : val;
+            
+            // Apply masking if needed
+            if (maskedFieldsConfig.includes(field.name) && !canViewUnmasked) {
+              displayVal = maskValue(displayVal?.toString(), field.name);
+            }
+            
+            return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
+          })
+        ].join(',')
       ),
     ].join('\n');
 
@@ -598,6 +600,7 @@ export default function ConsultaNumeros() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[70px]">Linha</TableHead>
                         {visibleFields.map((field) => (
                           <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
@@ -607,6 +610,7 @@ export default function ConsultaNumeros() {
                     <TableBody>
                       {queryResult?.data?.map((row: NumeroResult) => (
                         <TableRow key={row.id}>
+                          <TableCell className="font-mono text-muted-foreground">{row.id}</TableCell>
                           {visibleFields.map((field) => {
                             const cellValue = row[field.name];
                             // Handle single_select fields which come as {id, value, color} objects
