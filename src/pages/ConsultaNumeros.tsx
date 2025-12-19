@@ -706,13 +706,21 @@ export default function ConsultaNumeros() {
                     {field.name}
                     {isMaskedField && <Badge variant="outline" className="text-xs">Mascarado</Badge>}
                   </Label>
-                  {field.type === 'single_select' && field.select_options ? (
+                  
+                  {/* For masked fields, show a non-copyable placeholder instead of the real value */}
+                  {shouldMask ? (
+                    <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground cursor-not-allowed select-none">
+                      <span className="blur-[4px] pointer-events-none">
+                        {'••••••••••••••••'}
+                      </span>
+                    </div>
+                  ) : field.type === 'single_select' && field.select_options ? (
                     <Select
                       value={editValues[field.name] || ''}
-                      onValueChange={(val) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                      disabled={isNonEditable || shouldMask}
+                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable}
                     >
-                      <SelectTrigger disabled={isNonEditable || shouldMask}>
+                      <SelectTrigger disabled={isNonEditable}>
                         <SelectValue placeholder={`Selecione ${field.name}`} />
                       </SelectTrigger>
                       <SelectContent>
@@ -732,9 +740,8 @@ export default function ConsultaNumeros() {
                       <Textarea
                         value={isObservacoes ? '' : (editValues[field.name] || '')}
                         onChange={(e) => {
-                          if (!isNonEditable && !shouldMask) {
+                          if (!isNonEditable) {
                             if (isObservacoes) {
-                              // Append new observation with timestamp
                               const newObs = e.target.value;
                               if (newObs) {
                                 const timestamp = new Date().toLocaleString('pt-BR');
@@ -751,18 +758,17 @@ export default function ConsultaNumeros() {
                         }}
                         placeholder={isObservacoes ? 'Adicione uma nova observação...' : (isNonEditable ? '' : `Digite ${field.name}...`)}
                         rows={isObservacoes ? 2 : 3}
-                        disabled={isNonEditable || shouldMask}
-                        readOnly={isNonEditable || shouldMask}
-                        className={shouldMask ? 'blur-[2px]' : ''}
+                        disabled={isNonEditable}
+                        readOnly={isNonEditable}
                       />
                     </div>
                   ) : field.type === 'boolean' ? (
                     <Select
                       value={editValues[field.name] || ''}
-                      onValueChange={(val) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: val }))}
-                      disabled={isNonEditable || shouldMask}
+                      onValueChange={(val) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                      disabled={isNonEditable}
                     >
-                      <SelectTrigger disabled={isNonEditable || shouldMask}>
+                      <SelectTrigger disabled={isNonEditable}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -771,27 +777,13 @@ export default function ConsultaNumeros() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <div className={shouldMask ? 'relative' : ''}>
-                      <Input
-                        value={shouldMask ? maskValue(editValues[field.name], field.name) : (editValues[field.name] || '')}
-                        onChange={(e) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                        placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
-                        disabled={isNonEditable || shouldMask}
-                        readOnly={isNonEditable || shouldMask}
-                        className={shouldMask ? 'blur-[3px] select-none pointer-events-none' : ''}
-                        onCopy={(e) => shouldMask && e.preventDefault()}
-                        onCut={(e) => shouldMask && e.preventDefault()}
-                        onContextMenu={(e) => shouldMask && e.preventDefault()}
-                        tabIndex={shouldMask ? -1 : undefined}
-                      />
-                      {shouldMask && (
-                        <div 
-                          className="absolute inset-0 cursor-not-allowed" 
-                          onCopy={(e) => e.preventDefault()}
-                          onContextMenu={(e) => e.preventDefault()}
-                        />
-                      )}
-                    </div>
+                    <Input
+                      value={editValues[field.name] || ''}
+                      onChange={(e) => !isNonEditable && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
+                      disabled={isNonEditable}
+                      readOnly={isNonEditable}
+                    />
                   )}
                 </div>
               );
