@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -49,8 +49,16 @@ export default function ConsultaNumeros() {
   const [editStatus, setEditStatus] = useState('');
   const [editObs, setEditObs] = useState('');
 
+  // Create number state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newNumero, setNewNumero] = useState('');
+  const [newStatus, setNewStatus] = useState('');
+  const [newObs, setNewObs] = useState('');
+  const [newOrigem, setNewOrigem] = useState('');
+
   // Permissions
   const canQuery = isAdmin || hasPermission('query_consulta_numeros');
+  const canCreate = isAdmin || hasPermission('update_both_consulta_numeros');
   const canUpdateStatus = isAdmin || hasPermission('update_status_consulta_numeros');
   const canUpdateObs = isAdmin || hasPermission('update_obs_consulta_numeros');
   const canUpdateBoth = isAdmin || hasPermission('update_both_consulta_numeros');
@@ -156,6 +164,63 @@ export default function ConsultaNumeros() {
     },
   });
 
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async ({ numero, status, observacoes, origem }: { numero: string; status?: string; observacoes?: string; origem?: string }) => {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/cadastrar`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            numero,
+            status,
+            observacoes,
+            origem,
+          }),
+        }
+      );
+      
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: 'Número cadastrado com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+      setCreateDialogOpen(false);
+      resetCreateForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const resetCreateForm = () => {
+    setNewNumero('');
+    setNewStatus('');
+    setNewObs('');
+    setNewOrigem('');
+  };
+
+  const handleCreate = () => {
+    if (!newNumero.trim()) {
+      toast({ title: 'Número é obrigatório', variant: 'destructive' });
+      return;
+    }
+    createMutation.mutate({
+      numero: newNumero,
+      status: newStatus || undefined,
+      observacoes: newObs || undefined,
+      origem: newOrigem || undefined,
+    });
+  };
+
   const handleSearch = () => {
     setCurrentPage(1);
     refetch();
@@ -216,7 +281,13 @@ export default function ConsultaNumeros() {
             <h1 className="text-2xl font-bold text-foreground">Consulta de Números</h1>
             <p className="text-muted-foreground">Consulte e gerencie números no Baserow</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {canCreate && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Cadastrar Número
+              </Button>
+            )}
             {canViewHistory && (
               <Button variant="outline" onClick={() => window.location.href = '/admin/consulta-numeros/historico'}>
                 <History className="h-4 w-4 mr-2" />
@@ -471,6 +542,76 @@ export default function ConsultaNumeros() {
             </Button>
             <Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={(open) => { if (!open) resetCreateForm(); setCreateDialogOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar Novo Número</DialogTitle>
+            <DialogDescription>
+              Adicione um novo número ao Baserow
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Número *</Label>
+              <Input
+                value={newNumero}
+                onChange={(e) => setNewNumero(e.target.value)}
+                placeholder="Ex: 5511999999999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((s) => (
+                    <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Origem</Label>
+              <Input
+                value={newOrigem}
+                onChange={(e) => setNewOrigem(e.target.value)}
+                placeholder="Ex: Campanha X, Formulário Y"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={newObs}
+                onChange={(e) => setNewObs(e.target.value)}
+                placeholder="Digite observações..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { resetCreateForm(); setCreateDialogOpen(false); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cadastrando...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

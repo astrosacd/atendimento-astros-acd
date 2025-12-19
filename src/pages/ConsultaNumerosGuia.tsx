@@ -3,382 +3,595 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, BookOpen, Database, Key, Webhook, Shield, Code, FileText } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, BookOpen, Database, Key, Webhook, Shield, Code, CheckCircle2, AlertCircle, Info, Copy, ExternalLink } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function ConsultaNumerosGuia() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copiado!' });
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => window.location.href = '/admin/consulta-numeros'}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Guia do Módulo</h1>
-            <p className="text-muted-foreground">Documentação completa do Consulta de Números</p>
+            <h1 className="text-2xl font-bold text-foreground">Documentação do Módulo</h1>
+            <p className="text-muted-foreground">Guia completo do Consulta de Números</p>
           </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1">
             <TabsTrigger value="overview" className="gap-2">
               <BookOpen className="h-4 w-4" />
-              Visão Geral
+              <span className="hidden sm:inline">Visão Geral</span>
             </TabsTrigger>
-            <TabsTrigger value="baserow" className="gap-2">
+            <TabsTrigger value="config" className="gap-2">
               <Database className="h-4 w-4" />
-              Baserow
+              <span className="hidden sm:inline">Configuração</span>
             </TabsTrigger>
             <TabsTrigger value="permissions" className="gap-2">
               <Shield className="h-4 w-4" />
-              Permissões
+              <span className="hidden sm:inline">Permissões</span>
             </TabsTrigger>
             <TabsTrigger value="api" className="gap-2">
               <Key className="h-4 w-4" />
-              API REST
+              <span className="hidden sm:inline">API REST</span>
             </TabsTrigger>
             <TabsTrigger value="webhooks" className="gap-2">
               <Webhook className="h-4 w-4" />
-              Webhooks
+              <span className="hidden sm:inline">Webhooks</span>
             </TabsTrigger>
             <TabsTrigger value="examples" className="gap-2">
               <Code className="h-4 w-4" />
-              Exemplos
+              <span className="hidden sm:inline">Exemplos</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview */}
-          <TabsContent value="overview">
+          <TabsContent value="overview" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Visão Geral do Módulo</CardTitle>
-                <CardDescription>Entenda como o módulo Consulta de Números funciona</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  O que é o Consulta de Números?
+                </CardTitle>
               </CardHeader>
-              <CardContent className="prose prose-invert max-w-none">
-                <h3>O que é?</h3>
-                <p>
-                  O módulo <strong>Consulta de Números</strong> permite consultar e atualizar registros 
-                  armazenados no Baserow, uma plataforma de banco de dados no-code.
-                </p>
-
-                <h3>Principais Funcionalidades</h3>
-                <ul>
-                  <li><strong>Consulta:</strong> Busca números por texto parcial ou completo</li>
-                  <li><strong>Filtros:</strong> Filtre por status diretamente do Baserow</li>
-                  <li><strong>Atualização:</strong> Altere status e observações em tempo real</li>
-                  <li><strong>Histórico:</strong> Auditoria completa de todas as ações</li>
-                  <li><strong>API:</strong> Integração via API REST versionada</li>
-                  <li><strong>Webhooks:</strong> Notificações automáticas de eventos</li>
-                </ul>
-
-                <h3>Fluxo de Funcionamento</h3>
-                <ol>
-                  <li>Usuário/API/Webhook solicita uma ação (consulta ou atualização)</li>
-                  <li>Sistema consulta ou atualiza o registro no Baserow</li>
-                  <li>Resultado é retornado ao solicitante</li>
-                  <li>Ação é registrada no histórico interno (auditoria)</li>
-                  <li>Webhooks configurados são disparados (se aplicável)</li>
-                </ol>
-
-                <h3>Importante</h3>
-                <p>
-                  Os dados ficam armazenados no Baserow. O sistema interno armazena apenas:
-                </p>
-                <ul>
-                  <li>Histórico de ações</li>
-                  <li>Logs de auditoria</li>
-                  <li>Configurações de API e Webhooks</li>
-                  <li>Mapeamento de campos</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Baserow */}
-          <TabsContent value="baserow">
-            <Card>
-              <CardHeader>
-                <CardTitle>Integração com Baserow</CardTitle>
-                <CardDescription>Como configurar a conexão com o Baserow</CardDescription>
-              </CardHeader>
-              <CardContent className="prose prose-invert max-w-none">
-                <h3>Configuração Inicial</h3>
-                <ol>
-                  <li>Acesse sua conta no Baserow</li>
-                  <li>Vá em <strong>Settings → API Token</strong></li>
-                  <li>Crie um token com permissões de leitura e escrita</li>
-                  <li>Copie a URL da API (geralmente <code>https://api.baserow.io</code>)</li>
-                  <li>Anote o ID da tabela (visível na URL ao acessar a tabela)</li>
-                </ol>
-
-                <h3>Campos Esperados</h3>
-                <p>A tabela no Baserow deve conter os seguintes campos:</p>
-                <ul>
-                  <li><strong>Número</strong> (texto) - Campo de busca principal</li>
-                  <li><strong>Status</strong> (single select) - Status do número</li>
-                  <li><strong>Observações</strong> (texto longo) - Notas adicionais</li>
-                  <li><strong>Origem</strong> (texto) - De onde veio o número</li>
-                  <li><strong>Data de Cadastro</strong> (data) - Quando foi cadastrado</li>
-                  <li><strong>Última Atualização</strong> (data) - Última modificação</li>
-                </ul>
-
-                <h3>Mapeamento de Campos</h3>
-                <p>
-                  Na tela de <strong>Configurações</strong>, você pode mapear os nomes dos campos 
-                  do sistema para os nomes usados na sua tabela do Baserow.
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground leading-relaxed">
+                  O módulo <strong className="text-foreground">Consulta de Números</strong> permite consultar 
+                  e atualizar registros armazenados no Baserow, uma plataforma de banco de dados no-code. 
+                  É ideal para gerenciar números de WhatsApp, telefones ou qualquer dado tabular.
                 </p>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* Permissions */}
-          <TabsContent value="permissions">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Consulta Rápida
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Busque números por texto parcial ou completo com filtros por status.
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Atualização em Tempo Real
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Altere status e observações diretamente, com sincronização automática no Baserow.
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Auditoria Completa
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Histórico detalhado de todas as ações, consultas e atualizações realizadas.
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    API REST
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Integre com sistemas externos via API documentada com chaves de acesso.
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Webhooks
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Receba notificações automáticas quando ações forem realizadas no módulo.
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Permissões Granulares
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Controle quem pode consultar, atualizar e gerenciar cada funcionalidade.
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>Matriz de Permissões</CardTitle>
-                <CardDescription>Controle granular de acesso ao módulo</CardDescription>
+                <CardTitle className="text-base">Como Funciona</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    O módulo possui as seguintes permissões configuráveis na Matriz de Permissões:
-                  </p>
-                  <div className="rounded-md border">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-muted/50">
-                          <th className="p-3 text-left">Permissão</th>
-                          <th className="p-3 text-left">Descrição</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>view_consulta_numeros</Badge></td>
-                          <td className="p-3">Acessar o módulo</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>query_consulta_numeros</Badge></td>
-                          <td className="p-3">Consultar números</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>update_status_consulta_numeros</Badge></td>
-                          <td className="p-3">Atualizar status</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>update_obs_consulta_numeros</Badge></td>
-                          <td className="p-3">Atualizar observações</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>update_both_consulta_numeros</Badge></td>
-                          <td className="p-3">Atualizar status + observações</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>view_history_consulta_numeros</Badge></td>
-                          <td className="p-3">Visualizar histórico</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>export_consulta_numeros</Badge></td>
-                          <td className="p-3">Exportar dados</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>api_consulta_numeros</Badge></td>
-                          <td className="p-3">Usar API externa</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-3"><Badge>manage_webhooks_consulta_numeros</Badge></td>
-                          <td className="p-3">Gerenciar webhooks</td>
-                        </tr>
-                        <tr>
-                          <td className="p-3"><Badge>manage_config_consulta_numeros</Badge></td>
-                          <td className="p-3">Gerenciar configurações</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                    <span className="font-bold text-primary">1</span>
+                    <span>Solicitação</span>
+                  </div>
+                  <div className="hidden md:block text-muted-foreground">→</div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                    <span className="font-bold text-primary">2</span>
+                    <span>Baserow</span>
+                  </div>
+                  <div className="hidden md:block text-muted-foreground">→</div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                    <span className="font-bold text-primary">3</span>
+                    <span>Resposta</span>
+                  </div>
+                  <div className="hidden md:block text-muted-foreground">→</div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                    <span className="font-bold text-primary">4</span>
+                    <span>Histórico</span>
+                  </div>
+                  <div className="hidden md:block text-muted-foreground">→</div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                    <span className="font-bold text-primary">5</span>
+                    <span>Webhooks</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* API */}
-          <TabsContent value="api">
+          {/* Configuration */}
+          <TabsContent value="config" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>API REST</CardTitle>
-                <CardDescription>Documentação dos endpoints disponíveis</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5 text-primary" />
+                  Guia de Configuração do Baserow
+                </CardTitle>
+                <CardDescription>Siga os passos abaixo para configurar a integração</CardDescription>
               </CardHeader>
-              <CardContent className="prose prose-invert max-w-none">
-                <h3>Base URL</h3>
-                <pre className="bg-muted p-3 rounded-md overflow-x-auto">
-                  <code>{supabaseUrl}/functions/v1/api-consulta-numeros</code>
-                </pre>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">1</div>
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Criar Conta no Baserow</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Acesse <a href="https://baserow.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">baserow.io <ExternalLink className="h-3 w-3" /></a> e crie uma conta gratuita ou faça login.
+                      </p>
+                    </div>
+                  </div>
 
-                <h3>Autenticação</h3>
-                <p>Use o header <code>x-api-key</code> com sua chave de API:</p>
-                <pre className="bg-muted p-3 rounded-md overflow-x-auto">
-                  <code>x-api-key: cn_sua_chave_aqui</code>
-                </pre>
+                  <Separator />
 
-                <h3>Endpoints</h3>
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">2</div>
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Gerar Token de API</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Vá em <strong>Settings → API Token</strong> e crie um token com permissões de leitura e escrita para sua tabela.
+                      </p>
+                    </div>
+                  </div>
 
-                <h4>GET /consultar</h4>
-                <p>Consulta números no Baserow.</p>
-                <p><strong>Query Parameters:</strong></p>
-                <ul>
-                  <li><code>q</code> - Termo de busca (opcional)</li>
-                  <li><code>status</code> - Filtrar por status (opcional)</li>
-                  <li><code>page</code> - Página (padrão: 1)</li>
-                  <li><code>size</code> - Itens por página (padrão: 25)</li>
-                </ul>
+                  <Separator />
 
-                <h4>PATCH /</h4>
-                <p>Atualiza um registro no Baserow.</p>
-                <p><strong>Body (JSON):</strong></p>
-                <pre className="bg-muted p-3 rounded-md overflow-x-auto">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">3</div>
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Copiar URL da API</h4>
+                      <p className="text-sm text-muted-foreground">
+                        A URL padrão é <code className="bg-muted px-2 py-0.5 rounded text-xs">https://api.baserow.io</code>. Se usar self-hosted, use sua URL.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">4</div>
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Obter ID da Tabela</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Abra sua tabela no Baserow. O ID está na URL: <code className="bg-muted px-2 py-0.5 rounded text-xs">/database/X/table/<strong>123</strong></code>
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">5</div>
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Configurar no Sistema</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Acesse <strong>Configurações</strong> neste módulo e preencha os dados coletados. Use "Testar Conexão" para validar.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Campos Recomendados na Tabela</CardTitle>
+                <CardDescription>Estrutura sugerida para sua tabela no Baserow</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-3 text-left font-medium">Campo</th>
+                        <th className="p-3 text-left font-medium">Tipo</th>
+                        <th className="p-3 text-left font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="p-3 font-mono text-xs">Número</td>
+                        <td className="p-3"><Badge variant="outline">Texto</Badge></td>
+                        <td className="p-3 text-muted-foreground">Campo principal de busca</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">Status</td>
+                        <td className="p-3"><Badge variant="outline">Single Select</Badge></td>
+                        <td className="p-3 text-muted-foreground">Status atual do número</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">Observações</td>
+                        <td className="p-3"><Badge variant="outline">Long Text</Badge></td>
+                        <td className="p-3 text-muted-foreground">Notas e comentários</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">Origem</td>
+                        <td className="p-3"><Badge variant="outline">Texto</Badge></td>
+                        <td className="p-3 text-muted-foreground">De onde veio o número</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">Data Cadastro</td>
+                        <td className="p-3"><Badge variant="outline">Date</Badge></td>
+                        <td className="p-3 text-muted-foreground">Quando foi cadastrado</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Permissions */}
+          <TabsContent value="permissions" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  Matriz de Permissões
+                </CardTitle>
+                <CardDescription>Configure na área de Administração → Permissões</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-3 text-left font-medium">Permissão</th>
+                        <th className="p-3 text-left font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {[
+                        { key: 'view_consulta_numeros', desc: 'Acessar o módulo' },
+                        { key: 'query_consulta_numeros', desc: 'Consultar números' },
+                        { key: 'update_status_consulta_numeros', desc: 'Atualizar status' },
+                        { key: 'update_obs_consulta_numeros', desc: 'Atualizar observações' },
+                        { key: 'update_both_consulta_numeros', desc: 'Atualizar status + observações' },
+                        { key: 'view_history_consulta_numeros', desc: 'Visualizar histórico' },
+                        { key: 'export_consulta_numeros', desc: 'Exportar dados' },
+                        { key: 'api_consulta_numeros', desc: 'Usar API externa' },
+                        { key: 'manage_webhooks_consulta_numeros', desc: 'Gerenciar webhooks' },
+                        { key: 'manage_config_consulta_numeros', desc: 'Gerenciar configurações' },
+                      ].map((perm) => (
+                        <tr key={perm.key}>
+                          <td className="p-3">
+                            <Badge variant="secondary" className="font-mono text-xs">{perm.key}</Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{perm.desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* API */}
+          <TabsContent value="api" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="h-5 w-5 text-primary" />
+                  API REST - Documentação
+                </CardTitle>
+                <CardDescription>Endpoints disponíveis para integração</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Base URL</h4>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted p-3 rounded-lg text-sm font-mono break-all">
+                      {supabaseUrl}/functions/v1/api-consulta-numeros
+                    </code>
+                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(`${supabaseUrl}/functions/v1/api-consulta-numeros`)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Autenticação</h4>
+                  <p className="text-sm text-muted-foreground mb-2">Inclua o header com sua chave de API:</p>
+                  <code className="block bg-muted p-3 rounded-lg text-sm font-mono">
+                    x-api-key: cn_sua_chave_aqui
+                  </code>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Endpoints</h4>
+                  
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-500/10 text-green-500 border-green-500/20">GET</Badge>
+                      <code className="text-sm font-mono">/consultar</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Consulta números no Baserow com busca e filtros.</p>
+                    <div className="text-xs space-y-1">
+                      <p className="font-medium">Query Parameters:</p>
+                      <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                        <li><code>q</code> - Termo de busca (opcional)</li>
+                        <li><code>status</code> - Filtrar por status (opcional)</li>
+                        <li><code>page</code> - Página (padrão: 1)</li>
+                        <li><code>size</code> - Itens por página (padrão: 25)</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">PATCH</Badge>
+                      <code className="text-sm font-mono">/</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Atualiza um registro no Baserow.</p>
+                    <div className="text-xs space-y-1">
+                      <p className="font-medium">Body (JSON):</p>
+                      <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
 {`{
   "row_id": "123",
   "numero": "5511999999999",
   "status": "Ativo",
   "observacoes": "Número validado"
 }`}</pre>
+                    </div>
+                  </div>
 
-                <h4>GET /historico</h4>
-                <p>Consulta o histórico de ações.</p>
-                <p><strong>Query Parameters:</strong></p>
-                <ul>
-                  <li><code>numero</code> - Filtrar por número (opcional)</li>
-                  <li><code>page</code> - Página (padrão: 1)</li>
-                  <li><code>size</code> - Itens por página (padrão: 50)</li>
-                </ul>
-
-                <h4>GET /statuses</h4>
-                <p>Retorna os status disponíveis configurados no Baserow.</p>
-
-                <h4>POST /webhook</h4>
-                <p>Endpoint para receber webhooks externos.</p>
-                <p><strong>Body (JSON):</strong></p>
-                <pre className="bg-muted p-3 rounded-md overflow-x-auto">
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">POST</Badge>
+                      <code className="text-sm font-mono">/cadastrar</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Cadastra um novo número no Baserow.</p>
+                    <div className="text-xs space-y-1">
+                      <p className="font-medium">Body (JSON):</p>
+                      <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
 {`{
-  "action": "update",
-  "row_id": "123",
   "numero": "5511999999999",
-  "status": "Ativo",
-  "observacoes": "Atualizado via webhook"
+  "status": "Novo",
+  "observacoes": "Cadastrado via API",
+  "origem": "API Externa"
 }`}</pre>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-500/10 text-green-500 border-green-500/20">GET</Badge>
+                      <code className="text-sm font-mono">/historico</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Consulta o histórico de ações.</p>
+                  </div>
+
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-500/10 text-green-500 border-green-500/20">GET</Badge>
+                      <code className="text-sm font-mono">/statuses</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Retorna os status disponíveis configurados no Baserow.</p>
+                  </div>
+
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">POST</Badge>
+                      <code className="text-sm font-mono">/webhook</code>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Endpoint para receber webhooks externos (consulta ou atualização).</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Webhooks */}
-          <TabsContent value="webhooks">
+          <TabsContent value="webhooks" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Webhooks</CardTitle>
-                <CardDescription>Receba notificações de eventos em tempo real</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Webhook className="h-5 w-5 text-primary" />
+                  Webhooks - Notificações
+                </CardTitle>
+                <CardDescription>Receba notificações automáticas de eventos</CardDescription>
               </CardHeader>
-              <CardContent className="prose prose-invert max-w-none">
-                <h3>Eventos Disponíveis</h3>
-                <ul>
-                  <li><code>consulta</code> - Quando uma consulta é realizada</li>
-                  <li><code>atualizacao_status</code> - Quando o status é atualizado</li>
-                  <li><code>atualizacao_obs</code> - Quando as observações são atualizadas</li>
-                  <li><code>atualizacao_status_obs</code> - Quando ambos são atualizados</li>
-                </ul>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Eventos Disponíveis</h4>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      { key: 'consulta', desc: 'Quando uma consulta é realizada' },
+                      { key: 'atualizacao_status', desc: 'Quando o status é atualizado' },
+                      { key: 'atualizacao_obs', desc: 'Quando observações são atualizadas' },
+                      { key: 'atualizacao_status_obs', desc: 'Quando ambos são atualizados' },
+                    ].map((event) => (
+                      <div key={event.key} className="flex items-start gap-2 p-3 border rounded-lg">
+                        <Badge variant="outline" className="font-mono text-xs shrink-0">{event.key}</Badge>
+                        <span className="text-sm text-muted-foreground">{event.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                <h3>Formato do Payload</h3>
-                <pre className="bg-muted p-3 rounded-md overflow-x-auto">
+                <Separator />
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Formato do Payload</h4>
+                  <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
 {`{
   "evento": "atualizacao_status",
   "timestamp": "2025-01-15T12:00:00.000Z",
   "dados": {
     "numero": "5511999999999",
     "row_id": "123",
-    "changes": {
-      "Status": "Ativo"
-    },
+    "changes": { "Status": "Ativo" },
     "previous": { ... },
     "current": { ... }
   }
 }`}</pre>
+                </div>
 
-                <h3>Segurança</h3>
-                <p>
-                  Você pode configurar uma chave secreta para validar os webhooks recebidos.
-                  A chave será enviada no header <code>X-Webhook-Secret</code>.
-                </p>
+                <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-sm">Segurança</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Configure uma chave secreta para validar webhooks. Ela será enviada no header <code className="bg-muted px-1 rounded">X-Webhook-Secret</code>.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Examples */}
-          <TabsContent value="examples">
+          <TabsContent value="examples" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Exemplos em cURL</CardTitle>
-                <CardDescription>Exemplos práticos de uso da API</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="h-5 w-5 text-primary" />
+                  Exemplos Práticos
+                </CardTitle>
+                <CardDescription>Exemplos em cURL para copiar e usar</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <h4 className="font-medium mb-2">Consultar números</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/consultar?q=5511&page=1&size=10" \\
-  -H "x-api-key: cn_sua_chave_aqui"`}</pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Consultar com filtro de status</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/consultar?status=Ativo" \\
-  -H "x-api-key: cn_sua_chave_aqui"`}</pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Atualizar status</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X PATCH "${supabaseUrl}/functions/v1/api-consulta-numeros" \\
+                {[
+                  {
+                    title: 'Consultar números',
+                    code: `curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/consultar?q=5511&page=1&size=10" \\
+  -H "x-api-key: cn_sua_chave_aqui"`
+                  },
+                  {
+                    title: 'Filtrar por status',
+                    code: `curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/consultar?status=Ativo" \\
+  -H "x-api-key: cn_sua_chave_aqui"`
+                  },
+                  {
+                    title: 'Cadastrar novo número',
+                    code: `curl -X POST "${supabaseUrl}/functions/v1/api-consulta-numeros/cadastrar" \\
+  -H "x-api-key: cn_sua_chave_aqui" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "numero": "5511999999999",
+    "status": "Novo",
+    "observacoes": "Cadastrado via API"
+  }'`
+                  },
+                  {
+                    title: 'Atualizar status',
+                    code: `curl -X PATCH "${supabaseUrl}/functions/v1/api-consulta-numeros" \\
   -H "x-api-key: cn_sua_chave_aqui" \\
   -H "Content-Type: application/json" \\
   -d '{
     "row_id": "123",
     "numero": "5511999999999",
     "status": "Inativo"
-  }'`}</pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Atualizar observações</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X PATCH "${supabaseUrl}/functions/v1/api-consulta-numeros" \\
-  -H "x-api-key: cn_sua_chave_aqui" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "row_id": "123",
-    "observacoes": "Número verificado em 15/01/2025"
-  }'`}</pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Consultar histórico</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/historico?numero=5511&page=1" \\
-  -H "x-api-key: cn_sua_chave_aqui"`}</pre>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Enviar via Webhook</h4>
-                  <pre className="bg-muted p-3 rounded-md overflow-x-auto text-sm">
-{`curl -X POST "${supabaseUrl}/functions/v1/api-consulta-numeros/webhook" \\
-  -H "Content-Type: application/json" \\
-  -H "x-webhook-secret: sua_chave_secreta" \\
-  -d '{
-    "action": "update",
-    "row_id": "123",
-    "status": "Verificado"
-  }'`}</pre>
-                </div>
+  }'`
+                  },
+                  {
+                    title: 'Consultar histórico',
+                    code: `curl -X GET "${supabaseUrl}/functions/v1/api-consulta-numeros/historico?numero=5511&page=1" \\
+  -H "x-api-key: cn_sua_chave_aqui"`
+                  },
+                ].map((example, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">{example.title}</h4>
+                      <Button variant="outline" size="sm" onClick={() => copyToClipboard(example.code)}>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copiar
+                      </Button>
+                    </div>
+                    <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+                      {example.code}
+                    </pre>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
