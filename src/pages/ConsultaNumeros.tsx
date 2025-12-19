@@ -562,7 +562,10 @@ export default function ConsultaNumeros() {
                             return (
                               <TableCell
                                 key={field.id}
-                                className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[2px] select-none' : ''}`}
+                                className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[3px] select-none' : ''}`}
+                                onCopy={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
+                                onCut={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
+                                onContextMenu={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
                               >
                                 {field.type === 'single_select' ? (
                                   <Badge variant="secondary">{displayValue || '-'}</Badge>
@@ -768,14 +771,27 @@ export default function ConsultaNumeros() {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input
-                      value={shouldMask ? maskValue(editValues[field.name], field.name) : (editValues[field.name] || '')}
-                      onChange={(e) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
-                      placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
-                      disabled={isNonEditable || shouldMask}
-                      readOnly={isNonEditable || shouldMask}
-                      className={shouldMask ? 'blur-[2px]' : ''}
-                    />
+                    <div className={shouldMask ? 'relative' : ''}>
+                      <Input
+                        value={shouldMask ? maskValue(editValues[field.name], field.name) : (editValues[field.name] || '')}
+                        onChange={(e) => !isNonEditable && !shouldMask && setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        placeholder={isNonEditable ? '' : `Digite ${field.name}...`}
+                        disabled={isNonEditable || shouldMask}
+                        readOnly={isNonEditable || shouldMask}
+                        className={shouldMask ? 'blur-[3px] select-none pointer-events-none' : ''}
+                        onCopy={(e) => shouldMask && e.preventDefault()}
+                        onCut={(e) => shouldMask && e.preventDefault()}
+                        onContextMenu={(e) => shouldMask && e.preventDefault()}
+                        tabIndex={shouldMask ? -1 : undefined}
+                      />
+                      {shouldMask && (
+                        <div 
+                          className="absolute inset-0 cursor-not-allowed" 
+                          onCopy={(e) => e.preventDefault()}
+                          onContextMenu={(e) => e.preventDefault()}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               );
