@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,13 +19,16 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface NumeroResult {
   id: number;
-  Número?: string;
-  Status?: string;
-  Observações?: string;
-  Origem?: string;
-  'Data de Cadastro'?: string;
-  'Última Atualização'?: string;
   [key: string]: any;
+}
+
+interface BaserowField {
+  id: number;
+  name: string;
+  type: string;
+  order: number;
+  primary: boolean;
+  select_options?: { id: number; value: string; color: string }[];
 }
 
 interface StatusOption {
@@ -46,15 +49,11 @@ export default function ConsultaNumeros() {
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<NumeroResult | null>(null);
-  const [editStatus, setEditStatus] = useState('');
-  const [editObs, setEditObs] = useState('');
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newNumero, setNewNumero] = useState('');
-  const [newStatus, setNewStatus] = useState('');
-  const [newObs, setNewObs] = useState('');
-  const [newOrigem, setNewOrigem] = useState('');
+  const [newValues, setNewValues] = useState<Record<string, string>>({});
 
   // Permissions
   const canQuery = isAdmin || hasPermission('query_consulta_numeros');
@@ -68,13 +67,13 @@ export default function ConsultaNumeros() {
   const canManageWebhooks = isAdmin || hasPermission('manage_webhooks_consulta_numeros');
   const canManageApi = isAdmin || hasPermission('api_consulta_numeros');
 
-  // Fetch statuses
-  const { data: statuses = [] } = useQuery<StatusOption[]>({
-    queryKey: ['consulta-numeros-statuses'],
+  // Fetch Baserow fields - this determines which columns to show
+  const { data: baserowFields = [] } = useQuery<BaserowField[]>({
+    queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/statuses`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
         {
           headers: {
             'Authorization': `Bearer ${session.session?.access_token}`,
@@ -89,6 +88,18 @@ export default function ConsultaNumeros() {
     gcTime: 30 * 60 * 1000,
     retry: false,
   });
+
+  // Determine visible columns from fields (exclude internal fields)
+  const visibleFields = useMemo(() => {
+    return baserowFields
+      .filter(f => !['id', 'order'].includes(f.name.toLowerCase()))
+      .sort((a, b) => a.order - b.order);
+  }, [baserowFields]);
+
+  // Find status field for filter options
+  const statusField = useMemo(() => {
+    return baserowFields.find(f => f.type === 'single_select' && f.select_options?.length);
+  }, [baserowFields]);
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
@@ -129,7 +140,7 @@ export default function ConsultaNumeros() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ rowId, status, observacoes, numero }: { rowId: number; status?: string; observacoes?: string; numero?: string }) => {
+    mutationFn: async ({ rowId, data }: { rowId: number; data: Record<string, any> }) => {
       const { data: session } = await supabase.auth.getSession();
       
       const res = await fetch(
@@ -142,9 +153,7 @@ export default function ConsultaNumeros() {
           },
           body: JSON.stringify({
             row_id: rowId.toString(),
-            status,
-            observacoes,
-            numero,
+            ...data,
           }),
         }
       );
@@ -166,7 +175,7 @@ export default function ConsultaNumeros() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: async ({ numero, status, observacoes, origem }: { numero: string; status?: string; observacoes?: string; origem?: string }) => {
+    mutationFn: async (data: Record<string, any>) => {
       const { data: session } = await supabase.auth.getSession();
       
       const res = await fetch(
@@ -177,12 +186,7 @@ export default function ConsultaNumeros() {
             'Authorization': `Bearer ${session.session?.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            numero,
-            status,
-            observacoes,
-            origem,
-          }),
+          body: JSON.stringify(data),
         }
       );
       
@@ -202,23 +206,20 @@ export default function ConsultaNumeros() {
   });
 
   const resetCreateForm = () => {
-    setNewNumero('');
-    setNewStatus('');
-    setNewObs('');
-    setNewOrigem('');
+    setNewValues({});
   };
 
   const handleCreate = () => {
-    if (!newNumero.trim()) {
+    // Find the primary/numero field
+    const numeroField = visibleFields.find(f => f.name.toLowerCase().includes('numero'));
+    const numeroValue = newValues[numeroField?.name || 'numero'];
+    
+    if (!numeroValue?.trim()) {
       toast({ title: 'Número é obrigatório', variant: 'destructive' });
       return;
     }
-    createMutation.mutate({
-      numero: newNumero,
-      status: newStatus || undefined,
-      observacoes: newObs || undefined,
-      origem: newOrigem || undefined,
-    });
+    
+    createMutation.mutate(newValues);
   };
 
   const handleSearch = () => {
@@ -228,32 +229,24 @@ export default function ConsultaNumeros() {
 
   const handleEdit = (row: NumeroResult) => {
     setSelectedRow(row);
-    setEditStatus(row.Status || '');
-    setEditObs(row['Observações'] || '');
+    // Initialize edit values with current row values
+    const values: Record<string, string> = {};
+    visibleFields.forEach(f => {
+      values[f.name] = row[f.name]?.toString() || '';
+    });
+    setEditValues(values);
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
     if (!selectedRow) return;
-
-    const updates: any = { rowId: selectedRow.id, numero: selectedRow['Número'] };
-    
-    if (canUpdateBoth || (canUpdateStatus && canUpdateObs)) {
-      updates.status = editStatus;
-      updates.observacoes = editObs;
-    } else if (canUpdateStatus) {
-      updates.status = editStatus;
-    } else if (canUpdateObs) {
-      updates.observacoes = editObs;
-    }
-
-    updateMutation.mutate(updates);
+    updateMutation.mutate({ rowId: selectedRow.id, data: editValues });
   };
 
   const handleExport = async () => {
     if (!queryResult?.data) return;
 
-    const headers = ['Número', 'Status', 'Observações', 'Origem', 'Data de Cadastro', 'Última Atualização'];
+    const headers = visibleFields.map(f => f.name);
     const csvContent = [
       headers.join(','),
       ...queryResult.data.map((row: NumeroResult) =>
@@ -328,7 +321,7 @@ export default function ConsultaNumeros() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Todos os status</SelectItem>
-                    {statuses.map((s) => (
+                    {statusField?.select_options?.map((s) => (
                       <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
                     ))}
                   </SelectContent>
@@ -381,32 +374,32 @@ export default function ConsultaNumeros() {
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Observações</TableHead>
-                        <TableHead>Origem</TableHead>
-                        <TableHead>Última Atualização</TableHead>
+                        {visibleFields.map((field) => (
+                          <TableHead key={field.id}>{field.name}</TableHead>
+                        ))}
                         <TableHead className="w-[100px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {queryResult?.data?.map((row: NumeroResult) => (
                         <TableRow key={row.id}>
-                          <TableCell className="font-mono">{row['Número'] || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{row.Status || '-'}</Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {row['Observações'] || '-'}
-                          </TableCell>
-                          <TableCell>{row.Origem || '-'}</TableCell>
-                          <TableCell>
-                            {row['Última Atualização'] ? new Date(row['Última Atualização']).toLocaleDateString('pt-BR') : '-'}
-                          </TableCell>
+                          {visibleFields.map((field) => (
+                            <TableCell key={field.id} className="max-w-[200px] truncate">
+                              {field.type === 'single_select' ? (
+                                <Badge variant="secondary">{row[field.name] || '-'}</Badge>
+                              ) : field.type === 'boolean' ? (
+                                row[field.name] ? 'Sim' : 'Não'
+                              ) : field.type === 'date' ? (
+                                row[field.name] ? new Date(row[field.name]).toLocaleDateString('pt-BR') : '-'
+                              ) : (
+                                row[field.name]?.toString() || '-'
+                              )}
+                            </TableCell>
+                          ))}
                           <TableCell>
                             {(canUpdateStatus || canUpdateObs || canUpdateBoth) && (
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
@@ -501,40 +494,60 @@ export default function ConsultaNumeros() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Número</DialogTitle>
+            <DialogTitle>Editar Registro</DialogTitle>
             <DialogDescription>
-              {selectedRow?.['Número']}
+              Edite os campos abaixo
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {(canUpdateStatus || canUpdateBoth) && (
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statuses.map((s) => (
-                      <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {visibleFields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <Label>{field.name}</Label>
+                {field.type === 'single_select' && field.select_options ? (
+                  <Select 
+                    value={editValues[field.name] || ''} 
+                    onValueChange={(val) => setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Selecione ${field.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.select_options.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : field.type === 'long_text' ? (
+                  <Textarea
+                    value={editValues[field.name] || ''}
+                    onChange={(e) => setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                    placeholder={`Digite ${field.name}...`}
+                    rows={3}
+                  />
+                ) : field.type === 'boolean' ? (
+                  <Select 
+                    value={editValues[field.name] || ''} 
+                    onValueChange={(val) => setEditValues(prev => ({ ...prev, [field.name]: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Sim</SelectItem>
+                      <SelectItem value="false">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={editValues[field.name] || ''}
+                    onChange={(e) => setEditValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                    placeholder={`Digite ${field.name}...`}
+                  />
+                )}
               </div>
-            )}
-            {(canUpdateObs || canUpdateBoth) && (
-              <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea
-                  value={editObs}
-                  onChange={(e) => setEditObs(e.target.value)}
-                  placeholder="Digite as observações..."
-                  rows={4}
-                />
-              </div>
-            )}
+            ))}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
@@ -549,52 +562,60 @@ export default function ConsultaNumeros() {
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={(open) => { if (!open) resetCreateForm(); setCreateDialogOpen(open); }}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Número</DialogTitle>
+            <DialogTitle>Cadastrar Novo Registro</DialogTitle>
             <DialogDescription>
-              Adicione um novo número ao Baserow
+              Preencha os campos abaixo
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Número *</Label>
-              <Input
-                value={newNumero}
-                onChange={(e) => setNewNumero(e.target.value)}
-                placeholder="Ex: 5511999999999"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map((s) => (
-                    <SelectItem key={s.id} value={s.value}>{s.value}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Origem</Label>
-              <Input
-                value={newOrigem}
-                onChange={(e) => setNewOrigem(e.target.value)}
-                placeholder="Ex: Campanha X, Formulário Y"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea
-                value={newObs}
-                onChange={(e) => setNewObs(e.target.value)}
-                placeholder="Digite observações..."
-                rows={3}
-              />
-            </div>
+            {visibleFields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <Label>{field.name} {field.primary && '*'}</Label>
+                {field.type === 'single_select' && field.select_options ? (
+                  <Select 
+                    value={newValues[field.name] || ''} 
+                    onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Selecione ${field.name}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.select_options.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.value}>{opt.value}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : field.type === 'long_text' ? (
+                  <Textarea
+                    value={newValues[field.name] || ''}
+                    onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                    placeholder={`Digite ${field.name}...`}
+                    rows={3}
+                  />
+                ) : field.type === 'boolean' ? (
+                  <Select 
+                    value={newValues[field.name] || ''} 
+                    onValueChange={(val) => setNewValues(prev => ({ ...prev, [field.name]: val }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Sim</SelectItem>
+                      <SelectItem value="false">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={newValues[field.name] || ''}
+                    onChange={(e) => setNewValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                    placeholder={`Digite ${field.name}...`}
+                  />
+                )}
+              </div>
+            ))}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { resetCreateForm(); setCreateDialogOpen(false); }}>
