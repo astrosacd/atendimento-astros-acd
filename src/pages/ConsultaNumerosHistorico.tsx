@@ -57,6 +57,11 @@ export default function ConsultaNumerosHistorico() {
           },
         }
       );
+
+      if (res.status === 401) {
+        await supabase.auth.signOut();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
       
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
