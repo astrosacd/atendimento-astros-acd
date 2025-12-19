@@ -25,6 +25,14 @@ interface MaskedField {
   is_masked: boolean;
 }
 
+interface BaserowField {
+  id: number;
+  name: string;
+  type: string;
+  order: number;
+  primary: boolean;
+}
+
 export default function ConsultaNumerosConfig() {
   const queryClient = useQueryClient();
   
@@ -64,6 +72,27 @@ export default function ConsultaNumerosConfig() {
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
+  });
+
+  // Fetch Baserow fields (from backend) to auto-add into masked fields list
+  const { data: baserowFields = [] } = useQuery<BaserowField[]>({
+    queryKey: ['consulta-numeros-campos'],
+    queryFn: async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) return [];
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
+        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
+      );
+
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.success ? (json.data as BaserowField[]) : [];
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: false,
   });
 
   useEffect(() => {
@@ -148,6 +177,40 @@ export default function ConsultaNumerosConfig() {
       toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
     },
   });
+
+  // Auto-sync: ensure every Baserow field exists in masked fields table (default: not masked)
+  const syncMaskedFieldsMutation = useMutation({
+    mutationFn: async (fieldNames: string[]) => {
+      if (fieldNames.length === 0) return;
+      const payload = fieldNames.map((field_name) => ({ field_name, is_masked: false }));
+      const { error } = await supabase
+        .from('consulta_numeros_masked_fields')
+        .insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-masked-fields'] });
+    },
+  });
+
+  useEffect(() => {
+    const normalized = baserowFields
+      .map((f) => f.name)
+      .filter((name) => !!name)
+      .filter((name) => !['id', 'order'].includes(name.toLowerCase()));
+
+    if (!normalized.length || !maskedFields.length) return;
+
+    const existing = new Set(maskedFields.map((m) => m.field_name));
+    const missing = normalized.filter((name) => !existing.has(name));
+    if (missing.length === 0) return;
+
+    // Avoid infinite loops
+    if (!syncMaskedFieldsMutation.isPending) {
+      syncMaskedFieldsMutation.mutate(missing);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baserowFields, maskedFields]);
 
   const [testingConnection, setTestingConnection] = useState(false);
 
