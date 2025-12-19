@@ -66,6 +66,9 @@ export function usePermissions() {
   const canManageNumerosWebhooks = () => hasPermission('manage_numeros_webhooks');
   const canManageNumerosApi = () => hasPermission('manage_numeros_api');
 
+  // Consulta de Números permissions
+  const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
+
   return {
     permissions,
     hasPermission,
@@ -99,5 +102,6 @@ export function usePermissions() {
     canViewNumerosHistory,
     canManageNumerosWebhooks,
     canManageNumerosApi,
+    canViewConsultaNumeros,
   };
 }

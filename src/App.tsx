@@ -29,6 +29,12 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import AdminDivulgador from "./pages/AdminDivulgador";
 import AdminNumerosAquecimento from "./pages/AdminNumerosAquecimento";
+import ConsultaNumeros from "./pages/ConsultaNumeros";
+import ConsultaNumerosHistorico from "./pages/ConsultaNumerosHistorico";
+import ConsultaNumerosConfig from "./pages/ConsultaNumerosConfig";
+import ConsultaNumerosApiKeys from "./pages/ConsultaNumerosApiKeys";
+import ConsultaNumerosWebhooks from "./pages/ConsultaNumerosWebhooks";
+import ConsultaNumerosGuia from "./pages/ConsultaNumerosGuia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +82,12 @@ function AppRoutes() {
       <Route path="/admin/tags" element={<ProtectedRoute permission="manage_settings"><AdminTags /></ProtectedRoute>} />
       <Route path="/admin/divulgador" element={<ProtectedRoute permission="view_divulgador"><AdminDivulgador /></ProtectedRoute>} />
       <Route path="/admin/numeros" element={<ProtectedRoute permission="view_numeros"><AdminNumerosAquecimento /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros" element={<ProtectedRoute permission="view_consulta_numeros"><ConsultaNumeros /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros/historico" element={<ProtectedRoute permission="view_history_consulta_numeros"><ConsultaNumerosHistorico /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros/config" element={<ProtectedRoute permission="manage_config_consulta_numeros"><ConsultaNumerosConfig /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros/api" element={<ProtectedRoute permission="api_consulta_numeros"><ConsultaNumerosApiKeys /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros/webhooks" element={<ProtectedRoute permission="manage_webhooks_consulta_numeros"><ConsultaNumerosWebhooks /></ProtectedRoute>} />
+      <Route path="/admin/consulta-numeros/guia" element={<ProtectedRoute permission="view_consulta_numeros"><ConsultaNumerosGuia /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
