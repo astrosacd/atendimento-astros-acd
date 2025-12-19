@@ -84,75 +84,61 @@ async function getFieldMappings(supabase: any): Promise<FieldMapping[]> {
   return data || [];
 }
 
-// Map Baserow data using field mappings - translate from Baserow column names to standard names
-function mapBaserowData(rows: any[], mappings: FieldMapping[]): any[] {
-  if (!mappings || mappings.length === 0) {
-    // If no mappings, return data as-is
-    return rows;
+// Get all fields from Baserow table
+async function getBaserowFields(config: BaserowConfig) {
+  const url = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${config.api_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    console.error('Error fetching Baserow fields');
+    return [];
   }
 
+  const fields = await response.json();
+  return fields.map((f: any) => ({
+    id: f.id,
+    name: f.name,
+    type: f.type,
+    order: f.order,
+    primary: f.primary || false,
+    select_options: f.select_options || null,
+  }));
+}
+
+// No mapping needed - return data as-is from Baserow with field names
+function normalizeBaserowData(rows: any[]): any[] {
   return rows.map(row => {
-    const mappedRow: any = {
+    const normalizedRow: any = {
       id: row.id,
       order: row.order,
     };
 
-    // Map each field using the configured mappings
-    for (const mapping of mappings) {
-      const baserowFieldName = mapping.baserow_field_name;
-      const systemFieldName = mapping.field_name;
-      
-      // Try to get value using baserow field name
-      if (row[baserowFieldName] !== undefined) {
-        // Map to standardized names that frontend expects
-        switch (systemFieldName) {
-          case 'numero':
-            mappedRow['Número'] = row[baserowFieldName];
-            break;
-          case 'status':
-            mappedRow['Status'] = row[baserowFieldName];
-            break;
-          case 'observacoes':
-            mappedRow['Observações'] = row[baserowFieldName];
-            break;
-          case 'origem':
-            mappedRow['Origem'] = row[baserowFieldName];
-            break;
-          case 'data_cadastro':
-            mappedRow['Data de Cadastro'] = row[baserowFieldName];
-            break;
-          default:
-            mappedRow[systemFieldName] = row[baserowFieldName];
-        }
-      }
-    }
-
-    // Also keep original fields for any unmapped data
+    // Copy all fields from Baserow
     for (const key of Object.keys(row)) {
-      if (!mappedRow.hasOwnProperty(key) && key !== 'id' && key !== 'order') {
-        mappedRow[key] = row[key];
+      if (key !== 'id' && key !== 'order') {
+        normalizedRow[key] = row[key];
       }
     }
 
-    return mappedRow;
+    return normalizedRow;
   });
 }
 
-// Get Baserow field name from system field name
+// Get Baserow field name from field mappings or use direct name
 function getBaserowFieldName(mappings: FieldMapping[], systemFieldName: string): string {
   const mapping = mappings.find(m => m.field_name === systemFieldName);
   if (mapping) {
     return mapping.baserow_field_name;
   }
-  // Default fallback to Portuguese names if no mapping found
-  const defaults: Record<string, string> = {
-    'numero': 'Número',
-    'status': 'Status',
-    'observacoes': 'Observações',
-    'origem': 'Origem',
-    'data_cadastro': 'Data de Cadastro',
-  };
-  return defaults[systemFieldName] || systemFieldName;
+  // Return the field name directly - the user should configure mappings
+  return systemFieldName;
 }
 
 // Query Baserow
@@ -433,6 +419,15 @@ Deno.serve(async (req) => {
 
     // Route handling
     if (req.method === 'GET') {
+      // GET /campos - Get available fields from Baserow
+      if (endpoint === 'campos') {
+        const fields = await getBaserowFields(config);
+        return new Response(
+          JSON.stringify({ success: true, data: fields }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // GET /consultar - Query numbers
       if (endpoint === 'consultar' || endpoint === 'api-consulta-numeros') {
         const searchQuery = url.searchParams.get('q') || '';
@@ -442,9 +437,8 @@ Deno.serve(async (req) => {
 
         const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilter);
         
-        // Get field mappings and apply them to results
-        const fieldMappings = await getFieldMappings(supabase);
-        const mappedData = mapBaserowData(result.results || [], fieldMappings);
+        // Return data directly from Baserow without transformation
+        const normalizedData = normalizeBaserowData(result.results || []);
 
         // Log consultation
         await logAction(
@@ -467,7 +461,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: true,
-            data: mappedData,
+            data: normalizedData,
             pagination: {
               count: result.count,
               page,
