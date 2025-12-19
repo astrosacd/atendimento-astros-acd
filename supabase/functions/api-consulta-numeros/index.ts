@@ -161,27 +161,46 @@ async function queryBaserow(
   // Robust filtering: use JSON filters with field ID (works regardless of field name casing)
   if (statusFilters && statusFilters.length > 0) {
     const fields = await getBaserowFields(config);
-    console.log('[api-consulta-numeros] Available fields for filter:', fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type })));
-    
-    const statusField =
-      fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
-      fields.find((f: any) => f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0);
+    console.log(
+      '[api-consulta-numeros] Available fields for filter:',
+      fields.map((f: any) => ({ id: f.id, name: f.name, type: f.type }))
+    );
 
-    if (!statusField?.id) {
-      console.warn('[api-consulta-numeros] No single_select field found for status filter; skipping filter');
+    const statusFieldCandidate =
+      fields.find((f: any) => (f?.name || '').toLowerCase() === 'status') ||
+      fields.find(
+        (f: any) =>
+          f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0
+      );
+
+    const statusFieldId = Number(statusFieldCandidate?.id);
+    const validStatusIds = statusFilters
+      .map((s) => Number.parseInt(String(s), 10))
+      .filter((n) => Number.isFinite(n));
+
+    if (!Number.isFinite(statusFieldId) || validStatusIds.length === 0) {
+      console.warn('[api-consulta-numeros] Invalid status filter; skipping', {
+        statusFieldCandidate,
+        statusFilters,
+        validStatusIds,
+      });
     } else {
-      console.log('[api-consulta-numeros] Using status field:', { id: statusField.id, name: statusField.name });
-      
+      console.log('[api-consulta-numeros] Using status field:', {
+        id: statusFieldId,
+        name: statusFieldCandidate?.name,
+      });
+
       const filters = {
         filter_type: 'OR',
-        filters: statusFilters.map((statusId) => ({
-          field: statusField.id,
+        filters: validStatusIds.map((statusId) => ({
+          field: statusFieldId,
           type: 'single_select_equal',
-          value: parseInt(statusId, 10), // Ensure integer value
+          value: statusId,
         })),
       };
 
-      url.searchParams.append('filters', JSON.stringify(filters));
+      // Use `set` to avoid duplicated query params.
+      url.searchParams.set('filters', JSON.stringify(filters));
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -165,10 +165,22 @@ export default function ConsultaNumeros() {
 
   // Find Status field (prefer exact name match)
   const statusField = useMemo(() => {
-    const byName = baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length && f.name?.toLowerCase() === 'status');
+    const byName = baserowFields.find(
+      (f) => f.type === 'single_select' && f.select_options?.length && f.name?.toLowerCase() === 'status'
+    );
     if (byName) return byName;
-    return baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length);
+
+    return (
+      baserowFields.find(
+        (f) => f.type === 'single_select' && f.select_options?.length && f.name?.toLowerCase() === 'excluido_da_base'
+      ) || baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length)
+    );
   }, [baserowFields]);
+
+  // When changing status filters, reset pagination (query reruns automatically)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilters]);
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
@@ -337,9 +349,10 @@ export default function ConsultaNumeros() {
     createMutation.mutate(newValues);
   };
 
+  // Apply filters/search
   const handleSearch = () => {
+    // Reset to page 1; the query will re-run because `currentPage` is part of the queryKey.
     setCurrentPage(1);
-    refetch();
   };
 
   const handleEdit = (row: NumeroResult) => {
