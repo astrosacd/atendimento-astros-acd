@@ -12,7 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, AlertCircle, Plus, Loader2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -44,7 +46,7 @@ export default function ConsultaNumeros() {
   const { hasPermission } = usePermissions();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(25);
   
@@ -168,7 +170,7 @@ export default function ConsultaNumeros() {
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', searchQuery, statusFilter, currentPage, pageSize],
+    queryKey: ['consulta-numeros', searchQuery, statusFilters, currentPage, pageSize],
     queryFn: async () => {
       if (!canQuery) return { data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
       
@@ -183,7 +185,7 @@ export default function ConsultaNumeros() {
       });
       
       if (searchQuery) params.append('q', searchQuery);
-      if (statusFilter) params.append('status', statusFilter);
+      if (statusFilters.length > 0) params.append('status', statusFilters.join(','));
       
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
@@ -445,18 +447,52 @@ export default function ConsultaNumeros() {
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
-              <div className="w-full md:w-48">
-                <Select value={statusFilter || "__all__"} onValueChange={(val) => setStatusFilter(val === "__all__" ? "" : val)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">Todos os status</SelectItem>
-                    {statusField?.select_options?.map((s) => (
-                      <SelectItem key={s.id} value={s.id.toString()}>{s.value}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="w-full md:w-64">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      {statusFilters.length === 0 
+                        ? "Todos os status" 
+                        : statusFilters.length === 1
+                          ? statusField?.select_options?.find(s => s.id.toString() === statusFilters[0])?.value || "1 status"
+                          : `${statusFilters.length} status selecionados`
+                      }
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="space-y-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full justify-start text-muted-foreground"
+                        onClick={() => setStatusFilters([])}
+                      >
+                        Limpar filtros
+                      </Button>
+                      <div className="border-t pt-2 space-y-1">
+                        {statusField?.select_options?.map((s) => (
+                          <label 
+                            key={s.id} 
+                            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={statusFilters.includes(s.id.toString())}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setStatusFilters([...statusFilters, s.id.toString()]);
+                                } else {
+                                  setStatusFilters(statusFilters.filter(id => id !== s.id.toString()));
+                                }
+                              }}
+                            />
+                            <span className="text-sm">{s.value}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <Button onClick={handleSearch} disabled={isLoading}>
                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
