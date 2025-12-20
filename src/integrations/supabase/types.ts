@@ -1350,6 +1350,7 @@ export type Database = {
       }
       gateway_order_bumps: {
         Row: {
+          allow_coupon: boolean
           created_at: string
           description: string | null
           id: string
@@ -1362,6 +1363,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_coupon?: boolean
           created_at?: string
           description?: string | null
           id?: string
@@ -1374,6 +1376,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_coupon?: boolean
           created_at?: string
           description?: string | null
           id?: string

@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ export default function GatewayOrderBumps() {
     price_brl: 0,
     price_usd: 0,
     status: 'active' as 'active' | 'inactive',
+    allow_coupon: true,
   });
 
   const handleOpenChange = (open: boolean) => {
@@ -45,6 +47,7 @@ export default function GatewayOrderBumps() {
       price_brl: 0,
       price_usd: 0,
       status: 'active',
+      allow_coupon: true,
     });
     setEditingOrderBump(null);
   };
@@ -59,6 +62,7 @@ export default function GatewayOrderBumps() {
       price_brl: orderBump.price_brl,
       price_usd: orderBump.price_usd,
       status: orderBump.status,
+      allow_coupon: orderBump.allow_coupon ?? true,
     });
     setIsOpen(true);
   };
@@ -130,12 +134,12 @@ export default function GatewayOrderBumps() {
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Order Bump</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
-            <DialogHeader className="pb-2">
+            <DialogHeader>
               <DialogTitle>{editingOrderBump ? 'Editar Order Bump' : 'Novo Order Bump'}</DialogTitle>
             </DialogHeader>
-            <div className="pt-4 max-h-[60vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
+            <div className="max-h-[65vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1.5">
                   <Label htmlFor="name">Nome Interno *</Label>
                   <Input
                     id="name"
@@ -145,7 +149,7 @@ export default function GatewayOrderBumps() {
                     placeholder="Identificação interna"
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label htmlFor="title">Título (exibido no checkout) *</Label>
                   <Input
                     id="title"
@@ -155,7 +159,7 @@ export default function GatewayOrderBumps() {
                     placeholder="Adicione também..."
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea
                     id="description"
@@ -165,7 +169,7 @@ export default function GatewayOrderBumps() {
                     placeholder="Descrição do order bump"
                   />
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label>Imagem</Label>
                   <div className="flex gap-2 items-center">
                     <Input
@@ -181,7 +185,7 @@ export default function GatewayOrderBumps() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="price_brl">Preço BRL *</Label>
                     <Input
                       id="price_brl"
@@ -192,7 +196,7 @@ export default function GatewayOrderBumps() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="price_usd">Preço USD</Label>
                     <Input
                       id="price_usd"
@@ -203,7 +207,7 @@ export default function GatewayOrderBumps() {
                     />
                   </div>
                 </div>
-                <div>
+                <div className="space-y-1.5">
                   <Label htmlFor="status">Status</Label>
                   <Select value={formData.status} onValueChange={(value: 'active' | 'inactive') => setFormData(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
@@ -214,6 +218,16 @@ export default function GatewayOrderBumps() {
                       <SelectItem value="inactive">Inativo</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <Checkbox
+                    id="allow_coupon"
+                    checked={formData.allow_coupon}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, allow_coupon: !!checked }))}
+                  />
+                  <label htmlFor="allow_coupon" className="text-sm cursor-pointer">
+                    Permitir uso de cupom com este Order Bump
+                  </label>
                 </div>
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
