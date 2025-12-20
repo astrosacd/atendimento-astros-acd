@@ -109,7 +109,7 @@ const AdminGuia = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { hasPermission, canViewGuia } = usePermissions();
-  const [activeCategory, setActiveCategory] = useState<string>("gmail");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Scroll suave ao topo quando a categoria muda
@@ -2138,6 +2138,18 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
       ]
     }
   ];
+
+  // Get visible categories based on permissions
+  const visibleCategories = useMemo(() => {
+    return guideCategories.filter(c => canViewCategory(c.id));
+  }, [guideCategories, isAdmin]);
+
+  // Set initial active category to first visible one
+  useEffect(() => {
+    if (activeCategory === null && visibleCategories.length > 0) {
+      setActiveCategory(visibleCategories[0].id);
+    }
+  }, [activeCategory, visibleCategories]);
 
   const activeGuide = guideCategories.find(c => c.id === activeCategory);
 
