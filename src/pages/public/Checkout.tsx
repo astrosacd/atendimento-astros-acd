@@ -338,7 +338,7 @@ export default function Checkout() {
         <form onSubmit={handleSubmit}>
           <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
             {/* Left Column - Form */}
-            <div className="lg:col-span-7 space-y-8">
+            <div className="lg:col-span-7 space-y-6">
               {/* Product Card */}
               <section className="rounded-2xl border border-border/50 bg-card p-6">
                 <div className="flex gap-5">
@@ -365,84 +365,20 @@ export default function Checkout() {
                 </div>
               </section>
 
-              {/* Customer Info */}
-              <section className="rounded-2xl border border-border/50 bg-card p-6">
-                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
-                  Seus dados
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
-                    <Input
-                      id="name"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Digite seu nome"
-                      className="mt-1.5 h-12"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="text-sm font-medium">
-                      Email <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      required
-                      className="mt-1.5 h-12"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone" className="text-sm font-medium">
-                      Telefone <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      inputMode="numeric"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(formatPhoneBR(e.target.value))}
-                      placeholder="(00) 00000-0000"
-                      required
-                      className="mt-1.5 h-12"
-                      maxLength={15}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Necessário para aprovação do pagamento</p>
-                  </div>
-                  {/* CPF Field - Only for Mercado Pago */}
-                  {paymentGateway === 'mercadopago' && (
-                    <div>
-                      <Label htmlFor="cpf" className="text-sm font-medium">
-                        CPF <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="cpf"
-                        type="text"
-                        inputMode="numeric"
-                        value={customerCpf}
-                        onChange={(e) => setCustomerCpf(formatCPF(e.target.value))}
-                        placeholder="000.000.000-00"
-                        required
-                        className="mt-1.5 h-12"
-                        maxLength={14}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Obrigatório para pagamentos via Mercado Pago</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Order Bumps */}
+              {/* ORDER BUMPS - Now more prominent and higher up */}
               {orderBumps.length > 0 && (
-                <section className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span className="text-2xl">🎁</span>
-                    Ofertas especiais para você
+                <section className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 relative overflow-hidden">
+                  {/* Decorative badge */}
+                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
+                    OFERTA ESPECIAL
+                  </div>
+                  
+                  <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                    <span className="text-2xl">🔥</span>
+                    Aproveite! Oferta por tempo limitado
                   </h3>
+                  <p className="text-sm text-muted-foreground mb-4">Adicione ao seu pedido com desconto exclusivo</p>
+                  
                   <div className="space-y-3">
                     {orderBumps.map((bump) => {
                       const isSelected = selectedOrderBumps.includes(bump.id);
@@ -474,30 +410,33 @@ export default function Checkout() {
                           }}
                           className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
                             isSelected
-                              ? "border-primary bg-primary/10"
-                              : "border-border bg-card hover:border-primary/50"
+                              ? "border-primary bg-primary/20 shadow-lg shadow-primary/20"
+                              : "border-border bg-card hover:border-primary/50 hover:shadow-md"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
                               aria-hidden="true"
-                              className={`mt-1 h-4 w-4 rounded-sm border flex items-center justify-center ${
+                              className={`mt-0.5 h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
                                 isSelected
                                   ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-border bg-background"
+                                  : "border-muted-foreground/50 bg-background"
                               }`}
                             >
-                              {isSelected ? <Check className="h-3 w-3" /> : null}
+                              {isSelected ? <Check className="h-3.5 w-3.5" /> : null}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <span className="font-semibold text-foreground">{bump.title}</span>
-                                <span className="font-bold text-primary whitespace-nowrap">
+                                <span className="font-bold text-foreground">{bump.title}</span>
+                                <span className="font-bold text-lg text-primary whitespace-nowrap">
                                   +{formatPrice(bump.price_brl, bump.price_usd)}
                                 </span>
                               </div>
                               {bump.description && (
                                 <p className="text-sm text-muted-foreground">{bump.description}</p>
+                              )}
+                              {!bump.allow_coupon && (
+                                <p className="text-xs text-amber-600 mt-1">⚠️ Esta oferta não aceita cupom</p>
                               )}
                             </div>
                           </div>
@@ -508,44 +447,126 @@ export default function Checkout() {
                 </section>
               )}
 
-              {/* Payment Method */}
+              {/* Payment Method - NOW COMES FIRST (step 1) */}
               <section className="rounded-2xl border border-border/50 bg-card p-6">
                 <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
                   Forma de pagamento
                 </h3>
                 <RadioGroup
                   value={paymentGateway}
                   onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
-                  className="space-y-3"
+                  className="grid grid-cols-2 gap-3"
                 >
                   <label 
                     htmlFor="mercadopago"
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
                       paymentGateway === 'mercadopago' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
                     }`}
                   >
-                    <RadioGroupItem value="mercadopago" id="mercadopago" />
-                    <div className="flex-1">
-                      <p className="font-semibold">Mercado Pago</p>
-                      <p className="text-sm text-muted-foreground">Pix, Cartão de crédito, Boleto</p>
+                    <RadioGroupItem value="mercadopago" id="mercadopago" className="sr-only" />
+                    <CreditCard className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-semibold text-sm">Mercado Pago</p>
+                      <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
                     </div>
-                    <CreditCard className="h-6 w-6 text-muted-foreground" />
+                    {paymentGateway === 'mercadopago' && (
+                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
                   </label>
                   <label 
                     htmlFor="stripe"
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center relative ${
                       paymentGateway === 'stripe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
                     }`}
                   >
-                    <RadioGroupItem value="stripe" id="stripe" />
-                    <div className="flex-1">
-                      <p className="font-semibold">Stripe</p>
-                      <p className="text-sm text-muted-foreground">Cartão internacional</p>
+                    <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
+                    <CreditCard className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-semibold text-sm">Stripe</p>
+                      <p className="text-xs text-muted-foreground">Cartão Internacional</p>
                     </div>
-                    <CreditCard className="h-6 w-6 text-muted-foreground" />
+                    {paymentGateway === 'stripe' && (
+                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
                   </label>
                 </RadioGroup>
+              </section>
+
+              {/* Customer Info - NOW STEP 2 */}
+              <section className="rounded-2xl border border-border/50 bg-card p-6">
+                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+                  Seus dados
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
+                    <Input
+                      id="name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Digite seu nome"
+                      className="mt-1.5 h-12"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      required
+                      className="mt-1.5 h-12"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phone" className="text-sm font-medium">
+                        Telefone <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(formatPhoneBR(e.target.value))}
+                        placeholder="(00) 00000-0000"
+                        required
+                        className="mt-1.5 h-12"
+                        maxLength={15}
+                      />
+                    </div>
+                    {/* CPF Field - Only for Mercado Pago */}
+                    {paymentGateway === 'mercadopago' && (
+                      <div>
+                        <Label htmlFor="cpf" className="text-sm font-medium">
+                          CPF <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="cpf"
+                          type="text"
+                          inputMode="numeric"
+                          value={customerCpf}
+                          onChange={(e) => setCustomerCpf(formatCPF(e.target.value))}
+                          placeholder="000.000.000-00"
+                          required
+                          className="mt-1.5 h-12"
+                          maxLength={14}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Dados necessários para aprovação do pagamento</p>
+                </div>
               </section>
             </div>
 
