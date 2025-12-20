@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -27,6 +27,7 @@ interface OrderBump {
   image_url: string | null;
   price_brl: number;
   price_usd: number;
+  allow_coupon?: boolean;
 }
 
 interface Coupon {
@@ -38,6 +39,21 @@ interface Coupon {
   usage_count: number;
   total_discount_given: number;
 }
+
+// Phone mask helper
+const formatPhoneBR = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+// Track event helper (fire and forget)
+const trackEvent = (eventType: string, data: Record<string, unknown> = {}) => {
+  supabase.functions.invoke('gateway-track-event', {
+    body: { event_type: eventType, ...data },
+  }).catch(() => { /* ignore tracking errors */ });
+};
 
 export default function Checkout() {
   const { slug } = useParams<{ slug: string }>();
@@ -94,6 +110,13 @@ export default function Checkout() {
     enabled: !!product?.id,
   });
 
+  // Track page view on mount
+  useEffect(() => {
+    if (slug && product?.id) {
+      trackEvent('checkout_view', { slug, product_id: product.id });
+    }
+  }, [slug, product?.id]);
+
   // Keep currency simple for the customer:
   // - Mercado Pago: BRL
   // - Stripe: USD
@@ -118,7 +141,20 @@ export default function Checkout() {
     .filter(ob => selectedOrderBumps.includes(ob.id))
     .reduce((sum, ob) => sum + getPrice(ob.price_brl, ob.price_usd), 0);
 
-  const discountAmount = appliedCoupon
+  // Check if any selected order bump blocks coupons
+  const couponBlockedByBump = orderBumps
+    .filter(ob => selectedOrderBumps.includes(ob.id))
+    .some(ob => ob.allow_coupon === false);
+
+  // Clear coupon if blocked by bump
+  useEffect(() => {
+    if (couponBlockedByBump && appliedCoupon) {
+      setAppliedCoupon(null);
+      toast.info('Cupom removido: uma das ofertas selecionadas não permite cupom.');
+    }
+  }, [couponBlockedByBump, appliedCoupon]);
+
+  const discountAmount = appliedCoupon && !couponBlockedByBump
     ? appliedCoupon.discount_type === 'percentage'
       ? ((subtotal + orderBumpsTotal) * appliedCoupon.discount_value) / 100
       : appliedCoupon.discount_value
@@ -128,6 +164,11 @@ export default function Checkout() {
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
+
+    if (couponBlockedByBump) {
+      toast.error('Uma das ofertas selecionadas não permite cupom de desconto.');
+      return;
+    }
     
     const { data, error } = await supabase
       .from('gateway_coupons')
@@ -162,6 +203,7 @@ export default function Checkout() {
     }
     
     setAppliedCoupon(data as Coupon);
+    trackEvent('coupon_applied', { slug, product_id: product?.id, coupon_code: data.code });
     toast.success('Cupom aplicado!');
   };
 
@@ -174,16 +216,24 @@ export default function Checkout() {
     }
     
     setIsProcessing(true);
+    trackEvent('checkout_submit', {
+      slug,
+      product_id: product?.id,
+      order_bump_ids: selectedOrderBumps,
+      coupon_code: appliedCoupon?.code || null,
+      payment_gateway: paymentGateway,
+      currency,
+    });
     
     try {
       const { data: orderData, error: createOrderError } = await supabase.functions.invoke('gateway-create-order', {
         body: {
           productId: product?.id,
           orderBumpIds: selectedOrderBumps,
-          couponCode: appliedCoupon?.code || couponCode || null,
+          couponCode: couponBlockedByBump ? null : (appliedCoupon?.code || couponCode || null),
           customerName,
           customerEmail,
-          customerPhone,
+          customerPhone: customerPhone.replace(/\D/g, '') || null,
           paymentGateway,
           currency,
         },
@@ -191,6 +241,14 @@ export default function Checkout() {
 
       if (createOrderError) throw createOrderError;
       if (!orderData?.orderId) throw new Error('Falha ao criar pedido');
+
+      trackEvent('order_created', {
+        slug,
+        product_id: product?.id,
+        order_id: orderData.orderId,
+        payment_gateway: paymentGateway,
+        currency,
+      });
 
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('gateway-process-payment', {
         body: {
@@ -324,10 +382,13 @@ export default function Checkout() {
                     <Label htmlFor="phone" className="text-sm font-medium">Telefone (opcional)</Label>
                     <Input
                       id="phone"
+                      type="tel"
+                      inputMode="numeric"
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      onChange={(e) => setCustomerPhone(formatPhoneBR(e.target.value))}
                       placeholder="(00) 00000-0000"
                       className="mt-1.5 h-12"
+                      maxLength={15}
                     />
                   </div>
                 </div>
@@ -344,11 +405,17 @@ export default function Checkout() {
                     {orderBumps.map((bump) => {
                       const isSelected = selectedOrderBumps.includes(bump.id);
                       const toggle = () => {
+                        const nowSelected = !isSelected;
                         setSelectedOrderBumps((prev) =>
                           prev.includes(bump.id)
                             ? prev.filter((id) => id !== bump.id)
                             : [...prev, bump.id]
                         );
+                        trackEvent(nowSelected ? 'order_bump_selected' : 'order_bump_unselected', {
+                          slug,
+                          product_id: product?.id,
+                          order_bump_id: bump.id,
+                        });
                       };
 
                       return (
@@ -470,6 +537,12 @@ export default function Checkout() {
 
                   {/* Coupon */}
                   <div className="py-4 border-b border-border/50">
+                    {couponBlockedByBump && (
+                      <div className="flex items-center gap-2 mb-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 text-sm">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span>Cupom bloqueado: uma das ofertas selecionadas não permite desconto.</span>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -477,7 +550,7 @@ export default function Checkout() {
                           placeholder="Cupom de desconto"
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          disabled={!!appliedCoupon}
+                          disabled={!!appliedCoupon || couponBlockedByBump}
                           className="pl-10 h-11"
                         />
                       </div>
@@ -500,12 +573,13 @@ export default function Checkout() {
                           variant="secondary"
                           onClick={applyCoupon}
                           className="h-11"
+                          disabled={couponBlockedByBump}
                         >
                           Aplicar
                         </Button>
                       )}
                     </div>
-                    {appliedCoupon && (
+                    {appliedCoupon && !couponBlockedByBump && (
                       <div className="flex justify-between text-sm mt-3 text-green-500">
                         <span className="flex items-center gap-1.5">
                           <Check className="h-4 w-4" />
