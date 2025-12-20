@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.api-consulta-numeros]
 verify_jwt = false
+
+[functions.send-desbanimento-email]
+verify_jwt = true

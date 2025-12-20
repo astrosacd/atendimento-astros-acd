@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2, X, Tag } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -55,7 +55,12 @@ export default function ConsultaNumeros() {
   const [selectedRow, setSelectedRow] = useState<NumeroResult | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [selectedObsTags, setSelectedObsTags] = useState<string[]>([]);
-  const [newObservacao, setNewObservacao] = useState(''); // Texto temporário para nova observação
+  const [newObservacao, setNewObservacao] = useState('');
+  
+  // Desbanimento OK - email with image
+  const [desbanimentoImage, setDesbanimentoImage] = useState<File | null>(null);
+  const [desbanimentoImagePreview, setDesbanimentoImagePreview] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -455,7 +460,113 @@ export default function ConsultaNumeros() {
     setEditValues(values);
     setNewObservacao('');
     setSelectedObsTags([]);
+    setDesbanimentoImage(null);
+    setDesbanimentoImagePreview(null);
     setEditDialogOpen(true);
+  };
+
+  // Handle image upload for Desbanimento OK
+  const handleDesbanimentoImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Por favor, selecione uma imagem', variant: 'destructive' });
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast({ title: 'A imagem deve ter no máximo 10MB', variant: 'destructive' });
+        return;
+      }
+      setDesbanimentoImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setDesbanimentoImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Check if current status is "Desbanimento OK"
+  const isDesbanimentoOK = useMemo(() => {
+    const statusFieldData = visibleFields.find(f => f.name.toLowerCase() === 'status');
+    if (!statusFieldData) return false;
+    const currentStatus = editValues['status'] || editValues['Status'];
+    return currentStatus?.toLowerCase().includes('desbanimento ok');
+  }, [editValues, visibleFields]);
+
+  // Send desbanimento email
+  const sendDesbanimentoEmail = async (): Promise<boolean> => {
+    if (!selectedRow || !desbanimentoImage) return true; // No image, skip email
+    
+    const emailField = visibleFields.find(f => f.name.toLowerCase() === 'email');
+    const nomeField = visibleFields.find(f => f.name.toLowerCase() === 'nome');
+    const numeroField = visibleFields.find(f => f.name.toLowerCase().includes('numero'));
+    
+    const email = selectedRow[emailField?.name || 'email'];
+    const nome = selectedRow[nomeField?.name || 'nome'] || '';
+    const numero = selectedRow[numeroField?.name || 'numero'] || '';
+    
+    if (!email) {
+      toast({ title: 'Email do cliente não encontrado', variant: 'destructive' });
+      return false;
+    }
+    
+    try {
+      setSendingEmail(true);
+      
+      // Convert image to base64
+      const reader = new FileReader();
+      const imageBase64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1]; // Remove data:image/...;base64, prefix
+          resolve(base64);
+        };
+        reader.readAsDataURL(desbanimentoImage);
+      });
+      
+      const imageBase64 = await imageBase64Promise;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({ title: 'Sessão expirada', variant: 'destructive' });
+        return false;
+      }
+      
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-desbanimento-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            nome,
+            numero,
+            imageBase64,
+            imageType: desbanimentoImage.type,
+          }),
+        }
+      );
+      
+      const result = await res.json();
+      
+      if (!result.success) {
+        toast({ title: 'Erro ao enviar email', description: result.error, variant: 'destructive' });
+        return false;
+      }
+      
+      toast({ title: 'Email enviado com sucesso!', description: `Enviado para ${email}` });
+      return true;
+      
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({ title: 'Erro ao enviar email', description: error.message, variant: 'destructive' });
+      return false;
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const handleAddObsTag = (tagName: string) => {
@@ -468,8 +579,18 @@ export default function ConsultaNumeros() {
     setSelectedObsTags(prev => prev.filter(t => t !== tagName));
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!selectedRow) return;
+
+    // Check if desbanimento OK is selected and image is required
+    if (isDesbanimentoOK && desbanimentoImage) {
+      // Send email first
+      const emailSent = await sendDesbanimentoEmail();
+      if (!emailSent) {
+        // Email failed, ask user if they want to continue without email
+        return;
+      }
+    }
 
     // Merge nova observação e tags com as anteriores (se houver)
     const finalValues = { ...editValues };
@@ -1005,13 +1126,83 @@ export default function ConsultaNumeros() {
                 </div>
               );
             })}
+            
+            {/* Desbanimento OK - Upload de Imagem */}
+            {isDesbanimentoOK && (
+              <div className="space-y-3 p-4 border-2 border-dashed border-primary/50 rounded-lg bg-primary/5">
+                <Label className="flex items-center gap-2 text-primary font-medium">
+                  <Mail className="h-4 w-4" />
+                  Enviar Email de Desbanimento
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Ao salvar com status "Desbanimento OK", um email será enviado para o cliente com a imagem anexada.
+                </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="desbanimento-image">Imagem do Desbanimento</Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="desbanimento-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleDesbanimentoImageChange}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+                
+                {desbanimentoImagePreview && (
+                  <div className="relative">
+                    <img 
+                      src={desbanimentoImagePreview} 
+                      alt="Preview" 
+                      className="max-h-48 rounded-lg border object-contain"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => {
+                        setDesbanimentoImage(null);
+                        setDesbanimentoImagePreview(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                {!desbanimentoImage && (
+                  <p className="text-xs text-amber-600">
+                    ⚠️ Selecione uma imagem para enviar junto com o email de desbanimento
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+            <Button 
+              onClick={handleSaveEdit} 
+              disabled={updateMutation.isPending || sendingEmail}
+            >
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enviando email...
+                </>
+              ) : updateMutation.isPending ? (
+                'Salvando...'
+              ) : isDesbanimentoOK && desbanimentoImage ? (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Salvar e Enviar Email
+                </>
+              ) : (
+                'Salvar'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

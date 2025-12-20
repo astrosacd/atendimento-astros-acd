@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -47,6 +48,11 @@ export default function ConsultaNumerosConfig() {
     baserow_api_token: '',
     baserow_table_id: '',
     baserow_database_id: '',
+    email_gmail_user: '',
+    email_gmail_app_password: '',
+    email_subject_template: '',
+    email_body_template: '',
+    email_enabled: 'true',
   });
   
   const [newFieldName, setNewFieldName] = useState('');
@@ -369,6 +375,10 @@ export default function ConsultaNumerosConfig() {
                 <Tag className="h-4 w-4" />
                 Tags de Observação
               </TabsTrigger>
+              <TabsTrigger value="email" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Email Desbanimento
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="connection">
@@ -644,6 +654,107 @@ export default function ConsultaNumerosConfig() {
                       <li>• As tags selecionadas são adicionadas automaticamente à observação</li>
                       <li>• O usuário também pode digitar texto livre além das tags</li>
                     </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="email">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Configuração de Email - Desbanimento OK
+                  </CardTitle>
+                  <CardDescription>
+                    Configure o envio de email automático quando o status "Desbanimento OK" for selecionado.
+                    Use as variáveis {'{{numero}}'} e {'{{nome}}'} no assunto e corpo do email.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Envio de Email Habilitado</p>
+                      <p className="text-sm text-muted-foreground">Ativar/desativar o envio automático de emails</p>
+                    </div>
+                    <Switch
+                      checked={config.email_enabled === 'true'}
+                      onCheckedChange={(checked) => setConfig(prev => ({ ...prev, email_enabled: checked ? 'true' : 'false' }))}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="gmail_user">Email do Gmail *</Label>
+                      <Input
+                        id="gmail_user"
+                        type="email"
+                        placeholder="seuemail@gmail.com"
+                        value={config.email_gmail_user}
+                        onChange={(e) => setConfig(prev => ({ ...prev, email_gmail_user: e.target.value }))}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        O email do Gmail que será usado para enviar os emails
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="gmail_password">Senha de App do Gmail *</Label>
+                      <Input
+                        id="gmail_password"
+                        type="password"
+                        placeholder="Senha de app de 16 caracteres"
+                        value={config.email_gmail_app_password}
+                        onChange={(e) => setConfig(prev => ({ ...prev, email_gmail_app_password: e.target.value }))}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Gere uma senha de app em: Conta Google → Segurança → Senhas de app
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-6 space-y-4">
+                    <h4 className="font-medium">Template do Email</h4>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email_subject">Assunto do Email</Label>
+                      <Input
+                        id="email_subject"
+                        placeholder="Número {{numero}} - Desbanimento Concluído"
+                        value={config.email_subject_template}
+                        onChange={(e) => setConfig(prev => ({ ...prev, email_subject_template: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email_body">Corpo do Email</Label>
+                      <Textarea
+                        id="email_body"
+                        placeholder={`Olá {{nome}},\n\nInformamos que o seu número {{numero}} foi desbanido com sucesso!\n\nSegue em anexo a imagem comprovando o desbanimento.\n\nAtenciosamente,\nEquipe de Suporte`}
+                        value={config.email_body_template}
+                        onChange={(e) => setConfig(prev => ({ ...prev, email_body_template: e.target.value }))}
+                        rows={8}
+                      />
+                    </div>
+
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                      <p className="text-sm font-medium">Variáveis disponíveis:</p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        <li><code className="bg-muted px-1 rounded">{'{{numero}}'}</code> - Número do cliente</li>
+                        <li><code className="bg-muted px-1 rounded">{'{{nome}}'}</code> - Nome do cliente</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button onClick={() => saveConfigMutation.mutate()} disabled={saveConfigMutation.isPending}>
+                      {saveConfigMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configurações'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
