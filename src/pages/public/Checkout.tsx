@@ -214,6 +214,12 @@ export default function Checkout() {
       toast.error('Email é obrigatório');
       return;
     }
+
+    const phoneDigits = customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      toast.error('Telefone inválido. Use o formato (00) 00000-0000');
+      return;
+    }
     
     setIsProcessing(true);
     trackEvent('checkout_submit', {
@@ -379,7 +385,9 @@ export default function Checkout() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone" className="text-sm font-medium">Telefone (opcional)</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">
+                      Telefone <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -387,9 +395,11 @@ export default function Checkout() {
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(formatPhoneBR(e.target.value))}
                       placeholder="(00) 00000-0000"
+                      required
                       className="mt-1.5 h-12"
                       maxLength={15}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Necessário para aprovação do pagamento</p>
                   </div>
                 </div>
               </section>
