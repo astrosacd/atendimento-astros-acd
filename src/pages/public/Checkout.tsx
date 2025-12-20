@@ -72,7 +72,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch enabled payment gateways and checkout settings
-  const { data: gatewaySettings } = useQuery({
+  const { data: gatewaySettings, isLoading: gatewayLoading } = useQuery({
     queryKey: ['gateway-settings'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -602,8 +602,8 @@ export default function Checkout() {
                 </section>
               )}
 
-              {/* Warning if no gateway is enabled */}
-              {availableGateways.length === 0 && gatewaySettings && (
+              {/* Warning if no gateway is enabled - only show after data has loaded */}
+              {!gatewayLoading && availableGateways.length === 0 && gatewaySettings && (
                 <section className="rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-6">
                   <div className="flex items-center gap-3 text-destructive">
                     <AlertTriangle className="h-6 w-6" />
