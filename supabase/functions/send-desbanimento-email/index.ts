@@ -190,6 +190,48 @@ serve(async (req) => {
     console.log("[send-desbanimento-email]   - Tempo total:", `${totalDuration}ms`);
     console.log("[send-desbanimento-email]   - Status: SUCESSO");
 
+    // Get user info from the token
+    let usuarioId: string | null = null;
+    let usuarioEmail: string | null = null;
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        usuarioId = user.id;
+        usuarioEmail = user.email || null;
+      }
+    } catch (e) {
+      console.log("[send-desbanimento-email] Não foi possível obter usuário do token");
+    }
+
+    // Log to consulta_numeros_history for audit
+    console.log("[send-desbanimento-email] Registrando no histórico de auditoria...");
+    const { error: historyError } = await supabase
+      .from("consulta_numeros_history")
+      .insert({
+        numero: numero || "N/A",
+        acao: "email_desbanimento",
+        origem: "painel",
+        usuario_id: usuarioId,
+        usuario_email: usuarioEmail,
+        dados_novos: {
+          email_destino: email,
+          nome_destinatario: nome,
+          numero: numero,
+          assunto: subject,
+          anexo_tamanho_kb: (imageBytes.length / 1024).toFixed(2),
+          enviado_em: new Date().toISOString(),
+        },
+        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null,
+        user_agent: req.headers.get("user-agent") || null,
+      });
+
+    if (historyError) {
+      console.error("[send-desbanimento-email] Erro ao registrar histórico:", historyError);
+    } else {
+      console.log("[send-desbanimento-email] Histórico registrado com sucesso");
+    }
+
     return new Response(
       JSON.stringify({ success: true, message: "Email enviado com sucesso" }),
       {

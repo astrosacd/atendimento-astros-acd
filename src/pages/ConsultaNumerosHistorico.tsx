@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Search, ArrowLeft, Download, ChevronLeft, ChevronRight, Eye, RefreshCw, User, Globe, Key, Webhook, Pencil, FileText, Trash2 } from 'lucide-react';
+import { Search, ArrowLeft, Download, ChevronLeft, ChevronRight, Eye, RefreshCw, User, Globe, Key, Webhook, Pencil, FileText, Trash2, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -84,6 +84,7 @@ export default function ConsultaNumerosHistorico() {
       'atualizacao': 'Edição',
       'cadastro': 'Cadastro',
       'exclusao': 'Exclusão',
+      'email_desbanimento': 'Email Desbanimento',
     };
     return labels[acao] || acao;
   };
@@ -93,6 +94,7 @@ export default function ConsultaNumerosHistorico() {
     if (acao.includes('atualizacao')) return <Pencil className="h-3 w-3" />;
     if (acao.includes('cadastro')) return <FileText className="h-3 w-3" />;
     if (acao.includes('exclusao')) return <Trash2 className="h-3 w-3" />;
+    if (acao.includes('email')) return <Mail className="h-3 w-3" />;
     return <FileText className="h-3 w-3" />;
   };
 
@@ -101,6 +103,7 @@ export default function ConsultaNumerosHistorico() {
     if (acao.includes('atualizacao')) return 'bg-amber-500/10 text-amber-600 border-amber-500/30';
     if (acao.includes('cadastro')) return 'bg-green-500/10 text-green-600 border-green-500/30';
     if (acao.includes('exclusao')) return 'bg-red-500/10 text-red-600 border-red-500/30';
+    if (acao.includes('email')) return 'bg-pink-500/10 text-pink-600 border-pink-500/30';
     return 'bg-muted text-muted-foreground';
   };
 
@@ -203,6 +206,7 @@ export default function ConsultaNumerosHistorico() {
                     <SelectItem value="atualizacao">Edição</SelectItem>
                     <SelectItem value="cadastro">Cadastro</SelectItem>
                     <SelectItem value="exclusao">Exclusão</SelectItem>
+                    <SelectItem value="email_desbanimento">Email Desbanimento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
