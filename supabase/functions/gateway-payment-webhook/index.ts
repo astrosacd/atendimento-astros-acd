@@ -29,6 +29,13 @@ serve(async (req) => {
 
     console.log("Webhook received:", JSON.stringify(data, null, 2));
 
+    // Get gateway settings
+    const { data: settings } = await supabase
+      .from("gateway_settings")
+      .select("value")
+      .eq("key", "gateways")
+      .single();
+
     // Handle Mercado Pago IPN
     if (data.type === "payment" || data.topic === "payment") {
       const paymentId = data.data?.id || data.id;
@@ -37,13 +44,6 @@ serve(async (req) => {
         console.log("No payment ID found in webhook");
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
-
-      // Get gateway settings for MP access token
-      const { data: settings } = await supabase
-        .from("gateway_settings")
-        .select("value")
-        .eq("key", "gateways")
-        .single();
 
       const mpAccessToken = settings?.value?.mercadopago?.accessToken || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
 
@@ -91,18 +91,13 @@ serve(async (req) => {
       }
 
       // Update order
-      const updateData: any = {
-        status: orderStatus,
-        payment_id: String(paymentId),
-      };
-
-      if (orderStatus === "paid") {
-        updateData.updated_at = new Date().toISOString();
-      }
-
       const { error: updateError } = await supabase
         .from("gateway_orders")
-        .update(updateData)
+        .update({
+          status: orderStatus,
+          payment_id: String(paymentId),
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", orderId);
 
       if (updateError) {
@@ -113,10 +108,49 @@ serve(async (req) => {
       console.log(`Order ${orderId} updated to status: ${orderStatus}`);
     }
 
-    // Handle Stripe webhook (placeholder)
+    // Handle Stripe webhook
     if (data.type?.startsWith("checkout.session") || data.type?.startsWith("payment_intent")) {
       console.log("Stripe webhook received:", data.type);
-      // Stripe implementation would go here
+      
+      // Handle checkout.session.completed
+      if (data.type === "checkout.session.completed") {
+        const session = data.data?.object;
+        const orderId = session?.client_reference_id || session?.metadata?.order_id;
+        
+        if (orderId) {
+          const { error: updateError } = await supabase
+            .from("gateway_orders")
+            .update({
+              status: "paid",
+              payment_id: session.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+
+          if (updateError) {
+            console.error("Error updating Stripe order:", updateError);
+          } else {
+            console.log(`Stripe order ${orderId} marked as paid`);
+          }
+        }
+      }
+      
+      // Handle payment_intent.payment_failed
+      if (data.type === "payment_intent.payment_failed") {
+        const paymentIntent = data.data?.object;
+        const orderId = paymentIntent?.metadata?.order_id;
+        
+        if (orderId) {
+          await supabase
+            .from("gateway_orders")
+            .update({
+              status: "cancelled",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+          console.log(`Stripe order ${orderId} marked as cancelled`);
+        }
+      }
     }
 
     return new Response("OK", { status: 200, headers: corsHeaders });

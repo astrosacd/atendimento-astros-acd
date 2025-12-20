@@ -30,7 +30,7 @@ serve(async (req) => {
       .from("gateway_orders")
       .select(`
         *,
-        product:gateway_products(name)
+        product:gateway_products(name, public_slug)
       `)
       .eq("id", orderId)
       .single();
@@ -52,6 +52,7 @@ serve(async (req) => {
 
     const gatewaySettings = settings?.value || {};
     let redirectUrl: string | null = null;
+    const origin = req.headers.get("origin") || "https://udxaxemoozddkwpitngq.lovable.app";
 
     if (gateway === "mercadopago") {
       const mpAccessToken = gatewaySettings.mercadopago?.accessToken || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
@@ -86,9 +87,9 @@ serve(async (req) => {
           },
           external_reference: orderId,
           back_urls: {
-            success: `${req.headers.get("origin")}/sucesso`,
-            failure: `${req.headers.get("origin")}/p/${order.product?.public_slug || ""}`,
-            pending: `${req.headers.get("origin")}/sucesso`,
+            success: `${origin}/sucesso`,
+            failure: `${origin}/p/${order.product?.public_slug || ""}`,
+            pending: `${origin}/sucesso`,
           },
           auto_return: "approved",
           notification_url: `${supabaseUrl}/functions/v1/gateway-payment-webhook`,
@@ -100,7 +101,7 @@ serve(async (req) => {
       if (!mpResponse.ok) {
         console.error("Mercado Pago error:", mpData);
         return new Response(
-          JSON.stringify({ error: "Erro ao criar preferência de pagamento" }),
+          JSON.stringify({ error: "Erro ao criar preferência de pagamento", details: mpData }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -112,18 +113,60 @@ serve(async (req) => {
         .eq("id", orderId);
 
       redirectUrl = mpData.init_point;
-    } else if (gateway === "stripe") {
-      // Stripe implementation placeholder
-      // For now, just mark as pending
-      console.log("Stripe payment requested for order:", orderId);
-      
-      return new Response(
-        JSON.stringify({ error: "Stripe ainda não implementado" }),
-        { status: 501, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      console.log(`Mercado Pago payment created for order ${orderId}, redirect: ${redirectUrl}`);
 
-    console.log(`Payment initiated for order ${orderId} via ${gateway}`);
+    } else if (gateway === "stripe") {
+      const stripeSecretKey = gatewaySettings.stripe?.secretKey || Deno.env.get("STRIPE_SECRET_KEY");
+      
+      if (!stripeSecretKey) {
+        console.error("Stripe not configured");
+        return new Response(
+          JSON.stringify({ error: "Stripe não configurado" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Create Stripe Checkout Session
+      const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${btoa(stripeSecretKey + ":")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          "payment_method_types[0]": "card",
+          "line_items[0][price_data][currency]": order.currency.toLowerCase(),
+          "line_items[0][price_data][product_data][name]": order.product?.name || "Produto",
+          "line_items[0][price_data][unit_amount]": Math.round(order.total * 100).toString(),
+          "line_items[0][quantity]": "1",
+          "mode": "payment",
+          "success_url": `${origin}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+          "cancel_url": `${origin}/p/${order.product?.public_slug || ""}`,
+          "customer_email": order.customer_email,
+          "client_reference_id": orderId,
+          "metadata[order_id]": orderId,
+        }),
+      });
+
+      const stripeData = await stripeResponse.json();
+      
+      if (!stripeResponse.ok) {
+        console.error("Stripe error:", stripeData);
+        return new Response(
+          JSON.stringify({ error: "Erro ao criar sessão Stripe", details: stripeData }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update order with session ID
+      await supabase
+        .from("gateway_orders")
+        .update({ payment_id: stripeData.id })
+        .eq("id", orderId);
+
+      redirectUrl = stripeData.url;
+      console.log(`Stripe payment created for order ${orderId}, redirect: ${redirectUrl}`);
+    }
 
     return new Response(
       JSON.stringify({ success: true, redirectUrl }),
