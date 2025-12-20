@@ -2118,6 +2118,7 @@ export type Database = {
       disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
+      execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
       get_billing_cron_schedule: {
         Args: never
         Returns: {
