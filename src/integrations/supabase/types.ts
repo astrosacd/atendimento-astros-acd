@@ -1348,6 +1348,54 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_events: {
+        Row: {
+          coupon_code: string | null
+          created_at: string
+          currency: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          order_bump_id: string | null
+          order_id: string | null
+          payment_gateway: string | null
+          product_id: string | null
+          referrer: string | null
+          slug: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          order_bump_id?: string | null
+          order_id?: string | null
+          payment_gateway?: string | null
+          product_id?: string | null
+          referrer?: string | null
+          slug?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          order_bump_id?: string | null
+          order_id?: string | null
+          payment_gateway?: string | null
+          product_id?: string | null
+          referrer?: string | null
+          slug?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       gateway_order_bumps: {
         Row: {
           allow_coupon: boolean
