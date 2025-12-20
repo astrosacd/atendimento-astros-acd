@@ -236,7 +236,7 @@ async function queryBaserow(
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Baserow query error:', errorText);
-    throw new Error(`Baserow error: ${response.status} - ${errorText}`);
+    throw new Error('Erro ao consultar dados externos');
   }
 
   return await response.json();
@@ -256,7 +256,8 @@ async function getBaserowRow(config: BaserowConfig, rowId: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Baserow error: ${response.status} - ${errorText}`);
+    console.error('Baserow get row error:', errorText);
+    throw new Error('Erro ao buscar registro');
   }
 
   return await response.json();
@@ -280,7 +281,7 @@ async function updateBaserowRow(config: BaserowConfig, rowId: string, data: any)
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Baserow update error:', errorText);
-    throw new Error(`Baserow error: ${response.status} - ${errorText}`);
+    throw new Error('Erro ao atualizar registro');
   }
 
   return await response.json();
@@ -304,7 +305,7 @@ async function createBaserowRow(config: BaserowConfig, data: any) {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Baserow create error:', errorText);
-    throw new Error(`Baserow error: ${response.status} - ${errorText}`);
+    throw new Error('Erro ao criar registro');
   }
 
   return await response.json();
@@ -466,7 +467,7 @@ Deno.serve(async (req) => {
 
       if (parts.length !== 3) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Token inválido' }),
+          JSON.stringify({ success: false, error: 'Autenticação inválida' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -481,14 +482,14 @@ Deno.serve(async (req) => {
 
         if (!userId) {
           return new Response(
-            JSON.stringify({ success: false, error: 'Token inválido' }),
+            JSON.stringify({ success: false, error: 'Autenticação inválida' }),
             { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
       } catch (e) {
         console.error('[api-consulta-numeros] Failed to parse JWT payload', { endpoint, error: String(e) });
         return new Response(
-          JSON.stringify({ success: false, error: 'Token inválido' }),
+          JSON.stringify({ success: false, error: 'Autenticação inválida' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -973,8 +974,9 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error:', error);
+    // SECURITY: Don't expose internal error details
     return new Response(
-      JSON.stringify({ success: false, error: error?.message || 'Erro interno' }),
+      JSON.stringify({ success: false, error: 'Erro ao processar requisição' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
