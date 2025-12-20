@@ -93,8 +93,8 @@ function AppRoutes() {
       <Route path="/admin/consulta-numeros/webhooks" element={<ProtectedRoute permission="manage_webhooks_consulta_numeros"><ConsultaNumerosWebhooks /></ProtectedRoute>} />
       <Route path="/admin/consulta-numeros/guia" element={<ProtectedRoute permission="view_consulta_numeros"><ConsultaNumerosGuia /></ProtectedRoute>} />
       
-      {/* Gateway Routes */}
-      <Route path="/admin/gateway/*" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
+      {/* Gateway Route */}
+      <Route path="/admin/gateway" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
       
       {/* Public Gateway Routes - NO AUTH */}
       <Route path="/catalogo" element={<Catalogo />} />
