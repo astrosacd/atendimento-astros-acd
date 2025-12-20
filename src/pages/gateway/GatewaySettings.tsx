@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
-import { CreditCard, Mail, ShoppingCart, Save } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer } from 'lucide-react';
 
 export default function GatewaySettings() {
   const { settings, isLoading, updateSetting, isUpdating } = useGatewaySettings();
@@ -16,12 +16,18 @@ export default function GatewaySettings() {
   const [mercadopago, setMercadopago] = useState({ enabled: false, access_token: '' });
   const [email, setEmail] = useState({ smtp_host: '', smtp_port: 587, smtp_user: '', smtp_password: '', from_email: '', from_name: '' });
   const [abandonedCart, setAbandonedCart] = useState({ enabled: false, delay_minutes: 30, email_subject: '', email_template: '' });
+  const [checkout, setCheckout] = useState({ 
+    countdown_enabled: false, 
+    countdown_minutes: 10,
+    countdown_message: 'Complete sua compra antes do contador chegar a zero!'
+  });
 
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago(settings.mercadopago);
     if (settings.email) setEmail(settings.email);
     if (settings.abandoned_cart) setAbandonedCart(settings.abandoned_cart);
+    if (settings.checkout) setCheckout(settings.checkout);
   }, [settings]);
 
   const handleSaveStripe = () => {
@@ -40,6 +46,10 @@ export default function GatewaySettings() {
     updateSetting({ key: 'abandoned_cart', value: abandonedCart });
   };
 
+  const handleSaveCheckout = () => {
+    updateSetting({ key: 'checkout', value: checkout });
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
@@ -49,10 +59,14 @@ export default function GatewaySettings() {
       <h2 className="text-lg font-semibold">Configurações</h2>
 
       <Tabs defaultValue="gateways" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="gateways" className="gap-2">
             <CreditCard className="h-4 w-4" />
             Gateways
+          </TabsTrigger>
+          <TabsTrigger value="checkout" className="gap-2">
+            <Timer className="h-4 w-4" />
+            Checkout
           </TabsTrigger>
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
@@ -125,6 +139,48 @@ export default function GatewaySettings() {
               </div>
               <Button onClick={handleSaveMercadopago} disabled={isUpdating}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Mercado Pago
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="checkout">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Contador de Urgência</CardTitle>
+              <CardDescription>Configure o contador regressivo no checkout para aumentar conversões</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={checkout.countdown_enabled}
+                  onCheckedChange={(checked) => setCheckout(prev => ({ ...prev, countdown_enabled: checked }))}
+                />
+                <Label>Habilitar contador</Label>
+              </div>
+              <div>
+                <Label>Tempo do contador (minutos)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={checkout.countdown_minutes}
+                  onChange={(e) => setCheckout(prev => ({ ...prev, countdown_minutes: parseInt(e.target.value) || 10 }))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  O contador iniciará neste tempo quando o cliente acessar o checkout
+                </p>
+              </div>
+              <div>
+                <Label>Mensagem do contador</Label>
+                <Input
+                  value={checkout.countdown_message}
+                  onChange={(e) => setCheckout(prev => ({ ...prev, countdown_message: e.target.value }))}
+                  placeholder="Complete sua compra antes do contador chegar a zero!"
+                />
+              </div>
+              <Button onClick={handleSaveCheckout} disabled={isUpdating}>
+                <Save className="h-4 w-4 mr-2" /> Salvar Configuração
               </Button>
             </CardContent>
           </Card>
