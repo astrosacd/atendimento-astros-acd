@@ -662,19 +662,18 @@ export default function ConsultaNumeros() {
         finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
       } else if (isDesbanimentoOK) {
         // User did NOT add observation but status is DESBANIMENTO OK
-        // Auto-generate observation with: Tipo - DESBANIMENTO OK - Data/Hora
+        // Check if existing observation contains "Numero Externo"
+        const existingObs = editValues[obsField.name] || '';
         const timestamp = new Date().toLocaleString('pt-BR');
         
-        // Build auto-observation: "Tipo - DESBANIMENTO OK - Data/Hora"
-        const autoParts: string[] = [];
-        if (tipoValue) {
-          autoParts.push(tipoValue);
+        if (existingObs.toLowerCase().includes('numero externo')) {
+          // Keep "Numero Externo" and add DESBANIMENTO OK + date
+          finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
+        } else if (tipoValue && tipoValue.toLowerCase().includes('numero externo')) {
+          // Type field has "Numero Externo"
+          finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
         }
-        autoParts.push('DESBANIMENTO OK');
-        autoParts.push(timestamp);
-        
-        // Replace existing observation completely with the new format
-        finalValues[obsField.name] = autoParts.join(' - ');
+        // If no "Numero Externo" found, keep existing observation as is
       }
     }
 
