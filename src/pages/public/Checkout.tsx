@@ -342,41 +342,47 @@ export default function Checkout() {
                     Ofertas especiais para você
                   </h3>
                   <div className="space-y-3">
-                    {orderBumps.map((bump) => (
-                      <div
-                        key={bump.id}
-                        onClick={() => {
-                          setSelectedOrderBumps(prev =>
-                            prev.includes(bump.id)
-                              ? prev.filter(id => id !== bump.id)
-                              : [...prev, bump.id]
-                          );
-                        }}
-                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                          selectedOrderBumps.includes(bump.id)
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border bg-card hover:border-primary/50'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={selectedOrderBumps.includes(bump.id)}
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="font-semibold text-foreground">{bump.title}</span>
-                              <span className="font-bold text-primary whitespace-nowrap">
-                                +{formatPrice(bump.price_brl, bump.price_usd)}
-                              </span>
+                    {orderBumps.map((bump) => {
+                      const isSelected = selectedOrderBumps.includes(bump.id);
+                      return (
+                        <button
+                          key={bump.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderBumps((prev) =>
+                              prev.includes(bump.id)
+                                ? prev.filter((id) => id !== bump.id)
+                                : [...prev, bump.id]
+                            );
+                          }}
+                          className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border bg-card hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={isSelected}
+                              tabIndex={-1}
+                              className="mt-1 pointer-events-none"
+                              aria-hidden="true"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="font-semibold text-foreground">{bump.title}</span>
+                                <span className="font-bold text-primary whitespace-nowrap">
+                                  +{formatPrice(bump.price_brl, bump.price_usd)}
+                                </span>
+                              </div>
+                              {bump.description && (
+                                <p className="text-sm text-muted-foreground">{bump.description}</p>
+                              )}
                             </div>
-                            {bump.description && (
-                              <p className="text-sm text-muted-foreground">{bump.description}</p>
-                            )}
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 </section>
               )}
