@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,6 +95,13 @@ export default function Checkout() {
     enabled: !!product?.id,
   });
 
+  // Keep currency simple for the customer:
+  // - Mercado Pago: BRL
+  // - Stripe: USD
+  useEffect(() => {
+    setCurrency(paymentGateway === 'stripe' ? 'USD' : 'BRL');
+  }, [paymentGateway]);
+
   const formatPrice = (priceBrl: number, priceUsd: number) => {
     if (currency === 'USD') {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(priceUsd);
@@ -170,46 +177,25 @@ export default function Checkout() {
     setIsProcessing(true);
     
     try {
-      const { data: order, error: orderError } = await supabase
-        .from('gateway_orders')
-        .insert([{
-          product_id: product?.id,
-          order_bump_id: selectedOrderBumps.length > 0 ? selectedOrderBumps[0] : null,
-          coupon_id: appliedCoupon?.id || null,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          subtotal: subtotal + orderBumpsTotal,
-          discount_amount: discountAmount,
-          total,
+      const { data: orderData, error: createOrderError } = await supabase.functions.invoke('gateway-create-order', {
+        body: {
+          productId: product?.id,
+          orderBumpIds: selectedOrderBumps,
+          couponCode: appliedCoupon?.code || couponCode || null,
+          customerName,
+          customerEmail,
+          customerPhone,
+          paymentGateway,
           currency,
-          status: 'pending',
-          payment_gateway: paymentGateway,
-        }])
-        .select()
-        .single();
-      
-      if (orderError) throw orderError;
+        },
+      });
 
-      if (appliedCoupon && order) {
-        await supabase.from('gateway_coupon_usages').insert([{
-          coupon_id: appliedCoupon.id,
-          order_id: order.id,
-          discount_amount: discountAmount,
-        }]);
-        
-        await supabase
-          .from('gateway_coupons')
-          .update({ 
-            usage_count: appliedCoupon.usage_count + 1,
-            total_discount_given: appliedCoupon.total_discount_given + discountAmount,
-          })
-          .eq('id', appliedCoupon.id);
-      }
+      if (createOrderError) throw createOrderError;
+      if (!orderData?.orderId) throw new Error('Falha ao criar pedido');
 
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('gateway-process-payment', {
         body: {
-          orderId: order.id,
+          orderId: orderData.orderId,
           gateway: paymentGateway,
         },
       });
@@ -442,30 +428,10 @@ export default function Checkout() {
                 <div className="rounded-2xl border border-border/50 bg-card p-6">
                   <h3 className="text-lg font-semibold mb-5">Resumo do pedido</h3>
                   
-                  {/* Currency Toggle */}
-                  <div className="flex gap-2 mb-5">
-                    <button
-                      type="button"
-                      onClick={() => setCurrency('BRL')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                        currency === 'BRL' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
-                    >
-                      R$ BRL
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCurrency('USD')}
-                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                        currency === 'USD' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
-                    >
-                      $ USD
-                    </button>
+                  {/* Currency is automatic based on the payment method */}
+                  <div className="mb-5 rounded-lg bg-muted/50 px-4 py-3 text-sm">
+                    <span className="text-muted-foreground">Moeda:</span>{" "}
+                    <span className="font-semibold text-foreground">{currency === 'BRL' ? 'BRL (R$)' : 'USD ($)'}</span>
                   </div>
 
                   {/* Line Items */}
