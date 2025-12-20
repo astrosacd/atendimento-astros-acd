@@ -165,11 +165,11 @@ export default function GatewayProducts() {
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Produto</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
-            <DialogHeader>
+            <DialogHeader className="pb-2">
               <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="pt-4 max-h-[60vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <Label htmlFor="name">Nome *</Label>

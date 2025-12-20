@@ -43,19 +43,29 @@ serve(async (req) => {
       );
     }
 
-    // Get gateway settings
-    const { data: settings } = await supabase
+    // Get gateway settings (stored as separate rows)
+    const { data: settingsRows, error: settingsError } = await supabase
       .from("gateway_settings")
-      .select("value")
-      .eq("key", "gateways")
-      .single();
+      .select("key, value")
+      .in("key", ["stripe", "mercadopago"]);
 
-    const gatewaySettings = settings?.value || {};
+    if (settingsError) {
+      console.error("Settings fetch error:", settingsError);
+    }
+
+    const gatewaySettings = (settingsRows || []).reduce<Record<string, any>>((acc, row: any) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+
     let redirectUrl: string | null = null;
     const origin = req.headers.get("origin") || "https://udxaxemoozddkwpitngq.lovable.app";
 
     if (gateway === "mercadopago") {
-      const mpAccessToken = gatewaySettings.mercadopago?.accessToken || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      const mpAccessToken =
+        gatewaySettings.mercadopago?.access_token ||
+        gatewaySettings.mercadopago?.accessToken ||
+        Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
       
       if (!mpAccessToken) {
         console.error("Mercado Pago not configured");
@@ -116,7 +126,10 @@ serve(async (req) => {
       console.log(`Mercado Pago payment created for order ${orderId}, redirect: ${redirectUrl}`);
 
     } else if (gateway === "stripe") {
-      const stripeSecretKey = gatewaySettings.stripe?.secretKey || Deno.env.get("STRIPE_SECRET_KEY");
+      const stripeSecretKey =
+        gatewaySettings.stripe?.secret_key ||
+        gatewaySettings.stripe?.secretKey ||
+        Deno.env.get("STRIPE_SECRET_KEY");
       
       if (!stripeSecretKey) {
         console.error("Stripe not configured");

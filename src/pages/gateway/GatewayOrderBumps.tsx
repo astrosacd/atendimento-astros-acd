@@ -130,11 +130,11 @@ export default function GatewayOrderBumps() {
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Order Bump</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
-            <DialogHeader>
+            <DialogHeader className="pb-2">
               <DialogTitle>{editingOrderBump ? 'Editar Order Bump' : 'Novo Order Bump'}</DialogTitle>
             </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="pt-4 max-h-[60vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="name">Nome Interno *</Label>
                   <Input
