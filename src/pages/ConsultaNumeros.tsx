@@ -660,21 +660,21 @@ export default function ConsultaNumeros() {
         }
         
         finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
-      } else if (statusChanged) {
-        // User did NOT add observation but changed the status
-        // Auto-generate observation with: Tipo - Status - Data/Hora
+      } else if (isDesbanimentoOK) {
+        // User did NOT add observation but status is DESBANIMENTO OK
+        // Auto-generate observation with: Tipo - DESBANIMENTO OK - Data/Hora
         const timestamp = new Date().toLocaleString('pt-BR');
-        const separator = editValues[obsField.name] ? '\n---\n' : '';
         
-        // Build auto-observation: "Tipo - Status Atualizado - Data/Hora"
+        // Build auto-observation: "Tipo - DESBANIMENTO OK - Data/Hora"
         const autoParts: string[] = [];
         if (tipoValue) {
           autoParts.push(tipoValue);
         }
-        autoParts.push(newStatus);
+        autoParts.push('DESBANIMENTO OK');
         autoParts.push(timestamp);
         
-        finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}${autoParts.join(' - ')}`;
+        // Replace existing observation completely with the new format
+        finalValues[obsField.name] = autoParts.join(' - ');
       }
     }
 
