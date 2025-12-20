@@ -81,6 +81,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
   admin: <Settings className="h-4 w-4" />,
   tags: <Tag className="h-4 w-4" />,
   divulgador: <Megaphone className="h-4 w-4" />,
+  'Guia': <FileText className="h-4 w-4" />,
+  'Consulta de Números': <Eye className="h-4 w-4" />,
+  'Números Aquecimento': <Settings className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -319,6 +322,9 @@ export default function AdminPermissoes() {
     admin: 'Administração',
     tags: 'Tags',
     divulgador: 'Divulgador Interno',
+    'Guia': 'Guia',
+    'Consulta de Números': 'Consulta de Números',
+    'Números Aquecimento': 'Números Aquecimento',
   };
 
   return (
