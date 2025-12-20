@@ -660,18 +660,23 @@ export default function ConsultaNumeros() {
         }
         
         finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
-      } else if (isDesbanimentoOK) {
-        // User did NOT add observation but status is DESBANIMENTO OK
-        // Check if existing observation contains "Numero Externo"
+      } else if (statusChanged && newStatus) {
+        // User did NOT add observation manually but changed the status
+        // Automatically add the status change to observations
         const existingObs = editValues[obsField.name] || '';
         const timestamp = new Date().toLocaleString('pt-BR');
+        const separator = existingObs ? '\n---\n' : '';
         
-        if (existingObs.toLowerCase().includes('numero externo') || 
-            (tipoValue && tipoValue.toLowerCase().includes('numero externo'))) {
-          // Contains "Numero Externo" - format as: Numero Externo - DESBANIMENTO OK - data/hora
+        // Special case for DESBANIMENTO OK with "Numero Externo"
+        if (isDesbanimentoOK && 
+            (existingObs.toLowerCase().includes('numero externo') || 
+             (tipoValue && tipoValue.toLowerCase().includes('numero externo')))) {
+          // Format as: Numero Externo - DESBANIMENTO OK - data/hora
           finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
+        } else {
+          // For any other status change, append: [timestamp] Status: <new_status>
+          finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
         }
-        // If no "Numero Externo" found, keep existing observation as is (don't modify)
       }
     }
 
