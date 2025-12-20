@@ -64,12 +64,44 @@ export default function Checkout() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerCpf, setCustomerCpf] = useState('');
-  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'mercadopago'>('mercadopago');
+  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'mercadopago' | null>(null);
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fetch enabled payment gateways from settings
+  const { data: gatewaySettings } = useQuery({
+    queryKey: ['gateway-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gateway_settings')
+        .select('key, value')
+        .in('key', ['stripe', 'mercadopago']);
+      if (error) throw error;
+      
+      const settings: Record<string, { enabled?: boolean }> = {};
+      data?.forEach(item => {
+        settings[item.key] = item.value as { enabled?: boolean };
+      });
+      return settings;
+    },
+  });
+
+  const stripeEnabled = gatewaySettings?.stripe?.enabled === true;
+  const mercadopagoEnabled = gatewaySettings?.mercadopago?.enabled === true;
+  const availableGateways = [
+    ...(mercadopagoEnabled ? ['mercadopago'] : []),
+    ...(stripeEnabled ? ['stripe'] : []),
+  ] as ('stripe' | 'mercadopago')[];
+
+  // Auto-select gateway when settings load
+  useEffect(() => {
+    if (!paymentGateway && availableGateways.length > 0) {
+      setPaymentGateway(availableGateways[0]);
+    }
+  }, [availableGateways, paymentGateway]);
 
   const { data: product, isLoading: productLoading, error: productError } = useQuery({
     queryKey: ['public-product', slug],
@@ -447,55 +479,90 @@ export default function Checkout() {
                 </section>
               )}
 
-              {/* Payment Method - NOW COMES FIRST (step 1) */}
-              <section className="rounded-2xl border border-border/50 bg-card p-6">
-                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
-                  Forma de pagamento
-                </h3>
-                <RadioGroup
-                  value={paymentGateway}
-                  onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  <label 
-                    htmlFor="mercadopago"
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                      paymentGateway === 'mercadopago' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <RadioGroupItem value="mercadopago" id="mercadopago" className="sr-only" />
-                    <CreditCard className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="font-semibold text-sm">Mercado Pago</p>
-                      <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
-                    </div>
-                    {paymentGateway === 'mercadopago' && (
-                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                        <Check className="h-3 w-3" />
+              {/* Payment Method - Only show if at least one gateway is enabled */}
+              {availableGateways.length > 0 && (
+                <section className="rounded-2xl border border-border/50 bg-card p-6">
+                  <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
+                    Forma de pagamento
+                  </h3>
+                  
+                  {/* If only one gateway, just show it selected without radio */}
+                  {availableGateways.length === 1 ? (
+                    <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-primary/5">
+                      <CreditCard className="h-8 w-8 text-primary" />
+                      <div className="flex-1">
+                        <p className="font-semibold">
+                          {availableGateways[0] === 'mercadopago' ? 'Mercado Pago' : 'Stripe'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {availableGateways[0] === 'mercadopago' ? 'Pix, Cartão, Boleto' : 'Cartão Internacional'}
+                        </p>
                       </div>
-                    )}
-                  </label>
-                  <label 
-                    htmlFor="stripe"
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center relative ${
-                      paymentGateway === 'stripe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
-                    <CreditCard className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="font-semibold text-sm">Stripe</p>
-                      <p className="text-xs text-muted-foreground">Cartão Internacional</p>
-                    </div>
-                    {paymentGateway === 'stripe' && (
-                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                        <Check className="h-3 w-3" />
+                      <div className="bg-primary text-primary-foreground rounded-full p-1">
+                        <Check className="h-4 w-4" />
                       </div>
-                    )}
-                  </label>
-                </RadioGroup>
-              </section>
+                    </div>
+                  ) : (
+                    <RadioGroup
+                      value={paymentGateway || ''}
+                      onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
+                      className="grid grid-cols-2 gap-3"
+                    >
+                      {mercadopagoEnabled && (
+                        <label 
+                          htmlFor="mercadopago"
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
+                            paymentGateway === 'mercadopago' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <RadioGroupItem value="mercadopago" id="mercadopago" className="sr-only" />
+                          <CreditCard className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="font-semibold text-sm">Mercado Pago</p>
+                            <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
+                          </div>
+                          {paymentGateway === 'mercadopago' && (
+                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                              <Check className="h-3 w-3" />
+                            </div>
+                          )}
+                        </label>
+                      )}
+                      {stripeEnabled && (
+                        <label 
+                          htmlFor="stripe"
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
+                            paymentGateway === 'stripe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
+                          <CreditCard className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="font-semibold text-sm">Stripe</p>
+                            <p className="text-xs text-muted-foreground">Cartão Internacional</p>
+                          </div>
+                          {paymentGateway === 'stripe' && (
+                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                              <Check className="h-3 w-3" />
+                            </div>
+                          )}
+                        </label>
+                      )}
+                    </RadioGroup>
+                  )}
+                </section>
+              )}
+
+              {/* Warning if no gateway is enabled */}
+              {availableGateways.length === 0 && gatewaySettings && (
+                <section className="rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-6">
+                  <div className="flex items-center gap-3 text-destructive">
+                    <AlertTriangle className="h-6 w-6" />
+                    <p className="font-medium">Nenhum método de pagamento disponível no momento.</p>
+                  </div>
+                </section>
+              )}
 
               {/* Customer Info - NOW STEP 2 */}
               <section className="rounded-2xl border border-border/50 bg-card p-6">
