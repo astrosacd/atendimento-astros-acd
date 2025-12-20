@@ -165,13 +165,13 @@ export default function GatewayProducts() {
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Produto</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
-            <DialogHeader className="pb-2">
+            <DialogHeader>
               <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
-            <div className="pt-4 max-h-[60vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="max-h-[65vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-1.5">
                     <Label htmlFor="name">Nome *</Label>
                     <Input
                       id="name"
@@ -180,7 +180,7 @@ export default function GatewayProducts() {
                       required
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-1.5">
                     <Label htmlFor="description">Descrição</Label>
                     <Textarea
                       id="description"
@@ -189,7 +189,7 @@ export default function GatewayProducts() {
                       rows={3}
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 space-y-1.5">
                     <Label>Imagem</Label>
                     <div className="flex gap-2 items-center">
                       <Input
@@ -204,7 +204,7 @@ export default function GatewayProducts() {
                       )}
                     </div>
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="price_brl">Preço BRL *</Label>
                     <Input
                       id="price_brl"
@@ -215,7 +215,7 @@ export default function GatewayProducts() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="price_usd">Preço USD</Label>
                     <Input
                       id="price_usd"
@@ -225,7 +225,7 @@ export default function GatewayProducts() {
                       onChange={(e) => setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="category">Categoria</Label>
                     <Select value={formData.category_id || 'none'} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value === 'none' ? '' : value }))}>
                       <SelectTrigger>
@@ -239,7 +239,7 @@ export default function GatewayProducts() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="status">Status</Label>
                     <Select value={formData.status} onValueChange={(value: 'active' | 'inactive') => setFormData(prev => ({ ...prev, status: value }))}>
                       <SelectTrigger>

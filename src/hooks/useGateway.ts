@@ -38,6 +38,7 @@ export interface GatewayOrderBump {
   price_brl: number;
   price_usd: number;
   status: 'active' | 'inactive';
+  allow_coupon: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -306,7 +307,7 @@ export function useGatewayOrderBumps() {
     mutationFn: async (orderBump: Partial<GatewayOrderBump>) => {
       const { data, error } = await supabase
         .from('gateway_order_bumps')
-        .insert([{ name: orderBump.name || '', title: orderBump.title || '', description: orderBump.description, image_url: orderBump.image_url, price_brl: orderBump.price_brl || 0, price_usd: orderBump.price_usd || 0, status: orderBump.status || 'active' }])
+        .insert([{ name: orderBump.name || '', title: orderBump.title || '', description: orderBump.description, image_url: orderBump.image_url, price_brl: orderBump.price_brl || 0, price_usd: orderBump.price_usd || 0, status: orderBump.status || 'active', allow_coupon: orderBump.allow_coupon ?? true }])
         .select()
         .single();
       if (error) throw error;

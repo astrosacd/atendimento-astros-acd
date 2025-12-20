@@ -56,12 +56,12 @@ serve(async (req) => {
 
     // Order bumps
     const orderBumpIds = (body.orderBumpIds || []).filter(Boolean);
-    let orderBumps: Array<{ id: string; name: string; price_brl: number; price_usd: number }> = [];
+    let orderBumps: Array<{ id: string; name: string; price_brl: number; price_usd: number; allow_coupon: boolean }> = [];
 
     if (orderBumpIds.length > 0) {
       const { data: bumps, error: bumpsError } = await supabase
         .from("gateway_order_bumps")
-        .select("id, name, price_brl, price_usd, status")
+        .select("id, name, price_brl, price_usd, status, allow_coupon")
         .in("id", orderBumpIds)
         .eq("status", "active");
 
@@ -78,6 +78,7 @@ serve(async (req) => {
         name: b.name,
         price_brl: b.price_brl,
         price_usd: b.price_usd,
+        allow_coupon: b.allow_coupon ?? true,
       }));
     }
 
@@ -87,12 +88,15 @@ serve(async (req) => {
       getPrice(product.price_brl, product.price_usd) +
       orderBumps.reduce((sum, ob) => sum + getPrice(ob.price_brl, ob.price_usd), 0);
 
+    // Check if any selected order bump disallows coupons
+    const anyBumpDisallowsCoupon = orderBumps.some((ob) => ob.allow_coupon === false);
+
     // Coupon
     let coupon: any = null;
     let discountAmount = 0;
 
     const couponCode = (body.couponCode || "").trim().toUpperCase();
-    if (couponCode) {
+    if (couponCode && !anyBumpDisallowsCoupon) {
       const { data: c, error: cError } = await supabase
         .from("gateway_coupons")
         .select("*")
@@ -181,6 +185,7 @@ serve(async (req) => {
         subtotal,
         discountAmount,
         total,
+        couponBlocked: anyBumpDisallowsCoupon && couponCode ? true : undefined,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
