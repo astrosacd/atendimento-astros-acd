@@ -168,10 +168,10 @@ export default function GatewayProducts() {
             <DialogHeader>
               <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
-            <div className="max-h-[65vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-1.5">
+            <div className="max-h-[65vh] overflow-y-auto px-1 pr-3 pt-3">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="col-span-2 space-y-2">
                     <Label htmlFor="name">Nome *</Label>
                     <Input
                       id="name"
