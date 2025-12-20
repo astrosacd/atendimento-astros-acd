@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGatewayOrders, GatewayOrder } from '@/hooks/useGateway';
 import { Eye, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function GatewayOrders() {
-  const { orders, isLoading, updateOrder, refetch } = useGatewayOrders();
+  const { orders, isLoading, updateOrder, refetch, isRefetching } = useGatewayOrders();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<GatewayOrder | null>(null);
 
@@ -43,6 +44,15 @@ export default function GatewayOrders() {
     updateOrder({ id: orderId, status: newStatus as any });
   };
 
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      toast.success('Pedidos atualizados!');
+    } catch (error) {
+      toast.error('Erro ao atualizar pedidos');
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
@@ -64,8 +74,13 @@ export default function GatewayOrders() {
               <SelectItem value="abandoned">Abandonados</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefresh}
+            disabled={isRefetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
