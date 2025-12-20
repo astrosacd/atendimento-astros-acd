@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle, Timer } from 'lucide-react';
 import { formatCPF } from '@/utils/formatters';
 
 interface Product {
@@ -71,19 +71,19 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch enabled payment gateways from settings
+  // Fetch enabled payment gateways and checkout settings
   const { data: gatewaySettings } = useQuery({
     queryKey: ['gateway-settings'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('gateway_settings')
         .select('key, value')
-        .in('key', ['stripe', 'mercadopago']);
+        .in('key', ['stripe', 'mercadopago', 'checkout']);
       if (error) throw error;
       
-      const settings: Record<string, { enabled?: boolean }> = {};
+      const settings: Record<string, any> = {};
       data?.forEach(item => {
-        settings[item.key] = item.value as { enabled?: boolean };
+        settings[item.key] = item.value;
       });
       return settings;
     },
@@ -91,6 +91,12 @@ export default function Checkout() {
 
   const stripeEnabled = gatewaySettings?.stripe?.enabled === true;
   const mercadopagoEnabled = gatewaySettings?.mercadopago?.enabled === true;
+  const checkoutSettings = gatewaySettings?.checkout as { 
+    countdown_enabled?: boolean; 
+    countdown_minutes?: number;
+    countdown_message?: string;
+  } | undefined;
+  
   const availableGateways = [
     ...(mercadopagoEnabled ? ['mercadopago'] : []),
     ...(stripeEnabled ? ['stripe'] : []),
@@ -102,6 +108,33 @@ export default function Checkout() {
       setPaymentGateway(availableGateways[0]);
     }
   }, [availableGateways, paymentGateway]);
+
+  // Countdown timer state
+  const [countdown, setCountdown] = useState<number | null>(null);
+  
+  useEffect(() => {
+    if (checkoutSettings?.countdown_enabled && checkoutSettings?.countdown_minutes) {
+      // Initialize countdown
+      setCountdown(checkoutSettings.countdown_minutes * 60);
+    }
+  }, [checkoutSettings?.countdown_enabled, checkoutSettings?.countdown_minutes]);
+
+  // Countdown tick
+  useEffect(() => {
+    if (countdown === null || countdown <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const formatCountdown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const { data: product, isLoading: productLoading, error: productError } = useQuery({
     queryKey: ['public-product', slug],
@@ -350,8 +383,23 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Countdown Banner */}
+      {checkoutSettings?.countdown_enabled && countdown !== null && countdown > 0 && (
+        <div className="bg-green-600 text-white py-3 px-4 sticky top-0 z-20">
+          <div className="container mx-auto flex items-center justify-center gap-4">
+            <Timer className="h-5 w-5 animate-pulse" />
+            <span className="text-sm sm:text-base font-medium">
+              {checkoutSettings.countdown_message || 'Complete sua compra antes do contador chegar a zero!'}
+            </span>
+            <div className="font-mono text-xl sm:text-2xl font-bold tabular-nums">
+              {formatCountdown(countdown)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className={`border-b border-border/50 bg-card/50 backdrop-blur-sm sticky ${checkoutSettings?.countdown_enabled && countdown && countdown > 0 ? 'top-[52px]' : 'top-0'} z-10`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -635,6 +683,31 @@ export default function Checkout() {
                   <p className="text-xs text-muted-foreground">Dados necessários para aprovação do pagamento</p>
                 </div>
               </section>
+
+              {/* Submit Button - At the bottom of the form */}
+              <section className="rounded-2xl border border-border/50 bg-card p-6">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full h-14 text-base font-semibold bg-green-600 hover:bg-green-700"
+                  disabled={isProcessing || availableGateways.length === 0}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-5 w-5 mr-2" />
+                      Finalizar Pedido
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-center text-muted-foreground mt-3">
+                  Ao finalizar, você concorda com nossos termos de uso e política de privacidade
+                </p>
+              </section>
             </div>
 
             {/* Right Column - Summary */}
@@ -733,26 +806,6 @@ export default function Checkout() {
                         : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
                     </span>
                   </div>
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full h-14 text-base font-semibold"
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Processando...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-5 w-5 mr-2" />
-                        Finalizar Compra
-                      </>
-                    )}
-                  </Button>
 
                   {/* Trust Badges */}
                   <div className="mt-5 pt-5 border-t border-border/50">
