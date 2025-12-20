@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import DOMPurify from "dompurify";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -2318,7 +2319,7 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
                         <CardContent className="p-5">
                           <div 
                             className="prose prose-sm max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap"
-                            dangerouslySetInnerHTML={{ __html: renderMarkdown(step.content.trim()) }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderMarkdown(step.content.trim())) }}
                           />
                         </CardContent>
                       </Card>
