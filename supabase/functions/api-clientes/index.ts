@@ -6,6 +6,154 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
+// ==================== INPUT VALIDATION ====================
+
+// Validate CPF format (11 digits with valid checksum)
+function isValidCPF(cpf: string): boolean {
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return false;
+  
+  // Check for known invalid patterns
+  if (/^(\d)\1{10}$/.test(cleaned)) return false;
+  
+  // Validate checksum
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleaned.charAt(i)) * (10 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleaned.charAt(9))) return false;
+  
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleaned.charAt(i)) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleaned.charAt(10))) return false;
+  
+  return true;
+}
+
+// Validate CNPJ format (14 digits with valid checksum)
+function isValidCNPJ(cnpj: string): boolean {
+  const cleaned = cnpj.replace(/\D/g, '');
+  if (cleaned.length !== 14) return false;
+  
+  // Check for known invalid patterns
+  if (/^(\d)\1{13}$/.test(cleaned)) return false;
+  
+  // Validate checksum
+  const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += parseInt(cleaned.charAt(i)) * weights1[i];
+  }
+  let remainder = sum % 11;
+  if (remainder < 2) remainder = 0;
+  else remainder = 11 - remainder;
+  if (remainder !== parseInt(cleaned.charAt(12))) return false;
+  
+  sum = 0;
+  for (let i = 0; i < 13; i++) {
+    sum += parseInt(cleaned.charAt(i)) * weights2[i];
+  }
+  remainder = sum % 11;
+  if (remainder < 2) remainder = 0;
+  else remainder = 11 - remainder;
+  if (remainder !== parseInt(cleaned.charAt(13))) return false;
+  
+  return true;
+}
+
+// Validate CPF or CNPJ
+function isValidCPFOrCNPJ(value: string): boolean {
+  const cleaned = value.replace(/\D/g, '');
+  if (cleaned.length === 11) return isValidCPF(value);
+  if (cleaned.length === 14) return isValidCNPJ(value);
+  return false;
+}
+
+// Validate email format
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email) && email.length <= 255;
+}
+
+// Validate phone number (Brazilian format: 10-11 digits)
+function isValidPhone(phone: string): boolean {
+  const cleaned = phone.replace(/\D/g, '');
+  return cleaned.length >= 10 && cleaned.length <= 11;
+}
+
+// Validate string length
+function isValidLength(value: string, min: number, max: number): boolean {
+  return value.length >= min && value.length <= max;
+}
+
+// Validate numeric value
+function isValidNumeric(value: number, min: number, max: number): boolean {
+  return !isNaN(value) && value >= min && value <= max;
+}
+
+// Sanitize string input - remove potentially dangerous characters
+function sanitizeString(value: string): string {
+  return value
+    .replace(/[<>]/g, '') // Remove HTML brackets
+    .trim()
+    .substring(0, 1000); // Max length
+}
+
+// Sanitize search query to prevent SQL injection patterns
+function sanitizeSearchQuery(query: string): string {
+  return query
+    .replace(/[%_]/g, '') // Remove SQL LIKE wildcards
+    .replace(/['"\\;]/g, '') // Remove SQL injection characters
+    .trim()
+    .substring(0, 100);
+}
+
+// ==================== ERROR SANITIZATION ====================
+
+// Map internal errors to safe user-facing messages
+function getSafeErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+  
+  // Database constraint errors
+  if (lowerMessage.includes('duplicate') || lowerMessage.includes('unique')) {
+    return 'Registro já existe no sistema';
+  }
+  if (lowerMessage.includes('foreign key') || lowerMessage.includes('fk_')) {
+    return 'Erro de referência: registro relacionado não encontrado';
+  }
+  if (lowerMessage.includes('not null') || lowerMessage.includes('null value')) {
+    return 'Campo obrigatório não preenchido';
+  }
+  if (lowerMessage.includes('check constraint')) {
+    return 'Valor inválido para o campo';
+  }
+  
+  // Connection/timeout errors
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+    return 'Tempo de resposta excedido. Tente novamente';
+  }
+  if (lowerMessage.includes('connection') || lowerMessage.includes('network')) {
+    return 'Erro de conexão. Tente novamente';
+  }
+  
+  // Auth errors
+  if (lowerMessage.includes('unauthorized') || lowerMessage.includes('auth')) {
+    return 'Não autorizado';
+  }
+  
+  // Default safe message
+  return 'Erro ao processar requisição';
+}
+
 async function getNotificationConfig(supabase: SupabaseClient) {
   const { data } = await supabase
     .from('recovery_config')
@@ -180,7 +328,7 @@ serve(async (req) => {
         request_method: req.method,
         request_path: url.pathname,
         response_status: 401,
-        response_body: { error: 'API key é obrigatória' },
+        response_body: { error: 'Autenticação necessária' },
         ip_address: ipAddress,
         user_agent: userAgent,
       });
@@ -209,14 +357,14 @@ serve(async (req) => {
       .single();
 
     if (!apiKeyRecord && !webhook) {
-      console.log('Invalid API key attempt:', apiKey);
+      console.log('Invalid API key attempt');
       await logAudit(supabase, {
         action: 'auth_failed',
         resource_type: 'api',
         request_method: req.method,
         request_path: url.pathname,
         response_status: 401,
-        response_body: { error: 'API key inválida' },
+        response_body: { error: 'Autenticação inválida' },
         ip_address: ipAddress,
         user_agent: userAgent,
       });
@@ -241,9 +389,10 @@ serve(async (req) => {
 
     // GET /api-clientes - Listar clientes
     if (req.method === 'GET') {
-      const searchQuery = url.searchParams.get('search');
-      const limit = parseInt(url.searchParams.get('limit') || '100');
-      const offset = parseInt(url.searchParams.get('offset') || '0');
+      const rawSearchQuery = url.searchParams.get('search');
+      const searchQuery = rawSearchQuery ? sanitizeSearchQuery(rawSearchQuery) : null;
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000);
+      const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0);
 
       let query = supabase
         .from('clientes')
@@ -259,6 +408,7 @@ serve(async (req) => {
 
       if (error) {
         console.error('Error fetching clientes:', error);
+        const safeError = getSafeErrorMessage(error);
         await logAudit(supabase, {
           action: 'list_error',
           resource_type: 'clientes',
@@ -267,12 +417,12 @@ serve(async (req) => {
           request_method: req.method,
           request_path: url.pathname,
           response_status: 500,
-          response_body: { error: error.message },
+          response_body: { error: safeError },
           ip_address: ipAddress,
           user_agent: userAgent,
         });
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ error: safeError }),
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -316,6 +466,7 @@ serve(async (req) => {
       
       const { nome, numero, produto, data_renovacao, email, cpf, plano, valor, observacao } = body;
 
+      // Validate required fields
       if (!nome || !numero || !produto || !data_renovacao || !email || !cpf || valor === undefined) {
         await logAudit(supabase, {
           action: 'create_error',
@@ -324,7 +475,7 @@ serve(async (req) => {
           webhook_id: webhook?.id,
           request_method: req.method,
           request_path: url.pathname,
-          request_body: body,
+          request_body: { fields: Object.keys(body) }, // Don't log actual values
           response_status: 400,
           response_body: { error: 'Campos obrigatórios faltando' },
           ip_address: ipAddress,
@@ -341,24 +492,35 @@ serve(async (req) => {
         );
       }
 
-      const { data, error } = await supabase
-        .from('clientes')
-        .insert({
-          nome,
-          numero,
-          produto,
-          data_renovacao,
-          email,
-          cpf,
-          plano: plano || null,
-          valor: Number(valor),
-          observacao: observacao || null,
-        })
-        .select()
-        .single();
+      // Validate input formats
+      const validationErrors: string[] = [];
+      
+      if (!isValidLength(String(nome), 2, 200)) {
+        validationErrors.push('Nome deve ter entre 2 e 200 caracteres');
+      }
+      
+      if (!isValidEmail(String(email))) {
+        validationErrors.push('Email inválido');
+      }
+      
+      if (!isValidCPFOrCNPJ(String(cpf))) {
+        validationErrors.push('CPF/CNPJ inválido');
+      }
+      
+      if (!isValidPhone(String(numero))) {
+        validationErrors.push('Número de telefone inválido (deve ter 10 ou 11 dígitos)');
+      }
+      
+      const numericValor = Number(valor);
+      if (!isValidNumeric(numericValor, 0, 1000000)) {
+        validationErrors.push('Valor deve ser entre 0 e 1.000.000');
+      }
+      
+      if (!isValidLength(String(produto), 1, 200)) {
+        validationErrors.push('Produto deve ter entre 1 e 200 caracteres');
+      }
 
-      if (error) {
-        console.error('Error creating cliente:', error);
+      if (validationErrors.length > 0) {
         await logAudit(supabase, {
           action: 'create_error',
           resource_type: 'clientes',
@@ -366,14 +528,58 @@ serve(async (req) => {
           webhook_id: webhook?.id,
           request_method: req.method,
           request_path: url.pathname,
-          request_body: body,
-          response_status: 500,
-          response_body: { error: error.message },
+          request_body: { fields: Object.keys(body) },
+          response_status: 400,
+          response_body: { error: 'Validação falhou', details: validationErrors },
           ip_address: ipAddress,
           user_agent: userAgent,
         });
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ 
+            error: 'Erro de validação',
+            details: validationErrors
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert({
+          nome: sanitizeString(String(nome)),
+          numero: String(numero).replace(/\D/g, ''),
+          produto: sanitizeString(String(produto)),
+          data_renovacao,
+          email: String(email).toLowerCase().trim(),
+          cpf: String(cpf).replace(/\D/g, ''),
+          plano: plano ? sanitizeString(String(plano)) : null,
+          valor: numericValor,
+          observacao: observacao ? sanitizeString(String(observacao)) : null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating cliente:', error);
+        const safeError = getSafeErrorMessage(error);
+        await logAudit(supabase, {
+          action: 'create_error',
+          resource_type: 'clientes',
+          api_key_id: apiKeyRecord?.id,
+          webhook_id: webhook?.id,
+          request_method: req.method,
+          request_path: url.pathname,
+          request_body: { fields: Object.keys(body) },
+          response_status: 500,
+          response_body: { error: safeError },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        });
+        return new Response(
+          JSON.stringify({ error: safeError }),
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -400,7 +606,7 @@ serve(async (req) => {
         webhook_id: webhook?.id,
         request_method: req.method,
         request_path: url.pathname,
-        request_body: body,
+        request_body: { fields: Object.keys(body) },
         response_status: 201,
         ip_address: ipAddress,
         user_agent: userAgent,
@@ -440,19 +646,110 @@ serve(async (req) => {
         );
       }
 
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(clienteId)) {
+        return new Response(
+          JSON.stringify({ error: 'ID inválido' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       const body = await req.json();
       const updateData: Record<string, unknown> = {};
+      const validationErrors: string[] = [];
 
-      // Só atualizar campos enviados
-      if (body.nome) updateData.nome = body.nome;
-      if (body.numero) updateData.numero = body.numero;
-      if (body.produto) updateData.produto = body.produto;
-      if (body.data_renovacao) updateData.data_renovacao = body.data_renovacao;
-      if (body.email) updateData.email = body.email;
-      if (body.cpf) updateData.cpf = body.cpf;
-      if (body.plano !== undefined) updateData.plano = body.plano;
-      if (body.valor !== undefined) updateData.valor = Number(body.valor);
-      if (body.observacao !== undefined) updateData.observacao = body.observacao;
+      // Validate and sanitize each field
+      if (body.nome !== undefined) {
+        if (!isValidLength(String(body.nome), 2, 200)) {
+          validationErrors.push('Nome deve ter entre 2 e 200 caracteres');
+        } else {
+          updateData.nome = sanitizeString(String(body.nome));
+        }
+      }
+      
+      if (body.numero !== undefined) {
+        if (!isValidPhone(String(body.numero))) {
+          validationErrors.push('Número de telefone inválido');
+        } else {
+          updateData.numero = String(body.numero).replace(/\D/g, '');
+        }
+      }
+      
+      if (body.produto !== undefined) {
+        if (!isValidLength(String(body.produto), 1, 200)) {
+          validationErrors.push('Produto deve ter entre 1 e 200 caracteres');
+        } else {
+          updateData.produto = sanitizeString(String(body.produto));
+        }
+      }
+      
+      if (body.data_renovacao !== undefined) {
+        updateData.data_renovacao = body.data_renovacao;
+      }
+      
+      if (body.email !== undefined) {
+        if (!isValidEmail(String(body.email))) {
+          validationErrors.push('Email inválido');
+        } else {
+          updateData.email = String(body.email).toLowerCase().trim();
+        }
+      }
+      
+      if (body.cpf !== undefined) {
+        if (!isValidCPFOrCNPJ(String(body.cpf))) {
+          validationErrors.push('CPF/CNPJ inválido');
+        } else {
+          updateData.cpf = String(body.cpf).replace(/\D/g, '');
+        }
+      }
+      
+      if (body.plano !== undefined) {
+        updateData.plano = body.plano ? sanitizeString(String(body.plano)) : null;
+      }
+      
+      if (body.valor !== undefined) {
+        const numericValor = Number(body.valor);
+        if (!isValidNumeric(numericValor, 0, 1000000)) {
+          validationErrors.push('Valor deve ser entre 0 e 1.000.000');
+        } else {
+          updateData.valor = numericValor;
+        }
+      }
+      
+      if (body.observacao !== undefined) {
+        updateData.observacao = body.observacao ? sanitizeString(String(body.observacao)) : null;
+      }
+
+      if (validationErrors.length > 0) {
+        await logAudit(supabase, {
+          action: 'update_error',
+          resource_type: 'clientes',
+          resource_id: clienteId,
+          api_key_id: apiKeyRecord?.id,
+          webhook_id: webhook?.id,
+          request_method: req.method,
+          request_path: url.pathname,
+          request_body: { fields: Object.keys(body) },
+          response_status: 400,
+          response_body: { error: 'Validação falhou', details: validationErrors },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        });
+        return new Response(
+          JSON.stringify({ 
+            error: 'Erro de validação',
+            details: validationErrors
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
 
       if (Object.keys(updateData).length === 0) {
         await logAudit(supabase, {
@@ -463,7 +760,7 @@ serve(async (req) => {
           webhook_id: webhook?.id,
           request_method: req.method,
           request_path: url.pathname,
-          request_body: body,
+          request_body: { fields: Object.keys(body) },
           response_status: 400,
           response_body: { error: 'Nenhum campo para atualizar' },
           ip_address: ipAddress,
@@ -494,6 +791,7 @@ serve(async (req) => {
 
       if (error) {
         console.error('Error updating cliente:', error);
+        const safeError = getSafeErrorMessage(error);
         await logAudit(supabase, {
           action: 'update_error',
           resource_type: 'clientes',
@@ -502,14 +800,14 @@ serve(async (req) => {
           webhook_id: webhook?.id,
           request_method: req.method,
           request_path: url.pathname,
-          request_body: body,
+          request_body: { fields: Object.keys(body) },
           response_status: 500,
-          response_body: { error: error.message },
+          response_body: { error: safeError },
           ip_address: ipAddress,
           user_agent: userAgent,
         });
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ error: safeError }),
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -547,7 +845,7 @@ serve(async (req) => {
         webhook_id: webhook?.id,
         request_method: req.method,
         request_path: url.pathname,
-        request_body: body,
+        request_body: { fields: Object.keys(body) },
         response_status: 200,
         ip_address: ipAddress,
         user_agent: userAgent,
@@ -587,6 +885,18 @@ serve(async (req) => {
         );
       }
 
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(clienteId)) {
+        return new Response(
+          JSON.stringify({ error: 'ID inválido' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       // Get client data before deletion for history logging
       const { data: clienteData } = await supabase
         .from('clientes')
@@ -613,6 +923,7 @@ serve(async (req) => {
 
       if (error) {
         console.error('Error deleting cliente:', error);
+        const safeError = getSafeErrorMessage(error);
         await logAudit(supabase, {
           action: 'delete_error',
           resource_type: 'clientes',
@@ -622,12 +933,12 @@ serve(async (req) => {
           request_method: req.method,
           request_path: url.pathname,
           response_status: 500,
-          response_body: { error: error.message },
+          response_body: { error: safeError },
           ip_address: ipAddress,
           user_agent: userAgent,
         });
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ error: safeError }),
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -667,6 +978,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('API error:', error);
+    const safeError = getSafeErrorMessage(error);
     await logAudit(supabase, {
       action: 'server_error',
       resource_type: 'api',

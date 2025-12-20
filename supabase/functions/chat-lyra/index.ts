@@ -254,10 +254,12 @@ async function callOpenAI(messages: any[], config: AIConfig): Promise<string> {
       throw new Error("RATE_LIMIT");
     }
     if (response.status === 401) {
-      throw new Error("API Key da OpenAI inválida. Verifique a configuração.");
+      console.error("OpenAI auth error");
+      throw new Error("Erro de autenticação com o provedor de IA");
     }
     if (response.status === 402 || response.status === 403) {
-      throw new Error("Limite de uso da OpenAI atingido ou acesso negado.");
+      console.error("OpenAI access error:", response.status);
+      throw new Error("Serviço de IA temporariamente indisponível");
     }
     const errorText = await response.text();
     console.error("OpenAI error:", response.status, errorText);
@@ -293,11 +295,12 @@ async function callGroq(messages: any[], config: AIConfig): Promise<string> {
       throw new Error("RATE_LIMIT");
     }
     if (response.status === 401) {
-      throw new Error("API Key da Groq inválida. Verifique a configuração.");
+      console.error("Groq auth error");
+      throw new Error("Erro de autenticação com o provedor de IA");
     }
     const errorText = await response.text();
     console.error("Groq error:", response.status, errorText);
-    throw new Error("Erro ao processar mensagem com Groq");
+    throw new Error("Erro ao processar mensagem");
   }
 
   const data = await response.json();

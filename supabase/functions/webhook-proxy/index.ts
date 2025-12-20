@@ -97,9 +97,9 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Webhook proxy error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // SECURITY: Don't expose internal error details to clients
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Erro ao processar webhook' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
