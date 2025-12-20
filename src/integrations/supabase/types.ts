@@ -1228,6 +1228,360 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gateway_coupon_usages: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          discount_amount: number
+          id: string
+          order_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          order_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gateway_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses_global: number | null
+          max_uses_per_order: number | null
+          starts_at: string | null
+          status: string
+          total_discount_given: number
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          discount_type: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses_global?: number | null
+          max_uses_per_order?: number | null
+          starts_at?: string | null
+          status?: string
+          total_discount_given?: number
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses_global?: number | null
+          max_uses_per_order?: number | null
+          starts_at?: string | null
+          status?: string
+          total_discount_given?: number
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
+      gateway_order_bumps: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price_brl: number
+          price_usd: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price_brl?: number
+          price_usd?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_brl?: number
+          price_usd?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gateway_orders: {
+        Row: {
+          abandoned_email_sent: boolean
+          coupon_id: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          discount_amount: number
+          id: string
+          order_bump_id: string | null
+          payment_gateway: string | null
+          payment_id: string | null
+          product_id: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          abandoned_email_sent?: boolean
+          coupon_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          discount_amount?: number
+          id?: string
+          order_bump_id?: string | null
+          payment_gateway?: string | null
+          payment_id?: string | null
+          product_id?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          abandoned_email_sent?: boolean
+          coupon_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          discount_amount?: number
+          id?: string
+          order_bump_id?: string | null
+          payment_gateway?: string | null
+          payment_id?: string | null
+          product_id?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_orders_order_bump_id_fkey"
+            columns: ["order_bump_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_order_bumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gateway_product_order_bumps: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          order_bump_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          order_bump_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          order_bump_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_product_order_bumps_order_bump_id_fkey"
+            columns: ["order_bump_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_order_bumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_product_order_bumps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gateway_products: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price_brl: number
+          price_usd: number
+          public_slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price_brl?: number
+          price_usd?: number
+          public_slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_brl?: number
+          price_usd?: number
+          public_slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gateway_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       numeros_aquecimento: {
         Row: {
           created_at: string
