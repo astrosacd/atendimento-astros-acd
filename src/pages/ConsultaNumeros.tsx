@@ -488,11 +488,14 @@ export default function ConsultaNumeros() {
 
   // Check if current status is "Desbanimento OK"
   const isDesbanimentoOK = useMemo(() => {
-    const statusFieldData = visibleFields.find(f => f.name.toLowerCase() === 'status');
-    if (!statusFieldData) return false;
-    const currentStatus = editValues['status'] || editValues['Status'];
-    return currentStatus?.toLowerCase().includes('desbanimento ok');
-  }, [editValues, visibleFields]);
+    // Check excluido_da_base field (the field shown in screenshot)
+    const excluido = editValues['excluido_da_base'] || editValues['Excluido_Da_Base'] || '';
+    if (excluido.toLowerCase().includes('desbanimento ok')) return true;
+    
+    // Also check status field as fallback
+    const currentStatus = editValues['status'] || editValues['Status'] || '';
+    return currentStatus.toLowerCase().includes('desbanimento ok');
+  }, [editValues]);
 
   // Send desbanimento email
   const sendDesbanimentoEmail = async (): Promise<boolean> => {
@@ -582,12 +585,21 @@ export default function ConsultaNumeros() {
   const handleSaveEdit = async () => {
     if (!selectedRow) return;
 
-    // Check if desbanimento OK is selected and image is required
-    if (isDesbanimentoOK && desbanimentoImage) {
-      // Send email first
+    // Check if desbanimento OK is selected - image is REQUIRED
+    if (isDesbanimentoOK) {
+      if (!desbanimentoImage) {
+        toast({ 
+          title: 'Imagem obrigatória', 
+          description: 'É obrigatório anexar uma imagem quando o status é "DESBANIMENTO OK"', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      // Send email with image
       const emailSent = await sendDesbanimentoEmail();
       if (!emailSent) {
-        // Email failed, ask user if they want to continue without email
+        // Email failed, don't proceed with save
         return;
       }
     }
@@ -1173,8 +1185,8 @@ export default function ConsultaNumeros() {
                 )}
                 
                 {!desbanimentoImage && (
-                  <p className="text-xs text-amber-600">
-                    ⚠️ Selecione uma imagem para enviar junto com o email de desbanimento
+                  <p className="text-sm text-destructive font-medium">
+                    ⚠️ OBRIGATÓRIO: Anexe uma imagem para continuar com o desbanimento
                   </p>
                 )}
               </div>
