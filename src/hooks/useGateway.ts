@@ -530,8 +530,7 @@ export function useGatewaySettings() {
     mutationFn: async ({ key, value }: { key: string; value: Record<string, any> }) => {
       const { data, error } = await supabase
         .from('gateway_settings')
-        .update({ value })
-        .eq('key', key)
+        .upsert({ key, value }, { onConflict: 'key' })
         .select()
         .single();
       if (error) throw error;
