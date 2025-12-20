@@ -71,21 +71,21 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch enabled payment gateways and checkout settings
+  // Fetch enabled payment gateways and checkout settings (public-safe)
   const { data: gatewaySettings, isLoading: gatewayLoading } = useQuery({
-    queryKey: ['gateway-settings'],
+    queryKey: ['gateway-public-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('gateway_settings')
-        .select('key, value')
-        .in('key', ['stripe', 'mercadopago', 'checkout']);
+      const { data, error } = await supabase.functions.invoke('gateway-public-settings');
       if (error) throw error;
-      
-      const settings: Record<string, any> = {};
-      data?.forEach(item => {
-        settings[item.key] = item.value;
-      });
-      return settings;
+      return data as {
+        stripe?: { enabled?: boolean };
+        mercadopago?: { enabled?: boolean };
+        checkout?: {
+          countdown_enabled?: boolean;
+          countdown_minutes?: number;
+          countdown_message?: string;
+        };
+      };
     },
   });
 
