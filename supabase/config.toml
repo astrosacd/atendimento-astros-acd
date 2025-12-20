@@ -57,6 +57,9 @@ verify_jwt = false
 [functions.send-desbanimento-email]
 verify_jwt = true
 
+[functions.gateway-create-order]
+verify_jwt = false
+
 [functions.gateway-process-payment]
 verify_jwt = false
 
