@@ -77,7 +77,7 @@ function AppRoutes() {
       <Route path="/admin/cobranca" element={<ProtectedRoute permission="manage_billing"><AdminCobranca /></ProtectedRoute>} />
       <Route path="/admin/chat" element={<ProtectedRoute permission="manage_settings"><AdminChatConfig /></ProtectedRoute>} />
       <Route path="/admin/permissoes" element={<ProtectedRoute permission="manage_permissions"><AdminPermissoes /></ProtectedRoute>} />
-      <Route path="/admin/guia" element={<ProtectedRoute permission="manage_settings"><AdminGuia /></ProtectedRoute>} />
+      <Route path="/admin/guia" element={<ProtectedRoute permission="view_guia"><AdminGuia /></ProtectedRoute>} />
       <Route path="/admin/boas-vindas" element={<ProtectedRoute permission="manage_settings"><AdminBoasVindas /></ProtectedRoute>} />
       <Route path="/admin/tags" element={<ProtectedRoute permission="manage_settings"><AdminTags /></ProtectedRoute>} />
       <Route path="/admin/divulgador" element={<ProtectedRoute permission="view_divulgador"><AdminDivulgador /></ProtectedRoute>} />
