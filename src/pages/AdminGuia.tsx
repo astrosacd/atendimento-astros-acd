@@ -44,7 +44,14 @@ import {
   UserMinus,
   Clock,
   Calendar,
-  Smartphone
+  Smartphone,
+  ShoppingCart,
+  Store,
+  Package,
+  PercentCircle,
+  Receipt,
+  Timer,
+  BarChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -98,6 +105,13 @@ const categoryToPermission: Record<string, string> = {
   'restauracao': 'view_guia_clientes',
   'divulgador': 'view_guia_divulgador',
   'status-numeros': 'view_guia_numeros',
+  'gateway-visao-geral': 'view_guia_gateway',
+  'gateway-produtos': 'view_guia_gateway',
+  'gateway-order-bumps': 'view_guia_gateway',
+  'gateway-cupons': 'view_guia_gateway',
+  'gateway-checkout': 'view_guia_gateway',
+  'gateway-pedidos': 'view_guia_gateway',
+  'gateway-config': 'view_guia_gateway',
   'chat': 'view_guia_avancado',
   'dashboard': 'view_guia_avancado',
   'logs-atividade': 'view_guia_avancado',
@@ -216,6 +230,14 @@ const AdminGuia = () => {
       color: "text-lime-400",
       categories: ["status-numeros"],
       permissionKey: "view_guia_numeros"
+    },
+    {
+      id: "gateway",
+      title: "Gateway",
+      icon: Store,
+      color: "text-pink-400",
+      categories: ["gateway-visao-geral", "gateway-produtos", "gateway-order-bumps", "gateway-cupons", "gateway-checkout", "gateway-pedidos", "gateway-config"],
+      permissionKey: "view_guia_gateway"
     },
     {
       id: "sistema",
@@ -2136,6 +2158,637 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
         "Exporte CSV regularmente como backup",
         "Use filtros para encontrar números rapidamente",
         "Observações são úteis para anotações de manutenção"
+      ]
+    },
+    {
+      id: "gateway-visao-geral",
+      title: "Gateway de Pagamentos",
+      icon: Store,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Sistema completo de vendas com múltiplos gateways de pagamento",
+      steps: [
+        {
+          title: "O que é o Gateway de Pagamentos?",
+          content: `O **Gateway de Pagamentos** é um módulo completo para vendas online:
+
+- **Múltiplos gateways**: Stripe (internacional) e Mercado Pago (BRL)
+- **Catálogo de produtos**: Gerencie produtos com preços em BRL e USD
+- **Order Bumps**: Ofertas complementares no checkout
+- **Cupons de desconto**: Fixos ou percentuais
+- **Checkout público**: Páginas de pagamento personalizadas
+- **Contador de urgência**: Aumente conversões com escassez
+- **Carrinho abandonado**: Recupere vendas automaticamente
+- **Relatórios**: Acompanhe vendas e métricas
+
+O módulo é **totalmente independente** e pode ser usado como uma loja virtual completa.`
+        },
+        {
+          title: "Estrutura do módulo",
+          content: `**Páginas administrativas (menu Gateway):**
+
+- **Dashboard**: Métricas de vendas, gráficos e resumo financeiro
+- **Produtos**: Cadastro e gerenciamento de produtos
+- **Order Bumps**: Ofertas complementares para o checkout
+- **Cupons**: Códigos de desconto
+- **Pedidos**: Lista de todos os pedidos realizados
+- **Configurações**: Gateways, email e carrinho abandonado
+- **Relatórios**: Análises detalhadas de vendas
+
+**Páginas públicas:**
+- **/p/{slug}**: Checkout público do produto
+- **/sucesso**: Confirmação de pagamento`
+        },
+        {
+          title: "Fluxo de venda",
+          content: `**Como funciona uma venda:**
+
+1. Cliente acessa **/p/{slug-do-produto}**
+2. Visualiza produto, order bumps e contador (se ativo)
+3. Aplica cupom de desconto (opcional)
+4. Preenche dados: Nome, Email, WhatsApp e CPF
+5. Escolhe o gateway: Mercado Pago ou Stripe
+6. Clica em **"Pagar"** e é redirecionado ao gateway
+7. Após pagamento, volta para **/sucesso**
+
+**Status do pedido:**
+- 🟡 **Pendente**: Aguardando pagamento
+- 🟢 **Pago**: Pagamento confirmado
+- 🔴 **Cancelado**: Pedido cancelado`
+        }
+      ],
+      tips: [
+        "Configure pelo menos um gateway antes de publicar produtos",
+        "O Mercado Pago aceita PIX, cartão e boleto",
+        "Stripe é ideal para pagamentos internacionais em USD",
+        "Use o contador de urgência para aumentar conversões",
+        "Order Bumps podem aumentar o ticket médio em até 30%"
+      ]
+    },
+    {
+      id: "gateway-produtos",
+      title: "Produtos",
+      icon: Package,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Cadastre e gerencie seus produtos para venda",
+      steps: [
+        {
+          title: "Cadastrar produto",
+          content: `**Passo a passo:**
+
+1. Acesse **Gateway** → **Produtos**
+2. Clique em **"+ Novo Produto"**
+3. Preencha os dados:
+   - **Nome**: Nome do produto
+   - **Descrição**: Detalhes do produto (Markdown suportado)
+   - **Preço BRL**: Valor em reais
+   - **Preço USD**: Valor em dólares
+   - **Imagem**: URL da imagem do produto
+   - **Categoria**: Classificação do produto
+   - **Status**: Ativo/Inativo
+4. Clique em **"Salvar"**
+
+**Slug público:**
+O sistema gera automaticamente um slug único para o produto (ex: \`produto-incrivel-abc123\`).
+A URL de checkout será: \`/p/{slug}\``
+        },
+        {
+          title: "Vincular Order Bumps",
+          content: `Após criar o produto, vincule order bumps:
+
+1. Na lista de produtos, clique em **"Editar"**
+2. Role até a seção **"Order Bumps"**
+3. Selecione os order bumps que deseja exibir no checkout
+4. Defina a **ordem de exibição**
+5. Salve as alterações
+
+**Dica:** Order bumps aparecem no checkout como ofertas complementares que o cliente pode adicionar com um clique.`
+        },
+        {
+          title: "Copiar link do checkout",
+          content: `Para compartilhar o link de checkout:
+
+1. Na lista de produtos, encontre o produto desejado
+2. Clique no ícone de **link (🔗)** ou **copiar**
+3. O link é copiado para a área de transferência
+
+**Formato do link:**
+\`https://seusite.com/p/{slug-do-produto}\`
+
+Use este link em:
+- Redes sociais
+- Email marketing
+- Landing pages
+- Anúncios`
+        },
+        {
+          title: "Gerenciar categorias",
+          content: `Categorias ajudam a organizar produtos:
+
+1. Acesse **Gateway** → **Categorias**
+2. Clique em **"+ Nova Categoria"**
+3. Preencha:
+   - **Nome**: Nome da categoria
+   - **Slug**: URL amigável (gerado automaticamente)
+   - **Descrição**: Descrição opcional
+   - **Status**: Ativo/Inativo
+4. Salve a categoria
+
+**Uso:**
+Categorias podem ser usadas para filtrar produtos e organizar a loja.`
+        }
+      ],
+      tips: [
+        "Use imagens de alta qualidade para melhor conversão",
+        "Preços em BRL e USD permitem vender para ambos os públicos",
+        "Produtos inativos não aparecem no checkout público",
+        "O slug é gerado automaticamente mas pode ser personalizado"
+      ]
+    },
+    {
+      id: "gateway-order-bumps",
+      title: "Order Bumps",
+      icon: ShoppingCart,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Configure ofertas complementares para aumentar o ticket médio",
+      steps: [
+        {
+          title: "O que são Order Bumps?",
+          content: `**Order Bumps** são ofertas complementares exibidas no checkout:
+
+- Aparecem como checkbox que o cliente pode marcar
+- Adicionam valor ao pedido com um clique
+- Aumentam o ticket médio significativamente
+
+**Exemplos de uso:**
+- Produto: Curso Online → Bump: Certificado Impresso
+- Produto: E-book → Bump: Audiobook
+- Produto: Assinatura → Bump: Acesso Vitalício`
+        },
+        {
+          title: "Criar Order Bump",
+          content: `**Passo a passo:**
+
+1. Acesse **Gateway** → **Order Bumps**
+2. Clique em **"+ Novo Order Bump"**
+3. Preencha:
+   - **Nome**: Identificação interna
+   - **Título**: Texto exibido no checkout
+   - **Descrição**: Detalhes da oferta
+   - **Preço BRL**: Valor adicional em reais
+   - **Preço USD**: Valor adicional em dólares
+   - **Imagem**: URL da imagem (opcional)
+   - **Permite cupom**: Se cupons podem ser aplicados
+   - **Status**: Ativo/Inativo
+4. Clique em **"Salvar"**`
+        },
+        {
+          title: "Vincular a produtos",
+          content: `Após criar, vincule o order bump aos produtos:
+
+1. Acesse **Gateway** → **Produtos**
+2. Edite o produto desejado
+3. Na seção **Order Bumps**, selecione os bumps
+4. Salve o produto
+
+**Alternativa:**
+Na lista de order bumps, clique em "Produtos Vinculados" para ver/editar os vínculos.
+
+**Múltiplos bumps:**
+Um produto pode ter vários order bumps, e eles aparecem em ordem definida.`
+        },
+        {
+          title: "Exibição no checkout",
+          content: `**Como aparece para o cliente:**
+
+No checkout público, os order bumps aparecem como:
+
+✅ **[Checkbox]** Adicionar {Título} por mais R$ {Preço}
+   {Descrição}
+
+O cliente pode:
+- Marcar o checkbox para adicionar ao pedido
+- Ver o valor atualizado em tempo real
+- Adicionar múltiplos bumps se disponíveis
+
+**Cálculo:**
+Subtotal = Produto + Order Bumps selecionados
+Desconto = Cupom (se aplicável e permitido)
+Total = Subtotal - Desconto`
+        }
+      ],
+      tips: [
+        "Order bumps com bom desconto convertem mais",
+        "Use títulos atrativos como 'Adicione por apenas R$X'",
+        "Configure 'Permite cupom' com cuidado para não perder margem",
+        "Limite a 2-3 order bumps por produto para não poluir o checkout"
+      ]
+    },
+    {
+      id: "gateway-cupons",
+      title: "Cupons de Desconto",
+      icon: PercentCircle,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Crie códigos de desconto para suas vendas",
+      steps: [
+        {
+          title: "Criar cupom",
+          content: `**Passo a passo:**
+
+1. Acesse **Gateway** → **Cupons**
+2. Clique em **"+ Novo Cupom"**
+3. Preencha:
+   - **Código**: Código único (ex: DESCONTO10)
+   - **Tipo**: Percentual ou Valor Fixo
+   - **Valor do desconto**: Percentual ou valor em reais
+   - **Moeda**: BRL ou USD
+   - **Limite de uso global**: Quantas vezes pode ser usado no total
+   - **Limite por pedido**: Máximo de uso por pedido
+   - **Data início**: Quando começa a valer
+   - **Data expiração**: Quando expira
+   - **Status**: Ativo/Inativo
+4. Clique em **"Salvar"**`
+        },
+        {
+          title: "Tipos de desconto",
+          content: `**Desconto Percentual:**
+- Aplica % sobre o subtotal
+- Ex: Cupom 20% → R$ 100 vira R$ 80
+
+**Desconto Fixo:**
+- Aplica valor absoluto
+- Ex: Cupom R$ 30 → R$ 100 vira R$ 70
+
+**Moeda:**
+- BRL: Aplica apenas em compras em reais
+- USD: Aplica apenas em compras em dólares
+
+**Interação com Order Bumps:**
+Se o order bump tem "Permite cupom = Sim", o desconto é aplicado sobre ele também.`
+        },
+        {
+          title: "Limites e validade",
+          content: `**Limite de uso global:**
+Quantas vezes o cupom pode ser usado no total.
+- Exemplo: Limite 100 → Após 100 usos, cupom expira automaticamente
+
+**Limite por pedido:**
+Quantas unidades do desconto aplicar por pedido.
+- Geralmente 1 para evitar stacking
+
+**Período de validade:**
+- **Data início**: Cupom só funciona a partir desta data
+- **Data expiração**: Cupom para de funcionar após esta data
+
+Cupons expirados ou esgotados retornam erro ao cliente.`
+        },
+        {
+          title: "Métricas de cupons",
+          content: `Na lista de cupons você vê:
+
+- **Usos**: Quantas vezes foi utilizado
+- **Desconto total dado**: Soma de todos os descontos aplicados
+- **Taxa de uso**: Percentual do limite utilizado
+
+**Relatórios:**
+No módulo de Relatórios, veja:
+- Cupons mais utilizados
+- Desconto total por período
+- Impacto na conversão`
+        }
+      ],
+      tips: [
+        "Códigos em MAIÚSCULAS são mais fáceis de lembrar",
+        "Use datas de expiração para criar urgência",
+        "Limites de uso evitam abuso de cupons",
+        "Monitore descontos dados vs receita gerada"
+      ]
+    },
+    {
+      id: "gateway-checkout",
+      title: "Checkout e Conversão",
+      icon: Timer,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Configure o checkout para maximizar conversões",
+      steps: [
+        {
+          title: "Página de checkout",
+          content: `**URL do checkout:**
+Cada produto tem sua página de checkout em:
+\`/p/{slug-do-produto}\`
+
+**Elementos do checkout:**
+1. **Imagem do produto** (se configurada)
+2. **Nome e descrição** do produto
+3. **Preço** (BRL ou USD conforme detecção automática)
+4. **Contador regressivo** (se ativo)
+5. **Order Bumps** (se vinculados)
+6. **Campo de cupom**
+7. **Formulário**: Nome, Email, WhatsApp, CPF
+8. **Seletor de gateway** (Mercado Pago / Stripe)
+9. **Botão de pagamento** (fixo no rodapé mobile)
+
+**Responsivo:**
+O checkout é totalmente responsivo e otimizado para mobile.`
+        },
+        {
+          title: "Contador de urgência",
+          content: `**Configurar contador:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Checkout**
+2. Ative **"Habilitar contador"**
+3. Defina o **tempo em minutos** (1-60)
+4. Personalize a **mensagem do contador**
+5. Salve as configurações
+
+**Como funciona:**
+- Contador inicia quando cliente acessa o checkout
+- Baseado na sessão (localStorage)
+- Ao zerar, exibe mensagem de urgência
+- Aumenta significativamente a conversão
+
+**Exemplo de mensagem:**
+"⏰ Oferta expira em 09:45 - Complete sua compra agora!"`
+        },
+        {
+          title: "Detecção automática de moeda",
+          content: `O checkout detecta automaticamente a moeda:
+
+**Como funciona:**
+- Sistema verifica geolocalização do IP
+- Brasil → Exibe preço em BRL, habilita Mercado Pago
+- Outros países → Exibe preço em USD, habilita Stripe
+
+**Comportamento:**
+- Mercado Pago só aparece para compras em BRL
+- Stripe só aparece para compras em USD
+- Se ambos estiverem desabilitados, exibe alerta
+
+**Dica:** Configure ambos os gateways para maximizar alcance.`
+        },
+        {
+          title: "Página de sucesso",
+          content: `Após pagamento confirmado, cliente é redirecionado para:
+\`/sucesso?order_id={id}&status=success\`
+
+**Elementos da página:**
+- Mensagem de confirmação
+- Número do pedido
+- Resumo da compra
+- Botão para continuar navegando
+
+**Personalização:**
+A página pode ser customizada editando \`src/pages/public/Sucesso.tsx\`.`
+        }
+      ],
+      tips: [
+        "Contador de 10 minutos é ideal para maioria dos produtos",
+        "Use mensagens de urgência sem ser agressivo",
+        "O botão fixo no mobile melhora a conversão",
+        "Teste diferentes tempos de contador para otimizar"
+      ]
+    },
+    {
+      id: "gateway-pedidos",
+      title: "Gerenciamento de Pedidos",
+      icon: Receipt,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Acompanhe e gerencie todos os pedidos realizados",
+      steps: [
+        {
+          title: "Lista de pedidos",
+          content: `**Acessar pedidos:**
+
+1. Acesse **Gateway** → **Pedidos**
+2. Veja a lista completa de pedidos
+
+**Informações exibidas:**
+- **ID do pedido**: Identificador único
+- **Cliente**: Nome e email
+- **Produto**: Nome do produto comprado
+- **Order Bump**: Se foi adicionado
+- **Cupom**: Se foi aplicado
+- **Subtotal / Desconto / Total**: Valores financeiros
+- **Gateway**: Mercado Pago ou Stripe
+- **Status**: Pendente, Pago, Cancelado
+- **Data**: Quando foi criado
+
+**Filtros:**
+- Por status (Pendente, Pago, Cancelado)
+- Por período
+- Por produto
+- Por gateway`
+        },
+        {
+          title: "Status dos pedidos",
+          content: `**Pendente (pending):**
+- Pedido criado mas pagamento não confirmado
+- Cliente pode ter abandonado o checkout
+- Aguardando confirmação do gateway
+
+**Pago (paid):**
+- Pagamento confirmado pelo gateway
+- Webhook processado com sucesso
+- Cliente redirecionado para /sucesso
+
+**Cancelado (cancelled):**
+- Pagamento falhou ou foi cancelado
+- Pedido não será processado
+- Pode ter expirado ou sido rejeitado
+
+**Atualização automática:**
+Os webhooks do Mercado Pago e Stripe atualizam automaticamente o status.`
+        },
+        {
+          title: "Detalhes do pedido",
+          content: `Clique em um pedido para ver detalhes:
+
+**Dados do cliente:**
+- Nome completo
+- Email
+- WhatsApp (se informado)
+- CPF
+
+**Dados financeiros:**
+- Subtotal (produto + order bumps)
+- Desconto do cupom
+- Total pago
+- Moeda (BRL/USD)
+
+**Rastreamento:**
+- ID do pagamento no gateway
+- Data de criação
+- Data de atualização
+- Eventos relacionados`
+        },
+        {
+          title: "Carrinho abandonado",
+          content: `Pedidos **pendentes** após X horas são considerados abandonados:
+
+**Configurar recuperação:**
+1. Acesse **Gateway** → **Configurações** → aba **Carrinho Abandonado**
+2. Ative **"Habilitar emails de recuperação"**
+3. Defina o **tempo de espera** (minutos)
+4. Configure o **assunto** do email
+5. Personalize o **template** HTML
+6. Salve
+
+**Variáveis do template:**
+- \`{{nome}}\`: Nome do cliente
+- \`{{produto}}\`: Nome do produto
+- \`{{link}}\`: Link para retomar a compra
+
+**Execução automática:**
+Um cron verifica pedidos abandonados e envia emails automaticamente.`
+        }
+      ],
+      tips: [
+        "Monitore pedidos pendentes para identificar problemas no checkout",
+        "Configure carrinho abandonado para recuperar vendas perdidas",
+        "Use os relatórios para análise de conversão",
+        "Webhooks garantem atualização automática de status"
+      ]
+    },
+    {
+      id: "gateway-config",
+      title: "Configurações do Gateway",
+      icon: Settings,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Configure gateways de pagamento, email e funcionalidades",
+      steps: [
+        {
+          title: "Configurar Stripe",
+          content: `**Obter credenciais:**
+
+1. Acesse **dashboard.stripe.com**
+2. Vá em **Developers** → **API Keys**
+3. Copie:
+   - **Publishable key**: pk_live_... ou pk_test_...
+   - **Secret key**: sk_live_... ou sk_test_...
+
+**Configurar no sistema:**
+1. Acesse **Gateway** → **Configurações** → aba **Gateways**
+2. Seção **Stripe**:
+   - Ative **"Habilitar Stripe"**
+   - Cole a **Publishable Key**
+   - Cole a **Secret Key**
+3. Clique em **"Salvar Stripe"**
+
+**Ambiente:**
+- Use chaves **test** para desenvolvimento
+- Use chaves **live** para produção
+
+⚠️ Stripe só aparece no checkout para pagamentos em **USD**.`
+        },
+        {
+          title: "Configurar Mercado Pago",
+          content: `**Obter credenciais:**
+
+1. Acesse **mercadopago.com.br/developers/panel**
+2. Vá em **Suas integrações** ou crie uma nova
+3. Em **Credenciais**, copie o **Access Token**
+
+**Configurar no sistema:**
+1. Acesse **Gateway** → **Configurações** → aba **Gateways**
+2. Seção **Mercado Pago**:
+   - Ative **"Habilitar Mercado Pago"**
+   - Cole o **Access Token**
+3. Clique em **"Salvar Mercado Pago"**
+
+**Ambiente:**
+- Token que começa com **TEST-**: Ambiente sandbox
+- Token que começa com **APP_USR-**: Ambiente produção
+
+⚠️ Mercado Pago só aparece no checkout para pagamentos em **BRL**.
+
+**Webhook de pagamento:**
+O sistema configura automaticamente o endpoint:
+\`/functions/v1/gateway-payment-webhook\`
+
+Este endpoint recebe notificações de pagamentos confirmados/cancelados.`
+        },
+        {
+          title: "Configurar Email (SMTP)",
+          content: `**Configurar servidor de email:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Email**
+2. Preencha:
+   - **SMTP Host**: Servidor SMTP (ex: smtp.gmail.com)
+   - **SMTP Port**: Porta (geralmente 587 ou 465)
+   - **SMTP User**: Email de envio
+   - **SMTP Password**: Senha ou senha de app
+   - **Email de Envio**: Remetente que aparece
+   - **Nome do Remetente**: Nome que aparece
+3. Clique em **"Salvar Email"**
+
+**Para Gmail:**
+- Use **smtp.gmail.com** porta **587**
+- Gere uma **Senha de App** (não use sua senha normal)
+- Ative verificação em 2 etapas primeiro
+
+**Uso:**
+Emails são usados para:
+- Confirmação de pedido
+- Recuperação de carrinho abandonado`
+        },
+        {
+          title: "Carrinho abandonado",
+          content: `**Configurar recuperação automática:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Carrinho Abandonado**
+2. Configure:
+   - **Habilitar**: Ativa/desativa o envio
+   - **Tempo de espera**: Minutos após abandono para enviar
+   - **Assunto**: Título do email
+   - **Template HTML**: Corpo do email
+
+**Variáveis disponíveis:**
+- \`{{nome}}\` - Nome do cliente
+- \`{{produto}}\` - Nome do produto
+- \`{{link}}\` - Link para retomar compra
+
+**Exemplo de template:**
+\`\`\`html
+<h1>Olá {{nome}}!</h1>
+<p>Você deixou {{produto}} no carrinho.</p>
+<a href="{{link}}">Finalizar compra</a>
+\`\`\`
+
+**Execução:**
+O cron \`gateway-abandoned-cart\` verifica pedidos pendentes periodicamente.`
+        },
+        {
+          title: "Contador de checkout",
+          content: `**Configurar contador de urgência:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Checkout**
+2. Configure:
+   - **Habilitar contador**: Ativa/desativa
+   - **Tempo em minutos**: Duração do contador (1-60)
+   - **Mensagem**: Texto exibido junto ao contador
+3. Clique em **"Salvar Configuração"**
+
+**Como funciona:**
+- Contador inicia quando cliente acessa checkout
+- Baseado em sessionStorage (persiste na sessão)
+- Exibe minutos:segundos regressivos
+- Ao zerar, mostra mensagem de urgência
+
+**Dica:** Tempo entre 5-15 minutos funciona melhor para criar urgência sem ser agressivo.`
+        }
+      ],
+      tips: [
+        "Configure ambos os gateways para máximo alcance",
+        "Use ambiente sandbox/test para desenvolvimento",
+        "Teste emails de carrinho abandonado antes de ativar",
+        "O contador de checkout pode aumentar conversões em 20-30%",
+        "Mantenha credenciais seguras e nunca compartilhe publicamente"
       ]
     }
   ];
