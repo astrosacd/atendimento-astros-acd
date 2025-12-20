@@ -13,6 +13,7 @@ type CreateOrderBody = {
   customerName?: string;
   customerEmail: string;
   customerPhone?: string;
+  customerCpf?: string | null;
   paymentGateway: "stripe" | "mercadopago";
   currency: "BRL" | "USD";
 };
@@ -138,6 +139,7 @@ serve(async (req) => {
           customer_name: body.customerName || "",
           customer_email: body.customerEmail,
           customer_phone: body.customerPhone || null,
+          customer_cpf: body.customerCpf || null,
           subtotal,
           discount_amount: discountAmount,
           total,

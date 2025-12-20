@@ -1444,6 +1444,7 @@ export type Database = {
           coupon_id: string | null
           created_at: string
           currency: string
+          customer_cpf: string | null
           customer_email: string
           customer_name: string
           customer_phone: string | null
@@ -1463,6 +1464,7 @@ export type Database = {
           coupon_id?: string | null
           created_at?: string
           currency?: string
+          customer_cpf?: string | null
           customer_email: string
           customer_name: string
           customer_phone?: string | null
@@ -1482,6 +1484,7 @@ export type Database = {
           coupon_id?: string | null
           created_at?: string
           currency?: string
+          customer_cpf?: string | null
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null

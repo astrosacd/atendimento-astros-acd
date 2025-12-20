@@ -25,7 +25,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get order details
+    // Get order details (including CPF and phone for Mercado Pago)
     const { data: order, error: orderError } = await supabase
       .from("gateway_orders")
       .select(`
@@ -75,6 +75,31 @@ serve(async (req) => {
         );
       }
 
+      // Build payer object with CPF if available
+      const payer: Record<string, any> = {
+        email: order.customer_email,
+        name: order.customer_name,
+      };
+
+      // Add CPF to payer identification if available (improves approval rate)
+      if (order.customer_cpf) {
+        payer.identification = {
+          type: "CPF",
+          number: order.customer_cpf.replace(/\D/g, ""),
+        };
+      }
+
+      // Add phone if available
+      if (order.customer_phone) {
+        const phoneDigits = order.customer_phone.replace(/\D/g, "");
+        if (phoneDigits.length >= 10) {
+          payer.phone = {
+            area_code: phoneDigits.slice(0, 2),
+            number: phoneDigits.slice(2),
+          };
+        }
+      }
+
       // Create Mercado Pago preference
       const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
         method: "POST",
@@ -91,10 +116,7 @@ serve(async (req) => {
               currency_id: order.currency,
             },
           ],
-          payer: {
-            email: order.customer_email,
-            name: order.customer_name,
-          },
+          payer,
           external_reference: orderId,
           back_urls: {
             success: `${origin}/sucesso`,
