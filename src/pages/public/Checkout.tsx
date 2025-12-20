@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft } from 'lucide-react';
@@ -344,30 +343,43 @@ export default function Checkout() {
                   <div className="space-y-3">
                     {orderBumps.map((bump) => {
                       const isSelected = selectedOrderBumps.includes(bump.id);
+                      const toggle = () => {
+                        setSelectedOrderBumps((prev) =>
+                          prev.includes(bump.id)
+                            ? prev.filter((id) => id !== bump.id)
+                            : [...prev, bump.id]
+                        );
+                      };
+
                       return (
-                        <button
+                        <div
                           key={bump.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedOrderBumps((prev) =>
-                              prev.includes(bump.id)
-                                ? prev.filter((id) => id !== bump.id)
-                                : [...prev, bump.id]
-                            );
+                          role="button"
+                          tabIndex={0}
+                          onClick={toggle}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              toggle();
+                            }
                           }}
-                          className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
                             isSelected
-                              ? 'border-primary bg-primary/10'
-                              : 'border-border bg-card hover:border-primary/50'
+                              ? "border-primary bg-primary/10"
+                              : "border-border bg-card hover:border-primary/50"
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <Checkbox
-                              checked={isSelected}
-                              tabIndex={-1}
-                              className="mt-1 pointer-events-none"
+                            <div
                               aria-hidden="true"
-                            />
+                              className={`mt-1 h-4 w-4 rounded-sm border flex items-center justify-center ${
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border bg-background"
+                              }`}
+                            >
+                              {isSelected ? <Check className="h-3 w-3" /> : null}
+                            </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className="font-semibold text-foreground">{bump.title}</span>
@@ -380,7 +392,7 @@ export default function Checkout() {
                               )}
                             </div>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
