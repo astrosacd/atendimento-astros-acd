@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -67,7 +68,7 @@ interface GuideCategory {
   description: string;
   steps: GuideStep[];
   tips: string[];
-  topicKey?: string; // Maps to AI topic for permission filtering
+  permissionKey?: string; // Maps to permission for access control
 }
 
 interface GuideGroup {
@@ -76,36 +77,38 @@ interface GuideGroup {
   icon: LucideIcon;
   color: string;
   categories: string[];
+  permissionKey: string; // Permission required to see this group
 }
 
-// Mapping guide categories to AI topics for permission filtering
-const categoryToTopic: Record<string, string> = {
-  'gmail': 'configuracoes',
-  'evolution': 'configuracoes',
-  'boas-vindas': 'usuarios',
-  'webhooks': 'webhooks',
-  'api': 'api',
-  'mercadopago': 'cobranca',
-  'usuarios': 'usuarios',
-  'permissoes': 'permissoes',
-  'cobranca': 'cobranca',
-  'verificacao-pagamento': 'cobranca',
-  'tags': 'clientes',
-  'clientes-registro': 'clientes',
-  'divulgador': 'divulgador',
-  'status-numeros': 'numeros',
-  'chat': 'configuracoes',
-  'dashboard': 'dashboard',
-  'logs-atividade': 'logs',
-  'restauracao': 'clientes',
-  'notificacoes': 'configuracoes',
-  'backup': 'configuracoes',
-  'troubleshooting': 'configuracoes',
+// Mapping guide categories to permission keys
+const categoryToPermission: Record<string, string> = {
+  'gmail': 'view_guia_comunicacao',
+  'evolution': 'view_guia_comunicacao',
+  'boas-vindas': 'view_guia_comunicacao',
+  'webhooks': 'view_guia_integracoes',
+  'api': 'view_guia_integracoes',
+  'mercadopago': 'view_guia_integracoes',
+  'usuarios': 'view_guia_usuarios',
+  'permissoes': 'view_guia_usuarios',
+  'cobranca': 'view_guia_cobranca',
+  'verificacao-pagamento': 'view_guia_cobranca',
+  'tags': 'view_guia_clientes',
+  'clientes-registro': 'view_guia_clientes',
+  'restauracao': 'view_guia_clientes',
+  'divulgador': 'view_guia_divulgador',
+  'status-numeros': 'view_guia_numeros',
+  'chat': 'view_guia_avancado',
+  'dashboard': 'view_guia_avancado',
+  'logs-atividade': 'view_guia_avancado',
+  'notificacoes': 'view_guia_avancado',
+  'backup': 'view_guia_avancado',
+  'troubleshooting': 'view_guia_avancado',
 };
 
 const AdminGuia = () => {
   const navigate = useNavigate();
-  const { isAdmin, userRole } = useAuth();
+  const { isAdmin } = useAuth();
+  const { hasPermission, canViewGuia } = usePermissions();
   const [activeCategory, setActiveCategory] = useState<string>("gmail");
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -119,36 +122,16 @@ const AdminGuia = () => {
     }
   }, [activeCategory]);
 
-  // Fetch role-based topic permissions
-  const { data: roleConfig } = useQuery({
-    queryKey: ['chat-role-config-guia'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('billing_config')
-        .select('config_key, config_value')
-        .in('config_key', ['chat_role_restriction_enabled', 'chat_role_topics']);
-      
-      if (error) throw error;
-      
-      let enabled = false;
-      let topics: Record<string, string[]> = {};
-      
-      data?.forEach(item => {
-        if (item.config_key === 'chat_role_restriction_enabled') {
-          enabled = item.config_value === 'true';
-        }
-        if (item.config_key === 'chat_role_topics' && item.config_value) {
-          try {
-            topics = JSON.parse(item.config_value);
-          } catch {
-            topics = {};
-          }
-        }
-      });
-      
-      return { enabled, topics };
-    },
-  });
+  // Helper function to check if user can view a category
+  const canViewCategory = (catId: string): boolean => {
+    if (isAdmin) return true;
+    if (!canViewGuia()) return false;
+    
+    const permissionKey = categoryToPermission[catId];
+    if (!permissionKey) return true;
+    
+    return hasPermission(permissionKey);
+  };
 
   const { data: customRoles = [] } = useQuery({
     queryKey: ['custom-roles-guia'],
@@ -182,56 +165,64 @@ const AdminGuia = () => {
       title: "Comunicação",
       icon: MessageSquare,
       color: "text-green-400",
-      categories: ["gmail", "evolution", "boas-vindas"]
+      categories: ["gmail", "evolution", "boas-vindas"],
+      permissionKey: "view_guia_comunicacao"
     },
     {
       id: "integracao",
       title: "Integrações",
       icon: Zap,
       color: "text-purple-400",
-      categories: ["webhooks", "api", "mercadopago"]
+      categories: ["webhooks", "api", "mercadopago"],
+      permissionKey: "view_guia_integracoes"
     },
     {
       id: "usuarios-permissoes",
       title: "Usuários",
       icon: Users,
       color: "text-blue-400",
-      categories: ["usuarios", "permissoes"]
+      categories: ["usuarios", "permissoes"],
+      permissionKey: "view_guia_usuarios"
     },
     {
       id: "financeiro",
       title: "Financeiro",
       icon: DollarSign,
       color: "text-emerald-400",
-      categories: ["cobranca", "verificacao-pagamento"]
+      categories: ["cobranca", "verificacao-pagamento"],
+      permissionKey: "view_guia_cobranca"
     },
     {
       id: "clientes",
       title: "Clientes",
       icon: FileText,
       color: "text-amber-400",
-      categories: ["tags", "clientes-registro"]
+      categories: ["tags", "clientes-registro"],
+      permissionKey: "view_guia_clientes"
     },
     {
       id: "divulgacao",
       title: "Divulgação",
       icon: Megaphone,
       color: "text-orange-400",
-      categories: ["divulgador"]
+      categories: ["divulgador"],
+      permissionKey: "view_guia_divulgador"
     },
     {
       id: "numeros",
       title: "Números",
       icon: Smartphone,
       color: "text-lime-400",
-      categories: ["status-numeros"]
+      categories: ["status-numeros"],
+      permissionKey: "view_guia_numeros"
     },
     {
       id: "sistema",
       title: "Sistema",
       icon: Settings,
       color: "text-slate-400",
-      categories: ["chat", "dashboard", "logs-atividade", "restauracao", "notificacoes", "backup", "troubleshooting"]
+      categories: ["chat", "dashboard", "logs-atividade", "restauracao", "notificacoes", "backup", "troubleshooting"],
+      permissionKey: "view_guia_avancado"
     }
   ];
 
@@ -2213,16 +2204,7 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
             <div className="p-4 space-y-6">
               {guideGroups.map((group) => {
                 // Filter categories based on permissions
-                const visibleCategories = group.categories.filter(catId => {
-                  if (isAdmin) return true;
-                  if (!roleConfig?.enabled) return true;
-                  
-                  const topic = categoryToTopic[catId];
-                  if (!topic) return true;
-                  
-                  const allowedTopics = roleConfig?.topics?.[userRole || ''] || [];
-                  return allowedTopics.includes(topic);
-                });
+                const visibleCategories = group.categories.filter(catId => canViewCategory(catId));
                 
                 if (visibleCategories.length === 0) return null;
                 
@@ -2238,7 +2220,6 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
                       {visibleCategories.map((catId) => {
                         const category = guideCategories.find(c => c.id === catId);
                         if (!category) return null;
-                      if (!category) return null;
                       const isActive = activeCategory === catId;
                       return (
                         <button
@@ -2268,14 +2249,7 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
         {/* Mobile Navigation */}
         <div className="lg:hidden border-b border-border/40 bg-card/30 overflow-x-auto">
           <div className="flex gap-2 p-3">
-            {guideCategories.filter(category => {
-              if (isAdmin) return true;
-              if (!roleConfig?.enabled) return true;
-              const topic = categoryToTopic[category.id];
-              if (!topic) return true;
-              const allowedTopics = roleConfig?.topics?.[userRole || ''] || [];
-              return allowedTopics.includes(topic);
-            }).map((category) => (
+            {guideCategories.filter(category => canViewCategory(category.id)).map((category) => (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}

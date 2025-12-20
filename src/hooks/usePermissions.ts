@@ -69,6 +69,17 @@ export function usePermissions() {
   // Consulta de Números permissions
   const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
 
+  // Guia permissions
+  const canViewGuia = () => hasPermission('view_guia');
+  const canViewGuiaComunicacao = () => hasPermission('view_guia_comunicacao');
+  const canViewGuiaIntegracoes = () => hasPermission('view_guia_integracoes');
+  const canViewGuiaUsuarios = () => hasPermission('view_guia_usuarios');
+  const canViewGuiaCobranca = () => hasPermission('view_guia_cobranca');
+  const canViewGuiaClientes = () => hasPermission('view_guia_clientes');
+  const canViewGuiaDivulgador = () => hasPermission('view_guia_divulgador');
+  const canViewGuiaNumeros = () => hasPermission('view_guia_numeros');
+  const canViewGuiaAvancado = () => hasPermission('view_guia_avancado');
+
   return {
     permissions,
     hasPermission,
@@ -103,5 +114,15 @@ export function usePermissions() {
     canManageNumerosWebhooks,
     canManageNumerosApi,
     canViewConsultaNumeros,
+    // Guia
+    canViewGuia,
+    canViewGuiaComunicacao,
+    canViewGuiaIntegracoes,
+    canViewGuiaUsuarios,
+    canViewGuiaCobranca,
+    canViewGuiaClientes,
+    canViewGuiaDivulgador,
+    canViewGuiaNumeros,
+    canViewGuiaAvancado,
   };
 }
