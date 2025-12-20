@@ -666,14 +666,12 @@ export default function ConsultaNumeros() {
         const existingObs = editValues[obsField.name] || '';
         const timestamp = new Date().toLocaleString('pt-BR');
         
-        if (existingObs.toLowerCase().includes('numero externo')) {
-          // Keep "Numero Externo" and add DESBANIMENTO OK + date
-          finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
-        } else if (tipoValue && tipoValue.toLowerCase().includes('numero externo')) {
-          // Type field has "Numero Externo"
+        if (existingObs.toLowerCase().includes('numero externo') || 
+            (tipoValue && tipoValue.toLowerCase().includes('numero externo'))) {
+          // Contains "Numero Externo" - format as: Numero Externo - DESBANIMENTO OK - data/hora
           finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
         }
-        // If no "Numero Externo" found, keep existing observation as is
+        // If no "Numero Externo" found, keep existing observation as is (don't modify)
       }
     }
 
