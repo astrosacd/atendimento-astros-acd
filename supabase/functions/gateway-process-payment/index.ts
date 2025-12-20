@@ -144,8 +144,11 @@ serve(async (req) => {
         .update({ payment_id: mpData.id })
         .eq("id", orderId);
 
-      redirectUrl = mpData.init_point;
-      console.log(`Mercado Pago payment created for order ${orderId}, redirect: ${redirectUrl}`);
+      const isTestToken = typeof mpAccessToken === "string" && mpAccessToken.startsWith("TEST-");
+      redirectUrl = (isTestToken && mpData.sandbox_init_point) ? mpData.sandbox_init_point : mpData.init_point;
+      console.log(
+        `Mercado Pago payment created for order ${orderId}, redirect: ${redirectUrl} (sandbox=${isTestToken})`,
+      );
 
     } else if (gateway === "stripe") {
       const stripeSecretKey =
