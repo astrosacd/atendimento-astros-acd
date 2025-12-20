@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { formatCPF } from '@/utils/formatters';
 
 interface Product {
   id: string;
@@ -62,6 +63,7 @@ export default function Checkout() {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerCpf, setCustomerCpf] = useState('');
   const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'mercadopago'>('mercadopago');
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
@@ -220,6 +222,15 @@ export default function Checkout() {
       toast.error('Telefone inválido. Use o formato (00) 00000-0000');
       return;
     }
+
+    // CPF validation for Mercado Pago
+    if (paymentGateway === 'mercadopago') {
+      const cpfDigits = customerCpf.replace(/\D/g, '');
+      if (cpfDigits.length !== 11) {
+        toast.error('CPF inválido. Digite os 11 dígitos');
+        return;
+      }
+    }
     
     setIsProcessing(true);
     trackEvent('checkout_submit', {
@@ -240,6 +251,7 @@ export default function Checkout() {
           customerName,
           customerEmail,
           customerPhone: customerPhone.replace(/\D/g, '') || null,
+          customerCpf: paymentGateway === 'mercadopago' ? customerCpf.replace(/\D/g, '') : null,
           paymentGateway,
           currency,
         },
@@ -401,6 +413,26 @@ export default function Checkout() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">Necessário para aprovação do pagamento</p>
                   </div>
+                  {/* CPF Field - Only for Mercado Pago */}
+                  {paymentGateway === 'mercadopago' && (
+                    <div>
+                      <Label htmlFor="cpf" className="text-sm font-medium">
+                        CPF <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="cpf"
+                        type="text"
+                        inputMode="numeric"
+                        value={customerCpf}
+                        onChange={(e) => setCustomerCpf(formatCPF(e.target.value))}
+                        placeholder="000.000.000-00"
+                        required
+                        className="mt-1.5 h-12"
+                        maxLength={14}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Obrigatório para pagamentos via Mercado Pago</p>
+                    </div>
+                  )}
                 </div>
               </section>
 
