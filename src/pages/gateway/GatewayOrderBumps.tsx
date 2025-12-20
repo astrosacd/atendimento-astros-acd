@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGatewayOrderBumps, GatewayOrderBump } from '@/hooks/useGateway';
 import { Plus, Pencil, Trash2, Image } from 'lucide-react';
 import { toast } from 'sonner';
@@ -130,11 +129,11 @@ export default function GatewayOrderBumps() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Order Bump</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh]">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingOrderBump ? 'Editar Order Bump' : 'Novo Order Bump'}</DialogTitle>
             </DialogHeader>
-            <ScrollArea className="max-h-[70vh] pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">Nome Interno *</Label>
@@ -223,7 +222,7 @@ export default function GatewayOrderBumps() {
                   </Button>
                 </div>
               </form>
-            </ScrollArea>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

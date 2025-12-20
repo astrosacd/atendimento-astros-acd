@@ -13,7 +13,7 @@ import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProd
 import { Plus, Pencil, Trash2, Copy, Link2, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 export default function GatewayProducts() {
   const { products, isLoading, createProduct, updateProduct, deleteProduct, isCreating, isUpdating, isDeleting } = useGatewayProducts();
@@ -164,11 +164,11 @@ export default function GatewayProducts() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Novo Produto</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
             </DialogHeader>
-            <ScrollArea className="max-h-[70vh] pr-4">
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
@@ -286,7 +286,7 @@ export default function GatewayProducts() {
                   </Button>
                 </div>
               </form>
-            </ScrollArea>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

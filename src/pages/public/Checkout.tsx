@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Package, Gift, Ticket, CreditCard, Check } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -38,6 +36,8 @@ interface Coupon {
   discount_type: string;
   discount_value: number;
   currency: string;
+  usage_count: number;
+  total_discount_given: number;
 }
 
 export default function Checkout() {
@@ -54,7 +54,6 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch product by public_slug
   const { data: product, isLoading: productLoading, error: productError } = useQuery({
     queryKey: ['public-product', slug],
     queryFn: async () => {
@@ -70,7 +69,6 @@ export default function Checkout() {
     enabled: !!slug,
   });
 
-  // Fetch order bumps for this product
   const { data: orderBumps = [] } = useQuery({
     queryKey: ['product-order-bumps', product?.id],
     queryFn: async () => {
@@ -108,7 +106,6 @@ export default function Checkout() {
     return currency === 'USD' ? priceUsd : priceBrl;
   };
 
-  // Calculate totals
   const subtotal = product ? getPrice(product.price_brl, product.price_usd) : 0;
   
   const orderBumpsTotal = orderBumps
@@ -138,13 +135,11 @@ export default function Checkout() {
       return;
     }
     
-    // Check if coupon is valid for current currency
     if (data.currency !== currency && data.discount_type === 'fixed') {
       toast.error(`Este cupom é válido apenas para ${data.currency}`);
       return;
     }
     
-    // Check dates
     const now = new Date();
     if (data.starts_at && new Date(data.starts_at) > now) {
       toast.error('Este cupom ainda não está ativo');
@@ -155,7 +150,6 @@ export default function Checkout() {
       return;
     }
     
-    // Check usage limit
     if (data.max_uses_global && data.usage_count >= data.max_uses_global) {
       toast.error('Este cupom atingiu o limite de uso');
       return;
@@ -176,7 +170,6 @@ export default function Checkout() {
     setIsProcessing(true);
     
     try {
-      // Create order
       const { data: order, error: orderError } = await supabase
         .from('gateway_orders')
         .insert([{
@@ -198,7 +191,6 @@ export default function Checkout() {
       
       if (orderError) throw orderError;
 
-      // Record coupon usage if applied
       if (appliedCoupon && order) {
         await supabase.from('gateway_coupon_usages').insert([{
           coupon_id: appliedCoupon.id,
@@ -206,17 +198,15 @@ export default function Checkout() {
           discount_amount: discountAmount,
         }]);
         
-        // Increment coupon usage
         await supabase
           .from('gateway_coupons')
           .update({ 
-            usage_count: (appliedCoupon as any).usage_count + 1,
-            total_discount_given: (appliedCoupon as any).total_discount_given + discountAmount,
+            usage_count: appliedCoupon.usage_count + 1,
+            total_discount_given: appliedCoupon.total_discount_given + discountAmount,
           })
           .eq('id', appliedCoupon.id);
       }
 
-      // Call edge function to process payment
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('gateway-process-payment', {
         body: {
           orderId: order.id,
@@ -241,7 +231,7 @@ export default function Checkout() {
 
   if (productLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -249,75 +239,92 @@ export default function Checkout() {
 
   if (productError || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center">
-        <div className="text-center">
-          <Package className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Produto não encontrado</h1>
-          <p className="text-muted-foreground mb-6">O produto que você está procurando não existe ou foi removido.</p>
-          <Button onClick={() => navigate('/catalogo')}>Ver catálogo</Button>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+            <Package className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-3">Produto não encontrado</h1>
+          <p className="text-muted-foreground mb-8">O produto que você está procurando não existe ou foi removido.</p>
+          <Button onClick={() => navigate('/catalogo')} size="lg">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Ver catálogo
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-8 px-4">
-      <div className="container mx-auto max-w-4xl">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="h-6 w-6 text-primary" />
+              <span className="font-semibold text-lg">Checkout Seguro</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Shield className="h-4 w-4 text-green-500" />
+              <span className="hidden sm:inline">Compra 100% segura</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 lg:py-12">
         <form onSubmit={handleSubmit}>
-          <div className="grid md:grid-cols-5 gap-6">
-            {/* Main Form */}
-            <div className="md:col-span-3 space-y-6">
-              {/* Product Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    Produto
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-24 h-24 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center">
-                        <Package className="h-8 w-8 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="font-semibold text-foreground">{product.name}</h3>
-                      {product.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
-                      )}
-                      <p className="text-lg font-bold text-primary mt-2">
-                        {formatPrice(product.price_brl, product.price_usd)}
-                      </p>
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
+            {/* Left Column - Form */}
+            <div className="lg:col-span-7 space-y-8">
+              {/* Product Card */}
+              <section className="rounded-2xl border border-border/50 bg-card p-6">
+                <div className="flex gap-5">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-28 h-28 object-cover rounded-xl flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 bg-muted rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Package className="h-10 w-10 text-muted-foreground/30" />
                     </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold text-foreground mb-1">{product.name}</h2>
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{product.description}</p>
+                    )}
+                    <p className="text-2xl font-bold text-primary">
+                      {formatPrice(product.price_brl, product.price_usd)}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
               {/* Customer Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Seus Dados</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              <section className="rounded-2xl border border-border/50 bg-card p-6">
+                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
+                  Seus dados
+                </h3>
+                <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Nome</Label>
+                    <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
                     <Input
                       id="name"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Seu nome completo"
+                      placeholder="Digite seu nome"
+                      className="mt-1.5 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -325,38 +332,33 @@ export default function Checkout() {
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
+                      className="mt-1.5 h-12"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone">Telefone</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">Telefone (opcional)</Label>
                     <Input
                       id="phone"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="(00) 00000-0000"
+                      className="mt-1.5 h-12"
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
               {/* Order Bumps */}
               {orderBumps.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Gift className="h-5 w-5 text-pink-500" />
-                      Ofertas Especiais
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                <section className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🎁</span>
+                    Ofertas especiais para você
+                  </h3>
+                  <div className="space-y-3">
                     {orderBumps.map((bump) => (
                       <div
                         key={bump.id}
-                        className={`border-2 rounded-lg p-4 transition-colors cursor-pointer ${
-                          selectedOrderBumps.includes(bump.id)
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
                         onClick={() => {
                           setSelectedOrderBumps(prev =>
                             prev.includes(bump.id)
@@ -364,6 +366,11 @@ export default function Checkout() {
                               : [...prev, bump.id]
                           );
                         }}
+                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                          selectedOrderBumps.includes(bump.id)
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border bg-card hover:border-primary/50'
+                        }`}
                       >
                         <div className="flex items-start gap-3">
                           <Checkbox
@@ -371,179 +378,207 @@ export default function Checkout() {
                             className="mt-1"
                           />
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-foreground">{bump.title}</span>
-                              <span className="text-sm font-bold text-primary">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="font-semibold text-foreground">{bump.title}</span>
+                              <span className="font-bold text-primary whitespace-nowrap">
                                 +{formatPrice(bump.price_brl, bump.price_usd)}
                               </span>
                             </div>
                             {bump.description && (
-                              <p className="text-sm text-muted-foreground mt-1">{bump.description}</p>
+                              <p className="text-sm text-muted-foreground">{bump.description}</p>
                             )}
                           </div>
                         </div>
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </section>
               )}
 
               {/* Payment Method */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-green-500" />
-                    Forma de Pagamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={paymentGateway}
-                    onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
+              <section className="rounded-2xl border border-border/50 bg-card p-6">
+                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+                  Forma de pagamento
+                </h3>
+                <RadioGroup
+                  value={paymentGateway}
+                  onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
+                  className="space-y-3"
+                >
+                  <label 
+                    htmlFor="mercadopago"
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      paymentGateway === 'mercadopago' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                    }`}
                   >
-                    <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <RadioGroupItem value="mercadopago" id="mercadopago" />
-                      <Label htmlFor="mercadopago" className="flex-1 cursor-pointer">
-                        <span className="font-medium">Mercado Pago</span>
-                        <span className="block text-sm text-muted-foreground">Pix, Cartão, Boleto</span>
-                      </Label>
+                    <RadioGroupItem value="mercadopago" id="mercadopago" />
+                    <div className="flex-1">
+                      <p className="font-semibold">Mercado Pago</p>
+                      <p className="text-sm text-muted-foreground">Pix, Cartão de crédito, Boleto</p>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 border rounded-lg mt-2">
-                      <RadioGroupItem value="stripe" id="stripe" />
-                      <Label htmlFor="stripe" className="flex-1 cursor-pointer">
-                        <span className="font-medium">Stripe</span>
-                        <span className="block text-sm text-muted-foreground">Cartão Internacional</span>
-                      </Label>
+                    <CreditCard className="h-6 w-6 text-muted-foreground" />
+                  </label>
+                  <label 
+                    htmlFor="stripe"
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      paymentGateway === 'stripe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <RadioGroupItem value="stripe" id="stripe" />
+                    <div className="flex-1">
+                      <p className="font-semibold">Stripe</p>
+                      <p className="text-sm text-muted-foreground">Cartão internacional</p>
                     </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
+                    <CreditCard className="h-6 w-6 text-muted-foreground" />
+                  </label>
+                </RadioGroup>
+              </section>
             </div>
 
-            {/* Order Summary */}
-            <div className="md:col-span-2">
-              <Card className="sticky top-4">
-                <CardHeader>
-                  <CardTitle>Resumo do Pedido</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Currency Selector */}
-                  <div className="flex gap-2">
-                    <Button
+            {/* Right Column - Summary */}
+            <div className="lg:col-span-5">
+              <div className="lg:sticky lg:top-24">
+                <div className="rounded-2xl border border-border/50 bg-card p-6">
+                  <h3 className="text-lg font-semibold mb-5">Resumo do pedido</h3>
+                  
+                  {/* Currency Toggle */}
+                  <div className="flex gap-2 mb-5">
+                    <button
                       type="button"
-                      variant={currency === 'BRL' ? 'default' : 'outline'}
-                      size="sm"
                       onClick={() => setCurrency('BRL')}
-                      className="flex-1"
+                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                        currency === 'BRL' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
                     >
                       R$ BRL
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      variant={currency === 'USD' ? 'default' : 'outline'}
-                      size="sm"
                       onClick={() => setCurrency('USD')}
-                      className="flex-1"
+                      className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                        currency === 'USD' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
                     >
                       $ USD
-                    </Button>
+                    </button>
                   </div>
 
-                  <Separator />
-
                   {/* Line Items */}
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
+                  <div className="space-y-3 py-4 border-y border-border/50">
+                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{product.name}</span>
-                      <span>{formatPrice(product.price_brl, product.price_usd)}</span>
+                      <span className="font-medium">{formatPrice(product.price_brl, product.price_usd)}</span>
                     </div>
                     {orderBumps
                       .filter(ob => selectedOrderBumps.includes(ob.id))
                       .map(ob => (
-                        <div key={ob.id} className="flex justify-between text-pink-500">
-                          <span>{ob.name}</span>
-                          <span>+{formatPrice(ob.price_brl, ob.price_usd)}</span>
+                        <div key={ob.id} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{ob.name}</span>
+                          <span className="font-medium text-primary">+{formatPrice(ob.price_brl, ob.price_usd)}</span>
                         </div>
                       ))}
                   </div>
 
                   {/* Coupon */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Cupom de desconto"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      disabled={!!appliedCoupon}
-                    />
-                    {appliedCoupon ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          setAppliedCoupon(null);
-                          setCouponCode('');
-                        }}
-                      >
-                        ×
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={applyCoupon}
-                      >
-                        <Ticket className="h-4 w-4" />
-                      </Button>
+                  <div className="py-4 border-b border-border/50">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Cupom de desconto"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          disabled={!!appliedCoupon}
+                          className="pl-10 h-11"
+                        />
+                      </div>
+                      {appliedCoupon ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-11 w-11"
+                          onClick={() => {
+                            setAppliedCoupon(null);
+                            setCouponCode('');
+                          }}
+                        >
+                          ×
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={applyCoupon}
+                          className="h-11"
+                        >
+                          Aplicar
+                        </Button>
+                      )}
+                    </div>
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-sm mt-3 text-green-500">
+                        <span className="flex items-center gap-1.5">
+                          <Check className="h-4 w-4" />
+                          Desconto ({appliedCoupon.code})
+                        </span>
+                        <span className="font-medium">
+                          -{currency === 'BRL' 
+                            ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(discountAmount)
+                            : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(discountAmount)}
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  {appliedCoupon && (
-                    <div className="flex justify-between text-sm text-green-500">
-                      <span className="flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        Desconto ({appliedCoupon.code})
-                      </span>
-                      <span>
-                        -{currency === 'BRL' 
-                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(discountAmount)
-                          : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(discountAmount)}
-                      </span>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span className="text-primary">
+                  {/* Total */}
+                  <div className="flex justify-between items-center py-4">
+                    <span className="text-lg font-semibold">Total</span>
+                    <span className="text-2xl font-bold text-primary">
                       {currency === 'BRL'
                         ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)
                         : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
                     </span>
                   </div>
 
+                  {/* Submit Button */}
                   <Button
                     type="submit"
-                    className="w-full"
                     size="lg"
+                    className="w-full h-14 text-base font-semibold"
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                         Processando...
                       </>
                     ) : (
-                      'Finalizar Compra'
+                      <>
+                        <Shield className="h-5 w-5 mr-2" />
+                        Finalizar Compra
+                      </>
                     )}
                   </Button>
-                </CardContent>
-              </Card>
+
+                  {/* Trust Badges */}
+                  <div className="mt-5 pt-5 border-t border-border/50">
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                      <Shield className="h-4 w-4 text-green-500" />
+                      <span>Pagamento 100% seguro e criptografado</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   );
 }
