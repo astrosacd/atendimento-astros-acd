@@ -499,6 +499,7 @@ export function useGatewayOrders() {
   return {
     orders: query.data || [],
     isLoading: query.isLoading,
+    isRefetching: query.isRefetching,
     updateOrder: updateMutation.mutate,
     isUpdating: updateMutation.isPending,
     refetch: query.refetch,
