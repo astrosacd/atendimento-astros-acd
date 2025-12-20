@@ -80,6 +80,17 @@ export function usePermissions() {
   const canViewGuiaNumeros = () => hasPermission('view_guia_numeros');
   const canViewGuiaAvancado = () => hasPermission('view_guia_avancado');
 
+  // Gateway permissions
+  const canViewGateway = () => hasPermission('view_gateway');
+  const canManageGatewayProducts = () => hasPermission('manage_gateway_products');
+  const canManageGatewayCategories = () => hasPermission('manage_gateway_categories');
+  const canManageGatewayOrderBumps = () => hasPermission('manage_gateway_order_bumps');
+  const canManageGatewayCoupons = () => hasPermission('manage_gateway_coupons');
+  const canViewGatewayOrders = () => hasPermission('view_gateway_orders');
+  const canManageGatewayOrders = () => hasPermission('manage_gateway_orders');
+  const canManageGatewaySettings = () => hasPermission('manage_gateway_settings');
+  const canViewGatewayReports = () => hasPermission('view_gateway_reports');
+
   return {
     permissions,
     hasPermission,
@@ -124,5 +135,15 @@ export function usePermissions() {
     canViewGuiaDivulgador,
     canViewGuiaNumeros,
     canViewGuiaAvancado,
+    // Gateway
+    canViewGateway,
+    canManageGatewayProducts,
+    canManageGatewayCategories,
+    canManageGatewayOrderBumps,
+    canManageGatewayCoupons,
+    canViewGatewayOrders,
+    canManageGatewayOrders,
+    canManageGatewaySettings,
+    canViewGatewayReports,
   };
 }

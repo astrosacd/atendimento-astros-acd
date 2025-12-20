@@ -35,6 +35,10 @@ import ConsultaNumerosConfig from "./pages/ConsultaNumerosConfig";
 import ConsultaNumerosApiKeys from "./pages/ConsultaNumerosApiKeys";
 import ConsultaNumerosWebhooks from "./pages/ConsultaNumerosWebhooks";
 import ConsultaNumerosGuia from "./pages/ConsultaNumerosGuia";
+import AdminGateway from "./pages/AdminGateway";
+import Catalogo from "./pages/public/Catalogo";
+import Checkout from "./pages/public/Checkout";
+import Sucesso from "./pages/public/Sucesso";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +92,14 @@ function AppRoutes() {
       <Route path="/admin/consulta-numeros/api" element={<ProtectedRoute permission="api_consulta_numeros"><ConsultaNumerosApiKeys /></ProtectedRoute>} />
       <Route path="/admin/consulta-numeros/webhooks" element={<ProtectedRoute permission="manage_webhooks_consulta_numeros"><ConsultaNumerosWebhooks /></ProtectedRoute>} />
       <Route path="/admin/consulta-numeros/guia" element={<ProtectedRoute permission="view_consulta_numeros"><ConsultaNumerosGuia /></ProtectedRoute>} />
+      
+      {/* Gateway Routes */}
+      <Route path="/admin/gateway/*" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
+      
+      {/* Public Gateway Routes - NO AUTH */}
+      <Route path="/catalogo" element={<Catalogo />} />
+      <Route path="/p/:slug" element={<Checkout />} />
+      <Route path="/sucesso" element={<Sucesso />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
