@@ -608,11 +608,45 @@ export default function ConsultaNumeros() {
     const finalValues = { ...editValues };
     const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
     
+    // Get status field value (excluido_da_base or status)
+    const statusFieldName = 'excluido_da_base';
+    const newStatus = editValues[statusFieldName] || editValues['Excluido_Da_Base'] || editValues['status'] || editValues['Status'] || '';
+    
+    // Get original status from selectedRow
+    const getOriginalStatus = () => {
+      const statusVal = selectedRow[statusFieldName] || selectedRow['Excluido_Da_Base'] || selectedRow['status'] || selectedRow['Status'];
+      if (statusVal && typeof statusVal === 'object' && 'value' in statusVal) {
+        return statusVal.value || '';
+      }
+      return statusVal?.toString() || '';
+    };
+    const originalStatus = getOriginalStatus();
+    
+    // Check if status was changed
+    const statusChanged = newStatus && originalStatus !== newStatus;
+    
+    // Get "tipo" field value (ex: "Numero Externo")
+    const tipoFieldName = visibleFields.find(f => 
+      f.name.toLowerCase().includes('tipo') || 
+      f.name.toLowerCase().includes('escrito') ||
+      f.name.toLowerCase().includes('escrito_da_base')
+    )?.name || 'escrito_da_base';
+    
+    const getTipoValue = () => {
+      const tipoVal = selectedRow[tipoFieldName] || selectedRow['escrito_da_base'] || selectedRow['Escrito_Da_Base'] || selectedRow['tipo'] || selectedRow['Tipo'];
+      if (tipoVal && typeof tipoVal === 'object' && 'value' in tipoVal) {
+        return tipoVal.value || '';
+      }
+      return tipoVal?.toString() || '';
+    };
+    const tipoValue = getTipoValue();
+    
     if (obsField) {
       const hasNewObs = newObservacao.trim();
       const hasTags = selectedObsTags.length > 0;
       
       if (hasNewObs || hasTags) {
+        // User added observation manually
         const timestamp = new Date().toLocaleString('pt-BR');
         const separator = editValues[obsField.name] ? '\n---\n' : '';
         
@@ -626,6 +660,21 @@ export default function ConsultaNumeros() {
         }
         
         finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
+      } else if (statusChanged) {
+        // User did NOT add observation but changed the status
+        // Auto-generate observation with: Tipo - Status - Data/Hora
+        const timestamp = new Date().toLocaleString('pt-BR');
+        const separator = editValues[obsField.name] ? '\n---\n' : '';
+        
+        // Build auto-observation: "Tipo - Status Atualizado - Data/Hora"
+        const autoParts: string[] = [];
+        if (tipoValue) {
+          autoParts.push(tipoValue);
+        }
+        autoParts.push(newStatus);
+        autoParts.push(timestamp);
+        
+        finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}${autoParts.join(' - ')}`;
       }
     }
 
