@@ -56,3 +56,12 @@ verify_jwt = false
 
 [functions.send-desbanimento-email]
 verify_jwt = true
+
+[functions.gateway-process-payment]
+verify_jwt = false
+
+[functions.gateway-payment-webhook]
+verify_jwt = false
+
+[functions.gateway-abandoned-cart]
+verify_jwt = false
