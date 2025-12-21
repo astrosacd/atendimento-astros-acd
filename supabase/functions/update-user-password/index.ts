@@ -23,8 +23,23 @@ serve(async (req) => {
       throw new Error("Token e nova senha são obrigatórios");
     }
 
-    if (newPassword.length < 6) {
-      throw new Error("A senha deve ter pelo menos 6 caracteres");
+    // Strong password validation
+    const passwordErrors: string[] = [];
+    if (newPassword.length < 8) {
+      passwordErrors.push("mínimo 8 caracteres");
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      passwordErrors.push("uma letra minúscula");
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      passwordErrors.push("uma letra maiúscula");
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      passwordErrors.push("um número");
+    }
+    
+    if (passwordErrors.length > 0) {
+      throw new Error(`A senha deve conter: ${passwordErrors.join(", ")}`);
     }
 
     console.log(`Validating password reset token`);

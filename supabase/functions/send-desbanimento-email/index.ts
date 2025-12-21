@@ -16,6 +16,15 @@ interface EmailRequest {
   imageType: string;
 }
 
+// SECURITY: Sanitize PII from log messages
+const sanitizePII = (text: string): string => {
+  return text
+    .replace(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[EMAIL]')
+    .replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, '[CPF]')
+    .replace(/\b\d{11}\b/g, '[CPF]')
+    .replace(/\b\d{10,11}\b/g, '[PHONE]');
+};
+
 serve(async (req) => {
   const startTime = Date.now();
   console.log("[send-desbanimento-email] ========== INICIANDO PROCESSAMENTO ==========");
@@ -84,9 +93,9 @@ serve(async (req) => {
     const { email, nome, numero, imageBase64, imageName, imageType } = body;
     
     console.log("[send-desbanimento-email] Dados recebidos:");
-    console.log("[send-desbanimento-email]   - Email destino:", email);
-    console.log("[send-desbanimento-email]   - Nome:", nome);
-    console.log("[send-desbanimento-email]   - Número:", numero);
+    console.log("[send-desbanimento-email]   - Email destino:", sanitizePII(email || ''));
+    console.log("[send-desbanimento-email]   - Nome: [REDACTED]");
+    console.log("[send-desbanimento-email]   - Número:", sanitizePII(numero || ''));
     console.log("[send-desbanimento-email]   - Nome do arquivo:", imageName);
     console.log("[send-desbanimento-email]   - Tipo da imagem:", imageType);
     console.log("[send-desbanimento-email]   - Tamanho do base64:", imageBase64 ? `${(imageBase64.length / 1024).toFixed(2)} KB` : "N/A");
@@ -183,9 +192,9 @@ serve(async (req) => {
     const totalDuration = Date.now() - startTime;
     console.log("[send-desbanimento-email] ========== PROCESSAMENTO CONCLUÍDO ==========");
     console.log("[send-desbanimento-email] Resumo:");
-    console.log("[send-desbanimento-email]   - Destinatário:", email);
-    console.log("[send-desbanimento-email]   - Nome:", nome);
-    console.log("[send-desbanimento-email]   - Número:", numero);
+    console.log("[send-desbanimento-email]   - Destinatário:", sanitizePII(email));
+    console.log("[send-desbanimento-email]   - Nome: [REDACTED]");
+    console.log("[send-desbanimento-email]   - Número:", sanitizePII(numero));
     console.log("[send-desbanimento-email]   - Tamanho do anexo:", `${(imageBytes.length / 1024).toFixed(2)} KB`);
     console.log("[send-desbanimento-email]   - Tempo total:", `${totalDuration}ms`);
     console.log("[send-desbanimento-email]   - Status: SUCESSO");

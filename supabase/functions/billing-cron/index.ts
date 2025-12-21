@@ -227,11 +227,10 @@ const generatePaymentLink = async (
       expiration_date_to: formatDateBR(expiresAt),
     };
 
-    console.log(`🔗 LINK DE PAGAMENTO - ${cliente.nome}`);
+    console.log(`🔗 LINK DE PAGAMENTO - Cliente ID: ${cliente.id}`);
     console.log(`   Valor original: R$ ${cliente.valor.toFixed(2)}`);
     console.log(`   Valor com taxa (${(taxaCartao * 100).toFixed(2)}%): R$ ${valorComTaxa.toFixed(2)}`);
     console.log(`   Endpoint: POST https://api.mercadopago.com/checkout/preferences`);
-    console.log(`   Body:`, JSON.stringify(preferenceBody, null, 2));
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -335,13 +334,11 @@ const generateBoleto = async (
       },
     };
     
-    console.log(`🧾 BOLETO - ${cliente.nome}`);
+    console.log(`🧾 BOLETO - Cliente ID: ${cliente.id}`);
     console.log(`   Valor original: R$ ${cliente.valor.toFixed(2)}`);
     console.log(`   Valor com taxa: R$ ${valorBoleto.toFixed(2)}`);
-    console.log(`   CPF/CNPJ: ${cleanCpf} (${isCNPJ ? 'CNPJ' : 'CPF'})`);
-    console.log(`   Email: ${cliente.email}`);
+    console.log(`   Tipo documento: ${isCNPJ ? 'CNPJ' : 'CPF'}`);
     console.log(`   Endpoint: POST https://api.mercadopago.com/v1/payments`);
-    console.log(`   Body:`, JSON.stringify(paymentBody, null, 2));
     
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
@@ -507,7 +504,7 @@ const sendEmail = async (
     });
 
     await client.close();
-    console.log(`Email sent successfully to ${to}`);
+    console.log(`Email sent successfully to [EMAIL]`);
     return { success: true };
   } catch (error: any) {
     console.error('Email send error:', error);
