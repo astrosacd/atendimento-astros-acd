@@ -56,12 +56,17 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/auth" element={user && isApproved ? <Navigate to="/" replace /> : <Auth />} />
+      {/* Auth - redireciona para catalogo se não logado ou para dashboard se logado */}
+      <Route path="/auth" element={user && isApproved ? <Navigate to="/dashboard" replace /> : <Auth />} />
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       
-      {/* Dashboard - requires view_dashboard permission */}
-      <Route path="/" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
+      {/* Rota raiz - redireciona para catálogo (público) se não logado, ou dashboard se logado */}
+      <Route path="/" element={
+        user && isApproved 
+          ? <ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>
+          : <Navigate to="/catalogo" replace />
+      } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
       
       {/* Client Management - permission-based */}
