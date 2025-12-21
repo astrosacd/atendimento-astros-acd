@@ -42,8 +42,6 @@ export default function GatewaySettings() {
     email_subject: 'Pagamento Confirmado - {produto}',
     email_template: 'Olá {nome},\n\nSeu pagamento foi confirmado com sucesso!\n\nProduto: {produto}\nValor: R$ {valor}\n\nObrigado pela compra!\n\nAtenciosamente,\nEquipe de Vendas'
   });
-  const [siteUrl, setSiteUrl] = useState('');
-
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago(settings.mercadopago);
@@ -52,7 +50,6 @@ export default function GatewaySettings() {
     if (settings.checkout) setCheckout(settings.checkout);
     if (settings.success_page) setSuccessPage(settings.success_page);
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
-    if (settings.site_url) setSiteUrl(settings.site_url.url || '');
   }, [settings]);
 
   const handleSaveStripe = () => {
@@ -83,26 +80,15 @@ export default function GatewaySettings() {
     updateSetting({ key: 'success_page', value: successPage });
   };
 
-  const handleSaveSiteUrl = () => {
-    // Normaliza para URL absoluta (evita abrir como caminho relativo no preview)
-    const raw = siteUrl.trim();
-    const withProtocol = raw && !/^https?:\/\//i.test(raw) ? `https://${raw}` : raw;
-    const cleanUrl = withProtocol.replace(/\/+$/, '');
-
-    updateSetting({ key: 'site_url', value: { url: cleanUrl } });
-  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
 
-  const rawSiteUrl = siteUrl.trim();
-  const normalizedSiteUrl = rawSiteUrl && !/^https?:\/\//i.test(rawSiteUrl) ? `https://${rawSiteUrl}` : rawSiteUrl;
-  const baseUrl = (normalizedSiteUrl.replace(/\/+$/, '')) || window.location.origin;
   const customSlug = settings.catalog_slug?.slug || '';
   const catalogUrl = customSlug 
-    ? `${baseUrl}/loja/${customSlug}` 
-    : `${baseUrl}/catalogo`;
+    ? `/loja/${customSlug}` 
+    : `/catalogo`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(catalogUrl);
@@ -117,35 +103,6 @@ export default function GatewaySettings() {
 
   return (
     <div className="space-y-6">
-      {/* URL Base do Site */}
-      <Card className="border-border/50 bg-gradient-to-r from-green-500/5 to-transparent">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <ExternalLink className="h-4 w-4 text-green-500" />
-            URL Base do Site
-          </CardTitle>
-          <CardDescription>Configure a URL do seu site publicado para gerar links corretos</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="site-url">URL do Site Publicado</Label>
-            <Input 
-              id="site-url"
-              value={siteUrl}
-              onChange={(e) => setSiteUrl(e.target.value)}
-              placeholder="https://seusite.com"
-            />
-            <p className="text-xs text-muted-foreground">
-              Deixe vazio para usar a URL atual. Configure para que os links copiados apontem para seu domínio publicado.
-            </p>
-          </div>
-          <Button onClick={handleSaveSiteUrl} disabled={isUpdating}>
-            <Save className="h-4 w-4 mr-2" /> Salvar URL
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Link do Catálogo */}
       <Card className="border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -159,9 +116,9 @@ export default function GatewaySettings() {
             <Label htmlFor="custom-slug">Slug Personalizado (opcional)</Label>
             <div className="flex gap-2">
               <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 rounded-l-md border border-r-0">
-                {baseUrl}/loja/
+                /loja/
               </div>
-              <Input 
+              <Input
                 id="custom-slug"
                 value={customSlug}
                 onChange={(e) => handleSlugChange(e.target.value)}
@@ -173,15 +130,11 @@ export default function GatewaySettings() {
               Deixe vazio para usar o link padrão /catalogo
             </p>
           </div>
-          
+
           <div className="pt-2 border-t">
             <Label className="text-xs text-muted-foreground mb-2 block">Link Ativo:</Label>
             <div className="flex gap-2">
-              <Input 
-                value={catalogUrl} 
-                readOnly 
-                className="font-mono text-sm bg-muted/50"
-              />
+              <Input value={catalogUrl} readOnly className="font-mono text-sm bg-muted/50" />
               <Button variant="outline" onClick={copyLink} className="shrink-0">
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar

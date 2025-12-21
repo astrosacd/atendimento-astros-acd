@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Search, Copy, ShoppingCart, Package } from 'lucide-react';
-import { useGatewayBaseUrl } from '@/hooks/useGateway';
 
 interface Product {
   id: string;
@@ -33,7 +32,6 @@ export default function Catalogo() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
-  const baseUrl = useGatewayBaseUrl();
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['public-products'],
@@ -76,7 +74,7 @@ export default function Catalogo() {
   };
 
   const copyLink = (slug: string) => {
-    const url = `${baseUrl}/p/${slug}`;
+    const url = `/p/${slug}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };
