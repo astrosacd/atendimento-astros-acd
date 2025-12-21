@@ -7,6 +7,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to convert plain text to HTML
+function textToHtml(text: string): string {
+  // Escape HTML entities
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Convert line breaks to <br> and wrap in basic HTML
+  const htmlContent = escaped.replace(/\n/g, '<br>');
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; background-color: #f5f5f5;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <p style="font-size: 16px; color: #333; line-height: 1.6; margin: 0;">
+          ${htmlContent}
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Helper function to delay execution
+function delay(seconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,6 +67,7 @@ serve(async (req) => {
     }
 
     const hoursThreshold = settings.value.hours_threshold || 24;
+    const delayBetweenSends = settings.value.delay_between_sends || 5; // Default 5 seconds
     const thresholdDate = new Date();
     thresholdDate.setHours(thresholdDate.getHours() - hoursThreshold);
 
@@ -60,7 +95,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${abandonedOrders.length} abandoned carts`);
+    console.log(`Found ${abandonedOrders.length} abandoned carts, will send with ${delayBetweenSends}s delay between each`);
 
     // Get email settings
     const { data: emailSettings } = await supabase
@@ -88,8 +123,16 @@ serve(async (req) => {
     const emailSubject = settings.value.email_subject || "Você esqueceu algo no carrinho!";
     const emailTemplate = settings.value.email_template || "";
 
-    for (const order of abandonedOrders) {
+    for (let i = 0; i < abandonedOrders.length; i++) {
+      const order = abandonedOrders[i];
+      
       if (!order.customer_email) continue;
+
+      // Add delay between sends (except for the first one)
+      if (i > 0) {
+        console.log(`Waiting ${delayBetweenSends} seconds before next send...`);
+        await delay(delayBetweenSends);
+      }
 
       try {
         const checkoutUrl = order.product?.public_slug 
@@ -100,37 +143,30 @@ serve(async (req) => {
           ? `R$ ${order.total.toFixed(2)}` 
           : `$ ${order.total.toFixed(2)}`;
 
-        // Replace template variables
-        let htmlContent = emailTemplate
+        // Replace template variables in plain text
+        let textContent = emailTemplate
           .replace(/\{\{nome\}\}/g, order.customer_name || "Cliente")
           .replace(/\{\{produto\}\}/g, order.product?.name || "Produto")
           .replace(/\{\{valor\}\}/g, productPrice)
           .replace(/\{\{link\}\}/g, checkoutUrl);
 
         // If no template, use default
-        if (!htmlContent.trim()) {
-          htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h1 style="color: #333;">Olá${order.customer_name ? `, ${order.customer_name}` : ""}!</h1>
-              <p>Notamos que você não finalizou sua compra. O item abaixo ainda está esperando por você:</p>
-              
-              <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h2 style="margin: 0 0 10px 0; color: #333;">${order.product?.name || "Produto"}</h2>
-                <p style="color: #666; margin: 0;">
-                  <strong style="color: #000; font-size: 20px;">${productPrice}</strong>
-                </p>
-              </div>
-              
-              <a href="${checkoutUrl}" style="display: inline-block; background: #0066cc; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
-                Finalizar Compra
-              </a>
-              
-              <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                Se você não iniciou esta compra, por favor ignore este email.
-              </p>
-            </div>
-          `;
+        if (!textContent.trim()) {
+          textContent = `Olá ${order.customer_name || "Cliente"}!
+
+Notamos que você não finalizou sua compra.
+
+📦 Produto: ${order.product?.name || "Produto"}
+💰 Valor: ${productPrice}
+
+O item ainda está esperando por você! Clique no link abaixo para finalizar:
+${checkoutUrl}
+
+Se você não iniciou esta compra, pode ignorar este email.`;
         }
+
+        // Convert plain text to HTML
+        const htmlContent = textToHtml(textContent);
 
         await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,
@@ -146,7 +182,7 @@ serve(async (req) => {
           .eq("id", order.id);
 
         emailsSent++;
-        console.log(`Abandoned cart email sent to ${order.customer_email}`);
+        console.log(`[${i + 1}/${abandonedOrders.length}] Abandoned cart email sent to ${order.customer_email}`);
       } catch (emailError: any) {
         console.error(`Error sending email to ${order.customer_email}:`, emailError);
       }
