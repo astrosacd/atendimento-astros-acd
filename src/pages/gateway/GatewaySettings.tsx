@@ -133,12 +133,12 @@ export default function GatewaySettings() {
       toast.error('Configure a URL do site acima para copiar o link completo.');
       return;
     }
-    const savedCode = settings.auth_access_code?.code || authAccessCode;
+    const savedCode = authAccessCode.trim() || settings.auth_access_code?.code || '';
     if (!savedCode) {
       toast.error('Configure um código de acesso primeiro.');
       return;
     }
-    const loginUrl = `${normalizedBase}/auth?codigo=${savedCode}`;
+    const loginUrl = `${normalizedBase}/auth?codigo=${encodeURIComponent(savedCode)}`;
     navigator.clipboard.writeText(loginUrl);
     toast.success('Link de acesso ao painel copiado!');
   };
@@ -245,7 +245,9 @@ export default function GatewaySettings() {
               <Label className="text-xs text-muted-foreground mb-2 block">Link de Acesso ao Painel:</Label>
               <div className="flex gap-2">
                 <Input 
-                  value={normalizedBase && settings.auth_access_code?.code ? `${normalizedBase}/auth?codigo=${settings.auth_access_code.code}` : 'Configure a URL e o código acima'} 
+                  value={normalizedBase && (authAccessCode.trim() || settings.auth_access_code?.code)
+                    ? `${normalizedBase}/auth?codigo=${encodeURIComponent(authAccessCode.trim() || settings.auth_access_code?.code || '')}`
+                    : 'Configure a URL e o código acima'} 
                   readOnly 
                   className="font-mono text-sm bg-muted/50" 
                 />
