@@ -2316,12 +2316,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_billing_cron: { Args: never; Returns: undefined }
+      execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
       get_billing_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
+      get_consulta_numeros_reminder_cron_schedule: {
         Args: never
         Returns: {
           job_name: string
@@ -2383,6 +2392,10 @@ export type Database = {
       }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
+      update_consulta_numeros_reminder_cron: {
+        Args: { p_interval_hours: number }
         Returns: boolean
       }
       update_divulgador_cron_schedule: {
