@@ -34,6 +34,7 @@ export default function GatewayOrderBumps() {
     status: 'active' as 'active' | 'inactive',
     allow_coupon: true,
   });
+  const [pricesSynced, setPricesSynced] = useState(false);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -54,6 +55,7 @@ export default function GatewayOrderBumps() {
       allow_coupon: true,
     });
     setEditingOrderBump(null);
+    setPricesSynced(false);
   };
 
   const handleEdit = (orderBump: GatewayOrderBump) => {
@@ -68,6 +70,7 @@ export default function GatewayOrderBumps() {
       status: orderBump.status,
       allow_coupon: orderBump.allow_coupon ?? true,
     });
+    setPricesSynced(true); // Dados existentes já foram sincronizados antes
     setIsOpen(true);
   };
 
@@ -78,6 +81,12 @@ export default function GatewayOrderBumps() {
       toast.error('Preencha os preços em BRL e USD antes de salvar.');
       return;
     }
+    
+    if (!pricesSynced) {
+      toast.error('Use o botão de conversão para sincronizar os preços antes de salvar.');
+      return;
+    }
+    
     if (editingOrderBump) {
       updateOrderBump({ id: editingOrderBump.id, ...formData }, {
         onSuccess: () => handleOpenChange(false)
@@ -225,7 +234,10 @@ export default function GatewayOrderBumps() {
                         type="number"
                         step="0.01"
                         value={formData.price_brl}
-                        onChange={(e) => setFormData(prev => ({ ...prev, price_brl: parseFloat(e.target.value) || 0 }))}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, price_brl: parseFloat(e.target.value) || 0 }));
+                          setPricesSynced(false);
+                        }}
                         required
                         className="flex-1"
                       />
@@ -241,6 +253,7 @@ export default function GatewayOrderBumps() {
                                 const result = await convertBRLtoUSD(formData.price_brl);
                                 if (result !== null) {
                                   setFormData(prev => ({ ...prev, price_usd: result.value }));
+                                  setPricesSynced(true);
                                   toast.success(`Convertido: $${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
                                 }
                               }}
@@ -263,7 +276,10 @@ export default function GatewayOrderBumps() {
                         type="number"
                         step="0.01"
                         value={formData.price_usd}
-                        onChange={(e) => setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }))}
+                        onChange={(e) => {
+                          setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }));
+                          setPricesSynced(false);
+                        }}
                         className="flex-1"
                       />
                       <TooltipProvider>
@@ -278,6 +294,7 @@ export default function GatewayOrderBumps() {
                                 const result = await convertUSDtoBRL(formData.price_usd);
                                 if (result !== null) {
                                   setFormData(prev => ({ ...prev, price_brl: result.value }));
+                                  setPricesSynced(true);
                                   toast.success(`Convertido: R$${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
                                 }
                               }}
