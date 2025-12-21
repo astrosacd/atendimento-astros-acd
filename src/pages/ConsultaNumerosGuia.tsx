@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, BookOpen, Database, Key, Webhook, Shield, Code, CheckCircle2, AlertCircle, Info, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, BookOpen, Database, Key, Webhook, Shield, Code, CheckCircle2, AlertCircle, Info, Copy, ExternalLink, Bell } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function ConsultaNumerosGuia() {
@@ -54,6 +54,10 @@ export default function ConsultaNumerosGuia() {
             <TabsTrigger value="examples" className="gap-2">
               <Code className="h-4 w-4" />
               <span className="hidden sm:inline">Exemplos</span>
+            </TabsTrigger>
+            <TabsTrigger value="reminders" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Lembretes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -593,6 +597,220 @@ export default function ConsultaNumerosGuia() {
                     </pre>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Reminders */}
+          <TabsContent value="reminders" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  Sistema de Lembretes Automáticos
+                </CardTitle>
+                <CardDescription>Configure notificações automáticas para monitorar números por status</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground leading-relaxed">
+                  O sistema de lembretes permite enviar notificações automáticas via <strong className="text-foreground">WhatsApp</strong> e/ou <strong className="text-foreground">E-mail</strong> quando números com determinados status forem encontrados no Baserow.
+                </p>
+                <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">Exemplo de uso</p>
+                      <p className="text-sm text-muted-foreground">
+                        Monitore números com status "EXCLUIDO" e receba alertas a cada hora com a lista de números afetados.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    WhatsApp
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <p>Envie notificações para grupos do WhatsApp via Evolution API.</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Configurar URL da API</li>
+                    <li>Informar API Key</li>
+                    <li>Nome da instância</li>
+                    <li>ID do grupo</li>
+                    <li>Opção de mencionar todos (@everyone)</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    E-mail (Gmail)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <p>Envie e-mails automáticos via Gmail SMTP.</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>E-mail do remetente</li>
+                    <li>Senha de app (não a senha normal)</li>
+                    <li>Lista de destinatários</li>
+                    <li>Assunto personalizado</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Configuração de Status</CardTitle>
+                <CardDescription>Escolha quais status devem disparar os lembretes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Você pode selecionar múltiplos status para monitorar. Os status disponíveis são carregados automaticamente do Baserow.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">EXCLUIDO</Badge>
+                  <Badge variant="outline">BANIDO</Badge>
+                  <Badge variant="outline">PENDENTE</Badge>
+                  <Badge variant="secondary">+ outros status do Baserow</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Agendamento (Cron)</CardTitle>
+                <CardDescription>Configure quando os lembretes devem ser enviados</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-3 text-left font-medium">Configuração</th>
+                        <th className="p-3 text-left font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="p-3 font-medium">Intervalo</td>
+                        <td className="p-3 text-muted-foreground">A cada X horas (ex: 1, 2, 4 horas)</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Horário de Início</td>
+                        <td className="p-3 text-muted-foreground">Hora para começar a executar (ex: 8h)</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Horário de Término</td>
+                        <td className="p-3 text-muted-foreground">Hora para parar de executar (ex: 20h)</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Dias da Semana</td>
+                        <td className="p-3 text-muted-foreground">Selecione os dias ativos (Seg, Ter, Qua...)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Template de Mensagem</CardTitle>
+                <CardDescription>Personalize o conteúdo das notificações</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Use variáveis dinâmicas no template da mensagem:
+                </p>
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-3 text-left font-medium">Variável</th>
+                        <th className="p-3 text-left font-medium">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="p-3 font-mono text-xs">{"{{status}}"}</td>
+                        <td className="p-3 text-muted-foreground">Status monitorado (ex: EXCLUIDO)</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">{"{{count}}"}</td>
+                        <td className="p-3 text-muted-foreground">Quantidade de números encontrados</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">{"{{numbers}}"}</td>
+                        <td className="p-3 text-muted-foreground">Lista de números (formato: 5511999 - STATUS)</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-xs">{"{{date}}"}</td>
+                        <td className="p-3 text-muted-foreground">Data/hora da verificação</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-xs font-medium mb-2">Exemplo de Template:</p>
+                  <pre className="text-xs whitespace-pre-wrap">{"⚠️ ALERTA: {{count}} números com status {{status}}\n\n📋 Lista:\n{{numbers}}\n\n🕐 Verificado em: {{date}}"}</pre>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Histórico de Envios</CardTitle>
+                <CardDescription>Acompanhe os lembretes enviados</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Na aba de Lembretes você pode visualizar:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                  <li>Data e hora do envio</li>
+                  <li>Canal utilizado (WhatsApp ou E-mail)</li>
+                  <li>Status monitorado</li>
+                  <li>Quantidade de números encontrados</li>
+                  <li>Status do envio (sucesso/erro)</li>
+                  <li>Mensagem de erro (se houver)</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-yellow-500/30 bg-yellow-500/5">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-500" />
+                  Dicas Importantes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-foreground">1.</span>
+                  <p><strong>Gmail:</strong> Use uma "Senha de App" em vez da senha normal. Acesse as configurações de segurança do Google para criar uma.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-foreground">2.</span>
+                  <p><strong>WhatsApp:</strong> O ID do grupo pode ser obtido na Evolution API ou nas configurações do grupo.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-foreground">3.</span>
+                  <p><strong>Teste:</strong> Use o botão "Testar Agora" para verificar se as configurações estão corretas antes de ativar.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-foreground">4.</span>
+                  <p><strong>Horários:</strong> O cron só executa dentro do intervalo de horário configurado e nos dias selecionados.</p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
