@@ -16,6 +16,10 @@ interface OrderData {
   product?: {
     name: string;
   };
+  order_bump?: {
+    name: string;
+    price: number;
+  };
 }
 
 type VerifyResponse = {
@@ -204,10 +208,10 @@ serve(async (req) => {
             const orderIdFromSession = session.client_reference_id || session.metadata?.order_id;
 
             if (orderIdFromSession) {
-              // Get order
+              // Get order with product and order bump
               const { data: orderData } = await supabase
                 .from("gateway_orders")
-                .select("*, product:gateway_products(name)")
+                .select("*, product:gateway_products(name), order_bump:gateway_order_bumps(name, price_brl, price_usd)")
                 .eq("id", orderIdFromSession)
                 .single();
 
@@ -225,6 +229,9 @@ serve(async (req) => {
                 console.log(`Order ${orderIdFromSession} marked as paid`);
               } else if (orderData?.status === "paid") {
                 // Already paid, don't send notifications again
+                const orderBumpPrice = orderData.currency === 'USD' 
+                  ? orderData.order_bump?.price_usd 
+                  : orderData.order_bump?.price_brl;
                 const resp: VerifyResponse = {
                   success: true,
                   status: "already_paid",
@@ -236,6 +243,10 @@ serve(async (req) => {
                     customer_phone: orderData.customer_phone,
                     total: Number(orderData.total),
                     product: orderData.product,
+                    order_bump: orderData.order_bump ? {
+                      name: orderData.order_bump.name,
+                      price: Number(orderBumpPrice) || 0,
+                    } : undefined,
                   },
                 };
                 return new Response(JSON.stringify(resp), {
@@ -253,11 +264,14 @@ serve(async (req) => {
     if (orderId && !order) {
       const { data: orderData } = await supabase
         .from("gateway_orders")
-        .select("*, product:gateway_products(name)")
+        .select("*, product:gateway_products(name), order_bump:gateway_order_bumps(name, price_brl, price_usd)")
         .eq("id", orderId)
         .single();
 
       if (orderData && orderData.status === "paid") {
+        const orderBumpPrice = orderData.currency === 'USD' 
+          ? orderData.order_bump?.price_usd 
+          : orderData.order_bump?.price_brl;
         const resp: VerifyResponse = {
           success: true,
           status: "already_paid",
@@ -269,6 +283,10 @@ serve(async (req) => {
             customer_phone: orderData.customer_phone,
             total: Number(orderData.total),
             product: orderData.product,
+            order_bump: orderData.order_bump ? {
+              name: orderData.order_bump.name,
+              price: Number(orderBumpPrice) || 0,
+            } : undefined,
           },
         };
         return new Response(JSON.stringify(resp), {
@@ -280,6 +298,9 @@ serve(async (req) => {
 
     // Send notifications if order was just paid
     if (order) {
+      const orderBumpPrice = order.currency === 'USD' 
+        ? order.order_bump?.price_usd 
+        : order.order_bump?.price_brl;
       const orderForNotification: OrderData = {
         id: order.id,
         customer_name: order.customer_name,
@@ -287,6 +308,10 @@ serve(async (req) => {
         customer_phone: order.customer_phone,
         total: order.total,
         product: order.product,
+        order_bump: order.order_bump ? {
+          name: order.order_bump.name,
+          price: Number(orderBumpPrice) || 0,
+        } : undefined,
       };
 
       const whatsappResult = await sendWhatsAppNotification(orderForNotification, notificationSettings);
