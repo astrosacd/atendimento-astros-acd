@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
-import { CreditCard, Mail, ShoppingCart, Save, Timer } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function GatewaySettings() {
   const { settings, isLoading, updateSetting, isUpdating } = useGatewaySettings();
@@ -54,8 +55,44 @@ export default function GatewaySettings() {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
 
+  const catalogUrl = `${window.location.origin}/catalogo`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(catalogUrl);
+    toast.success('Link do catálogo copiado!');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Link do Catálogo */}
+      <Card className="border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link className="h-4 w-4 text-primary" />
+            Link do Catálogo
+          </CardTitle>
+          <CardDescription>Compartilhe este link para os clientes verem todos os seus produtos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Input 
+              value={catalogUrl} 
+              readOnly 
+              className="font-mono text-sm bg-muted/50"
+            />
+            <Button variant="outline" onClick={copyLink} className="shrink-0">
+              <Copy className="h-4 w-4 mr-2" />
+              Copiar
+            </Button>
+            <Button variant="outline" asChild className="shrink-0">
+              <a href={catalogUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <h2 className="text-lg font-semibold">Configurações</h2>
 
       <Tabs defaultValue="gateways" className="space-y-4">
