@@ -14,6 +14,18 @@ type PublicGatewaySettings = {
     countdown_minutes?: number;
     countdown_message?: string;
   };
+  success_page: {
+    enabled?: boolean;
+    title?: string;
+    message?: string;
+    instructions?: string;
+    primary_button_text?: string;
+    primary_button_path?: string;
+    support_whatsapp_enabled?: boolean;
+    support_whatsapp_number?: string;
+    support_whatsapp_button_text?: string;
+    support_whatsapp_message?: string;
+  };
 };
 
 serve(async (req) => {
@@ -29,7 +41,7 @@ serve(async (req) => {
     const { data, error } = await supabase
       .from("gateway_settings")
       .select("key, value")
-      .in("key", ["stripe", "mercadopago", "checkout"]);
+      .in("key", ["stripe", "mercadopago", "checkout", "success_page"]);
 
     if (error) {
       console.error("gateway-public-settings fetch error:", error);
@@ -51,6 +63,18 @@ serve(async (req) => {
         countdown_enabled: raw.checkout?.countdown_enabled === true,
         countdown_minutes: typeof raw.checkout?.countdown_minutes === "number" ? raw.checkout.countdown_minutes : undefined,
         countdown_message: typeof raw.checkout?.countdown_message === "string" ? raw.checkout.countdown_message : undefined,
+      },
+      success_page: {
+        enabled: raw.success_page?.enabled === true,
+        title: typeof raw.success_page?.title === "string" ? raw.success_page.title : undefined,
+        message: typeof raw.success_page?.message === "string" ? raw.success_page.message : undefined,
+        instructions: typeof raw.success_page?.instructions === "string" ? raw.success_page.instructions : undefined,
+        primary_button_text: typeof raw.success_page?.primary_button_text === "string" ? raw.success_page.primary_button_text : undefined,
+        primary_button_path: typeof raw.success_page?.primary_button_path === "string" ? raw.success_page.primary_button_path : undefined,
+        support_whatsapp_enabled: raw.success_page?.support_whatsapp_enabled === true,
+        support_whatsapp_number: typeof raw.success_page?.support_whatsapp_number === "string" ? raw.success_page.support_whatsapp_number : undefined,
+        support_whatsapp_button_text: typeof raw.success_page?.support_whatsapp_button_text === "string" ? raw.success_page.support_whatsapp_button_text : undefined,
+        support_whatsapp_message: typeof raw.success_page?.support_whatsapp_message === "string" ? raw.success_page.support_whatsapp_message : undefined,
       },
     };
 
