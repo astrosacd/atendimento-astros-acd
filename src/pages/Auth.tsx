@@ -46,13 +46,32 @@ export default function Auth() {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
+  // Verifica código de acesso
+  const codigo = searchParams.get('codigo');
+
+  // Função para buscar status do perfil (definida antes de ser usada no useEffect)
+  const fetchProfileStatus = async () => {
+    if (!user) return;
+    
+    setIsLoadingProfile(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('approval_status, rejection_reason, user_response')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!error && data) {
+      setProfileStatus(data as ProfileStatus);
+    }
+    setIsLoadingProfile(false);
+  };
+
   // Busca o código de acesso configurado no banco via função pública
   useEffect(() => {
     let cancelled = false;
 
     const fetchAuthCode = async () => {
       try {
-        // Timeout para evitar tela travada caso a chamada não responda
         const timeoutMs = 2500;
         const rpcPromise = supabase.rpc('get_auth_access_code');
         const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
@@ -80,8 +99,29 @@ export default function Auth() {
     };
   }, []);
 
-  // Verifica código de acesso ANTES de qualquer outra coisa
-  const codigo = searchParams.get('codigo');
+  // Redirect logic for approved users
+  useEffect(() => {
+    if (authLoading || isLoadingCode) return;
+
+    // If user is approved, redirect immediately
+    if (user && isApproved) {
+      navigate('/');
+      return;
+    }
+
+    // If user exists but not approved yet, wait briefly before fetching status.
+    if (user && !isApproved && !profileStatus) {
+      let cancelled = false;
+      const t = window.setTimeout(() => {
+        if (!cancelled) fetchProfileStatus();
+      }, 200);
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(t);
+      };
+    }
+  }, [user, isApproved, authLoading, isLoadingCode, navigate, profileStatus]);
 
   // Ainda carregando o código do banco
   if (isLoadingCode) {
@@ -101,46 +141,6 @@ export default function Auth() {
   if (!hasValidCode) {
     return <Navigate to="/catalogo" replace />;
   }
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    // If user is approved, redirect immediately
-    if (user && isApproved) {
-      navigate('/');
-      return;
-    }
-
-    // If user exists but not approved yet, wait briefly before fetching status.
-    // This avoids a flash when approval status is loaded moments after login.
-    if (user && !isApproved && !profileStatus) {
-      let cancelled = false;
-      const t = window.setTimeout(() => {
-        if (!cancelled) fetchProfileStatus();
-      }, 200);
-
-      return () => {
-        cancelled = true;
-        window.clearTimeout(t);
-      };
-    }
-  }, [user, isApproved, authLoading, navigate, profileStatus]);
-
-  const fetchProfileStatus = async () => {
-    if (!user) return;
-    
-    setIsLoadingProfile(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('approval_status, rejection_reason, user_response')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!error && data) {
-      setProfileStatus(data as ProfileStatus);
-    }
-    setIsLoadingProfile(false);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
