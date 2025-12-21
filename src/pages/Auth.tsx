@@ -29,9 +29,6 @@ interface ProfileStatus {
   user_response: string | null;
 }
 
-// Código secreto para acessar a página de login
-const AUTH_ACCESS_CODE = 'astros2024';
-
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -43,13 +40,41 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+  const [authCodeConfig, setAuthCodeConfig] = useState<string | null>(null);
+  const [isLoadingCode, setIsLoadingCode] = useState(true);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
+  // Busca o código de acesso configurado no banco
+  useEffect(() => {
+    const fetchAuthCode = async () => {
+      const { data } = await supabase
+        .from('gateway_settings')
+        .select('value')
+        .eq('key', 'auth_access_code')
+        .maybeSingle();
+      
+      const code = (data?.value as any)?.code || 'astros2024'; // fallback para código padrão
+      setAuthCodeConfig(code);
+      setIsLoadingCode(false);
+    };
+    fetchAuthCode();
+  }, []);
+
   // Verifica código de acesso ANTES de qualquer outra coisa
   const codigo = searchParams.get('codigo');
-  const hasValidCode = codigo === AUTH_ACCESS_CODE;
+  
+  // Ainda carregando o código do banco
+  if (isLoadingCode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-primary">Verificando acesso...</div>
+      </div>
+    );
+  }
+
+  const hasValidCode = codigo === authCodeConfig;
 
   // Se não tem código válido, joga direto pro catálogo (sem renderizar login)
   if (!hasValidCode) {
