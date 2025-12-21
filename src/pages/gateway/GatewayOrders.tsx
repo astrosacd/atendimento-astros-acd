@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGatewayOrders, GatewayOrder } from '@/hooks/useGateway';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function GatewayOrders() {
@@ -126,7 +127,26 @@ export default function GatewayOrders() {
                          order.payment_gateway === 'mercadopago' ? 'Mercado Pago' : '-'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(order.status)}
+                        {order.abandoned_email_sent && order.status === 'pending' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="secondary" className="gap-1 text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
+                                  <Mail className="h-3 w-3" />
+                                  Enviado
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Email de recuperação de carrinho abandonado já foi enviado</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
