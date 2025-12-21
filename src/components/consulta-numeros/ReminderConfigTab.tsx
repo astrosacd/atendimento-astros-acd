@@ -105,6 +105,7 @@ export function ReminderConfigTab() {
   const {
     data: availableStatuses = [],
     isLoading: loadingStatuses,
+    isFetching: fetchingStatuses,
     refetch: refetchStatuses,
   } = useQuery({
     queryKey: ['consulta-numeros-reminder-available-statuses'],
@@ -361,6 +362,7 @@ export function ReminderConfigTab() {
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={fetchingStatuses}
                     onClick={async () => {
                       try {
                         await refetchStatuses();
@@ -374,7 +376,14 @@ export function ReminderConfigTab() {
                       }
                     }}
                   >
-                    Atualizar lista
+                    {fetchingStatuses ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Atualizando...
+                      </>
+                    ) : (
+                      'Atualizar lista'
+                    )}
                   </Button>
                 </div>
               </div>
