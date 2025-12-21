@@ -59,6 +59,19 @@ export default function Catalogo() {
     },
   });
 
+  const { data: siteBaseUrlSetting } = useQuery({
+    queryKey: ['public-site-base-url'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gateway_settings')
+        .select('value')
+        .eq('key', 'site_base_url')
+        .maybeSingle();
+      if (error) return '';
+      return String((data?.value as any)?.url || '').trim().replace(/\/+$/, '');
+    },
+  });
+
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
       (product.description?.toLowerCase().includes(search.toLowerCase()) ?? false);
@@ -75,7 +88,8 @@ export default function Catalogo() {
 
   const copyLink = (slug: string) => {
     const path = `/p/${slug}`;
-    const url = `${window.location.origin}${path}`;
+    const base = siteBaseUrlSetting || '';
+    const url = base ? `${base}${path}` : `${window.location.origin}${path}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };

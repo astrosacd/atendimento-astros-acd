@@ -97,6 +97,10 @@ export default function GatewaySettings() {
   const catalogUrl = normalizedBase ? `${normalizedBase}${catalogPath}` : catalogPath;
 
   const copyLink = () => {
+    if (!normalizedBase) {
+      toast.error('Configure a URL do site acima para copiar o link completo.');
+      return;
+    }
     navigator.clipboard.writeText(catalogUrl);
     toast.success('Link do catálogo copiado!');
   };
