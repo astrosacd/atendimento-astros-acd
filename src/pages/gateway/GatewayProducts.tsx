@@ -144,9 +144,12 @@ export default function GatewayProducts() {
   };
 
   const copyLink = (publicSlug: string) => {
-    const path = `/p/${publicSlug}`;
     const base = siteBaseUrl.replace(/\/+$/, '');
-    const url = base ? `${base}${path}` : path;
+    if (!base) {
+      toast.error('Configure a URL do site nas configurações para copiar links completos.');
+      return;
+    }
+    const url = `${base}/p/${publicSlug}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };
