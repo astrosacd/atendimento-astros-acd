@@ -2230,6 +2230,13 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_gateway_abandoned_cart_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role:
         | {
@@ -2274,6 +2281,10 @@ export type Database = {
         Returns: boolean
       }
       update_divulgador_cron_schedule: {
+        Args: { p_interval_minutes: number }
+        Returns: boolean
+      }
+      update_gateway_abandoned_cart_cron: {
         Args: { p_interval_minutes: number }
         Returns: boolean
       }

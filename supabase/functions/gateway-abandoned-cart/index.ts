@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,13 +9,11 @@ const corsHeaders = {
 
 // Helper function to convert plain text to HTML
 function textToHtml(text: string): string {
-  // Escape HTML entities
   const escaped = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
   
-  // Convert line breaks to <br> and wrap in basic HTML
   const htmlContent = escaped.replace(/\n/g, '<br>');
   
   return `
@@ -41,6 +39,72 @@ function delay(seconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
+// Helper function to send email via Gmail SMTP
+async function sendEmailViaGmail(
+  gmailUser: string,
+  gmailAppPassword: string,
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: "smtp.gmail.com",
+      port: 465,
+      tls: true,
+      auth: {
+        username: gmailUser,
+        password: gmailAppPassword,
+      },
+    },
+  });
+
+  await client.send({
+    from: gmailUser,
+    to: to,
+    subject: subject,
+    content: "auto",
+    html: html,
+  });
+
+  await client.close();
+}
+
+// Helper function to send WhatsApp message via Evolution API
+async function sendWhatsAppMessage(
+  apiUrl: string,
+  apiKey: string,
+  instanceName: string,
+  phone: string,
+  message: string
+): Promise<void> {
+  // Format phone number (remove non-digits and ensure proper format)
+  let formattedPhone = phone.replace(/\D/g, '');
+  if (formattedPhone.startsWith('0')) {
+    formattedPhone = '55' + formattedPhone.substring(1);
+  }
+  if (!formattedPhone.startsWith('55')) {
+    formattedPhone = '55' + formattedPhone;
+  }
+
+  const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': apiKey,
+    },
+    body: JSON.stringify({
+      number: formattedPhone,
+      text: message,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`WhatsApp send failed: ${response.status} - ${errorText}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -59,16 +123,16 @@ serve(async (req) => {
       .single();
 
     if (!settings?.value?.enabled) {
-      console.log("Abandoned cart emails disabled");
+      console.log("Abandoned cart recovery disabled");
       return new Response(
-        JSON.stringify({ message: "Abandoned cart emails disabled" }),
+        JSON.stringify({ message: "Abandoned cart recovery disabled" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Support both delay_minutes (new) and hours_threshold (legacy)
     const delayMinutes = settings.value.delay_minutes || (settings.value.hours_threshold ? settings.value.hours_threshold * 60 : 30);
-    const delayBetweenSends = settings.value.delay_between_sends || 5; // Default 5 seconds
+    const delayBetweenSends = settings.value.delay_between_sends || 5;
     const thresholdDate = new Date();
     thresholdDate.setMinutes(thresholdDate.getMinutes() - delayMinutes);
     
@@ -100,27 +164,28 @@ serve(async (req) => {
 
     console.log(`Found ${abandonedOrders.length} abandoned carts, will send with ${delayBetweenSends}s delay between each`);
 
-    // Get email settings
-    const { data: emailSettings } = await supabase
-      .from("gateway_settings")
-      .select("value")
-      .eq("key", "email")
-      .single();
+    // Email config
+    const gmailUser = settings.value.gmail_user;
+    const gmailAppPassword = settings.value.gmail_app_password;
+    const emailEnabled = gmailUser && gmailAppPassword;
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY not configured");
+    // WhatsApp config
+    const whatsappEnabled = settings.value.whatsapp_enabled;
+    const whatsappApiUrl = settings.value.whatsapp_api_url;
+    const whatsappApiKey = settings.value.whatsapp_api_key;
+    const whatsappInstanceName = settings.value.whatsapp_instance_name;
+    const whatsappTemplate = settings.value.whatsapp_template || '';
+
+    if (!emailEnabled && !whatsappEnabled) {
+      console.log("No notification channel configured (email or WhatsApp)");
       return new Response(
-        JSON.stringify({ error: "Email service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ message: "No notification channel configured" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const resend = new Resend(resendApiKey);
-    const fromEmail = emailSettings?.value?.from_email || "noreply@example.com";
-    const fromName = emailSettings?.value?.from_name || "Loja";
     let emailsSent = 0;
+    let whatsappSent = 0;
 
     // Get email template from settings
     const emailSubject = settings.value.email_subject || "Você esqueceu algo no carrinho!";
@@ -129,33 +194,31 @@ serve(async (req) => {
     for (let i = 0; i < abandonedOrders.length; i++) {
       const order = abandonedOrders[i];
       
-      if (!order.customer_email) continue;
-
       // Add delay between sends (except for the first one)
       if (i > 0) {
         console.log(`Waiting ${delayBetweenSends} seconds before next send...`);
         await delay(delayBetweenSends);
       }
 
-      try {
-        const checkoutUrl = order.product?.public_slug 
-          ? `${req.headers.get("origin") || ""}/p/${order.product.public_slug}`
-          : "#";
+      const checkoutUrl = order.product?.public_slug 
+        ? `${req.headers.get("origin") || supabaseUrl.replace('.supabase.co', '.lovable.app')}/p/${order.product.public_slug}`
+        : "#";
 
-        const productPrice = order.currency === 'BRL' 
-          ? `R$ ${order.total.toFixed(2)}` 
-          : `$ ${order.total.toFixed(2)}`;
+      const productPrice = order.currency === 'BRL' 
+        ? `R$ ${order.total.toFixed(2)}` 
+        : `$ ${order.total.toFixed(2)}`;
 
-        // Replace template variables in plain text
-        let textContent = emailTemplate
-          .replace(/\{\{nome\}\}/g, order.customer_name || "Cliente")
-          .replace(/\{\{produto\}\}/g, order.product?.name || "Produto")
-          .replace(/\{\{valor\}\}/g, productPrice)
-          .replace(/\{\{link\}\}/g, checkoutUrl);
+      // Send Email
+      if (emailEnabled && order.customer_email) {
+        try {
+          let textContent = emailTemplate
+            .replace(/\{\{nome\}\}/g, order.customer_name || "Cliente")
+            .replace(/\{\{produto\}\}/g, order.product?.name || "Produto")
+            .replace(/\{\{valor\}\}/g, productPrice)
+            .replace(/\{\{link\}\}/g, checkoutUrl);
 
-        // If no template, use default
-        if (!textContent.trim()) {
-          textContent = `Olá ${order.customer_name || "Cliente"}!
+          if (!textContent.trim()) {
+            textContent = `Olá ${order.customer_name || "Cliente"}!
 
 Notamos que você não finalizou sua compra.
 
@@ -166,33 +229,76 @@ O item ainda está esperando por você! Clique no link abaixo para finalizar:
 ${checkoutUrl}
 
 Se você não iniciou esta compra, pode ignorar este email.`;
+          }
+
+          const htmlContent = textToHtml(textContent);
+
+          await sendEmailViaGmail(
+            gmailUser,
+            gmailAppPassword,
+            order.customer_email,
+            emailSubject.replace(/\{\{produto\}\}/g, order.product?.name || "Produto"),
+            htmlContent
+          );
+
+          emailsSent++;
+          console.log(`[${i + 1}/${abandonedOrders.length}] Email sent to ${order.customer_email}`);
+        } catch (emailError: any) {
+          console.error(`Error sending email to ${order.customer_email}:`, emailError.message);
         }
+      }
 
-        // Convert plain text to HTML
-        const htmlContent = textToHtml(textContent);
+      // Send WhatsApp
+      if (whatsappEnabled && order.customer_phone && whatsappApiUrl && whatsappApiKey && whatsappInstanceName) {
+        try {
+          let whatsappMessage = whatsappTemplate
+            .replace(/\{\{nome\}\}/g, order.customer_name || "Cliente")
+            .replace(/\{\{produto\}\}/g, order.product?.name || "Produto")
+            .replace(/\{\{valor\}\}/g, productPrice)
+            .replace(/\{\{link\}\}/g, checkoutUrl);
 
-        await resend.emails.send({
-          from: `${fromName} <${fromEmail}>`,
-          to: [order.customer_email],
-          subject: emailSubject.replace(/\{\{produto\}\}/g, order.product?.name || "Produto"),
-          html: htmlContent,
-        });
+          if (!whatsappMessage.trim()) {
+            whatsappMessage = `Olá ${order.customer_name || "Cliente"}! 👋
 
-        // Mark as sent
+Notamos que você não finalizou sua compra.
+
+📦 Produto: ${order.product?.name || "Produto"}
+💰 Valor: ${productPrice}
+
+O item ainda está esperando por você! Acesse o link abaixo para finalizar:
+${checkoutUrl}
+
+Se precisar de ajuda, é só responder esta mensagem!`;
+          }
+
+          await sendWhatsAppMessage(
+            whatsappApiUrl,
+            whatsappApiKey,
+            whatsappInstanceName,
+            order.customer_phone,
+            whatsappMessage
+          );
+
+          whatsappSent++;
+          console.log(`[${i + 1}/${abandonedOrders.length}] WhatsApp sent to ${order.customer_phone}`);
+        } catch (whatsappError: any) {
+          console.error(`Error sending WhatsApp to ${order.customer_phone}:`, whatsappError.message);
+        }
+      }
+
+      // Mark as sent if at least one channel succeeded
+      if ((emailEnabled && order.customer_email) || (whatsappEnabled && order.customer_phone)) {
         await supabase
           .from("gateway_orders")
           .update({ abandoned_email_sent: true })
           .eq("id", order.id);
-
-        emailsSent++;
-        console.log(`[${i + 1}/${abandonedOrders.length}] Abandoned cart email sent to ${order.customer_email}`);
-      } catch (emailError: any) {
-        console.error(`Error sending email to ${order.customer_email}:`, emailError);
       }
     }
 
+    console.log(`Completed: ${emailsSent} emails sent, ${whatsappSent} WhatsApp messages sent`);
+
     return new Response(
-      JSON.stringify({ success: true, emailsSent }),
+      JSON.stringify({ success: true, emailsSent, whatsappSent }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {

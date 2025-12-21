@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function GatewaySettings() {
@@ -35,7 +36,25 @@ Equipe de Vendas`;
     delay_minutes: 30, 
     email_subject: 'Você esqueceu algo no carrinho!', 
     email_template: defaultAbandonedCartTemplate,
-    delay_between_sends: 5
+    delay_between_sends: 5,
+    cron_interval_minutes: 5,
+    gmail_user: '',
+    gmail_app_password: '',
+    whatsapp_enabled: false,
+    whatsapp_instance_name: '',
+    whatsapp_api_url: '',
+    whatsapp_api_key: '',
+    whatsapp_template: `Olá {{nome}}! 👋
+
+Notamos que você não finalizou sua compra.
+
+📦 Produto: {{produto}}
+💰 Valor: {{valor}}
+
+O item ainda está esperando por você! Acesse o link abaixo para finalizar:
+{{link}}
+
+Se precisar de ajuda, é só responder esta mensagem!`
   });
   const [checkout, setCheckout] = useState({ 
     countdown_enabled: false, 
@@ -89,8 +108,23 @@ Equipe de Vendas`;
     updateSetting({ key: 'email', value: email });
   };
 
-  const handleSaveAbandonedCart = () => {
+  const handleSaveAbandonedCart = async () => {
     updateSetting({ key: 'abandoned_cart', value: abandonedCart });
+    
+    // Atualizar o cron também
+    if (abandonedCart.cron_interval_minutes) {
+      try {
+        const { error } = await supabase.rpc('update_gateway_abandoned_cart_cron', {
+          p_interval_minutes: abandonedCart.cron_interval_minutes
+        });
+        if (error) {
+          console.error('Erro ao atualizar cron:', error);
+          toast.error('Erro ao atualizar intervalo do cron');
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar cron:', err);
+      }
+    }
   };
 
   const handleSaveCheckout = () => {
@@ -738,11 +772,15 @@ Equipe de Vendas`;
           </Card>
         </TabsContent>
 
-        <TabsContent value="abandoned">
+        <TabsContent value="abandoned" className="space-y-4">
+          {/* Configurações Gerais */}
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="text-base">Recuperação de Carrinho Abandonado</CardTitle>
-              <CardDescription>Configure emails automáticos para recuperar vendas</CardDescription>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="h-4 w-4 text-orange-500" />
+                Configurações Gerais
+              </CardTitle>
+              <CardDescription>Configure quando e como enviar as mensagens de recuperação</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
@@ -750,19 +788,88 @@ Equipe de Vendas`;
                   checked={abandonedCart.enabled}
                   onCheckedChange={(checked) => setAbandonedCart(prev => ({ ...prev, enabled: checked }))}
                 />
-                <Label>Habilitar emails de recuperação</Label>
+                <Label>Habilitar recuperação de carrinho abandonado</Label>
               </div>
-              <div>
-                <Label>Tempo de espera (minutos)</Label>
-                <Input
-                  type="number"
-                  value={abandonedCart.delay_minutes}
-                  onChange={(e) => setAbandonedCart(prev => ({ ...prev, delay_minutes: parseInt(e.target.value) || 30 }))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Tempo após abandono para enviar o email
-                </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Tempo de espera (minutos)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={abandonedCart.delay_minutes}
+                    onChange={(e) => setAbandonedCart(prev => ({ ...prev, delay_minutes: parseInt(e.target.value) || 30 }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Após este tempo o pedido é considerado abandonado
+                  </p>
+                </div>
+                <div>
+                  <Label>Intervalo do Cron (minutos)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={abandonedCart.cron_interval_minutes || 5}
+                    onChange={(e) => setAbandonedCart(prev => ({ ...prev, cron_interval_minutes: parseInt(e.target.value) || 5 }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    A cada quantos minutos verificar carrinhos abandonados
+                  </p>
+                </div>
+                <div>
+                  <Label>Delay entre envios (segundos)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={abandonedCart.delay_between_sends || 5}
+                    onChange={(e) => setAbandonedCart(prev => ({ ...prev, delay_between_sends: parseInt(e.target.value) || 5 }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Intervalo entre cada envio para evitar bloqueios
+                  </p>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Configuração de Email */}
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-500" />
+                Notificação via Email (Gmail)
+              </CardTitle>
+              <CardDescription>Configure o Gmail para enviar emails de recuperação</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Email do Gmail</Label>
+                  <Input
+                    type="email"
+                    value={abandonedCart.gmail_user || ''}
+                    onChange={(e) => setAbandonedCart(prev => ({ ...prev, gmail_user: e.target.value }))}
+                    placeholder="seuemail@gmail.com"
+                  />
+                </div>
+                <div>
+                  <Label>Senha de App</Label>
+                  <Input
+                    type="password"
+                    value={abandonedCart.gmail_app_password || ''}
+                    onChange={(e) => setAbandonedCart(prev => ({ ...prev, gmail_app_password: e.target.value }))}
+                    placeholder="xxxx xxxx xxxx xxxx"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      Criar senha de app no Google
+                    </a>
+                  </p>
+                </div>
+              </div>
+              
               <div>
                 <Label>Assunto do Email</Label>
                 <Input
@@ -771,19 +878,7 @@ Equipe de Vendas`;
                   placeholder="Você esqueceu algo no carrinho!"
                 />
               </div>
-              <div>
-                <Label>Delay entre envios (segundos)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={60}
-                  value={abandonedCart.delay_between_sends || 5}
-                  onChange={(e) => setAbandonedCart(prev => ({ ...prev, delay_between_sends: parseInt(e.target.value) || 5 }))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Intervalo entre cada envio para evitar bloqueios (recomendado: 5-10 segundos)
-                </p>
-              </div>
+              
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Mensagem do Email</Label>
@@ -800,18 +895,85 @@ Equipe de Vendas`;
                 <Textarea
                   value={abandonedCart.email_template}
                   onChange={(e) => setAbandonedCart(prev => ({ ...prev, email_template: e.target.value }))}
-                  rows={12}
+                  rows={10}
                   placeholder="Digite sua mensagem aqui..."
                 />
                 <p className="text-xs text-muted-foreground">
                   <strong>Variáveis:</strong> {'{{nome}}'}, {'{{produto}}'}, {'{{valor}}'}, {'{{link}}'}
                 </p>
               </div>
-              <Button onClick={handleSaveAbandonedCart} disabled={isUpdating}>
-                <Save className="h-4 w-4 mr-2" /> Salvar Configuração
-              </Button>
             </CardContent>
           </Card>
+
+          {/* Configuração de WhatsApp */}
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Phone className="h-4 w-4 text-green-500" />
+                Notificação via WhatsApp (Evolution)
+              </CardTitle>
+              <CardDescription>Configure a Evolution API para enviar mensagens de recuperação via WhatsApp</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={abandonedCart.whatsapp_enabled || false}
+                  onCheckedChange={(checked) => setAbandonedCart(prev => ({ ...prev, whatsapp_enabled: checked }))}
+                />
+                <Label>Habilitar WhatsApp</Label>
+              </div>
+              
+              {abandonedCart.whatsapp_enabled && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Nome da Instância</Label>
+                      <Input
+                        value={abandonedCart.whatsapp_instance_name || ''}
+                        onChange={(e) => setAbandonedCart(prev => ({ ...prev, whatsapp_instance_name: e.target.value }))}
+                        placeholder="minha-instancia"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>URL da API Evolution</Label>
+                      <Input
+                        value={abandonedCart.whatsapp_api_url || ''}
+                        onChange={(e) => setAbandonedCart(prev => ({ ...prev, whatsapp_api_url: e.target.value }))}
+                        placeholder="https://evolution.meusite.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>API Key</Label>
+                    <Input
+                      type="password"
+                      value={abandonedCart.whatsapp_api_key || ''}
+                      onChange={(e) => setAbandonedCart(prev => ({ ...prev, whatsapp_api_key: e.target.value }))}
+                      placeholder="sua-api-key"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Mensagem do WhatsApp</Label>
+                    <Textarea
+                      value={abandonedCart.whatsapp_template || ''}
+                      onChange={(e) => setAbandonedCart(prev => ({ ...prev, whatsapp_template: e.target.value }))}
+                      rows={8}
+                      placeholder="Digite sua mensagem aqui..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Variáveis:</strong> {'{{nome}}'}, {'{{produto}}'}, {'{{valor}}'}, {'{{link}}'}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button onClick={handleSaveAbandonedCart} disabled={isUpdating} className="w-full">
+            <Save className="h-4 w-4 mr-2" /> Salvar Todas as Configurações de Carrinho Abandonado
+          </Button>
         </TabsContent>
       </Tabs>
     </div>
