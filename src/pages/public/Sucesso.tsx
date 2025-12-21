@@ -121,11 +121,12 @@ export default function Sucesso() {
   const buttonText = resolved.enabled ? applyVars(resolved.primary_button_text, orderVars) : defaults.primary_button_text;
   const buttonPath = resolved.enabled ? applyVars(resolved.primary_button_path, orderVars) : defaults.primary_button_path;
 
-  const supportEnabled = resolved.enabled ? !!resolved.support_whatsapp_enabled : false;
-  const supportNumberRaw = resolved.enabled ? String(resolved.support_whatsapp_number || '') : '';
+  // WhatsApp support is independent of the "enabled" flag for general customization
+  const supportEnabled = !!resolved.support_whatsapp_enabled;
+  const supportNumberRaw = String(resolved.support_whatsapp_number || '');
   const supportNumber = supportNumberRaw.replace(/\D/g, '');
-  const supportButtonText = resolved.enabled ? applyVars(resolved.support_whatsapp_button_text || defaults.support_whatsapp_button_text, orderVars) : defaults.support_whatsapp_button_text;
-  const supportMessage = resolved.enabled ? applyVars(resolved.support_whatsapp_message || defaults.support_whatsapp_message, orderVars) : defaults.support_whatsapp_message;
+  const supportButtonText = applyVars(resolved.support_whatsapp_button_text || defaults.support_whatsapp_button_text, orderVars);
+  const supportMessage = applyVars(resolved.support_whatsapp_message || defaults.support_whatsapp_message, orderVars);
   const supportUrl = supportNumber ? `https://wa.me/${supportNumber}?text=${encodeURIComponent(supportMessage)}` : '';
 
   return (
