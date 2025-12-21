@@ -16,7 +16,7 @@ export default function GatewaySettings() {
   
   const [stripe, setStripe] = useState({ enabled: false, publishable_key: '', secret_key: '' });
   const [mercadopago, setMercadopago] = useState({ enabled: false, access_token: '' });
-  const [email, setEmail] = useState({ smtp_host: '', smtp_port: 587, smtp_user: '', smtp_password: '', from_email: '', from_name: '' });
+  
   const defaultAbandonedCartTemplate = `Olá {{nome}}!
 
 Notamos que você estava interessado em um de nossos produtos mas não finalizou a compra.
@@ -88,7 +88,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago(settings.mercadopago);
-    if (settings.email) setEmail(settings.email);
+    
     if (settings.abandoned_cart) setAbandonedCart(settings.abandoned_cart);
     if (settings.checkout) setCheckout(settings.checkout);
     if (settings.success_page) setSuccessPage(settings.success_page);
@@ -104,9 +104,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     updateSetting({ key: 'mercadopago', value: mercadopago });
   };
 
-  const handleSaveEmail = () => {
-    updateSetting({ key: 'email', value: email });
-  };
 
   const handleSaveAbandonedCart = async () => {
     updateSetting({ key: 'abandoned_cart', value: abandonedCart });
@@ -333,10 +330,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notificações
-          </TabsTrigger>
-          <TabsTrigger value="email" className="gap-2">
-            <Mail className="h-4 w-4" />
-            Email
           </TabsTrigger>
           <TabsTrigger value="abandoned" className="gap-2">
             <ShoppingCart className="h-4 w-4" />
@@ -705,72 +698,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
           </Button>
         </TabsContent>
 
-        <TabsContent value="email">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base">Configurações de Email</CardTitle>
-              <CardDescription>Configure o servidor SMTP para envio de emails</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>SMTP Host</Label>
-                  <Input
-                    value={email.smtp_host}
-                    onChange={(e) => setEmail(prev => ({ ...prev, smtp_host: e.target.value }))}
-                    placeholder="smtp.gmail.com"
-                  />
-                </div>
-                <div>
-                  <Label>SMTP Port</Label>
-                  <Input
-                    type="number"
-                    value={email.smtp_port}
-                    onChange={(e) => setEmail(prev => ({ ...prev, smtp_port: parseInt(e.target.value) || 587 }))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>SMTP User</Label>
-                  <Input
-                    value={email.smtp_user}
-                    onChange={(e) => setEmail(prev => ({ ...prev, smtp_user: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>SMTP Password</Label>
-                  <Input
-                    type="password"
-                    value={email.smtp_password}
-                    onChange={(e) => setEmail(prev => ({ ...prev, smtp_password: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Email de Envio</Label>
-                  <Input
-                    value={email.from_email}
-                    onChange={(e) => setEmail(prev => ({ ...prev, from_email: e.target.value }))}
-                    placeholder="vendas@seusite.com"
-                  />
-                </div>
-                <div>
-                  <Label>Nome do Remetente</Label>
-                  <Input
-                    value={email.from_name}
-                    onChange={(e) => setEmail(prev => ({ ...prev, from_name: e.target.value }))}
-                    placeholder="Sua Loja"
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSaveEmail} disabled={isUpdating}>
-                <Save className="h-4 w-4 mr-2" /> Salvar Email
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="abandoned" className="space-y-4">
           {/* Configurações Gerais */}
