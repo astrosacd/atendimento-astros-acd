@@ -2244,9 +2244,10 @@ O módulo é **totalmente independente** e pode ser usado como uma loja virtual 
    - **Descrição**: Detalhes do produto (Markdown suportado)
    - **Preço BRL**: Valor em reais
    - **Preço USD**: Valor em dólares
-   - **Imagem**: URL da imagem do produto
+   - **Imagem**: URL da imagem do produto ou faça upload
    - **Categoria**: Classificação do produto
    - **Status**: Ativo/Inativo
+   - **Order Bumps**: Selecione ofertas complementares
 4. Clique em **"Salvar"**
 
 **Slug público:**
@@ -2254,14 +2255,33 @@ O sistema gera automaticamente um slug único para o produto (ex: \`produto-incr
 A URL de checkout será: \`/p/{slug}\``
         },
         {
-          title: "Vincular Order Bumps",
-          content: `Após criar o produto, vincule order bumps:
+          title: "Conversão de Moeda (Obrigatório)",
+          content: `**IMPORTANTE:** Para salvar um produto, os preços BRL e USD devem estar sincronizados!
 
-1. Na lista de produtos, clique em **"Editar"**
-2. Role até a seção **"Order Bumps"**
-3. Selecione os order bumps que deseja exibir no checkout
-4. Defina a **ordem de exibição**
-5. Salve as alterações
+**Como funciona:**
+1. Digite o valor em **BRL** ou **USD**
+2. Clique no botão de **conversão (🔄)** ao lado do campo
+3. O sistema busca a cotação atual do dólar e converte automaticamente
+4. Uma mensagem confirma a conversão: "Convertido: $X.XX (cotação: R$X.XX)"
+
+**Indicadores visuais:**
+- 🟢 **Borda verde** + "(sincronizado)": Preços convertidos corretamente
+- 🟡 **Borda amarela** + "(não sincronizado)": Preços foram alterados manualmente
+
+**Regras:**
+- Não é permitido salvar com preços zerados
+- Não é permitido salvar sem usar o botão de conversão
+- Se editar o preço manualmente após converter, precisa converter novamente
+
+**Dica:** Use a conversão BRL → USD ou USD → BRL dependendo de qual valor você conhece.`
+        },
+        {
+          title: "Vincular Order Bumps",
+          content: `Ao criar ou editar o produto, vincule order bumps:
+
+1. Na seção **"Order Bumps Vinculados"** do formulário
+2. Marque os checkboxes dos order bumps desejados
+3. Salve o produto
 
 **Dica:** Order bumps aparecem no checkout como ofertas complementares que o cliente pode adicionar com um clique.`
         },
@@ -2270,8 +2290,11 @@ A URL de checkout será: \`/p/{slug}\``
           content: `Para compartilhar o link de checkout:
 
 1. Na lista de produtos, encontre o produto desejado
-2. Clique no ícone de **link (🔗)** ou **copiar**
+2. Clique no ícone de **link (🔗)**
 3. O link é copiado para a área de transferência
+
+**Pré-requisito:**
+Configure a URL do site em **Gateway** → **Configurações** para gerar links completos.
 
 **Formato do link:**
 \`https://seusite.com/p/{slug-do-produto}\`
@@ -2301,9 +2324,10 @@ Categorias podem ser usadas para filtrar produtos e organizar a loja.`
       ],
       tips: [
         "Use imagens de alta qualidade para melhor conversão",
-        "Preços em BRL e USD permitem vender para ambos os públicos",
+        "Sempre use o botão de conversão para sincronizar BRL/USD",
+        "Borda verde = preços sincronizados, borda amarela = não sincronizado",
         "Produtos inativos não aparecem no checkout público",
-        "O slug é gerado automaticamente mas pode ser personalizado"
+        "Configure a URL do site para copiar links completos"
       ]
     },
     {
@@ -2334,30 +2358,57 @@ Categorias podem ser usadas para filtrar produtos e organizar a loja.`
 1. Acesse **Gateway** → **Order Bumps**
 2. Clique em **"+ Novo Order Bump"**
 3. Preencha:
-   - **Nome**: Identificação interna
+   - **Nome Interno**: Identificação no painel
    - **Título**: Texto exibido no checkout
    - **Descrição**: Detalhes da oferta
    - **Preço BRL**: Valor adicional em reais
    - **Preço USD**: Valor adicional em dólares
-   - **Imagem**: URL da imagem (opcional)
+   - **Imagem**: Faça upload ou deixe vazio
    - **Permite cupom**: Se cupons podem ser aplicados
    - **Status**: Ativo/Inativo
-4. Clique em **"Salvar"**`
+4. Clique em **"Salvar"**
+
+⚠️ **Conversão obrigatória:** Use o botão de conversão (🔄) para sincronizar BRL/USD antes de salvar!`
+        },
+        {
+          title: "Conversão de Moeda",
+          content: `Assim como em produtos, order bumps exigem preços sincronizados:
+
+**Indicadores visuais:**
+- 🟢 **Borda verde** + "(sincronizado)": Preços convertidos
+- 🟡 **Borda amarela** + "(não sincronizado)": Precisa converter
+
+**Como usar:**
+1. Digite o valor em BRL ou USD
+2. Clique no botão **🔄** ao lado do campo
+3. O outro valor é preenchido automaticamente com a cotação atual
+4. Campos ficam com borda verde
+
+**Regras:**
+- Não salva com preços zerados
+- Não salva sem sincronização`
         },
         {
           title: "Vincular a produtos",
-          content: `Após criar, vincule o order bump aos produtos:
+          content: `Vincule order bumps diretamente no cadastro/edição do produto:
 
 1. Acesse **Gateway** → **Produtos**
-2. Edite o produto desejado
-3. Na seção **Order Bumps**, selecione os bumps
+2. Crie ou edite um produto
+3. Na seção **"Order Bumps Vinculados"**, marque os desejados
 4. Salve o produto
 
-**Alternativa:**
-Na lista de order bumps, clique em "Produtos Vinculados" para ver/editar os vínculos.
-
 **Múltiplos bumps:**
-Um produto pode ter vários order bumps, e eles aparecem em ordem definida.`
+Um produto pode ter vários order bumps vinculados.`
+        },
+        {
+          title: "Filtrar Order Bumps",
+          content: `Na lista de order bumps, use o filtro de cupom:
+
+- **Todos**: Exibe todos os order bumps
+- **Permite cupom**: Apenas os que aceitam desconto
+- **Não permite cupom**: Apenas os bloqueados
+
+Útil para revisar quais ofertas estão perdendo margem com cupons.`
         },
         {
           title: "Exibição no checkout",
@@ -2380,10 +2431,11 @@ Total = Subtotal - Desconto`
         }
       ],
       tips: [
+        "Sempre sincronize os preços com o botão de conversão",
+        "Borda verde = OK, borda amarela = precisa converter",
         "Order bumps com bom desconto convertem mais",
         "Use títulos atrativos como 'Adicione por apenas R$X'",
-        "Configure 'Permite cupom' com cuidado para não perder margem",
-        "Limite a 2-3 order bumps por produto para não poluir o checkout"
+        "Configure 'Permite cupom' com cuidado para não perder margem"
       ]
     },
     {

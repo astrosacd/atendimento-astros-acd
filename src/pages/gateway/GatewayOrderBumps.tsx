@@ -227,7 +227,14 @@ export default function GatewayOrderBumps() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="price_brl">Preço BRL *</Label>
+                    <Label htmlFor="price_brl" className="flex items-center gap-2">
+                      Preço BRL *
+                      {pricesSynced ? (
+                        <span className="text-xs text-green-500 font-normal">(sincronizado)</span>
+                      ) : formData.price_brl > 0 && (
+                        <span className="text-xs text-amber-500 font-normal">(não sincronizado)</span>
+                      )}
+                    </Label>
                     <div className="flex gap-2">
                       <Input
                         id="price_brl"
@@ -239,7 +246,7 @@ export default function GatewayOrderBumps() {
                           setPricesSynced(false);
                         }}
                         required
-                        className="flex-1"
+                        className={`flex-1 ${pricesSynced ? 'border-green-500 focus-visible:ring-green-500' : formData.price_brl > 0 ? 'border-amber-500 focus-visible:ring-amber-500' : ''}`}
                       />
                       <TooltipProvider>
                         <Tooltip>
@@ -269,7 +276,14 @@ export default function GatewayOrderBumps() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="price_usd">Preço USD</Label>
+                    <Label htmlFor="price_usd" className="flex items-center gap-2">
+                      Preço USD
+                      {pricesSynced ? (
+                        <span className="text-xs text-green-500 font-normal">(sincronizado)</span>
+                      ) : formData.price_usd > 0 && (
+                        <span className="text-xs text-amber-500 font-normal">(não sincronizado)</span>
+                      )}
+                    </Label>
                     <div className="flex gap-2">
                       <Input
                         id="price_usd"
@@ -280,7 +294,7 @@ export default function GatewayOrderBumps() {
                           setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }));
                           setPricesSynced(false);
                         }}
-                        className="flex-1"
+                        className={`flex-1 ${pricesSynced ? 'border-green-500 focus-visible:ring-green-500' : formData.price_usd > 0 ? 'border-amber-500 focus-visible:ring-amber-500' : ''}`}
                       />
                       <TooltipProvider>
                         <Tooltip>
