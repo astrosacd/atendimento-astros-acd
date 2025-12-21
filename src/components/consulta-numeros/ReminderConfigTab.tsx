@@ -606,17 +606,26 @@ export function ReminderConfigTab() {
                       placeholder="destinatario@email.com"
                       value={newRecipient}
                       onChange={(e) => setNewRecipient(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddRecipient()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddRecipient();
+                        }
+                      }}
                     />
-                    <Button onClick={handleAddRecipient} variant="outline">
+                    <Button type="button" onClick={handleAddRecipient} variant="outline">
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {config.gmail_recipients.map(email => (
+                    {config.gmail_recipients.map((email) => (
                       <Badge key={email} variant="secondary" className="gap-1">
                         {email}
-                        <button onClick={() => handleRemoveRecipient(email)} className="ml-1 hover:text-destructive">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRecipient(email)}
+                          className="ml-1 hover:text-destructive"
+                        >
                           <X className="h-3 w-3" />
                         </button>
                       </Badge>
