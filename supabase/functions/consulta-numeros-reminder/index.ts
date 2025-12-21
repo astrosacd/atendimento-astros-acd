@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun}${action ? `, action: ${action}` : ''})`);
 
-    // Action: list available statuses from Baserow (excluido_da_base)
+    // Action: list available statuses from Baserow (field: excluido_da_base)
     if (action === 'list_statuses') {
       // Get Baserow config
       const { data: baserowConfigData } = await supabase
@@ -94,39 +94,32 @@ Deno.serve(async (req) => {
         });
       }
 
-      const baserowUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
-      const baserowResponse = await fetch(baserowUrl, {
+      // Fetch fields metadata to get select options (reliable; does not depend on existing rows)
+      const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+      const fieldsResp = await fetch(fieldsUrl, {
         headers: {
           'Authorization': `Token ${baserowConfig.api_token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      if (!baserowResponse.ok) {
-        const errTxt = sanitizePII(await baserowResponse.text());
-        console.error('[consulta-numeros-reminder] Baserow fetch failed (list_statuses):', errTxt);
-        return new Response(JSON.stringify({ success: false, message: 'Baserow fetch failed' }), {
+      if (!fieldsResp.ok) {
+        const errTxt = sanitizePII(await fieldsResp.text());
+        console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses):', errTxt);
+        return new Response(JSON.stringify({ success: false, message: 'Baserow fields fetch failed' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      const baserowData = await baserowResponse.json();
-      const allRows = baserowData.results || [];
+      const fields = await fieldsResp.json();
+      const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
+      const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
+      const statuses = options.map((o) => o.value).filter(Boolean).sort();
 
-      const statuses = new Set<string>();
-      for (const row of allRows) {
-        let v = '';
-        const field = row.excluido_da_base;
-        if (field) {
-          if (typeof field === 'string') v = field;
-          else if (typeof field === 'object' && field.value) v = field.value;
-          else if (typeof field === 'object' && field.name) v = field.name;
-        }
-        if (v && typeof v === 'string') statuses.add(v.trim());
-      }
+      console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} option(s)`);
 
-      return new Response(JSON.stringify({ success: true, statuses: Array.from(statuses).filter(Boolean).sort() }), {
+      return new Response(JSON.stringify({ success: true, statuses }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -213,6 +206,28 @@ Deno.serve(async (req) => {
 
     // Fetch all rows from Baserow
     const baserowUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
+
+    // Fetch field options to map single_select ids -> values (excluido_da_base)
+    const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+    const fieldsResp = await fetch(fieldsUrl, {
+      headers: {
+        'Authorization': `Token ${baserowConfig.api_token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    let excluidoOptionsById: Record<string, string> = {};
+    if (fieldsResp.ok) {
+      try {
+        const fields = await fieldsResp.json();
+        const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
+        const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
+        excluidoOptionsById = Object.fromEntries(options.map((o) => [String(o.id), o.value]));
+      } catch {
+        excluidoOptionsById = {};
+      }
+    }
+
     const baserowResponse = await fetch(baserowUrl, {
       headers: {
         'Authorization': `Token ${baserowConfig.api_token}`,
@@ -241,39 +256,36 @@ Deno.serve(async (req) => {
 
     // Filter rows by monitored statuses
     const matchingRows: { numero: string; status: string }[] = [];
-    
+
+    const normalizeStatus = (s: unknown): string => {
+      if (!s) return '';
+      if (typeof s === 'string') return s.trim();
+      if (typeof s === 'number') return excluidoOptionsById[String(s)] || '';
+      if (typeof s === 'object') {
+        const obj: any = s;
+        if (obj.value && typeof obj.value === 'string') return obj.value.trim();
+        if (obj.name && typeof obj.name === 'string') return obj.name.trim();
+        if (obj.id != null) return excluidoOptionsById[String(obj.id)] || '';
+      }
+      return '';
+    };
+
     for (const row of allRows) {
-      // Check multiple possible status field names
       let statusValue = '';
-      
-      // Try excluido_da_base field
-      if (row.excluido_da_base) {
-        if (typeof row.excluido_da_base === 'string') {
-          statusValue = row.excluido_da_base;
-        } else if (row.excluido_da_base.value) {
-          statusValue = row.excluido_da_base.value;
-        }
-      }
-      
-      // Try Status field as fallback
-      if (!statusValue && row.Status) {
-        if (typeof row.Status === 'string') {
-          statusValue = row.Status;
-        } else if (row.Status.value) {
-          statusValue = row.Status.value;
-        }
-      }
-      
-      // Try status (lowercase) as fallback
-      if (!statusValue && row.status) {
-        if (typeof row.status === 'string') {
-          statusValue = row.status;
-        } else if (row.status.value) {
-          statusValue = row.status.value;
-        }
+
+      // Primary: excluido_da_base (single_select)
+      if (row.excluido_da_base != null) {
+        statusValue = normalizeStatus(row.excluido_da_base);
       }
 
-      // Log unique statuses found for debugging (only once per status)
+      // Fallbacks (kept for compatibility)
+      if (!statusValue && row.Status) {
+        statusValue = normalizeStatus(row.Status);
+      }
+      if (!statusValue && row.status) {
+        statusValue = normalizeStatus(row.status);
+      }
+
       if (statusValue && allRows.indexOf(row) < 5) {
         console.log(`[consulta-numeros-reminder] Sample status value: "${statusValue}"`);
       }

@@ -358,7 +358,22 @@ export function ReminderConfigTab() {
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => refetchStatuses()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await refetchStatuses();
+                        toast({ title: 'Lista atualizada!' });
+                      } catch (e: any) {
+                        toast({
+                          title: 'Erro ao atualizar lista',
+                          description: e?.message || String(e),
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                  >
                     Atualizar lista
                   </Button>
                 </div>
