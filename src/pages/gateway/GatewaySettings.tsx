@@ -139,11 +139,6 @@ export default function GatewaySettings() {
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar
               </Button>
-              <Button variant="outline" asChild className="shrink-0">
-                <a href={catalogUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
             </div>
           </div>
         </CardContent>
