@@ -105,6 +105,7 @@ const categoryToPermission: Record<string, string> = {
   'restauracao': 'view_guia_clientes',
   'divulgador': 'view_guia_divulgador',
   'status-numeros': 'view_guia_numeros',
+  'consulta-numeros': 'view_guia_numeros',
   'gateway-visao-geral': 'view_guia_gateway',
   'gateway-produtos': 'view_guia_gateway',
   'gateway-order-bumps': 'view_guia_gateway',
@@ -228,7 +229,7 @@ const AdminGuia = () => {
       title: "Números",
       icon: Smartphone,
       color: "text-lime-400",
-      categories: ["status-numeros"],
+      categories: ["status-numeros", "consulta-numeros"],
       permissionKey: "view_guia_numeros"
     },
     {
@@ -2158,6 +2159,77 @@ curl -X GET "/functions/v1/api-numeros-aquecimento/history/UUID" \\
         "Exporte CSV regularmente como backup",
         "Use filtros para encontrar números rapidamente",
         "Observações são úteis para anotações de manutenção"
+      ]
+    },
+    {
+      id: "consulta-numeros",
+      title: "Consulta de Números (Baserow)",
+      icon: Database,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Consulte e atualize registros de números armazenados no Baserow com API, webhooks e lembretes automáticos",
+      steps: [
+        {
+          title: "O que é a Consulta de Números?",
+          content: `O módulo **Consulta de Números** permite gerenciar registros no **Baserow** (banco de dados no-code):
+
+- **Consulta rápida**: Busque números por texto parcial ou completo
+- **Filtros por status**: Filtre por status do Baserow
+- **Atualização em tempo real**: Altere status e observações direto no Baserow
+- **Histórico completo**: Auditoria de todas as ações
+- **API REST**: Integração externa com autenticação por API Key
+- **Webhooks**: Notifique sistemas externos sobre eventos
+- **Lembretes automáticos**: Alertas via WhatsApp e/ou E-mail
+
+📖 **Documentação completa disponível no módulo!**`
+        },
+        {
+          title: "Acessar a documentação completa",
+          content: `Para ver a documentação detalhada com:
+
+- **Configuração do Baserow** (passo a passo)
+- **API REST completa** com exemplos cURL
+- **Webhooks** e eventos disponíveis
+- **Lembretes automáticos** (WhatsApp e Gmail)
+- **Permissões** do módulo
+
+**Acesse:**
+1. Vá em **Consulta de Números** no menu lateral
+2. Clique na aba **Guia** ou no botão **📖 Guia**
+
+Ou acesse diretamente: **/admin/consulta-numeros/guia**`
+        },
+        {
+          title: "Recursos principais",
+          content: `**Consulta:**
+- Busca por número (parcial ou completo)
+- Filtro por status do Baserow
+- Visualização de todos os campos mapeados
+
+**Atualização:**
+- Alterar status diretamente
+- Adicionar/editar observações
+- Sincronização automática com Baserow
+
+**Lembretes Automáticos:**
+- Monitorar números por status específicos
+- Enviar alertas via WhatsApp (Evolution API)
+- Enviar alertas via E-mail (Gmail)
+- Cron configurável (horários e dias)
+- Histórico de envios
+
+**Integrações:**
+- API REST com autenticação por API Key
+- Webhooks para eventos (consulta, atualização)
+- Histórico completo de ações`
+        }
+      ],
+      tips: [
+        "A documentação completa está no próprio módulo Consulta de Números",
+        "Configure o Baserow antes de usar o módulo",
+        "Use lembretes para monitorar números com status críticos",
+        "Crie API Keys separadas para cada integração",
+        "O histórico registra todas as ações para auditoria"
       ]
     },
     {
