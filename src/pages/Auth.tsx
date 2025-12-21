@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -51,16 +51,9 @@ export default function Auth() {
   const codigo = searchParams.get('codigo');
   const hasValidCode = codigo === AUTH_ACCESS_CODE;
 
-  // Redireciona para catálogo se não tiver código válido
-  useEffect(() => {
-    if (!hasValidCode) {
-      navigate('/catalogo', { replace: true });
-    }
-  }, [hasValidCode, navigate]);
-
-  // Se não tem código válido, mostra loading enquanto redireciona
+  // Se não tem código válido, joga direto pro catálogo (sem renderizar login)
   if (!hasValidCode) {
-    return null; // Retorna nada enquanto redireciona
+    return <Navigate to="/catalogo" replace />;
   }
 
   useEffect(() => {
