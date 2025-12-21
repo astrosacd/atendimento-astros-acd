@@ -613,6 +613,13 @@ export function useProductOrderBumps(productId: string | null) {
   };
 }
 
+// Base URL Hook for generating links
+export function useGatewayBaseUrl() {
+  const { settings } = useGatewaySettings();
+  const baseUrl = settings.site_url?.url || window.location.origin;
+  return baseUrl;
+}
+
 // Dashboard Stats Hook
 export function useGatewayDashboard() {
   return useQuery({
