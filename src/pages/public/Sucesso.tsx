@@ -1,41 +1,117 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
+type SuccessPageSettings = {
+  enabled?: boolean;
+  title?: string;
+  message?: string;
+  instructions?: string;
+  primary_button_text?: string;
+  primary_button_path?: string;
+};
+
+type OrderSummary = {
+  pedido?: string;
+  nome?: string;
+  email?: string;
+  telefone?: string;
+  produto?: string;
+  valor?: string;
+};
+
+const applyVars = (text: string, vars: OrderSummary) => {
+  return text
+    .replace(/{pedido}/g, vars.pedido || '')
+    .replace(/{nome}/g, vars.nome || '')
+    .replace(/{email}/g, vars.email || '')
+    .replace(/{telefone}/g, vars.telefone || '')
+    .replace(/{produto}/g, vars.produto || '')
+    .replace(/{valor}/g, vars.valor || '');
+};
+
 export default function Sucesso() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isVerifying, setIsVerifying] = useState(true);
   const [verified, setVerified] = useState(false);
+  const [successSettings, setSuccessSettings] = useState<SuccessPageSettings | null>(null);
+  const [orderVars, setOrderVars] = useState<OrderSummary>({});
 
   useEffect(() => {
     const verifyPayment = async () => {
       const sessionId = searchParams.get('session_id');
-      
-      if (sessionId) {
-        try {
-          const { data, error } = await supabase.functions.invoke('gateway-verify-payment', {
+
+      try {
+        // Load success page settings
+        const { data: settingsRow } = await supabase
+          .from('gateway_settings')
+          .select('value')
+          .eq('key', 'success_page')
+          .maybeSingle();
+
+        const loadedSettings = (settingsRow?.value || null) as SuccessPageSettings | null;
+        setSuccessSettings(loadedSettings);
+
+        if (sessionId) {
+          const { data } = await supabase.functions.invoke('gateway-verify-payment', {
             body: { sessionId }
           });
 
-          console.log('Verification result:', data, error);
-          
-          if (data?.success) {
+          if (data?.success && (data?.status === 'paid' || data?.status === 'already_paid')) {
             setVerified(true);
           }
-        } catch (err) {
-          console.error('Error verifying payment:', err);
+
+          const order = data?.order;
+          if (order) {
+            setOrderVars({
+              pedido: order.id,
+              nome: order.customer_name,
+              email: order.customer_email,
+              telefone: order.customer_phone || '',
+              produto: order.product?.name || order.product_name || '',
+              valor: typeof order.total === 'number' ? order.total.toFixed(2) : String(order.total || ''),
+            });
+          }
         }
+      } catch {
+        // Ignore
+      } finally {
+        setIsVerifying(false);
       }
-      
-      setIsVerifying(false);
     };
 
     verifyPayment();
   }, [searchParams]);
+
+  const defaults: Required<SuccessPageSettings> = useMemo(() => ({
+    enabled: true,
+    title: 'Compra Realizada!',
+    message: 'Obrigado pela sua compra! Você receberá uma confirmação por WhatsApp e/ou email em breve.',
+    instructions: '',
+    primary_button_text: 'Voltar ao Catálogo',
+    primary_button_path: '/catalogo'
+  }), []);
+
+  const resolved = {
+    ...defaults,
+    ...(successSettings || {})
+  };
+
+  useEffect(() => {
+    document.title = resolved.title.length 
+      ? `${resolved.title} | Checkout`
+      : 'Compra realizada | Checkout';
+  }, [resolved.title]);
+
+  const finalTitle = resolved.enabled ? applyVars(resolved.title, orderVars) : defaults.title;
+  const finalMessage = resolved.enabled ? applyVars(resolved.message, orderVars) : defaults.message;
+  const finalInstructions = resolved.enabled ? applyVars(resolved.instructions || '', orderVars) : '';
+  const buttonText = resolved.enabled ? applyVars(resolved.primary_button_text, orderVars) : defaults.primary_button_text;
+  const buttonPath = resolved.enabled ? applyVars(resolved.primary_button_path, orderVars) : defaults.primary_button_path;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
@@ -46,34 +122,32 @@ export default function Sucesso() {
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                Verificando Pagamento...
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Aguarde enquanto confirmamos seu pagamento.
-              </p>
+              <h1 className="text-2xl font-bold text-foreground mb-2">Verificando Pagamento...</h1>
+              <p className="text-muted-foreground mb-6">Aguarde enquanto confirmamos seu pagamento.</p>
             </>
           ) : (
             <>
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500" />
               </div>
-              
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                Compra Realizada!
-              </h1>
-              
-              <p className="text-muted-foreground mb-6">
-                Obrigado pela sua compra! Você receberá uma confirmação por WhatsApp e/ou email em breve.
-              </p>
+
+              <h1 className="text-2xl font-bold text-foreground mb-2">{finalTitle}</h1>
+
+              <p className="text-muted-foreground mb-4">{finalMessage}</p>
+
+              {finalInstructions ? (
+                <div className="text-left rounded-lg border border-border bg-muted/30 p-4 mb-6">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{finalInstructions}</p>
+                </div>
+              ) : null}
 
               <Button
                 variant="outline"
-                onClick={() => navigate('/catalogo')}
+                onClick={() => navigate(buttonPath)}
                 className="gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Voltar ao Catálogo
+                {buttonText}
               </Button>
             </>
           )}

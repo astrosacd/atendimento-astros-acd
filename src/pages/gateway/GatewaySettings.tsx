@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function GatewaySettings() {
@@ -21,6 +21,14 @@ export default function GatewaySettings() {
     countdown_enabled: false, 
     countdown_minutes: 10,
     countdown_message: 'Complete sua compra antes do contador chegar a zero!'
+  });
+  const [successPage, setSuccessPage] = useState({
+    enabled: true,
+    title: 'Compra Realizada!',
+    message: 'Obrigado pela sua compra! Você receberá uma confirmação por WhatsApp e/ou email em breve.',
+    instructions: 'Se precisar de ajuda, responda a mensagem recebida no WhatsApp ou entre em contato pelo email.',
+    primary_button_text: 'Voltar ao Catálogo',
+    primary_button_path: '/catalogo'
   });
   const [notifications, setNotifications] = useState({
     whatsapp_enabled: false,
@@ -42,6 +50,7 @@ export default function GatewaySettings() {
     if (settings.email) setEmail(settings.email);
     if (settings.abandoned_cart) setAbandonedCart(settings.abandoned_cart);
     if (settings.checkout) setCheckout(settings.checkout);
+    if (settings.success_page) setSuccessPage(settings.success_page);
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
     if (settings.site_url) setSiteUrl(settings.site_url.url || '');
   }, [settings]);
@@ -68,6 +77,10 @@ export default function GatewaySettings() {
 
   const handleSaveNotifications = () => {
     updateSetting({ key: 'payment_notifications', value: notifications });
+  };
+
+  const handleSaveSuccessPage = () => {
+    updateSetting({ key: 'success_page', value: successPage });
   };
 
   const handleSaveSiteUrl = () => {
@@ -190,6 +203,10 @@ export default function GatewaySettings() {
             <Timer className="h-4 w-4" />
             Checkout
           </TabsTrigger>
+          <TabsTrigger value="success" className="gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Sucesso
+          </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notificações
@@ -307,6 +324,78 @@ export default function GatewaySettings() {
               </div>
               <Button onClick={handleSaveCheckout} disabled={isUpdating}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Configuração
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="success" className="space-y-4">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Página de Sucesso</CardTitle>
+              <CardDescription>Personalize a mensagem exibida após o pagamento</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={successPage.enabled}
+                  onCheckedChange={(checked) => setSuccessPage(prev => ({ ...prev, enabled: checked }))}
+                />
+                <Label>Habilitar personalização</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Título</Label>
+                  <Input
+                    value={successPage.title}
+                    onChange={(e) => setSuccessPage(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Compra Realizada!"
+                  />
+                </div>
+                <div>
+                  <Label>Texto do Botão</Label>
+                  <Input
+                    value={successPage.primary_button_text}
+                    onChange={(e) => setSuccessPage(prev => ({ ...prev, primary_button_text: e.target.value }))}
+                    placeholder="Voltar ao Catálogo"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Mensagem</Label>
+                <Textarea
+                  value={successPage.message}
+                  onChange={(e) => setSuccessPage(prev => ({ ...prev, message: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label>Instruções / Como acessar</Label>
+                <Textarea
+                  value={successPage.instructions}
+                  onChange={(e) => setSuccessPage(prev => ({ ...prev, instructions: e.target.value }))}
+                  rows={4}
+                  placeholder="Ex: Você receberá o acesso por WhatsApp. Guarde este comprovante..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Variáveis: {'{nome}'}, {'{email}'}, {'{produto}'}, {'{valor}'}, {'{telefone}'}, {'{pedido}'}
+                </p>
+              </div>
+
+              <div>
+                <Label>Destino do Botão (caminho)</Label>
+                <Input
+                  value={successPage.primary_button_path}
+                  onChange={(e) => setSuccessPage(prev => ({ ...prev, primary_button_path: e.target.value }))}
+                  placeholder="/catalogo"
+                />
+              </div>
+
+              <Button onClick={handleSaveSuccessPage} disabled={isUpdating} className="w-full">
+                <Save className="h-4 w-4 mr-2" /> Salvar Página de Sucesso
               </Button>
             </CardContent>
           </Card>

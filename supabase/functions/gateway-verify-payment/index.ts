@@ -18,6 +18,17 @@ interface OrderData {
   };
 }
 
+type VerifyResponse = {
+  success: boolean;
+  status: 'paid' | 'pending' | 'already_paid';
+  message?: string;
+  order?: OrderData;
+  notifications?: {
+    whatsapp: { success: boolean; error?: string };
+    email: { success: boolean; error?: string };
+  };
+};
+
 interface NotificationSettings {
   whatsapp_enabled?: boolean;
   whatsapp_instance_name?: string;
@@ -214,10 +225,23 @@ serve(async (req) => {
                 console.log(`Order ${orderIdFromSession} marked as paid`);
               } else if (orderData?.status === "paid") {
                 // Already paid, don't send notifications again
-                return new Response(
-                  JSON.stringify({ success: true, status: "already_paid", message: "Order already processed" }),
-                  { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-                );
+                const resp: VerifyResponse = {
+                  success: true,
+                  status: "already_paid",
+                  message: "Order already processed",
+                  order: {
+                    id: orderData.id,
+                    customer_name: orderData.customer_name,
+                    customer_email: orderData.customer_email,
+                    customer_phone: orderData.customer_phone,
+                    total: Number(orderData.total),
+                    product: orderData.product,
+                  },
+                };
+                return new Response(JSON.stringify(resp), {
+                  status: 200,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
               }
             }
           }
@@ -234,10 +258,23 @@ serve(async (req) => {
         .single();
 
       if (orderData && orderData.status === "paid") {
-        return new Response(
-          JSON.stringify({ success: true, status: "already_paid", message: "Order already processed" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const resp: VerifyResponse = {
+          success: true,
+          status: "already_paid",
+          message: "Order already processed",
+          order: {
+            id: orderData.id,
+            customer_name: orderData.customer_name,
+            customer_email: orderData.customer_email,
+            customer_phone: orderData.customer_phone,
+            total: Number(orderData.total),
+            product: orderData.product,
+          },
+        };
+        return new Response(JSON.stringify(resp), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -258,23 +295,32 @@ serve(async (req) => {
       const emailResult = await sendEmailNotification(orderForNotification, notificationSettings);
       console.log("Email result:", emailResult);
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          status: "paid",
-          notifications: {
-            whatsapp: whatsappResult,
-            email: emailResult,
-          }
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const resp: VerifyResponse = {
+        success: true,
+        status: "paid",
+        order: orderForNotification,
+        notifications: {
+          whatsapp: whatsappResult,
+          email: emailResult,
+        },
+      };
+
+      return new Response(JSON.stringify(resp), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ success: true, status: "pending", message: "Payment not yet confirmed" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const resp: VerifyResponse = {
+      success: true,
+      status: "pending",
+      message: "Payment not yet confirmed",
+    };
+
+    return new Response(JSON.stringify(resp), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
   } catch (error: any) {
     console.error("Error verifying payment:", error);
