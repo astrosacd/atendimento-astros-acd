@@ -43,21 +43,25 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
-  const [hasAccess, setHasAccess] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
-  // Verifica se o código de acesso está correto na URL
+  // Verifica código de acesso ANTES de qualquer outra coisa
+  const codigo = searchParams.get('codigo');
+  const hasValidCode = codigo === AUTH_ACCESS_CODE;
+
+  // Redireciona para catálogo se não tiver código válido
   useEffect(() => {
-    const codigo = searchParams.get('codigo');
-    if (codigo === AUTH_ACCESS_CODE) {
-      setHasAccess(true);
-    } else {
-      // Sem código válido, redireciona para o catálogo
+    if (!hasValidCode) {
       navigate('/catalogo', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [hasValidCode, navigate]);
+
+  // Se não tem código válido, mostra loading enquanto redireciona
+  if (!hasValidCode) {
+    return null; // Retorna nada enquanto redireciona
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -298,14 +302,6 @@ export default function Auth() {
     }
   };
 
-  // Se não tem acesso (código inválido), não mostra nada enquanto redireciona
-  if (!hasAccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Redirecionando...</div>
-      </div>
-    );
-  }
 
   if (authLoading) {
     return (
