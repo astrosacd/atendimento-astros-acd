@@ -74,6 +74,10 @@ export default function GatewayOrderBumps() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (formData.price_usd <= 0) {
+      toast.error('Preencha o preço em USD antes de salvar. Use o botão de conversão automática.');
+      return;
+    }
     if (editingOrderBump) {
       updateOrderBump({ id: editingOrderBump.id, ...formData }, {
         onSuccess: () => handleOpenChange(false)

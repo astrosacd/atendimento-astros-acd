@@ -89,6 +89,11 @@ export default function GatewayProducts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (formData.price_usd <= 0) {
+      toast.error('Preencha o preço em USD antes de salvar. Use o botão de conversão automática.');
+      return;
+    }
+    
     const productData = {
       ...formData,
       category_id: formData.category_id || null,
