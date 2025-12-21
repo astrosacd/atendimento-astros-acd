@@ -2776,10 +2776,10 @@ Este endpoint recebe notificações de pagamentos confirmados/cancelados.`
 - \`{nome}\`, \`{email}\`, \`{produto}\`, \`{valor}\`, \`{telefone}\`, \`{pedido}\``
         },
         {
-          title: "Aba Notificações",
+          title: "Aba Compras Aprovadas",
           content: `**Notificações de pagamento aprovado:**
 
-1. Acesse **Gateway** → **Configurações** → aba **Notificações**
+1. Acesse **Gateway** → **Configurações** → aba **Compras Aprovadas**
 
 **WhatsApp (Evolution API):**
 - Ative **"Habilitar notificação WhatsApp"**

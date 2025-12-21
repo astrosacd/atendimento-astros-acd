@@ -329,7 +329,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
-            Notificações
+            Compras Aprovadas
           </TabsTrigger>
           <TabsTrigger value="abandoned" className="gap-2">
             <ShoppingCart className="h-4 w-4" />
