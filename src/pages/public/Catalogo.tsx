@@ -74,7 +74,8 @@ export default function Catalogo() {
   };
 
   const copyLink = (slug: string) => {
-    const url = `/p/${slug}`;
+    const path = `/p/${slug}`;
+    const url = `${window.location.origin}${path}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };

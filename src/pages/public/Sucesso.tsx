@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Loader2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type SuccessPageSettings = {
@@ -12,6 +12,10 @@ type SuccessPageSettings = {
   instructions?: string;
   primary_button_text?: string;
   primary_button_path?: string;
+  support_whatsapp_enabled?: boolean;
+  support_whatsapp_number?: string;
+  support_whatsapp_button_text?: string;
+  support_whatsapp_message?: string;
 };
 
 type OrderSummary = {
@@ -93,7 +97,11 @@ export default function Sucesso() {
     message: 'Obrigado pela sua compra! Você receberá uma confirmação por WhatsApp e/ou email em breve.',
     instructions: '',
     primary_button_text: 'Voltar ao Catálogo',
-    primary_button_path: '/catalogo'
+    primary_button_path: '/catalogo',
+    support_whatsapp_enabled: false,
+    support_whatsapp_number: '',
+    support_whatsapp_button_text: 'Falar com Suporte no WhatsApp',
+    support_whatsapp_message: 'Olá! Preciso de ajuda com meu pedido {pedido}.\n\nNome: {nome}\nEmail: {email}\nProduto: {produto}\nValor: {valor}\nTelefone: {telefone}'
   }), []);
 
   const resolved = {
@@ -112,6 +120,13 @@ export default function Sucesso() {
   const finalInstructions = resolved.enabled ? applyVars(resolved.instructions || '', orderVars) : '';
   const buttonText = resolved.enabled ? applyVars(resolved.primary_button_text, orderVars) : defaults.primary_button_text;
   const buttonPath = resolved.enabled ? applyVars(resolved.primary_button_path, orderVars) : defaults.primary_button_path;
+
+  const supportEnabled = resolved.enabled ? !!resolved.support_whatsapp_enabled : false;
+  const supportNumberRaw = resolved.enabled ? String(resolved.support_whatsapp_number || '') : '';
+  const supportNumber = supportNumberRaw.replace(/\D/g, '');
+  const supportButtonText = resolved.enabled ? applyVars(resolved.support_whatsapp_button_text || defaults.support_whatsapp_button_text, orderVars) : defaults.support_whatsapp_button_text;
+  const supportMessage = resolved.enabled ? applyVars(resolved.support_whatsapp_message || defaults.support_whatsapp_message, orderVars) : defaults.support_whatsapp_message;
+  const supportUrl = supportNumber ? `https://wa.me/${supportNumber}?text=${encodeURIComponent(supportMessage)}` : '';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
@@ -141,14 +156,25 @@ export default function Sucesso() {
                 </div>
               ) : null}
 
-              <Button
-                variant="outline"
-                onClick={() => navigate(buttonPath)}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {buttonText}
-              </Button>
+              <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(buttonPath)}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {buttonText}
+                </Button>
+
+                {supportEnabled && supportUrl ? (
+                  <Button asChild className="gap-2">
+                    <a href={supportUrl} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="h-4 w-4" />
+                      {supportButtonText}
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
             </>
           )}
         </CardContent>
