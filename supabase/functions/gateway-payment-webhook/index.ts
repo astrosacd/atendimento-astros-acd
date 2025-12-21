@@ -31,6 +31,33 @@ interface NotificationSettings {
   email_template?: string;
 }
 
+// SECURITY: Sanitize PII from log messages
+const sanitizePII = (text: string): string => {
+  return text
+    .replace(/[\w._%+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[EMAIL]')
+    .replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, '[CPF]')
+    .replace(/\b\d{11}\b/g, '[CPF]')
+    .replace(/\b\d{10,11}\b/g, '[PHONE]');
+};
+
+// SECURITY: Sanitize order data for logging
+const sanitizeOrderForLog = (data: any): any => {
+  if (!data) return data;
+  const sanitized = { ...data };
+  if (sanitized.customer_email) sanitized.customer_email = '[EMAIL]';
+  if (sanitized.customer_phone) sanitized.customer_phone = '[PHONE]';
+  if (sanitized.customer_cpf) sanitized.customer_cpf = '[CPF]';
+  if (sanitized.customer_name) sanitized.customer_name = '[REDACTED]';
+  if (sanitized.payer) {
+    sanitized.payer = { ...sanitized.payer };
+    if (sanitized.payer.email) sanitized.payer.email = '[EMAIL]';
+    if (sanitized.payer.first_name) sanitized.payer.first_name = '[REDACTED]';
+    if (sanitized.payer.last_name) sanitized.payer.last_name = '[REDACTED]';
+    if (sanitized.payer.identification) sanitized.payer.identification = '[REDACTED]';
+  }
+  return sanitized;
+};
+
 // Function to replace template variables
 const replaceVariables = (template: string, order: OrderData): string => {
   return template
@@ -160,7 +187,7 @@ serve(async (req) => {
       data = Object.fromEntries(formData.entries());
     }
 
-    console.log("Webhook received:", JSON.stringify(data, null, 2));
+    console.log("Webhook received:", JSON.stringify(sanitizeOrderForLog(data), null, 2));
 
     // Get gateway settings
     const { data: settings } = await supabase
@@ -203,7 +230,7 @@ serve(async (req) => {
       }
 
       const payment = await mpResponse.json();
-      console.log("MP Payment details:", JSON.stringify(payment, null, 2));
+      console.log("MP Payment details:", JSON.stringify(sanitizeOrderForLog(payment), null, 2));
 
       const orderId = payment.external_reference;
       
