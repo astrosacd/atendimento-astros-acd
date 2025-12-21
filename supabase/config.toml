@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.gateway-public-settings]
 verify_jwt = false
+
+[functions.consulta-numeros-reminder]
+verify_jwt = false

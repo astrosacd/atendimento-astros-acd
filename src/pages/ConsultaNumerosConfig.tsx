@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell } from 'lucide-react';
+import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -362,7 +363,7 @@ export default function ConsultaNumerosConfig() {
           </div>
         ) : (
           <Tabs defaultValue="connection" className="space-y-6">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="connection" className="gap-2">
                 <Database className="h-4 w-4" />
                 Conexão
@@ -378,6 +379,10 @@ export default function ConsultaNumerosConfig() {
               <TabsTrigger value="email" className="gap-2">
                 <Mail className="h-4 w-4" />
                 Email Desbanimento
+              </TabsTrigger>
+              <TabsTrigger value="reminders" className="gap-2">
+                <Bell className="h-4 w-4" />
+                Lembretes
               </TabsTrigger>
             </TabsList>
 
@@ -758,6 +763,10 @@ export default function ConsultaNumerosConfig() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="reminders">
+              <ReminderConfigTab />
             </TabsContent>
           </Tabs>
         )}

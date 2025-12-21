@@ -708,6 +708,111 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_reminder_config: {
+        Row: {
+          created_at: string
+          cron_days: string[]
+          cron_end_hour: number
+          cron_interval_hours: number
+          cron_start_hour: number
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          evolution_instance_name: string | null
+          gmail_app_password: string | null
+          gmail_enabled: boolean
+          gmail_recipients: string[] | null
+          gmail_subject_template: string | null
+          gmail_user: string | null
+          id: string
+          is_active: boolean
+          message_template: string | null
+          status_to_monitor: string[]
+          updated_at: string
+          whatsapp_enabled: boolean
+          whatsapp_group_id: string | null
+          whatsapp_mention_all: boolean
+        }
+        Insert: {
+          created_at?: string
+          cron_days?: string[]
+          cron_end_hour?: number
+          cron_interval_hours?: number
+          cron_start_hour?: number
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
+          gmail_app_password?: string | null
+          gmail_enabled?: boolean
+          gmail_recipients?: string[] | null
+          gmail_subject_template?: string | null
+          gmail_user?: string | null
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          status_to_monitor?: string[]
+          updated_at?: string
+          whatsapp_enabled?: boolean
+          whatsapp_group_id?: string | null
+          whatsapp_mention_all?: boolean
+        }
+        Update: {
+          created_at?: string
+          cron_days?: string[]
+          cron_end_hour?: number
+          cron_interval_hours?: number
+          cron_start_hour?: number
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
+          gmail_app_password?: string | null
+          gmail_enabled?: boolean
+          gmail_recipients?: string[] | null
+          gmail_subject_template?: string | null
+          gmail_user?: string | null
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          status_to_monitor?: string[]
+          updated_at?: string
+          whatsapp_enabled?: boolean
+          whatsapp_group_id?: string | null
+          whatsapp_mention_all?: boolean
+        }
+        Relationships: []
+      }
+      consulta_numeros_reminder_logs: {
+        Row: {
+          channel: string
+          error_message: string | null
+          id: string
+          numbers_count: number
+          numbers_list: string[] | null
+          sent_at: string
+          status: string
+          status_monitored: string | null
+        }
+        Insert: {
+          channel: string
+          error_message?: string | null
+          id?: string
+          numbers_count?: number
+          numbers_list?: string[] | null
+          sent_at?: string
+          status?: string
+          status_monitored?: string | null
+        }
+        Update: {
+          channel?: string
+          error_message?: string | null
+          id?: string
+          numbers_count?: number
+          numbers_list?: string[] | null
+          sent_at?: string
+          status?: string
+          status_monitored?: string | null
+        }
+        Relationships: []
+      }
       consulta_numeros_webhooks: {
         Row: {
           created_at: string
