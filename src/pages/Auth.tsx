@@ -48,28 +48,49 @@ export default function Auth() {
 
   // Busca o código de acesso configurado no banco via função pública
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAuthCode = async () => {
-      const { data, error } = await supabase.rpc('get_auth_access_code');
-      
-      if (error) {
-        console.error('Erro ao buscar código de acesso:', error);
+      try {
+        // Timeout para evitar tela travada caso a chamada não responda
+        const timeoutMs = 2500;
+        const rpcPromise = supabase.rpc('get_auth_access_code');
+        const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), timeoutMs)
+        );
+
+        const { data, error } = await Promise.race([rpcPromise as any, timeoutPromise]);
+
+        const code = !error && typeof data === 'string' && data.trim() ? data.trim() : 'astros2024';
+        if (!cancelled) {
+          setAuthCodeConfig(code);
+          setIsLoadingCode(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setAuthCodeConfig('astros2024');
+          setIsLoadingCode(false);
+        }
       }
-      
-      const code = data || 'astros2024'; // fallback para código padrão
-      setAuthCodeConfig(code);
-      setIsLoadingCode(false);
     };
+
     fetchAuthCode();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Verifica código de acesso ANTES de qualquer outra coisa
   const codigo = searchParams.get('codigo');
-  
+
   // Ainda carregando o código do banco
   if (isLoadingCode) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-primary">Verificando acesso...</div>
+        <div className="flex flex-col items-center gap-2 text-foreground">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <div className="text-sm">Verificando acesso…</div>
+        </div>
       </div>
     );
   }
