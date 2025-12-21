@@ -313,9 +313,51 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, conversationId, userId, userRole, isAdmin } = await req.json();
+    // SECURITY FIX: Only accept messages and conversationId from client
+    // userId, userRole, and isAdmin will be verified server-side from JWT
+    const { messages, conversationId } = await req.json();
+    
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    // SECURITY FIX: Verify user authentication from JWT
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Get user from JWT (verified by Supabase)
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth verification failed:", userError);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // SECURITY FIX: Fetch role from database using service role (not client-supplied)
+    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    
+    const { data: roleData } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    // Server-verified values
+    const userId = user.id;
+    const userRole = roleData?.role || 'user';
+    const isAdmin = userRole === 'admin';
 
     // Default configuration
     const aiConfig: AIConfig = {
@@ -327,72 +369,67 @@ serve(async (req) => {
       denialMessage: 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso.',
     };
     
-    let supabase: any = null;
-    
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        
-        const { data: configData } = await supabase
-          .from('billing_config')
-          .select('config_key, config_value')
-          .in('config_key', [
-            'chat_ai_prompt', 
-            'chat_ai_model', 
-            'chat_ai_provider',
-            'chat_openai_api_key',
-            'chat_groq_api_key',
-            'chat_role_restriction_enabled',
-            'chat_role_topics',
-            'chat_denial_message'
-          ]);
-        
-        if (configData) {
-          for (const item of configData) {
-            if (item.config_key === 'chat_ai_prompt' && item.config_value) {
-              aiConfig.systemPrompt = item.config_value;
-            }
-            if (item.config_key === 'chat_ai_model' && item.config_value) {
-              aiConfig.model = item.config_value;
-            }
-            if (item.config_key === 'chat_ai_provider' && item.config_value) {
-              aiConfig.provider = item.config_value;
-            }
-            if (item.config_key === 'chat_openai_api_key' && item.config_value) {
-              aiConfig.openaiApiKey = item.config_value;
-            }
-            if (item.config_key === 'chat_groq_api_key' && item.config_value) {
-              aiConfig.groqApiKey = item.config_value;
-            }
-            if (item.config_key === 'chat_role_restriction_enabled') {
-              aiConfig.roleRestrictionEnabled = item.config_value === 'true';
-            }
-            if (item.config_key === 'chat_role_topics' && item.config_value) {
-              try {
-                aiConfig.roleTopics = JSON.parse(item.config_value);
-              } catch {
-                aiConfig.roleTopics = {};
-              }
-            }
-            if (item.config_key === 'chat_denial_message' && item.config_value) {
-              aiConfig.denialMessage = item.config_value;
+    // Load config from database
+    try {
+      const { data: configData } = await supabaseAdmin
+        .from('billing_config')
+        .select('config_key, config_value')
+        .in('config_key', [
+          'chat_ai_prompt', 
+          'chat_ai_model', 
+          'chat_ai_provider',
+          'chat_openai_api_key',
+          'chat_groq_api_key',
+          'chat_role_restriction_enabled',
+          'chat_role_topics',
+          'chat_denial_message'
+        ]);
+      
+      if (configData) {
+        for (const item of configData) {
+          if (item.config_key === 'chat_ai_prompt' && item.config_value) {
+            aiConfig.systemPrompt = item.config_value;
+          }
+          if (item.config_key === 'chat_ai_model' && item.config_value) {
+            aiConfig.model = item.config_value;
+          }
+          if (item.config_key === 'chat_ai_provider' && item.config_value) {
+            aiConfig.provider = item.config_value;
+          }
+          if (item.config_key === 'chat_openai_api_key' && item.config_value) {
+            aiConfig.openaiApiKey = item.config_value;
+          }
+          if (item.config_key === 'chat_groq_api_key' && item.config_value) {
+            aiConfig.groqApiKey = item.config_value;
+          }
+          if (item.config_key === 'chat_role_restriction_enabled') {
+            aiConfig.roleRestrictionEnabled = item.config_value === 'true';
+          }
+          if (item.config_key === 'chat_role_topics' && item.config_value) {
+            try {
+              aiConfig.roleTopics = JSON.parse(item.config_value);
+            } catch {
+              aiConfig.roleTopics = {};
             }
           }
+          if (item.config_key === 'chat_denial_message' && item.config_value) {
+            aiConfig.denialMessage = item.config_value;
+          }
         }
-      } catch (dbError) {
-        console.error("Error fetching config:", dbError);
       }
+    } catch (dbError) {
+      console.error("Error fetching config:", dbError);
     }
 
     console.log("Using AI provider:", aiConfig.provider, "model:", aiConfig.model);
-    console.log("Role restriction enabled:", aiConfig.roleRestrictionEnabled, "User role:", userRole, "Is admin:", isAdmin);
+    console.log("Role restriction enabled:", aiConfig.roleRestrictionEnabled, "User role (server-verified):", userRole, "Is admin:", isAdmin);
 
-    // Check role-based access if enabled
-    if (aiConfig.roleRestrictionEnabled && userRole && !isAdmin && supabase) {
+    // Check role-based access if enabled (using server-verified role)
+    if (aiConfig.roleRestrictionEnabled && userRole && !isAdmin) {
       const lastUserMessage = messages[messages.length - 1];
       if (lastUserMessage && lastUserMessage.content) {
         // Load topic keywords from database
-        const topicKeywords = await loadTopicKeywordsFromDB(supabase);
+        const topicKeywords = await loadTopicKeywordsFromDB(supabaseAdmin);
         const detectedTopics = detectTopicsInMessage(lastUserMessage.content, topicKeywords);
         console.log("Detected topics:", detectedTopics);
         
@@ -464,61 +501,60 @@ serve(async (req) => {
       throw error;
     }
 
-    // Save messages to database if conversationId and userId provided
-    if (supabase && conversationId && userId) {
+    // Save messages to database if conversationId provided (userId is now server-verified)
+    if (conversationId && userId) {
       try {
         // Get the last user message
         const lastUserMessage = messages[messages.length - 1];
         
         // Save user message
         if (lastUserMessage) {
-          await supabase.from('chat_messages').insert({
+          await supabaseAdmin.from('chat_messages').insert({
             conversation_id: conversationId,
             role: 'user',
             content: lastUserMessage.content,
           });
         }
         
-        // Save assistant message
-        await supabase.from('chat_messages').insert({
+        // Save assistant response
+        await supabaseAdmin.from('chat_messages').insert({
           conversation_id: conversationId,
           role: 'assistant',
           content: assistantResponse,
         });
-
-        // Update conversation title if it's the first message
-        const { data: msgCount } = await supabase
-          .from('chat_messages')
-          .select('id', { count: 'exact' })
-          .eq('conversation_id', conversationId);
         
-        if (msgCount && msgCount.length <= 2 && lastUserMessage) {
-          // Generate a title from the first message
-          const title = lastUserMessage.content.slice(0, 50) + (lastUserMessage.content.length > 50 ? '...' : '');
-          await supabase
+        // Update conversation title if first message
+        if (messages.length === 1) {
+          const title = lastUserMessage?.content?.substring(0, 50) + (lastUserMessage?.content?.length > 50 ? '...' : '') || 'Nova conversa';
+          await supabaseAdmin
             .from('chat_conversations')
-            .update({ title })
+            .update({ title, updated_at: new Date().toISOString() })
+            .eq('id', conversationId);
+        } else {
+          await supabaseAdmin
+            .from('chat_conversations')
+            .update({ updated_at: new Date().toISOString() })
             .eq('id', conversationId);
         }
-      } catch (saveError) {
-        console.error("Error saving messages:", saveError);
-        // Don't fail the request if saving fails
+      } catch (dbError) {
+        console.error("Error saving chat messages:", dbError);
       }
     }
 
     return new Response(
-      JSON.stringify({ response: assistantResponse, model: aiConfig.model, provider: aiConfig.provider }),
+      JSON.stringify({ 
+        response: assistantResponse, 
+        model: aiConfig.model, 
+        provider: aiConfig.provider 
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.error("Chat error:", error);
+    console.error("Error in chat-lyra:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Erro desconhecido",
-        response: "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente."
-      }),
+      JSON.stringify({ error: "Erro ao processar mensagem. Tente novamente." }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -18,14 +18,88 @@ type CreateOrderBody = {
   currency: "BRL" | "USD";
 };
 
+// SECURITY: Rate limiting to prevent abuse
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string, maxRequests = 10, windowMs = 60000): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip) || { count: 0, resetAt: now + windowMs };
+  
+  // Reset if window expired
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+  
+  record.count++;
+  rateLimitMap.set(ip, record);
+  
+  // Clean up old entries periodically (every 100 requests)
+  if (rateLimitMap.size > 1000) {
+    const cutoff = now - windowMs;
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (value.resetAt < cutoff) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+  
+  return record.count > maxRequests;
+}
+
+// SECURITY: Input validation helpers
+function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  if (email.length > 255) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function sanitizeString(str: string | undefined | null, maxLength: number): string {
+  if (!str || typeof str !== 'string') return '';
+  return str.trim().substring(0, maxLength);
+}
+
+function isValidPhoneNumber(phone: string | undefined | null): boolean {
+  if (!phone) return true; // Optional field
+  if (typeof phone !== 'string') return false;
+  if (phone.length > 20) return false;
+  // Allow digits, spaces, dashes, parentheses, and plus sign
+  const phoneRegex = /^[\d\s\-\(\)\+]+$/;
+  return phoneRegex.test(phone);
+}
+
+function isValidCpf(cpf: string | undefined | null): boolean {
+  if (!cpf) return true; // Optional field
+  if (typeof cpf !== 'string') return false;
+  // Remove non-digits
+  const digits = cpf.replace(/\D/g, '');
+  if (digits.length !== 11 && digits.length !== 14) return false; // CPF or CNPJ
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // SECURITY: Rate limiting
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+               req.headers.get('x-real-ip') || 
+               'unknown';
+    
+    if (checkRateLimit(ip)) {
+      console.log("Rate limit exceeded for IP:", ip);
+      return new Response(
+        JSON.stringify({ error: "Muitas requisições. Aguarde um momento e tente novamente." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = (await req.json()) as CreateOrderBody;
 
+    // SECURITY: Enhanced input validation
     if (!body?.productId || !body?.customerEmail || !body?.paymentGateway) {
       return new Response(
         JSON.stringify({ error: "productId, customerEmail e paymentGateway são obrigatórios" }),
@@ -33,12 +107,77 @@ serve(async (req) => {
       );
     }
 
+    // Validate productId format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(body.productId)) {
+      return new Response(
+        JSON.stringify({ error: "ID do produto inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Validate email
+    if (!isValidEmail(body.customerEmail)) {
+      return new Response(
+        JSON.stringify({ error: "E-mail inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Validate payment gateway
+    if (!['stripe', 'mercadopago'].includes(body.paymentGateway)) {
+      return new Response(
+        JSON.stringify({ error: "Gateway de pagamento inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Validate phone if provided
+    if (!isValidPhoneNumber(body.customerPhone)) {
+      return new Response(
+        JSON.stringify({ error: "Telefone inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Validate CPF if provided
+    if (!isValidCpf(body.customerCpf)) {
+      return new Response(
+        JSON.stringify({ error: "CPF/CNPJ inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Sanitize string inputs
+    const customerName = sanitizeString(body.customerName, 200);
+    const customerEmail = sanitizeString(body.customerEmail, 255).toLowerCase();
+    const customerPhone = sanitizeString(body.customerPhone, 20);
+    const customerCpf = sanitizeString(body.customerCpf, 18);
+
     // Simplify currency for customers (and avoid confusing UX)
     const currency: "BRL" | "USD" = body.paymentGateway === "stripe" ? "USD" : "BRL";
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // SECURITY: Duplicate order detection (prevent spam within 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentOrder } = await supabase
+      .from("gateway_orders")
+      .select("id")
+      .eq("customer_email", customerEmail)
+      .eq("product_id", body.productId)
+      .gte("created_at", fiveMinutesAgo)
+      .maybeSingle();
+
+    if (recentOrder) {
+      console.log("Duplicate order detected for:", customerEmail, body.productId);
+      return new Response(
+        JSON.stringify({ error: "Pedido duplicado detectado. Aguarde alguns minutos antes de tentar novamente." }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Product
     const { data: product, error: productError } = await supabase
@@ -55,8 +194,8 @@ serve(async (req) => {
       );
     }
 
-    // Order bumps
-    const orderBumpIds = (body.orderBumpIds || []).filter(Boolean);
+    // Order bumps - validate UUIDs first
+    const orderBumpIds = (body.orderBumpIds || []).filter(id => id && uuidRegex.test(id));
     let orderBumps: Array<{ id: string; name: string; price_brl: number; price_usd: number; allow_coupon: boolean }> = [];
 
     if (orderBumpIds.length > 0) {
@@ -96,7 +235,7 @@ serve(async (req) => {
     let coupon: any = null;
     let discountAmount = 0;
 
-    const couponCode = (body.couponCode || "").trim().toUpperCase();
+    const couponCode = sanitizeString(body.couponCode, 50).toUpperCase();
     if (couponCode && !anyBumpDisallowsCoupon) {
       const { data: c, error: cError } = await supabase
         .from("gateway_coupons")
@@ -136,10 +275,10 @@ serve(async (req) => {
           product_id: product.id,
           order_bump_id: orderBumpIds.length > 0 ? orderBumpIds[0] : null, // Keep first for legacy
           coupon_id: coupon?.id || null,
-          customer_name: body.customerName || "",
-          customer_email: body.customerEmail,
-          customer_phone: body.customerPhone || null,
-          customer_cpf: body.customerCpf || null,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone || null,
+          customer_cpf: customerCpf || null,
           subtotal,
           discount_amount: discountAmount,
           total,
@@ -159,6 +298,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    console.log("Order created:", order.id, "IP:", ip, "Email:", customerEmail);
 
     // Save all order bumps to gateway_order_items
     if (orderBumps.length > 0) {
@@ -211,7 +352,7 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("gateway-create-order error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "Erro ao processar pedido" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
