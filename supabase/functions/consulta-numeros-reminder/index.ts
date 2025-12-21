@@ -162,13 +162,23 @@ Deno.serve(async (req) => {
     const baserowData = await baserowResponse.json();
     const allRows = baserowData.results || [];
 
+    console.log(`[consulta-numeros-reminder] Total rows from Baserow: ${allRows.length}`);
+    
+    // Log first row structure for debugging (without PII)
+    if (allRows.length > 0) {
+      const sampleRow = allRows[0];
+      const fieldNames = Object.keys(sampleRow);
+      console.log(`[consulta-numeros-reminder] Available fields: ${fieldNames.join(', ')}`);
+    }
+
     // Filter rows by monitored statuses
     const matchingRows: { numero: string; status: string }[] = [];
     
     for (const row of allRows) {
-      // Check excluido_da_base field (can be string or object with value property)
+      // Check multiple possible status field names
       let statusValue = '';
       
+      // Try excluido_da_base field
       if (row.excluido_da_base) {
         if (typeof row.excluido_da_base === 'string') {
           statusValue = row.excluido_da_base;
@@ -177,13 +187,27 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Also check Status field as fallback
+      // Try Status field as fallback
       if (!statusValue && row.Status) {
         if (typeof row.Status === 'string') {
           statusValue = row.Status;
         } else if (row.Status.value) {
           statusValue = row.Status.value;
         }
+      }
+      
+      // Try status (lowercase) as fallback
+      if (!statusValue && row.status) {
+        if (typeof row.status === 'string') {
+          statusValue = row.status;
+        } else if (row.status.value) {
+          statusValue = row.status.value;
+        }
+      }
+
+      // Log unique statuses found for debugging (only once per status)
+      if (statusValue && allRows.indexOf(row) < 5) {
+        console.log(`[consulta-numeros-reminder] Sample status value: "${statusValue}"`);
       }
 
       if (statusValue && config.status_to_monitor.includes(statusValue)) {
@@ -192,13 +216,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log(`[consulta-numeros-reminder] Monitoring statuses: ${config.status_to_monitor.join(', ')}`);
     console.log(`[consulta-numeros-reminder] Found ${matchingRows.length} numbers matching monitored statuses`);
 
     if (matchingRows.length === 0) {
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'No numbers found with monitored status',
-        count: 0 
+        message: 'Nenhum número encontrado com os status monitorados. Verifique se o nome do status está exatamente igual ao Baserow.',
+        count: 0,
+        monitoredStatuses: config.status_to_monitor
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
