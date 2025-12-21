@@ -1438,6 +1438,48 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          order_bump_id: string
+          order_id: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          order_bump_id: string
+          order_id: string
+          price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          order_bump_id?: string
+          order_id?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_order_items_order_bump_id_fkey"
+            columns: ["order_bump_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_order_bumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_orders: {
         Row: {
           abandoned_email_sent: boolean

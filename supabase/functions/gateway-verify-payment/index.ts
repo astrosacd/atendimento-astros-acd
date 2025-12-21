@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface OrderBumpItem {
+  name: string;
+  price: number;
+}
+
 interface OrderData {
   id: string;
   customer_name: string;
@@ -16,10 +21,7 @@ interface OrderData {
   product?: {
     name: string;
   };
-  order_bump?: {
-    name: string;
-    price: number;
-  };
+  order_bumps?: OrderBumpItem[];
 }
 
 type VerifyResponse = {
@@ -48,12 +50,19 @@ interface NotificationSettings {
 
 // Function to replace template variables
 const replaceVariables = (template: string, order: OrderData): string => {
+  // Build order bumps text
+  const orderBumpsText = order.order_bumps && order.order_bumps.length > 0
+    ? order.order_bumps.map(ob => `• ${ob.name} (R$ ${ob.price.toFixed(2)})`).join('\n')
+    : '';
+
   return template
     .replace(/{nome}/g, order.customer_name)
     .replace(/{email}/g, order.customer_email)
     .replace(/{telefone}/g, order.customer_phone || '')
     .replace(/{produto}/g, order.product?.name || 'Produto')
-    .replace(/{valor}/g, order.total.toFixed(2));
+    .replace(/{valor}/g, order.total.toFixed(2))
+    .replace(/{order_bumps}/g, orderBumpsText)
+    .replace(/{adicionais}/g, orderBumpsText);
 };
 
 // Send WhatsApp notification
@@ -155,6 +164,38 @@ async function sendEmailNotification(
   }
 }
 
+// Helper to fetch order bumps from gateway_order_items
+async function fetchOrderBumps(supabase: any, orderId: string): Promise<OrderBumpItem[]> {
+  const { data: items, error } = await supabase
+    .from("gateway_order_items")
+    .select("name, price")
+    .eq("order_id", orderId);
+
+  if (error || !items || items.length === 0) {
+    return [];
+  }
+
+  return items.map((item: any) => ({
+    name: item.name,
+    price: Number(item.price) || 0,
+  }));
+}
+
+// Build order data with order bumps
+async function buildOrderData(supabase: any, orderData: any): Promise<OrderData> {
+  const orderBumps = await fetchOrderBumps(supabase, orderData.id);
+  
+  return {
+    id: orderData.id,
+    customer_name: orderData.customer_name,
+    customer_email: orderData.customer_email,
+    customer_phone: orderData.customer_phone,
+    total: Number(orderData.total),
+    product: orderData.product,
+    order_bumps: orderBumps.length > 0 ? orderBumps : undefined,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -208,10 +249,10 @@ serve(async (req) => {
             const orderIdFromSession = session.client_reference_id || session.metadata?.order_id;
 
             if (orderIdFromSession) {
-              // Get order with product and order bump
+              // Get order with product
               const { data: orderData } = await supabase
                 .from("gateway_orders")
-                .select("*, product:gateway_products(name), order_bump:gateway_order_bumps(name, price_brl, price_usd)")
+                .select("*, product:gateway_products(name)")
                 .eq("id", orderIdFromSession)
                 .single();
 
@@ -229,25 +270,12 @@ serve(async (req) => {
                 console.log(`Order ${orderIdFromSession} marked as paid`);
               } else if (orderData?.status === "paid") {
                 // Already paid, don't send notifications again
-                const orderBumpPrice = orderData.currency === 'USD' 
-                  ? orderData.order_bump?.price_usd 
-                  : orderData.order_bump?.price_brl;
+                const orderDataBuilt = await buildOrderData(supabase, orderData);
                 const resp: VerifyResponse = {
                   success: true,
                   status: "already_paid",
                   message: "Order already processed",
-                  order: {
-                    id: orderData.id,
-                    customer_name: orderData.customer_name,
-                    customer_email: orderData.customer_email,
-                    customer_phone: orderData.customer_phone,
-                    total: Number(orderData.total),
-                    product: orderData.product,
-                    order_bump: orderData.order_bump ? {
-                      name: orderData.order_bump.name,
-                      price: Number(orderBumpPrice) || 0,
-                    } : undefined,
-                  },
+                  order: orderDataBuilt,
                 };
                 return new Response(JSON.stringify(resp), {
                   status: 200,
@@ -264,30 +292,17 @@ serve(async (req) => {
     if (orderId && !order) {
       const { data: orderData } = await supabase
         .from("gateway_orders")
-        .select("*, product:gateway_products(name), order_bump:gateway_order_bumps(name, price_brl, price_usd)")
+        .select("*, product:gateway_products(name)")
         .eq("id", orderId)
         .single();
 
       if (orderData && orderData.status === "paid") {
-        const orderBumpPrice = orderData.currency === 'USD' 
-          ? orderData.order_bump?.price_usd 
-          : orderData.order_bump?.price_brl;
+        const orderDataBuilt = await buildOrderData(supabase, orderData);
         const resp: VerifyResponse = {
           success: true,
           status: "already_paid",
           message: "Order already processed",
-          order: {
-            id: orderData.id,
-            customer_name: orderData.customer_name,
-            customer_email: orderData.customer_email,
-            customer_phone: orderData.customer_phone,
-            total: Number(orderData.total),
-            product: orderData.product,
-            order_bump: orderData.order_bump ? {
-              name: orderData.order_bump.name,
-              price: Number(orderBumpPrice) || 0,
-            } : undefined,
-          },
+          order: orderDataBuilt,
         };
         return new Response(JSON.stringify(resp), {
           status: 200,
@@ -298,21 +313,7 @@ serve(async (req) => {
 
     // Send notifications if order was just paid
     if (order) {
-      const orderBumpPrice = order.currency === 'USD' 
-        ? order.order_bump?.price_usd 
-        : order.order_bump?.price_brl;
-      const orderForNotification: OrderData = {
-        id: order.id,
-        customer_name: order.customer_name,
-        customer_email: order.customer_email,
-        customer_phone: order.customer_phone,
-        total: order.total,
-        product: order.product,
-        order_bump: order.order_bump ? {
-          name: order.order_bump.name,
-          price: Number(orderBumpPrice) || 0,
-        } : undefined,
-      };
+      const orderForNotification = await buildOrderData(supabase, order);
 
       const whatsappResult = await sendWhatsAppNotification(orderForNotification, notificationSettings);
       console.log("WhatsApp result:", whatsappResult);

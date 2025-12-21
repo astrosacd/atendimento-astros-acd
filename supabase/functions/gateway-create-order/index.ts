@@ -134,7 +134,7 @@ serve(async (req) => {
       .insert([
         {
           product_id: product.id,
-          order_bump_id: orderBumpIds.length > 0 ? orderBumpIds[0] : null,
+          order_bump_id: orderBumpIds.length > 0 ? orderBumpIds[0] : null, // Keep first for legacy
           coupon_id: coupon?.id || null,
           customer_name: body.customerName || "",
           customer_email: body.customerEmail,
@@ -158,6 +158,24 @@ serve(async (req) => {
         JSON.stringify({ error: "Erro ao criar pedido" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Save all order bumps to gateway_order_items
+    if (orderBumps.length > 0) {
+      const orderItems = orderBumps.map((ob) => ({
+        order_id: order.id,
+        order_bump_id: ob.id,
+        name: ob.name,
+        price: getPrice(ob.price_brl, ob.price_usd),
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("gateway_order_items")
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error("Insert order items error:", itemsError);
+      }
     }
 
     // Record coupon usage (server-side)

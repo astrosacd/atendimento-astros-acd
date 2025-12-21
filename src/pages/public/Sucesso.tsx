@@ -18,6 +18,11 @@ type SuccessPageSettings = {
   support_whatsapp_message?: string;
 };
 
+type OrderBumpItem = {
+  name: string;
+  price: number;
+};
+
 type OrderSummary = {
   pedido?: string;
   nome?: string;
@@ -25,10 +30,7 @@ type OrderSummary = {
   telefone?: string;
   produto?: string;
   valor?: string;
-  orderBump?: {
-    name: string;
-    price: number;
-  };
+  orderBumps?: OrderBumpItem[];
 };
 
 const applyVars = (text: string, vars: OrderSummary) => {
@@ -77,10 +79,7 @@ export default function Sucesso() {
               telefone: order.customer_phone || '',
               produto: order.product?.name || order.product_name || '',
               valor: typeof order.total === 'number' ? order.total.toFixed(2) : String(order.total || ''),
-              orderBump: order.order_bump ? {
-                name: order.order_bump.name,
-                price: order.order_bump.price,
-              } : undefined,
+              orderBumps: order.order_bumps || [],
             });
           }
         }
@@ -160,12 +159,20 @@ export default function Sucesso() {
                 </div>
               ) : null}
 
-              {/* Order Bump display */}
-              {orderVars.orderBump && (
+              {/* Order Bumps display */}
+              {orderVars.orderBumps && orderVars.orderBumps.length > 0 && (
                 <div className="text-left rounded-lg border border-primary/20 bg-primary/5 p-4 mb-6">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Adicional Incluído</p>
-                  <p className="text-sm font-medium text-foreground">{orderVars.orderBump.name}</p>
-                  <p className="text-xs text-muted-foreground">+ R$ {orderVars.orderBump.price.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                    {orderVars.orderBumps.length === 1 ? 'Adicional Incluído' : 'Adicionais Incluídos'}
+                  </p>
+                  <div className="space-y-1">
+                    {orderVars.orderBumps.map((ob, idx) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <p className="text-sm font-medium text-foreground">{ob.name}</p>
+                        <p className="text-xs text-muted-foreground">+ R$ {ob.price.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
