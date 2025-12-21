@@ -225,18 +225,27 @@ export function ReminderConfigTab() {
   const handleTestReminder = async () => {
     setTestLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder');
+      // Pass force: true to skip time/day validations during test
+      const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder', {
+        body: { force: true }
+      });
       if (error) throw error;
       
-      if (data?.success) {
+      if (data?.success && data?.results?.length > 0) {
         toast({
           title: 'Teste executado!',
-          description: `Encontrados ${data.count || 0} números. ${data.results?.length ? data.results.map((r: { channel: string; status: string }) => `${r.channel}: ${r.status}`).join(', ') : ''}`,
+          description: `Encontrados ${data.count || 0} números. ${data.results.map((r: { channel: string; status: string }) => `${r.channel}: ${r.status}`).join(', ')}`,
+        });
+      } else if (data?.success && data?.count > 0) {
+        toast({
+          title: 'Números encontrados mas nenhum canal configurado',
+          description: `Encontrados ${data.count} números. Configure WhatsApp ou Gmail para enviar.`,
+          variant: 'destructive',
         });
       } else {
         toast({
           title: 'Resultado do teste',
-          description: data?.message || 'Nenhum número encontrado ou configuração incompleta',
+          description: data?.message || 'Nenhum número encontrado com os status monitorados',
         });
       }
       

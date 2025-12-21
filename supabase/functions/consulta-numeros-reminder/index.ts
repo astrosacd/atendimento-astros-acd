@@ -52,7 +52,16 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    console.log('[consulta-numeros-reminder] Starting reminder check...');
+    // Check if this is a forced/test request (skip time validations)
+    let forceRun = false;
+    try {
+      const body = await req.json();
+      forceRun = body?.force === true;
+    } catch {
+      // No body or invalid JSON, continue normally
+    }
+
+    console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun})`);
 
     // Get reminder config
     const { data: configData, error: configError } = await supabase
@@ -69,7 +78,8 @@ Deno.serve(async (req) => {
 
     const config = configData as ReminderConfig;
 
-    if (!config.is_active) {
+    // Skip is_active check if forced
+    if (!forceRun && !config.is_active) {
       console.log('[consulta-numeros-reminder] Reminders are disabled');
       return new Response(JSON.stringify({ success: true, message: 'Reminders disabled' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -78,30 +88,33 @@ Deno.serve(async (req) => {
 
     if (!config.status_to_monitor || config.status_to_monitor.length === 0) {
       console.log('[consulta-numeros-reminder] No status to monitor configured');
-      return new Response(JSON.stringify({ success: true, message: 'No status to monitor' }), {
+      return new Response(JSON.stringify({ success: false, message: 'Nenhum status configurado para monitorar' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Check current time is within operating hours (Brazil timezone)
-    const now = new Date();
-    const brazilOffset = -3 * 60;
-    const brazilTime = new Date(now.getTime() + (brazilOffset + now.getTimezoneOffset()) * 60000);
-    const currentHour = brazilTime.getHours();
-    const currentDay = brazilTime.getDay().toString();
+    // Skip time checks if forced
+    if (!forceRun) {
+      // Check current time is within operating hours (Brazil timezone)
+      const now = new Date();
+      const brazilOffset = -3 * 60;
+      const brazilTime = new Date(now.getTime() + (brazilOffset + now.getTimezoneOffset()) * 60000);
+      const currentHour = brazilTime.getHours();
+      const currentDay = brazilTime.getDay().toString();
 
-    if (currentHour < config.cron_start_hour || currentHour >= config.cron_end_hour) {
-      console.log(`[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`);
-      return new Response(JSON.stringify({ success: true, message: 'Outside operating hours' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+      if (currentHour < config.cron_start_hour || currentHour >= config.cron_end_hour) {
+        console.log(`[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`);
+        return new Response(JSON.stringify({ success: true, message: 'Outside operating hours' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-    if (!config.cron_days.includes(currentDay)) {
-      console.log(`[consulta-numeros-reminder] Not a configured day (${currentDay}, allowed: ${config.cron_days.join(',')})`);
-      return new Response(JSON.stringify({ success: true, message: 'Not a configured day' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!config.cron_days.includes(currentDay)) {
+        console.log(`[consulta-numeros-reminder] Not a configured day (${currentDay}, allowed: ${config.cron_days.join(',')})`);
+        return new Response(JSON.stringify({ success: true, message: 'Not a configured day' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Get Baserow config
