@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -29,8 +29,12 @@ interface ProfileStatus {
   user_response: string | null;
 }
 
+// Código secreto para acessar a página de login
+const AUTH_ACCESS_CODE = 'astros2024';
+
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isApproved, signIn, signUp, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -39,9 +43,21 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+  const [hasAccess, setHasAccess] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
+
+  // Verifica se o código de acesso está correto na URL
+  useEffect(() => {
+    const codigo = searchParams.get('codigo');
+    if (codigo === AUTH_ACCESS_CODE) {
+      setHasAccess(true);
+    } else {
+      // Sem código válido, redireciona para o catálogo
+      navigate('/catalogo', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -281,6 +297,15 @@ export default function Auth() {
       setUserResponse('');
     }
   };
+
+  // Se não tem acesso (código inválido), não mostra nada enquanto redireciona
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-primary">Redirecionando...</div>
+      </div>
+    );
+  }
 
   if (authLoading) {
     return (
