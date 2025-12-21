@@ -322,8 +322,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Format numbers list
-    const numbersList = matchingRows.map(r => r.numero).join('\n');
+    // Format numbers list with status (ex: 15981705823 - EXCLUIDO)
+    const numbersList = matchingRows.map(r => `${r.numero} - ${r.status}`).join('\n');
     
     // Replace placeholders in message template
     const message = config.message_template
