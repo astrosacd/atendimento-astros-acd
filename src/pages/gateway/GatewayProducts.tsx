@@ -9,13 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProductOrderBumps, GatewayProduct } from '@/hooks/useGateway';
+import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProductOrderBumps, useGatewaySettings, GatewayProduct } from '@/hooks/useGateway';
 import { Plus, Pencil, Trash2, Copy, Link2, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 
 export default function GatewayProducts() {
+  const { settings } = useGatewaySettings();
+  const siteBaseUrl = String(settings.site_base_url?.url || '').trim();
+
   const { products, isLoading, createProduct, updateProduct, deleteProduct, isCreating, isUpdating, isDeleting } = useGatewayProducts();
   const { categories } = useGatewayCategories();
   const { orderBumps } = useGatewayOrderBumps();
@@ -23,6 +26,7 @@ export default function GatewayProducts() {
   const [editingProduct, setEditingProduct] = useState<GatewayProduct | null>(null);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  
   
   const [formData, setFormData] = useState({
     name: '',
@@ -140,7 +144,9 @@ export default function GatewayProducts() {
   };
 
   const copyLink = (publicSlug: string) => {
-    const url = `/p/${publicSlug}`;
+    const path = `/p/${publicSlug}`;
+    const base = siteBaseUrl.replace(/\/+$/, '');
+    const url = base ? `${base}${path}` : path;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };

@@ -28,7 +28,11 @@ export default function GatewaySettings() {
     message: 'Obrigado pela sua compra! Você receberá uma confirmação por WhatsApp e/ou email em breve.',
     instructions: 'Se precisar de ajuda, responda a mensagem recebida no WhatsApp ou entre em contato pelo email.',
     primary_button_text: 'Voltar ao Catálogo',
-    primary_button_path: '/catalogo'
+    primary_button_path: '/catalogo',
+    support_whatsapp_enabled: false,
+    support_whatsapp_number: '',
+    support_whatsapp_button_text: 'Falar com Suporte no WhatsApp',
+    support_whatsapp_message: 'Olá! Preciso de ajuda com meu pedido {pedido}.\n\nNome: {nome}\nEmail: {email}\nProduto: {produto}\nValor: {valor}\nTelefone: {telefone}'
   });
   const [notifications, setNotifications] = useState({
     whatsapp_enabled: false,
@@ -50,6 +54,7 @@ export default function GatewaySettings() {
     if (settings.checkout) setCheckout(settings.checkout);
     if (settings.success_page) setSuccessPage(settings.success_page);
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
+    if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
   }, [settings]);
 
   const handleSaveStripe = () => {
@@ -79,16 +84,17 @@ export default function GatewaySettings() {
   const handleSaveSuccessPage = () => {
     updateSetting({ key: 'success_page', value: successPage });
   };
-
+  const [siteBaseUrl, setSiteBaseUrl] = useState('');
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
 
   const customSlug = settings.catalog_slug?.slug || '';
-  const catalogUrl = customSlug 
-    ? `/loja/${customSlug}` 
-    : `/catalogo`;
+  const catalogPath = customSlug ? `/loja/${customSlug}` : `/catalogo`;
+
+  const normalizedBase = siteBaseUrl.trim().replace(/\/+$/, '');
+  const catalogUrl = normalizedBase ? `${normalizedBase}${catalogPath}` : catalogPath;
 
   const copyLink = () => {
     navigator.clipboard.writeText(catalogUrl);
@@ -103,46 +109,70 @@ export default function GatewaySettings() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Link className="h-4 w-4 text-primary" />
-            Link do Catálogo
-          </CardTitle>
-          <CardDescription>Compartilhe este link para os clientes verem todos os seus produtos</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="custom-slug">Slug Personalizado (opcional)</Label>
-            <div className="flex gap-2">
-              <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 rounded-l-md border border-r-0">
-                /loja/
+        <Card className="border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link className="h-4 w-4 text-primary" />
+              Links do Site
+            </CardTitle>
+            <CardDescription>Configure a URL do seu site e copie os links já prontos para compartilhar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="site-base-url">URL do Site</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="site-base-url"
+                  value={siteBaseUrl}
+                  onChange={(e) => setSiteBaseUrl(e.target.value)}
+                  placeholder="https://seusite.com"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => updateSetting({ key: 'site_base_url', value: { url: siteBaseUrl } })}
+                  disabled={isUpdating}
+                  className="shrink-0"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </Button>
               </div>
-              <Input
-                id="custom-slug"
-                value={customSlug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                placeholder="minha-loja"
-                className="rounded-l-none"
-              />
+              <p className="text-xs text-muted-foreground">
+                Sem isso, os links copiados ficam relativos (e no preview vão apontar para o domínio do Lovable).
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Deixe vazio para usar o link padrão /catalogo
-            </p>
-          </div>
 
-          <div className="pt-2 border-t">
-            <Label className="text-xs text-muted-foreground mb-2 block">Link Ativo:</Label>
-            <div className="flex gap-2">
-              <Input value={catalogUrl} readOnly className="font-mono text-sm bg-muted/50" />
-              <Button variant="outline" onClick={copyLink} className="shrink-0">
-                <Copy className="h-4 w-4 mr-2" />
-                Copiar
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="custom-slug">Slug do Catálogo (opcional)</Label>
+              <div className="flex gap-2">
+                <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 rounded-l-md border border-r-0">
+                  /loja/
+                </div>
+                <Input
+                  id="custom-slug"
+                  value={customSlug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  placeholder="minha-loja"
+                  className="rounded-l-none"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Deixe vazio para usar o link padrão /catalogo
+              </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="pt-2 border-t">
+              <Label className="text-xs text-muted-foreground mb-2 block">Link do Catálogo:</Label>
+              <div className="flex gap-2">
+                <Input value={catalogUrl} readOnly className="font-mono text-sm bg-muted/50" />
+                <Button variant="outline" onClick={copyLink} className="shrink-0">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
       <h2 className="text-lg font-semibold">Configurações</h2>
 
@@ -345,6 +375,50 @@ export default function GatewaySettings() {
                   onChange={(e) => setSuccessPage(prev => ({ ...prev, primary_button_path: e.target.value }))}
                   placeholder="/catalogo"
                 />
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label className="text-sm">Botão de Suporte (WhatsApp)</Label>
+                    <p className="text-xs text-muted-foreground">Mostra um botão extra na página de sucesso para falar com seu suporte</p>
+                  </div>
+                  <Switch
+                    checked={(successPage as any).support_whatsapp_enabled}
+                    onCheckedChange={(checked) => setSuccessPage(prev => ({ ...prev, support_whatsapp_enabled: checked }))}
+                  />
+                </div>
+
+                {(successPage as any).support_whatsapp_enabled ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Número do WhatsApp</Label>
+                      <Input
+                        value={(successPage as any).support_whatsapp_number}
+                        onChange={(e) => setSuccessPage(prev => ({ ...prev, support_whatsapp_number: e.target.value }))}
+                        placeholder="5511999999999"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Use DDI+DDD+número (só números)</p>
+                    </div>
+                    <div>
+                      <Label>Texto do Botão</Label>
+                      <Input
+                        value={(successPage as any).support_whatsapp_button_text}
+                        onChange={(e) => setSuccessPage(prev => ({ ...prev, support_whatsapp_button_text: e.target.value }))}
+                        placeholder="Falar com Suporte no WhatsApp"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Mensagem Automática</Label>
+                      <Textarea
+                        value={(successPage as any).support_whatsapp_message}
+                        onChange={(e) => setSuccessPage(prev => ({ ...prev, support_whatsapp_message: e.target.value }))}
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Variáveis: {'{nome}'}, {'{email}'}, {'{produto}'}, {'{valor}'}, {'{telefone}'}, {'{pedido}'}</p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <Button onClick={handleSaveSuccessPage} disabled={isUpdating} className="w-full">
