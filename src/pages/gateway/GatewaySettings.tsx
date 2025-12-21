@@ -55,11 +55,20 @@ export default function GatewaySettings() {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
 
-  const catalogUrl = `${window.location.origin}/catalogo`;
+  const customSlug = settings.catalog_slug?.slug || '';
+  const catalogUrl = customSlug 
+    ? `${window.location.origin}/loja/${customSlug}` 
+    : `${window.location.origin}/catalogo`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(catalogUrl);
     toast.success('Link do catálogo copiado!');
+  };
+
+  const handleSlugChange = (slug: string) => {
+    // Remove caracteres especiais e espaços
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
+    updateSetting({ key: 'catalog_slug', value: { slug: cleanSlug } });
   };
 
   return (
@@ -73,22 +82,44 @@ export default function GatewaySettings() {
           </CardTitle>
           <CardDescription>Compartilhe este link para os clientes verem todos os seus produtos</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input 
-              value={catalogUrl} 
-              readOnly 
-              className="font-mono text-sm bg-muted/50"
-            />
-            <Button variant="outline" onClick={copyLink} className="shrink-0">
-              <Copy className="h-4 w-4 mr-2" />
-              Copiar
-            </Button>
-            <Button variant="outline" asChild className="shrink-0">
-              <a href={catalogUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="custom-slug">Slug Personalizado (opcional)</Label>
+            <div className="flex gap-2">
+              <div className="flex items-center text-sm text-muted-foreground bg-muted/50 px-3 rounded-l-md border border-r-0">
+                {window.location.origin}/loja/
+              </div>
+              <Input 
+                id="custom-slug"
+                value={customSlug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                placeholder="minha-loja"
+                className="rounded-l-none"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Deixe vazio para usar o link padrão /catalogo
+            </p>
+          </div>
+          
+          <div className="pt-2 border-t">
+            <Label className="text-xs text-muted-foreground mb-2 block">Link Ativo:</Label>
+            <div className="flex gap-2">
+              <Input 
+                value={catalogUrl} 
+                readOnly 
+                className="font-mono text-sm bg-muted/50"
+              />
+              <Button variant="outline" onClick={copyLink} className="shrink-0">
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar
+              </Button>
+              <Button variant="outline" asChild className="shrink-0">
+                <a href={catalogUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
