@@ -50,14 +50,9 @@ export default function Sucesso() {
       const sessionId = searchParams.get('session_id');
 
       try {
-        // Load success page settings
-        const { data: settingsRow } = await supabase
-          .from('gateway_settings')
-          .select('value')
-          .eq('key', 'success_page')
-          .maybeSingle();
-
-        const loadedSettings = (settingsRow?.value || null) as SuccessPageSettings | null;
+        // Load success page settings (public endpoint to avoid permission issues)
+        const { data: publicData } = await supabase.functions.invoke('gateway-public-settings');
+        const loadedSettings = (publicData?.success_page || null) as SuccessPageSettings | null;
         setSuccessSettings(loadedSettings);
 
         if (sessionId) {
