@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function GatewaySettings() {
@@ -22,6 +22,18 @@ export default function GatewaySettings() {
     countdown_minutes: 10,
     countdown_message: 'Complete sua compra antes do contador chegar a zero!'
   });
+  const [notifications, setNotifications] = useState({
+    whatsapp_enabled: false,
+    whatsapp_instance_name: '',
+    whatsapp_api_url: '',
+    whatsapp_api_key: '',
+    whatsapp_template: 'Olá {nome}! 🎉\n\nSeu pagamento foi confirmado!\n\n📦 Produto: {produto}\n💰 Valor: R$ {valor}\n\nObrigado pela compra!',
+    email_enabled: false,
+    gmail_user: '',
+    gmail_app_password: '',
+    email_subject: 'Pagamento Confirmado - {produto}',
+    email_template: 'Olá {nome},\n\nSeu pagamento foi confirmado com sucesso!\n\nProduto: {produto}\nValor: R$ {valor}\n\nObrigado pela compra!\n\nAtenciosamente,\nEquipe de Vendas'
+  });
 
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
@@ -29,6 +41,7 @@ export default function GatewaySettings() {
     if (settings.email) setEmail(settings.email);
     if (settings.abandoned_cart) setAbandonedCart(settings.abandoned_cart);
     if (settings.checkout) setCheckout(settings.checkout);
+    if (settings.payment_notifications) setNotifications(settings.payment_notifications);
   }, [settings]);
 
   const handleSaveStripe = () => {
@@ -49,6 +62,10 @@ export default function GatewaySettings() {
 
   const handleSaveCheckout = () => {
     updateSetting({ key: 'checkout', value: checkout });
+  };
+
+  const handleSaveNotifications = () => {
+    updateSetting({ key: 'payment_notifications', value: notifications });
   };
 
   if (isLoading) {
@@ -135,6 +152,10 @@ export default function GatewaySettings() {
           <TabsTrigger value="checkout" className="gap-2">
             <Timer className="h-4 w-4" />
             Checkout
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Notificações
           </TabsTrigger>
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
@@ -252,6 +273,143 @@ export default function GatewaySettings() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          {/* WhatsApp Notifications */}
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-green-500" />
+                Notificação via WhatsApp
+              </CardTitle>
+              <CardDescription>Envie uma mensagem via WhatsApp quando o pagamento for aprovado</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={notifications.whatsapp_enabled}
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, whatsapp_enabled: checked }))}
+                />
+                <Label>Habilitar notificação WhatsApp</Label>
+              </div>
+              {notifications.whatsapp_enabled && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>Nome da Instância</Label>
+                      <Input
+                        value={notifications.whatsapp_instance_name}
+                        onChange={(e) => setNotifications(prev => ({ ...prev, whatsapp_instance_name: e.target.value }))}
+                        placeholder="minha-instancia"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>URL da API</Label>
+                      <Input
+                        value={notifications.whatsapp_api_url}
+                        onChange={(e) => setNotifications(prev => ({ ...prev, whatsapp_api_url: e.target.value }))}
+                        placeholder="https://api.evolution.com.br"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>API Key</Label>
+                    <Input
+                      type="password"
+                      value={notifications.whatsapp_api_key}
+                      onChange={(e) => setNotifications(prev => ({ ...prev, whatsapp_api_key: e.target.value }))}
+                      placeholder="sua-api-key"
+                    />
+                  </div>
+                  <div>
+                    <Label>Template da Mensagem</Label>
+                    <Textarea
+                      value={notifications.whatsapp_template}
+                      onChange={(e) => setNotifications(prev => ({ ...prev, whatsapp_template: e.target.value }))}
+                      rows={5}
+                      placeholder="Olá {nome}! Seu pagamento foi confirmado..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Variáveis: {'{nome}'}, {'{email}'}, {'{produto}'}, {'{valor}'}, {'{telefone}'}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Email Notifications */}
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-500" />
+                Notificação via Email (Gmail)
+              </CardTitle>
+              <CardDescription>Envie um email quando o pagamento for aprovado</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={notifications.email_enabled}
+                  onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email_enabled: checked }))}
+                />
+                <Label>Habilitar notificação Email</Label>
+              </div>
+              {notifications.email_enabled && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Gmail (usuário)</Label>
+                      <Input
+                        value={notifications.gmail_user}
+                        onChange={(e) => setNotifications(prev => ({ ...prev, gmail_user: e.target.value }))}
+                        placeholder="seuemail@gmail.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Senha de App</Label>
+                      <Input
+                        type="password"
+                        value={notifications.gmail_app_password}
+                        onChange={(e) => setNotifications(prev => ({ ...prev, gmail_app_password: e.target.value }))}
+                        placeholder="senha-de-app-google"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          Criar senha de app no Google
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Assunto do Email</Label>
+                    <Input
+                      value={notifications.email_subject}
+                      onChange={(e) => setNotifications(prev => ({ ...prev, email_subject: e.target.value }))}
+                      placeholder="Pagamento Confirmado - {produto}"
+                    />
+                  </div>
+                  <div>
+                    <Label>Template do Email</Label>
+                    <Textarea
+                      value={notifications.email_template}
+                      onChange={(e) => setNotifications(prev => ({ ...prev, email_template: e.target.value }))}
+                      rows={6}
+                      placeholder="Olá {nome}, seu pagamento foi confirmado..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Variáveis: {'{nome}'}, {'{email}'}, {'{produto}'}, {'{valor}'}, {'{telefone}'}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button onClick={handleSaveNotifications} disabled={isUpdating} className="w-full">
+            <Save className="h-4 w-4 mr-2" /> Salvar Configurações de Notificação
+          </Button>
         </TabsContent>
 
         <TabsContent value="email">
