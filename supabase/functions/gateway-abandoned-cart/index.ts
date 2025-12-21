@@ -84,6 +84,10 @@ serve(async (req) => {
     const fromName = emailSettings?.value?.from_name || "Loja";
     let emailsSent = 0;
 
+    // Get email template from settings
+    const emailSubject = settings.value.email_subject || "Você esqueceu algo no carrinho!";
+    const emailTemplate = settings.value.email_template || "";
+
     for (const order of abandonedOrders) {
       if (!order.customer_email) continue;
 
@@ -92,11 +96,20 @@ serve(async (req) => {
           ? `${req.headers.get("origin") || ""}/p/${order.product.public_slug}`
           : "#";
 
-        await resend.emails.send({
-          from: `${fromName} <${fromEmail}>`,
-          to: [order.customer_email],
-          subject: "Você esqueceu algo no carrinho!",
-          html: `
+        const productPrice = order.currency === 'BRL' 
+          ? `R$ ${order.total.toFixed(2)}` 
+          : `$ ${order.total.toFixed(2)}`;
+
+        // Replace template variables
+        let htmlContent = emailTemplate
+          .replace(/\{\{nome\}\}/g, order.customer_name || "Cliente")
+          .replace(/\{\{produto\}\}/g, order.product?.name || "Produto")
+          .replace(/\{\{valor\}\}/g, productPrice)
+          .replace(/\{\{link\}\}/g, checkoutUrl);
+
+        // If no template, use default
+        if (!htmlContent.trim()) {
+          htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #333;">Olá${order.customer_name ? `, ${order.customer_name}` : ""}!</h1>
               <p>Notamos que você não finalizou sua compra. O item abaixo ainda está esperando por você:</p>
@@ -104,9 +117,7 @@ serve(async (req) => {
               <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h2 style="margin: 0 0 10px 0; color: #333;">${order.product?.name || "Produto"}</h2>
                 <p style="color: #666; margin: 0;">
-                  <strong style="color: #000; font-size: 20px;">
-                    ${order.currency === 'BRL' ? 'R$' : '$'} ${order.total.toFixed(2)}
-                  </strong>
+                  <strong style="color: #000; font-size: 20px;">${productPrice}</strong>
                 </p>
               </div>
               
@@ -118,7 +129,14 @@ serve(async (req) => {
                 Se você não iniciou esta compra, por favor ignore este email.
               </p>
             </div>
-          `,
+          `;
+        }
+
+        await resend.emails.send({
+          from: `${fromName} <${fromEmail}>`,
+          to: [order.customer_email],
+          subject: emailSubject.replace(/\{\{produto\}\}/g, order.product?.name || "Produto"),
+          html: htmlContent,
         });
 
         // Mark as sent

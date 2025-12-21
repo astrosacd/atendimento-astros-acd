@@ -16,7 +16,70 @@ export default function GatewaySettings() {
   const [stripe, setStripe] = useState({ enabled: false, publishable_key: '', secret_key: '' });
   const [mercadopago, setMercadopago] = useState({ enabled: false, access_token: '' });
   const [email, setEmail] = useState({ smtp_host: '', smtp_port: 587, smtp_user: '', smtp_password: '', from_email: '', from_name: '' });
-  const [abandonedCart, setAbandonedCart] = useState({ enabled: false, delay_minutes: 30, email_subject: '', email_template: '' });
+  const defaultAbandonedCartTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Ei, você esqueceu algo!</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 18px; color: #333; margin: 0 0 20px;">Olá <strong>{{nome}}</strong>!</p>
+              <p style="font-size: 16px; color: #666; line-height: 1.6; margin: 0 0 25px;">
+                Notamos que você estava interessado em um de nossos produtos mas não finalizou a compra. 
+                O item ainda está esperando por você:
+              </p>
+              <!-- Product Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin-bottom: 25px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h2 style="margin: 0 0 10px; color: #333; font-size: 20px;">{{produto}}</h2>
+                    <p style="margin: 0; color: #667eea; font-size: 24px; font-weight: bold;">{{valor}}</p>
+                  </td>
+                </tr>
+              </table>
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="{{link}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 30px; font-size: 16px; font-weight: bold;">
+                      Finalizar Compra Agora
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size: 14px; color: #999; text-align: center; margin: 30px 0 0;">
+                Se você não iniciou esta compra, pode ignorar este email.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #eee;">
+              <p style="margin: 0; color: #999; font-size: 12px;">
+                Este email foi enviado automaticamente. Por favor, não responda.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+  const [abandonedCart, setAbandonedCart] = useState({ enabled: false, delay_minutes: 30, email_subject: 'Você esqueceu algo no carrinho!', email_template: defaultAbandonedCartTemplate });
   const [checkout, setCheckout] = useState({ 
     countdown_enabled: false, 
     countdown_minutes: 10,
@@ -751,16 +814,28 @@ export default function GatewaySettings() {
                   placeholder="Você esqueceu algo no carrinho!"
                 />
               </div>
-              <div>
-                <Label>Template do Email (HTML)</Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Template do Email (HTML)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAbandonedCart(prev => ({ ...prev, email_template: defaultAbandonedCartTemplate }))}
+                    className="text-xs h-7"
+                  >
+                    Restaurar Template Padrão
+                  </Button>
+                </div>
                 <Textarea
                   value={abandonedCart.email_template}
                   onChange={(e) => setAbandonedCart(prev => ({ ...prev, email_template: e.target.value }))}
-                  rows={6}
-                  placeholder="<h1>Olá {{nome}}</h1><p>Você deixou {{produto}} no carrinho...</p>"
+                  rows={20}
+                  className="font-mono text-xs"
+                  placeholder="Cole ou edite seu template HTML aqui..."
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Variáveis: {'{{nome}}'}, {'{{produto}}'}, {'{{link}}'}
+                <p className="text-xs text-muted-foreground">
+                  <strong>Variáveis disponíveis:</strong> {'{{nome}}'} (nome do cliente), {'{{produto}}'} (nome do produto), {'{{valor}}'} (preço formatado), {'{{link}}'} (link para finalizar compra)
                 </p>
               </div>
               <Button onClick={handleSaveAbandonedCart} disabled={isUpdating}>
