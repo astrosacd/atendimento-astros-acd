@@ -66,10 +66,13 @@ serve(async (req) => {
       );
     }
 
-    const hoursThreshold = settings.value.hours_threshold || 24;
+    // Support both delay_minutes (new) and hours_threshold (legacy)
+    const delayMinutes = settings.value.delay_minutes || (settings.value.hours_threshold ? settings.value.hours_threshold * 60 : 30);
     const delayBetweenSends = settings.value.delay_between_sends || 5; // Default 5 seconds
     const thresholdDate = new Date();
-    thresholdDate.setHours(thresholdDate.getHours() - hoursThreshold);
+    thresholdDate.setMinutes(thresholdDate.getMinutes() - delayMinutes);
+    
+    console.log(`Threshold: ${delayMinutes} minutes, checking orders before: ${thresholdDate.toISOString()}`);
 
     // Find abandoned orders
     const { data: abandonedOrders, error: ordersError } = await supabase
