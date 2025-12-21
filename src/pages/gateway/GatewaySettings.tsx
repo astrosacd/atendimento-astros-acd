@@ -84,8 +84,11 @@ export default function GatewaySettings() {
   };
 
   const handleSaveSiteUrl = () => {
-    // Remove trailing slash
-    const cleanUrl = siteUrl.replace(/\/+$/, '');
+    // Normaliza para URL absoluta (evita abrir como caminho relativo no preview)
+    const raw = siteUrl.trim();
+    const withProtocol = raw && !/^https?:\/\//i.test(raw) ? `https://${raw}` : raw;
+    const cleanUrl = withProtocol.replace(/\/+$/, '');
+
     updateSetting({ key: 'site_url', value: { url: cleanUrl } });
   };
 
@@ -93,7 +96,9 @@ export default function GatewaySettings() {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
   }
 
-  const baseUrl = siteUrl || window.location.origin;
+  const rawSiteUrl = siteUrl.trim();
+  const normalizedSiteUrl = rawSiteUrl && !/^https?:\/\//i.test(rawSiteUrl) ? `https://${rawSiteUrl}` : rawSiteUrl;
+  const baseUrl = (normalizedSiteUrl.replace(/\/+$/, '')) || window.location.origin;
   const customSlug = settings.catalog_slug?.slug || '';
   const catalogUrl = customSlug 
     ? `${baseUrl}/loja/${customSlug}` 
