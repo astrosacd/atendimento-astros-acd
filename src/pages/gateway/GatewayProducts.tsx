@@ -28,7 +28,7 @@ export default function GatewayProducts() {
   const [editingProduct, setEditingProduct] = useState<GatewayProduct | null>(null);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  const { isLoading: isConverting, convertBRLtoUSD, convertUSDtoBRL, lastRate } = useCurrencyConversion();
+  const { isLoading: isConverting, convertBRLtoUSD, convertUSDtoBRL } = useCurrencyConversion();
   
   
   const [formData, setFormData] = useState({
@@ -242,10 +242,10 @@ export default function GatewayProducts() {
                               size="icon"
                               disabled={isConverting || formData.price_brl <= 0}
                               onClick={async () => {
-                                const usd = await convertBRLtoUSD(formData.price_brl);
-                                if (usd !== null) {
-                                  setFormData(prev => ({ ...prev, price_usd: usd }));
-                                  toast.success(`Convertido: $${usd.toFixed(2)} (cotação: R$${lastRate?.toFixed(2)})`);
+                                const result = await convertBRLtoUSD(formData.price_brl);
+                                if (result !== null) {
+                                  setFormData(prev => ({ ...prev, price_usd: result.value }));
+                                  toast.success(`Convertido: $${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
                                 }
                               }}
                             >
@@ -279,10 +279,10 @@ export default function GatewayProducts() {
                               size="icon"
                               disabled={isConverting || formData.price_usd <= 0}
                               onClick={async () => {
-                                const brl = await convertUSDtoBRL(formData.price_usd);
-                                if (brl !== null) {
-                                  setFormData(prev => ({ ...prev, price_brl: brl }));
-                                  toast.success(`Convertido: R$${brl.toFixed(2)} (cotação: R$${lastRate?.toFixed(2)})`);
+                                const result = await convertUSDtoBRL(formData.price_usd);
+                                if (result !== null) {
+                                  setFormData(prev => ({ ...prev, price_brl: result.value }));
+                                  toast.success(`Convertido: R$${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
                                 }
                               }}
                             >

@@ -31,20 +31,20 @@ export function useCurrencyConversion() {
     }
   }, []);
 
-  const convertBRLtoUSD = useCallback(async (brlValue: number): Promise<number | null> => {
+  const convertBRLtoUSD = useCallback(async (brlValue: number): Promise<{ value: number; rate: number } | null> => {
     const rate = await fetchExchangeRate();
     if (rate && brlValue > 0) {
       const usdValue = brlValue / rate;
-      return Math.round(usdValue * 100) / 100; // Arredonda para 2 casas decimais
+      return { value: Math.round(usdValue * 100) / 100, rate };
     }
     return null;
   }, [fetchExchangeRate]);
 
-  const convertUSDtoBRL = useCallback(async (usdValue: number): Promise<number | null> => {
+  const convertUSDtoBRL = useCallback(async (usdValue: number): Promise<{ value: number; rate: number } | null> => {
     const rate = await fetchExchangeRate();
     if (rate && usdValue > 0) {
       const brlValue = usdValue * rate;
-      return Math.round(brlValue * 100) / 100; // Arredonda para 2 casas decimais
+      return { value: Math.round(brlValue * 100) / 100, rate };
     }
     return null;
   }, [fetchExchangeRate]);
