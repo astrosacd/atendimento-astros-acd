@@ -204,8 +204,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch all rows from Baserow
-    const baserowUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
+    // Fetch all rows from Baserow (paginate)
+    const pageSize = 200;
+    const maxPages = 20; // safety cap (up to 4000 rows)
+
+    const fetchPage = async (page: number) => {
+      const url = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=${pageSize}&page=${page}`;
+      const resp = await fetch(url, {
+        headers: {
+          'Authorization': `Token ${baserowConfig.api_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!resp.ok) {
+        const errTxt = sanitizePII(await resp.text());
+        console.error('[consulta-numeros-reminder] Baserow fetch failed:', errTxt);
+        throw new Error('Baserow fetch failed');
+      }
+
+      return await resp.json();
+    };
 
     // Fetch field options to map single_select ids -> values (excluido_da_base)
     const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
@@ -228,25 +247,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    const baserowResponse = await fetch(baserowUrl, {
-      headers: {
-        'Authorization': `Token ${baserowConfig.api_token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const allRows: any[] = [];
+    for (let page = 1; page <= maxPages; page++) {
+      const data = await fetchPage(page);
+      const results = data?.results || [];
+      allRows.push(...results);
+      console.log(`[consulta-numeros-reminder] Total rows fetched so far: ${allRows.length} (page ${page})`);
 
-    if (!baserowResponse.ok) {
-      console.error('[consulta-numeros-reminder] Baserow fetch failed');
-      return new Response(JSON.stringify({ success: false, message: 'Baserow fetch failed' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (results.length < pageSize) break; // no more pages
     }
 
-    const baserowData = await baserowResponse.json();
-    const allRows = baserowData.results || [];
-
     console.log(`[consulta-numeros-reminder] Total rows from Baserow: ${allRows.length}`);
-    
+
     // Log first row structure for debugging (without PII)
     if (allRows.length > 0) {
       const sampleRow = allRows[0];
