@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +12,19 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, adminOnly = false, permission }: ProtectedRouteProps) {
+  const location = useLocation();
   const { user, isAdmin, isApproved, isLoading, isBlocked, blockedReason, signOut } = useAuth();
   const { hasPermission } = usePermissions();
+
+  const isPrivateArea =
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/usuarios') ||
+    location.pathname === '/' ||
+    location.pathname.startsWith('/dashboard') ||
+    location.pathname === '/cadastrar' ||
+    location.pathname === '/consultar' ||
+    location.pathname === '/atualizar' ||
+    location.pathname === '/excluir';
 
   if (isLoading) {
     return (
@@ -23,12 +34,14 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
     );
   }
 
+  // IMPORTANT: se alguém sem login tentar acessar área privada,
+  // não mostramos a tela de login (pra não "entregar" o painel para clientes).
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return isPrivateArea ? <Navigate to="/catalogo" replace /> : <Navigate to="/auth" replace />;
   }
 
   if (!isApproved) {
-    return <Navigate to="/auth" replace />;
+    return isPrivateArea ? <Navigate to="/catalogo" replace /> : <Navigate to="/auth" replace />;
   }
 
   // Check if user is blocked
@@ -55,11 +68,7 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
             <p className="text-center text-sm text-muted-foreground">
               Entre em contato com o administrador para mais informações.
             </p>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => signOut()}
-            >
+            <Button variant="outline" className="w-full" onClick={() => signOut()}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair da conta
             </Button>
@@ -71,12 +80,12 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
 
   // Check specific permission if provided
   if (permission && !hasPermission(permission)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/catalogo" replace />;
   }
 
   // Legacy adminOnly check
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/catalogo" replace />;
   }
 
   return <>{children}</>;
