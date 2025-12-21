@@ -138,13 +138,16 @@ export default function ConsultaNumerosConfig() {
   // Save config mutation
   const saveConfigMutation = useMutation({
     mutationFn: async () => {
-      const updates = Object.entries(config).map(([key, value]) => 
-        supabase
-          .from('consulta_numeros_config')
-          .update({ config_value: value })
-          .eq('config_key', key)
-      );
-      await Promise.all(updates);
+      const upserts = Object.entries(config).map(([key, value]) => ({
+        config_key: key,
+        config_value: value,
+      }));
+      
+      const { error } = await supabase
+        .from('consulta_numeros_config')
+        .upsert(upserts, { onConflict: 'config_key' });
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: 'Configurações salvas!' });
