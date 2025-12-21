@@ -85,6 +85,18 @@ export default function GatewaySettings() {
     updateSetting({ key: 'success_page', value: successPage });
   };
   const [siteBaseUrl, setSiteBaseUrl] = useState('');
+  const [localSlug, setLocalSlug] = useState('');
+  const [authAccessCode, setAuthAccessCode] = useState('');
+
+  // Carrega os valores salvos quando settings muda
+  useEffect(() => {
+    if (settings.catalog_slug?.slug !== undefined) {
+      setLocalSlug(settings.catalog_slug.slug || '');
+    }
+    if (settings.auth_access_code?.code !== undefined) {
+      setAuthAccessCode(settings.auth_access_code.code || '');
+    }
+  }, [settings.catalog_slug, settings.auth_access_code]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><div className="animate-pulse">Carregando...</div></div>;
@@ -105,10 +117,30 @@ export default function GatewaySettings() {
     toast.success('Link do catálogo copiado!');
   };
 
-  const handleSlugChange = (slug: string) => {
+  const handleSaveSlug = () => {
     // Remove caracteres especiais e espaços
-    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
+    const cleanSlug = localSlug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
+    setLocalSlug(cleanSlug);
     updateSetting({ key: 'catalog_slug', value: { slug: cleanSlug } });
+  };
+
+  const handleSaveAuthCode = () => {
+    updateSetting({ key: 'auth_access_code', value: { code: authAccessCode } });
+  };
+
+  const copyLoginLink = () => {
+    if (!normalizedBase) {
+      toast.error('Configure a URL do site acima para copiar o link completo.');
+      return;
+    }
+    const savedCode = settings.auth_access_code?.code || authAccessCode;
+    if (!savedCode) {
+      toast.error('Configure um código de acesso primeiro.');
+      return;
+    }
+    const loginUrl = `${normalizedBase}/auth?codigo=${savedCode}`;
+    navigator.clipboard.writeText(loginUrl);
+    toast.success('Link de acesso ao painel copiado!');
   };
 
   return (
@@ -154,11 +186,20 @@ export default function GatewaySettings() {
                 </div>
                 <Input
                   id="custom-slug"
-                  value={customSlug}
-                  onChange={(e) => handleSlugChange(e.target.value)}
+                  value={localSlug}
+                  onChange={(e) => setLocalSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-'))}
                   placeholder="minha-loja"
                   className="rounded-l-none"
                 />
+                <Button
+                  variant="outline"
+                  onClick={handleSaveSlug}
+                  disabled={isUpdating}
+                  className="shrink-0"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 Deixe vazio para usar o link padrão /catalogo
@@ -170,6 +211,45 @@ export default function GatewaySettings() {
               <div className="flex gap-2">
                 <Input value={catalogUrl} readOnly className="font-mono text-sm bg-muted/50" />
                 <Button variant="outline" onClick={copyLink} className="shrink-0">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t space-y-2">
+              <Label htmlFor="auth-code">Código de Acesso ao Painel</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="auth-code"
+                  value={authAccessCode}
+                  onChange={(e) => setAuthAccessCode(e.target.value)}
+                  placeholder="codigo-secreto"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleSaveAuthCode}
+                  disabled={isUpdating}
+                  className="shrink-0"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Código secreto para acessar a página de login (ex: /auth?codigo=SEU_CODIGO)
+              </p>
+            </div>
+
+            <div className="pt-2 border-t">
+              <Label className="text-xs text-muted-foreground mb-2 block">Link de Acesso ao Painel:</Label>
+              <div className="flex gap-2">
+                <Input 
+                  value={normalizedBase && settings.auth_access_code?.code ? `${normalizedBase}/auth?codigo=${settings.auth_access_code.code}` : 'Configure a URL e o código acima'} 
+                  readOnly 
+                  className="font-mono text-sm bg-muted/50" 
+                />
+                <Button variant="outline" onClick={copyLoginLink} className="shrink-0">
                   <Copy className="h-4 w-4 mr-2" />
                   Copiar
                 </Button>
