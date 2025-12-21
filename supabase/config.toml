@@ -77,3 +77,9 @@ verify_jwt = false
 
 [functions.verify-email-for-recovery]
 verify_jwt = false
+
+[functions.gateway-verify-payment]
+verify_jwt = false
+
+[functions.gateway-public-settings]
+verify_jwt = false
