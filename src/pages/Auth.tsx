@@ -46,16 +46,16 @@ export default function Auth() {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
-  // Busca o código de acesso configurado no banco
+  // Busca o código de acesso configurado no banco via função pública
   useEffect(() => {
     const fetchAuthCode = async () => {
-      const { data } = await supabase
-        .from('gateway_settings')
-        .select('value')
-        .eq('key', 'auth_access_code')
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_auth_access_code');
       
-      const code = (data?.value as any)?.code || 'astros2024'; // fallback para código padrão
+      if (error) {
+        console.error('Erro ao buscar código de acesso:', error);
+      }
+      
+      const code = data || 'astros2024'; // fallback para código padrão
       setAuthCodeConfig(code);
       setIsLoadingCode(false);
     };
