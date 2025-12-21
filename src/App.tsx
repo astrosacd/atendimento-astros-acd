@@ -98,6 +98,7 @@ function AppRoutes() {
       
       {/* Public Gateway Routes - NO AUTH */}
       <Route path="/catalogo" element={<Catalogo />} />
+      <Route path="/loja/:customSlug" element={<Catalogo />} />
       <Route path="/p/:slug" element={<Checkout />} />
       <Route path="/sucesso" element={<Sucesso />} />
       
