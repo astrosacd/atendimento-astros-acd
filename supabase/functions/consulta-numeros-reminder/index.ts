@@ -52,16 +52,84 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Check if this is a forced/test request (skip time validations)
-    let forceRun = false;
+    // Read request body once
+    let body: any = {};
     try {
-      const body = await req.json();
-      forceRun = body?.force === true;
+      body = await req.json();
     } catch {
-      // No body or invalid JSON, continue normally
+      body = {};
     }
 
-    console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun})`);
+    // Check if this is a forced/test request (skip time validations)
+    const forceRun = body?.force === true;
+    const action = body?.action as string | undefined;
+
+    console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun}${action ? `, action: ${action}` : ''})`);
+
+    // Action: list available statuses from Baserow (excluido_da_base)
+    if (action === 'list_statuses') {
+      // Get Baserow config
+      const { data: baserowConfigData } = await supabase
+        .from('consulta_numeros_config')
+        .select('config_key, config_value');
+
+      if (!baserowConfigData) {
+        return new Response(JSON.stringify({ success: false, message: 'Baserow config not found' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const baserowConfig: Partial<BaserowConfig> = {};
+      baserowConfigData.forEach((row: { config_key: string; config_value: string }) => {
+        if (row.config_key === 'baserow_api_url') baserowConfig.api_url = row.config_value;
+        if (row.config_key === 'baserow_api_token') baserowConfig.api_token = row.config_value;
+        if (row.config_key === 'baserow_table_id') baserowConfig.table_id = row.config_value;
+      });
+
+      if (!baserowConfig.api_url || !baserowConfig.api_token || !baserowConfig.table_id) {
+        return new Response(JSON.stringify({ success: false, message: 'Incomplete Baserow config' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const baserowUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
+      const baserowResponse = await fetch(baserowUrl, {
+        headers: {
+          'Authorization': `Token ${baserowConfig.api_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!baserowResponse.ok) {
+        const errTxt = sanitizePII(await baserowResponse.text());
+        console.error('[consulta-numeros-reminder] Baserow fetch failed (list_statuses):', errTxt);
+        return new Response(JSON.stringify({ success: false, message: 'Baserow fetch failed' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const baserowData = await baserowResponse.json();
+      const allRows = baserowData.results || [];
+
+      const statuses = new Set<string>();
+      for (const row of allRows) {
+        let v = '';
+        const field = row.excluido_da_base;
+        if (field) {
+          if (typeof field === 'string') v = field;
+          else if (typeof field === 'object' && field.value) v = field.value;
+          else if (typeof field === 'object' && field.name) v = field.name;
+        }
+        if (v && typeof v === 'string') statuses.add(v.trim());
+      }
+
+      return new Response(JSON.stringify({ success: true, statuses: Array.from(statuses).filter(Boolean).sort() }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Get reminder config
     const { data: configData, error: configError } = await supabase

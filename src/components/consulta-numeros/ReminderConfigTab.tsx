@@ -62,6 +62,7 @@ const DAYS_OF_WEEK = [
 export function ReminderConfigTab() {
   const queryClient = useQueryClient();
   const [newStatus, setNewStatus] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [newRecipient, setNewRecipient] = useState('');
   const [testLoading, setTestLoading] = useState(false);
 
@@ -97,6 +98,22 @@ export function ReminderConfigTab() {
         .single();
       if (error) throw error;
       return data as ReminderConfig;
+    },
+  });
+
+  // Fetch available statuses from Baserow (excluido_da_base)
+  const {
+    data: availableStatuses = [],
+    isLoading: loadingStatuses,
+    refetch: refetchStatuses,
+  } = useQuery({
+    queryKey: ['consulta-numeros-reminder-available-statuses'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder', {
+        body: { action: 'list_statuses' },
+      });
+      if (error) throw error;
+      return (data?.statuses as string[]) || [];
     },
   });
 
@@ -296,23 +313,78 @@ export function ReminderConfigTab() {
 
           {/* Status a Monitorar */}
           <div className="space-y-3">
-            <Label>Status a Monitorar</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ex: EM ANÁLISE PELA META"
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()}
-              />
-              <Button onClick={handleAddStatus} variant="outline">
-                <Plus className="h-4 w-4" />
-              </Button>
+            <Label>Status a Monitorar (campo: excluido_da_base)</Label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Escolher da lista</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingStatuses ? 'Carregando...' : 'Selecione um status'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableStatuses.length === 0 ? (
+                      <SelectItem value="__none__" disabled>
+                        Nenhum status encontrado
+                      </SelectItem>
+                    ) : (
+                      availableStatuses.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const status = selectedStatus?.trim();
+                      if (!status || status === '__none__') return;
+                      if (config.status_to_monitor.includes(status)) {
+                        toast({ title: 'Status já adicionado', variant: 'destructive' });
+                        return;
+                      }
+                      setConfig((prev) => ({
+                        ...prev,
+                        status_to_monitor: [...prev.status_to_monitor, status],
+                      }));
+                      setSelectedStatus('');
+                    }}
+                    disabled={!selectedStatus || selectedStatus === '__none__'}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => refetchStatuses()}>
+                    Atualizar lista
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Ou digitar manualmente</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ex: EM ANÁLISE PELA META"
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddStatus()}
+                  />
+                  <Button onClick={handleAddStatus} variant="outline" type="button">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
+
             <div className="flex flex-wrap gap-2">
-              {config.status_to_monitor.map(status => (
+              {config.status_to_monitor.map((status) => (
                 <Badge key={status} variant="secondary" className="gap-1">
                   {status}
-                  <button onClick={() => handleRemoveStatus(status)} className="ml-1 hover:text-destructive">
+                  <button onClick={() => handleRemoveStatus(status)} className="ml-1 hover:text-destructive" type="button">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -321,8 +393,9 @@ export function ReminderConfigTab() {
                 <p className="text-sm text-muted-foreground">Nenhum status configurado</p>
               )}
             </div>
+
             <p className="text-xs text-muted-foreground">
-              Digite o status exatamente como aparece no Baserow (na coluna excluido_da_base ou Status)
+              O lembrete filtra pelo campo <code className="bg-muted px-1 rounded">excluido_da_base</code>.
             </p>
           </div>
 
