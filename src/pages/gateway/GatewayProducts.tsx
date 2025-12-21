@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProductOrderBumps, useGatewayBaseUrl, GatewayProduct } from '@/hooks/useGateway';
+import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProductOrderBumps, GatewayProduct } from '@/hooks/useGateway';
 import { Plus, Pencil, Trash2, Copy, Link2, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,6 @@ export default function GatewayProducts() {
   const { products, isLoading, createProduct, updateProduct, deleteProduct, isCreating, isUpdating, isDeleting } = useGatewayProducts();
   const { categories } = useGatewayCategories();
   const { orderBumps } = useGatewayOrderBumps();
-  const baseUrl = useGatewayBaseUrl();
   const [isOpen, setIsOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<GatewayProduct | null>(null);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
@@ -141,7 +140,7 @@ export default function GatewayProducts() {
   };
 
   const copyLink = (publicSlug: string) => {
-    const url = `${baseUrl}/p/${publicSlug}`;
+    const url = `/p/${publicSlug}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado!');
   };
