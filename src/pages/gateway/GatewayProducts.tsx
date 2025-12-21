@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useGatewayProducts, useGatewayCategories, useGatewayOrderBumps, useProductOrderBumps, useGatewaySettings, GatewayProduct } from '@/hooks/useGateway';
-import { Plus, Pencil, Trash2, Copy, Link2, Image } from 'lucide-react';
+import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
+import { Plus, Pencil, Trash2, Copy, Link2, Image, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -26,6 +28,7 @@ export default function GatewayProducts() {
   const [editingProduct, setEditingProduct] = useState<GatewayProduct | null>(null);
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const { isLoading: isConverting, convertBRLtoUSD, convertUSDtoBRL, lastRate } = useCurrencyConversion();
   
   
   const [formData, setFormData] = useState({
@@ -215,24 +218,78 @@ export default function GatewayProducts() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="price_brl">Preço BRL *</Label>
-                    <Input
-                      id="price_brl"
-                      type="number"
-                      step="0.01"
-                      value={formData.price_brl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price_brl: parseFloat(e.target.value) || 0 }))}
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="price_brl"
+                        type="number"
+                        step="0.01"
+                        value={formData.price_brl}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price_brl: parseFloat(e.target.value) || 0 }))}
+                        required
+                        className="flex-1"
+                      />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              disabled={isConverting || formData.price_brl <= 0}
+                              onClick={async () => {
+                                const usd = await convertBRLtoUSD(formData.price_brl);
+                                if (usd !== null) {
+                                  setFormData(prev => ({ ...prev, price_usd: usd }));
+                                  toast.success(`Convertido: $${usd.toFixed(2)} (cotação: R$${lastRate?.toFixed(2)})`);
+                                }
+                              }}
+                            >
+                              <RefreshCw className={`h-4 w-4 ${isConverting ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Converter BRL → USD</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="price_usd">Preço USD</Label>
-                    <Input
-                      id="price_usd"
-                      type="number"
-                      step="0.01"
-                      value={formData.price_usd}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }))}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="price_usd"
+                        type="number"
+                        step="0.01"
+                        value={formData.price_usd}
+                        onChange={(e) => setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }))}
+                        className="flex-1"
+                      />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              disabled={isConverting || formData.price_usd <= 0}
+                              onClick={async () => {
+                                const brl = await convertUSDtoBRL(formData.price_usd);
+                                if (brl !== null) {
+                                  setFormData(prev => ({ ...prev, price_brl: brl }));
+                                  toast.success(`Convertido: R$${brl.toFixed(2)} (cotação: R$${lastRate?.toFixed(2)})`);
+                                }
+                              }}
+                            >
+                              <RefreshCw className={`h-4 w-4 ${isConverting ? 'animate-spin' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Converter USD → BRL</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Categoria</Label>
