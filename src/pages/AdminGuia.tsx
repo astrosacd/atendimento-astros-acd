@@ -2714,58 +2714,31 @@ O sistema configura automaticamente o endpoint:
 Este endpoint recebe notificações de pagamentos confirmados/cancelados.`
         },
         {
-          title: "Configurar Email (SMTP)",
-          content: `**Configurar servidor de email:**
+          title: "Links do Site",
+          content: `**Configurar URLs e acessos:**
 
-1. Acesse **Gateway** → **Configurações** → aba **Email**
-2. Preencha:
-   - **SMTP Host**: Servidor SMTP (ex: smtp.gmail.com)
-   - **SMTP Port**: Porta (geralmente 587 ou 465)
-   - **SMTP User**: Email de envio
-   - **SMTP Password**: Senha ou senha de app
-   - **Email de Envio**: Remetente que aparece
-   - **Nome do Remetente**: Nome que aparece
-3. Clique em **"Salvar Email"**
+1. Acesse **Gateway** → **Configurações**
+2. Na seção **Links do Site**, configure:
 
-**Para Gmail:**
-- Use **smtp.gmail.com** porta **587**
-- Gere uma **Senha de App** (não use sua senha normal)
-- Ative verificação em 2 etapas primeiro
+**URL do Site:**
+- Informe a URL completa do seu site (ex: https://seusite.com)
+- Necessário para que os links copiados funcionem corretamente
 
-**Uso:**
-Emails são usados para:
-- Confirmação de pedido
-- Recuperação de carrinho abandonado`
+**Slug do Catálogo (opcional):**
+- Personalize a URL do catálogo (ex: /loja/minha-loja)
+- Deixe vazio para usar /catalogo padrão
+
+**Código de Acesso ao Painel:**
+- Defina um código secreto para acessar a página de login
+- A URL será: /auth?codigo=SEU_CODIGO
+
+**Links gerados:**
+- **Link do Catálogo**: Copie para compartilhar sua loja
+- **Link de Acesso ao Painel**: Copie para dar acesso aos operadores`
         },
         {
-          title: "Carrinho abandonado",
-          content: `**Configurar recuperação automática:**
-
-1. Acesse **Gateway** → **Configurações** → aba **Carrinho Abandonado**
-2. Configure:
-   - **Habilitar**: Ativa/desativa o envio
-   - **Tempo de espera**: Minutos após abandono para enviar
-   - **Assunto**: Título do email
-   - **Template HTML**: Corpo do email
-
-**Variáveis disponíveis:**
-- \`{{nome}}\` - Nome do cliente
-- \`{{produto}}\` - Nome do produto
-- \`{{link}}\` - Link para retomar compra
-
-**Exemplo de template:**
-\`\`\`html
-<h1>Olá {{nome}}!</h1>
-<p>Você deixou {{produto}} no carrinho.</p>
-<a href="{{link}}">Finalizar compra</a>
-\`\`\`
-
-**Execução:**
-O cron \`gateway-abandoned-cart\` verifica pedidos pendentes periodicamente.`
-        },
-        {
-          title: "Contador de checkout",
-          content: `**Configurar contador de urgência:**
+          title: "Aba Checkout",
+          content: `**Contador de urgência:**
 
 1. Acesse **Gateway** → **Configurações** → aba **Checkout**
 2. Configure:
@@ -2780,15 +2753,85 @@ O cron \`gateway-abandoned-cart\` verifica pedidos pendentes periodicamente.`
 - Exibe minutos:segundos regressivos
 - Ao zerar, mostra mensagem de urgência
 
-**Dica:** Tempo entre 5-15 minutos funciona melhor para criar urgência sem ser agressivo.`
+**Dica:** Tempo entre 5-15 minutos funciona melhor para criar urgência.`
+        },
+        {
+          title: "Aba Sucesso",
+          content: `**Página de sucesso após pagamento:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Sucesso**
+2. Configure:
+   - **Título**: Mensagem principal (ex: "Compra Realizada!")
+   - **Mensagem**: Texto de confirmação
+   - **Instruções**: Como acessar o produto
+   - **Texto do Botão**: Ação principal
+   - **Destino do Botão**: Caminho de redirecionamento
+
+**Botão de Suporte WhatsApp (opcional):**
+- Ative para mostrar botão de contato
+- Configure número do WhatsApp (DDI+DDD+número)
+- Personalize texto do botão e mensagem automática
+
+**Variáveis disponíveis:**
+- \`{nome}\`, \`{email}\`, \`{produto}\`, \`{valor}\`, \`{telefone}\`, \`{pedido}\``
+        },
+        {
+          title: "Aba Notificações",
+          content: `**Notificações de pagamento aprovado:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Notificações**
+
+**WhatsApp (Evolution API):**
+- Ative **"Habilitar notificação WhatsApp"**
+- Configure: Nome da Instância, URL da API, API Key
+- Personalize o template da mensagem
+
+**Email (Gmail):**
+- Ative **"Habilitar notificação por Email"**
+- Configure: Email do Gmail, Senha de App
+- Personalize assunto e template
+
+**Variáveis disponíveis:**
+- \`{nome}\`, \`{email}\`, \`{produto}\`, \`{valor}\`, \`{telefone}\`
+
+**Dica:** Configure ambos para garantir que o cliente receba a confirmação.`
+        },
+        {
+          title: "Aba Carrinho Abandonado",
+          content: `**Recuperação automática de carrinhos:**
+
+1. Acesse **Gateway** → **Configurações** → aba **Carrinho Abandonado**
+
+**Configurações Gerais:**
+- **Habilitar**: Ativa/desativa o envio automático
+- **Tempo de espera (minutos)**: Após este tempo, o pedido é considerado abandonado
+- **Intervalo do Cron (minutos)**: A cada quantos minutos verificar carrinhos (1-60)
+- **Delay entre envios (segundos)**: Intervalo entre cada envio para evitar bloqueios
+
+**Notificação via Email (Gmail):**
+- **Email do Gmail**: seuemail@gmail.com
+- **Senha de App**: Gere em myaccount.google.com/apppasswords
+- **Assunto do Email**: Título da mensagem
+- **Mensagem do Email**: Template com variáveis
+
+**Notificação via WhatsApp (Evolution):**
+- Ative **"Habilitar WhatsApp"**
+- Configure: Nome da Instância, URL da API, API Key
+- Personalize a mensagem
+
+**Variáveis disponíveis:**
+- \`{{nome}}\`, \`{{produto}}\`, \`{{valor}}\`, \`{{link}}\`
+
+**Dica:** Configure Email E WhatsApp para máxima recuperação.`
         }
       ],
       tips: [
-        "Configure ambos os gateways para máximo alcance",
-        "Use ambiente sandbox/test para desenvolvimento",
-        "Teste emails de carrinho abandonado antes de ativar",
+        "Configure ambos os gateways (Stripe e Mercado Pago) para máximo alcance",
+        "Use ambiente sandbox/test do Stripe para desenvolvimento",
+        "Configure notificações via WhatsApp E Email para garantir entrega",
         "O contador de checkout pode aumentar conversões em 20-30%",
-        "Mantenha credenciais seguras e nunca compartilhe publicamente"
+        "Para Gmail, sempre use Senha de App (não a senha normal)",
+        "Teste as configurações de carrinho abandonado antes de ativar em produção"
       ]
     }
   ];
