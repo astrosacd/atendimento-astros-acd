@@ -198,8 +198,16 @@ serve(async (req: Request) => {
       configMap[c.config_key] = c.config_value;
     });
 
-    const siteUrl = Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovable.app") || "https://sistema.astros.com.br";
-    const frontendUrl = siteUrl.includes("supabase") ? "https://udxaxemoozddkwpitngq.lovable.app" : siteUrl;
+    // Buscar o código de acesso do banco de dados
+    const { data: accessCodeData } = await supabase
+      .from('gateway_settings')
+      .select('value')
+      .eq('key', 'auth_access_code')
+      .maybeSingle();
+    
+    const accessCode = accessCodeData?.value?.code || 'astros2024';
+    const baseUrl = "https://crm-astros-acd.lovable.app";
+    const authUrl = `${baseUrl}/auth?codigo=${accessCode}`;
 
     // Replace template variables
     const replaceVariables = (template: string) => {
@@ -207,7 +215,7 @@ serve(async (req: Request) => {
         .replace(/{nome}/g, userName)
         .replace(/{email}/g, userEmail)
         .replace(/{senha}/g, userPassword)
-        .replace(/{url}/g, frontendUrl);
+        .replace(/{url}/g, authUrl);
     };
 
     // Send Email if enabled
