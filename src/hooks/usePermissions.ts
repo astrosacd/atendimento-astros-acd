@@ -86,7 +86,7 @@ export function usePermissions() {
   const canViewGuiaDivulgador = () => hasPermission('view_guia_divulgador');
   const canViewGuiaNumeros = () => hasPermission('view_guia_numeros');
   const canViewGuiaAvancado = () => hasPermission('view_guia_avancado');
-
+  const canViewGuiaChamados = () => hasPermission('view_guia_chamados');
   // Gateway permissions
   const canViewGateway = () => hasPermission('view_gateway');
   const canManageGatewayProducts = () => hasPermission('manage_gateway_products');
@@ -148,6 +148,7 @@ export function usePermissions() {
     canViewGuiaDivulgador,
     canViewGuiaNumeros,
     canViewGuiaAvancado,
+    canViewGuiaChamados,
     // Gateway
     canViewGateway,
     canManageGatewayProducts,
