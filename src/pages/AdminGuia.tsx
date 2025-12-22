@@ -51,7 +51,8 @@ import {
   PercentCircle,
   Receipt,
   Timer,
-  BarChart
+  BarChart,
+  Ticket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,6 +120,10 @@ const categoryToPermission: Record<string, string> = {
   'notificacoes': 'view_guia_avancado',
   'backup': 'view_guia_avancado',
   'troubleshooting': 'view_guia_avancado',
+  'chamados-visao-geral': 'view_guia_chamados',
+  'chamados-api': 'view_guia_chamados',
+  'chamados-webhooks': 'view_guia_chamados',
+  'chamados-config': 'view_guia_chamados',
 };
 
 const AdminGuia = () => {
@@ -199,6 +204,14 @@ const AdminGuia = () => {
       color: "text-blue-400",
       categories: ["usuarios", "permissoes"],
       permissionKey: "view_guia_usuarios"
+    },
+    {
+      id: "chamados",
+      title: "Chamados",
+      icon: Ticket,
+      color: "text-orange-400",
+      categories: ["chamados-visao-geral", "chamados-api", "chamados-webhooks", "chamados-config"],
+      permissionKey: "view_guia_chamados"
     },
     {
       id: "financeiro",
@@ -2956,6 +2969,323 @@ Este endpoint recebe notificações de pagamentos confirmados/cancelados.`
         "O contador de checkout pode aumentar conversões em 20-30%",
         "Para Gmail, sempre use Senha de App (não a senha normal)",
         "Teste as configurações de carrinho abandonado antes de ativar em produção"
+      ]
+    },
+    {
+      id: "chamados-visao-geral",
+      title: "Sistema de Chamados",
+      icon: Ticket,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Gerencie o sistema de abertura e acompanhamento de chamados",
+      steps: [
+        {
+          title: "O que é o Sistema de Chamados?",
+          content: `O **Sistema de Chamados** permite que clientes abram e acompanhem chamados de suporte:
+
+- **Abertura de chamados**: Clientes podem abrir chamados via URL pública
+- **Código único**: Cada chamado recebe um código ACD-AAAAMMDDHHMMSS
+- **Acompanhamento**: Clientes consultam status usando código ou email
+- **Comentários**: Interação entre cliente e técnico
+- **Histórico completo**: Todas as ações são registradas
+- **API REST**: Integração com sistemas externos
+- **Webhooks**: Notificações automáticas de eventos
+
+**URL Pública para Clientes:**
+\`https://seusite.com/chamados\`
+
+Os clientes podem:
+- Abrir novo chamado
+- Consultar chamado por código
+- Consultar chamados por email (com verificação)`
+        },
+        {
+          title: "Acessar o Módulo",
+          content: `**Para acessar:**
+
+1. No menu lateral, clique em **Chamados** (abaixo de Usuários)
+2. Você verá todos os chamados abertos
+
+**Funcionalidades do painel:**
+
+- **Buscar**: Filtre por nome, código ou email
+- **Filtrar por status**: Aberto, Em Andamento, Aguardando, Resolvido, Fechado
+- **Estatísticas**: Cards com contagem por status
+- **Detalhes**: Clique em um chamado para ver detalhes e comentários
+- **Atualizar status**: Altere o status do chamado
+- **Adicionar comentário**: Registre interações com o cliente
+
+**Status disponíveis:**
+- 🟡 **Aberto**: Chamado recém-criado
+- 🔵 **Em Andamento**: Técnico trabalhando
+- 🟠 **Aguardando Cliente**: Esperando resposta do cliente
+- 🟢 **Resolvido**: Problema solucionado
+- ⚫ **Fechado**: Chamado encerrado`
+        },
+        {
+          title: "URL Pública do Cliente",
+          content: `**Onde os clientes acessam:**
+
+\`https://seusite.com/chamados\`
+
+**Na página pública, o cliente pode:**
+
+1. **Abrir Chamado**:
+   - Preencher nome, email, contato e motivo
+   - Recebe código único (ex: ACD-20251222153045)
+   - Recebe link de acompanhamento
+
+2. **Consultar por Código**:
+   - Digitar código do chamado (ACD-...)
+   - Ver status, comentários e histórico
+
+3. **Consultar por Email**:
+   - Digitar email usado na abertura
+   - Receber código de 6 dígitos por email
+   - Verificar código e ver todos os chamados
+
+**Código de Verificação:**
+- Enviado automaticamente para o email
+- Expira conforme configuração (padrão: 5 minutos)
+- Protege acesso aos chamados do cliente`
+        }
+      ],
+      tips: [
+        "O código do chamado usa horário de Brasília (America/Sao_Paulo)",
+        "Clientes podem adicionar comentários para fornecer mais informações",
+        "Configure o Gmail para envio de códigos de verificação"
+      ]
+    },
+    {
+      id: "chamados-api",
+      title: "API REST de Chamados",
+      icon: Key,
+      color: "text-amber-400",
+      bgColor: "bg-amber-500/10",
+      description: "Integre o sistema de chamados com aplicações externas",
+      steps: [
+        {
+          title: "Gerar Chave de API",
+          content: `**Criar chave de acesso:**
+
+1. Acesse **Chamados** → botão **API REST** no cabeçalho
+2. Clique em **"Nova Chave API"**
+3. Preencha:
+   - **Nome**: Identificação da chave
+   - **Descrição**: Para que será usada
+   - **Permissões**: Selecione as operações permitidas
+4. Clique em **"Criar"**
+5. **Copie a chave** - ela só é exibida uma vez!
+
+**Permissões disponíveis:**
+- **read**: Listar e consultar chamados
+- **create**: Abrir novos chamados
+- **update**: Atualizar status e dados
+- **delete**: Excluir chamados`
+        },
+        {
+          title: "Endpoints Disponíveis",
+          content: `**Base URL:**
+\`https://[projeto].supabase.co/functions/v1/api-chamados\`
+
+**Autenticação:**
+Header: \`Authorization: Bearer SUA_API_KEY\`
+
+---
+
+**Listar todos os chamados:**
+\`GET /api-chamados\`
+
+**Buscar por ID:**
+\`GET /api-chamados?id=UUID\`
+
+**Buscar por código:**
+\`GET /api-chamados?codigo=ACD-20251222153045\`
+
+**Buscar por email:**
+\`GET /api-chamados?email=cliente@email.com\`
+
+---
+
+**Criar chamado:**
+\`POST /api-chamados\`
+
+{
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "contato": "11999999999",
+  "motivo": "Descrição do problema"
+}
+
+---
+
+**Atualizar chamado:**
+\`PUT /api-chamados?id=UUID\`
+
+{
+  "status": "em_andamento",
+  "prioridade": "alta"
+}
+
+---
+
+**Deletar chamado:**
+\`DELETE /api-chamados?id=UUID\``
+        },
+        {
+          title: "Exemplos de Uso",
+          content: `**cURL - Listar chamados:**
+
+curl -X GET \\
+  "https://[projeto].supabase.co/functions/v1/api-chamados" \\
+  -H "Authorization: Bearer SUA_API_KEY"
+
+**cURL - Criar chamado:**
+
+curl -X POST \\
+  "https://[projeto].supabase.co/functions/v1/api-chamados" \\
+  -H "Authorization: Bearer SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"nome":"João","email":"joao@email.com","contato":"11999","motivo":"Problema X"}'`
+        }
+      ],
+      tips: [
+        "Guarde a chave de API em local seguro - ela só é exibida uma vez",
+        "Use permissões mínimas necessárias para cada integração",
+        "Teste a API com ferramentas como Postman ou cURL antes de integrar"
+      ]
+    },
+    {
+      id: "chamados-webhooks",
+      title: "Webhooks de Chamados",
+      icon: Webhook,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/10",
+      description: "Receba notificações automáticas de eventos de chamados",
+      steps: [
+        {
+          title: "Criar Webhook",
+          content: `**Configurar webhook:**
+
+1. Acesse **Chamados** → botão **Webhooks** no cabeçalho
+2. Clique em **"Novo Webhook"**
+3. Preencha:
+   - **Nome**: Identificação do webhook
+   - **URL**: Endpoint que receberá os eventos
+   - **Chave Secreta** (opcional): Para validar autenticidade
+   - **Eventos**: Selecione quais eventos disparam o webhook
+4. Clique em **"Criar"**
+
+**Eventos disponíveis:**
+- **chamado.criado**: Novo chamado aberto
+- **chamado.atualizado**: Status ou dados alterados
+- **chamado.fechado**: Chamado encerrado
+- **chamado.comentario**: Novo comentário adicionado`
+        },
+        {
+          title: "Payload dos Eventos",
+          content: `**Estrutura do payload:**
+
+{
+  "evento": "chamado.criado",
+  "timestamp": "2025-12-22T15:30:45.000Z",
+  "chamado": {
+    "id": "uuid",
+    "codigo": "ACD-20251222153045",
+    "nome": "João Silva",
+    "email": "joao@email.com",
+    "status": "aberto",
+    "prioridade": "media"
+  }
+}
+
+**Headers enviados:**
+- Content-Type: application/json
+- X-Webhook-Secret: sua_chave_secreta (se configurada)
+- X-Webhook-Event: chamado.criado`
+        },
+        {
+          title: "Integração com n8n",
+          content: `**Configurar no n8n:**
+
+1. Crie um workflow no n8n
+2. Adicione um nó **Webhook** como trigger
+3. Copie a URL gerada pelo n8n
+4. No sistema, crie um webhook com essa URL
+5. Selecione os eventos desejados
+
+**Exemplo de uso:**
+- Chamado criado → Notificar equipe no Slack
+- Chamado fechado → Atualizar CRM externo
+- Comentário adicionado → Enviar email ao cliente`
+        }
+      ],
+      tips: [
+        "Use a chave secreta para validar que as requisições vêm do sistema",
+        "Teste com Webhook.site antes de conectar ao seu sistema",
+        "Verifique os logs de webhook para diagnosticar falhas"
+      ]
+    },
+    {
+      id: "chamados-config",
+      title: "Configurações de Chamados",
+      icon: Settings,
+      color: "text-slate-400",
+      bgColor: "bg-slate-500/10",
+      description: "Configure o sistema de chamados",
+      steps: [
+        {
+          title: "Configurações Gerais",
+          content: `**Acessar configurações:**
+
+1. Acesse **Chamados** → botão **Configurações** no cabeçalho
+
+**Tempo de expiração do código de verificação:**
+- Mínimo: 1 minuto
+- Máximo: 60 minutos
+- Padrão: 5 minutos
+
+Este código é enviado quando o cliente consulta chamados por email.`
+        },
+        {
+          title: "Configurar Gmail (SMTP)",
+          content: `**Para envio de códigos de verificação:**
+
+1. Na aba **Gmail**, configure:
+   - **Nome do remetente**: Nome que aparece no email
+   - **Email Gmail**: Seu endereço Gmail
+   - **Senha de App**: Senha de 16 caracteres do Google
+
+**Gerar Senha de App:**
+1. Acesse **myaccount.google.com**
+2. Vá em **Segurança** → **Verificação em 2 etapas** (ative se necessário)
+3. Depois, vá em **Senhas de app**
+4. Selecione "Outro" e digite "Chamados CRM"
+5. Copie a senha de 16 caracteres`
+        },
+        {
+          title: "Permissões de Chamados",
+          content: `**Configurar em Permissões do Sistema:**
+
+Acesse **Painel Administrativo** → **Permissões do Sistema**
+
+**Permissões disponíveis:**
+- **view_chamados**: Visualizar chamados
+- **manage_chamados**: Gerenciar (atualizar status, comentar)
+- **manage_chamados_config**: Alterar configurações
+- **manage_chamados_webhooks**: Gerenciar webhooks
+- **manage_chamados_api**: Gerenciar chaves de API
+
+**Recomendações por role:**
+- **Admin**: Todas as permissões
+- **Técnico/Suporte**: view_chamados + manage_chamados
+- **Gerente**: Todas exceto API e webhooks`
+        }
+      ],
+      tips: [
+        "Use uma conta Gmail dedicada para o sistema",
+        "Guarde a senha de app em local seguro",
+        "Configure permissões adequadas para cada tipo de usuário"
       ]
     }
   ];

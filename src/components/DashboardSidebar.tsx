@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados } = usePermissions();
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize from cache immediately to prevent flicker on navigation
@@ -123,7 +123,8 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
 
   const adminItems: NavItem[] = [
     { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500' },
-    { title: 'Divulgador', icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-orange-500' },
+    { title: 'Chamados', icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500' },
+    { title: 'Divulgador', icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500' },
     { title: 'Status Números', icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500' },
     { title: 'Consulta Números', icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500' },
     { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500' },

@@ -12,8 +12,7 @@ import {
   MessageCircle,
   ShieldCheck,
   BookOpen,
-  UserPlus,
-  Ticket
+  UserPlus
 } from "lucide-react";
 
 const Admin = () => {
@@ -26,13 +25,6 @@ const Admin = () => {
       icon: Users,
       path: "/usuarios",
       color: "from-blue-500/20 to-blue-600/10"
-    },
-    {
-      title: "Chamados",
-      description: "Sistema de abertura e acompanhamento de chamados",
-      icon: Ticket,
-      path: "/admin/chamados",
-      color: "from-orange-500/20 to-orange-600/10"
     },
     {
       title: "Permissões do Sistema",
