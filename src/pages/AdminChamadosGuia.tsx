@@ -64,9 +64,9 @@ const AdminChamadosGuia = () => {
                 <div>
                   <h3 className="font-semibold mb-2">Base URL</h3>
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg font-mono text-sm">
-                    <span>{baseUrl}/api-chamados</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(`${baseUrl}/api-chamados`)}>
-                      <Copy className="h-3 w-3" />
+                    <span className="flex-1 break-all">{baseUrl}/api-chamados</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(`${baseUrl}/api-chamados`)}>
+                      <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -76,87 +76,172 @@ const AdminChamadosGuia = () => {
                   <p className="text-sm text-muted-foreground mb-2">
                     Adicione o header <code className="bg-muted px-1 rounded">X-API-Key</code> com sua API key.
                   </p>
-                  <pre className="p-3 bg-muted/50 rounded-lg text-sm overflow-x-auto">
-{`curl -X GET "${baseUrl}/api-chamados" \\
-  -H "X-API-Key: acd_sua_api_key_aqui"`}
-                  </pre>
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="font-semibold">Endpoints</h3>
                   
-                  {/* GET - Listar */}
-                  <div className="border border-border/40 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
+                  {/* GET - Listar todos */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
                       <Badge className="bg-emerald-500">GET</Badge>
-                      <code className="text-sm">/api-chamados</code>
+                      <code className="text-sm font-semibold">Listar todos os chamados</code>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">Lista todos os chamados. Filtros opcionais:</p>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                      <li><code>?id=UUID</code> - Buscar por ID</li>
-                      <li><code>?codigo=ACD-...</code> - Buscar por código</li>
-                      <li><code>?email=email@exemplo.com</code> - Buscar por email</li>
-                      <li><code>?status=aberto</code> - Filtrar por status</li>
-                      <li><code>?limit=50&offset=0</code> - Paginação</li>
-                    </ul>
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X GET "${baseUrl}/api-chamados" \\
+  -H "X-API-Key: SUA_API_KEY"`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X GET "${baseUrl}/api-chamados" \\\n  -H "X-API-Key: SUA_API_KEY"`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* POST - Criar */}
-                  <div className="border border-border/40 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-blue-500">POST</Badge>
-                      <code className="text-sm">/api-chamados</code>
+                  {/* GET - Buscar por código */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500">GET</Badge>
+                      <code className="text-sm font-semibold">Buscar por código</code>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">Criar novo chamado (acesso público):</p>
-                    <pre className="p-3 bg-muted/50 rounded-lg text-sm overflow-x-auto">
-{`{
-  "nome": "João Silva",
-  "email": "joao@email.com",
-  "contato": "11999999999",
-  "motivo": "Descrição do problema"
-}`}
-                    </pre>
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X GET "${baseUrl}/api-chamados?codigo=ACD-20241222153045" \\
+  -H "X-API-Key: SUA_API_KEY"`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X GET "${baseUrl}/api-chamados?codigo=ACD-20241222153045" \\\n  -H "X-API-Key: SUA_API_KEY"`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* PUT - Atualizar */}
-                  <div className="border border-border/40 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-amber-500">PUT</Badge>
-                      <code className="text-sm">/api-chamados?id=UUID</code>
+                  {/* GET - Filtrar por status */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500">GET</Badge>
+                      <code className="text-sm font-semibold">Filtrar por status</code>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">Atualizar chamado (requer permissão write):</p>
-                    <pre className="p-3 bg-muted/50 rounded-lg text-sm overflow-x-auto">
-{`{
-  "status": "em_andamento",
-  "prioridade": "alta"
-}`}
-                    </pre>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X GET "${baseUrl}/api-chamados?status=aberto&limit=50" \\
+  -H "X-API-Key: SUA_API_KEY"`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X GET "${baseUrl}/api-chamados?status=aberto&limit=50" \\\n  -H "X-API-Key: SUA_API_KEY"`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       Status válidos: aberto, em_andamento, aguardando_cliente, resolvido, fechado
                     </p>
                   </div>
 
-                  {/* DELETE */}
-                  <div className="border border-border/40 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className="bg-red-500">DELETE</Badge>
-                      <code className="text-sm">/api-chamados?id=UUID</code>
+                  {/* POST - Criar */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500">POST</Badge>
+                      <code className="text-sm font-semibold">Criar novo chamado</code>
                     </div>
-                    <p className="text-sm text-muted-foreground">Excluir chamado (requer permissão delete)</p>
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X POST "${baseUrl}/api-chamados" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "nome": "João Silva",
+    "email": "joao@email.com",
+    "contato": "11999999999",
+    "motivo": "Descrição do problema"
+  }'`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X POST "${baseUrl}/api-chamados" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "nome": "João Silva",\n    "email": "joao@email.com",\n    "contato": "11999999999",\n    "motivo": "Descrição do problema"\n  }'`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Este endpoint é público (não requer API Key)
+                    </p>
+                  </div>
+
+                  {/* PUT - Atualizar */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-500">PUT</Badge>
+                      <code className="text-sm font-semibold">Atualizar chamado</code>
+                    </div>
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X PUT "${baseUrl}/api-chamados?id=UUID_DO_CHAMADO" \\
+  -H "X-API-Key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "status": "em_andamento",
+    "prioridade": "alta"
+  }'`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X PUT "${baseUrl}/api-chamados?id=UUID_DO_CHAMADO" \\\n  -H "X-API-Key: SUA_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "status": "em_andamento",\n    "prioridade": "alta"\n  }'`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Requer API Key com permissão de escrita (write)
+                    </p>
+                  </div>
+
+                  {/* DELETE */}
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-red-500">DELETE</Badge>
+                      <code className="text-sm font-semibold">Excluir chamado</code>
+                    </div>
+                    <div className="relative">
+                      <pre className="p-3 pr-12 bg-zinc-900 text-zinc-100 rounded-lg text-sm overflow-x-auto">
+{`curl -X DELETE "${baseUrl}/api-chamados?id=UUID_DO_CHAMADO" \\
+  -H "X-API-Key: SUA_API_KEY"`}
+                      </pre>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-8 w-8 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        onClick={() => copyToClipboard(`curl -X DELETE "${baseUrl}/api-chamados?id=UUID_DO_CHAMADO" \\\n  -H "X-API-Key: SUA_API_KEY"`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Requer API Key com permissão de exclusão (delete)
+                    </p>
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="font-semibold mb-2">Código do Chamado</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Formato: <code className="bg-muted px-1 rounded">ACD-YYYYMMDDHHMMSSXX</code>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Exemplo: <code className="bg-muted px-1 rounded">ACD-2024122215304512</code>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Gerado automaticamente com timezone de Brasília (America/Sao_Paulo)
-                  </p>
+                <div className="flex gap-2">
+                  <Button onClick={() => navigate('/admin/chamados/api-keys')}>
+                    <Key className="h-4 w-4 mr-2" />
+                    Gerenciar API Keys
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -242,15 +327,32 @@ const AdminChamadosGuia = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-2">URL de Acesso</h3>
-                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg font-mono text-sm">
-                    <span>{window.location.origin}/chamados</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(`${window.location.origin}/chamados`)}>
-                      <Copy className="h-3 w-3" />
+                {/* Link principal para enviar aos clientes */}
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    🔗 Link para enviar aos clientes
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Este é o link único e fixo que você deve enviar para seus clientes acessarem o sistema de chamados:
+                  </p>
+                  <div className="flex items-center gap-2 p-3 bg-background rounded-lg font-mono text-sm">
+                    <span className="flex-1 break-all">{window.location.origin}/chamados</span>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="shrink-0"
+                      onClick={() => {
+                        copyToClipboard(`${window.location.origin}/chamados`);
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar Link
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open('/chamados', '_blank')}>
-                      <ExternalLink className="h-3 w-3" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => window.open('/chamados', '_blank')}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Abrir em nova aba
                     </Button>
                   </div>
                 </div>
@@ -266,13 +368,56 @@ const AdminChamadosGuia = () => {
                   </ul>
                 </div>
 
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    ⚠️ Como funciona a Hash de Acesso?
+                  </h3>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong>A hash é FIXA e única por chamado.</strong> Ela é gerada automaticamente quando o chamado é criado e não muda.
+                    </p>
+                    <p>
+                      Cada chamado possui sua própria hash de acesso, que pode ser usada para acessar diretamente aquele chamado específico:
+                    </p>
+                    <div className="p-2 bg-background rounded font-mono text-xs break-all">
+                      {window.location.origin}/chamados?hash=a1b2c3d4e5f6...
+                    </div>
+                    <p>
+                      O cliente pode acessar o chamado através dessa hash sem precisar fazer login ou verificação por email.
+                    </p>
+                  </div>
+                </div>
+
                 <div>
-                  <h3 className="font-semibold mb-2">Acesso Direto ao Chamado</h3>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Cada chamado possui um hash único de acesso:
-                  </p>
-                  <div className="p-3 bg-muted/50 rounded-lg font-mono text-sm">
-                    {window.location.origin}/chamados/acompanhar?hash=HASH_DO_CHAMADO
+                  <h3 className="font-semibold mb-2">Formas de Acesso pelo Cliente</h3>
+                  <div className="grid gap-3">
+                    <div className="p-3 border border-border/40 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline">1</Badge>
+                        <span className="font-medium text-sm">Link Geral</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cliente acessa /chamados, abre ou consulta chamados usando código ou email
+                      </p>
+                    </div>
+                    <div className="p-3 border border-border/40 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline">2</Badge>
+                        <span className="font-medium text-sm">Hash Direta (enviada por email)</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ao criar o chamado, o cliente recebe um email com o link direto contendo a hash
+                      </p>
+                    </div>
+                    <div className="p-3 border border-border/40 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline">3</Badge>
+                        <span className="font-medium text-sm">Código do Chamado</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cliente informa o código (ex: ACD-20241222153045) para consultar
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
