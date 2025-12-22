@@ -89,23 +89,26 @@ export default function ChamadosPublico() {
 
       // A API retorna { success, chamado: {...} }
       const chamadoData = data?.chamado || data;
-      
+
       toast.success(`Chamado criado com sucesso! Código: ${chamadoData.codigo}`);
-      
-      // Buscar os dados completos do chamado para exibição correta
-      const { data: chamadoCompleto } = await supabase
-        .from("chamados")
-        .select("*")
-        .eq("id", chamadoData.id)
-        .single();
-      
-      setChamado(chamadoCompleto || chamadoData);
+
+      // Buscar dados completos pelo hash (via backend), para garantir datas/relacionamentos
+      const { data: chamadoCompleto, error: errCompleto } = await supabase.functions.invoke("api-chamados", {
+        method: "POST",
+        body: { action: "buscar_por_hash", hash: chamadoData.hash_acesso },
+      });
+
+      if (errCompleto) throw errCompleto;
+
+      setChamado(chamadoCompleto);
+      setHashBusca(chamadoData.hash_acesso);
+      setComentarios(chamadoCompleto?.chamados_comentarios || []);
+
       setNome("");
       setEmail("");
       setMotivo("");
       setContato("");
       setActiveTab("consultar");
-      setHashBusca(chamadoData.hash_acesso);
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar chamado");
     } finally {
@@ -121,15 +124,10 @@ export default function ChamadosPublico() {
 
     setLoading(true);
     try {
-      // Buscar diretamente no banco pelo código
-      const { data, error } = await supabase
-        .from("chamados")
-        .select(`
-          id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at,
-          chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
-        `)
-        .eq("codigo", codigoBusca.trim().toUpperCase())
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("api-chamados", {
+        method: "POST",
+        body: { action: "buscar_por_codigo", codigo: codigoBusca },
+      });
 
       if (error) throw error;
       if (!data) {
@@ -139,9 +137,7 @@ export default function ChamadosPublico() {
 
       setChamado(data);
       setHashBusca(data.hash_acesso || "");
-      // Filtrar apenas comentários públicos
-      const comentariosPublicos = data.chamados_comentarios?.filter((c: any) => c.tipo === 'publico') || [];
-      setComentarios(comentariosPublicos);
+      setComentarios(data.chamados_comentarios || []);
     } catch (error: any) {
       toast.error(error.message || "Erro ao buscar chamado");
     } finally {
@@ -214,15 +210,10 @@ export default function ChamadosPublico() {
 
     setLoading(true);
     try {
-      // Buscar diretamente no banco pelo hash
-      const { data, error } = await supabase
-        .from("chamados")
-        .select(`
-          id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at,
-          chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
-        `)
-        .eq("hash_acesso", hashBusca.trim())
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("api-chamados", {
+        method: "POST",
+        body: { action: "buscar_por_hash", hash: hashBusca },
+      });
 
       if (error) throw error;
       if (!data) {
@@ -231,9 +222,7 @@ export default function ChamadosPublico() {
       }
 
       setChamado(data);
-      // Filtrar apenas comentários públicos
-      const comentariosPublicos = data.chamados_comentarios?.filter((c: any) => c.tipo === 'publico') || [];
-      setComentarios(comentariosPublicos);
+      setComentarios(data.chamados_comentarios || []);
     } catch (error: any) {
       toast.error(error.message || "Erro ao buscar chamado");
     } finally {

@@ -238,86 +238,163 @@ serve(async (req) => {
       });
     }
     
-    // POST - Create new ticket (public access)
+    // POST - Create new ticket (public access) + Public lookups
     if (req.method === "POST") {
-      const body = await req.json();
-      const { nome, email, contato, motivo } = body;
-      
-      // Validate required fields
-      if (!nome || !email || !contato || !motivo) {
-        return new Response(JSON.stringify({ error: 'Campos obrigatórios: nome, email, contato, motivo' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      const body = await req.json().catch(() => ({}));
+
+      // Public lookup by code/hash (used by the public portal)
+      if (body?.action === "buscar_por_codigo") {
+        const codigo = String(body.codigo || "").trim().toUpperCase();
+        if (!codigo) {
+          return new Response(JSON.stringify({ error: "Código do chamado é obrigatório" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data, error } = await supabase
+          .from("chamados")
+          .select(
+            `
+            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at,
+            chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
+          `
+          )
+          .eq("codigo", codigo)
+          .maybeSingle();
+
+        if (error || !data) {
+          return new Response(JSON.stringify({ error: "Chamado não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Only public comments
+        if (data.chamados_comentarios) {
+          data.chamados_comentarios = data.chamados_comentarios.filter((c: any) => c.tipo === "publico");
+        }
+
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      
+
+      if (body?.action === "buscar_por_hash") {
+        const hash = String(body.hash || "").trim();
+        if (!hash) {
+          return new Response(JSON.stringify({ error: "Hash é obrigatório" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data, error } = await supabase
+          .from("chamados")
+          .select(
+            `
+            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at,
+            chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
+          `
+          )
+          .eq("hash_acesso", hash)
+          .maybeSingle();
+
+        if (error || !data) {
+          return new Response(JSON.stringify({ error: "Chamado não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Only public comments
+        if (data.chamados_comentarios) {
+          data.chamados_comentarios = data.chamados_comentarios.filter((c: any) => c.tipo === "publico");
+        }
+
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create new ticket
+      const { nome, email, contato, motivo } = body;
+
+      // Validate required fields
+      if (!nome || !email || !contato || !motivo) {
+        return new Response(JSON.stringify({ error: "Campos obrigatórios: nome, email, contato, motivo" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return new Response(JSON.stringify({ error: 'Email inválido' }), {
+        return new Response(JSON.stringify({ error: "Email inválido" }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      
+
       const codigo = generateTicketCode();
       const hashAcesso = generateAccessHash();
-      
+
       const { data, error } = await supabase
-        .from('chamados')
+        .from("chamados")
         .insert({
           codigo,
-          nome: nome.trim(),
-          email: email.trim().toLowerCase(),
-          contato: contato.trim(),
-          motivo: motivo.trim(),
+          nome: String(nome).trim(),
+          email: String(email).trim().toLowerCase(),
+          contato: String(contato).trim(),
+          motivo: String(motivo).trim(),
           hash_acesso: hashAcesso,
         })
-        .select()
+        .select(
+          "id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at"
+        )
         .single();
-      
+
       if (error) {
-        console.error('Error creating ticket:', error);
-        return new Response(JSON.stringify({ error: 'Erro ao criar chamado' }), {
+        console.error("Error creating ticket:", error);
+        return new Response(JSON.stringify({ error: "Erro ao criar chamado" }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      
+
       // Log history
-      await supabase.from('chamados_historico').insert({
+      await supabase.from("chamados_historico").insert({
         chamado_id: data.id,
-        acao: 'criado',
+        acao: "criado",
         dados_novos: data,
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip'),
+        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip"),
       });
-      
+
       // Trigger webhooks
-      await triggerWebhooks(supabase, 'chamado.criado', data);
-      
-      // Send confirmation email
+      await triggerWebhooks(supabase, "chamado.criado", data);
+
+      // Send confirmation email (currently placeholder)
       await sendEmail(
         supabase,
-        email,
+        String(email),
         `Chamado ${codigo} aberto com sucesso`,
         `<h2>Seu chamado foi registrado!</h2>
         <p>Código: <strong>${codigo}</strong></p>
         <p>Acompanhe seu chamado através do link abaixo:</p>
         <a href="${url.origin}/chamados/acompanhar?hash=${hashAcesso}">Acompanhar Chamado</a>`
       );
-      
-      return new Response(JSON.stringify({
-        success: true,
-        chamado: {
-          id: data.id,
-          codigo: data.codigo,
-          status: data.status,
-          hash_acesso: data.hash_acesso,
-        },
-      }), {
-        status: 201,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          chamado: data,
+        }),
+        {
+          status: 201,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
     
     // PUT - Update ticket (requires API key with write permission)
