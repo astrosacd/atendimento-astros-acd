@@ -1,27 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart3, Users, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart3, Users, Calendar, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-interface PollResult {
-  id: string;
-  message_id: string;
-  group_id: string;
-  poll_name: string;
-  option_name: string;
-  vote_count: number;
-  voters: string[];
-  created_at: string;
-  updated_at: string;
-}
+import { toast } from "sonner";
 
 interface GroupedPollResult {
   poll_name: string;
@@ -37,8 +26,9 @@ interface GroupedPollResult {
   created_at: string;
 }
 
-export function PollResultsHistory() {
+export const PollResultsHistory = () => {
   const [expandedPolls, setExpandedPolls] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   const { data: pollResults, isLoading } = useQuery({
     queryKey: ["divulgador-poll-results"],
@@ -47,13 +37,28 @@ export function PollResultsHistory() {
         .from("divulgador_poll_results")
         .select(`
           *,
-          divulgador_groups!inner(name),
-          divulgador_messages!inner(content, poll_options)
+          divulgador_groups(name),
+          divulgador_messages(content, poll_options)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  const fetchResultsMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("divulgador-fetch-poll-results");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["divulgador-poll-results"] });
+      toast.success(data?.message || "Resultados atualizados com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao buscar resultados: ${error.message}`);
     },
   });
 
@@ -122,11 +127,20 @@ export function PollResultsHistory() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
           Resultados das Enquetes
         </CardTitle>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => fetchResultsMutation.mutate()}
+          disabled={fetchResultsMutation.isPending}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${fetchResultsMutation.isPending ? "animate-spin" : ""}`} />
+          {fetchResultsMutation.isPending ? "Buscando..." : "Atualizar Resultados"}
+        </Button>
       </CardHeader>
       <CardContent>
         {polls.length === 0 ? (
@@ -134,7 +148,7 @@ export function PollResultsHistory() {
             <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhum resultado de enquete ainda.</p>
             <p className="text-sm mt-1">
-              Os resultados aparecerão aqui quando os participantes votarem.
+              Clique em "Atualizar Resultados" para buscar os votos das enquetes enviadas.
             </p>
           </div>
         ) : (
@@ -210,4 +224,6 @@ export function PollResultsHistory() {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default PollResultsHistory;
