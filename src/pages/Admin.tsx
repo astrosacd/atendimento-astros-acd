@@ -12,7 +12,8 @@ import {
   MessageCircle,
   ShieldCheck,
   BookOpen,
-  UserPlus
+  UserPlus,
+  Ticket
 } from "lucide-react";
 
 const Admin = () => {
@@ -27,8 +28,15 @@ const Admin = () => {
       color: "from-blue-500/20 to-blue-600/10"
     },
     {
+      title: "Chamados",
+      description: "Sistema de abertura e acompanhamento de chamados",
+      icon: Ticket,
+      path: "/admin/chamados",
+      color: "from-orange-500/20 to-orange-600/10"
+    },
+    {
       title: "Permissões do Sistema",
-      description: "Visualizar matriz detalhada de permissões por role",
+      description: "Gerencie roles e permissões de acesso",
       icon: ShieldCheck,
       path: "/admin/permissoes",
       color: "from-purple-500/20 to-purple-600/10"

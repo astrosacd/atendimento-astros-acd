@@ -250,6 +250,322 @@ export type Database = {
         }
         Relationships: []
       }
+      chamados: {
+        Row: {
+          closed_at: string | null
+          codigo: string
+          contato: string
+          created_at: string
+          email: string
+          hash_acesso: string
+          id: string
+          motivo: string
+          nome: string
+          prioridade: Database["public"]["Enums"]["chamado_prioridade"]
+          status: Database["public"]["Enums"]["chamado_status"]
+          tecnico_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          codigo: string
+          contato: string
+          created_at?: string
+          email: string
+          hash_acesso: string
+          id?: string
+          motivo: string
+          nome: string
+          prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
+          status?: Database["public"]["Enums"]["chamado_status"]
+          tecnico_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          codigo?: string
+          contato?: string
+          created_at?: string
+          email?: string
+          hash_acesso?: string
+          id?: string
+          motivo?: string
+          nome?: string
+          prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
+          status?: Database["public"]["Enums"]["chamado_status"]
+          tecnico_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chamados_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          nome: string
+          permissions: string[]
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          nome?: string
+          permissions?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chamados_codigos_verificacao: {
+        Row: {
+          codigo: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          used: boolean
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          used?: boolean
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
+      chamados_comentarios: {
+        Row: {
+          autor_email: string | null
+          autor_id: string | null
+          autor_nome: string
+          chamado_id: string
+          conteudo: string
+          created_at: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          autor_email?: string | null
+          autor_id?: string | null
+          autor_nome: string
+          chamado_id: string
+          conteudo: string
+          created_at?: string
+          id?: string
+          tipo?: string
+        }
+        Update: {
+          autor_email?: string | null
+          autor_id?: string | null
+          autor_nome?: string
+          chamado_id?: string
+          conteudo?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamados_comentarios_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamados_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chamados_historico: {
+        Row: {
+          acao: string
+          chamado_id: string
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          ip_address: string | null
+          usuario_email: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          chamado_id: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          usuario_email?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          chamado_id?: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          usuario_email?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamados_historico_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamados_webhook_logs: {
+        Row: {
+          chamado_id: string | null
+          created_at: string
+          evento: string
+          id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          retry_count: number
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          chamado_id?: string | null
+          created_at?: string
+          evento: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          response_status?: number | null
+          retry_count?: number
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          chamado_id?: string | null
+          created_at?: string
+          evento?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          retry_count?: number
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamados_webhook_logs_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamados_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "chamados_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chamados_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          eventos: string[]
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -2475,6 +2791,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "operador" | "gerente"
+      chamado_prioridade: "baixa" | "media" | "alta" | "urgente"
+      chamado_status:
+        | "aberto"
+        | "em_andamento"
+        | "aguardando_cliente"
+        | "resolvido"
+        | "fechado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2603,6 +2926,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "operador", "gerente"],
+      chamado_prioridade: ["baixa", "media", "alta", "urgente"],
+      chamado_status: [
+        "aberto",
+        "em_andamento",
+        "aguardando_cliente",
+        "resolvido",
+        "fechado",
+      ],
     },
   },
 } as const
