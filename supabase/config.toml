@@ -1,61 +1,83 @@
 project_id = "udxaxemoozddkwpitngq"
 
-[functions.chat-lyra]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.send-password-reset-email]
-verify_jwt = false
+[db]
+port = 54322
+major_version = 15
 
-[functions.send-password-reset-whatsapp]
-verify_jwt = false
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
 
-[functions.update-user-password]
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.webhook-proxy]
 verify_jwt = false
 
 [functions.api-clientes]
 verify_jwt = false
 
+[functions.send-welcome]
+verify_jwt = false
+
 [functions.billing-cron]
 verify_jwt = false
 
-[functions.send-welcome]
-verify_jwt = true
-
-[functions.admin-create-user]
-verify_jwt = true
-
 [functions.trigger-billing]
-verify_jwt = true
-
-[functions.backup-data]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-payment-status]
-verify_jwt = true
-
-[functions.webhook-proxy]
-verify_jwt = false
-
-[functions.divulgador-groups]
-verify_jwt = true
-
-[functions.divulgador-send-messages]
-verify_jwt = false
-
-[functions.divulgador-welcome]
-verify_jwt = false
-
-[functions.divulgador-monitor]
-verify_jwt = false
-
-[functions.api-numeros-aquecimento]
 verify_jwt = false
 
 [functions.api-consulta-numeros]
 verify_jwt = false
 
-[functions.send-desbanimento-email]
+[functions.numeros-webhook-proxy]
+verify_jwt = false
+
+[functions.consulta-numeros-reminder]
+verify_jwt = false
+
+[functions.api-numeros-aquecimento]
+verify_jwt = false
+
+[functions.chat-lyra]
 verify_jwt = true
+
+[functions.divulgador-groups]
+verify_jwt = true
+
+[functions.divulgador-send-messages]
+verify_jwt = true
+
+[functions.divulgador-monitor]
+verify_jwt = true
+
+[functions.divulgador-welcome]
+verify_jwt = false
+
+[functions.gateway-public-settings]
+verify_jwt = false
 
 [functions.gateway-create-order]
 verify_jwt = false
@@ -66,26 +88,20 @@ verify_jwt = false
 [functions.gateway-payment-webhook]
 verify_jwt = false
 
-[functions.gateway-abandoned-cart]
+[functions.gateway-verify-payment]
 verify_jwt = false
 
 [functions.gateway-track-event]
 verify_jwt = false
 
-[functions.numeros-webhook-proxy]
+[functions.gateway-abandoned-cart]
 verify_jwt = false
 
-[functions.verify-email-for-recovery]
+[functions.divulgador-poll-webhook]
 verify_jwt = false
 
-[functions.gateway-verify-payment]
-verify_jwt = false
-
-[functions.gateway-public-settings]
-verify_jwt = false
-
-[functions.consulta-numeros-reminder]
-verify_jwt = false
+[functions.divulgador-fetch-poll-results]
+verify_jwt = true
 
 [functions.divulgador-poll-webhook]
 verify_jwt = false
