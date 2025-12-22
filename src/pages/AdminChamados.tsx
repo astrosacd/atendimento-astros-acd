@@ -386,19 +386,17 @@ const AdminChamados = () => {
                     <label className="text-xs text-muted-foreground uppercase tracking-wider">Cliente</label>
                     <p className="font-medium">{selectedChamado.nome}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> Email
-                      </label>
-                      <p className="text-sm">{selectedChamado.email}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Phone className="h-3 w-3" /> Contato
-                      </label>
-                      <p className="text-sm">{selectedChamado.contato}</p>
-                    </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Mail className="h-3 w-3" /> Email
+                    </label>
+                    <p className="text-sm break-all">{selectedChamado.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Phone className="h-3 w-3" /> Contato
+                    </label>
+                    <p className="text-sm">{selectedChamado.contato}</p>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground uppercase tracking-wider">Motivo</label>

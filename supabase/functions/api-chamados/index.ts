@@ -19,9 +19,8 @@ function generateTicketCode(): string {
   const hours = String(brazilTime.getHours()).padStart(2, '0');
   const minutes = String(brazilTime.getMinutes()).padStart(2, '0');
   const seconds = String(brazilTime.getSeconds()).padStart(2, '0');
-  const ms = String(brazilTime.getMilliseconds()).padStart(3, '0');
   
-  return `ACD-${year}${month}${day}${hours}${minutes}${seconds}${ms.slice(0, 2)}`;
+  return `ACD-${year}${month}${day}${hours}${minutes}${seconds}`;
 }
 
 // Generate secure hash for access
