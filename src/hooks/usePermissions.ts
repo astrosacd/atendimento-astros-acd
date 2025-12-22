@@ -69,6 +69,13 @@ export function usePermissions() {
   // Consulta de Números permissions
   const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
 
+  // Chamados permissions
+  const canViewChamados = () => hasPermission('view_chamados');
+  const canManageChamados = () => hasPermission('manage_chamados');
+  const canManageChamadosConfig = () => hasPermission('manage_chamados_config');
+  const canManageChamadosWebhooks = () => hasPermission('manage_chamados_webhooks');
+  const canManageChamadosApi = () => hasPermission('manage_chamados_api');
+
   // Guia permissions
   const canViewGuia = () => hasPermission('view_guia');
   const canViewGuiaComunicacao = () => hasPermission('view_guia_comunicacao');
@@ -125,6 +132,12 @@ export function usePermissions() {
     canManageNumerosWebhooks,
     canManageNumerosApi,
     canViewConsultaNumeros,
+    // Chamados
+    canViewChamados,
+    canManageChamados,
+    canManageChamadosConfig,
+    canManageChamadosWebhooks,
+    canManageChamadosApi,
     // Guia
     canViewGuia,
     canViewGuiaComunicacao,
