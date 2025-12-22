@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.consulta-numeros-reminder]
 verify_jwt = false
+
+[functions.divulgador-poll-webhook]
+verify_jwt = false
