@@ -24,6 +24,7 @@ interface Chamado {
   created_at: string;
   updated_at: string;
   hash_acesso?: string;
+  chamados_comentarios?: Comentario[];
 }
 
 interface Comentario {
@@ -75,6 +76,7 @@ export default function ChamadosPublico() {
 
   // Resultado
   const [chamado, setChamado] = useState<Chamado | null>(null);
+  const [chamadosDoEmail, setChamadosDoEmail] = useState<Chamado[]>([]);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [novoComentario, setNovoComentario] = useState("");
 
@@ -162,6 +164,7 @@ export default function ChamadosPublico() {
         return;
       }
 
+      setChamadosDoEmail([]);
       setChamado(data);
       setHashBusca(data.hash_acesso || "");
       setComentarios(data.chamados_comentarios || []);
@@ -212,16 +215,18 @@ export default function ChamadosPublico() {
       });
 
       if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || "Código inválido ou expirado");
       if (data?.error) throw new Error(data.error);
 
-      // Se tiver chamados, mostra o mais recente; se não, só confirma o email.
       if (data?.chamados && data.chamados.length > 0) {
+        setChamadosDoEmail(data.chamados);
         setChamado(data.chamados[0]);
         setHashBusca(data.chamados[0].hash_acesso || "");
-        const comentariosPublicos =
-          data.chamados[0].chamados_comentarios?.filter((c: any) => c.tipo === "publico") || [];
+        const comentariosPublicos = data.chamados[0].chamados_comentarios || [];
         setComentarios(comentariosPublicos);
+        toast.success(`Encontramos ${data.chamados.length} chamado(s) para este email.`);
       } else {
+        setChamadosDoEmail([]);
         toast.success("Email confirmado com sucesso");
       }
     } catch (error: any) {
@@ -270,6 +275,7 @@ export default function ChamadosPublico() {
       });
 
       if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || "Código inválido ou expirado");
       if (data?.error) throw new Error(data.error);
 
       setAberturaEmailVerificado(true);
@@ -301,6 +307,7 @@ export default function ChamadosPublico() {
         return;
       }
 
+      setChamadosDoEmail([]);
       setChamado(data);
       setComentarios(data.chamados_comentarios || []);
     } catch (error: any) {
@@ -356,6 +363,7 @@ export default function ChamadosPublico() {
   // Auto-buscar por hash na URL
   useState(() => {
     if (hashFromUrl) {
+      setChamadosDoEmail([]);
       handleBuscarPorHash();
     }
   });
@@ -601,6 +609,29 @@ export default function ChamadosPublico() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {chamadosDoEmail.length > 1 && (
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <Label className="text-muted-foreground">Seus chamados ({chamadosDoEmail.length})</Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {chamadosDoEmail.map((c) => (
+                        <Button
+                          key={c.id}
+                          type="button"
+                          size="sm"
+                          variant={c.id === chamado.id ? "default" : "outline"}
+                          onClick={() => {
+                            setChamado(c);
+                            setHashBusca(c.hash_acesso || "");
+                            setComentarios(c.chamados_comentarios || []);
+                          }}
+                        >
+                          {c.codigo}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Nome</Label>
@@ -616,9 +647,7 @@ export default function ChamadosPublico() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Última Atualização</Label>
-                    <p className="font-medium">
-                      {new Date(chamado.updated_at).toLocaleString("pt-BR")}
-                    </p>
+                    <p className="font-medium">{new Date(chamado.updated_at).toLocaleString("pt-BR")}</p>
                   </div>
                 </div>
 
@@ -629,7 +658,19 @@ export default function ChamadosPublico() {
                   <p className="mt-1 whitespace-pre-wrap">{chamado.motivo}</p>
                 </div>
 
-                <Button variant="outline" onClick={() => setChamado(null)} className="w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setChamado(null);
+                    setChamadosDoEmail([]);
+                    setComentarios([]);
+                    setCodigoBusca("");
+                    setEmailBusca("");
+                    setCodigoVerificacao("");
+                    setAguardandoCodigo(false);
+                  }}
+                  className="w-full"
+                >
                   Voltar
                 </Button>
               </CardContent>

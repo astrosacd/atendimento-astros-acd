@@ -178,8 +178,8 @@ serve(async (req) => {
     if (action === 'verify') {
       // Verify code and return tickets
       if (!email || !codigo) {
-        return new Response(JSON.stringify({ error: 'Email e código são obrigatórios' }), {
-          status: 400,
+        return new Response(JSON.stringify({ success: false, error: 'Email e código são obrigatórios' }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -196,8 +196,9 @@ serve(async (req) => {
         .maybeSingle();
       
       if (!codeData) {
-        return new Response(JSON.stringify({ error: 'Código inválido ou expirado' }), {
-          status: 401,
+        // Importante: retornar 200 para o frontend conseguir exibir a mensagem real (supabase.functions.invoke marca non-2xx como erro genérico)
+        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou expirado' }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
