@@ -78,14 +78,7 @@ export default function ChamadosPublico() {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [novoComentario, setNovoComentario] = useState("");
 
-  const handleAbrirChamado = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!aberturaEmailVerificado) {
-      toast.error("Confirme o código enviado ao seu email antes de abrir o chamado");
-      return;
-    }
-
+  const criarChamado = async () => {
     setLoading(true);
 
     try {
@@ -117,12 +110,37 @@ export default function ChamadosPublico() {
       setEmail("");
       setMotivo("");
       setContato("");
+      setCodigoVerificacaoAbertura("");
+      setAberturaAguardandoCodigo(false);
+      setAberturaEmailVerificado(false);
       setActiveTab("consultar");
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar chamado");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAbrirChamado = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Primeiro clique em "Abrir Chamado" = envia o código e mostra o campo para validar
+    if (!aberturaEmailVerificado) {
+      if (!email) {
+        toast.error("Informe o email");
+        return;
+      }
+
+      if (!aberturaAguardandoCodigo) {
+        await handleEnviarCodigoVerificacaoAbertura();
+      } else {
+        toast.error("Digite o código enviado ao seu email para continuar");
+      }
+      return;
+    }
+
+    // Depois de verificado, cria o chamado
+    await criarChamado();
   };
 
   const handleBuscarPorCodigo = async () => {
@@ -255,8 +273,8 @@ export default function ChamadosPublico() {
       if (data?.error) throw new Error(data.error);
 
       setAberturaEmailVerificado(true);
-      setAberturaAguardandoCodigo(false);
-      toast.success("Email confirmado. Você já pode abrir o chamado.");
+      toast.success("Email confirmado. Enviando o chamado...");
+      await criarChamado();
     } catch (error: any) {
       toast.error(error.message || "Código inválido ou expirado");
     } finally {
@@ -372,115 +390,119 @@ export default function ChamadosPublico() {
 
                 <TabsContent value="abrir" className="mt-6">
                   <form onSubmit={handleAbrirChamado} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nome">Nome Completo *</Label>
-                        <Input
-                          id="nome"
-                          value={nome}
-                          onChange={(e) => setNome(e.target.value)}
-                          placeholder="Seu nome completo"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            setAberturaEmailVerificado(false);
-                            setAberturaAguardandoCodigo(false);
-                            setCodigoVerificacaoAbertura("");
-                          }}
-                          placeholder="seu@email.com"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {!aberturaEmailVerificado ? (
-                      <div className="space-y-2">
-                        <Label>Confirmação por Email *</Label>
-                        {!aberturaAguardandoCodigo ? (
-                          <Button
-                            type="button"
-                            onClick={handleEnviarCodigoVerificacaoAbertura}
-                            disabled={loading || !email}
-                            className="w-full"
-                          >
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
-                          </Button>
-                        ) : (
+                    {!aberturaAguardandoCodigo ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">
-                              Digite o código de 6 dígitos enviado para {email}
-                            </p>
-                            <div className="flex gap-2">
-                              <Input
-                                value={codigoVerificacaoAbertura}
-                                onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
-                                placeholder="000000"
-                                maxLength={6}
-                                className="flex-1"
-                              />
-                              <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading}>
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
-                              </Button>
-                              <Button type="button" variant="outline" onClick={() => setAberturaAguardandoCodigo(false)}>
-                                Voltar
-                              </Button>
+                            <Label htmlFor="nome">Nome Completo *</Label>
+                            <Input
+                              id="nome"
+                              value={nome}
+                              onChange={(e) => setNome(e.target.value)}
+                              placeholder="Seu nome completo"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email *</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={email}
+                              onChange={(e) => {
+                                setEmail(e.target.value);
+                                setAberturaEmailVerificado(false);
+                                setAberturaAguardandoCodigo(false);
+                                setCodigoVerificacaoAbertura("");
+                              }}
+                              placeholder="seu@email.com"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="contato">Telefone/WhatsApp *</Label>
+                          <Input
+                            id="contato"
+                            value={contato}
+                            onChange={(e) => setContato(e.target.value)}
+                            placeholder="(11) 99999-9999"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="motivo">Descrição do Problema *</Label>
+                          <Textarea
+                            id="motivo"
+                            value={motivo}
+                            onChange={(e) => setMotivo(e.target.value)}
+                            placeholder="Descreva detalhadamente o problema ou solicitação..."
+                            rows={5}
+                            required
+                          />
+                        </div>
+
+                        <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enviando código...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Abrir Chamado
+                            </>
+                          )}
+                        </Button>
+
+                        <p className="text-xs text-muted-foreground">
+                          Ao clicar em <strong>Abrir Chamado</strong>, enviaremos um código para seu email.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <p className="font-medium">Confirmação por Email</p>
+                              <p className="text-sm text-muted-foreground">
+                                Digite o código de 6 dígitos enviado para <span className="font-medium">{email}</span>
+                              </p>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                          <span>Email confirmado.</span>
+
+                          <div className="flex gap-2">
+                            <Input
+                              value={codigoVerificacaoAbertura}
+                              onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
+                              placeholder="000000"
+                              maxLength={6}
+                              className="flex-1"
+                            />
+                            <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading}>
+                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+                            </Button>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              setAberturaAguardandoCodigo(false);
+                              setCodigoVerificacaoAbertura("");
+                            }}
+                            disabled={loading}
+                          >
+                            Voltar e editar
+                          </Button>
                         </div>
-                      </div>
+                      </>
                     )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="contato">Telefone/WhatsApp *</Label>
-                      <Input
-                        id="contato"
-                        value={contato}
-                        onChange={(e) => setContato(e.target.value)}
-                        placeholder="(11) 99999-9999"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="motivo">Descrição do Problema *</Label>
-                      <Textarea
-                        id="motivo"
-                        value={motivo}
-                        onChange={(e) => setMotivo(e.target.value)}
-                        placeholder="Descreva detalhadamente o problema ou solicitação..."
-                        rows={5}
-                        required
-                      />
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Abrir Chamado
-                        </>
-                      )}
-                    </Button>
                   </form>
                 </TabsContent>
 

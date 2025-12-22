@@ -2,6 +2,17 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
+// Compat: some SMTP libs depend on Deno.writeAll (not available in Edge runtime)
+// deno-lint-ignore no-explicit-any
+if (!(Deno as any).writeAll) {
+  // deno-lint-ignore no-explicit-any
+  (Deno as any).writeAll = async (writer: any, data: Uint8Array) => {
+    let offset = 0;
+    while (offset < data.length) {
+      offset += await writer.write(data.subarray(offset));
+    }
+  };
+}
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
