@@ -62,6 +62,9 @@ export default function ChamadosPublico() {
   const [email, setEmail] = useState("");
   const [motivo, setMotivo] = useState("");
   const [contato, setContato] = useState("");
+  const [codigoVerificacaoAbertura, setCodigoVerificacaoAbertura] = useState("");
+  const [aberturaAguardandoCodigo, setAberturaAguardandoCodigo] = useState(false);
+  const [aberturaEmailVerificado, setAberturaEmailVerificado] = useState(false);
 
   // Form states - Consulta
   const [codigoBusca, setCodigoBusca] = useState("");
@@ -77,6 +80,12 @@ export default function ChamadosPublico() {
 
   const handleAbrirChamado = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!aberturaEmailVerificado) {
+      toast.error("Confirme o código enviado ao seu email antes de abrir o chamado");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -161,7 +170,8 @@ export default function ChamadosPublico() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success("Código de verificação enviado para seu email");
+      // Mostra a mensagem real do backend (para não dar "enviado" quando falhou)
+      toast.success(data?.message || "Código de verificação processado");
       setAguardandoCodigo(true);
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar código");
@@ -186,15 +196,67 @@ export default function ChamadosPublico() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data.chamados && data.chamados.length > 0) {
+      // Se tiver chamados, mostra o mais recente; se não, só confirma o email.
+      if (data?.chamados && data.chamados.length > 0) {
         setChamado(data.chamados[0]);
         setHashBusca(data.chamados[0].hash_acesso || "");
-        // Filtrar apenas comentários públicos
-        const comentariosPublicos = data.chamados[0].chamados_comentarios?.filter((c: any) => c.tipo === 'publico') || [];
+        const comentariosPublicos =
+          data.chamados[0].chamados_comentarios?.filter((c: any) => c.tipo === "publico") || [];
         setComentarios(comentariosPublicos);
       } else {
-        toast.info("Nenhum chamado encontrado para este email");
+        toast.success("Email confirmado com sucesso");
       }
+    } catch (error: any) {
+      toast.error(error.message || "Código inválido ou expirado");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnviarCodigoVerificacaoAbertura = async () => {
+    if (!email) {
+      toast.error("Informe o email");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("chamados-verificacao", {
+        method: "POST",
+        body: { action: "send", email },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(data?.message || "Código de verificação processado");
+      setAberturaAguardandoCodigo(true);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar código");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificarCodigoAbertura = async () => {
+    if (!codigoVerificacaoAbertura) {
+      toast.error("Informe o código");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("chamados-verificacao", {
+        method: "POST",
+        body: { action: "verify", email, codigo: codigoVerificacaoAbertura },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setAberturaEmailVerificado(true);
+      setAberturaAguardandoCodigo(false);
+      toast.success("Email confirmado. Você já pode abrir o chamado.");
     } catch (error: any) {
       toast.error(error.message || "Código inválido ou expirado");
     } finally {
@@ -327,12 +389,61 @@ export default function ChamadosPublico() {
                           id="email"
                           type="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            setAberturaEmailVerificado(false);
+                            setAberturaAguardandoCodigo(false);
+                            setCodigoVerificacaoAbertura("");
+                          }}
                           placeholder="seu@email.com"
                           required
                         />
                       </div>
                     </div>
+
+                    {!aberturaEmailVerificado ? (
+                      <div className="space-y-2">
+                        <Label>Confirmação por Email *</Label>
+                        {!aberturaAguardandoCodigo ? (
+                          <Button
+                            type="button"
+                            onClick={handleEnviarCodigoVerificacaoAbertura}
+                            disabled={loading || !email}
+                            className="w-full"
+                          >
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
+                          </Button>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                              Digite o código de 6 dígitos enviado para {email}
+                            </p>
+                            <div className="flex gap-2">
+                              <Input
+                                value={codigoVerificacaoAbertura}
+                                onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
+                                placeholder="000000"
+                                maxLength={6}
+                                className="flex-1"
+                              />
+                              <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading}>
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+                              </Button>
+                              <Button type="button" variant="outline" onClick={() => setAberturaAguardandoCodigo(false)}>
+                                Voltar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                          <span>Email confirmado.</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="contato">Telefone/WhatsApp *</Label>
