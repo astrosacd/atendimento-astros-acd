@@ -870,12 +870,19 @@ export default function AdminDivulgador() {
     scheduled_at: '',
     mention_all: false,
     delay_seconds: 2,
+    poll_options: ['', '', ''] as string[],
+    poll_selectable_count: 1,
   });
 
   const saveMessageMutation = useMutation({
     mutationFn: async (formData: typeof messageForm) => {
       // campaign_id field is now used to store group_id selection
       const selectedGroupId = formData.campaign_id || null;
+      
+      // Prepare poll options - filter empty strings
+      const pollOptions = formData.media_type === 'poll' 
+        ? formData.poll_options.filter(opt => opt.trim() !== '')
+        : null;
       
       const { error } = await (supabase as any)
         .from('divulgador_messages')
@@ -889,6 +896,8 @@ export default function AdminDivulgador() {
           group_id: selectedGroupId, // Store selected group
           campaign_id: null, // No longer using campaign
           status: 'pending',
+          poll_options: pollOptions,
+          poll_selectable_count: formData.media_type === 'poll' ? formData.poll_selectable_count : null,
         }]);
       if (error) throw error;
     },
@@ -896,7 +905,7 @@ export default function AdminDivulgador() {
       queryClient.invalidateQueries({ queryKey: ['divulgador-messages'] });
       toast.success('Mensagem agendada!');
       setIsMessageDialogOpen(false);
-      setMessageForm({ campaign_id: '', content: '', media_type: 'text', media_url: '', scheduled_at: '', mention_all: false, delay_seconds: 2 });
+      setMessageForm({ campaign_id: '', content: '', media_type: 'text', media_url: '', scheduled_at: '', mention_all: false, delay_seconds: 2, poll_options: ['', '', ''], poll_selectable_count: 1 });
     },
     onError: (error: any) => toast.error('Erro: ' + error.message),
   });
@@ -2504,6 +2513,7 @@ export default function AdminDivulgador() {
                     <SelectItem value="video">Vídeo</SelectItem>
                     <SelectItem value="audio">Áudio</SelectItem>
                     <SelectItem value="document">Documento</SelectItem>
+                    <SelectItem value="poll">Enquete</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2511,7 +2521,69 @@ export default function AdminDivulgador() {
                 <Label>Conteúdo</Label>
                 <Textarea rows={4} value={messageForm.content} onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })} placeholder="Digite a mensagem..." />
               </div>
-              {messageForm.media_type !== 'text' && (
+              {messageForm.media_type === 'poll' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="space-y-2">
+                    <Label>Opções da enquete</Label>
+                    <p className="text-xs text-muted-foreground">Mínimo 2 opções, máximo 12</p>
+                    <div className="space-y-2">
+                      {messageForm.poll_options.map((option, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...messageForm.poll_options];
+                              newOptions[index] = e.target.value;
+                              setMessageForm({ ...messageForm, poll_options: newOptions });
+                            }}
+                            placeholder={`Opção ${index + 1}`}
+                          />
+                          {messageForm.poll_options.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const newOptions = messageForm.poll_options.filter((_, i) => i !== index);
+                                setMessageForm({ ...messageForm, poll_options: newOptions });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {messageForm.poll_options.length < 12 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMessageForm({ ...messageForm, poll_options: [...messageForm.poll_options, ''] })}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar opção
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quantidade de respostas permitidas</Label>
+                    <Select 
+                      value={String(messageForm.poll_selectable_count)} 
+                      onValueChange={(v) => setMessageForm({ ...messageForm, poll_selectable_count: parseInt(v) })}
+                    >
+                      <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 (resposta única)</SelectItem>
+                        <SelectItem value="2">Até 2 respostas</SelectItem>
+                        <SelectItem value="3">Até 3 respostas</SelectItem>
+                        <SelectItem value="0">Múltiplas respostas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              {messageForm.media_type !== 'text' && messageForm.media_type !== 'poll' && (
                 <div className="space-y-2">
                   <Label>Arquivo de mídia</Label>
                   <div className="flex gap-2">
