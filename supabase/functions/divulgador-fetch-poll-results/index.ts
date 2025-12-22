@@ -68,8 +68,7 @@ serve(async (req) => {
       console.log(`Fetching chat for group: ${groupId}, instance: ${instanceName}`);
 
       try {
-        // Fetch messages from the group to find poll responses
-        // Evolution API endpoint to get messages
+        // Fetch messages from the group using Evolution API v2 endpoint
         const chatResponse = await fetch(
           `${apiUrl}/chat/findMessages/${instanceName}`,
           {
@@ -84,28 +83,39 @@ serve(async (req) => {
                   remoteJid: groupId,
                 },
               },
-              limit: 100,
+              limit: 200,
             }),
           }
         );
 
         if (!chatResponse.ok) {
-          console.error(`Failed to fetch chat: ${chatResponse.status} ${await chatResponse.text()}`);
+          const errorText = await chatResponse.text();
+          console.error(`Failed to fetch chat: ${chatResponse.status} ${errorText}`);
           continue;
         }
 
         const chatData = await chatResponse.json();
-        console.log(`Got ${chatData?.messages?.length || 0} messages from chat`);
+        
+        // Log the actual structure of the response for debugging
+        console.log(`API Response type: ${typeof chatData}, isArray: ${Array.isArray(chatData)}`);
+        console.log(`API Response sample: ${JSON.stringify(chatData).substring(0, 500)}`);
+
+        // Evolution API v2 returns an array directly, not { messages: [...] }
+        const messages = Array.isArray(chatData) ? chatData : (chatData?.messages || chatData?.data || []);
+        
+        console.log(`Got ${messages?.length || 0} messages from chat`);
 
         // Find poll update messages
-        const pollUpdates = chatData?.messages?.filter((msg: any) => {
-          return msg.message?.pollUpdateMessage || msg.pollUpdates;
+        const pollUpdates = messages.filter((msg: any) => {
+          return msg?.message?.pollUpdateMessage || 
+                 msg?.pollUpdates || 
+                 msg?.message?.pollCreationMessage ||
+                 msg?.message?.pollCreationMessageV3;
         }) || [];
 
-        console.log(`Found ${pollUpdates.length} poll updates`);
+        console.log(`Found ${pollUpdates.length} poll-related messages`);
 
         // Process poll results
-        // We need to aggregate votes by option
         const votesByOption: Record<string, { count: number; voters: string[] }> = {};
 
         // Initialize all options with 0 votes
@@ -113,42 +123,59 @@ serve(async (req) => {
           votesByOption[option] = { count: 0, voters: [] };
         }
 
-        for (const update of pollUpdates) {
-          const pollUpdate = update.message?.pollUpdateMessage || update;
-          const voter = update.key?.participant || update.participant || "unknown";
-          
-          // Get the selected options from the vote
-          const vote = pollUpdate?.vote || pollUpdate?.pollUpdates?.[0];
-          if (vote) {
-            const selectedOptions = vote.selectedOptions || vote.pollOptionNames || [];
-            for (const option of selectedOptions) {
-              if (votesByOption[option]) {
-                if (!votesByOption[option].voters.includes(voter)) {
-                  votesByOption[option].count++;
-                  votesByOption[option].voters.push(voter);
+        // Process each poll message to extract votes
+        for (const pollMsg of pollUpdates) {
+          // Check for pollUpdateMessage (vote updates)
+          const pollUpdate = pollMsg?.message?.pollUpdateMessage;
+          if (pollUpdate) {
+            const voter = pollMsg?.key?.participant || pollMsg?.participant || "unknown";
+            const vote = pollUpdate?.vote;
+            if (vote) {
+              const selectedOptions = vote?.selectedOptions || [];
+              for (const option of selectedOptions) {
+                const optionName = typeof option === 'string' ? option : option?.name || option?.optionName;
+                if (optionName && votesByOption[optionName]) {
+                  if (!votesByOption[optionName].voters.includes(voter)) {
+                    votesByOption[optionName].count++;
+                    votesByOption[optionName].voters.push(voter);
+                  }
                 }
               }
             }
           }
-        }
 
-        // Also check for pollCreationMessage results directly in the message
-        const pollCreations = chatData?.messages?.filter((msg: any) => {
-          const pollMsg = msg.message?.pollCreationMessage || msg.message?.pollCreationMessageV3;
-          return pollMsg && pollMsg.name === message.content;
-        }) || [];
-
-        for (const pollCreation of pollCreations) {
-          if (pollCreation.pollUpdates) {
-            for (const update of pollCreation.pollUpdates) {
-              const voter = update.pollUpdateMessageKey?.participant || "unknown";
-              const selectedOptions = update.vote?.selectedOptions || [];
+          // Check for pollUpdates array in the message
+          if (pollMsg?.pollUpdates && Array.isArray(pollMsg.pollUpdates)) {
+            for (const update of pollMsg.pollUpdates) {
+              const voter = update?.pollUpdateMessageKey?.participant || "unknown";
+              const selectedOptions = update?.vote?.selectedOptions || [];
               
               for (const option of selectedOptions) {
-                if (votesByOption[option]) {
-                  if (!votesByOption[option].voters.includes(voter)) {
-                    votesByOption[option].count++;
-                    votesByOption[option].voters.push(voter);
+                const optionName = typeof option === 'string' ? option : option?.name || option?.optionName;
+                if (optionName && votesByOption[optionName]) {
+                  if (!votesByOption[optionName].voters.includes(voter)) {
+                    votesByOption[optionName].count++;
+                    votesByOption[optionName].voters.push(voter);
+                  }
+                }
+              }
+            }
+          }
+
+          // Check for pollCreationMessage with embedded results
+          const pollCreation = pollMsg?.message?.pollCreationMessage || pollMsg?.message?.pollCreationMessageV3;
+          if (pollCreation && pollCreation.name === message.content) {
+            // Some APIs include results in the creation message
+            if (pollCreation.results) {
+              for (const result of pollCreation.results) {
+                const optionName = result?.optionName || result?.name;
+                if (optionName && votesByOption[optionName]) {
+                  const voters = result?.voters || [];
+                  for (const voter of voters) {
+                    if (!votesByOption[optionName].voters.includes(voter)) {
+                      votesByOption[optionName].count++;
+                      votesByOption[optionName].voters.push(voter);
+                    }
                   }
                 }
               }
@@ -158,31 +185,30 @@ serve(async (req) => {
 
         // Save results to database
         for (const [optionName, data] of Object.entries(votesByOption)) {
-          if (data.count > 0) {
-            const { error: upsertError } = await supabase
-              .from("divulgador_poll_results")
-              .upsert(
-                {
-                  message_id: message.id,
-                  group_id: group.id,
-                  poll_name: message.content,
-                  option_name: optionName,
-                  vote_count: data.count,
-                  voters: data.voters,
-                  updated_at: new Date().toISOString(),
-                },
-                {
-                  onConflict: "message_id,group_id,option_name",
-                  ignoreDuplicates: false,
-                }
-              );
+          // Only save if there are votes OR if we want to track all options
+          const { error: upsertError } = await supabase
+            .from("divulgador_poll_results")
+            .upsert(
+              {
+                message_id: message.id,
+                group_id: group.id,
+                poll_name: message.content,
+                option_name: optionName,
+                vote_count: data.count,
+                voters: data.voters,
+                updated_at: new Date().toISOString(),
+              },
+              {
+                onConflict: "message_id,group_id,option_name",
+                ignoreDuplicates: false,
+              }
+            );
 
-            if (upsertError) {
-              console.error(`Error upserting poll result:`, upsertError);
-            } else {
-              totalVotes += data.count;
-              updatedPolls++;
-            }
+          if (upsertError) {
+            console.error(`Error upserting poll result:`, upsertError);
+          } else {
+            totalVotes += data.count;
+            if (data.count > 0) updatedPolls++;
           }
         }
       } catch (fetchError) {
