@@ -6,6 +6,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getChatRecords(chatData: any): any[] {
+  // Evolution API variants observed:
+  // - { messages: { records: [...] } }
+  // - { messages: [...] }
+  // - { records: [...] }
+  // - [...] (array)
+  if (Array.isArray(chatData)) return chatData;
+  if (Array.isArray(chatData?.messages)) return chatData.messages;
+  if (Array.isArray(chatData?.records)) return chatData.records;
+  if (Array.isArray(chatData?.messages?.records)) return chatData.messages.records;
+  return [];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +29,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all poll messages that were sent
     const { data: pollMessages, error: messagesError } = await supabase
       .from("divulgador_messages")
       .select(`
@@ -54,7 +66,7 @@ serve(async (req) => {
     for (const message of pollMessages || []) {
       const group = message.divulgador_groups as any;
       const instance = group?.divulgador_instances;
-      
+
       if (!instance) {
         console.log(`No instance found for message ${message.id}`);
         continue;
@@ -63,30 +75,27 @@ serve(async (req) => {
       const apiUrl = instance.api_url.replace(/\/$/, "");
       const apiKey = instance.api_key;
       const instanceName = instance.instance_name;
-      const groupId = group.whatsapp_group_id;
+      const groupJid = group.whatsapp_group_id;
+      const sentAtMs = message.sent_at ? Date.parse(message.sent_at) : 0;
 
-      console.log(`Fetching chat for group: ${groupId}, instance: ${instanceName}`);
+      console.log(`Fetching chat for group: ${groupJid}, instance: ${instanceName}`);
 
       try {
-        // Fetch messages from the group using Evolution API v2 endpoint
-        const chatResponse = await fetch(
-          `${apiUrl}/chat/findMessages/${instanceName}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": apiKey,
-            },
-            body: JSON.stringify({
-              where: {
-                key: {
-                  remoteJid: groupId,
-                },
+        const chatResponse = await fetch(`${apiUrl}/chat/findMessages/${instanceName}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: apiKey,
+          },
+          body: JSON.stringify({
+            where: {
+              key: {
+                remoteJid: groupJid,
               },
-              limit: 200,
-            }),
-          }
-        );
+            },
+            limit: 300,
+          }),
+        });
 
         if (!chatResponse.ok) {
           const errorText = await chatResponse.text();
@@ -95,97 +104,73 @@ serve(async (req) => {
         }
 
         const chatData = await chatResponse.json();
-        
-        // Log the actual structure of the response for debugging
-        console.log(`API Response type: ${typeof chatData}, isArray: ${Array.isArray(chatData)}`);
-        console.log(`API Response sample: ${JSON.stringify(chatData).substring(0, 500)}`);
+        const records = getChatRecords(chatData);
 
-        // Evolution API v2 returns an array directly, not { messages: [...] }
-        const messages = Array.isArray(chatData) ? chatData : (chatData?.messages || chatData?.data || []);
-        
-        console.log(`Got ${messages?.length || 0} messages from chat`);
+        console.log(
+          `Chat payload parsed: records=${records.length}, shape=${JSON.stringify({
+            isArray: Array.isArray(chatData),
+            hasMessagesObj: !!chatData?.messages,
+            hasRecords: Array.isArray(chatData?.messages?.records),
+          })}`
+        );
 
-        // Find poll update messages
-        const pollUpdates = messages.filter((msg: any) => {
-          return msg?.message?.pollUpdateMessage || 
-                 msg?.pollUpdates || 
-                 msg?.message?.pollCreationMessage ||
-                 msg?.message?.pollCreationMessageV3;
-        }) || [];
-
-        console.log(`Found ${pollUpdates.length} poll-related messages`);
-
-        // Process poll results
+        // Initialize vote map
         const votesByOption: Record<string, { count: number; voters: string[] }> = {};
-
-        // Initialize all options with 0 votes
         for (const option of message.poll_options || []) {
           votesByOption[option] = { count: 0, voters: [] };
         }
 
-        // Process each poll message to extract votes
-        for (const pollMsg of pollUpdates) {
-          // Check for pollUpdateMessage (vote updates)
-          const pollUpdate = pollMsg?.message?.pollUpdateMessage;
-          if (pollUpdate) {
-            const voter = pollMsg?.key?.participant || pollMsg?.participant || "unknown";
-            const vote = pollUpdate?.vote;
-            if (vote) {
-              const selectedOptions = vote?.selectedOptions || [];
-              for (const option of selectedOptions) {
-                const optionName = typeof option === 'string' ? option : option?.name || option?.optionName;
-                if (optionName && votesByOption[optionName]) {
-                  if (!votesByOption[optionName].voters.includes(voter)) {
-                    votesByOption[optionName].count++;
-                    votesByOption[optionName].voters.push(voter);
-                  }
-                }
-              }
-            }
-          }
+        // Poll updates often come as encrypted payloads (encPayload).
+        // We'll only count when the API provides selectedOptions in plain text.
+        const pollUpdateMessages = records.filter((m: any) => {
+          const msgType = m?.messageType;
+          const remoteJid = m?.key?.remoteJid;
+          const tsMs = m?.messageTimestamp
+            ? Number(String(m.messageTimestamp)) * 1000
+            : m?.timestamp
+              ? Number(m.timestamp)
+              : 0;
 
-          // Check for pollUpdates array in the message
-          if (pollMsg?.pollUpdates && Array.isArray(pollMsg.pollUpdates)) {
-            for (const update of pollMsg.pollUpdates) {
-              const voter = update?.pollUpdateMessageKey?.participant || "unknown";
-              const selectedOptions = update?.vote?.selectedOptions || [];
-              
-              for (const option of selectedOptions) {
-                const optionName = typeof option === 'string' ? option : option?.name || option?.optionName;
-                if (optionName && votesByOption[optionName]) {
-                  if (!votesByOption[optionName].voters.includes(voter)) {
-                    votesByOption[optionName].count++;
-                    votesByOption[optionName].voters.push(voter);
-                  }
-                }
-              }
-            }
-          }
+          if (remoteJid !== groupJid) return false;
+          if (sentAtMs && tsMs && tsMs < sentAtMs) return false;
 
-          // Check for pollCreationMessage with embedded results
-          const pollCreation = pollMsg?.message?.pollCreationMessage || pollMsg?.message?.pollCreationMessageV3;
-          if (pollCreation && pollCreation.name === message.content) {
-            // Some APIs include results in the creation message
-            if (pollCreation.results) {
-              for (const result of pollCreation.results) {
-                const optionName = result?.optionName || result?.name;
-                if (optionName && votesByOption[optionName]) {
-                  const voters = result?.voters || [];
-                  for (const voter of voters) {
-                    if (!votesByOption[optionName].voters.includes(voter)) {
-                      votesByOption[optionName].count++;
-                      votesByOption[optionName].voters.push(voter);
-                    }
-                  }
+          return msgType === "pollUpdateMessage" || !!m?.message?.pollUpdateMessage;
+        });
+
+        console.log(`Found ${pollUpdateMessages.length} pollUpdateMessage records after sent_at`);
+
+        let countedVotes = 0;
+        let encryptedVotes = 0;
+
+        for (const m of pollUpdateMessages) {
+          const voter = m?.key?.participant || m?.participant || "unknown";
+          const vote = m?.message?.pollUpdateMessage?.vote;
+
+          const selectedOptions = vote?.selectedOptions || vote?.pollOptionNames;
+
+          if (Array.isArray(selectedOptions) && selectedOptions.length > 0) {
+            for (const rawOpt of selectedOptions) {
+              const opt = typeof rawOpt === "string" ? rawOpt : rawOpt?.name || rawOpt?.optionName;
+              if (opt && votesByOption[opt]) {
+                if (!votesByOption[opt].voters.includes(voter)) {
+                  votesByOption[opt].count++;
+                  votesByOption[opt].voters.push(voter);
+                  countedVotes++;
                 }
               }
             }
+          } else {
+            // Encrypted/unsupported vote format
+            if (vote?.encPayload) encryptedVotes++;
           }
         }
 
-        // Save results to database
+        console.log(
+          `Vote parsing summary for poll ${message.id}: countedVotes=${countedVotes}, encryptedVotes=${encryptedVotes}`
+        );
+
+        // Upsert all options (so UI can show 0 too)
         for (const [optionName, data] of Object.entries(votesByOption)) {
-          // Only save if there are votes OR if we want to track all options
           const { error: upsertError } = await supabase
             .from("divulgador_poll_results")
             .upsert(
@@ -205,7 +190,7 @@ serve(async (req) => {
             );
 
           if (upsertError) {
-            console.error(`Error upserting poll result:`, upsertError);
+            console.error(`Error upserting poll result for option ${optionName}:`, upsertError);
           } else {
             totalVotes += data.count;
             if (data.count > 0) updatedPolls++;
@@ -219,8 +204,8 @@ serve(async (req) => {
     console.log(`Updated ${updatedPolls} poll results with ${totalVotes} total votes`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Atualizado ${updatedPolls} resultados de enquete`,
         polls_checked: pollMessages?.length || 0,
         total_votes: totalVotes,

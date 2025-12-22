@@ -160,6 +160,11 @@ serve(async (req) => {
             };
           }
 
+          // Some Evolution setups require the "mentioned" field for @everyone/ghost-mention to work.
+          if (message.mention_all) {
+            body.mentioned = [group.whatsapp_group_id];
+          }
+
           console.log(`[divulgador-send-messages] Sending to group ${group.name} (${i + 1}/${groups.length})`);
 
           const sendResponse = await fetch(endpoint, {
