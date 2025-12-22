@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,44 @@ const corsHeaders = {
 // Generate 6-digit verification code
 function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Send email using Gmail SMTP
+async function sendEmailWithGmail(
+  gmailUser: string,
+  gmailPassword: string,
+  senderName: string,
+  recipientEmail: string,
+  subject: string,
+  htmlContent: string
+): Promise<boolean> {
+  const client = new SmtpClient();
+  
+  try {
+    await client.connectTLS({
+      hostname: "smtp.gmail.com",
+      port: 465,
+      username: gmailUser,
+      password: gmailPassword,
+    });
+    
+    await client.send({
+      from: `${senderName} <${gmailUser}>`,
+      to: recipientEmail,
+      subject: subject,
+      content: "Visualize este email em um cliente com suporte a HTML",
+      html: htmlContent,
+    });
+    
+    await client.close();
+    return true;
+  } catch (error) {
+    console.error("SMTP Error:", error);
+    try {
+      await client.close();
+    } catch {}
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -47,16 +86,23 @@ serve(async (req) => {
         });
       }
       
-      // Get expiry time config
-      const { data: configData } = await supabase
+      // Get SMTP config from chamados_config
+      const { data: configRows } = await supabase
         .from('chamados_config')
-        .select('config_value')
-        .eq('config_key', 'verification_code_expiry_minutes')
-        .single();
+        .select('config_key, config_value');
       
-      const expiryMinutes = parseInt(configData?.config_value || '5');
+      const config: Record<string, string> = {};
+      configRows?.forEach((row: any) => {
+        config[row.config_key] = row.config_value;
+      });
+      
+      const smtpEnabled = config['smtp_enabled'] === 'true';
+      const gmailUser = config['gmail_user'] || '';
+      const gmailPassword = config['gmail_app_password'] || '';
+      const senderName = config['smtp_sender_name'] || 'Sistema de Chamados';
+      const expiryMinutes = parseInt(config['verification_code_expiry_minutes'] || '5');
+      
       const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
-      
       const verificationCode = generateVerificationCode();
       
       // Invalidate old codes
@@ -73,13 +119,54 @@ serve(async (req) => {
         expires_at: expiresAt.toISOString(),
       });
       
-      // TODO: Send email with verification code
-      // For now, log it (in production, integrate with Resend)
-      console.log(`Verification code for ${email}: ${verificationCode}`);
+      // Send email with verification code
+      let emailSent = false;
+      if (smtpEnabled && gmailUser && gmailPassword) {
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+          </head>
+          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; text-align: center;">Código de Verificação</h1>
+            </div>
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef; border-top: none;">
+              <p style="color: #495057; font-size: 16px;">Olá,</p>
+              <p style="color: #495057; font-size: 16px;">Seu código de verificação para acessar seus chamados é:</p>
+              <div style="background: #e9ecef; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #495057;">${verificationCode}</span>
+              </div>
+              <p style="color: #6c757d; font-size: 14px;">Este código expira em <strong>${expiryMinutes} minutos</strong>.</p>
+              <p style="color: #6c757d; font-size: 14px;">Se você não solicitou este código, ignore este email.</p>
+              <hr style="border: none; border-top: 1px solid #e9ecef; margin: 20px 0;">
+              <p style="color: #adb5bd; font-size: 12px; text-align: center;">Este é um email automático, não responda.</p>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        emailSent = await sendEmailWithGmail(
+          gmailUser,
+          gmailPassword,
+          senderName,
+          email,
+          `Código de Verificação: ${verificationCode}`,
+          htmlContent
+        );
+        
+        console.log(`Email ${emailSent ? 'sent' : 'failed'} to ${email} with code ${verificationCode}`);
+      } else {
+        console.log(`SMTP not configured. Code for ${email}: ${verificationCode}`);
+      }
       
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Código de verificação enviado para seu email',
+        message: emailSent 
+          ? 'Código de verificação enviado para seu email' 
+          : 'Código gerado (SMTP não configurado - verifique as configurações)',
+        email_sent: emailSent,
         expires_in_minutes: expiryMinutes,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
