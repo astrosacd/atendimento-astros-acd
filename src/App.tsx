@@ -36,6 +36,12 @@ import ConsultaNumerosApiKeys from "./pages/ConsultaNumerosApiKeys";
 import ConsultaNumerosWebhooks from "./pages/ConsultaNumerosWebhooks";
 import ConsultaNumerosGuia from "./pages/ConsultaNumerosGuia";
 import AdminGateway from "./pages/AdminGateway";
+import AdminChamados from "./pages/AdminChamados";
+import AdminChamadosConfig from "./pages/AdminChamadosConfig";
+import AdminChamadosWebhooks from "./pages/AdminChamadosWebhooks";
+import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
+import AdminChamadosGuia from "./pages/AdminChamadosGuia";
+import ChamadosPublico from "./pages/public/ChamadosPublico";
 import Catalogo from "./pages/public/Catalogo";
 import Checkout from "./pages/public/Checkout";
 import Sucesso from "./pages/public/Sucesso";
@@ -101,7 +107,16 @@ function AppRoutes() {
       {/* Gateway Route */}
       <Route path="/admin/gateway" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
       
-      {/* Public Gateway Routes - NO AUTH */}
+      {/* Chamados Routes */}
+      <Route path="/admin/chamados" element={<ProtectedRoute permission="chamados.view"><AdminChamados /></ProtectedRoute>} />
+      <Route path="/admin/chamados/config" element={<ProtectedRoute permission="chamados.config"><AdminChamadosConfig /></ProtectedRoute>} />
+      <Route path="/admin/chamados/webhooks" element={<ProtectedRoute permission="chamados.webhooks"><AdminChamadosWebhooks /></ProtectedRoute>} />
+      <Route path="/admin/chamados/api" element={<ProtectedRoute permission="chamados.api_keys"><AdminChamadosApiKeys /></ProtectedRoute>} />
+      <Route path="/admin/chamados/guia" element={<ProtectedRoute permission="chamados.view"><AdminChamadosGuia /></ProtectedRoute>} />
+      
+      {/* Public Routes - NO AUTH */}
+      <Route path="/chamados" element={<ChamadosPublico />} />
+      <Route path="/chamados/*" element={<ChamadosPublico />} />
       <Route path="/catalogo" element={<Catalogo />} />
       <Route path="/loja/:customSlug" element={<Catalogo />} />
       <Route path="/p/:slug" element={<Checkout />} />

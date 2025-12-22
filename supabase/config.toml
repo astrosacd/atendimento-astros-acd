@@ -103,5 +103,11 @@ verify_jwt = false
 [functions.divulgador-fetch-poll-results]
 verify_jwt = true
 
-[functions.divulgador-poll-webhook]
+[functions.api-chamados]
+verify_jwt = false
+
+[functions.chamados-verificacao]
+verify_jwt = false
+
+[functions.chamados-comentario]
 verify_jwt = false
