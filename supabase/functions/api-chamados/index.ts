@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,31 +122,66 @@ async function triggerWebhooks(supabase: any, evento: string, chamado: any) {
   }
 }
 
-// Send email via Gmail SMTP
+// Send email via Gmail SMTP (configurado pelo painel em chamados_config)
 async function sendEmail(supabase: any, to: string, subject: string, html: string) {
+  const safeTo = String(to || "").trim();
+  if (!safeTo) return false;
+
   try {
-    const { data: configs } = await supabase
-      .from('chamados_config')
-      .select('config_key, config_value')
-      .in('config_key', ['smtp_enabled', 'smtp_sender_name', 'smtp_gmail_user', 'smtp_gmail_app_password']);
-    
+    const { data: configs, error } = await supabase
+      .from("chamados_config")
+      .select("config_key, config_value")
+      .in("config_key", ["smtp_enabled", "smtp_sender_name", "smtp_gmail_user", "smtp_gmail_app_password"]);
+
+    if (error) throw error;
+
     const configMap: Record<string, string> = {};
-    configs?.forEach((c: any) => { configMap[c.config_key] = c.config_value; });
-    
-    if (configMap.smtp_enabled !== 'true' || !configMap.smtp_gmail_user || !configMap.smtp_gmail_app_password) {
-      console.log('SMTP not configured, skipping email');
+    configs?.forEach((c: any) => {
+      configMap[c.config_key] = c.config_value;
+    });
+
+    const smtpEnabled = configMap.smtp_enabled === "true";
+    const gmailUser = configMap.smtp_gmail_user;
+    const gmailPassword = configMap.smtp_gmail_app_password;
+    const senderName = configMap.smtp_sender_name || "Sistema de Chamados";
+
+    if (!smtpEnabled || !gmailUser || !gmailPassword) {
+      console.log("SMTP not configured (panel values missing), skipping email");
       return false;
     }
-    
-    // Use Resend or direct SMTP - for now we'll use a simpler approach
-    // In production, you'd integrate with Resend API
-    console.log(`Would send email to ${to}: ${subject}`);
-    return true;
+
+    const client = new SmtpClient();
+    try {
+      await client.connectTLS({
+        hostname: "smtp.gmail.com",
+        port: 465,
+        username: gmailUser,
+        password: gmailPassword,
+      });
+
+      await client.send({
+        from: `${senderName} <${gmailUser}>`,
+        to: safeTo,
+        subject,
+        content: "Visualize este email em um cliente com suporte a HTML",
+        html,
+      });
+
+      console.log(`Email sent to ${safeTo}: ${subject}`);
+      return true;
+    } finally {
+      try {
+        await client.close();
+      } catch {
+        // ignore
+      }
+    }
   } catch (err) {
-    console.error('Error sending email:', err);
+    console.error("Error sending email:", err);
     return false;
   }
 }
+
 
 serve(async (req) => {
   // Handle CORS preflight

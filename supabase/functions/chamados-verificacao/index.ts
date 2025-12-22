@@ -72,19 +72,9 @@ serve(async (req) => {
         });
       }
       
-      // Check if email has any tickets
-      const { data: tickets } = await supabase
-        .from('chamados')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .limit(1);
-      
-      if (!tickets?.length) {
-        return new Response(JSON.stringify({ error: 'Nenhum chamado encontrado para este email' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      // (Antes havia uma validação exigindo que o email já tivesse chamados.
+      // Para permitir verificação antes de abrir um chamado, não bloqueamos aqui.)
+
       
       // Get SMTP config from chamados_config
       const { data: configRows } = await supabase
@@ -97,8 +87,9 @@ serve(async (req) => {
       });
       
       const smtpEnabled = config['smtp_enabled'] === 'true';
-      const gmailUser = config['gmail_user'] || '';
-      const gmailPassword = config['gmail_app_password'] || '';
+      // Suporta as chaves usadas no painel (smtp_gmail_*) e também as antigas (gmail_*)
+      const gmailUser = config['smtp_gmail_user'] || config['gmail_user'] || '';
+      const gmailPassword = config['smtp_gmail_app_password'] || config['gmail_app_password'] || '';
       const senderName = config['smtp_sender_name'] || 'Sistema de Chamados';
       const expiryMinutes = parseInt(config['verification_code_expiry_minutes'] || '5');
       
