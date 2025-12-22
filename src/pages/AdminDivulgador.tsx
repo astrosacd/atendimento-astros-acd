@@ -49,6 +49,7 @@ const formatFromUtc = (utcDateString: string, formatStr: string): string => {
 import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
 import { AllParticipantsManager } from '@/components/divulgador/AllParticipantsManager';
+import { PollResultsHistory } from '@/components/divulgador/PollResultsHistory';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
@@ -1283,11 +1284,12 @@ export default function AdminDivulgador() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-8 h-auto p-1">
             <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">Campanhas</span></TabsTrigger>
             <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Grupos</span></TabsTrigger>
             <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Mensagens</span></TabsTrigger>
+            <TabsTrigger value="polls" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">Enquetes</span></TabsTrigger>
             <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Automáticas</span></TabsTrigger>
             <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">Participantes</span></TabsTrigger>
             <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Logs</span></TabsTrigger>
@@ -2020,6 +2022,16 @@ export default function AdminDivulgador() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* TAB: RESULTADOS DE ENQUETES */}
+          <TabsContent value="polls" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold mb-1">Resultados das Enquetes</h2>
+              <p className="text-sm text-muted-foreground">Acompanhe os votos recebidos em cada enquete enviada</p>
+            </div>
+            
+            <PollResultsHistory />
           </TabsContent>
 
           {/* TAB: MENSAGENS AUTOMÁTICAS (ENTRADA/SAÍDA) */}

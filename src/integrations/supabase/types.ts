@@ -1213,6 +1213,57 @@ export type Database = {
           },
         ]
       }
+      divulgador_poll_results: {
+        Row: {
+          created_at: string
+          group_id: string | null
+          id: string
+          message_id: string | null
+          option_name: string
+          poll_name: string
+          updated_at: string
+          vote_count: number
+          voters: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          message_id?: string | null
+          option_name: string
+          poll_name: string
+          updated_at?: string
+          vote_count?: number
+          voters?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          message_id?: string | null
+          option_name?: string
+          poll_name?: string
+          updated_at?: string
+          vote_count?: number
+          voters?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divulgador_poll_results_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "divulgador_poll_results_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "divulgador_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       divulgador_send_logs: {
         Row: {
           error_message: string | null
