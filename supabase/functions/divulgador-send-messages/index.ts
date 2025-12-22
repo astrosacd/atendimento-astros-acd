@@ -114,6 +114,18 @@ serve(async (req) => {
               text: message.content,
               mentionsEveryOne: message.mention_all || false,
             };
+          } else if (message.media_type === 'poll') {
+            // Send poll/enquete
+            endpoint = `${api_url}/message/sendPoll/${instance_name}`;
+            const pollOptions = message.poll_options || [];
+            body = {
+              number: group.whatsapp_group_id,
+              name: message.content, // Poll question/title
+              selectableCount: message.poll_selectable_count || 1,
+              values: pollOptions,
+              mentionsEveryOne: message.mention_all || false,
+            };
+            console.log(`[divulgador-send-messages] Sending poll with ${pollOptions.length} options`);
           } else if (message.media_type === 'image') {
             endpoint = `${api_url}/message/sendMedia/${instance_name}`;
             body = {
