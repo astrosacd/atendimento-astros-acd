@@ -180,6 +180,33 @@ const AdminChamadosConfig = () => {
           </CardContent>
         </Card>
 
+        {/* URL Base para Links de Email */}
+        <Card className="border-border/40 bg-card/50 mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              URL Base para Links de Email
+            </CardTitle>
+            <CardDescription>
+              Configure a URL base que será usada nos links enviados por email (ex: "Acompanhar Chamado")
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="email_base_url">URL Base</Label>
+              <Input
+                id="email_base_url"
+                placeholder="https://seu-dominio.com"
+                value={currentConfig.email_base_url || ''}
+                onChange={(e) => updateField('email_base_url', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Ex: https://crm-astros-acd.lovable.app (sem barra no final)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Código de Verificação */}
         <Card className="border-border/40 bg-card/50 mb-6">
           <CardHeader>
