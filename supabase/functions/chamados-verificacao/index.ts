@@ -72,7 +72,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     const body = await req.json();
-    const { action, email, codigo } = body;
+    const { action, email, codigo, tipo } = body;
     
     if (action === 'send') {
       // Send verification code
@@ -83,10 +83,25 @@ serve(async (req) => {
         });
       }
       
-      // (Antes havia uma validação exigindo que o email já tivesse chamados.
-      // Para permitir verificação antes de abrir um chamado, não bloqueamos aqui.)
+      // Se for consulta (tipo === 'consulta'), verificar se o email já tem chamados
+      if (tipo === 'consulta') {
+        const { data: existingTickets, error: ticketError } = await supabase
+          .from('chamados')
+          .select('id')
+          .eq('email', email.toLowerCase().trim())
+          .limit(1);
+        
+        if (ticketError || !existingTickets || existingTickets.length === 0) {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'Nenhum chamado encontrado para este email' 
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
 
-      
       // Get SMTP config from chamados_config
       const { data: configRows } = await supabase
         .from('chamados_config')

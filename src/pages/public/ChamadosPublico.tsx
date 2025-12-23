@@ -185,13 +185,13 @@ export default function ChamadosPublico() {
     try {
       const { data, error } = await supabase.functions.invoke("chamados-verificacao", {
         method: "POST",
-        body: { action: "send", email: emailBusca },
+        body: { action: "send", email: emailBusca, tipo: "consulta" },
       });
 
       if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || "Nenhum chamado encontrado para este email");
       if (data?.error) throw new Error(data.error);
 
-      // Mostra a mensagem real do backend (para não dar "enviado" quando falhou)
       toast.success(data?.message || "Código de verificação processado");
       setAguardandoCodigo(true);
     } catch (error: any) {
