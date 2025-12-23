@@ -203,10 +203,10 @@ serve(async (req) => {
         });
       }
       
-      // Mark code as used
+      // Delete code from database (one-time use)
       await supabase
         .from('chamados_codigos_verificacao')
-        .update({ used: true })
+        .delete()
         .eq('id', codeData.id);
       
       // Get user tickets
