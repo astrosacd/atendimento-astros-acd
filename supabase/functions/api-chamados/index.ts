@@ -132,6 +132,21 @@ async function triggerWebhooks(supabase: any, evento: string, chamado: any) {
   }
 }
 
+// Get email base URL from config
+async function getEmailBaseUrl(supabase: any): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("chamados_config")
+      .select("config_value")
+      .eq("config_key", "email_base_url")
+      .maybeSingle();
+    
+    return data?.config_value || "https://crm-astros-acd.lovable.app";
+  } catch {
+    return "https://crm-astros-acd.lovable.app";
+  }
+}
+
 // Send email via Gmail SMTP (configurado pelo painel em chamados_config)
 async function sendEmail(supabase: any, to: string, subject: string, html: string) {
   const safeTo = String(to || "").trim();
@@ -420,7 +435,10 @@ serve(async (req) => {
       // Trigger webhooks
       await triggerWebhooks(supabase, "chamado.criado", data);
 
-      // Send confirmation email (currently placeholder)
+      // Get configured base URL for email links
+      const emailBaseUrl = await getEmailBaseUrl(supabase);
+
+      // Send confirmation email
       await sendEmail(
         supabase,
         String(email),
@@ -428,7 +446,7 @@ serve(async (req) => {
         `<h2>Seu chamado foi registrado!</h2>
         <p>Código: <strong>${codigo}</strong></p>
         <p>Acompanhe seu chamado através do link abaixo:</p>
-        <a href="${url.origin}/chamados/acompanhar?hash=${hashAcesso}">Acompanhar Chamado</a>`
+        <a href="${emailBaseUrl}/chamados/acompanhar?hash=${hashAcesso}">Acompanhar Chamado</a>`
       );
 
       return new Response(
