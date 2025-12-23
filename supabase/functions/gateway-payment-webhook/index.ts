@@ -166,6 +166,117 @@ async function sendEmailNotification(
   }
 }
 
+// HMAC-SHA256 verification helper
+async function verifyHmacSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+    const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+    return computedSignature === signature.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+// Verify Mercado Pago webhook signature
+async function verifyMercadoPagoSignature(
+  req: Request,
+  rawBody: string
+): Promise<{ valid: boolean; reason?: string }> {
+  const mpWebhookSecret = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET");
+  
+  if (!mpWebhookSecret) {
+    console.warn("MERCADOPAGO_WEBHOOK_SECRET not configured - skipping signature verification");
+    return { valid: true, reason: "secret_not_configured" };
+  }
+
+  const xSignature = req.headers.get("x-signature");
+  const xRequestId = req.headers.get("x-request-id");
+
+  if (!xSignature || !xRequestId) {
+    return { valid: false, reason: "missing_headers" };
+  }
+
+  // Parse x-signature header (format: "ts=xxx,v1=yyy")
+  const signatureParts: Record<string, string> = {};
+  xSignature.split(",").forEach(part => {
+    const [key, value] = part.split("=");
+    if (key && value) signatureParts[key.trim()] = value.trim();
+  });
+
+  const ts = signatureParts["ts"];
+  const v1 = signatureParts["v1"];
+
+  if (!ts || !v1) {
+    return { valid: false, reason: "invalid_signature_format" };
+  }
+
+  // Build the manifest string for verification
+  // MP uses: id:{data.id};request-id:{x-request-id};ts:{ts};
+  let dataId = "";
+  try {
+    const parsed = JSON.parse(rawBody);
+    dataId = parsed.data?.id || "";
+  } catch {
+    dataId = "";
+  }
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const isValid = await verifyHmacSignature(manifest, v1, mpWebhookSecret);
+
+  return { valid: isValid, reason: isValid ? undefined : "signature_mismatch" };
+}
+
+// Verify Stripe webhook signature
+async function verifyStripeSignature(
+  rawBody: string,
+  signatureHeader: string | null
+): Promise<{ valid: boolean; reason?: string }> {
+  const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+
+  if (!stripeWebhookSecret) {
+    console.warn("STRIPE_WEBHOOK_SECRET not configured - skipping signature verification");
+    return { valid: true, reason: "secret_not_configured" };
+  }
+
+  if (!signatureHeader) {
+    return { valid: false, reason: "missing_signature_header" };
+  }
+
+  // Parse Stripe signature header (format: "t=xxx,v1=yyy,v0=zzz")
+  const signatureParts: Record<string, string> = {};
+  signatureHeader.split(",").forEach(part => {
+    const [key, value] = part.split("=");
+    if (key && value) signatureParts[key.trim()] = value.trim();
+  });
+
+  const timestamp = signatureParts["t"];
+  const expectedSignature = signatureParts["v1"];
+
+  if (!timestamp || !expectedSignature) {
+    return { valid: false, reason: "invalid_signature_format" };
+  }
+
+  // Stripe uses: timestamp.payload
+  const signedPayload = `${timestamp}.${rawBody}`;
+  const isValid = await verifyHmacSignature(signedPayload, expectedSignature, stripeWebhookSecret);
+
+  return { valid: isValid, reason: isValid ? undefined : "signature_mismatch" };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -176,18 +287,47 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Read raw body for signature verification
+    const rawBody = await req.text();
+    
     // Parse webhook data
     const contentType = req.headers.get("content-type") || "";
     let data: any;
 
     if (contentType.includes("application/json")) {
-      data = await req.json();
+      data = JSON.parse(rawBody);
     } else {
-      const formData = await req.formData();
+      // For form data, we need to re-parse
+      const formData = new URLSearchParams(rawBody);
       data = Object.fromEntries(formData.entries());
     }
 
     console.log("Webhook received:", JSON.stringify(sanitizeOrderForLog(data), null, 2));
+
+    // Determine webhook source and verify signature
+    const isMercadoPago = data.type === "payment" || data.topic === "payment";
+    const isStripe = data.type?.startsWith("checkout.session") || data.type?.startsWith("payment_intent");
+
+    if (isMercadoPago) {
+      const mpVerification = await verifyMercadoPagoSignature(req, rawBody);
+      if (!mpVerification.valid) {
+        console.error("Mercado Pago signature verification failed:", mpVerification.reason);
+        // Always return 200 to prevent information leakage
+        return new Response("OK", { status: 200, headers: corsHeaders });
+      }
+      console.log("Mercado Pago signature verified successfully");
+    }
+
+    if (isStripe) {
+      const stripeSignature = req.headers.get("stripe-signature");
+      const stripeVerification = await verifyStripeSignature(rawBody, stripeSignature);
+      if (!stripeVerification.valid) {
+        console.error("Stripe signature verification failed:", stripeVerification.reason);
+        // Always return 200 to prevent information leakage
+        return new Response("OK", { status: 200, headers: corsHeaders });
+      }
+      console.log("Stripe signature verified successfully");
+    }
 
     // Get gateway settings
     const { data: settings } = await supabase
@@ -202,7 +342,7 @@ serve(async (req) => {
     const notificationSettings: NotificationSettings = settingsMap.payment_notifications || {};
 
     // Handle Mercado Pago IPN
-    if (data.type === "payment" || data.topic === "payment") {
+    if (isMercadoPago) {
       const paymentId = data.data?.id || data.id;
       
       if (!paymentId) {
@@ -302,7 +442,7 @@ serve(async (req) => {
     }
 
     // Handle Stripe webhook
-    if (data.type?.startsWith("checkout.session") || data.type?.startsWith("payment_intent")) {
+    if (isStripe) {
       console.log("Stripe webhook received:", data.type);
       
       // Handle checkout.session.completed
