@@ -70,7 +70,18 @@ const AdminChamadosConfig = () => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const publicUrl = `${window.location.origin}/chamados`;
+  // Usar o domínio correto do Lovable app
+  const getPublicUrl = () => {
+    const hostname = window.location.hostname;
+    // Se estiver em ambiente de desenvolvimento ou preview, usar o origin
+    if (hostname.includes('localhost') || hostname.includes('lovableproject.com')) {
+      return `https://crm-astros-acd.lovable.app/chamados`;
+    }
+    // Se já estiver no domínio correto, usar o origin
+    return `${window.location.origin}/chamados`;
+  };
+  
+  const publicUrl = getPublicUrl();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
