@@ -182,6 +182,7 @@ export default function AdminNumerosAquecimento() {
               <CreateNumeroDialog 
                 statusList={statusList} 
                 modelosList={modelosList} 
+                existingNumeros={numeros}
                 onCreate={createNumero.mutate} 
               />
             )}
@@ -681,11 +682,13 @@ function StatsCard({ title, value, icon }: { title: string; value: number; icon:
 
 function CreateNumeroDialog({ 
   statusList, 
-  modelosList, 
+  modelosList,
+  existingNumeros,
   onCreate 
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
+  existingNumeros: NumeroAquecimento[];
   onCreate: (data: any) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -694,11 +697,26 @@ function CreateNumeroDialog({
   const [statusId, setStatusId] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
 
+  // Normalize number for comparison (remove spaces, dashes, parentheses)
+  const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
+
   const handleSubmit = () => {
     if (!numero) {
       toast.error('Número é obrigatório');
       return;
     }
+
+    // Check for duplicate number
+    const normalizedInput = normalizeNumber(numero);
+    const isDuplicate = existingNumeros.some(
+      (n) => normalizeNumber(n.numero) === normalizedInput
+    );
+
+    if (isDuplicate) {
+      toast.error('Este número já está cadastrado no sistema');
+      return;
+    }
+
     onCreate({
       numero,
       modelo_id: modeloId || null,
