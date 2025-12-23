@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
-  Bell, Download, FileText, Database
+  Bell, Download, FileText, Database, MessageSquare, Loader2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -30,6 +30,9 @@ interface ClienteStats {
   clientesNovos30d: number;
   billingSuccess: number;
   billingErrors: number;
+  // Chamados
+  chamadosAbertos: number;
+  chamadosEmAndamento: number;
 }
 
 interface CustomRole {
@@ -59,6 +62,8 @@ export default function Dashboard() {
     clientesNovos30d: 0,
     billingSuccess: 0,
     billingErrors: 0,
+    chamadosAbertos: 0,
+    chamadosEmAndamento: 0,
   });
 
   useEffect(() => {
@@ -150,6 +155,8 @@ export default function Dashboard() {
       let webhookCount = 0;
       let billingSuccess = 0;
       let billingErrors = 0;
+      let chamadosAbertos = 0;
+      let chamadosEmAndamento = 0;
 
       if (isAdmin) {
         const { count: pending } = await supabase
@@ -172,6 +179,19 @@ export default function Dashboard() {
 
         billingSuccess = billingLogs?.filter(l => l.status === 'sent').length || 0;
         billingErrors = billingLogs?.filter(l => l.status === 'error').length || 0;
+
+        // Chamados stats
+        const { count: abertos } = await supabase
+          .from('chamados')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'aberto');
+        chamadosAbertos = abertos || 0;
+
+        const { count: emAndamento } = await supabase
+          .from('chamados')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'em_andamento');
+        chamadosEmAndamento = emAndamento || 0;
       }
 
       setStats({
@@ -189,6 +209,8 @@ export default function Dashboard() {
         clientesNovos30d,
         billingSuccess,
         billingErrors,
+        chamadosAbertos,
+        chamadosEmAndamento,
       });
     };
 
@@ -424,6 +446,51 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Chamados Cards - Admin Only */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <Card 
+              className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/admin/chamados')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                      <MessageSquare className="h-6 w-6 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAbertos}</p>
+                      <p className="text-xs text-muted-foreground">Chamados Abertos</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/admin/chamados')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-cyan-500" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosEmAndamento}</p>
+                      <p className="text-xs text-muted-foreground">Chamados Em Andamento</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Secondary Stats - Admin Only */}
         {isAdmin && (
