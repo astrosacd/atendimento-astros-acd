@@ -337,22 +337,26 @@ export default function ChamadosPublico() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke("chamados-comentario", {
+      const { data, error } = await supabase.functions.invoke("chamados-comentario", {
         method: "POST",
         body: {
           chamado_id: chamado.id,
-          hash: hashBusca || chamado.hash_acesso,
+          hash_acesso: hashBusca || chamado.hash_acesso,
           conteudo: novoComentario,
           autor_nome: chamado.nome,
-          autor_email: chamado.email,
         },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Comentário enviado");
       setNovoComentario("");
-      await carregarComentarios(chamado.id);
+      
+      // Adicionar o comentário retornado diretamente ao estado local
+      if (data?.comentario) {
+        setComentarios(prev => [...prev, data.comentario]);
+      }
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar comentário");
     } finally {
