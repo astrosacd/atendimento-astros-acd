@@ -183,7 +183,8 @@ export default function AdminNumerosAquecimento() {
                 statusList={statusList} 
                 modelosList={modelosList} 
                 existingNumeros={numeros}
-                onCreate={createNumero.mutate} 
+                onCreate={createNumero.mutate}
+                isCreating={createNumero.isPending}
               />
             )}
           </div>
@@ -684,12 +685,14 @@ function CreateNumeroDialog({
   statusList, 
   modelosList,
   existingNumeros,
-  onCreate 
+  onCreate,
+  isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
   existingNumeros: NumeroAquecimento[];
-  onCreate: (data: any) => void;
+  onCreate: (data: any, options: { onSuccess: () => void }) => void;
+  isCreating: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState('');
@@ -722,12 +725,15 @@ function CreateNumeroDialog({
       modelo_id: modeloId || null,
       status_id: statusId || null,
       observacoes: observacoes || undefined,
+    }, {
+      onSuccess: () => {
+        setOpen(false);
+        setNumero('');
+        setModeloId('');
+        setStatusId('');
+        setObservacoes('');
+      }
     });
-    setOpen(false);
-    setNumero('');
-    setModeloId('');
-    setStatusId('');
-    setObservacoes('');
   };
 
   return (
@@ -792,8 +798,10 @@ function CreateNumeroDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit}>Cadastrar</Button>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={isCreating}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={isCreating}>
+            {isCreating ? 'Cadastrando...' : 'Cadastrar'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
