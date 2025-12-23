@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +25,8 @@ import {
   User,
   Mail,
   Phone,
-  RefreshCw
+  RefreshCw,
+  Bell
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -156,6 +157,54 @@ const AdminChamados = () => {
       toast.error('Erro ao adicionar comentário');
     },
   });
+
+  // Realtime subscription para comentários
+  useEffect(() => {
+    const channel = supabase
+      .channel('chamados-comentarios-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chamados_comentarios'
+        },
+        (payload) => {
+          console.log('Novo comentário recebido:', payload);
+          // Atualizar os dados
+          queryClient.invalidateQueries({ queryKey: ['chamados'] });
+          
+          // Se o comentário é de um cliente (não tem autor_id = técnico), mostrar alerta
+          const newComment = payload.new as any;
+          if (!newComment.autor_id) {
+            toast.info(`💬 Novo comentário do cliente no chamado`, {
+              description: newComment.conteudo?.substring(0, 50) + (newComment.conteudo?.length > 50 ? '...' : ''),
+              duration: 5000,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Verificar se um chamado tem resposta do cliente não lida
+  const hasClientResponse = (chamado: Chamado) => {
+    const comments = chamado.chamados_comentarios || [];
+    if (comments.length === 0) return false;
+    
+    // Ordenar por data decrescente
+    const sortedComments = [...comments].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    // Verificar se o último comentário é do cliente (não tem autor_id no tipo técnico)
+    const lastComment = sortedComments[0];
+    return lastComment && lastComment.tipo === 'publico' && !lastComment.autor_nome?.includes('Astros');
+  };
 
   const filteredChamados = chamados?.filter(c => 
     c.codigo.toLowerCase().includes(search.toLowerCase()) ||
@@ -320,21 +369,28 @@ const AdminChamados = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredChamados?.map((chamado) => {
+                      {filteredChamados?.map((chamado) => {
                       const statusInfo = statusConfig[chamado.status];
                       const StatusIcon = statusInfo.icon;
                       const prioridadeInfo = prioridadeConfig[chamado.prioridade];
+                      const clientResponded = hasClientResponse(chamado);
                       
                       return (
                         <div
                           key={chamado.id}
                           onClick={() => setSelectedChamado(chamado)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                          className={`p-4 rounded-lg border cursor-pointer transition-all relative ${
                             selectedChamado?.id === chamado.id 
                               ? 'border-primary bg-primary/5' 
                               : 'border-border/40 hover:border-primary/50 hover:bg-muted/30'
-                          }`}
+                          } ${clientResponded ? 'ring-2 ring-orange-500/50' : ''}`}
                         >
+                          {/* Alerta de resposta do cliente */}
+                          {clientResponded && (
+                            <div className="absolute -top-2 -right-2 bg-orange-500 text-white rounded-full p-1 animate-pulse">
+                              <Bell className="h-3 w-3" />
+                            </div>
+                          )}
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -344,6 +400,11 @@ const AdminChamados = () => {
                                 <Badge variant="outline" className={prioridadeInfo.color}>
                                   {prioridadeInfo.label}
                                 </Badge>
+                                {clientResponded && (
+                                  <Badge className="bg-orange-500 text-white text-xs">
+                                    Cliente respondeu
+                                  </Badge>
+                                )}
                               </div>
                               <p className="font-medium truncate">{chamado.nome}</p>
                               <p className="text-sm text-muted-foreground truncate">{chamado.motivo}</p>
@@ -461,7 +522,7 @@ const AdminChamados = () => {
                   </div>
 
                   {/* Add Comment */}
-                  {selectedChamado.status !== 'fechado' && (
+                  {selectedChamado.status !== 'fechado' && selectedChamado.status !== 'resolvido' ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Select value={commentType} onValueChange={(v) => setCommentType(v as "publico" | "interno")}>
@@ -505,6 +566,14 @@ const AdminChamados = () => {
                         <MessageSquare className="h-4 w-4 mr-2" />
                         Enviar Comentário
                       </Button>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {selectedChamado.status === 'resolvido' 
+                          ? 'Chamado resolvido - comentários bloqueados' 
+                          : 'Chamado fechado - comentários bloqueados'}
+                      </p>
                     </div>
                   )}
                 </CardContent>

@@ -714,7 +714,7 @@ export default function ChamadosPublico() {
                   </div>
                 )}
 
-                {chamado.status !== "fechado" && (
+                {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
                   <div className="space-y-2 pt-4 border-t">
                     <Textarea
                       value={novoComentario}
@@ -726,6 +726,14 @@ export default function ChamadosPublico() {
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Enviar Comentário
                     </Button>
+                  </div>
+                ) : (
+                  <div className="pt-4 border-t">
+                    <p className="text-center text-muted-foreground py-4 bg-muted/50 rounded-lg">
+                      {chamado.status === "resolvido" 
+                        ? "Este chamado foi resolvido. Não é possível adicionar novos comentários."
+                        : "Este chamado está fechado. Não é possível adicionar novos comentários."}
+                    </p>
                   </div>
                 )}
               </CardContent>

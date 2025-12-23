@@ -64,9 +64,9 @@ serve(async (req) => {
       });
     }
     
-    // Check if ticket is closed
-    if (chamado.status === 'fechado') {
-      return new Response(JSON.stringify({ error: 'Não é possível comentar em chamado fechado' }), {
+    // Check if ticket is closed or resolved
+    if (chamado.status === 'fechado' || chamado.status === 'resolvido') {
+      return new Response(JSON.stringify({ error: 'Não é possível comentar em chamado resolvido ou fechado' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
