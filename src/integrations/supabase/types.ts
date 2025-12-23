@@ -2680,6 +2680,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_profile_safe_update: { Args: never; Returns: boolean }
       create_password_reset_token: {
         Args: {
           p_email: string
