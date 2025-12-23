@@ -260,11 +260,14 @@ export default function AdminDivulgador() {
 
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage
+    // Use signed URL for private bucket (expires in 1 year = 31536000 seconds)
+    const { data } = await supabase.storage
       .from('divulgador-media')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 31536000);
 
-    return publicUrl;
+    if (!data?.signedUrl) throw new Error('Não foi possível gerar URL do arquivo');
+
+    return data.signedUrl;
   };
 
   const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -595,11 +598,14 @@ export default function AdminDivulgador() {
 
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage
+    // Use signed URL for private bucket (expires in 1 year = 31536000 seconds)
+    const { data } = await supabase.storage
       .from('divulgador-media')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 31536000);
 
-    return publicUrl;
+    if (!data?.signedUrl) throw new Error('Não foi possível gerar URL da foto');
+
+    return data.signedUrl;
   };
 
   const handleGroupPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
