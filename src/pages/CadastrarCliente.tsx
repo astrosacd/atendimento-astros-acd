@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useClientes, ClienteInput, CicloCobranca } from '@/hooks/useClientes';
+import { useClientes, ClienteInput, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,6 +62,7 @@ export default function CadastrarCliente() {
     cpf: '',
     plano: '',
     valor: 0,
+    moeda: 'BRL',
     observacao: '',
     tags: [],
     cobranca_ativa: true,
@@ -504,14 +505,28 @@ export default function CadastrarCliente() {
 
                     <div className="space-y-2">
                       <Label htmlFor="valor" className="text-foreground font-medium">Valor do Produto</Label>
-                      <Input
-                        id="valor"
-                        placeholder="R$ 0,00"
-                        value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString()) : ''}
-                        onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
-                        className="bg-secondary border-border text-foreground h-11"
-                        required
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="valor"
+                          placeholder={formData.moeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                          value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString()) : ''}
+                          onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
+                          className="bg-secondary border-border text-foreground h-11 flex-1"
+                          required
+                        />
+                        <Select
+                          value={formData.moeda || 'BRL'}
+                          onValueChange={(value) => setFormData({ ...formData, moeda: value as Moeda })}
+                        >
+                          <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="BRL">R$ BRL</SelectItem>
+                            <SelectItem value="USD">$ USD</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="space-y-2">

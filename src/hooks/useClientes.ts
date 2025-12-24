@@ -15,6 +15,8 @@ export const CICLO_MESES: Record<CicloCobranca, number> = {
   anual: 12,
 };
 
+export type Moeda = 'BRL' | 'USD';
+
 export interface Cliente {
   id: string;
   nome: string;
@@ -25,6 +27,7 @@ export interface Cliente {
   cpf: string;
   plano: string | null;
   valor: number;
+  moeda: Moeda;
   observacao: string | null;
   tags: string[] | null;
   cobranca_ativa: boolean;
@@ -43,6 +46,7 @@ export interface ClienteInput {
   cpf: string;
   plano?: string;
   valor: number;
+  moeda?: Moeda;
   observacao?: string;
   tags?: string[];
   cobranca_ativa?: boolean;

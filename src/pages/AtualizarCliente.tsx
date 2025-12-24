@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useClientes, Cliente, CicloCobranca } from '@/hooks/useClientes';
+import { useClientes, Cliente, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -35,6 +35,7 @@ export default function AtualizarCliente() {
   const [newObservacao, setNewObservacao] = useState('');
   const [newTags, setNewTags] = useState<string[]>([]);
   const [newCicloCobranca, setNewCicloCobranca] = useState<CicloCobranca>('mensal');
+  const [newMoeda, setNewMoeda] = useState<Moeda>('BRL');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -67,6 +68,7 @@ export default function AtualizarCliente() {
     setNewObservacao(cliente.observacao || '');
     setNewTags(cliente.tags || []);
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
+    setNewMoeda(cliente.moeda || 'BRL');
     setSearchResults([]);
   };
 
@@ -88,15 +90,16 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda } = {
       observacao: newObservacao,
       tags: newTags,
     };
     
-    // Só atualiza a data e ciclo se for cliente mensal
+    // Só atualiza a data, ciclo e moeda se for cliente mensal
     if (selectedCliente.cobranca_ativa) {
       updateData.data_renovacao = newDate;
       updateData.ciclo_cobranca = newCicloCobranca;
+      updateData.moeda = newMoeda;
     }
     
     const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
@@ -228,6 +231,25 @@ export default function AtualizarCliente() {
                         <SelectItem value="trimestral">Trimestral (3 meses)</SelectItem>
                         <SelectItem value="semestral">Semestral (6 meses)</SelectItem>
                         <SelectItem value="anual">Anual (12 meses)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="moeda" className="text-foreground font-medium">Moeda</Label>
+                    </div>
+                    <Select
+                      value={newMoeda}
+                      onValueChange={(value) => setNewMoeda(value as Moeda)}
+                    >
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                        <SelectValue placeholder="Selecione a moeda" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="BRL">R$ Real (BRL)</SelectItem>
+                        <SelectItem value="USD">$ Dólar (USD)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
