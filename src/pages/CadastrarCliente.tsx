@@ -11,7 +11,7 @@ import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinit
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { formatCPFOrCNPJ, formatCurrency, formatPhone, parseCurrency, unformat } from '@/utils/formatters';
+import { formatCPFOrCNPJ, formatCurrencyInput, formatPhone, parseCurrency, unformat } from '@/utils/formatters';
 import { TagInput } from '@/components/TagInput';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -506,7 +506,7 @@ export default function CadastrarCliente() {
                       <Input
                         id="valor"
                         placeholder="R$ 0,00"
-                        value={formData.valor ? formatCurrency((formData.valor * 100).toString()) : ''}
+                        value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString()) : ''}
                         onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
                         className="bg-secondary border-border text-foreground h-11"
                         required

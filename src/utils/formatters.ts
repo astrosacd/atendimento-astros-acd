@@ -29,23 +29,44 @@ export const formatCPFOrCNPJ = (value: string): string => {
   return formatCNPJ(value);
 };
 
-// Format currency: R$ 0,00
+// Format currency from cents: R$ 0,00
 export const formatCurrency = (value: string): string => {
   const digits = value.replace(/\D/g, '');
   
   if (!digits) return '';
   
-  const numValue = parseInt(digits, 10) / 100;
+  // Limit to a reasonable number of digits to prevent overflow
+  const limitedDigits = digits.slice(0, 12);
+  const numValue = parseInt(limitedDigits, 10) / 100;
   return numValue.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   });
 };
 
-// Parse currency back to number
+// Format currency for input field (handles user typing)
+export const formatCurrencyInput = (value: string): string => {
+  // Remove everything except digits
+  const digits = value.replace(/\D/g, '');
+  
+  if (!digits) return '';
+  
+  // Limit to prevent overflow (max 999.999.999,99)
+  const limitedDigits = digits.slice(0, 11);
+  const numValue = parseInt(limitedDigits, 10) / 100;
+  return numValue.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
+
+// Parse currency back to number (returns value in reais, not cents)
 export const parseCurrency = (value: string): number => {
   const digits = value.replace(/\D/g, '');
-  return parseInt(digits, 10) / 100 || 0;
+  if (!digits) return 0;
+  // Limit digits to prevent overflow
+  const limitedDigits = digits.slice(0, 11);
+  return parseInt(limitedDigits, 10) / 100 || 0;
 };
 
 // Format phone: (00) 00000-0000 or (00) 0000-0000
