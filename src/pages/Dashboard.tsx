@@ -37,6 +37,7 @@ interface ClienteStats {
   mrr: number; // Monthly Recurring Revenue (normalized) in BRL
   mrrUsd: number; // Monthly Recurring Revenue (normalized) in USD
   previsaoFaturamento: number;
+  previsaoFaturamentoUsd: number;
   clientesNovos30d: number;
   billingSuccess: number;
   billingErrors: number;
@@ -70,6 +71,7 @@ export default function Dashboard() {
     mrr: 0,
     mrrUsd: 0,
     previsaoFaturamento: 0,
+    previsaoFaturamentoUsd: 0,
     clientesNovos30d: 0,
     billingSuccess: 0,
     billingErrors: 0,
@@ -155,12 +157,20 @@ export default function Dashboard() {
         return acc + ((c.valor || 0) / meses);
       }, 0) || 0;
 
-      // Revenue forecast (clients renewing in next 30 days)
+      // Revenue forecast (clients renewing in next 30 days) - separated by currency
       const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const previsaoFaturamento = clientes?.filter(c => {
+      const clientesRenovando30d = clientes?.filter(c => {
         const renovacao = new Date(c.data_renovacao);
         return renovacao >= today && renovacao <= nextMonth;
-      }).reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
+      }) || [];
+
+      const previsaoFaturamento = clientesRenovando30d
+        .filter(c => (c.moeda || 'BRL') === 'BRL')
+        .reduce((acc, c) => acc + (c.valor || 0), 0);
+
+      const previsaoFaturamentoUsd = clientesRenovando30d
+        .filter(c => c.moeda === 'USD')
+        .reduce((acc, c) => acc + (c.valor || 0), 0);
 
       // New clients in last 30 days
       const clientesNovos30d = clientes?.filter(c => {
@@ -231,6 +241,7 @@ export default function Dashboard() {
         mrr: mrrBrl,
         mrrUsd,
         previsaoFaturamento,
+        previsaoFaturamentoUsd,
         clientesNovos30d,
         billingSuccess,
         billingErrors,
@@ -542,7 +553,7 @@ export default function Dashboard() {
 
         {/* Secondary Stats - Admin Only */}
         {isAdmin && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
@@ -552,7 +563,13 @@ export default function Dashboard() {
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
-                <p className="text-xs text-muted-foreground">Previsão 30 dias</p>
+                <p className="text-xs text-muted-foreground">Previsão 30 dias (R$)</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.previsaoFaturamentoUsd)}</p>
+                <p className="text-xs text-muted-foreground">Previsão 30 dias ($)</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
