@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   FileText, Search, RefreshCw, Clock, Globe, Server, 
   Filter, Calendar, AlertTriangle, CheckCircle2, XCircle,
-  Activity, TrendingUp, TrendingDown, Mail, Bell, Save, Loader2
+  Activity, TrendingUp, TrendingDown, Mail, Bell, Save, Loader2, Send
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -55,6 +55,7 @@ export default function AdminAuditLogs() {
   const [gmailUser, setGmailUser] = useState('');
   const [gmailAppPassword, setGmailAppPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Fetch notification config
   const { data: notifConfig } = useQuery({
@@ -394,10 +395,54 @@ export default function AdminAuditLogs() {
                     Crie uma senha de app em: myaccount.google.com → Segurança → Verificação em duas etapas → Senhas de app
                   </p>
                 </div>
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 flex gap-3">
                   <Button onClick={saveNotificationConfig} disabled={isSaving} className="gap-2">
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Salvar Configurações
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={async () => {
+                      if (!notificationEmail || !gmailUser || (!gmailAppPassword || gmailAppPassword.includes('•'))) {
+                        toast({
+                          title: "Dados incompletos",
+                          description: "Preencha todos os campos e salve antes de testar. Se já salvou, insira novamente a senha do App.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      setIsTesting(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke('send-test-email-notification', {
+                          body: {
+                            to: notificationEmail,
+                            gmailUser: gmailUser,
+                            gmailAppPassword: gmailAppPassword
+                          }
+                        });
+                        
+                        if (error) throw error;
+                        
+                        toast({
+                          title: "Email de teste enviado!",
+                          description: `Um email foi enviado para ${notificationEmail}`,
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: "Erro ao enviar teste",
+                          description: error.message || "Verifique as credenciais do Gmail",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsTesting(false);
+                      }
+                    }} 
+                    disabled={isTesting || !notificationEmail || !gmailUser}
+                    className="gap-2"
+                  >
+                    {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Testar Envio
                   </Button>
                 </div>
               </div>
