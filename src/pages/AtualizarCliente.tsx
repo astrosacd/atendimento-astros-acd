@@ -155,7 +155,7 @@ export default function AtualizarCliente() {
                       variant="outline"
                       className="w-full justify-start border-border text-foreground hover:bg-update/10 hover:border-update/50 h-12"
                     >
-                      {cliente.nome} - {cliente.cpf}
+                      {cliente.nome} - {cliente.cpf} - {cliente.produto}
                     </Button>
                   ))}
                 </div>
