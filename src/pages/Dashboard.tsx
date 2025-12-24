@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
   mensal: 1,
+  bimestral: 2,
   trimestral: 3,
   semestral: 6,
   anual: 12,
