@@ -661,7 +661,7 @@ export default function Dashboard() {
                     Clientes por Plano
                   </CardTitle>
                   <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    {stats.clientesPorPlano.length} planos
+                    {stats.clientesPorPlano.reduce((acc, item) => acc + item.quantidade, 0)} clientes
                   </span>
                 </div>
               </CardHeader>
@@ -698,9 +698,12 @@ export default function Dashboard() {
                           backgroundColor: 'hsl(220, 18%, 12%)', 
                           border: '1px solid hsl(217, 91%, 50%)',
                           borderRadius: '12px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                          color: 'hsl(0, 0%, 98%)'
                         }}
-                        formatter={(value: number, name: string) => [`${value} clientes`, name]}
+                        labelStyle={{ color: 'hsl(0, 0%, 98%)' }}
+                        itemStyle={{ color: 'hsl(0, 0%, 98%)' }}
+                        formatter={(value: number, name: string) => [`${value} clientes`, name || 'Sem plano']}
                       />
                     </PieChart>
                   </ResponsiveContainer>
