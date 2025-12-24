@@ -819,8 +819,8 @@ const AdminCobranca = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="flex-1 w-full">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
@@ -831,19 +831,21 @@ const AdminCobranca = () => {
                           />
                         </div>
                       </div>
-                      <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
-                        <SelectTrigger className="w-full sm:w-48">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="d_menos_3">D-3 (Lembrete)</SelectItem>
-                          <SelectItem value="d_zero">D (Vencimento)</SelectItem>
-                          <SelectItem value="d_mais_1">D+1 (1º Aviso)</SelectItem>
-                          <SelectItem value="d_mais_2">D+2 (2º Aviso)</SelectItem>
-                          <SelectItem value="d_mais_15">D+15 (Pendência)</SelectItem>
-                          <SelectItem value="d_mais_30">D+30 (Aviso Final)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="w-full sm:w-auto sm:min-w-[180px] shrink-0">
+                        <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="d_menos_3">D-3 (Lembrete)</SelectItem>
+                            <SelectItem value="d_zero">D (Vencimento)</SelectItem>
+                            <SelectItem value="d_mais_1">D+1 (1º Aviso)</SelectItem>
+                            <SelectItem value="d_mais_2">D+2 (2º Aviso)</SelectItem>
+                            <SelectItem value="d_mais_15">D+15 (Pendência)</SelectItem>
+                            <SelectItem value="d_mais_30">D+30 (Aviso Final)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
