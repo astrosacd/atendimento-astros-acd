@@ -56,6 +56,7 @@ export default function AdminAuditLogs() {
   const [gmailAppPassword, setGmailAppPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [passwordLoaded, setPasswordLoaded] = useState(false);
 
   // Fetch notification config
   const { data: notifConfig } = useQuery({
@@ -72,7 +73,7 @@ export default function AdminAuditLogs() {
   });
 
   useEffect(() => {
-    if (notifConfig) {
+    if (notifConfig && !passwordLoaded) {
       const config = notifConfig.reduce((acc, item) => {
         acc[item.config_key] = item.config_value;
         return acc;
@@ -81,9 +82,12 @@ export default function AdminAuditLogs() {
       setNotifyErrors(config.notify_api_errors === 'true');
       setNotificationEmail(config.notification_email || '');
       setGmailUser(config.gmail_user || '');
-      setGmailAppPassword(config.gmail_app_password ? '••••••••' : '');
+      if (config.gmail_app_password) {
+        setGmailAppPassword('••••••••');
+        setPasswordLoaded(true);
+      }
     }
-  }, [notifConfig]);
+  }, [notifConfig, passwordLoaded]);
 
   const fetchLogs = async () => {
     setIsLoading(true);
@@ -388,6 +392,11 @@ export default function AdminAuditLogs() {
                     type="password"
                     placeholder="Sua senha de app do Gmail"
                     value={gmailAppPassword}
+                    onFocus={() => {
+                      if (gmailAppPassword === '••••••••') {
+                        setGmailAppPassword('');
+                      }
+                    }}
                     onChange={(e) => setGmailAppPassword(e.target.value)}
                     className="bg-background"
                   />
