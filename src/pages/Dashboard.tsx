@@ -14,6 +14,14 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 
+// Mapping of billing cycles to months
+const CICLO_MESES: Record<string, number> = {
+  mensal: 1,
+  trimestral: 3,
+  semestral: 6,
+  anual: 12,
+};
+
 interface ClienteStats {
   totalClientes: number;
   pendingUsers: number;
@@ -25,7 +33,7 @@ interface ClienteStats {
   // New metrics
   inadimplentes: number;
   taxaInadimplencia: number;
-  receitaMensal: number;
+  mrr: number; // Monthly Recurring Revenue (normalized)
   previsaoFaturamento: number;
   clientesNovos30d: number;
   billingSuccess: number;
@@ -57,7 +65,7 @@ export default function Dashboard() {
     clientesPorPlano: [],
     inadimplentes: 0,
     taxaInadimplencia: 0,
-    receitaMensal: 0,
+    mrr: 0,
     previsaoFaturamento: 0,
     clientesNovos30d: 0,
     billingSuccess: 0,
@@ -128,8 +136,12 @@ export default function Dashboard() {
       // Calculate delinquency rate
       const taxaInadimplencia = clientes?.length ? (inadimplentes / clientes.length) * 100 : 0;
 
-      // Estimated monthly revenue (sum of all client values)
-      const receitaMensal = totalValor;
+      // Calculate MRR (Monthly Recurring Revenue) - normalized by billing cycle
+      const mrr = clientes?.reduce((acc, c) => {
+        const ciclo = c.ciclo_cobranca || 'mensal';
+        const meses = CICLO_MESES[ciclo] || 1;
+        return acc + ((c.valor || 0) / meses);
+      }, 0) || 0;
 
       // Revenue forecast (clients renewing in next 30 days)
       const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -204,7 +216,7 @@ export default function Dashboard() {
         clientesPorPlano,
         inadimplentes,
         taxaInadimplencia,
-        receitaMensal,
+        mrr,
         previsaoFaturamento,
         clientesNovos30d,
         billingSuccess,
@@ -411,8 +423,8 @@ export default function Dashboard() {
                   <DollarSign className="h-6 w-6 text-info" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.totalValor)}</p>
-                  <p className="text-xs text-muted-foreground">Receita Mensal</p>
+                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
+                  <p className="text-xs text-muted-foreground">MRR (Receita Mensal)</p>
                 </div>
               </div>
             </CardContent>

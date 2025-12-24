@@ -5,6 +5,15 @@ import { useWebhooks } from '@/hooks/useWebhooks';
 import { useClientHistory } from '@/hooks/useClientHistory';
 import { Json } from '@/integrations/supabase/types';
 
+export type CicloCobranca = 'mensal' | 'trimestral' | 'semestral' | 'anual';
+
+export const CICLO_MESES: Record<CicloCobranca, number> = {
+  mensal: 1,
+  trimestral: 3,
+  semestral: 6,
+  anual: 12,
+};
+
 export interface Cliente {
   id: string;
   nome: string;
@@ -18,6 +27,7 @@ export interface Cliente {
   observacao: string | null;
   tags: string[] | null;
   cobranca_ativa: boolean;
+  ciclo_cobranca: CicloCobranca;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -35,6 +45,7 @@ export interface ClienteInput {
   observacao?: string;
   tags?: string[];
   cobranca_ativa?: boolean;
+  ciclo_cobranca?: CicloCobranca;
 }
 
 export const useClientes = () => {

@@ -180,9 +180,9 @@ export default function ConsultarCliente() {
     
     if (data) {
       // Update in results
-      setResults(prev => prev ? prev.map(c => c.id === clienteId ? data : c) : null);
+      setResults(prev => prev ? prev.map(c => c.id === clienteId ? data as Cliente : c) : null);
       // Update in allClientes
-      setAllClientes(prev => prev.map(c => c.id === clienteId ? data : c));
+      setAllClientes(prev => prev.map(c => c.id === clienteId ? data as Cliente : c));
     }
   };
 
