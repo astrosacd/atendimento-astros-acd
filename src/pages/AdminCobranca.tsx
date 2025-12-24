@@ -811,15 +811,15 @@ const AdminCobranca = () => {
                     Cobrança Seletiva
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-visible flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Cobrança Manual Seletiva</DialogTitle>
                     <DialogDescription>
                       Selecione clientes específicos para enviar cobranças.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="space-y-4 flex-1 overflow-visible flex flex-col">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 overflow-visible p-1">
                       <div className="flex-1 w-full">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
