@@ -73,19 +73,21 @@ export default function AdminAuditLogs() {
   });
 
   useEffect(() => {
-    if (notifConfig && !passwordLoaded) {
-      const config = notifConfig.reduce((acc, item) => {
-        acc[item.config_key] = item.config_value;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      setNotifyErrors(config.notify_api_errors === 'true');
-      setNotificationEmail(config.notification_email || '');
-      setGmailUser(config.gmail_user || '');
-      if (config.gmail_app_password) {
-        setGmailAppPassword('••••••••');
-        setPasswordLoaded(true);
-      }
+    if (!notifConfig) return;
+
+    const config = notifConfig.reduce((acc, item) => {
+      acc[item.config_key] = item.config_value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    setNotifyErrors(config.notify_api_errors === 'true');
+    setNotificationEmail(config.notification_email || '');
+    setGmailUser(config.gmail_user || '');
+
+    // Only set the masked password once (avoid overriding what user is typing)
+    if (!passwordLoaded && config.gmail_app_password) {
+      setGmailAppPassword('••••••••');
+      setPasswordLoaded(true);
     }
   }, [notifConfig, passwordLoaded]);
 
@@ -141,6 +143,7 @@ export default function AdminAuditLogs() {
       const configs = [
         { config_key: 'notify_api_errors', config_value: String(notifyErrors) },
         { config_key: 'notification_email', config_value: notificationEmail },
+        { config_key: 'gmail_user', config_value: gmailUser },
       ];
 
       // Only update gmail password if user entered a new one (not the masked one)
@@ -156,6 +159,13 @@ export default function AdminAuditLogs() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['notification-config'] });
+
+      // Mask after save (so user knows it's stored)
+      if (gmailAppPassword && !gmailAppPassword.includes('•')) {
+        setGmailAppPassword('••••••••');
+        setPasswordLoaded(true);
+      }
+
       toast({
         title: "Configurações salvas!",
         description: "As notificações foram configuradas com sucesso.",
@@ -412,27 +422,27 @@ export default function AdminAuditLogs() {
                   <Button 
                     variant="outline" 
                     onClick={async () => {
-                      if (!notificationEmail || !gmailUser || (!gmailAppPassword || gmailAppPassword.includes('•'))) {
+                      if (!notificationEmail) {
                         toast({
                           title: "Dados incompletos",
-                          description: "Preencha todos os campos e salve antes de testar. Se já salvou, insira novamente a senha do App.",
+                          description: "Preencha o email de notificações para testar.",
                           variant: "destructive"
                         });
                         return;
                       }
-                      
+
                       setIsTesting(true);
                       try {
-                        const { data, error } = await supabase.functions.invoke('send-test-email-notification', {
-                          body: {
-                            to: notificationEmail,
-                            gmailUser: gmailUser,
-                            gmailAppPassword: gmailAppPassword
-                          }
-                        });
-                        
+                        const body: Record<string, unknown> = { to: notificationEmail };
+
+                        // Se o usuário digitou uma senha nova (não mascarada), usa ela no teste.
+                        // Caso contrário, a função usa o que estiver salvo no backend.
+                        if (gmailUser) body.gmailUser = gmailUser;
+                        if (gmailAppPassword && !gmailAppPassword.includes('•')) body.gmailAppPassword = gmailAppPassword;
+
+                        const { error } = await supabase.functions.invoke('send-test-email-notification', { body });
                         if (error) throw error;
-                        
+
                         toast({
                           title: "Email de teste enviado!",
                           description: `Um email foi enviado para ${notificationEmail}`,
@@ -446,8 +456,8 @@ export default function AdminAuditLogs() {
                       } finally {
                         setIsTesting(false);
                       }
-                    }} 
-                    disabled={isTesting || !notificationEmail || !gmailUser}
+                    }}
+                    disabled={isTesting || !notificationEmail}
                     className="gap-2"
                   >
                     {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
