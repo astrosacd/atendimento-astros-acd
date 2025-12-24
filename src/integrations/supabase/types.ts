@@ -772,6 +772,7 @@ export type Database = {
           data_renovacao: string
           email: string
           id: string
+          moeda: string
           nome: string
           numero: string
           observacao: string | null
@@ -795,6 +796,7 @@ export type Database = {
           data_renovacao: string
           email: string
           id?: string
+          moeda?: string
           nome: string
           numero: string
           observacao?: string | null
@@ -818,6 +820,7 @@ export type Database = {
           data_renovacao?: string
           email?: string
           id?: string
+          moeda?: string
           nome?: string
           numero?: string
           observacao?: string | null

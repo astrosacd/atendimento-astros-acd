@@ -34,7 +34,8 @@ interface ClienteStats {
   // New metrics
   inadimplentes: number;
   taxaInadimplencia: number;
-  mrr: number; // Monthly Recurring Revenue (normalized)
+  mrr: number; // Monthly Recurring Revenue (normalized) in BRL
+  mrrUsd: number; // Monthly Recurring Revenue (normalized) in USD
   previsaoFaturamento: number;
   clientesNovos30d: number;
   billingSuccess: number;
@@ -67,6 +68,7 @@ export default function Dashboard() {
     inadimplentes: 0,
     taxaInadimplencia: 0,
     mrr: 0,
+    mrrUsd: 0,
     previsaoFaturamento: 0,
     clientesNovos30d: 0,
     billingSuccess: 0,
@@ -138,7 +140,16 @@ export default function Dashboard() {
       const taxaInadimplencia = clientes?.length ? (inadimplentes / clientes.length) * 100 : 0;
 
       // Calculate MRR (Monthly Recurring Revenue) - normalized by billing cycle
-      const mrr = clientes?.reduce((acc, c) => {
+      // Separate by currency
+      const mrrBrl = clientes?.reduce((acc, c) => {
+        if (c.moeda === 'USD') return acc;
+        const ciclo = c.ciclo_cobranca || 'mensal';
+        const meses = CICLO_MESES[ciclo] || 1;
+        return acc + ((c.valor || 0) / meses);
+      }, 0) || 0;
+
+      const mrrUsd = clientes?.reduce((acc, c) => {
+        if (c.moeda !== 'USD') return acc;
         const ciclo = c.ciclo_cobranca || 'mensal';
         const meses = CICLO_MESES[ciclo] || 1;
         return acc + ((c.valor || 0) / meses);
@@ -217,7 +228,8 @@ export default function Dashboard() {
         clientesPorPlano,
         inadimplentes,
         taxaInadimplencia,
-        mrr,
+        mrr: mrrBrl,
+        mrrUsd,
         previsaoFaturamento,
         clientesNovos30d,
         billingSuccess,
@@ -263,6 +275,15 @@ export default function Dashboard() {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatCurrencyUsd = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -402,7 +423,7 @@ export default function Dashboard() {
         </div>
 
         {/* Primary Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -425,7 +446,21 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
-                  <p className="text-xs text-muted-foreground">MRR (Receita Mensal)</p>
+                  <p className="text-xs text-muted-foreground">MRR (Reais)</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.mrrUsd)}</p>
+                  <p className="text-xs text-muted-foreground">MRR (Dólar)</p>
                 </div>
               </div>
             </CardContent>
