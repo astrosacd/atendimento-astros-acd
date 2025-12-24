@@ -525,6 +525,7 @@ export default function CadastrarCliente() {
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
                           <SelectItem value="mensal">Mensal (1 mês)</SelectItem>
+                          <SelectItem value="bimestral">Bimestral (2 meses)</SelectItem>
                           <SelectItem value="trimestral">Trimestral (3 meses)</SelectItem>
                           <SelectItem value="semestral">Semestral (6 meses)</SelectItem>
                           <SelectItem value="anual">Anual (12 meses)</SelectItem>

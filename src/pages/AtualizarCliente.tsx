@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useClientes, Cliente } from '@/hooks/useClientes';
+import { useClientes, Cliente, CicloCobranca } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search, Check, RefreshCw, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -33,6 +34,7 @@ export default function AtualizarCliente() {
   const [newDate, setNewDate] = useState('');
   const [newObservacao, setNewObservacao] = useState('');
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [newCicloCobranca, setNewCicloCobranca] = useState<CicloCobranca>('mensal');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -64,6 +66,7 @@ export default function AtualizarCliente() {
     setNewDate(cliente.data_renovacao);
     setNewObservacao(cliente.observacao || '');
     setNewTags(cliente.tags || []);
+    setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setSearchResults([]);
   };
 
@@ -85,14 +88,15 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[] } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca } = {
       observacao: newObservacao,
       tags: newTags,
     };
     
-    // Só atualiza a data se for cliente mensal
+    // Só atualiza a data e ciclo se for cliente mensal
     if (selectedCliente.cobranca_ativa) {
       updateData.data_renovacao = newDate;
+      updateData.ciclo_cobranca = newCicloCobranca;
     }
     
     const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
@@ -194,16 +198,40 @@ export default function AtualizarCliente() {
               </div>
 
               {!isClienteVitalicio && (
-                <div className="space-y-2">
-                  <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
-                  <Input
-                    id="newDate"
-                    type="date"
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    className="bg-secondary border-border text-foreground h-12"
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
+                    <Input
+                      id="newDate"
+                      type="date"
+                      value={newDate}
+                      onChange={(e) => setNewDate(e.target.value)}
+                      className="bg-secondary border-border text-foreground h-12"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4 text-muted-foreground" />
+                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">Ciclo de Cobrança</Label>
+                    </div>
+                    <Select
+                      value={newCicloCobranca}
+                      onValueChange={(value) => setNewCicloCobranca(value as CicloCobranca)}
+                    >
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                        <SelectValue placeholder="Selecione o ciclo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="mensal">Mensal (1 mês)</SelectItem>
+                        <SelectItem value="bimestral">Bimestral (2 meses)</SelectItem>
+                        <SelectItem value="trimestral">Trimestral (3 meses)</SelectItem>
+                        <SelectItem value="semestral">Semestral (6 meses)</SelectItem>
+                        <SelectItem value="anual">Anual (12 meses)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">
