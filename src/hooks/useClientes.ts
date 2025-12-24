@@ -5,10 +5,11 @@ import { useWebhooks } from '@/hooks/useWebhooks';
 import { useClientHistory } from '@/hooks/useClientHistory';
 import { Json } from '@/integrations/supabase/types';
 
-export type CicloCobranca = 'mensal' | 'trimestral' | 'semestral' | 'anual';
+export type CicloCobranca = 'mensal' | 'bimestral' | 'trimestral' | 'semestral' | 'anual';
 
 export const CICLO_MESES: Record<CicloCobranca, number> = {
   mensal: 1,
+  bimestral: 2,
   trimestral: 3,
   semestral: 6,
   anual: 12,
