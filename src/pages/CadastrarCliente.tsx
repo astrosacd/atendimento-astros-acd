@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useClientes, ClienteInput } from '@/hooks/useClientes';
+import { useClientes, ClienteInput, CicloCobranca } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,6 +65,7 @@ export default function CadastrarCliente() {
     observacao: '',
     tags: [],
     cobranca_ativa: true,
+    ciclo_cobranca: 'mensal',
   });
   
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -501,7 +502,7 @@ export default function CadastrarCliente() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor="valor" className="text-foreground font-medium">Valor do Produto</Label>
                       <Input
                         id="valor"
@@ -511,6 +512,24 @@ export default function CadastrarCliente() {
                         className="bg-secondary border-border text-foreground h-11"
                         required
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">Ciclo de Cobrança</Label>
+                      <Select
+                        value={formData.ciclo_cobranca || 'mensal'}
+                        onValueChange={(value) => setFormData({ ...formData, ciclo_cobranca: value as CicloCobranca })}
+                      >
+                        <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                          <SelectValue placeholder="Selecione o ciclo" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="mensal">Mensal (1 mês)</SelectItem>
+                          <SelectItem value="trimestral">Trimestral (3 meses)</SelectItem>
+                          <SelectItem value="semestral">Semestral (6 meses)</SelectItem>
+                          <SelectItem value="anual">Anual (12 meses)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </>
                 )}
