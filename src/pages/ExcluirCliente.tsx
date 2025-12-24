@@ -113,7 +113,7 @@ export default function ExcluirCliente() {
                       variant="outline"
                       className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 h-12"
                     >
-                      {cliente.nome} - {cliente.cpf}
+                      {cliente.nome} - {cliente.cpf} - {cliente.produto}
                     </Button>
                   ))}
                 </div>
