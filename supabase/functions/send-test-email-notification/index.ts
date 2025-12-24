@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,8 +9,8 @@ const corsHeaders = {
 
 interface TestEmailRequest {
   to: string;
-  gmailUser: string;
-  gmailAppPassword: string;
+  gmailUser?: string;
+  gmailAppPassword?: string;
 }
 
 serve(async (req: Request) => {
@@ -19,13 +20,51 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { to, gmailUser, gmailAppPassword }: TestEmailRequest = await req.json();
-    
-    console.log(`Sending test email to: ${to} from: ${gmailUser}`);
+    const { to, gmailUser: gmailUserInput, gmailAppPassword: gmailAppPasswordInput }: TestEmailRequest = await req.json();
 
-    if (!to || !gmailUser || !gmailAppPassword) {
-      throw new Error("Dados incompletos. Preencha todos os campos.");
+    if (!to) {
+      throw new Error("Informe o email de destino (notificações). ");
     }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("Configuração do backend incompleta (SUPABASE_URL / SERVICE_ROLE). ");
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    // If credentials are not provided, load from recovery_config
+    let gmailUser = (gmailUserInput ?? "").trim();
+    let gmailAppPassword = (gmailAppPasswordInput ?? "").trim();
+
+    if (!gmailUser || !gmailAppPassword) {
+      const { data, error } = await supabase
+        .from("recovery_config")
+        .select("config_key, config_value")
+        .in("config_key", ["gmail_user", "gmail_app_password"]);
+
+      if (error) throw error;
+
+      const config = (data ?? []).reduce((acc: Record<string, string>, item: any) => {
+        acc[item.config_key] = item.config_value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      if (!gmailUser) gmailUser = (config.gmail_user ?? "").trim();
+      if (!gmailAppPassword) gmailAppPassword = (config.gmail_app_password ?? "").trim();
+    }
+
+    if (!gmailUser || !gmailAppPassword) {
+      throw new Error(
+        "Credenciais do Gmail não encontradas. Salve a conta e a senha de app e tente novamente."
+      );
+    }
+
+    console.log(`Sending test email to: ${to} from: ${gmailUser}`);
 
     const client = new SMTPClient({
       connection: {
@@ -39,11 +78,11 @@ serve(async (req: Request) => {
       },
     });
 
-    const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 
     await client.send({
       from: gmailUser,
-      to: to,
+      to,
       subject: "🧪 Teste de Notificação - API Logs",
       content: "auto",
       html: `
@@ -63,7 +102,7 @@ serve(async (req: Request) => {
               </p>
             </div>
             <p style="color: #64748b; font-size: 14px;">
-              A partir de agora, você receberá alertas quando ocorrerem erros na API do sistema.
+              Se você recebeu este email, o envio está funcionando.
             </p>
           </div>
         </div>
@@ -74,19 +113,15 @@ serve(async (req: Request) => {
 
     console.log("Test email sent successfully");
 
-    return new Response(
-      JSON.stringify({ success: true, message: "Email de teste enviado com sucesso!" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   } catch (error: any) {
     console.error("Error sending test email:", error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || "Erro ao enviar email de teste",
-        details: "Verifique se a conta Gmail e a senha de app estão corretas"
       }),
       {
         status: 500,
