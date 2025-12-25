@@ -41,6 +41,7 @@ export default function GatewayProducts() {
     status: 'active' as 'active' | 'inactive',
   });
   const [pricesSynced, setPricesSynced] = useState(false);
+  const [syncInfo, setSyncInfo] = useState<{ originalUsd: number; newUsd: number; targetBrl: number } | null>(null);
 
   const { setOrderBumps } = useProductOrderBumps(editingProduct?.id || null);
 
@@ -64,6 +65,7 @@ export default function GatewayProducts() {
     setEditingProduct(null);
     setSelectedOrderBumps([]);
     setPricesSynced(false);
+    setSyncInfo(null);
   };
 
   const handleEdit = async (product: GatewayProduct) => {
@@ -260,6 +262,9 @@ export default function GatewayProducts() {
                               size="icon"
                               disabled={isConverting || formData.price_brl <= 0}
                               onClick={async () => {
+                                // Guarda o valor original antes de sincronizar
+                                const originalUsd = formData.price_usd;
+                                
                                 // Primeiro, obtém a cotação atual
                                 const result = await convertBRLtoUSD(formData.price_brl);
                                 if (result !== null) {
@@ -274,10 +279,11 @@ export default function GatewayProducts() {
                                   const spreadMultiplier = 1 - exchangeSpread / 100;
                                   const feeMultiplier = 1 - feePercentage / 100;
                                   const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
-                                  const requiredUsd = (targetUsdBeforeFees + feeFixed) / feeMultiplier;
+                                  const requiredUsd = Math.round(((targetUsdBeforeFees + feeFixed) / feeMultiplier) * 100) / 100;
                                   
-                                  setFormData(prev => ({ ...prev, price_usd: Math.round(requiredUsd * 100) / 100 }));
+                                  setFormData(prev => ({ ...prev, price_usd: requiredUsd }));
                                   setPricesSynced(true);
+                                  setSyncInfo({ originalUsd, newUsd: requiredUsd, targetBrl: targetBRL });
                                   toast.success(`USD calculado: $${requiredUsd.toFixed(2)} (para receber R$${targetBRL.toFixed(2)} líquido)`);
                                 }
                               }}
@@ -341,6 +347,32 @@ export default function GatewayProducts() {
                     </div>
                   </div>
 
+                  {/* Sync Info Display */}
+                  {syncInfo && pricesSynced && (
+                    <div className="col-span-2 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                      <Label className="text-sm font-medium flex items-center gap-2 mb-2 text-green-700 dark:text-green-400">
+                        ✅ Sincronização Realizada
+                      </Label>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">USD Anterior:</span>
+                          <p className="font-medium text-muted-foreground line-through">${syncInfo.originalUsd.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">USD Atualizado:</span>
+                          <p className="font-medium text-green-600 dark:text-green-400">${syncInfo.newUsd.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">BRL Líquido Alvo:</span>
+                          <p className="font-medium text-primary">R$ {syncInfo.targetBrl.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                        O preço USD foi ajustado para você receber exatamente R$ {syncInfo.targetBrl.toFixed(2)} após taxas Stripe.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Net Amount Display */}
                   {formData.price_usd > 0 && (
                     <div className="col-span-2 p-3 bg-muted/50 rounded-lg border">
@@ -359,16 +391,9 @@ export default function GatewayProducts() {
                         const netAfterSpread = netUsd * (1 - exchangeSpread / 100);
                         
                         // Cálculo reverso: quanto cobrar em USD para receber exatamente o valor em BRL
-                        // Fluxo: Cobra USD -> Stripe desconta taxas -> Converte para BRL com spread
-                        // netBRL = (priceUsd - priceUsd * feePercentage/100 - feeFixed) * exchangeRate * (1 - exchangeSpread/100)
-                        // Precisamos da taxa de câmbio atual (BRL/USD)
-                        const currentRate = formData.price_brl / formData.price_usd; // Ex: 100 BRL / 18.12 USD = 5.52
+                        const currentRate = formData.price_brl / formData.price_usd;
                         const targetBRL = formData.price_brl;
                         
-                        // Resolvendo para priceUsd:
-                        // targetBRL = (priceUsd * (1 - feePercentage/100) - feeFixed) * currentRate * (1 - exchangeSpread/100)
-                        // targetBRL / (currentRate * (1 - exchangeSpread/100)) = priceUsd * (1 - feePercentage/100) - feeFixed
-                        // (targetBRL / (currentRate * (1 - exchangeSpread/100)) + feeFixed) / (1 - feePercentage/100) = priceUsd
                         const spreadMultiplier = 1 - exchangeSpread / 100;
                         const feeMultiplier = 1 - feePercentage / 100;
                         const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
@@ -395,7 +420,7 @@ export default function GatewayProducts() {
                               </div>
                             </div>
                             
-                            {formData.price_brl > 0 && (
+                            {formData.price_brl > 0 && !pricesSynced && (
                               <div className="mt-3 pt-3 border-t border-border/50">
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="text-muted-foreground">Para receber exatamente R$ {formData.price_brl.toFixed(2)}, você deve cobrar:</span>
