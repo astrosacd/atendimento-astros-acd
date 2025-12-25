@@ -951,12 +951,18 @@ const AdminCobranca = () => {
                       </Table>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                      <Button variant="outline" onClick={() => setIsManualDialogOpen(false)}>Cancelar</Button>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsManualDialogOpen(false)}
+                        className="border-border text-muted-foreground hover:bg-secondary"
+                      >
+                        Cancelar
+                      </Button>
                       <Button
                         onClick={sendManualBilling}
                         disabled={isSendingManual || selectedClientes.length === 0}
-                        className="bg-gradient-to-r from-purple-500 to-violet-600"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
                       >
                         <Send className="w-4 h-4 mr-2" />
                         {isSendingManual ? 'Enviando...' : `Enviar (${selectedClientes.length})`}
