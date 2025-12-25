@@ -164,11 +164,15 @@ const validateCPFCNPJ = (doc: string): { valid: boolean; reason?: string } => {
 };
 
 const formatMessage = (template: string, cliente: Cliente, paymentData?: PaymentData): string => {
+  // Format value based on client currency
+  const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
+  const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
+  
   let message = template
     .replace(/{nome}/g, cliente.nome)
     .replace(/{produto}/g, cliente.produto)
     .replace(/{plano}/g, cliente.plano || 'N/A')
-    .replace(/{valor}/g, cliente.valor.toFixed(2))
+    .replace(/{valor}/g, formattedValue)
     .replace(/{data_renovacao}/g, new Date(cliente.data_renovacao).toLocaleDateString('pt-BR'));
 
   if (paymentData) {
@@ -537,26 +541,34 @@ const generateAIMessage = async (
     'd_mais_15': '15 dias após o vencimento (aviso de pendência)',
     'd_mais_30': '30 dias após o vencimento (aviso final antes do cancelamento)',
   };
+  const clientCurrency = cliente.moeda || 'BRL';
+  const currencySymbol = clientCurrency === 'USD' ? '$' : 'R$';
 
   let paymentInfo = '';
   if (paymentData) {
-    if (paymentData.pixChave) {
+    if (paymentData.pixChave && clientCurrency === 'BRL') {
       paymentInfo += `\nPIX disponível - Chave: ${paymentData.pixChave} (${paymentData.pixNome})`;
     }
-    if (paymentData.linkPagamento) {
+    if (paymentData.linkPagamento && clientCurrency === 'BRL') {
       paymentInfo += `\nLink de pagamento por cartão: ${paymentData.linkPagamento} (valor com taxa: R$ ${paymentData.valorCartao})`;
     }
-    if (paymentData.boletoUrl) {
+    if (paymentData.boletoUrl && clientCurrency === 'BRL') {
       paymentInfo += `\nBoleto disponível (valor com taxa: R$ ${paymentData.valorBoleto})`;
     }
+    if (paymentData.stripePaymentLink && clientCurrency === 'USD') {
+      paymentInfo += `\nStripe payment link: ${paymentData.stripePaymentLink} (amount: $ ${paymentData.valorStripe})`;
+    }
   }
+
+  const clientCurrencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
+  const clientCurrencyValue = `${clientCurrencySymbol} ${cliente.valor.toFixed(2)}`;
 
   const prompt = `${contextPrompt}
 
 Cliente: ${cliente.nome}
 Produto: ${cliente.produto}
 Plano: ${cliente.plano || 'N/A'}
-Valor: R$ ${cliente.valor.toFixed(2)}
+Valor: ${clientCurrencyValue}
 Data de Renovação: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
 Tipo de mensagem: ${typeDescriptions[messageType] || messageType}
 ${paymentInfo}
