@@ -14,7 +14,14 @@ import { toast } from 'sonner';
 export default function GatewaySettings() {
   const { settings, isLoading, updateSetting, isUpdating } = useGatewaySettings();
   
-  const [stripe, setStripe] = useState({ enabled: false, publishable_key: '', secret_key: '' });
+  const [stripe, setStripe] = useState({ 
+    enabled: false, 
+    publishable_key: '', 
+    secret_key: '',
+    fee_percentage: 3.99,
+    fee_fixed_usd: 0.30,
+    exchange_spread: 4.0
+  });
   const [mercadopago, setMercadopago] = useState({ enabled: false, access_token: '' });
   
   const defaultAbandonedCartTemplate = `Olá {{nome}}!
@@ -368,6 +375,51 @@ Se precisar de ajuda, é só responder esta mensagem!`
                   placeholder="sk_..."
                 />
               </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  💰 Taxas da Stripe (para cálculo do valor líquido)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Taxa percentual (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={stripe.fee_percentage}
+                      onChange={(e) => setStripe(prev => ({ ...prev, fee_percentage: parseFloat(e.target.value) || 0 }))}
+                      placeholder="3.99"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Ex: 3.99%</p>
+                  </div>
+                  <div>
+                    <Label>Taxa fixa por venda (USD)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={stripe.fee_fixed_usd}
+                      onChange={(e) => setStripe(prev => ({ ...prev, fee_fixed_usd: parseFloat(e.target.value) || 0 }))}
+                      placeholder="0.30"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Ex: $0.30</p>
+                  </div>
+                  <div>
+                    <Label>Spread de câmbio (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={stripe.exchange_spread}
+                      onChange={(e) => setStripe(prev => ({ ...prev, exchange_spread: parseFloat(e.target.value) || 0 }))}
+                      placeholder="4.0"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Ex: 4%</p>
+                  </div>
+                </div>
+              </div>
+
               <Button onClick={handleSaveStripe} disabled={isUpdating}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Stripe
               </Button>

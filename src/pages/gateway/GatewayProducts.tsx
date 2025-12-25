@@ -326,6 +326,49 @@ export default function GatewayProducts() {
                       </TooltipProvider>
                     </div>
                   </div>
+
+                  {/* Net Amount Display */}
+                  {formData.price_usd > 0 && settings.stripe && (
+                    <div className="col-span-2 p-3 bg-muted/50 rounded-lg border">
+                      <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                        💰 Valor Líquido Estimado (Stripe)
+                      </Label>
+                      {(() => {
+                        const feePercentage = settings.stripe.fee_percentage || 0;
+                        const feeFixed = settings.stripe.fee_fixed_usd || 0;
+                        const exchangeSpread = settings.stripe.exchange_spread || 0;
+                        
+                        const percentageFee = formData.price_usd * (feePercentage / 100);
+                        const totalFees = percentageFee + feeFixed;
+                        const netUsd = formData.price_usd - totalFees;
+                        const netAfterSpread = netUsd * (1 - exchangeSpread / 100);
+                        
+                        return (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Preço USD:</span>
+                              <p className="font-medium">${formData.price_usd.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Taxa ({feePercentage}% + ${feeFixed.toFixed(2)}):</span>
+                              <p className="font-medium text-red-500">-${totalFees.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Líquido USD:</span>
+                              <p className="font-medium text-green-600">${netUsd.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Após spread ({exchangeSpread}%):</span>
+                              <p className="font-medium text-green-600">${netAfterSpread.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Configure as taxas em Configurações → Gateways → Stripe
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Categoria</Label>
                     <Select value={formData.category_id || 'none'} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value === 'none' ? '' : value }))}>
