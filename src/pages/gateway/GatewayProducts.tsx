@@ -41,7 +41,7 @@ export default function GatewayProducts() {
     status: 'active' as 'active' | 'inactive',
   });
   const [pricesSynced, setPricesSynced] = useState(false);
-  const [syncInfo, setSyncInfo] = useState<{ originalUsd: number; newUsd: number; targetBrl: number } | null>(null);
+  const [syncInfo, setSyncInfo] = useState<{ directUsd: number; adjustedUsd: number; targetBrl: number; rate: number } | null>(null);
 
   const { setOrderBumps } = useProductOrderBumps(editingProduct?.id || null);
 
@@ -262,12 +262,12 @@ export default function GatewayProducts() {
                               size="icon"
                               disabled={isConverting || formData.price_brl <= 0}
                               onClick={async () => {
-                                // Guarda o valor original antes de sincronizar
-                                const originalUsd = formData.price_usd;
-                                
                                 // Primeiro, obtém a cotação atual
                                 const result = await convertBRLtoUSD(formData.price_brl);
                                 if (result !== null) {
+                                  // Valor de conversão direta (sem taxas)
+                                  const directUsd = result.value;
+                                  
                                   // Usa o cálculo inverso para obter o USD necessário para receber exatamente o BRL desejado
                                   const stripeSettings = settings.stripe || {};
                                   const feePercentage = typeof stripeSettings.fee_percentage === 'number' ? stripeSettings.fee_percentage : 3.99;
@@ -279,12 +279,12 @@ export default function GatewayProducts() {
                                   const spreadMultiplier = 1 - exchangeSpread / 100;
                                   const feeMultiplier = 1 - feePercentage / 100;
                                   const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
-                                  const requiredUsd = Math.round(((targetUsdBeforeFees + feeFixed) / feeMultiplier) * 100) / 100;
+                                  const adjustedUsd = Math.round(((targetUsdBeforeFees + feeFixed) / feeMultiplier) * 100) / 100;
                                   
-                                  setFormData(prev => ({ ...prev, price_usd: requiredUsd }));
+                                  setFormData(prev => ({ ...prev, price_usd: adjustedUsd }));
                                   setPricesSynced(true);
-                                  setSyncInfo({ originalUsd, newUsd: requiredUsd, targetBrl: targetBRL });
-                                  toast.success(`USD calculado: $${requiredUsd.toFixed(2)} (para receber R$${targetBRL.toFixed(2)} líquido)`);
+                                  setSyncInfo({ directUsd, adjustedUsd, targetBrl: targetBRL, rate: currentRate });
+                                  toast.success(`USD calculado: $${adjustedUsd.toFixed(2)} (para receber R$${targetBRL.toFixed(2)} líquido)`);
                                 }
                               }}
                             >
@@ -353,22 +353,26 @@ export default function GatewayProducts() {
                       <Label className="text-sm font-medium flex items-center gap-2 mb-2 text-green-700 dark:text-green-400">
                         ✅ Sincronização Realizada
                       </Label>
-                      <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div>
-                          <span className="text-muted-foreground">USD Anterior:</span>
-                          <p className="font-medium text-muted-foreground line-through">${syncInfo.originalUsd.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">USD Atualizado:</span>
-                          <p className="font-medium text-green-600 dark:text-green-400">${syncInfo.newUsd.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">BRL Líquido Alvo:</span>
+                          <span className="text-muted-foreground">BRL Desejado:</span>
                           <p className="font-medium text-primary">R$ {syncInfo.targetBrl.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Cotação:</span>
+                          <p className="font-medium">R$ {syncInfo.rate.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Conversão Direta:</span>
+                          <p className="font-medium text-muted-foreground line-through">${syncInfo.directUsd.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Com Taxas Embutidas:</span>
+                          <p className="font-medium text-green-600 dark:text-green-400">${syncInfo.adjustedUsd.toFixed(2)}</p>
                         </div>
                       </div>
                       <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                        O preço USD foi ajustado para você receber exatamente R$ {syncInfo.targetBrl.toFixed(2)} após taxas Stripe.
+                        Conversão direta seria ${syncInfo.directUsd.toFixed(2)}, mas com taxas Stripe embutidas você deve cobrar ${syncInfo.adjustedUsd.toFixed(2)} para receber R$ {syncInfo.targetBrl.toFixed(2)} líquido.
                       </p>
                     </div>
                   )}
