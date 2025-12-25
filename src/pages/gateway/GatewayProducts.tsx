@@ -260,11 +260,25 @@ export default function GatewayProducts() {
                               size="icon"
                               disabled={isConverting || formData.price_brl <= 0}
                               onClick={async () => {
+                                // Primeiro, obtém a cotação atual
                                 const result = await convertBRLtoUSD(formData.price_brl);
                                 if (result !== null) {
-                                  setFormData(prev => ({ ...prev, price_usd: result.value }));
+                                  // Usa o cálculo inverso para obter o USD necessário para receber exatamente o BRL desejado
+                                  const stripeSettings = settings.stripe || {};
+                                  const feePercentage = typeof stripeSettings.fee_percentage === 'number' ? stripeSettings.fee_percentage : 3.99;
+                                  const feeFixed = typeof stripeSettings.fee_fixed_usd === 'number' ? stripeSettings.fee_fixed_usd : 0.30;
+                                  const exchangeSpread = typeof stripeSettings.exchange_spread === 'number' ? stripeSettings.exchange_spread : 4.0;
+                                  
+                                  const currentRate = result.rate; // Taxa de câmbio BRL/USD
+                                  const targetBRL = formData.price_brl;
+                                  const spreadMultiplier = 1 - exchangeSpread / 100;
+                                  const feeMultiplier = 1 - feePercentage / 100;
+                                  const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
+                                  const requiredUsd = (targetUsdBeforeFees + feeFixed) / feeMultiplier;
+                                  
+                                  setFormData(prev => ({ ...prev, price_usd: Math.round(requiredUsd * 100) / 100 }));
                                   setPricesSynced(true);
-                                  toast.success(`Convertido: $${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
+                                  toast.success(`USD calculado: $${requiredUsd.toFixed(2)} (para receber R$${targetBRL.toFixed(2)} líquido)`);
                                 }
                               }}
                             >
@@ -272,7 +286,7 @@ export default function GatewayProducts() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Converter BRL → USD</p>
+                            <p>Calcular USD para receber BRL líquido</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
