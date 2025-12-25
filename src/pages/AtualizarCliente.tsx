@@ -14,6 +14,7 @@ import { TagInput } from '@/components/TagInput';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrencyInput, parseCurrency, formatCurrencyDisplay } from '@/utils/formatters';
+import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,7 @@ export default function AtualizarCliente() {
   const [newCicloCobranca, setNewCicloCobranca] = useState<CicloCobranca>('mensal');
   const [newMoeda, setNewMoeda] = useState<Moeda>('BRL');
   const [newNumero, setNewNumero] = useState('');
+  const [newCountryCode, setNewCountryCode] = useState('BR');
   const [newValor, setNewValor] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
@@ -73,8 +75,27 @@ export default function AtualizarCliente() {
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
+    // Try to detect country code from the number
+    const detectedCountry = detectCountryFromNumber(cliente.numero || '');
+    setNewCountryCode(detectedCountry);
     setNewValor(formatCurrencyDisplay(cliente.valor || 0, cliente.moeda || 'BRL'));
     setSearchResults([]);
+  };
+
+  // Helper function to detect country code from phone number
+  const detectCountryFromNumber = (numero: string): string => {
+    if (!numero) return 'BR';
+    // Common DDIs
+    if (numero.startsWith('55')) return 'BR';
+    if (numero.startsWith('1') && numero.length >= 11) return 'US';
+    if (numero.startsWith('351')) return 'PT';
+    if (numero.startsWith('34')) return 'ES';
+    if (numero.startsWith('54')) return 'AR';
+    if (numero.startsWith('52')) return 'MX';
+    if (numero.startsWith('44')) return 'GB';
+    if (numero.startsWith('49')) return 'DE';
+    if (numero.startsWith('33')) return 'FR';
+    return 'BR'; // Default to Brazil
   };
 
   const handleUpdate = () => {
@@ -215,12 +236,13 @@ export default function AtualizarCliente() {
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <Label htmlFor="newNumero" className="text-foreground font-medium">Número (WhatsApp)</Label>
                 </div>
-                <Input
-                  id="newNumero"
-                  placeholder="Ex: 5511999999999"
+                <PhoneInputWithCountry
                   value={newNumero}
-                  onChange={(e) => setNewNumero(e.target.value.replace(/\D/g, ''))}
-                  className="bg-secondary border-border text-foreground h-12"
+                  countryCode={newCountryCode}
+                  onChange={(phoneWithDDI, code) => {
+                    setNewNumero(phoneWithDDI);
+                    setNewCountryCode(code);
+                  }}
                 />
               </div>
 
