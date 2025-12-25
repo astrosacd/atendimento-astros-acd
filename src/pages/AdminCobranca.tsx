@@ -878,15 +878,15 @@ const AdminCobranca = () => {
                     Cobrança Seletiva
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-visible flex flex-col">
+                <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
                   <DialogHeader>
                     <DialogTitle>Cobrança Manual Seletiva</DialogTitle>
                     <DialogDescription>
                       Selecione clientes específicos para enviar cobranças.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 flex-1 overflow-visible flex flex-col">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 overflow-visible p-1">
+                  <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 p-1">
                       <div className="flex-1 w-full">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -951,18 +951,17 @@ const AdminCobranca = () => {
                       </Table>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                    <div className="flex justify-end gap-3 pt-4 mt-auto border-t border-border bg-background">
                       <Button 
                         variant="outline" 
                         onClick={() => setIsManualDialogOpen(false)}
-                        className="border-border text-muted-foreground hover:bg-secondary"
                       >
                         Cancelar
                       </Button>
                       <Button
                         onClick={sendManualBilling}
                         disabled={isSendingManual || selectedClientes.length === 0}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white"
                       >
                         <Send className="w-4 h-4 mr-2" />
                         {isSendingManual ? 'Enviando...' : `Enviar (${selectedClientes.length})`}
