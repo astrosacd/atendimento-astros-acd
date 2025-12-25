@@ -709,7 +709,12 @@ export default function CadastrarCliente() {
                   <>
                     <p className="text-muted-foreground">Data Renovação: <span className="text-foreground">{formData.data_renovacao}</span></p>
                     <p className="text-muted-foreground">Plano: <span className="text-foreground">{formData.plano || 'Nenhum'}</span></p>
-                    <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">R$ {Number(formData.valor).toFixed(2)}</span></p>
+                    <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">
+                      {formData.moeda === 'USD' 
+                        ? `$ ${Number(formData.valor).toFixed(2)}` 
+                        : `R$ ${Number(formData.valor).toFixed(2)}`}
+                    </span></p>
+                    <p className="text-muted-foreground">Moeda: <span className="text-foreground">{formData.moeda === 'USD' ? 'Dólar (USD)' : 'Real (BRL)'}</span></p>
                   </>
                 )}
                 
