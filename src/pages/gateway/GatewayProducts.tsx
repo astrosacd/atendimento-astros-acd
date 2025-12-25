@@ -345,15 +345,20 @@ export default function GatewayProducts() {
                         const netAfterSpread = netUsd * (1 - exchangeSpread / 100);
                         
                         // Cálculo reverso: quanto cobrar em USD para receber exatamente o valor em BRL
-                        // netAfterSpread = (priceUsd - priceUsd * feePercentage/100 - feeFixed) * (1 - exchangeSpread/100)
-                        // Queremos: netAfterSpread = formData.price_brl (em USD equivalente)
-                        // Resolvendo para priceUsd:
-                        // priceUsd * (1 - feePercentage/100) * (1 - exchangeSpread/100) - feeFixed * (1 - exchangeSpread/100) = targetBRL
-                        // priceUsd = (targetBRL + feeFixed * (1 - exchangeSpread/100)) / ((1 - feePercentage/100) * (1 - exchangeSpread/100))
+                        // Fluxo: Cobra USD -> Stripe desconta taxas -> Converte para BRL com spread
+                        // netBRL = (priceUsd - priceUsd * feePercentage/100 - feeFixed) * exchangeRate * (1 - exchangeSpread/100)
+                        // Precisamos da taxa de câmbio atual (BRL/USD)
+                        const currentRate = formData.price_brl / formData.price_usd; // Ex: 100 BRL / 18.12 USD = 5.52
                         const targetBRL = formData.price_brl;
+                        
+                        // Resolvendo para priceUsd:
+                        // targetBRL = (priceUsd * (1 - feePercentage/100) - feeFixed) * currentRate * (1 - exchangeSpread/100)
+                        // targetBRL / (currentRate * (1 - exchangeSpread/100)) = priceUsd * (1 - feePercentage/100) - feeFixed
+                        // (targetBRL / (currentRate * (1 - exchangeSpread/100)) + feeFixed) / (1 - feePercentage/100) = priceUsd
                         const spreadMultiplier = 1 - exchangeSpread / 100;
                         const feeMultiplier = 1 - feePercentage / 100;
-                        const requiredUsd = (targetBRL + feeFixed * spreadMultiplier) / (feeMultiplier * spreadMultiplier);
+                        const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
+                        const requiredUsd = (targetUsdBeforeFees + feeFixed) / feeMultiplier;
                         
                         return (
                           <>
