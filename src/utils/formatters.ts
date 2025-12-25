@@ -68,6 +68,20 @@ export const formatCurrencyInput = (value: string, moeda: 'BRL' | 'USD' = 'BRL')
   });
 };
 
+// Format a number as currency display (for showing existing values)
+export const formatCurrencyDisplay = (value: number, moeda: 'BRL' | 'USD' = 'BRL'): string => {
+  if (moeda === 'USD') {
+    return value.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
+  }
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
+
 // Parse currency back to number (returns value in reais, not cents)
 export const parseCurrency = (value: string): number => {
   const digits = value.replace(/\D/g, '');

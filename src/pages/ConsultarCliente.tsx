@@ -196,7 +196,13 @@ export default function ConsultarCliente() {
     return new Date(dateString).toLocaleString('pt-BR');
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, moeda: string = 'BRL') => {
+    if (moeda === 'USD') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(value);
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -525,7 +531,7 @@ export default function ConsultarCliente() {
                           {cliente.cobranca_ativa !== false && (
                             <>
                               <p className="text-muted-foreground">Plano: <span className="text-foreground">{cliente.plano || 'Nenhum'}</span></p>
-                              <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor)}</span></p>
+                              <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor, cliente.moeda)}</span></p>
                               <p className="text-muted-foreground">Renovação: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
                             </>
                           )}
