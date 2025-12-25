@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrencyInput, parseCurrency } from '@/utils/formatters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,8 @@ export default function AtualizarCliente() {
   const [newTags, setNewTags] = useState<string[]>([]);
   const [newCicloCobranca, setNewCicloCobranca] = useState<CicloCobranca>('mensal');
   const [newMoeda, setNewMoeda] = useState<Moeda>('BRL');
+  const [newNumero, setNewNumero] = useState('');
+  const [newValor, setNewValor] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -69,6 +72,8 @@ export default function AtualizarCliente() {
     setNewTags(cliente.tags || []);
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
+    setNewNumero(cliente.numero || '');
+    setNewValor(formatCurrencyInput(cliente.valor?.toString() || '', cliente.moeda || 'BRL'));
     setSearchResults([]);
   };
 
@@ -90,9 +95,11 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number } = {
       observacao: newObservacao,
       tags: newTags,
+      numero: newNumero,
+      valor: parseCurrency(newValor),
     };
     
     // Só atualiza a data, ciclo e moeda se for cliente mensal
@@ -110,6 +117,8 @@ export default function AtualizarCliente() {
       setNewDate('');
       setNewObservacao('');
       setNewTags([]);
+      setNewNumero('');
+      setNewValor('');
     }
     setShowConfirm(false);
   };
@@ -200,6 +209,35 @@ export default function AtualizarCliente() {
                 )}
               </div>
 
+              {/* Campos de número e valor - sempre visíveis */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newNumero" className="text-foreground font-medium">Número (WhatsApp)</Label>
+                </div>
+                <Input
+                  id="newNumero"
+                  placeholder="Ex: 5511999999999"
+                  value={newNumero}
+                  onChange={(e) => setNewNumero(e.target.value.replace(/\D/g, ''))}
+                  className="bg-secondary border-border text-foreground h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newValor" className="text-foreground font-medium">Valor</Label>
+                </div>
+                <Input
+                  id="newValor"
+                  placeholder={newMoeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                  value={newValor}
+                  onChange={(e) => setNewValor(formatCurrencyInput(e.target.value, newMoeda))}
+                  className="bg-secondary border-border text-foreground h-12"
+                />
+              </div>
+
               {!isClienteVitalicio && (
                 <>
                   <div className="space-y-2">
@@ -242,7 +280,12 @@ export default function AtualizarCliente() {
                     </div>
                     <Select
                       value={newMoeda}
-                      onValueChange={(value) => setNewMoeda(value as Moeda)}
+                      onValueChange={(value) => {
+                        setNewMoeda(value as Moeda);
+                        // Reformatar o valor quando a moeda muda
+                        const numericValue = parseCurrency(newValor);
+                        setNewValor(formatCurrencyInput(numericValue.toString(), value as Moeda));
+                      }}
                     >
                       <SelectTrigger className="bg-secondary border-border text-foreground h-12">
                         <SelectValue placeholder="Selecione a moeda" />
