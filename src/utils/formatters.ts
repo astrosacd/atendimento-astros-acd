@@ -45,7 +45,7 @@ export const formatCurrency = (value: string): string => {
 };
 
 // Format currency for input field (handles user typing)
-export const formatCurrencyInput = (value: string): string => {
+export const formatCurrencyInput = (value: string, moeda: 'BRL' | 'USD' = 'BRL'): string => {
   // Remove everything except digits
   const digits = value.replace(/\D/g, '');
   
@@ -54,6 +54,14 @@ export const formatCurrencyInput = (value: string): string => {
   // Limit to prevent overflow (max 999.999.999,99)
   const limitedDigits = digits.slice(0, 11);
   const numValue = parseInt(limitedDigits, 10) / 100;
+  
+  if (moeda === 'USD') {
+    return numValue.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
+  }
+  
   return numValue.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',

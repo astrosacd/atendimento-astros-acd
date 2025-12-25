@@ -25,6 +25,7 @@ const clienteSchema = z.object({
   cpf: z.string().min(11, 'CPF/CNPJ deve ter pelo menos 11 dígitos'),
   plano: z.string().optional(),
   valor: z.number().positive('Valor deve ser maior que zero'),
+  moeda: z.enum(['BRL', 'USD'], { required_error: 'Moeda é obrigatória' }),
 });
 
 const clienteVitalicioSchema = z.object({
@@ -62,7 +63,7 @@ export default function CadastrarCliente() {
     cpf: '',
     plano: '',
     valor: 0,
-    moeda: 'BRL',
+    moeda: undefined,
     observacao: '',
     tags: [],
     cobranca_ativa: true,
@@ -233,9 +234,11 @@ export default function CadastrarCliente() {
       cpf: '',
       plano: '',
       valor: 0,
+      moeda: undefined,
       observacao: '',
       tags: [],
       cobranca_ativa: true,
+      ciclo_cobranca: 'mensal',
     });
     setUploadedFiles([]);
     setCreatedClienteId(null);
@@ -508,18 +511,18 @@ export default function CadastrarCliente() {
                       <div className="flex gap-2">
                         <Input
                           id="valor"
-                          placeholder={formData.moeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
-                          value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString()) : ''}
+                          placeholder={formData.moeda === 'USD' ? '$ 0.00' : formData.moeda === 'BRL' ? 'R$ 0,00' : 'Selecione a moeda'}
+                          value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString(), formData.moeda || 'BRL') : ''}
                           onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
                           className="bg-secondary border-border text-foreground h-11 flex-1"
                           required
                         />
                         <Select
-                          value={formData.moeda || 'BRL'}
+                          value={formData.moeda || ''}
                           onValueChange={(value) => setFormData({ ...formData, moeda: value as Moeda })}
                         >
-                          <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-24">
-                            <SelectValue />
+                          <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-28">
+                            <SelectValue placeholder="Moeda" />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
                             <SelectItem value="BRL">R$ BRL</SelectItem>
