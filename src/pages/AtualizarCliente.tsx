@@ -230,36 +230,6 @@ export default function AtualizarCliente() {
                 )}
               </div>
 
-              {/* Campos de número e valor - sempre visíveis */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="newNumero" className="text-foreground font-medium">Número (WhatsApp)</Label>
-                </div>
-                <PhoneInputWithCountry
-                  value={newNumero}
-                  countryCode={newCountryCode}
-                  onChange={(phoneWithDDI, code) => {
-                    setNewNumero(phoneWithDDI);
-                    setNewCountryCode(code);
-                  }}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="newValor" className="text-foreground font-medium">Valor</Label>
-                </div>
-                <Input
-                  id="newValor"
-                  placeholder={newMoeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
-                  value={newValor}
-                  onChange={(e) => setNewValor(formatCurrencyInput(e.target.value, newMoeda))}
-                  className="bg-secondary border-border text-foreground h-12"
-                />
-              </div>
-
               {!isClienteVitalicio && (
                 <>
                   <div className="space-y-2">
@@ -304,7 +274,6 @@ export default function AtualizarCliente() {
                       value={newMoeda}
                       onValueChange={(value) => {
                         setNewMoeda(value as Moeda);
-                        // Reformatar o valor quando a moeda muda
                         const numericValue = parseCurrency(newValor);
                         setNewValor(formatCurrencyInput(numericValue.toString(), value as Moeda));
                       }}
@@ -320,6 +289,35 @@ export default function AtualizarCliente() {
                   </div>
                 </>
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newValor" className="text-foreground font-medium">Valor</Label>
+                </div>
+                <Input
+                  id="newValor"
+                  placeholder={newMoeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                  value={newValor}
+                  onChange={(e) => setNewValor(formatCurrencyInput(e.target.value, newMoeda))}
+                  className="bg-secondary border-border text-foreground h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newNumero" className="text-foreground font-medium">Número (WhatsApp)</Label>
+                </div>
+                <PhoneInputWithCountry
+                  value={newNumero}
+                  countryCode={newCountryCode}
+                  onChange={(phoneWithDDI, code) => {
+                    setNewNumero(phoneWithDDI);
+                    setNewCountryCode(code);
+                  }}
+                />
+              </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
