@@ -13,7 +13,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrencyInput, parseCurrency } from '@/utils/formatters';
+import { formatCurrencyInput, parseCurrency, formatCurrencyDisplay } from '@/utils/formatters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,7 +73,7 @@ export default function AtualizarCliente() {
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
-    setNewValor(formatCurrencyInput(cliente.valor?.toString() || '', cliente.moeda || 'BRL'));
+    setNewValor(formatCurrencyDisplay(cliente.valor || 0, cliente.moeda || 'BRL'));
     setSearchResults([]);
   };
 
