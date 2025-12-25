@@ -206,7 +206,7 @@ serve(async (req: Request) => {
       .maybeSingle();
     
     const accessCode = accessCodeData?.value?.code || 'astros2024';
-    const baseUrl = "https://crm-astros-acd.lovable.app";
+    const baseUrl = "https://atendimento-astros-acd.lovable.app";
     const authUrl = `${baseUrl}/auth?codigo=${accessCode}`;
 
     // Replace template variables

@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     // Create the reset link pointing to the app's redefinir-senha page
-    const appUrl = "https://crm-astros-acd.lovable.app";
+    const appUrl = "https://atendimento-astros-acd.lovable.app";
     const resetLink = `${appUrl}/redefinir-senha?token=${token}`;
 
     console.log(`Sending password reset email to: ${email}`);
