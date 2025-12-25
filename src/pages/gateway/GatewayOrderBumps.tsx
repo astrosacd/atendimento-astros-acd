@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useGatewayOrderBumps, GatewayOrderBump } from '@/hooks/useGateway';
+import { useGatewayOrderBumps, useGatewaySettings, GatewayOrderBump } from '@/hooks/useGateway';
 import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
 import { Plus, Pencil, Trash2, Image, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function GatewayOrderBumps() {
+  const { settings } = useGatewaySettings();
   const { orderBumps, isLoading, createOrderBump, updateOrderBump, deleteOrderBump, isCreating, isUpdating } = useGatewayOrderBumps();
   const [isOpen, setIsOpen] = useState(false);
   const [editingOrderBump, setEditingOrderBump] = useState<GatewayOrderBump | null>(null);
@@ -35,6 +36,7 @@ export default function GatewayOrderBumps() {
     allow_coupon: true,
   });
   const [pricesSynced, setPricesSynced] = useState(false);
+  const [syncInfo, setSyncInfo] = useState<{ directUsd: number; adjustedUsd: number; targetBrl: number; rate: number } | null>(null);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -56,6 +58,7 @@ export default function GatewayOrderBumps() {
     });
     setEditingOrderBump(null);
     setPricesSynced(false);
+    setSyncInfo(null);
   };
 
   const handleEdit = (orderBump: GatewayOrderBump) => {
@@ -259,9 +262,26 @@ export default function GatewayOrderBumps() {
                               onClick={async () => {
                                 const result = await convertBRLtoUSD(formData.price_brl);
                                 if (result !== null) {
-                                  setFormData(prev => ({ ...prev, price_usd: result.value }));
+                                  // Valor de conversão direta (sem taxas)
+                                  const directUsd = result.value;
+                                  
+                                  // Usa o cálculo inverso para obter o USD necessário para receber exatamente o BRL desejado
+                                  const stripeSettings = settings.stripe || {};
+                                  const feePercentage = typeof stripeSettings.fee_percentage === 'number' ? stripeSettings.fee_percentage : 3.99;
+                                  const feeFixed = typeof stripeSettings.fee_fixed_usd === 'number' ? stripeSettings.fee_fixed_usd : 0.30;
+                                  const exchangeSpread = typeof stripeSettings.exchange_spread === 'number' ? stripeSettings.exchange_spread : 4.0;
+                                  
+                                  const currentRate = result.rate;
+                                  const targetBRL = formData.price_brl;
+                                  const spreadMultiplier = 1 - exchangeSpread / 100;
+                                  const feeMultiplier = 1 - feePercentage / 100;
+                                  const targetUsdBeforeFees = targetBRL / (currentRate * spreadMultiplier);
+                                  const adjustedUsd = Math.round(((targetUsdBeforeFees + feeFixed) / feeMultiplier) * 100) / 100;
+                                  
+                                  setFormData(prev => ({ ...prev, price_usd: adjustedUsd }));
                                   setPricesSynced(true);
-                                  toast.success(`Convertido: $${result.value.toFixed(2)} (cotação: R$${result.rate.toFixed(2)})`);
+                                  setSyncInfo({ directUsd, adjustedUsd, targetBrl: targetBRL, rate: currentRate });
+                                  toast.success(`USD calculado: $${adjustedUsd.toFixed(2)} (para receber R$${targetBRL.toFixed(2)} líquido)`);
                                 }
                               }}
                             >
@@ -269,7 +289,7 @@ export default function GatewayOrderBumps() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Converter BRL → USD</p>
+                            <p>Calcular USD para receber BRL líquido</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -324,6 +344,80 @@ export default function GatewayOrderBumps() {
                     </div>
                   </div>
                 </div>
+
+                {/* Sync Info Display */}
+                {syncInfo && pricesSynced && (
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                    <Label className="text-sm font-medium flex items-center gap-2 mb-2 text-green-700 dark:text-green-400">
+                      ✅ Sincronização Realizada
+                    </Label>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">BRL Desejado:</span>
+                        <p className="font-medium text-primary">R$ {syncInfo.targetBrl.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cotação:</span>
+                        <p className="font-medium">R$ {syncInfo.rate.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Conversão Direta:</span>
+                        <p className="font-medium text-muted-foreground line-through">${syncInfo.directUsd.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Com Taxas Embutidas:</span>
+                        <p className="font-medium text-green-600 dark:text-green-400">${syncInfo.adjustedUsd.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                      Conversão direta seria ${syncInfo.directUsd.toFixed(2)}, mas com taxas Stripe embutidas você deve cobrar ${syncInfo.adjustedUsd.toFixed(2)} para receber R$ {syncInfo.targetBrl.toFixed(2)} líquido.
+                    </p>
+                  </div>
+                )}
+
+                {/* Net Amount Display */}
+                {formData.price_usd > 0 && (
+                  <div className="p-3 bg-muted/50 rounded-lg border">
+                    <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                      💰 Valor Líquido Estimado (Stripe)
+                    </Label>
+                    {(() => {
+                      const stripeSettings = settings.stripe || {};
+                      const feePercentage = typeof stripeSettings.fee_percentage === 'number' ? stripeSettings.fee_percentage : 3.99;
+                      const feeFixed = typeof stripeSettings.fee_fixed_usd === 'number' ? stripeSettings.fee_fixed_usd : 0.30;
+                      const exchangeSpread = typeof stripeSettings.exchange_spread === 'number' ? stripeSettings.exchange_spread : 4.0;
+                      
+                      const grossUsd = formData.price_usd;
+                      const stripeFee = (grossUsd * feePercentage / 100) + feeFixed;
+                      const netUsd = grossUsd - stripeFee;
+                      const effectiveRate = syncInfo?.rate || 5.50;
+                      const spreadMultiplier = 1 - exchangeSpread / 100;
+                      const netBrl = netUsd * effectiveRate * spreadMultiplier;
+
+                      return (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Valor Bruto:</span>
+                            <p className="font-medium">${grossUsd.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Taxa Stripe ({feePercentage}% + ${feeFixed.toFixed(2)}):</span>
+                            <p className="font-medium text-destructive">-${stripeFee.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Líquido USD:</span>
+                            <p className="font-medium">${netUsd.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Líquido BRL (spread {exchangeSpread}%):</span>
+                            <p className="font-medium text-green-600 dark:text-green-400">≈ R$ {netBrl.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <Label htmlFor="status">Status</Label>
                   <Select value={formData.status} onValueChange={(value: 'active' | 'inactive') => setFormData(prev => ({ ...prev, status: value }))}>
