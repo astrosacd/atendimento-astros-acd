@@ -378,6 +378,33 @@ Se precisar de ajuda, é só responder esta mensagem!`
 
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  🔗 URL do Webhook
+                </h4>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Configure esta URL no painel da Stripe em Developers → Webhooks → Add endpoint
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value="https://udxaxemoozddkwpitngq.supabase.co/functions/v1/gateway-payment-webhook"
+                    readOnly
+                    className="font-mono text-xs bg-muted/50"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://udxaxemoozddkwpitngq.supabase.co/functions/v1/gateway-payment-webhook');
+                      toast.success('URL do webhook copiada!');
+                    }}
+                    className="shrink-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                   💰 Taxas da Stripe (para cálculo do valor líquido)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
