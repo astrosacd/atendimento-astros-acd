@@ -141,9 +141,9 @@ async function getEmailBaseUrl(supabase: any): Promise<string> {
       .eq("config_key", "email_base_url")
       .maybeSingle();
     
-    return data?.config_value || "https://crm-astros-acd.lovable.app";
+    return data?.config_value || "https://atendimento-astros-acd.lovable.app";
   } catch {
-    return "https://crm-astros-acd.lovable.app";
+    return "https://atendimento-astros-acd.lovable.app";
   }
 }
 

@@ -75,7 +75,7 @@ const AdminChamadosConfig = () => {
     const hostname = window.location.hostname;
     // Se estiver em ambiente de desenvolvimento, preview ou sandbox, usar o domínio de produção
     if (hostname.includes('localhost') || hostname.includes('lovableproject.com') || hostname.includes('id-preview')) {
-      return `https://crm-astros-acd.lovable.app/chamados`;
+      return `https://atendimento-astros-acd.lovable.app/chamados`;
     }
     // Se já estiver no domínio de produção, usar o origin
     return `${window.location.origin}/chamados`;
@@ -201,7 +201,7 @@ const AdminChamadosConfig = () => {
                 onChange={(e) => updateField('email_base_url', e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Ex: https://crm-astros-acd.lovable.app (sem barra no final)
+                Ex: https://atendimento-astros-acd.lovable.app (sem barra no final)
               </p>
             </div>
           </CardContent>
