@@ -750,40 +750,51 @@ Acesse o painel administrativo para mais detalhes.`;
 const buildPaymentMessage = (config: BillingConfig, paymentData: PaymentData, cliente: Cliente): string => {
   const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
   const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+  const clientCurrency = cliente.moeda || 'BRL';
   
   let parts: string[] = [];
   
-  // PIX Section
-  if (paymentData.pixChave) {
-    parts.push(`*PIX*
+  // USD clients - Stripe payment link
+  if (clientCurrency === 'USD' && paymentData.stripePaymentLink) {
+    parts.push(`*PAYMENT LINK*
+
+CLICK HERE: ${paymentData.stripePaymentLink}
+
+Amount: $ ${paymentData.valorStripe}
+\`Note: This is your secure payment link.\``);
+  } else {
+    // BRL clients - PIX Section
+    if (paymentData.pixChave) {
+      parts.push(`*PIX*
 
 DADOS CHAVE PIX
 NOME: ${paymentData.pixNome}
 ${paymentData.pixBanco ? `Banco: ${paymentData.pixBanco}\n` : ''}
 CHAVE PIX: ${paymentData.pixChave}`);
-  }
-  
-  // Card payment link
-  if (paymentData.linkPagamento) {
-    const valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
-    parts.push(`*CARTÃO DE CRÉDITO*
+    }
+    
+    // Card payment link (BRL only)
+    if (paymentData.linkPagamento) {
+      const valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
+      parts.push(`*CARTÃO DE CRÉDITO*
 
 CLIQUE AQUI: ${paymentData.linkPagamento}
 
 Valor: R$ ${valorCartao}
 \`Atenção: pagamentos via cartão estão sujeitos a taxa administrativa.\``);
-  }
-  
-  // Boleto
-  if (paymentData.boletoUrl) {
-    const valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
-    parts.push(`*BOLETO*
+    }
+    
+    // Boleto (BRL only)
+    if (paymentData.boletoUrl) {
+      const valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
+      parts.push(`*BOLETO*
 
 O boleto foi enviado para seu e-mail ou acesse:
 ${paymentData.boletoUrl}
 
 Valor: R$ ${valorBoleto}
 \`Atenção: pagamentos via boleto estão sujeitos a taxa administrativa.\``);
+    }
   }
   
   if (parts.length === 0) {
