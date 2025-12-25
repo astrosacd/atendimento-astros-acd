@@ -328,40 +328,63 @@ export default function GatewayProducts() {
                   </div>
 
                   {/* Net Amount Display */}
-                  {formData.price_usd > 0 && settings.stripe && (
+                  {formData.price_usd > 0 && (
                     <div className="col-span-2 p-3 bg-muted/50 rounded-lg border">
                       <Label className="text-sm font-medium flex items-center gap-2 mb-2">
                         💰 Valor Líquido Estimado (Stripe)
                       </Label>
                       {(() => {
-                        const feePercentage = settings.stripe.fee_percentage || 0;
-                        const feeFixed = settings.stripe.fee_fixed_usd || 0;
-                        const exchangeSpread = settings.stripe.exchange_spread || 0;
+                        const stripeSettings = settings.stripe || {};
+                        const feePercentage = typeof stripeSettings.fee_percentage === 'number' ? stripeSettings.fee_percentage : 3.99;
+                        const feeFixed = typeof stripeSettings.fee_fixed_usd === 'number' ? stripeSettings.fee_fixed_usd : 0.30;
+                        const exchangeSpread = typeof stripeSettings.exchange_spread === 'number' ? stripeSettings.exchange_spread : 4.0;
                         
                         const percentageFee = formData.price_usd * (feePercentage / 100);
                         const totalFees = percentageFee + feeFixed;
                         const netUsd = formData.price_usd - totalFees;
                         const netAfterSpread = netUsd * (1 - exchangeSpread / 100);
                         
+                        // Cálculo reverso: quanto cobrar em USD para receber exatamente o valor em BRL
+                        // netAfterSpread = (priceUsd - priceUsd * feePercentage/100 - feeFixed) * (1 - exchangeSpread/100)
+                        // Queremos: netAfterSpread = formData.price_brl (em USD equivalente)
+                        // Resolvendo para priceUsd:
+                        // priceUsd * (1 - feePercentage/100) * (1 - exchangeSpread/100) - feeFixed * (1 - exchangeSpread/100) = targetBRL
+                        // priceUsd = (targetBRL + feeFixed * (1 - exchangeSpread/100)) / ((1 - feePercentage/100) * (1 - exchangeSpread/100))
+                        const targetBRL = formData.price_brl;
+                        const spreadMultiplier = 1 - exchangeSpread / 100;
+                        const feeMultiplier = 1 - feePercentage / 100;
+                        const requiredUsd = (targetBRL + feeFixed * spreadMultiplier) / (feeMultiplier * spreadMultiplier);
+                        
                         return (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Preço USD:</span>
-                              <p className="font-medium">${formData.price_usd.toFixed(2)}</p>
+                          <>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">Preço USD:</span>
+                                <p className="font-medium">${formData.price_usd.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Taxa ({feePercentage}% + ${feeFixed.toFixed(2)}):</span>
+                                <p className="font-medium text-red-500">-${totalFees.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Líquido USD:</span>
+                                <p className="font-medium text-green-600">${netUsd.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Após spread ({exchangeSpread}%):</span>
+                                <p className="font-medium text-green-600">${netAfterSpread.toFixed(2)}</p>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-muted-foreground">Taxa ({feePercentage}% + ${feeFixed.toFixed(2)}):</span>
-                              <p className="font-medium text-red-500">-${totalFees.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Líquido USD:</span>
-                              <p className="font-medium text-green-600">${netUsd.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Após spread ({exchangeSpread}%):</span>
-                              <p className="font-medium text-green-600">${netAfterSpread.toFixed(2)}</p>
-                            </div>
-                          </div>
+                            
+                            {formData.price_brl > 0 && (
+                              <div className="mt-3 pt-3 border-t border-border/50">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-muted-foreground">Para receber exatamente R$ {formData.price_brl.toFixed(2)}, você deve cobrar:</span>
+                                  <span className="font-bold text-primary">${requiredUsd.toFixed(2)} USD</span>
+                                </div>
+                              </div>
+                            )}
+                          </>
                         );
                       })()}
                       <p className="text-xs text-muted-foreground mt-2">
