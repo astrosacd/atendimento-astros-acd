@@ -217,6 +217,33 @@ export type Database = {
           },
         ]
       }
+      billing_stripe_config: {
+        Row: {
+          created_at: string
+          id: string
+          stripe_enabled: boolean | null
+          stripe_secret_key: string | null
+          stripe_tax_percent: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stripe_enabled?: boolean | null
+          stripe_secret_key?: string | null
+          stripe_tax_percent?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stripe_enabled?: boolean | null
+          stripe_secret_key?: string | null
+          stripe_tax_percent?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_whatsapp_instances: {
         Row: {
           api_key: string

@@ -111,3 +111,6 @@ verify_jwt = false
 
 [functions.chamados-comentario]
 verify_jwt = false
+
+[functions.billing-stripe-payment]
+verify_jwt = false

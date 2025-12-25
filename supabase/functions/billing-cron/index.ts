@@ -18,6 +18,7 @@ interface Cliente {
   cpf: string;
   data_renovacao: string;
   cobranca_ativa: boolean;
+  moeda: string; // BRL or USD
 }
 
 interface BillingConfig {
@@ -45,6 +46,22 @@ interface PaymentData {
   pixChave?: string;
   pixNome?: string;
   pixBanco?: string;
+  stripePaymentLink?: string; // Stripe payment link for USD
+  valorStripe?: string; // Stripe amount with fee
+}
+
+interface StripeConfig {
+  stripe_secret_key: string;
+  stripe_tax_percent: number;
+  stripe_enabled: boolean;
+}
+
+interface StripePaymentResult {
+  success: boolean;
+  paymentLink: string | null;
+  paymentId: string | null;
+  finalAmount: number;
+  error?: string;
 }
 
 // Validation functions
@@ -258,6 +275,133 @@ const generatePaymentLink = async (
     return { url: null, created: false, error: error?.message };
   }
 };
+
+// Generate Stripe payment link for USD clients
+const generateStripePaymentLink = async (
+  cliente: Cliente,
+  stripeConfig: StripeConfig
+): Promise<StripePaymentResult> => {
+  const baseAmount = cliente.valor;
+  const taxPercent = (stripeConfig.stripe_tax_percent || 0) / 100;
+  const finalAmount = taxPercent > 0 ? baseAmount / (1 - taxPercent) : baseAmount;
+  
+  if (!stripeConfig.stripe_secret_key) {
+    return {
+      success: false,
+      paymentLink: null,
+      paymentId: null,
+      finalAmount: baseAmount,
+      error: 'Stripe secret key not configured',
+    };
+  }
+
+  try {
+    const amountInCents = Math.round(finalAmount * 100);
+    
+    // Create a product
+    const productResponse = await fetch('https://api.stripe.com/v1/products', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeConfig.stripe_secret_key}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        name: `${cliente.produto}${cliente.plano ? ` - ${cliente.plano}` : ''}`,
+      }).toString(),
+    });
+
+    if (!productResponse.ok) {
+      const errorText = await productResponse.text();
+      console.error('Stripe product creation error:', errorText);
+      return {
+        success: false,
+        paymentLink: null,
+        paymentId: null,
+        finalAmount,
+        error: `Failed to create Stripe product: ${errorText}`,
+      };
+    }
+
+    const product = await productResponse.json();
+    console.log(`✅ Stripe product created: ${product.id}`);
+
+    // Create a price for the product
+    const priceResponse = await fetch('https://api.stripe.com/v1/prices', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeConfig.stripe_secret_key}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        product: product.id,
+        unit_amount: amountInCents.toString(),
+        currency: 'usd',
+      }).toString(),
+    });
+
+    if (!priceResponse.ok) {
+      const errorText = await priceResponse.text();
+      console.error('Stripe price creation error:', errorText);
+      return {
+        success: false,
+        paymentLink: null,
+        paymentId: null,
+        finalAmount,
+        error: `Failed to create Stripe price: ${errorText}`,
+      };
+    }
+
+    const price = await priceResponse.json();
+    console.log(`✅ Stripe price created: ${price.id}`);
+
+    // Create a payment link
+    const paymentLinkResponse = await fetch('https://api.stripe.com/v1/payment_links', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeConfig.stripe_secret_key}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        'line_items[0][price]': price.id,
+        'line_items[0][quantity]': '1',
+        'metadata[cliente_id]': cliente.id,
+        'metadata[cliente_nome]': cliente.nome,
+        'metadata[produto]': cliente.produto,
+      }).toString(),
+    });
+
+    if (!paymentLinkResponse.ok) {
+      const errorText = await paymentLinkResponse.text();
+      console.error('Stripe payment link creation error:', errorText);
+      return {
+        success: false,
+        paymentLink: null,
+        paymentId: null,
+        finalAmount,
+        error: `Failed to create Stripe payment link: ${errorText}`,
+      };
+    }
+
+    const paymentLink = await paymentLinkResponse.json();
+    console.log(`✅ Stripe payment link created: ${paymentLink.url}`);
+
+    return {
+      success: true,
+      paymentLink: paymentLink.url,
+      paymentId: paymentLink.id,
+      finalAmount,
+    };
+  } catch (error: any) {
+    console.error('Stripe API error:', error);
+    return {
+      success: false,
+      paymentLink: null,
+      paymentId: null,
+      finalAmount: baseAmount,
+      error: error?.message || 'Unknown error',
+    };
+  }
+}
 
 const generateBoleto = async (
   cliente: Cliente,
@@ -722,6 +866,23 @@ const handler = async (req: Request): Promise<Response> => {
       .select('*')
       .eq('is_active', true);
 
+    // Get Stripe config for USD clients
+    const { data: stripeConfigData } = await supabase
+      .from('billing_stripe_config')
+      .select('*')
+      .limit(1)
+      .single();
+
+    const stripeConfig: StripeConfig = stripeConfigData ? {
+      stripe_secret_key: stripeConfigData.stripe_secret_key || '',
+      stripe_tax_percent: stripeConfigData.stripe_tax_percent || 0,
+      stripe_enabled: stripeConfigData.stripe_enabled || false,
+    } : {
+      stripe_secret_key: '',
+      stripe_tax_percent: 0,
+      stripe_enabled: false,
+    };
+
     let totalSent = 0;
     let totalErrors = 0;
     let whatsappInstanceIndex = 0;
@@ -748,97 +909,128 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Generate payment link and boleto for D0 and later
       if (['d_zero', 'd_mais_1', 'd_mais_2', 'd_mais_15', 'd_mais_30'].includes(messageType)) {
-        // Check payment link
-        const accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-        
-        if (!accessToken) {
-          paymentSkipReasons.push('Link Cartão: Token Mercado Pago não configurado');
-        } else if (config.mp_link_enabled !== 'true' && !config.mp_link_fixo) {
-          paymentSkipReasons.push('Link Cartão: Geração de link desabilitada');
-        }
-        
-        // Check boleto with CPF validation
-        if (!accessToken) {
-          paymentSkipReasons.push('Boleto: Token Mercado Pago não configurado');
-        } else if (config.mp_boleto_enabled !== 'true') {
-          paymentSkipReasons.push('Boleto: Geração de boleto desabilitada');
-        } else if (!cpfValidation.valid) {
-          paymentSkipReasons.push(`Boleto: ${cpfValidation.reason}`);
-        } else {
-          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
-          const valorBoleto = cliente.valor + taxaBoleto;
-          if (valorBoleto < 2.01) {
-            paymentSkipReasons.push(`Boleto: Valor R$ ${valorBoleto.toFixed(2)} abaixo do mínimo R$ 2.01`);
-          }
-        }
-        
-        // Only generate payment link and boleto if validations pass
-        const [linkResult, boletoResult] = await Promise.all([
-          generatePaymentLink(cliente, config),
-          cpfValidation.valid && emailValidation.valid ? generateBoleto(cliente, config) : Promise.resolve({ url: null, created: false, error: "CPF ou Email inválido", paymentId: null }),
-        ]);
-        
+        const clientCurrency = cliente.moeda || 'BRL';
         const billingDate = cliente.data_renovacao;
         
-        // Register PIX payment if configured
-        if (config.pix_chave) {
-          await supabase.from('client_payments').insert({
-            cliente_id: cliente.id,
-            payment_id: `pix_${cliente.id}_${Date.now()}`,
-            payment_type: 'pix',
-            amount: cliente.valor,
-            status: 'pending',
-            billing_date: billingDate,
-          });
-          console.log(`📊 PIX registrado para ${cliente.nome}`);
-        }
+        // USD clients use Stripe, BRL clients use Mercado Pago
+        if (clientCurrency === 'USD') {
+          console.log(`💵 Cliente ${cliente.nome} é USD - usando Stripe`);
+          
+          if (!stripeConfig.stripe_enabled) {
+            paymentSkipReasons.push('Stripe: Não habilitado para cobranças USD');
+          } else if (!stripeConfig.stripe_secret_key) {
+            paymentSkipReasons.push('Stripe: Secret key não configurada');
+          } else {
+            const stripeResult = await generateStripePaymentLink(cliente, stripeConfig);
+            
+            if (stripeResult.success && stripeResult.paymentLink) {
+              paymentData.stripePaymentLink = stripeResult.paymentLink;
+              paymentData.valorStripe = stripeResult.finalAmount.toFixed(2);
+              
+              // Register Stripe payment
+              await supabase.from('client_payments').insert({
+                cliente_id: cliente.id,
+                payment_id: stripeResult.paymentId || `stripe_${cliente.id}_${Date.now()}`,
+                payment_type: 'stripe_link',
+                amount: stripeResult.finalAmount,
+                status: 'pending',
+                billing_date: billingDate,
+              });
+              console.log(`✅ Stripe link criado para ${cliente.nome}: ${stripeResult.paymentLink}`);
+            } else {
+              paymentSkipReasons.push(`Stripe: ${stripeResult.error || 'Erro desconhecido'}`);
+            }
+          }
+        } else {
+          // BRL clients use Mercado Pago (original logic)
+          console.log(`💰 Cliente ${cliente.nome} é BRL - usando Mercado Pago`);
+          const accessToken = config.mp_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+          
+          if (!accessToken) {
+            paymentSkipReasons.push('Link Cartão: Token Mercado Pago não configurado');
+          } else if (config.mp_link_enabled !== 'true' && !config.mp_link_fixo) {
+            paymentSkipReasons.push('Link Cartão: Geração de link desabilitada');
+          }
+          
+          // Check boleto with CPF validation
+          if (!accessToken) {
+            paymentSkipReasons.push('Boleto: Token Mercado Pago não configurado');
+          } else if (config.mp_boleto_enabled !== 'true') {
+            paymentSkipReasons.push('Boleto: Geração de boleto desabilitada');
+          } else if (!cpfValidation.valid) {
+            paymentSkipReasons.push(`Boleto: ${cpfValidation.reason}`);
+          } else {
+            const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+            const valorBoleto = cliente.valor + taxaBoleto;
+            if (valorBoleto < 2.01) {
+              paymentSkipReasons.push(`Boleto: Valor R$ ${valorBoleto.toFixed(2)} abaixo do mínimo R$ 2.01`);
+            }
+          }
+          
+          // Only generate payment link and boleto if validations pass
+          const [linkResult, boletoResult] = await Promise.all([
+            generatePaymentLink(cliente, config),
+            cpfValidation.valid && emailValidation.valid ? generateBoleto(cliente, config) : Promise.resolve({ url: null, created: false, error: "CPF ou Email inválido", paymentId: null }),
+          ]);
         
-        // Log do resultado do link
-        if (linkResult.created) {
-          console.log(`📊 Link criado no MP para ${cliente.nome}`);
-          // Register Link payment
-          await supabase.from('client_payments').insert({
-            cliente_id: cliente.id,
-            payment_id: `link_${cliente.id}_${Date.now()}`,
-            preference_id: linkResult.preferenceId || null,
-            payment_type: 'link_cartao',
-            amount: parseFloat((cliente.valor / (1 - parseFloat(config.mp_taxa_cartao || '4.99') / 100)).toFixed(2)),
-            status: 'pending',
-            billing_date: billingDate,
-          });
-        } else if (linkResult.error) {
-          paymentSkipReasons.push(`Link: ${linkResult.error}`);
-        }
-        
-        if (linkResult.url) {
-          paymentData.linkPagamento = linkResult.url;
-          const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
-          paymentData.valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
-        }
-        
-        // Log do resultado do boleto
-        if (boletoResult.created) {
-          console.log(`📊 Boleto criado no MP para ${cliente.nome}`);
-          // Register Boleto payment
-          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
-          await supabase.from('client_payments').insert({
-            cliente_id: cliente.id,
-            payment_id: boletoResult.paymentId || `boleto_${cliente.id}_${Date.now()}`,
-            payment_type: 'boleto',
-            amount: cliente.valor + taxaBoleto,
-            status: 'pending',
-            billing_date: billingDate,
-          });
-        } else if (boletoResult.error) {
-          paymentSkipReasons.push(`Boleto: ${boletoResult.error}`);
-        }
-        
-        if (boletoResult.url) {
-          paymentData.boletoUrl = boletoResult.url;
-          const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
-          paymentData.valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
-        }
-      }
+          // Register PIX payment if configured (BRL only)
+          if (config.pix_chave) {
+            await supabase.from('client_payments').insert({
+              cliente_id: cliente.id,
+              payment_id: `pix_${cliente.id}_${Date.now()}`,
+              payment_type: 'pix',
+              amount: cliente.valor,
+              status: 'pending',
+              billing_date: billingDate,
+            });
+            console.log(`📊 PIX registrado para ${cliente.nome}`);
+          }
+          
+          // Log do resultado do link
+          if (linkResult.created) {
+            console.log(`📊 Link criado no MP para ${cliente.nome}`);
+            await supabase.from('client_payments').insert({
+              cliente_id: cliente.id,
+              payment_id: `link_${cliente.id}_${Date.now()}`,
+              preference_id: linkResult.preferenceId || null,
+              payment_type: 'link_cartao',
+              amount: parseFloat((cliente.valor / (1 - parseFloat(config.mp_taxa_cartao || '4.99') / 100)).toFixed(2)),
+              status: 'pending',
+              billing_date: billingDate,
+            });
+          } else if (linkResult.error) {
+            paymentSkipReasons.push(`Link: ${linkResult.error}`);
+          }
+          
+          if (linkResult.url) {
+            paymentData.linkPagamento = linkResult.url;
+            const taxaCartao = parseFloat(config.mp_taxa_cartao || '4.99') / 100;
+            paymentData.valorCartao = (cliente.valor / (1 - taxaCartao)).toFixed(2);
+          }
+          
+          // Log do resultado do boleto
+          if (boletoResult.created) {
+            console.log(`📊 Boleto criado no MP para ${cliente.nome}`);
+            const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+            await supabase.from('client_payments').insert({
+              cliente_id: cliente.id,
+              payment_id: boletoResult.paymentId || `boleto_${cliente.id}_${Date.now()}`,
+              payment_type: 'boleto',
+              amount: cliente.valor + taxaBoleto,
+              status: 'pending',
+              billing_date: billingDate,
+            });
+          } else if (boletoResult.error) {
+            paymentSkipReasons.push(`Boleto: ${boletoResult.error}`);
+          }
+          
+          if (boletoResult.url) {
+            paymentData.boletoUrl = boletoResult.url;
+            const taxaBoleto = parseFloat(config.mp_taxa_boleto || '1.99');
+            paymentData.valorBoleto = (cliente.valor + taxaBoleto).toFixed(2);
+          }
+        } // End of BRL block
+      } // End of D0+ payment generation block
       
       // Try AI-generated message first, fallback to template
       let message = await generateAIMessage(cliente, messageType, config, paymentData);

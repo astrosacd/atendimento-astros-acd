@@ -171,6 +171,18 @@ const AdminCobranca = () => {
   const [lastExecution, setLastExecution] = useState<{ date: string; count: number; success: number; errors: number } | null>(null);
   const [nextExecution, setNextExecution] = useState<string | null>(null);
   const [cronMissed, setCronMissed] = useState<boolean>(false);
+  
+  // Stripe configuration state
+  const [stripeConfig, setStripeConfig] = useState<{
+    stripe_secret_key: string;
+    stripe_tax_percent: number;
+    stripe_enabled: boolean;
+  }>({
+    stripe_secret_key: '',
+    stripe_tax_percent: 2.99,
+    stripe_enabled: false,
+  });
+  const [isSavingStripe, setIsSavingStripe] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -181,7 +193,62 @@ const AdminCobranca = () => {
     loadPaymentStats();
     loadDbCronSchedule();
     loadLastExecution();
+    loadStripeConfig();
   }, []);
+
+  const loadStripeConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('billing_stripe_config')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error loading Stripe config:', error);
+        return;
+      }
+
+      if (data) {
+        setStripeConfig({
+          stripe_secret_key: data.stripe_secret_key || '',
+          stripe_tax_percent: data.stripe_tax_percent || 2.99,
+          stripe_enabled: data.stripe_enabled || false,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading Stripe config:', error);
+    }
+  };
+
+  const saveStripeConfig = async () => {
+    setIsSavingStripe(true);
+    try {
+      const { error } = await supabase
+        .from('billing_stripe_config')
+        .update({
+          stripe_secret_key: stripeConfig.stripe_secret_key,
+          stripe_tax_percent: stripeConfig.stripe_tax_percent,
+          stripe_enabled: stripeConfig.stripe_enabled,
+        })
+        .eq('id', (await supabase.from('billing_stripe_config').select('id').limit(1).single()).data?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Configuração da Stripe salva!',
+        description: 'As configurações foram atualizadas com sucesso.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingStripe(false);
+    }
+  };
 
   const loadDbCronSchedule = async () => {
     try {
@@ -1479,6 +1546,71 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Stripe Config for USD */}
+            <Card className="border-border/50 bg-gradient-to-br from-violet-500/5 to-purple-500/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-violet-400" />
+                  Stripe - Cobrança em Dólar (USD)
+                </CardTitle>
+                <CardDescription>
+                  Configure a Stripe para cobranças automáticas de clientes em USD. 
+                  <strong className="text-violet-400"> Seleção automática:</strong> clientes em USD usam Stripe, clientes em BRL usam Mercado Pago.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                  <div>
+                    <span className="font-medium">Ativar Stripe para USD</span>
+                    <p className="text-xs text-muted-foreground">Quando ativo, clientes com moeda USD receberão links de pagamento da Stripe</p>
+                  </div>
+                  <Switch
+                    checked={stripeConfig.stripe_enabled}
+                    onCheckedChange={(c) => setStripeConfig({ ...stripeConfig, stripe_enabled: c })}
+                  />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    Stripe Secret Key
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="sk_live_..."
+                    value={stripeConfig.stripe_secret_key || ''}
+                    onChange={(e) => setStripeConfig({ ...stripeConfig, stripe_secret_key: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Encontre em: Stripe Dashboard → Developers → API Keys → Secret key
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Taxa Stripe (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="2.99"
+                    value={stripeConfig.stripe_tax_percent || ''}
+                    onChange={(e) => setStripeConfig({ ...stripeConfig, stripe_tax_percent: parseFloat(e.target.value) || 0 })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Percentual a ser adicionado ao valor da cobrança para cobrir taxas
+                  </p>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    onClick={saveStripeConfig} 
+                    disabled={isSavingStripe}
+                    className="bg-gradient-to-r from-violet-500 to-purple-600"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isSavingStripe ? 'Salvando...' : 'Salvar Stripe'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Link de Pagamento Fixo (opcional) */}
             <Card className="border-border/50">
