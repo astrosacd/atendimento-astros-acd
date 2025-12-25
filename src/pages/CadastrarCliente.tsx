@@ -15,7 +15,7 @@ import { formatCPFOrCNPJ, formatCurrencyInput, formatPhone, parseCurrency, unfor
 import { TagInput } from '@/components/TagInput';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
@@ -53,6 +53,7 @@ export default function CadastrarCliente() {
   const [clienteType, setClienteType] = useState<ClienteType>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [countryCode, setCountryCode] = useState('BR');
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
@@ -244,6 +245,7 @@ export default function CadastrarCliente() {
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
+    setCountryCode('BR');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -425,19 +427,20 @@ export default function CadastrarCliente() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2">
                   <Label htmlFor="numero" className="text-foreground font-medium">Número WhatsApp</Label>
-                  <Input
-                    id="numero"
-                    placeholder="(00) 00000-0000"
-                    value={formatPhone(formData.numero)}
-                    onChange={(e) => setFormData({ ...formData, numero: unformat(e.target.value) })}
-                    className="bg-secondary border-border text-foreground h-11"
+                  <PhoneInputWithCountry
+                    value={formData.numero}
+                    countryCode={countryCode}
+                    onChange={(phoneWithDDI, code) => {
+                      setFormData({ ...formData, numero: phoneWithDDI });
+                      setCountryCode(code);
+                    }}
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2">
                   <Label htmlFor="cpf" className="text-foreground font-medium">CPF ou CNPJ</Label>
                   <Input
                     id="cpf"
@@ -700,7 +703,7 @@ export default function CadastrarCliente() {
                   )}
                 </div>
                 <p className="text-muted-foreground">Nome: <span className="text-foreground font-medium">{formData.nome}</span></p>
-                <p className="text-muted-foreground">Número: <span className="text-foreground">{formData.numero}</span></p>
+                <p className="text-muted-foreground">Número: <span className="text-foreground">+{formData.numero}</span></p>
                 <p className="text-muted-foreground">Produto: <span className="text-foreground">{formData.produto}</span></p>
                 <p className="text-muted-foreground">Email: <span className="text-foreground">{formData.email}</span></p>
                 <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formData.cpf}</span></p>
