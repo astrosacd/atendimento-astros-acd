@@ -1596,9 +1596,16 @@ const AdminCobranca = () => {
                   <Input
                     type="number"
                     step="0.01"
+                    min="0"
                     placeholder="2.99"
-                    value={stripeConfig.stripe_tax_percent || ''}
-                    onChange={(e) => setStripeConfig({ ...stripeConfig, stripe_tax_percent: parseFloat(e.target.value) || 0 })}
+                    value={stripeConfig.stripe_tax_percent ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setStripeConfig({ 
+                        ...stripeConfig, 
+                        stripe_tax_percent: value === '' ? 0 : parseFloat(value) 
+                      });
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">
                     Percentual a ser adicionado ao valor da cobrança para cobrir taxas
