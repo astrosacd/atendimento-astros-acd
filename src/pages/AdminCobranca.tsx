@@ -212,8 +212,8 @@ const AdminCobranca = () => {
       if (data) {
         setStripeConfig({
           stripe_secret_key: data.stripe_secret_key || '',
-          stripe_tax_percent: data.stripe_tax_percent || 2.99,
-          stripe_enabled: data.stripe_enabled || false,
+          stripe_tax_percent: data.stripe_tax_percent ?? 2.99,
+          stripe_enabled: data.stripe_enabled ?? false,
         });
       }
     } catch (error) {
