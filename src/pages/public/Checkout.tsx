@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle, Timer } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle, Timer, Lock, Sparkles, Zap } from 'lucide-react';
 import { formatCPF } from '@/utils/formatters';
 
 interface Product {
@@ -357,22 +357,28 @@ export default function Checkout() {
 
   if (productLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin mx-auto" />
+            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
+          </div>
+          <p className="mt-4 text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
 
   if (productError || !product) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
-            <Package className="h-10 w-10 text-muted-foreground" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-destructive/5 flex items-center justify-center px-4">
+        <div className="text-center max-w-md animate-fade-in">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center shadow-lg">
+            <Package className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">Produto não encontrado</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-3">Produto não encontrado</h1>
           <p className="text-muted-foreground mb-8">O produto que você está procurando não existe ou foi removido.</p>
-          <Button onClick={() => navigate('/catalogo')} size="lg">
+          <Button onClick={() => navigate('/catalogo')} size="lg" className="shadow-lg hover:shadow-xl transition-all">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Ver catálogo
           </Button>
@@ -382,16 +388,16 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Countdown Banner */}
       {checkoutSettings?.countdown_enabled && countdown !== null && countdown > 0 && (
-        <div className="bg-green-600 text-white py-3 px-4 sticky top-0 z-20">
+        <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white py-3 px-4 sticky top-0 z-20 shadow-lg">
           <div className="container mx-auto flex items-center justify-center gap-4">
             <Timer className="h-5 w-5 animate-pulse" />
             <span className="text-sm sm:text-base font-medium">
               {checkoutSettings.countdown_message || 'Complete sua compra antes do contador chegar a zero!'}
             </span>
-            <div className="font-mono text-xl sm:text-2xl font-bold tabular-nums">
+            <div className="font-mono text-xl sm:text-2xl font-bold tabular-nums bg-white/20 px-3 py-1 rounded-lg backdrop-blur-sm">
               {formatCountdown(countdown)}
             </div>
           </div>
@@ -399,16 +405,18 @@ export default function Checkout() {
       )}
 
       {/* Header */}
-      <header className={`border-b border-border/50 bg-card/50 backdrop-blur-sm sticky ${checkoutSettings?.countdown_enabled && countdown && countdown > 0 ? 'top-[52px]' : 'top-0'} z-10`}>
+      <header className={`border-b border-border/30 bg-background/80 backdrop-blur-md sticky ${checkoutSettings?.countdown_enabled && countdown && countdown > 0 ? 'top-[52px]' : 'top-0'} z-10 shadow-sm`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ShoppingCart className="h-6 w-6 text-primary" />
-              <span className="font-semibold text-lg">Checkout Seguro</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-md">
+                <ShoppingCart className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="font-bold text-lg bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Checkout Seguro</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Shield className="h-4 w-4 text-green-500" />
-              <span className="hidden sm:inline">Compra 100% segura</span>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20">
+              <Lock className="h-4 w-4 text-green-500" />
+              <span className="hidden sm:inline font-medium text-green-600">100% seguro</span>
             </div>
           </div>
         </div>
@@ -420,16 +428,19 @@ export default function Checkout() {
             {/* Left Column - Form */}
             <div className="lg:col-span-7 space-y-6">
               {/* Product Card */}
-              <section className="rounded-2xl border border-border/50 bg-card p-6">
+              <section className="rounded-2xl border border-border/30 bg-gradient-to-br from-card to-card/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in">
                 <div className="flex gap-5">
                   {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-28 h-28 object-cover rounded-xl flex-shrink-0"
-                    />
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-28 h-28 object-cover rounded-xl flex-shrink-0 shadow-md group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
                   ) : (
-                    <div className="w-28 h-28 bg-muted rounded-xl flex items-center justify-center flex-shrink-0">
+                    <div className="w-28 h-28 bg-gradient-to-br from-muted to-muted/50 rounded-xl flex items-center justify-center flex-shrink-0 shadow-inner">
                       <Package className="h-10 w-10 text-muted-foreground/30" />
                     </div>
                   )}
@@ -438,7 +449,7 @@ export default function Checkout() {
                     {product.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{product.description}</p>
                     )}
-                    <p className="text-2xl font-bold text-primary">
+                    <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                       {formatPrice(product.price_brl, product.price_usd)}
                     </p>
                   </div>
@@ -447,19 +458,21 @@ export default function Checkout() {
 
               {/* ORDER BUMPS - Now more prominent and higher up */}
               {orderBumps.length > 0 && (
-                <section className="rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 relative overflow-hidden">
-                  {/* Decorative badge */}
-                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
+                <section className="rounded-2xl border-2 border-primary/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 relative overflow-hidden shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-full" />
+                  <div className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl shadow-lg flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5" />
                     OFERTA ESPECIAL
                   </div>
                   
-                  <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  <h3 className="text-lg font-bold mb-1 flex items-center gap-2 relative z-10">
                     <span className="text-2xl">🔥</span>
                     Aproveite! Oferta por tempo limitado
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">Adicione ao seu pedido com desconto exclusivo</p>
+                  <p className="text-sm text-muted-foreground mb-4 relative z-10">Adicione ao seu pedido com desconto exclusivo</p>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-3 relative z-10">
                     {orderBumps.map((bump) => {
                       const isSelected = selectedOrderBumps.includes(bump.id);
                       const toggle = () => {
@@ -488,27 +501,27 @@ export default function Checkout() {
                               toggle();
                             }
                           }}
-                          className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
+                          className={`w-full text-left p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
                             isSelected
-                              ? "border-primary bg-primary/20 shadow-lg shadow-primary/20"
-                              : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+                              ? "border-primary bg-primary/20 shadow-lg shadow-primary/20 scale-[1.02]"
+                              : "border-border/50 bg-card/80 hover:border-primary/50 hover:shadow-md hover:bg-card"
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div
                               aria-hidden="true"
-                              className={`mt-0.5 h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                              className={`mt-0.5 h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${
                                 isSelected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-muted-foreground/50 bg-background"
+                                  ? "border-primary bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md"
+                                  : "border-muted-foreground/30 bg-background"
                               }`}
                             >
-                              {isSelected ? <Check className="h-3.5 w-3.5" /> : null}
+                              {isSelected ? <Check className="h-4 w-4" /> : null}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className="font-bold text-foreground">{bump.title}</span>
-                                <span className="font-bold text-lg text-primary whitespace-nowrap">
+                                <span className="font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent whitespace-nowrap">
                                   +{formatPrice(bump.price_brl, bump.price_usd)}
                                 </span>
                               </div>
@@ -516,7 +529,10 @@ export default function Checkout() {
                                 <p className="text-sm text-muted-foreground">{bump.description}</p>
                               )}
                               {!bump.allow_coupon && (
-                                <p className="text-xs text-amber-600 mt-1">⚠️ Esta oferta não aceita cupom</p>
+                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Esta oferta não aceita cupom
+                                </p>
                               )}
                             </div>
                           </div>
@@ -529,25 +545,27 @@ export default function Checkout() {
 
               {/* Payment Method - Only show if at least one gateway is enabled */}
               {availableGateways.length > 0 && (
-                <section className="rounded-2xl border border-border/50 bg-card p-6">
-                  <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
+                <section className="rounded-2xl border border-border/30 bg-gradient-to-br from-card to-card/50 p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <h3 className="text-lg font-semibold mb-5 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-sm font-bold text-primary-foreground shadow-md">1</div>
                     Forma de pagamento
                   </h3>
                   
                   {/* If only one gateway, just show it selected without radio */}
                   {availableGateways.length === 1 ? (
-                    <div className="flex items-center gap-3 p-4 rounded-xl border-2 border-primary bg-primary/5">
-                      <CreditCard className="h-8 w-8 text-primary" />
+                    <div className="flex items-center gap-4 p-5 rounded-xl border-2 border-primary bg-gradient-to-r from-primary/10 to-primary/5 shadow-md">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+                        <CreditCard className="h-6 w-6 text-primary-foreground" />
+                      </div>
                       <div className="flex-1">
-                        <p className="font-semibold">
+                        <p className="font-bold text-lg">
                           {availableGateways[0] === 'mercadopago' ? 'Mercado Pago' : 'Stripe'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {availableGateways[0] === 'mercadopago' ? 'Pix, Cartão, Boleto' : 'Cartão Internacional'}
                         </p>
                       </div>
-                      <div className="bg-primary text-primary-foreground rounded-full p-1">
+                      <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1.5 shadow-md">
                         <Check className="h-4 w-4" />
                       </div>
                     </div>
@@ -555,24 +573,26 @@ export default function Checkout() {
                     <RadioGroup
                       value={paymentGateway || ''}
                       onValueChange={(v) => setPaymentGateway(v as 'stripe' | 'mercadopago')}
-                      className="grid grid-cols-2 gap-3"
+                      className="grid grid-cols-2 gap-4"
                     >
                       {mercadopagoEnabled && (
                         <label 
                           htmlFor="mercadopago"
-                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                            paymentGateway === 'mercadopago' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                          className={`relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 text-center ${
+                            paymentGateway === 'mercadopago' ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md scale-[1.02]' : 'border-border/50 hover:border-primary/50 hover:shadow-md'
                           }`}
                         >
                           <RadioGroupItem value="mercadopago" id="mercadopago" className="sr-only" />
-                          <CreditCard className="h-8 w-8 text-primary" />
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+                            <CreditCard className="h-7 w-7 text-white" />
+                          </div>
                           <div>
-                            <p className="font-semibold text-sm">Mercado Pago</p>
+                            <p className="font-bold">Mercado Pago</p>
                             <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
                           </div>
                           {paymentGateway === 'mercadopago' && (
-                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                              <Check className="h-3 w-3" />
+                            <div className="absolute -top-2 -right-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1 shadow-md">
+                              <Check className="h-3.5 w-3.5" />
                             </div>
                           )}
                         </label>
@@ -580,19 +600,21 @@ export default function Checkout() {
                       {stripeEnabled && (
                         <label 
                           htmlFor="stripe"
-                          className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                            paymentGateway === 'stripe' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                          className={`relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 text-center ${
+                            paymentGateway === 'stripe' ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md scale-[1.02]' : 'border-border/50 hover:border-primary/50 hover:shadow-md'
                           }`}
                         >
                           <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
-                          <CreditCard className="h-8 w-8 text-primary" />
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md">
+                            <CreditCard className="h-7 w-7 text-white" />
+                          </div>
                           <div>
-                            <p className="font-semibold text-sm">Stripe</p>
+                            <p className="font-bold">Stripe</p>
                             <p className="text-xs text-muted-foreground">Cartão Internacional</p>
                           </div>
                           {paymentGateway === 'stripe' && (
-                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-0.5">
-                              <Check className="h-3 w-3" />
+                            <div className="absolute -top-2 -right-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1 shadow-md">
+                              <Check className="h-3.5 w-3.5" />
                             </div>
                           )}
                         </label>
@@ -604,7 +626,7 @@ export default function Checkout() {
 
               {/* Warning if no gateway is enabled - only show after data has loaded */}
               {!gatewayLoading && availableGateways.length === 0 && gatewaySettings && (
-                <section className="rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-6">
+                <section className="rounded-2xl border-2 border-destructive/50 bg-gradient-to-br from-destructive/10 to-destructive/5 p-6 shadow-lg">
                   <div className="flex items-center gap-3 text-destructive">
                     <AlertTriangle className="h-6 w-6" />
                     <p className="font-medium">Nenhum método de pagamento disponível no momento.</p>
@@ -613,9 +635,9 @@ export default function Checkout() {
               )}
 
               {/* Customer Info - NOW STEP 2 */}
-              <section className="rounded-2xl border border-border/50 bg-card p-6">
-                <h3 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+              <section className="rounded-2xl border border-border/30 bg-gradient-to-br from-card to-card/50 p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                <h3 className="text-lg font-semibold mb-5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-sm font-bold text-primary-foreground shadow-md">2</div>
                   Seus dados
                 </h3>
                 <div className="space-y-4">
@@ -626,7 +648,7 @@ export default function Checkout() {
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Digite seu nome"
-                      className="mt-1.5 h-12"
+                      className="mt-1.5 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
                     />
                   </div>
                   <div>
@@ -640,7 +662,7 @@ export default function Checkout() {
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="mt-1.5 h-12"
+                      className="mt-1.5 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -656,7 +678,7 @@ export default function Checkout() {
                         onChange={(e) => setCustomerPhone(formatPhoneBR(e.target.value))}
                         placeholder="(00) 00000-0000"
                         required
-                        className="mt-1.5 h-12"
+                        className="mt-1.5 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
                         maxLength={15}
                       />
                     </div>
@@ -674,22 +696,25 @@ export default function Checkout() {
                           onChange={(e) => setCustomerCpf(formatCPF(e.target.value))}
                           placeholder="000.000.000-00"
                           required
-                          className="mt-1.5 h-12"
+                          className="mt-1.5 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
                           maxLength={14}
                         />
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">Dados necessários para aprovação do pagamento</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Lock className="h-3 w-3" />
+                    Dados necessários para aprovação do pagamento
+                  </p>
                 </div>
               </section>
 
               {/* Submit Button - At the bottom of the form */}
-              <section className="rounded-2xl border border-border/50 bg-card p-6">
+              <section className="rounded-2xl border border-border/30 bg-gradient-to-br from-card to-card/50 p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full h-14 text-base font-semibold bg-green-600 hover:bg-green-700"
+                  className="w-full h-14 text-base font-bold bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 hover:from-green-700 hover:via-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
                   disabled={isProcessing || availableGateways.length === 0}
                 >
                   {isProcessing ? (
@@ -699,7 +724,7 @@ export default function Checkout() {
                     </>
                   ) : (
                     <>
-                      <Shield className="h-5 w-5 mr-2" />
+                      <Lock className="h-5 w-5 mr-2" />
                       Finalizar Pedido
                     </>
                   )}
@@ -713,35 +738,38 @@ export default function Checkout() {
             {/* Right Column - Summary */}
             <div className="lg:col-span-5">
               <div className="lg:sticky lg:top-24">
-                <div className="rounded-2xl border border-border/50 bg-card p-6">
-                  <h3 className="text-lg font-semibold mb-5">Resumo do pedido</h3>
+                <div className="rounded-2xl border border-border/30 bg-gradient-to-br from-card to-card/50 p-6 shadow-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <h3 className="text-lg font-bold mb-5 flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    Resumo do pedido
+                  </h3>
                   
                   {/* Currency is automatic based on the payment method */}
-                  <div className="mb-5 rounded-lg bg-muted/50 px-4 py-3 text-sm">
+                  <div className="mb-5 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 px-4 py-3 text-sm border border-border/30">
                     <span className="text-muted-foreground">Moeda:</span>{" "}
-                    <span className="font-semibold text-foreground">{currency === 'BRL' ? 'BRL (R$)' : 'USD ($)'}</span>
+                    <span className="font-bold text-foreground">{currency === 'BRL' ? 'BRL (R$)' : 'USD ($)'}</span>
                   </div>
 
                   {/* Line Items */}
-                  <div className="space-y-3 py-4 border-y border-border/50">
+                  <div className="space-y-3 py-4 border-y border-border/30">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{product.name}</span>
-                      <span className="font-medium">{formatPrice(product.price_brl, product.price_usd)}</span>
+                      <span className="font-semibold">{formatPrice(product.price_brl, product.price_usd)}</span>
                     </div>
                     {orderBumps
                       .filter(ob => selectedOrderBumps.includes(ob.id))
                       .map(ob => (
                         <div key={ob.id} className="flex justify-between text-sm">
                           <span className="text-muted-foreground">{ob.name}</span>
-                          <span className="font-medium text-primary">+{formatPrice(ob.price_brl, ob.price_usd)}</span>
+                          <span className="font-semibold text-primary">+{formatPrice(ob.price_brl, ob.price_usd)}</span>
                         </div>
                       ))}
                   </div>
 
                   {/* Coupon */}
-                  <div className="py-4 border-b border-border/50">
+                  <div className="py-4 border-b border-border/30">
                     {couponBlockedByBump && (
-                      <div className="flex items-center gap-2 mb-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 text-sm">
+                      <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 text-sm">
                         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                         <span>Cupom bloqueado: uma das ofertas selecionadas não permite desconto.</span>
                       </div>
@@ -754,7 +782,7 @@ export default function Checkout() {
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                           disabled={!!appliedCoupon || couponBlockedByBump}
-                          className="pl-10 h-11"
+                          className="pl-10 h-11 bg-background/50 border-border/50"
                         />
                       </div>
                       {appliedCoupon ? (
@@ -775,7 +803,7 @@ export default function Checkout() {
                           type="button"
                           variant="secondary"
                           onClick={applyCoupon}
-                          className="h-11"
+                          className="h-11 shadow-sm"
                           disabled={couponBlockedByBump}
                         >
                           Aplicar
@@ -788,7 +816,7 @@ export default function Checkout() {
                           <Check className="h-4 w-4" />
                           Desconto ({appliedCoupon.code})
                         </span>
-                        <span className="font-medium">
+                        <span className="font-semibold">
                           -{currency === 'BRL' 
                             ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(discountAmount)
                             : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(discountAmount)}
@@ -798,9 +826,9 @@ export default function Checkout() {
                   </div>
 
                   {/* Total */}
-                  <div className="flex justify-between items-center py-4">
-                    <span className="text-lg font-semibold">Total</span>
-                    <span className="text-2xl font-bold text-primary">
+                  <div className="flex justify-between items-center py-5">
+                    <span className="text-lg font-bold">Total</span>
+                    <span className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                       {currency === 'BRL'
                         ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)
                         : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
@@ -808,10 +836,20 @@ export default function Checkout() {
                   </div>
 
                   {/* Trust Badges */}
-                  <div className="mt-5 pt-5 border-t border-border/50">
-                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <div className="mt-5 pt-5 border-t border-border/30 space-y-3">
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-green-500/10 px-3 py-2.5 rounded-xl border border-green-500/20">
                       <Shield className="h-4 w-4 text-green-500" />
-                      <span>Pagamento 100% seguro e criptografado</span>
+                      <span className="text-green-600 font-medium">Pagamento 100% seguro e criptografado</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>SSL</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Shield className="h-3.5 w-3.5" />
+                        <span>Dados protegidos</span>
+                      </div>
                     </div>
                   </div>
                 </div>
