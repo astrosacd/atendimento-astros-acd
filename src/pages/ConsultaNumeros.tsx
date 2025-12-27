@@ -731,8 +731,8 @@ export default function ConsultaNumeros() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-6">
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 w-full min-w-0">
+        <div className="space-y-6 w-full min-w-0">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-foreground">Consulta de Números</h1>
@@ -945,7 +945,7 @@ export default function ConsultaNumeros() {
               </div>
             ) : (
               <>
-                <div className="rounded-md border overflow-x-auto">
+                <div className="w-full max-w-full rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
