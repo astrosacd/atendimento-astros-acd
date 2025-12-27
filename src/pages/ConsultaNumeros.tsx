@@ -15,6 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -725,12 +733,12 @@ export default function ConsultaNumeros() {
     <DashboardLayout>
       <div className="p-4 md:p-6">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Consulta de Números</h1>
             <p className="text-muted-foreground">Consulte e gerencie números no Baserow</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             {canCreate && (
               <Button onClick={openCreateDialog}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -743,11 +751,42 @@ export default function ConsultaNumeros() {
                 Histórico
               </Button>
             )}
-            {canManageConfig && (
-              <Button variant="outline" onClick={() => window.location.href = '/admin/consulta-numeros/config'}>
-                <Settings className="h-4 w-4 mr-2" />
-                Configurações
-              </Button>
+            {/* Menu dropdown para configurações e outras opções */}
+            {(canManageConfig || canManageApi || canManageWebhooks) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="relative">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-popover border border-border shadow-lg z-50">
+                  <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {canManageConfig && (
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin/consulta-numeros/config'} className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configurações Gerais
+                    </DropdownMenuItem>
+                  )}
+                  {canManageApi && (
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin/consulta-numeros/api-keys'} className="cursor-pointer">
+                      <Key className="h-4 w-4 mr-2" />
+                      Chaves API
+                    </DropdownMenuItem>
+                  )}
+                  {canManageWebhooks && (
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin/consulta-numeros/webhooks'} className="cursor-pointer">
+                      <Webhook className="h-4 w-4 mr-2" />
+                      Webhooks
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => window.location.href = '/admin/consulta-numeros/guia'} className="cursor-pointer">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Guia de Uso
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
