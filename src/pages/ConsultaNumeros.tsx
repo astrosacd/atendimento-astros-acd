@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail, Eye } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,7 +77,10 @@ export default function ConsultaNumeros() {
   const [selectedSeguro, setSelectedSeguro] = useState<string>('');
   const [newValues, setNewValues] = useState<Record<string, string>>({});
 
-  // Fields that should not be editable in Edit dialog
+  // Expanded rows and quick view modal state
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
+
   const nonEditableFields = useMemo(() => {
     return new Set(['nome', 'numero', 'email', 'data_cadastro', 'data_da_ultima_consulta']);
   }, []);
@@ -945,87 +948,200 @@ export default function ConsultaNumeros() {
               </div>
             ) : (
               <>
-                <div className="w-full max-w-full rounded-md border overflow-x-auto">
+                <div className="w-full max-w-full rounded-md border overflow-x-auto relative">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {/* Coluna fixa à esquerda - Visualização/Expandir */}
+                        <TableHead className="w-[90px] sticky left-0 bg-card z-20 border-r border-border/50">
+                          <span className="sr-only">Ações rápidas</span>
+                        </TableHead>
                         <TableHead className="w-[70px]">Linha</TableHead>
                         {visibleFields.map((field) => (
                           <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
-                        <TableHead className="w-[100px]">Ações</TableHead>
+                        {/* Coluna fixa à direita - Ações */}
+                        <TableHead className="w-[80px] sticky right-0 bg-card z-20 border-l border-border/50 text-center">
+                          Ações
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {queryResult?.data?.map((row: NumeroResult) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-mono text-muted-foreground">{row.id}</TableCell>
-                          {visibleFields.map((field) => {
-                            const cellValue = row[field.name];
-                            // Handle single_select fields which come as {id, value, color} objects
-                            const rawValue =
-                              field.type === 'single_select' &&
-                              cellValue &&
-                              typeof cellValue === 'object' &&
-                              'value' in cellValue
-                                ? cellValue.value
-                                : cellValue;
-
-                            // Check if this field should be masked
-                            const isMaskedField = maskedFieldsConfig.includes(field.name);
-                            const displayValue =
-                              isMaskedField && !canViewUnmasked
-                                ? maskValue(rawValue?.toString(), field.name)
-                                : rawValue;
-
-                            const isObservacoes = field.name.toLowerCase() === 'observacoes';
-                            const asText = (displayValue?.toString() || '').trim();
-                            const showTooltip =
-                              isObservacoes &&
-                              !!asText &&
-                              asText.length > 32 &&
-                              (!isMaskedField || canViewUnmasked);
-
-                            return (
-                              <TableCell
-                                key={field.id}
-                                className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[3px] select-none' : ''}`}
-                                onCopy={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
-                                onCut={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
-                                onContextMenu={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
-                              >
-                                {field.type === 'single_select' ? (
-                                  <Badge variant="secondary">{displayValue || '-'}</Badge>
-                                ) : field.type === 'boolean' ? (
-                                  rawValue ? 'Sim' : 'Não'
-                                ) : field.type === 'date' ? (
-                                  rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
-                                ) : showTooltip ? (
+                      {queryResult?.data?.map((row: NumeroResult) => {
+                        const isExpanded = expandedRows.has(row.id);
+                        return (
+                          <>
+                            <TableRow key={row.id} className="group">
+                              {/* Coluna fixa à esquerda - Visualização/Expandir */}
+                              <TableCell className="sticky left-0 bg-card z-10 border-r border-border/50">
+                                <div className="flex items-center gap-1">
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="cursor-help">{asText}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => setQuickViewRow(row)}
+                                        >
+                                          <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                        </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent className="max-w-[420px] whitespace-pre-wrap">
-                                        {asText}
-                                      </TooltipContent>
+                                      <TooltipContent>Ver detalhes</TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
-                                ) : (
-                                  displayValue?.toString() || '-'
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => {
+                                            setExpandedRows(prev => {
+                                              const next = new Set(prev);
+                                              if (next.has(row.id)) {
+                                                next.delete(row.id);
+                                              } else {
+                                                next.add(row.id);
+                                              }
+                                              return next;
+                                            });
+                                          }}
+                                        >
+                                          {isExpanded ? (
+                                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                          ) : (
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{isExpanded ? 'Recolher' : 'Expandir'}</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="font-mono text-muted-foreground">{row.id}</TableCell>
+                              {visibleFields.map((field) => {
+                                const cellValue = row[field.name];
+                                const rawValue =
+                                  field.type === 'single_select' &&
+                                  cellValue &&
+                                  typeof cellValue === 'object' &&
+                                  'value' in cellValue
+                                    ? cellValue.value
+                                    : cellValue;
+
+                                const isMaskedField = maskedFieldsConfig.includes(field.name);
+                                const displayValue =
+                                  isMaskedField && !canViewUnmasked
+                                    ? maskValue(rawValue?.toString(), field.name)
+                                    : rawValue;
+
+                                const isObservacoes = field.name.toLowerCase() === 'observacoes';
+                                const asText = (displayValue?.toString() || '').trim();
+                                const showTooltip =
+                                  isObservacoes &&
+                                  !!asText &&
+                                  asText.length > 32 &&
+                                  (!isMaskedField || canViewUnmasked);
+
+                                return (
+                                  <TableCell
+                                    key={field.id}
+                                    className={`max-w-[200px] truncate ${isMaskedField && !canViewUnmasked ? 'blur-[3px] select-none' : ''}`}
+                                    onCopy={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
+                                    onCut={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
+                                    onContextMenu={(e) => isMaskedField && !canViewUnmasked && e.preventDefault()}
+                                  >
+                                    {field.type === 'single_select' ? (
+                                      <Badge variant="secondary">{displayValue || '-'}</Badge>
+                                    ) : field.type === 'boolean' ? (
+                                      rawValue ? 'Sim' : 'Não'
+                                    ) : field.type === 'date' ? (
+                                      rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                    ) : showTooltip ? (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="cursor-help">{asText}</span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-[420px] whitespace-pre-wrap">
+                                            {asText}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    ) : (
+                                      displayValue?.toString() || '-'
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
+
+                              {/* Coluna fixa à direita - Ações */}
+                              <TableCell className="sticky right-0 bg-card z-10 border-l border-border/50 text-center">
+                                {(canUpdateStatus || canUpdateObs || canUpdateBoth) && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(row)}>
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Editar</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </TableCell>
-                            );
-                          })}
-                          <TableCell>
-                            {(canUpdateStatus || canUpdateObs || canUpdateBoth) && (
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                            </TableRow>
+
+                            {/* Linha expandida com todos os detalhes */}
+                            {isExpanded && (
+                              <TableRow key={`${row.id}-expanded`} className="bg-muted/30">
+                                <TableCell colSpan={visibleFields.length + 3} className="p-4">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {visibleFields.map((field) => {
+                                      const cellValue = row[field.name];
+                                      const rawValue =
+                                        field.type === 'single_select' &&
+                                        cellValue &&
+                                        typeof cellValue === 'object' &&
+                                        'value' in cellValue
+                                          ? cellValue.value
+                                          : cellValue;
+                                      const isMaskedField = maskedFieldsConfig.includes(field.name);
+                                      const displayValue =
+                                        isMaskedField && !canViewUnmasked
+                                          ? maskValue(rawValue?.toString(), field.name)
+                                          : rawValue;
+
+                                      return (
+                                        <div key={field.id} className="space-y-1">
+                                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {field.name}
+                                          </p>
+                                          <p className={`text-sm break-words ${isMaskedField && !canViewUnmasked ? 'blur-[3px] select-none' : ''}`}>
+                                            {field.type === 'single_select' ? (
+                                              <Badge variant="secondary">{displayValue || '-'}</Badge>
+                                            ) : field.type === 'boolean' ? (
+                                              rawValue ? 'Sim' : 'Não'
+                                            ) : field.type === 'date' ? (
+                                              rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                            ) : (
+                                              displayValue?.toString() || '-'
+                                            )}
+                                          </p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -1108,6 +1224,68 @@ export default function ConsultaNumeros() {
         </div>
       </div>
       </div>
+
+      {/* Quick View Modal */}
+      <Dialog open={!!quickViewRow} onOpenChange={(open) => !open && setQuickViewRow(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              Visualização Rápida
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes do registro #{quickViewRow?.id}
+            </DialogDescription>
+          </DialogHeader>
+          {quickViewRow && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {visibleFields.map((field) => {
+                const cellValue = quickViewRow[field.name];
+                const rawValue =
+                  field.type === 'single_select' &&
+                  cellValue &&
+                  typeof cellValue === 'object' &&
+                  'value' in cellValue
+                    ? cellValue.value
+                    : cellValue;
+                const isMaskedField = maskedFieldsConfig.includes(field.name);
+                const displayValue =
+                  isMaskedField && !canViewUnmasked
+                    ? maskValue(rawValue?.toString(), field.name)
+                    : rawValue;
+
+                return (
+                  <div key={field.id} className="space-y-1 p-3 rounded-lg bg-muted/30">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {field.name}
+                    </p>
+                    <p className={`text-sm break-words ${isMaskedField && !canViewUnmasked ? 'blur-[3px] select-none' : ''}`}>
+                      {field.type === 'single_select' ? (
+                        <Badge variant="secondary">{displayValue || '-'}</Badge>
+                      ) : field.type === 'boolean' ? (
+                        rawValue ? 'Sim' : 'Não'
+                      ) : field.type === 'date' ? (
+                        rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                      ) : (
+                        displayValue?.toString() || '-'
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            {(canUpdateStatus || canUpdateObs || canUpdateBoth) && quickViewRow && (
+              <Button variant="outline" onClick={() => { setQuickViewRow(null); handleEdit(quickViewRow); }}>
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            )}
+            <Button onClick={() => setQuickViewRow(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
