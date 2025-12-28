@@ -493,6 +493,11 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Section: Financeiro */}
+        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+          <span className="h-5 w-1 bg-info rounded-full"></span>
+          Financeiro
+        </h3>
         {/* Primary Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
@@ -566,9 +571,14 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Chamados Cards - Admin Only */}
+        {/* Section: Chamados - Admin Only */}
         {isAdmin && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <>
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+              <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
+              Chamados
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card 
               className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
               onClick={() => navigate('/admin/chamados')}
@@ -609,8 +619,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
+        {/* Section: Tarefas */}
+        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+          <span className="h-5 w-1 bg-primary rounded-full"></span>
+          Tarefas
+        </h3>
         {/* Task Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card 
