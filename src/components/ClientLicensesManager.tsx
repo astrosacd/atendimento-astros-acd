@@ -113,6 +113,20 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
       return;
     }
 
+    // Check if limit is reached for this tool
+    const planTool = planoFerramentas.find(pf => pf.ferramenta === newLicense.ferramenta);
+    if (planTool) {
+      const usedCount = licenses.filter(l => l.ferramenta === newLicense.ferramenta).length;
+      if (usedCount >= planTool.quantidade_licencas) {
+        toast({
+          title: 'Limite atingido',
+          description: `O plano permite apenas ${planTool.quantidade_licencas} licença(s) de ${newLicense.ferramenta}`,
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
