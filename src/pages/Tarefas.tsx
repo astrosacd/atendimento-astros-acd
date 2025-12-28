@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
+import { formatCPFOrCNPJ } from '@/utils/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -483,7 +484,9 @@ export default function Tarefas() {
                 <SelectContent className="bg-card border-border max-h-60">
                   <SelectItem value="none">Nenhum cliente</SelectItem>
                   {clientes.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.nome} - {formatCPFOrCNPJ(cliente.cpf)} - {cliente.produto}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
