@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
-  Bell, Download, FileText, Database, MessageSquare, Loader2
+  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
+import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -44,6 +45,11 @@ interface ClienteStats {
   // Chamados
   chamadosAbertos: number;
   chamadosEmAndamento: number;
+  // Tasks
+  tarefasPendentes: number;
+  tarefasEmAndamento: number;
+  tarefasAtrasadas: number;
+  tarefasConcluidas: number;
 }
 
 interface CustomRole {
@@ -56,8 +62,11 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
+  const { getTaskStats, getUrgentTasks } = useClientTasks();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [urgentTasks, setUrgentTasks] = useState<{ overdue: ClientTask[]; dueSoon: ClientTask[] }>({ overdue: [], dueSoon: [] });
+  const [alertsShown, setAlertsShown] = useState(false);
   const [stats, setStats] = useState<ClienteStats>({
     totalClientes: 0,
     pendingUsers: 0,
@@ -77,6 +86,10 @@ export default function Dashboard() {
     billingErrors: 0,
     chamadosAbertos: 0,
     chamadosEmAndamento: 0,
+    tarefasPendentes: 0,
+    tarefasEmAndamento: 0,
+    tarefasAtrasadas: 0,
+    tarefasConcluidas: 0,
   });
 
   useEffect(() => {
@@ -191,6 +204,10 @@ export default function Dashboard() {
       let billingErrors = 0;
       let chamadosAbertos = 0;
       let chamadosEmAndamento = 0;
+      let tarefasPendentes = 0;
+      let tarefasEmAndamento = 0;
+      let tarefasAtrasadas = 0;
+      let tarefasConcluidas = 0;
 
       if (isAdmin) {
         const { count: pending } = await supabase
@@ -228,6 +245,13 @@ export default function Dashboard() {
         chamadosEmAndamento = emAndamento || 0;
       }
 
+      // Task stats (for all users)
+      const taskStats = await getTaskStats();
+      tarefasPendentes = taskStats.pendentes;
+      tarefasEmAndamento = taskStats.em_andamento;
+      tarefasAtrasadas = taskStats.atrasadas;
+      tarefasConcluidas = taskStats.concluidas;
+
       setStats({
         totalClientes: clientes?.length || 0,
         pendingUsers: pendingCount,
@@ -247,11 +271,47 @@ export default function Dashboard() {
         billingErrors,
         chamadosAbertos,
         chamadosEmAndamento,
+        tarefasPendentes,
+        tarefasEmAndamento,
+        tarefasAtrasadas,
+        tarefasConcluidas,
       });
     };
 
     if (user) fetchStats();
-  }, [user, isAdmin]);
+  }, [user, isAdmin, getTaskStats]);
+
+  // Fetch urgent tasks and show alerts
+  useEffect(() => {
+    const fetchUrgentTasks = async () => {
+      const urgent = await getUrgentTasks();
+      setUrgentTasks(urgent);
+
+      // Show alerts only once per session
+      if (!alertsShown && (urgent.overdue.length > 0 || urgent.dueSoon.length > 0)) {
+        setAlertsShown(true);
+        
+        if (urgent.overdue.length > 0) {
+          toast({
+            title: `⚠️ ${urgent.overdue.length} tarefa(s) atrasada(s)!`,
+            description: urgent.overdue.slice(0, 3).map(t => t.title).join(', ') + (urgent.overdue.length > 3 ? '...' : ''),
+            variant: 'destructive',
+          });
+        }
+        
+        if (urgent.dueSoon.length > 0) {
+          setTimeout(() => {
+            toast({
+              title: `🔔 ${urgent.dueSoon.length} tarefa(s) vencem hoje!`,
+              description: urgent.dueSoon.slice(0, 3).map(t => t.title).join(', ') + (urgent.dueSoon.length > 3 ? '...' : ''),
+            });
+          }, urgent.overdue.length > 0 ? 1500 : 0);
+        }
+      }
+    };
+
+    if (user) fetchUrgentTasks();
+  }, [user, getUrgentTasks, alertsShown, toast]);
 
   const getClientesPorMes = (clientes: any[]) => {
     const meses: { [key: string]: number } = {};
@@ -551,7 +611,126 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Secondary Stats - Admin Only */}
+        {/* Task Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card 
+            className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
+            onClick={() => navigate('/tarefas')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                    <ListTodo className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
+                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
+            onClick={() => navigate('/tarefas')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 text-cyan-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
+                    <p className="text-xs text-muted-foreground">Em Andamento</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
+            onClick={() => navigate('/tarefas')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
+                    <p className="text-xs text-muted-foreground">Atrasadas</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
+            onClick={() => navigate('/tarefas')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
+                    <p className="text-xs text-muted-foreground">Concluídas</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Urgent Tasks Alert */}
+        {(urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
+          <Card className="bg-gradient-to-br from-destructive/5 to-amber-500/5 border-destructive/30 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-foreground mb-2">Tarefas que precisam de atenção</h4>
+                  <div className="space-y-2">
+                    {urgentTasks.overdue.slice(0, 3).map((task) => (
+                      <div key={task.id} className="flex items-center gap-2 text-sm">
+                        <span className="h-2 w-2 rounded-full bg-destructive"></span>
+                        <span className="text-destructive font-medium">Atrasada:</span>
+                        <span className="text-muted-foreground">{task.title}</span>
+                        {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
+                      </div>
+                    ))}
+                    {urgentTasks.dueSoon.slice(0, 3).map((task) => (
+                      <div key={task.id} className="flex items-center gap-2 text-sm">
+                        <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span className="text-amber-500 font-medium">Vence hoje:</span>
+                        <span className="text-muted-foreground">{task.title}</span>
+                        {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto mt-2 text-primary"
+                    onClick={() => navigate('/tarefas')}
+                  >
+                    Ver todas as tarefas <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {isAdmin && (
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
             <Card className="bg-card border-border">

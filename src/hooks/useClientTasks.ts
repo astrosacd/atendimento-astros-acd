@@ -264,6 +264,50 @@ export const useClientTasks = () => {
     }
   };
 
+  // Get urgent tasks (overdue or due within 1 day)
+  const getUrgentTasks = async (): Promise<{
+    overdue: ClientTask[];
+    dueSoon: ClientTask[];
+  }> => {
+    try {
+      const { data, error } = await supabase
+        .from('client_tasks')
+        .select(`
+          *,
+          clientes:cliente_id (nome)
+        `)
+        .in('status', ['pendente', 'em_andamento'])
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      
+      const tasks = (data || []).map((task: any) => ({
+        ...task,
+        cliente_nome: task.clientes?.nome || null,
+        clientes: undefined,
+      })) as ClientTask[];
+
+      const overdue = tasks.filter(task => 
+        task.due_date && new Date(task.due_date) < now
+      );
+      
+      const dueSoon = tasks.filter(task => 
+        task.due_date && 
+        new Date(task.due_date) >= now && 
+        new Date(task.due_date) <= tomorrow
+      );
+
+      return { overdue, dueSoon };
+    } catch (error) {
+      console.error('Error getting urgent tasks:', error);
+      return { overdue: [], dueSoon: [] };
+    }
+  };
+
   return {
     isLoading,
     fetchTasks,
@@ -272,5 +316,6 @@ export const useClientTasks = () => {
     updateTask,
     deleteTask,
     getTaskStats,
+    getUrgentTasks,
   };
 };
