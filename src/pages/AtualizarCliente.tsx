@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -45,10 +45,24 @@ export default function AtualizarCliente() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [availablePlanos, setAvailablePlanos] = useState<{ id: string; nome: string }[]>([]);
+  const [newPlano, setNewPlano] = useState<string | null>(null);
 
   useEffect(() => {
     loadAvailableTags();
+    loadAvailablePlanos();
   }, []);
+
+  const loadAvailablePlanos = async () => {
+    const { data } = await supabase
+      .from('planos_revendedor')
+      .select('id, nome')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) {
+      setAvailablePlanos(data);
+    }
+  };
 
   const loadAvailableTags = async () => {
     const { data } = await supabase
@@ -76,6 +90,7 @@ export default function AtualizarCliente() {
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
+    setNewPlano(cliente.plano || null);
     // Try to detect country code from the number
     const detectedCountry = detectCountryFromNumber(cliente.numero || '');
     setNewCountryCode(detectedCountry);
@@ -117,11 +132,12 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null } = {
       observacao: newObservacao,
       tags: newTags,
       numero: newNumero,
       valor: parseCurrency(newValor),
+      plano: newPlano,
     };
     
     // Só atualiza a data, ciclo e moeda se for cliente mensal
@@ -141,6 +157,7 @@ export default function AtualizarCliente() {
       setNewTags([]);
       setNewNumero('');
       setNewValor('');
+      setNewPlano(null);
     }
     setShowConfirm(false);
   };
@@ -345,11 +362,38 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Licenses Manager */}
-              <ClientLicensesManager 
-                clienteId={selectedCliente.id} 
-                clientePlano={selectedCliente.plano} 
-              />
+              {/* Plano Revendedor */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Store className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                </div>
+                <Select
+                  value={newPlano || 'none'}
+                  onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
+                >
+                  <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                    <SelectValue placeholder="Selecione o plano" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {availablePlanos.map(plano => (
+                      <SelectItem key={plano.id} value={plano.nome}>
+                        {plano.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Associe um plano de revendedor para gerenciar licenças</p>
+              </div>
+
+              {/* Licenses Manager - only show if client has a plan */}
+              {newPlano && (
+                <ClientLicensesManager 
+                  clienteId={selectedCliente.id} 
+                  clientePlano={newPlano} 
+                />
+              )}
 
               {/* Files Manager - only for Registro clients */}
               {isClienteVitalicio && (
