@@ -248,6 +248,31 @@ export default function AtualizarCliente() {
                 )}
               </div>
 
+              {/* Plano Revendedor - logo após info do cliente */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Store className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                </div>
+                <Select
+                  value={newPlano || 'none'}
+                  onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
+                >
+                  <SelectTrigger className="bg-secondary border-border text-foreground h-12">
+                    <SelectValue placeholder="Selecione o plano" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="none">Nenhum (Cliente comum)</SelectItem>
+                    {availablePlanos.map(plano => (
+                      <SelectItem key={plano.id} value={plano.nome}>
+                        {plano.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Associe um plano para clientes revendedores</p>
+              </div>
+
               {!isClienteVitalicio && (
                 <>
                   <div className="space-y-2">
@@ -362,32 +387,7 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Plano Revendedor */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
-                </div>
-                <Select
-                  value={newPlano || 'none'}
-                  onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
-                >
-                  <SelectTrigger className="bg-secondary border-border text-foreground h-12">
-                    <SelectValue placeholder="Selecione o plano" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {availablePlanos.map(plano => (
-                      <SelectItem key={plano.id} value={plano.nome}>
-                        {plano.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Associe um plano de revendedor para gerenciar licenças</p>
-              </div>
-
-              {/* Licenses Manager - only show if client has a plan */}
+              {/* Licenses Manager - only show if client has a reseller plan */}
               {newPlano && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
