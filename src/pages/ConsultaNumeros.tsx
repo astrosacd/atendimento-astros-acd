@@ -987,7 +987,7 @@ export default function ConsultaNumeros() {
                                           <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Ver detalhes</TooltipContent>
+                                      <TooltipContent className="z-50">Ver detalhes</TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                   <TooltipProvider>
@@ -1016,7 +1016,7 @@ export default function ConsultaNumeros() {
                                           )}
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>{isExpanded ? 'Recolher' : 'Expandir'}</TooltipContent>
+                                      <TooltipContent className="z-50">{isExpanded ? 'Recolher' : 'Expandir'}</TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 </div>
@@ -1067,7 +1067,7 @@ export default function ConsultaNumeros() {
                                           <TooltipTrigger asChild>
                                             <span className="cursor-help">{asText}</span>
                                           </TooltipTrigger>
-                                          <TooltipContent className="max-w-[420px] whitespace-pre-wrap">
+                                          <TooltipContent className="z-50 max-w-[420px] whitespace-pre-wrap">
                                             {asText}
                                           </TooltipContent>
                                         </Tooltip>
@@ -1089,7 +1089,7 @@ export default function ConsultaNumeros() {
                                           <Edit className="h-4 w-4" />
                                         </Button>
                                       </TooltipTrigger>
-                                      <TooltipContent>Editar</TooltipContent>
+                                      <TooltipContent className="z-50">Editar</TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
