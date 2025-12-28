@@ -108,8 +108,8 @@ function AppRoutes() {
       {/* Gateway Route */}
       <Route path="/admin/gateway" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
       
-      {/* Planos Revendedor */}
-      <Route path="/admin/planos-revendedor" element={<ProtectedRoute permission="manage_settings"><AdminPlanosRevendedor /></ProtectedRoute>} />
+      {/* Revendedor Routes */}
+      <Route path="/admin/revendedor" element={<ProtectedRoute permission="view_revendedor"><AdminPlanosRevendedor /></ProtectedRoute>} />
       
       {/* Chamados Routes */}
       <Route path="/admin/chamados" element={<ProtectedRoute permission="chamados.view"><AdminChamados /></ProtectedRoute>} />

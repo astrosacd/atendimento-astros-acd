@@ -98,6 +98,11 @@ export function usePermissions() {
   const canManageGatewaySettings = () => hasPermission('manage_gateway_settings');
   const canViewGatewayReports = () => hasPermission('view_gateway_reports');
 
+  // Revendedor permissions
+  const canViewRevendedor = () => hasPermission('view_revendedor');
+  const canManageRevendedorPlanos = () => hasPermission('manage_revendedor_planos');
+  const canManageRevendedorLicencas = () => hasPermission('manage_revendedor_licencas');
+
   return {
     permissions,
     hasPermission,
@@ -159,5 +164,9 @@ export function usePermissions() {
     canManageGatewayOrders,
     canManageGatewaySettings,
     canViewGatewayReports,
+    // Revendedor
+    canViewRevendedor,
+    canManageRevendedorPlanos,
+    canManageRevendedorLicencas,
   };
 }
