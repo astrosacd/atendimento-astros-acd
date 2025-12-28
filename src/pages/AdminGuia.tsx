@@ -52,7 +52,8 @@ import {
   Receipt,
   Timer,
   BarChart,
-  Ticket
+  Ticket,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +127,7 @@ const categoryToPermission: Record<string, string> = {
   'chamados-config': 'view_guia_chamados',
   'relatorios-visao-geral': 'view_guia_relatorios',
   'relatorios-metricas': 'view_guia_relatorios',
+  'tarefas': 'view_guia_tarefas',
 };
 
 const AdminGuia = () => {
@@ -228,7 +230,7 @@ const AdminGuia = () => {
       title: "Clientes",
       icon: FileText,
       color: "text-amber-400",
-      categories: ["tags", "clientes-registro"],
+      categories: ["tags", "clientes-registro", "tarefas"],
       permissionKey: "view_guia_clientes"
     },
     {
@@ -1015,6 +1017,87 @@ Isso facilita encontrar clientes específicos por categoria.`
         "Anexe comprovantes de pagamento e contratos para referência futura",
         "Clientes Registro não aparecem nos relatórios de cobrança",
         "Você pode converter um cliente Registro para Mensal editando manualmente no banco"
+      ]
+    },
+    {
+      id: "tarefas",
+      title: "Tarefas de Clientes",
+      icon: ClipboardList,
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      description: "Gerencie tarefas e pendências vinculadas a cada cliente",
+      steps: [
+        {
+          title: "O que são Tarefas de Clientes?",
+          content: `O módulo de **Tarefas** permite criar e gerenciar pendências vinculadas a clientes específicos:
+
+- **Acompanhamento**: Crie tarefas para follow-up com clientes
+- **Priorização**: Defina prioridades (baixa, média, alta, urgente)
+- **Prazos**: Estabeleça datas de vencimento
+- **Atribuição**: Delegue tarefas para membros da equipe
+- **Status**: Acompanhe o progresso (pendente, em andamento, concluída)
+
+As tarefas ajudam a organizar o trabalho e garantir que nenhuma pendência seja esquecida.`
+        },
+        {
+          title: "Como criar uma tarefa",
+          content: `1. Acesse **Consultar Clientes** e encontre o cliente desejado
+2. Clique no botão de **editar** do cliente
+3. Na tela de edição, role até a seção **Tarefas**
+4. Clique em **Nova Tarefa**
+5. Preencha:
+   - **Título**: Descrição resumida da tarefa
+   - **Descrição**: Detalhes adicionais (opcional)
+   - **Prioridade**: Baixa, Média, Alta ou Urgente
+   - **Data de Vencimento**: Prazo para conclusão
+   - **Responsável**: Membro da equipe (opcional)
+6. Clique em **Criar Tarefa**`
+        },
+        {
+          title: "Gerenciando tarefas",
+          content: `**Na página do cliente:**
+- Veja todas as tarefas vinculadas ao cliente
+- Filtre por status: Todas, Pendentes, Em Andamento, Concluídas
+- Altere o status clicando nos botões de ação
+
+**Ações disponíveis:**
+- ✅ **Concluir**: Marca a tarefa como finalizada
+- 🔄 **Em Andamento**: Indica que você está trabalhando nela
+- ✏️ **Editar**: Modifica os dados da tarefa
+- 🗑️ **Excluir**: Remove a tarefa permanentemente`
+        },
+        {
+          title: "Página de Tarefas Geral",
+          content: `Acesse **Tarefas** no menu lateral para ver TODAS as tarefas do sistema:
+
+**Filtros disponíveis:**
+- **Status**: Pendente, Em Andamento, Concluída
+- **Prioridade**: Baixa, Média, Alta, Urgente
+- **Responsável**: Filtrar por membro da equipe
+- **Cliente**: Buscar tarefas de um cliente específico
+
+**Cards de resumo:**
+- Total de tarefas
+- Pendentes / Em andamento
+- Concluídas
+- Atrasadas (vencidas e não concluídas)`
+        },
+        {
+          title: "Tarefas no Dashboard",
+          content: `O **Dashboard** exibe um resumo das tarefas:
+
+- **Card de Tarefas Urgentes**: Mostra tarefas atrasadas ou com vencimento próximo
+- **Estatísticas**: Total, pendentes, em andamento, concluídas e atrasadas
+
+Isso permite uma visão rápida das pendências mais críticas.`
+        }
+      ],
+      tips: [
+        "Use prioridade 'Urgente' para tarefas críticas que precisam de atenção imediata",
+        "Defina prazos realistas para evitar acúmulo de tarefas atrasadas",
+        "Atribua tarefas a responsáveis específicos para melhor organização",
+        "Verifique o Dashboard diariamente para acompanhar tarefas urgentes",
+        "Use a descrição para adicionar contexto e instruções detalhadas"
       ]
     },
     {
