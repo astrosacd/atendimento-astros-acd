@@ -731,6 +731,83 @@ const AdminApiKeys = () => {
                   </div>
                 </div>
 
+                {/* Licenças API */}
+                <div className="space-y-4 pt-4 border-t border-border/40">
+                  <Label className="text-lg font-semibold">API de Licenças</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Endpoint para registrar licenças entregues aos clientes revendedores.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label>URL do Endpoint</Label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-muted p-3 rounded-lg text-sm font-mono break-all">
+                        {`https://${projectId}.supabase.co/functions/v1/api-licencas`}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => copyToClipboard(`https://${projectId}.supabase.co/functions/v1/api-licencas`, 'licencas-url')}
+                      >
+                        {copiedKey === 'licencas-url' ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border border-border/40 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500">POST</Badge>
+                      <code className="text-sm font-semibold">/api-licencas</code>
+                      <span className="text-sm text-muted-foreground">- Registra uma licença</span>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Campos do body:</p>
+                      <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                        <li><code className="bg-muted px-1 rounded">cliente_cpf</code> ou <code className="bg-muted px-1 rounded">cliente_numero</code> ou <code className="bg-muted px-1 rounded">cliente_id</code> - Para identificar o cliente</li>
+                        <li><code className="bg-muted px-1 rounded">ferramenta</code> - Nome da ferramenta (obrigatório)</li>
+                        <li><code className="bg-muted px-1 rounded">codigo_licenca</code> - Código da licença (obrigatório)</li>
+                        <li><code className="bg-muted px-1 rounded">observacao</code> - Observação (opcional)</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                        Exemplo curl:
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => copyToClipboard(`curl -X POST "https://${projectId}.supabase.co/functions/v1/api-licencas" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "cliente_cpf": "12345678900",
+    "ferramenta": "WA Marketing",
+    "codigo_licenca": "ABC123-XYZ789",
+    "observacao": "Entrega via n8n"
+  }'`, 'curl-licenca')}
+                        >
+                          {copiedKey === 'curl-licenca' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </p>
+                      <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+{`curl -X POST "https://${projectId}.supabase.co/functions/v1/api-licencas" \\
+  -H "x-api-key: SUA_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "cliente_cpf": "12345678900",
+    "ferramenta": "WA Marketing",
+    "codigo_licenca": "ABC123-XYZ789",
+    "observacao": "Entrega via n8n"
+  }'`}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Error Responses */}
                 <div className="space-y-2">
                   <Label className="text-lg font-semibold">Códigos de Erro</Label>

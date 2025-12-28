@@ -35,6 +35,8 @@ const EVENT_TYPES = [
   { id: 'cliente.created', label: 'Cliente Criado' },
   { id: 'cliente.updated', label: 'Cliente Atualizado' },
   { id: 'cliente.deleted', label: 'Cliente Excluído' },
+  { id: 'licenca.created', label: 'Licença Registrada' },
+  { id: 'licenca.deleted', label: 'Licença Excluída' },
 ];
 
 export default function AdminWebhooks() {

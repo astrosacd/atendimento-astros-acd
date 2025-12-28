@@ -17,10 +17,7 @@ import {
   Settings, 
   Trash2,
   Edit,
-  Key,
-  Copy,
-  Check,
-  Code
+  Key
 } from 'lucide-react';
 
 interface Plano {
@@ -46,7 +43,7 @@ const AdminPlanosRevendedor = () => {
   const [selectedPlano, setSelectedPlano] = useState<Plano | null>(null);
   const [isPlanoDialogOpen, setIsPlanoDialogOpen] = useState(false);
   const [isFerramentaDialogOpen, setIsFerramentaDialogOpen] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  
   
   const [planoForm, setPlanoForm] = useState({
     nome: '',
@@ -221,17 +218,13 @@ const AdminPlanosRevendedor = () => {
     }
   };
 
-  const copyToClipboard = (text: string, key: string) => {
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const planoFerramentas = selectedPlano 
     ? ferramentas.filter(f => f.plano_id === selectedPlano.id)
     : [];
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   return (
     <DashboardLayout>
@@ -248,10 +241,6 @@ const AdminPlanosRevendedor = () => {
             <TabsTrigger value="planos" className="gap-2">
               <Package className="h-4 w-4" />
               Planos
-            </TabsTrigger>
-            <TabsTrigger value="api" className="gap-2">
-              <Code className="h-4 w-4" />
-              API/Webhook
             </TabsTrigger>
           </TabsList>
 
@@ -454,15 +443,25 @@ const AdminPlanosRevendedor = () => {
                       <p className="text-sm">Clique em "Adicionar" para incluir ferramentas</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                       {planoFerramentas.map(ferramenta => (
                         <div
                           key={ferramenta.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+                          className="p-4 rounded-lg bg-muted/30 border border-border/50"
                         >
-                          <div className="flex items-center gap-3">
-                            <Key className="h-4 w-4 text-primary" />
-                            <span className="font-medium">{ferramenta.ferramenta}</span>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Key className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-sm">{ferramenta.ferramenta}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteFerramenta(ferramenta.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                           <div className="flex items-center gap-2">
                             <Input
@@ -471,15 +470,7 @@ const AdminPlanosRevendedor = () => {
                               onChange={(e) => handleUpdateQuantidade(ferramenta.id, parseInt(e.target.value) || 0)}
                               className="w-20 h-8 text-center"
                             />
-                            <span className="text-sm text-muted-foreground">licenças</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteFerramenta(ferramenta.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <span className="text-xs text-muted-foreground">licenças</span>
                           </div>
                         </div>
                       ))}
@@ -490,98 +481,6 @@ const AdminPlanosRevendedor = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="api" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Code className="h-5 w-5" />
-                  Endpoint de Licenças (API/n8n)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">URL do Webhook</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(`${supabaseUrl}/functions/v1/api-licencas`, 'url')}
-                    >
-                      {copiedKey === 'url' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <code className="text-sm text-primary break-all">
-                    {supabaseUrl}/functions/v1/api-licencas
-                  </code>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium">Registrar Licença (POST)</h3>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Headers obrigatórios:</p>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside">
-                      <li><code className="bg-muted px-1 rounded">x-api-key</code> - Sua API Key do CRM</li>
-                      <li><code className="bg-muted px-1 rounded">Content-Type: application/json</code></li>
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Campos do body:</p>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                      <li><code className="bg-muted px-1 rounded">cliente_cpf</code> ou <code className="bg-muted px-1 rounded">cliente_numero</code> ou <code className="bg-muted px-1 rounded">cliente_id</code> - Para identificar o cliente</li>
-                      <li><code className="bg-muted px-1 rounded">ferramenta</code> - Nome da ferramenta (obrigatório)</li>
-                      <li><code className="bg-muted px-1 rounded">codigo_licenca</code> - Código da licença (obrigatório)</li>
-                      <li><code className="bg-muted px-1 rounded">observacao</code> - Observação (opcional)</li>
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Exemplo curl:</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(`curl -X POST "${supabaseUrl}/functions/v1/api-licencas" \\
-  -H "x-api-key: SUA_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "cliente_cpf": "12345678900",
-    "ferramenta": "WA Marketing",
-    "codigo_licenca": "ABC123-XYZ789",
-    "observacao": "Entrega via n8n"
-  }'`, 'curl-post')}
-                      >
-                        {copiedKey === 'curl-post' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <pre className="text-xs bg-muted/50 p-3 rounded-lg overflow-x-auto">
-{`curl -X POST "${supabaseUrl}/functions/v1/api-licencas" \\
-  -H "x-api-key: SUA_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "cliente_cpf": "12345678900",
-    "ferramenta": "WA Marketing",
-    "codigo_licenca": "ABC123-XYZ789",
-    "observacao": "Entrega via n8n"
-  }'`}
-                    </pre>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium">Configuração no n8n</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Para integrar com seu fluxo n8n existente, adicione um nó HTTP Request após o Google Sheets:
-                  </p>
-                  <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-2">
-                    <li>Adicione um nó <strong>HTTP Request</strong> depois do nó do Google Sheets</li>
-                    <li>Configure Method: <code className="bg-muted px-1 rounded">POST</code></li>
-                    <li>URL: <code className="bg-muted px-1 rounded">{supabaseUrl}/functions/v1/api-licencas</code></li>
-                    <li>Headers: <code className="bg-muted px-1 rounded">x-api-key: SUA_API_KEY</code></li>
-                    <li>Body: mapeie os campos do seu fluxo</li>
-                  </ol>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
