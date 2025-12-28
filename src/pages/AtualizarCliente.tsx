@@ -387,11 +387,11 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Licenses Manager - only show if client has a reseller plan */}
-              {newPlano && (
+              {/* Licenses Manager - only show if client already has a reseller plan in database */}
+              {selectedCliente?.plano && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
-                  clientePlano={newPlano} 
+                  clientePlano={newPlano || selectedCliente.plano}
                 />
               )}
 
