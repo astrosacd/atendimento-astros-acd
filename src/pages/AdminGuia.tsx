@@ -124,6 +124,8 @@ const categoryToPermission: Record<string, string> = {
   'chamados-api': 'view_guia_chamados',
   'chamados-webhooks': 'view_guia_chamados',
   'chamados-config': 'view_guia_chamados',
+  'relatorios-visao-geral': 'view_guia_relatorios',
+  'relatorios-metricas': 'view_guia_relatorios',
 };
 
 const AdminGuia = () => {
@@ -252,6 +254,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["gateway-visao-geral", "gateway-produtos", "gateway-order-bumps", "gateway-cupons", "gateway-checkout", "gateway-pedidos", "gateway-config"],
       permissionKey: "view_guia_gateway"
+    },
+    {
+      id: "relatorios",
+      title: "Relatórios",
+      icon: BarChart3,
+      color: "text-cyan-400",
+      categories: ["relatorios-visao-geral", "relatorios-metricas"],
+      permissionKey: "view_guia_relatorios"
     },
     {
       id: "sistema",
@@ -3286,6 +3296,163 @@ Acesse **Painel Administrativo** → **Permissões do Sistema**
         "Use uma conta Gmail dedicada para o sistema",
         "Guarde a senha de app em local seguro",
         "Configure permissões adequadas para cada tipo de usuário"
+      ]
+    },
+    {
+      id: "relatorios-visao-geral",
+      title: "Relatórios Avançados",
+      icon: BarChart3,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Métricas de conversão, churn e LTV do seu negócio",
+      steps: [
+        {
+          title: "O que são Relatórios Avançados?",
+          content: `Os **Relatórios Avançados** fornecem métricas essenciais para acompanhar a saúde financeira do seu negócio:
+
+**Métricas disponíveis:**
+- **Conversão**: Taxa de visitantes que se tornam clientes
+- **Churn**: Taxa de cancelamentos mensais
+- **LTV**: Valor do tempo de vida do cliente
+- **MRR**: Receita Recorrente Mensal
+
+**Características:**
+- Dados 100% automáticos (atualizados em tempo real)
+- Separação por moeda (BRL e USD)
+- Gráficos interativos
+- Período personalizável (3, 6 ou 12 meses)
+
+**Acessar:**
+Menu lateral → **Relatórios** ou Painel Admin → **Relatórios Avançados**`
+        },
+        {
+          title: "Fontes de Dados",
+          content: `Os relatórios são alimentados automaticamente por:
+
+**Clientes (tabela \`clientes\`):**
+- MRR: Soma dos valores mensalizados
+- Churn: Baseado na data de renovação
+- LTV: Ticket médio × Tempo de permanência
+- Novos clientes: Data de criação
+
+**Gateway (tabela \`gateway_orders\`):**
+- Pedidos: Total de vendas
+- Conversão: Taxa de conclusão
+
+**Eventos (tabela \`gateway_events\`):**
+- Visualizações de página
+- Checkouts iniciados
+- Abandono de carrinho
+
+**Importante:** Tudo é calculado automaticamente. Não precisa fazer nada manual!`
+        }
+      ],
+      tips: [
+        "Acesse regularmente para acompanhar a saúde do negócio",
+        "Compare períodos diferentes para identificar tendências",
+        "Use os dados para tomar decisões informadas"
+      ]
+    },
+    {
+      id: "relatorios-metricas",
+      title: "Entendendo as Métricas",
+      icon: BarChart,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Como interpretar cada métrica e benchmark ideal",
+      steps: [
+        {
+          title: "Taxa de Conversão",
+          content: `**O que é:**
+Porcentagem de visitantes que se tornam clientes pagantes.
+
+**Cálculo:**
+\`(Pedidos Pagos ÷ Visualizações de Página) × 100\`
+
+**Benchmarks:**
+- 🟢 **Excelente**: > 3%
+- 🟡 **Bom**: 1-3%
+- 🔴 **Precisa melhorar**: < 1%
+
+**Como melhorar:**
+- Otimize a página de checkout
+- Use depoimentos e prova social
+- Ofereça múltiplas formas de pagamento
+- Adicione contador de urgência`
+        },
+        {
+          title: "Churn Rate (Taxa de Cancelamento)",
+          content: `**O que é:**
+Porcentagem de clientes que não renovam por mês.
+
+**Cálculo:**
+\`(Clientes Perdidos ÷ Clientes Ativos no Início) × 100\`
+
+**Benchmarks (SaaS):**
+- 🟢 **Excelente**: < 3%
+- 🟡 **Aceitável**: 3-5%
+- 🔴 **Crítico**: > 5%
+
+**Como reduzir:**
+- Melhore o onboarding
+- Ofereça suporte proativo
+- Crie programa de fidelidade
+- Analise motivos de cancelamento`
+        },
+        {
+          title: "LTV (Lifetime Value)",
+          content: `**O que é:**
+Quanto um cliente gasta em média durante todo o relacionamento.
+
+**Cálculo:**
+\`Ticket Médio Mensal × Tempo Médio de Permanência (meses)\`
+
+**Exemplo:**
+- Ticket: R$ 100/mês
+- Permanência média: 8 meses
+- LTV = R$ 800
+
+**Por que importa:**
+- Define quanto você pode investir para adquirir clientes
+- LTV > Custo de Aquisição = Negócio saudável
+- LTV < Custo de Aquisição = Prejuízo
+
+**Como aumentar:**
+- Aumente o ticket médio (upsell)
+- Reduza o churn (retenção)
+- Crie planos anuais com desconto`
+        },
+        {
+          title: "MRR (Receita Recorrente Mensal)",
+          content: `**O que é:**
+Soma de todas as receitas mensais recorrentes de clientes ativos.
+
+**Cálculo:**
+Para cada cliente: \`Valor ÷ Meses do Ciclo\`
+Exemplo: R$ 600 anual = R$ 50/mês
+
+**Componentes do MRR:**
+- **Novo MRR**: Novos clientes
+- **Expansão MRR**: Upgrades de plano
+- **Churn MRR**: Cancelamentos
+
+**MRR Separado por Moeda:**
+O sistema mostra:
+- **MRR BRL**: Clientes em Real
+- **MRR USD**: Clientes em Dólar
+
+Isso evita confusão ao somar moedas diferentes.
+
+**Crescimento saudável:**
+- MRR deve crescer mês a mês
+- Novo MRR deve superar Churn MRR`
+        }
+      ],
+      tips: [
+        "Churn < 5% é considerado saudável para SaaS",
+        "LTV deve ser pelo menos 3x o custo de aquisição",
+        "Acompanhe o MRR semanalmente para detectar tendências",
+        "Compare com meses anteriores para ver evolução"
       ]
     }
   ];

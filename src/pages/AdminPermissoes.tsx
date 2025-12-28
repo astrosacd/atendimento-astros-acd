@@ -84,6 +84,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Guia': <FileText className="h-4 w-4" />,
   'Consulta de Números': <Eye className="h-4 w-4" />,
   'Números Aquecimento': <Settings className="h-4 w-4" />,
+  'Relatórios': <BarChart3 className="h-4 w-4" />,
+  'Chamados': <MessageSquare className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -107,6 +109,8 @@ const permissionIcons: Record<string, React.ReactNode> = {
   manage_divulgador_messages: <MessageSquare className="h-4 w-4" />,
   manage_divulgador_participants: <UserMinus className="h-4 w-4" />,
   view_divulgador_reports: <BarChart3 className="h-4 w-4" />,
+  view_reports: <BarChart3 className="h-4 w-4" />,
+  view_guia_relatorios: <BarChart3 className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {
@@ -325,6 +329,8 @@ export default function AdminPermissoes() {
     'Guia': 'Guia',
     'Consulta de Números': 'Consulta de Números',
     'Números Aquecimento': 'Números Aquecimento',
+    'Relatórios': 'Relatórios Avançados',
+    'Chamados': 'Sistema de Chamados',
   };
 
   return (
