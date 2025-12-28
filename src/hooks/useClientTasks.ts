@@ -283,7 +283,8 @@ export const useClientTasks = () => {
       if (error) throw error;
 
       const now = new Date();
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
       
       const tasks = (data || []).map((task: any) => ({
         ...task,
@@ -291,15 +292,19 @@ export const useClientTasks = () => {
         clientes: undefined,
       })) as ClientTask[];
 
-      const overdue = tasks.filter(task => 
-        task.due_date && new Date(task.due_date) < now
-      );
+      const overdue = tasks.filter(task => {
+        if (!task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        return dueDateOnly < today;
+      });
       
-      const dueSoon = tasks.filter(task => 
-        task.due_date && 
-        new Date(task.due_date) >= now && 
-        new Date(task.due_date) <= tomorrow
-      );
+      const dueSoon = tasks.filter(task => {
+        if (!task.due_date) return false;
+        const dueDate = new Date(task.due_date);
+        const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        return dueDateOnly.getTime() === today.getTime();
+      });
 
       return { overdue, dueSoon };
     } catch (error) {
