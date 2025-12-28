@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Plus, 
@@ -47,7 +47,10 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
   const [planoFerramentas, setPlanoFerramentas] = useState<PlanoFerramenta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [newLicense, setNewLicense] = useState({
     ferramenta: '',
@@ -177,14 +180,20 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
     }
   };
 
-  const handleDeleteLicense = async (licenseId: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta licença?')) return;
+  const openDeleteDialog = (license: License) => {
+    setLicenseToDelete(license);
+    setIsDeleteDialogOpen(true);
+  };
 
+  const confirmDeleteLicense = async () => {
+    if (!licenseToDelete) return;
+
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('licencas_entregues')
         .delete()
-        .eq('id', licenseId);
+        .eq('id', licenseToDelete.id);
 
       if (error) throw error;
 
@@ -193,6 +202,8 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
         description: 'Licença excluída com sucesso'
       });
 
+      setIsDeleteDialogOpen(false);
+      setLicenseToDelete(null);
       fetchData();
     } catch (error: any) {
       console.error('Error deleting license:', error);
@@ -201,6 +212,8 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
         description: 'Falha ao excluir licença',
         variant: 'destructive'
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -398,7 +411,7 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
                   variant="ghost" 
                   size="icon" 
                   className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDeleteLicense(license.id)}
+                  onClick={() => openDeleteDialog(license)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -407,6 +420,37 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
           </div>
         )}
       </CardContent>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir esta licença?
+            </DialogDescription>
+          </DialogHeader>
+          {licenseToDelete && (
+            <div className="py-4 px-3 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary">{licenseToDelete.ferramenta}</Badge>
+                <code className="text-sm font-mono text-destructive">{licenseToDelete.codigo_licenca}</code>
+              </div>
+              {licenseToDelete.observacao && (
+                <p className="text-sm text-muted-foreground">{licenseToDelete.observacao}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteLicense} disabled={isDeleting}>
+              {isDeleting ? 'Excluindo...' : 'Excluir Licença'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

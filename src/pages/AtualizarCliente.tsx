@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -44,6 +44,7 @@ export default function AtualizarCliente() {
   const [newValor, setNewValor] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
+  const [searchPerformed, setSearchPerformed] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [availablePlanos, setAvailablePlanos] = useState<{ id: string; nome: string }[]>([]);
   const [newPlano, setNewPlano] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export default function AtualizarCliente() {
     
     const results = await searchCliente(searchQuery);
     setSearchResults(results);
+    setSearchPerformed(true);
   };
 
   const handleSelectCliente = (cliente: Cliente) => {
@@ -215,7 +217,7 @@ export default function AtualizarCliente() {
                 </Button>
               </form>
 
-              {searchResults.length > 0 && (
+              {searchResults.length > 0 ? (
                 <div className="space-y-2">
                   <Label className="text-muted-foreground text-sm">Selecione o cliente:</Label>
                   {searchResults.map((cliente) => (
@@ -229,7 +231,13 @@ export default function AtualizarCliente() {
                     </Button>
                   ))}
                 </div>
-              )}
+              ) : searchPerformed ? (
+                <div className="text-center py-6 border border-border/50 rounded-lg bg-muted/20">
+                  <AlertCircle className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-muted-foreground font-medium">Nenhum cliente encontrado</p>
+                  <p className="text-sm text-muted-foreground mt-1">Tente buscar por outro CPF, número, email ou nome</p>
+                </div>
+              ) : null}
 
               <Button 
                 type="button"
