@@ -784,6 +784,65 @@ export type Database = {
           },
         ]
       }
+      client_tasks: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_email: string | null
+          cliente_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          assigned_to_email?: string | null
+          cliente_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          assigned_to_email?: string | null
+          cliente_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tasks_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           ciclo_cobranca: string
