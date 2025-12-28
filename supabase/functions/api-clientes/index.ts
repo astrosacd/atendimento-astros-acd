@@ -464,7 +464,7 @@ serve(async (req) => {
     if (req.method === 'POST') {
       const body = await req.json();
       
-      const { nome, numero, produto, data_renovacao, email, cpf, plano, valor, observacao } = body;
+      const { nome, numero, produto, data_renovacao, email, cpf, plano, valor, observacao, moeda, tags, cobranca_ativa, ciclo_cobranca } = body;
 
       // Validate required fields
       if (!nome || !numero || !produto || !data_renovacao || !email || !cpf || valor === undefined) {
@@ -520,6 +520,27 @@ serve(async (req) => {
         validationErrors.push('Produto deve ter entre 1 e 200 caracteres');
       }
 
+      // Validate moeda
+      if (moeda !== undefined && !['BRL', 'USD'].includes(moeda)) {
+        validationErrors.push('Moeda deve ser BRL ou USD');
+      }
+
+      // Validate ciclo_cobranca
+      const validCiclos = ['mensal', 'bimestral', 'trimestral', 'semestral', 'anual'];
+      if (ciclo_cobranca !== undefined && !validCiclos.includes(ciclo_cobranca)) {
+        validationErrors.push('Ciclo de cobrança inválido');
+      }
+
+      // Validate tags (must be array of strings)
+      if (tags !== undefined && (!Array.isArray(tags) || !tags.every(t => typeof t === 'string'))) {
+        validationErrors.push('Tags deve ser um array de strings');
+      }
+
+      // Validate cobranca_ativa (must be boolean)
+      if (cobranca_ativa !== undefined && typeof cobranca_ativa !== 'boolean') {
+        validationErrors.push('cobranca_ativa deve ser true ou false');
+      }
+
       if (validationErrors.length > 0) {
         await logAudit(supabase, {
           action: 'create_error',
@@ -546,6 +567,11 @@ serve(async (req) => {
         );
       }
 
+      // Normalize tags to lowercase
+      const normalizedTags = tags && Array.isArray(tags) 
+        ? tags.map((t: string) => String(t).toLowerCase().trim()).filter(Boolean)
+        : [];
+
       const { data, error } = await supabase
         .from('clientes')
         .insert({
@@ -558,6 +584,10 @@ serve(async (req) => {
           plano: plano ? sanitizeString(String(plano)) : null,
           valor: numericValor,
           observacao: observacao ? sanitizeString(String(observacao)) : null,
+          moeda: moeda || 'BRL',
+          tags: normalizedTags,
+          cobranca_ativa: cobranca_ativa !== undefined ? cobranca_ativa : true,
+          ciclo_cobranca: ciclo_cobranca || 'mensal',
         })
         .select()
         .single();
@@ -722,6 +752,43 @@ serve(async (req) => {
       
       if (body.observacao !== undefined) {
         updateData.observacao = body.observacao ? sanitizeString(String(body.observacao)) : null;
+      }
+
+      // Validate and add moeda
+      if (body.moeda !== undefined) {
+        if (!['BRL', 'USD'].includes(body.moeda)) {
+          validationErrors.push('Moeda deve ser BRL ou USD');
+        } else {
+          updateData.moeda = body.moeda;
+        }
+      }
+
+      // Validate and add ciclo_cobranca
+      const validCiclos = ['mensal', 'bimestral', 'trimestral', 'semestral', 'anual'];
+      if (body.ciclo_cobranca !== undefined) {
+        if (!validCiclos.includes(body.ciclo_cobranca)) {
+          validationErrors.push('Ciclo de cobrança inválido');
+        } else {
+          updateData.ciclo_cobranca = body.ciclo_cobranca;
+        }
+      }
+
+      // Validate and add tags
+      if (body.tags !== undefined) {
+        if (!Array.isArray(body.tags) || !body.tags.every((t: unknown) => typeof t === 'string')) {
+          validationErrors.push('Tags deve ser um array de strings');
+        } else {
+          updateData.tags = body.tags.map((t: string) => String(t).toLowerCase().trim()).filter(Boolean);
+        }
+      }
+
+      // Validate and add cobranca_ativa
+      if (body.cobranca_ativa !== undefined) {
+        if (typeof body.cobranca_ativa !== 'boolean') {
+          validationErrors.push('cobranca_ativa deve ser true ou false');
+        } else {
+          updateData.cobranca_ativa = body.cobranca_ativa;
+        }
       }
 
       if (validationErrors.length > 0) {
