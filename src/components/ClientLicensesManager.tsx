@@ -113,6 +113,19 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
       return;
     }
 
+    // Check if license code already exists for this client
+    const duplicateLicense = licenses.find(
+      l => l.codigo_licenca.toLowerCase() === newLicense.codigo_licenca.toLowerCase()
+    );
+    if (duplicateLicense) {
+      toast({
+        title: 'Código duplicado',
+        description: `Este código de licença já foi registrado para a ferramenta ${duplicateLicense.ferramenta}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
     // Check if limit is reached for this tool
     const planTool = planoFerramentas.find(pf => pf.ferramenta === newLicense.ferramenta);
     if (planTool) {
