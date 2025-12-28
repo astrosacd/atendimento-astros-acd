@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
+import { ClientLicensesManager } from '@/components/ClientLicensesManager';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrencyInput, parseCurrency, formatCurrencyDisplay } from '@/utils/formatters';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
@@ -343,6 +344,12 @@ export default function AtualizarCliente() {
                   onlyFromSuggestions={true}
                 />
               </div>
+
+              {/* Licenses Manager */}
+              <ClientLicensesManager 
+                clienteId={selectedCliente.id} 
+                clientePlano={selectedCliente.plano} 
+              />
 
               {/* Files Manager - only for Registro clients */}
               {isClienteVitalicio && (
