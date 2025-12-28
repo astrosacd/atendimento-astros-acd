@@ -42,6 +42,7 @@ import AdminChamadosConfig from "./pages/AdminChamadosConfig";
 import AdminChamadosWebhooks from "./pages/AdminChamadosWebhooks";
 import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
+import AdminRelatorios from "./pages/AdminRelatorios";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import Catalogo from "./pages/public/Catalogo";
 import Checkout from "./pages/public/Checkout";
@@ -117,6 +118,9 @@ function AppRoutes() {
       <Route path="/admin/chamados/webhooks" element={<ProtectedRoute permission="chamados.webhooks"><AdminChamadosWebhooks /></ProtectedRoute>} />
       <Route path="/admin/chamados/api" element={<ProtectedRoute permission="chamados.api_keys"><AdminChamadosApiKeys /></ProtectedRoute>} />
       <Route path="/admin/chamados/guia" element={<ProtectedRoute permission="chamados.view"><AdminChamadosGuia /></ProtectedRoute>} />
+      
+      {/* Relatórios Route */}
+      <Route path="/admin/relatorios" element={<ProtectedRoute permission="view_reports"><AdminRelatorios /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />

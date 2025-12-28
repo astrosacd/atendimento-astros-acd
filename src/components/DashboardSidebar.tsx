@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports } = usePermissions();
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize from cache immediately to prevent flicker on navigation
@@ -132,6 +132,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
     { title: 'Gateway', icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
     { title: 'Revendedor', icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
+    { title: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
     { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
     { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
     { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
