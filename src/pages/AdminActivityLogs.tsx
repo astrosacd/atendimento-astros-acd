@@ -65,6 +65,8 @@ const AdminActivityLogs = () => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   const [logToRestore, setLogToRestore] = useState<ActivityLog | null>(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     loadLogs();
@@ -434,6 +436,34 @@ const AdminActivityLogs = () => {
     return <Icon className="w-4 h-4 text-muted-foreground" />;
   };
 
+  const clearAllLogs = async () => {
+    setIsClearing(true);
+    try {
+      const { error } = await supabase
+        .from('client_history')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) throw error;
+
+      toast({
+        title: 'Histórico limpo',
+        description: 'Todos os logs de atividade foram excluídos.',
+      });
+
+      setIsClearConfirmOpen(false);
+      setLogs([]);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao limpar histórico',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const stats = {
     total: filteredLogs.length,
     creates: filteredLogs.filter(l => l.action.toLowerCase() === 'create' || l.action.toLowerCase() === 'created').length,
@@ -598,7 +628,7 @@ const AdminActivityLogs = () => {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={loadLogs} disabled={isLoading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Atualizar
@@ -610,6 +640,15 @@ const AdminActivityLogs = () => {
             <Button onClick={exportToPDF} className="bg-gradient-to-r from-purple-500 to-violet-600">
               <FileDown className="w-4 h-4 mr-2" />
               PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsClearConfirmOpen(true)} 
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              disabled={logs.length === 0}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpar
             </Button>
           </div>
         </div>
@@ -877,6 +916,42 @@ const AdminActivityLogs = () => {
                   <>
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Confirmar Restauração
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Clear History Confirm */}
+        <AlertDialog open={isClearConfirmOpen} onOpenChange={setIsClearConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <Trash2 className="w-5 h-5" />
+                Limpar Histórico de Atividades
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação irá excluir permanentemente <strong>todos os {logs.length} registros</strong> do histórico de atividades. 
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isClearing}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={clearAllLogs}
+                disabled={isClearing}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isClearing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Limpando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Limpar Tudo
                   </>
                 )}
               </AlertDialogAction>
