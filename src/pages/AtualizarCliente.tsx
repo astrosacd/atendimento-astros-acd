@@ -48,6 +48,15 @@ export default function AtualizarCliente() {
   const [availablePlanos, setAvailablePlanos] = useState<{ id: string; nome: string }[]>([]);
   const [newPlano, setNewPlano] = useState<string | null>(null);
 
+  const normalizePlano = (plano?: string | null) => {
+    if (!plano) return null;
+    const cleaned = plano.trim();
+    if (!cleaned) return null;
+    if (cleaned.toLowerCase() === 'none') return null;
+    if (cleaned.toLowerCase() === 'nenhum') return null;
+    return cleaned;
+  };
+
   useEffect(() => {
     loadAvailableTags();
     loadAvailablePlanos();
@@ -83,14 +92,16 @@ export default function AtualizarCliente() {
   };
 
   const handleSelectCliente = (cliente: Cliente) => {
-    setSelectedCliente(cliente);
+    const planoNormalizado = normalizePlano(cliente.plano);
+
+    setSelectedCliente({ ...cliente, plano: planoNormalizado });
     setNewDate(cliente.data_renovacao);
     setNewObservacao(cliente.observacao || '');
     setNewTags(cliente.tags || []);
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
-    setNewPlano(cliente.plano || null);
+    setNewPlano(planoNormalizado);
     // Try to detect country code from the number
     const detectedCountry = detectCountryFromNumber(cliente.numero || '');
     setNewCountryCode(detectedCountry);
@@ -387,11 +398,11 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Licenses Manager - only show if client already has a reseller plan in database */}
-              {selectedCliente?.plano && (
+              {/* Licenses Manager - only show for clients that already are resellers */}
+              {normalizePlano(selectedCliente?.plano) && normalizePlano(newPlano) && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
-                  clientePlano={newPlano || selectedCliente.plano}
+                  clientePlano={newPlano as string}
                 />
               )}
 
