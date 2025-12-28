@@ -29,6 +29,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import AdminDivulgador from "./pages/AdminDivulgador";
 import AdminNumerosAquecimento from "./pages/AdminNumerosAquecimento";
+import AdminPlanosRevendedor from "./pages/AdminPlanosRevendedor";
 import ConsultaNumeros from "./pages/ConsultaNumeros";
 import ConsultaNumerosHistorico from "./pages/ConsultaNumerosHistorico";
 import ConsultaNumerosConfig from "./pages/ConsultaNumerosConfig";
@@ -106,6 +107,9 @@ function AppRoutes() {
       
       {/* Gateway Route */}
       <Route path="/admin/gateway" element={<ProtectedRoute permission="view_gateway"><AdminGateway /></ProtectedRoute>} />
+      
+      {/* Planos Revendedor */}
+      <Route path="/admin/planos-revendedor" element={<ProtectedRoute permission="manage_settings"><AdminPlanosRevendedor /></ProtectedRoute>} />
       
       {/* Chamados Routes */}
       <Route path="/admin/chamados" element={<ProtectedRoute permission="chamados.view"><AdminChamados /></ProtectedRoute>} />

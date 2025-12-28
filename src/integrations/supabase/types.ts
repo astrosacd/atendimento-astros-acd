@@ -2189,6 +2189,50 @@ export type Database = {
         }
         Relationships: []
       }
+      licencas_entregues: {
+        Row: {
+          cliente_id: string
+          codigo_licenca: string
+          created_at: string
+          created_by: string | null
+          data_entrega: string
+          ferramenta: string
+          id: string
+          observacao: string | null
+          origem: string
+        }
+        Insert: {
+          cliente_id: string
+          codigo_licenca: string
+          created_at?: string
+          created_by?: string | null
+          data_entrega?: string
+          ferramenta: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+        }
+        Update: {
+          cliente_id?: string
+          codigo_licenca?: string
+          created_at?: string
+          created_by?: string | null
+          data_entrega?: string
+          ferramenta?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licencas_entregues_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       numeros_aquecimento: {
         Row: {
           created_at: string
@@ -2481,6 +2525,71 @@ export type Database = {
           token?: string
           used?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      plano_ferramentas: {
+        Row: {
+          created_at: string
+          ferramenta: string
+          id: string
+          plano_id: string
+          quantidade_licencas: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ferramenta: string
+          id?: string
+          plano_id: string
+          quantidade_licencas?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ferramenta?: string
+          id?: string
+          plano_id?: string
+          quantidade_licencas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_ferramentas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos_revendedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos_revendedor: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          is_active: boolean
+          nome: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          nome: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          is_active?: boolean
+          nome?: string
+          updated_at?: string
+          valor?: number
         }
         Relationships: []
       }

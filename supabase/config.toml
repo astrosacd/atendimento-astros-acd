@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.billing-stripe-payment]
 verify_jwt = false
+
+[functions.api-licencas]
+verify_jwt = false
