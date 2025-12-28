@@ -185,35 +185,66 @@ export default function AdminRelatorios() {
     return soma / churnMetrics.length;
   }, [churnMetrics]);
 
-  // LTV Calculation
+  // LTV Calculation - Separado por moeda
   const ltvMetrics = useMemo(() => {
-    if (clientes.length === 0) return { ltv: 0, ticketMedio: 0, tempoMedioMeses: 0, mrrTotal: 0 };
+    if (clientes.length === 0) return { 
+      ltvBRL: 0, ltvUSD: 0,
+      ticketMedioBRL: 0, ticketMedioUSD: 0,
+      tempoMedioMeses: 0, 
+      mrrBRL: 0, mrrUSD: 0,
+      clientesBRL: 0, clientesUSD: 0
+    };
 
-    // Ticket médio mensal (normalizado para mensal)
-    const valoresMensais = clientes.map(c => {
-      const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
-      return c.valor / cicloMeses;
-    });
-    const ticketMedio = valoresMensais.reduce((a, b) => a + b, 0) / valoresMensais.length;
+    const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
+    const clientesUSD = clientes.filter(c => c.moeda === 'USD');
 
-    // Tempo médio de permanência (diferença entre data de criação e hoje ou renovação)
+    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[]) => {
+      if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
+      
+      const valoresMensais = clientesMoeda.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const ticketMedio = valoresMensais.reduce((a, b) => a + b, 0) / valoresMensais.length;
+      const mrr = valoresMensais.reduce((a, b) => a + b, 0);
+      
+      const today = new Date();
+      const temposMeses = clientesMoeda.map(c => {
+        const createdAt = parseISO(c.created_at);
+        const renovacao = parseISO(c.data_renovacao);
+        const dataFim = renovacao < today ? renovacao : today;
+        return Math.max(1, differenceInMonths(dataFim, createdAt));
+      });
+      const tempoMedio = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
+      const ltv = ticketMedio * tempoMedio;
+      
+      return { ticketMedio, mrr, ltv };
+    };
+
+    const metricasBRL = calcularMetricasPorMoeda(clientesBRL);
+    const metricasUSD = calcularMetricasPorMoeda(clientesUSD);
+
+    // Tempo médio geral
     const today = new Date();
     const temposMeses = clientes.map(c => {
       const createdAt = parseISO(c.created_at);
       const renovacao = parseISO(c.data_renovacao);
-      // Se a renovação já passou, usamos a renovação como "fim"
       const dataFim = renovacao < today ? renovacao : today;
       return Math.max(1, differenceInMonths(dataFim, createdAt));
     });
-    const tempoMedioMeses = temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length;
+    const tempoMedioMeses = temposMeses.length > 0 ? temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length : 0;
 
-    // LTV = Ticket médio * Tempo médio
-    const ltv = ticketMedio * tempoMedioMeses;
-
-    // MRR Total
-    const mrrTotal = valoresMensais.reduce((a, b) => a + b, 0);
-
-    return { ltv, ticketMedio, tempoMedioMeses, mrrTotal };
+    return { 
+      ltvBRL: metricasBRL.ltv, 
+      ltvUSD: metricasUSD.ltv,
+      ticketMedioBRL: metricasBRL.ticketMedio, 
+      ticketMedioUSD: metricasUSD.ticketMedio,
+      tempoMedioMeses, 
+      mrrBRL: metricasBRL.mrr, 
+      mrrUSD: metricasUSD.mrr,
+      clientesBRL: clientesBRL.length,
+      clientesUSD: clientesUSD.length
+    };
   }, [clientes]);
 
   // LTV por Plano
@@ -300,8 +331,11 @@ export default function AdminRelatorios() {
     return months;
   }, [clientes, periodoMeses]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  const formatCurrency = (value: number, currency: 'BRL' | 'USD' = 'BRL') => {
+    return new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'en-US', { 
+      style: 'currency', 
+      currency 
+    }).format(value);
   };
 
   const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue, info }: {
@@ -385,13 +419,68 @@ export default function AdminRelatorios() {
 
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="LTV Médio"
-            value={formatCurrency(ltvMetrics.ltv)}
-            subtitle={`Ticket: ${formatCurrency(ltvMetrics.ticketMedio)}/mês`}
-            icon={DollarSign}
-            info="Lifetime Value: quanto um cliente gasta em média durante todo o período que fica conosco"
-          />
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                MRR por Moeda
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">Receita Recorrente Mensal separada por moeda</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">BRL</span>
+                <span className="text-lg font-bold">{formatCurrency(ltvMetrics.mrrBRL, 'BRL')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">USD</span>
+                <span className="text-lg font-bold">{formatCurrency(ltvMetrics.mrrUSD, 'USD')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                {ltvMetrics.clientesBRL} clientes BRL • {ltvMetrics.clientesUSD} clientes USD
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                LTV por Moeda
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">Lifetime Value separado por moeda</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">BRL</span>
+                <span className="text-lg font-bold">{formatCurrency(ltvMetrics.ltvBRL, 'BRL')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">USD</span>
+                <span className="text-lg font-bold">{formatCurrency(ltvMetrics.ltvUSD, 'USD')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                Ticket: {formatCurrency(ltvMetrics.ticketMedioBRL, 'BRL')} • {formatCurrency(ltvMetrics.ticketMedioUSD, 'USD')}/mês
+              </p>
+            </CardContent>
+          </Card>
           <MetricCard
             title="Tempo Médio"
             value={`${ltvMetrics.tempoMedioMeses.toFixed(1)} meses`}
@@ -407,13 +496,6 @@ export default function AdminRelatorios() {
             trend={churnMedio > 5 ? 'down' : 'up'}
             trendValue={churnMedio > 5 ? 'Acima do ideal' : 'Saudável'}
             info="Porcentagem de clientes que cancelam por mês. Ideal: abaixo de 5%"
-          />
-          <MetricCard
-            title="MRR Atual"
-            value={formatCurrency(ltvMetrics.mrrTotal)}
-            subtitle={`${clientes.length} clientes ativos`}
-            icon={TrendingUp}
-            info="Receita Recorrente Mensal: soma dos valores mensais de todos os clientes"
           />
         </div>
 
@@ -598,27 +680,31 @@ export default function AdminRelatorios() {
                     <p className="text-sm text-muted-foreground">
                       <strong>LTV</strong> = Ticket Médio Mensal × Tempo Médio de Permanência
                     </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      <strong>Seu cálculo:</strong><br />
-                      {formatCurrency(ltvMetrics.ticketMedio)} × {ltvMetrics.tempoMedioMeses.toFixed(1)} meses = <strong>{formatCurrency(ltvMetrics.ltv)}</strong>
-                    </p>
+                    <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                      <strong>Seus cálculos:</strong>
+                      {ltvMetrics.clientesBRL > 0 && (
+                        <p>BRL: {formatCurrency(ltvMetrics.ticketMedioBRL, 'BRL')} × {ltvMetrics.tempoMedioMeses.toFixed(1)} meses = <strong>{formatCurrency(ltvMetrics.ltvBRL, 'BRL')}</strong></p>
+                      )}
+                      {ltvMetrics.clientesUSD > 0 && (
+                        <p>USD: {formatCurrency(ltvMetrics.ticketMedioUSD, 'USD')} × {ltvMetrics.tempoMedioMeses.toFixed(1)} meses = <strong>{formatCurrency(ltvMetrics.ltvUSD, 'USD')}</strong></p>
+                      )}
+                    </div>
                   </div>
                   <div className="p-4 bg-info/10 rounded-lg">
                     <h4 className="font-medium mb-2">Por que isso importa?</h4>
                     <p className="text-sm text-muted-foreground">
                       O LTV ajuda a saber quanto você pode investir para adquirir um novo cliente. 
-                      Se custa R$ 100 para trazer um cliente e ele gera {formatCurrency(ltvMetrics.ltv)} de receita, 
-                      você tem uma margem de {formatCurrency(ltvMetrics.ltv - 100)} por cliente.
+                      Quanto maior o LTV em relação ao custo de aquisição, melhor sua margem.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Ticket Médio</p>
-                      <p className="text-lg font-bold">{formatCurrency(ltvMetrics.ticketMedio)}/mês</p>
+                      <p className="text-xs text-muted-foreground">Ticket Médio BRL</p>
+                      <p className="text-lg font-bold">{formatCurrency(ltvMetrics.ticketMedioBRL, 'BRL')}/mês</p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">Tempo Médio</p>
-                      <p className="text-lg font-bold">{ltvMetrics.tempoMedioMeses.toFixed(1)} meses</p>
+                      <p className="text-xs text-muted-foreground">Ticket Médio USD</p>
+                      <p className="text-lg font-bold">{formatCurrency(ltvMetrics.ticketMedioUSD, 'USD')}/mês</p>
                     </div>
                   </div>
                 </CardContent>
