@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -221,7 +221,7 @@ export const useClientTasks = () => {
     }
   };
 
-  const getTaskStats = async (): Promise<{
+  const getTaskStats = useCallback(async (): Promise<{
     total: number;
     pendentes: number;
     em_andamento: number;
@@ -262,10 +262,10 @@ export const useClientTasks = () => {
       console.error('Error getting task stats:', error);
       return { total: 0, pendentes: 0, em_andamento: 0, concluidas: 0, atrasadas: 0 };
     }
-  };
+  }, []);
 
   // Get urgent tasks (overdue or due within 1 day)
-  const getUrgentTasks = async (): Promise<{
+  const getUrgentTasks = useCallback(async (): Promise<{
     overdue: ClientTask[];
     dueSoon: ClientTask[];
   }> => {
@@ -311,7 +311,7 @@ export const useClientTasks = () => {
       console.error('Error getting urgent tasks:', error);
       return { overdue: [], dueSoon: [] };
     }
-  };
+  }, []);
 
   return {
     isLoading,
