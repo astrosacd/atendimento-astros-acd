@@ -747,8 +747,14 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Section: Métricas Adicionais - Admin Only */}
         {isAdmin && (
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+          <>
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+              <span className="h-5 w-1 bg-update rounded-full"></span>
+              Métricas Adicionais
+            </h3>
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
@@ -786,6 +792,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
         {/* Charts Row - Admin Only */}
