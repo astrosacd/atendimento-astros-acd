@@ -47,6 +47,7 @@ export default function AtualizarCliente() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [availablePlanos, setAvailablePlanos] = useState<{ id: string; nome: string }[]>([]);
   const [newPlano, setNewPlano] = useState<string | null>(null);
+  const [isOriginallyReseller, setIsOriginallyReseller] = useState(false);
 
   const normalizePlano = (plano?: string | null) => {
     if (!plano) return null;
@@ -93,8 +94,9 @@ export default function AtualizarCliente() {
 
   const handleSelectCliente = (cliente: Cliente) => {
     const planoNormalizado = normalizePlano(cliente.plano);
+    const clienteIsReseller = planoNormalizado !== null;
 
-    setSelectedCliente({ ...cliente, plano: planoNormalizado });
+    setSelectedCliente(cliente);
     setNewDate(cliente.data_renovacao);
     setNewObservacao(cliente.observacao || '');
     setNewTags(cliente.tags || []);
@@ -102,6 +104,7 @@ export default function AtualizarCliente() {
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
     setNewPlano(planoNormalizado);
+    setIsOriginallyReseller(clienteIsReseller);
     // Try to detect country code from the number
     const detectedCountry = detectCountryFromNumber(cliente.numero || '');
     setNewCountryCode(detectedCountry);
@@ -169,6 +172,7 @@ export default function AtualizarCliente() {
       setNewNumero('');
       setNewValor('');
       setNewPlano(null);
+      setIsOriginallyReseller(false);
     }
     setShowConfirm(false);
   };
@@ -398,11 +402,11 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Licenses Manager - only show for clients that already are resellers */}
-              {normalizePlano(selectedCliente?.plano) && normalizePlano(newPlano) && (
+              {/* Licenses Manager - only show for clients that were originally resellers AND have a plan selected */}
+              {isOriginallyReseller && newPlano && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
-                  clientePlano={newPlano as string}
+                  clientePlano={newPlano}
                 />
               )}
 
