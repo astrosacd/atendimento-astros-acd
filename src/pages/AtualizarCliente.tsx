@@ -402,8 +402,8 @@ export default function AtualizarCliente() {
                 />
               </div>
 
-              {/* Licenses Manager - only show for clients that were originally resellers AND have a plan selected */}
-              {isOriginallyReseller && newPlano && (
+              {/* Licenses Manager - show when any plan is selected */}
+              {newPlano && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
                   clientePlano={newPlano}
