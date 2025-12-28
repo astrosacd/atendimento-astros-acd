@@ -562,6 +562,17 @@ const AdminApiKeys = () => {
                         <li><code className="bg-muted px-1 rounded">valor</code> - Valor (número)</li>
                       </ul>
                     </div>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">Campos opcionais:</p>
+                      <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                        <li><code className="bg-muted px-1 rounded">plano</code> - Nome do plano</li>
+                        <li><code className="bg-muted px-1 rounded">observacao</code> - Observações</li>
+                        <li><code className="bg-muted px-1 rounded">moeda</code> - Moeda: "BRL" ou "USD" (padrão: BRL)</li>
+                        <li><code className="bg-muted px-1 rounded">tags</code> - Array de strings (ex: ["vip", "premium"])</li>
+                        <li><code className="bg-muted px-1 rounded">cobranca_ativa</code> - true/false (padrão: true)</li>
+                        <li><code className="bg-muted px-1 rounded">ciclo_cobranca</code> - "mensal", "bimestral", "trimestral", "semestral" ou "anual" (padrão: mensal)</li>
+                      </ul>
+                    </div>
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
                         Exemplo curl:
@@ -581,7 +592,11 @@ const AdminApiKeys = () => {
     "data_renovacao": "2024-12-31",
     "valor": 99.90,
     "plano": "Mensal",
-    "observacao": "Cliente VIP"
+    "observacao": "Cliente VIP",
+    "moeda": "BRL",
+    "tags": ["vip", "premium"],
+    "cobranca_ativa": true,
+    "ciclo_cobranca": "mensal"
   }'`, 'curl-post')}
                         >
                           {copiedKey === 'curl-post' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
@@ -600,7 +615,11 @@ const AdminApiKeys = () => {
     "data_renovacao": "2024-12-31",
     "valor": 99.90,
     "plano": "Mensal",
-    "observacao": "Cliente VIP"
+    "observacao": "Cliente VIP",
+    "moeda": "BRL",
+    "tags": ["vip", "premium"],
+    "cobranca_ativa": true,
+    "ciclo_cobranca": "mensal"
   }'`}
                       </pre>
                     </div>
@@ -641,7 +660,10 @@ const AdminApiKeys = () => {
   -H "Content-Type: application/json" \\
   -d '{
     "nome": "João Silva Atualizado",
-    "valor": 149.90
+    "valor": 149.90,
+    "moeda": "USD",
+    "tags": ["vip"],
+    "ciclo_cobranca": "trimestral"
   }'`, 'curl-put')}
                         >
                           {copiedKey === 'curl-put' ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
@@ -653,7 +675,10 @@ const AdminApiKeys = () => {
   -H "Content-Type: application/json" \\
   -d '{
     "nome": "João Silva Atualizado",
-    "valor": 149.90
+    "valor": 149.90,
+    "moeda": "USD",
+    "tags": ["vip"],
+    "ciclo_cobranca": "trimestral"
   }'`}
                       </pre>
                     </div>
