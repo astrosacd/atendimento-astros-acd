@@ -128,11 +128,15 @@ export default function Dashboard() {
   }, [userRole]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchStats = async () => {
       // Fetch all clients for stats
       const { data: clientes } = await supabase
         .from('clientes')
         .select('*');
+
+      if (!isMounted) return;
 
       const today = new Date();
       const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -250,11 +254,14 @@ export default function Dashboard() {
       // Task stats (only for users with task permission)
       if (canManageTasks()) {
         const taskStats = await getTaskStats();
+        if (!isMounted) return;
         tarefasPendentes = taskStats.pendentes;
         tarefasEmAndamento = taskStats.em_andamento;
         tarefasAtrasadas = taskStats.atrasadas;
         tarefasConcluidas = taskStats.concluidas;
       }
+
+      if (!isMounted) return;
 
       setStats({
         totalClientes: clientes?.length || 0,
@@ -283,14 +290,24 @@ export default function Dashboard() {
     };
 
     if (user) fetchStats();
-  }, [user, isAdmin, getTaskStats, canManageTasks]);
+    
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAdmin]);
 
   // Fetch urgent tasks and show alerts (only for users with task permission)
   useEffect(() => {
     if (!canManageTasks()) return;
     
+    let isMounted = true;
+    
     const fetchUrgentTasks = async () => {
       const urgent = await getUrgentTasks();
+      
+      if (!isMounted) return;
+      
       setUrgentTasks(urgent);
 
       // Show alerts only once per session
@@ -317,7 +334,12 @@ export default function Dashboard() {
     };
 
     if (user) fetchUrgentTasks();
-  }, [user, getUrgentTasks, alertsShown, toast, canManageTasks]);
+    
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, alertsShown]);
 
   const getClientesPorMes = (clientes: any[]) => {
     const meses: { [key: string]: number } = {};
