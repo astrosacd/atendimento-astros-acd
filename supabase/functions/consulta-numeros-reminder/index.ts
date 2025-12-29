@@ -282,15 +282,225 @@ Deno.serve(async (req) => {
       return '';
     };
 
+    // Mapeamento de DDIs para siglas de países
+    const ddiToCountry: Record<string, string> = {
+      '1': 'US/CA',    // Estados Unidos / Canadá
+      '7': 'RU',       // Rússia
+      '20': 'EG',      // Egito
+      '27': 'ZA',      // África do Sul
+      '30': 'GR',      // Grécia
+      '31': 'NL',      // Holanda
+      '32': 'BE',      // Bélgica
+      '33': 'FR',      // França
+      '34': 'ES',      // Espanha
+      '36': 'HU',      // Hungria
+      '39': 'IT',      // Itália
+      '40': 'RO',      // Romênia
+      '41': 'CH',      // Suíça
+      '43': 'AT',      // Áustria
+      '44': 'GB',      // Reino Unido
+      '45': 'DK',      // Dinamarca
+      '46': 'SE',      // Suécia
+      '47': 'NO',      // Noruega
+      '48': 'PL',      // Polônia
+      '49': 'DE',      // Alemanha
+      '51': 'PE',      // Peru
+      '52': 'MX',      // México
+      '53': 'CU',      // Cuba
+      '54': 'AR',      // Argentina
+      '56': 'CL',      // Chile
+      '57': 'CO',      // Colômbia
+      '58': 'VE',      // Venezuela
+      '60': 'MY',      // Malásia
+      '61': 'AU',      // Austrália
+      '62': 'ID',      // Indonésia
+      '63': 'PH',      // Filipinas
+      '64': 'NZ',      // Nova Zelândia
+      '65': 'SG',      // Singapura
+      '66': 'TH',      // Tailândia
+      '81': 'JP',      // Japão
+      '82': 'KR',      // Coreia do Sul
+      '84': 'VN',      // Vietnã
+      '86': 'CN',      // China
+      '90': 'TR',      // Turquia
+      '91': 'IN',      // Índia
+      '92': 'PK',      // Paquistão
+      '93': 'AF',      // Afeganistão
+      '94': 'LK',      // Sri Lanka
+      '95': 'MM',      // Mianmar
+      '98': 'IR',      // Irã
+      '212': 'MA',     // Marrocos
+      '213': 'DZ',     // Argélia
+      '216': 'TN',     // Tunísia
+      '218': 'LY',     // Líbia
+      '220': 'GM',     // Gâmbia
+      '221': 'SN',     // Senegal
+      '222': 'MR',     // Mauritânia
+      '223': 'ML',     // Mali
+      '224': 'GN',     // Guiné
+      '225': 'CI',     // Costa do Marfim
+      '226': 'BF',     // Burkina Faso
+      '227': 'NE',     // Níger
+      '228': 'TG',     // Togo
+      '229': 'BJ',     // Benin
+      '230': 'MU',     // Maurício
+      '231': 'LR',     // Libéria
+      '232': 'SL',     // Serra Leoa
+      '233': 'GH',     // Gana
+      '234': 'NG',     // Nigéria
+      '235': 'TD',     // Chade
+      '236': 'CF',     // República Centro-Africana
+      '237': 'CM',     // Camarões
+      '238': 'CV',     // Cabo Verde
+      '239': 'ST',     // São Tomé e Príncipe
+      '240': 'GQ',     // Guiné Equatorial
+      '241': 'GA',     // Gabão
+      '242': 'CG',     // Congo
+      '243': 'CD',     // RD Congo
+      '244': 'AO',     // Angola
+      '245': 'GW',     // Guiné-Bissau
+      '248': 'SC',     // Seychelles
+      '249': 'SD',     // Sudão
+      '250': 'RW',     // Ruanda
+      '251': 'ET',     // Etiópia
+      '252': 'SO',     // Somália
+      '253': 'DJ',     // Djibuti
+      '254': 'KE',     // Quênia
+      '255': 'TZ',     // Tanzânia
+      '256': 'UG',     // Uganda
+      '257': 'BI',     // Burundi
+      '258': 'MZ',     // Moçambique
+      '260': 'ZM',     // Zâmbia
+      '261': 'MG',     // Madagascar
+      '262': 'RE',     // Reunião
+      '263': 'ZW',     // Zimbábue
+      '264': 'NA',     // Namíbia
+      '265': 'MW',     // Malawi
+      '266': 'LS',     // Lesoto
+      '267': 'BW',     // Botsuana
+      '268': 'SZ',     // Eswatini
+      '269': 'KM',     // Comores
+      '290': 'SH',     // Santa Helena
+      '291': 'ER',     // Eritreia
+      '297': 'AW',     // Aruba
+      '298': 'FO',     // Ilhas Faroé
+      '299': 'GL',     // Groenlândia
+      '350': 'GI',     // Gibraltar
+      '351': 'PT',     // Portugal
+      '352': 'LU',     // Luxemburgo
+      '353': 'IE',     // Irlanda
+      '354': 'IS',     // Islândia
+      '355': 'AL',     // Albânia
+      '356': 'MT',     // Malta
+      '357': 'CY',     // Chipre
+      '358': 'FI',     // Finlândia
+      '359': 'BG',     // Bulgária
+      '370': 'LT',     // Lituânia
+      '371': 'LV',     // Letônia
+      '372': 'EE',     // Estônia
+      '373': 'MD',     // Moldávia
+      '374': 'AM',     // Armênia
+      '375': 'BY',     // Bielorrússia
+      '376': 'AD',     // Andorra
+      '377': 'MC',     // Mônaco
+      '378': 'SM',     // San Marino
+      '380': 'UA',     // Ucrânia
+      '381': 'RS',     // Sérvia
+      '382': 'ME',     // Montenegro
+      '383': 'XK',     // Kosovo
+      '385': 'HR',     // Croácia
+      '386': 'SI',     // Eslovênia
+      '387': 'BA',     // Bósnia
+      '389': 'MK',     // Macedônia do Norte
+      '420': 'CZ',     // Tchéquia
+      '421': 'SK',     // Eslováquia
+      '423': 'LI',     // Liechtenstein
+      '500': 'FK',     // Ilhas Malvinas
+      '501': 'BZ',     // Belize
+      '502': 'GT',     // Guatemala
+      '503': 'SV',     // El Salvador
+      '504': 'HN',     // Honduras
+      '505': 'NI',     // Nicarágua
+      '506': 'CR',     // Costa Rica
+      '507': 'PA',     // Panamá
+      '508': 'PM',     // Saint Pierre
+      '509': 'HT',     // Haiti
+      '590': 'GP',     // Guadalupe
+      '591': 'BO',     // Bolívia
+      '592': 'GY',     // Guiana
+      '593': 'EC',     // Equador
+      '594': 'GF',     // Guiana Francesa
+      '595': 'PY',     // Paraguai
+      '596': 'MQ',     // Martinica
+      '597': 'SR',     // Suriname
+      '598': 'UY',     // Uruguai
+      '599': 'CW',     // Curaçao
+      '670': 'TL',     // Timor-Leste
+      '672': 'NF',     // Ilha Norfolk
+      '673': 'BN',     // Brunei
+      '674': 'NR',     // Nauru
+      '675': 'PG',     // Papua Nova Guiné
+      '676': 'TO',     // Tonga
+      '677': 'SB',     // Ilhas Salomão
+      '678': 'VU',     // Vanuatu
+      '679': 'FJ',     // Fiji
+      '680': 'PW',     // Palau
+      '681': 'WF',     // Wallis e Futuna
+      '682': 'CK',     // Ilhas Cook
+      '683': 'NU',     // Niue
+      '685': 'WS',     // Samoa
+      '686': 'KI',     // Kiribati
+      '687': 'NC',     // Nova Caledônia
+      '688': 'TV',     // Tuvalu
+      '689': 'PF',     // Polinésia Francesa
+      '690': 'TK',     // Tokelau
+      '691': 'FM',     // Micronésia
+      '692': 'MH',     // Ilhas Marshall
+      '850': 'KP',     // Coreia do Norte
+      '852': 'HK',     // Hong Kong
+      '853': 'MO',     // Macau
+      '855': 'KH',     // Camboja
+      '856': 'LA',     // Laos
+      '880': 'BD',     // Bangladesh
+      '886': 'TW',     // Taiwan
+      '960': 'MV',     // Maldivas
+      '961': 'LB',     // Líbano
+      '962': 'JO',     // Jordânia
+      '963': 'SY',     // Síria
+      '964': 'IQ',     // Iraque
+      '965': 'KW',     // Kuwait
+      '966': 'SA',     // Arábia Saudita
+      '967': 'YE',     // Iêmen
+      '968': 'OM',     // Omã
+      '970': 'PS',     // Palestina
+      '971': 'AE',     // Emirados Árabes
+      '972': 'IL',     // Israel
+      '973': 'BH',     // Bahrein
+      '974': 'QA',     // Catar
+      '975': 'BT',     // Butão
+      '976': 'MN',     // Mongólia
+      '977': 'NP',     // Nepal
+      '992': 'TJ',     // Tajiquistão
+      '993': 'TM',     // Turcomenistão
+      '994': 'AZ',     // Azerbaijão
+      '995': 'GE',     // Geórgia
+      '996': 'KG',     // Quirguistão
+      '998': 'UZ',     // Uzbequistão
+    };
+
+    // Função para detectar país pelo DDI
+    const getCountryByDDI = (cleanNumber: string): string | null => {
+      // Tenta DDIs de 3 dígitos primeiro, depois 2, depois 1
+      for (const len of [3, 2, 1]) {
+        const prefix = cleanNumber.slice(0, len);
+        if (ddiToCountry[prefix]) {
+          return ddiToCountry[prefix];
+        }
+      }
+      return null;
+    };
+
     // Function to detect if number is national (Brazil) or international
-    // Heuristic notes:
-    // - If the number comes with DDI 55, it's definitely Brazilian.
-    // - If it comes without DDI, we assume Brazilian format is:
-    //   - 10 digits: DDD (2) + landline (8)
-    //   - 11 digits: DDD (2) + mobile (9, usually starts with 9)
-    // - Some international numbers (ex: US/Canada) can be 11 digits starting with country code 1,
-    //   which conflicts with Brazilian DDDs 12-19. To reduce false positives:
-    //   - If length is 11 and starts with '1' and the 3rd digit is NOT '9', treat as international.
     const detectNumberType = (numero: any): string => {
       const raw = numero == null ? '' : String(numero);
       const cleanNumber = raw.replace(/\D/g, '');
@@ -299,32 +509,45 @@ Deno.serve(async (req) => {
       const debugId = `${cleanNumber.slice(0, 3)}…(len=${cleanNumber.length})`;
 
       // Brazil with DDI
-      if (cleanNumber.startsWith('55')) return '🇧🇷 Nacional';
+      if (cleanNumber.startsWith('55')) return '🇧🇷 BR';
 
       // Likely NANP (US/Canada): 1 + 10 digits.
-      // Avoid misclassifying as Brazilian DDD 12-19 (ex: 15307790079, 14152301300)
       if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
         const thirdDigit = cleanNumber.charAt(2);
         if (thirdDigit !== '9') {
-          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (NANP heuristic)`);
-          return '🌍 Internacional';
+          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (US/CA)`);
+          return '🌍 US/CA';
+        }
+      }
+
+      // Tentar identificar país pelo DDI para números longos (provavelmente internacionais)
+      if (cleanNumber.length > 11) {
+        const country = getCountryByDDI(cleanNumber);
+        if (country) {
+          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (${country})`);
+          return `🌍 ${country}`;
         }
       }
 
       // Brazil without DDI
       if (cleanNumber.length === 10) {
         const ddd = parseInt(cleanNumber.substring(0, 2), 10);
-        if (ddd >= 11 && ddd <= 99) return '🇧🇷 Nacional';
+        if (ddd >= 11 && ddd <= 99) return '🇧🇷 BR';
       }
 
       if (cleanNumber.length === 11) {
         const ddd = parseInt(cleanNumber.substring(0, 2), 10);
         const thirdDigit = cleanNumber.charAt(2);
-        // Mobile in BR is typically 9 digits starting with 9 (after DDD)
-        if (ddd >= 11 && ddd <= 99 && thirdDigit === '9') return '🇧🇷 Nacional';
+        if (ddd >= 11 && ddd <= 99 && thirdDigit === '9') return '🇧🇷 BR';
       }
 
-      return '🌍 Internacional';
+      // Fallback: tentar identificar pelo DDI
+      const country = getCountryByDDI(cleanNumber);
+      if (country) {
+        return `🌍 ${country}`;
+      }
+
+      return '🌍 INT';
     };
 
     for (const row of allRows) {
