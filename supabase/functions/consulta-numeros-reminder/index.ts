@@ -287,13 +287,24 @@ Deno.serve(async (req) => {
       // Remove any non-digit characters
       const cleanNumber = numero.replace(/\D/g, '');
       
+      if (cleanNumber.length === 0) return 'N/A';
+      
       // Check if starts with 55 (Brazil DDI)
       if (cleanNumber.startsWith('55')) {
         return '🇧🇷 Nacional';
-      } else if (cleanNumber.length > 0) {
-        return '🌍 Internacional';
       }
-      return 'N/A';
+      
+      // Check if it's a Brazilian number without DDI (10-11 digits starting with valid DDD 11-99)
+      if (cleanNumber.length >= 10 && cleanNumber.length <= 11) {
+        const possibleDDD = parseInt(cleanNumber.substring(0, 2), 10);
+        // Valid Brazilian DDDs range from 11 to 99
+        if (possibleDDD >= 11 && possibleDDD <= 99) {
+          return '🇧🇷 Nacional';
+        }
+      }
+      
+      // Otherwise, it's international
+      return '🌍 Internacional';
     };
 
     for (const row of allRows) {
