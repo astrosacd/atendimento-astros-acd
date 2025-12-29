@@ -283,27 +283,41 @@ Deno.serve(async (req) => {
     };
 
     // Function to detect if number is national (Brazil) or international
+    // Heuristic notes:
+    // - If the number comes with DDI 55, it's definitely Brazilian.
+    // - If it comes without DDI, we assume Brazilian format is:
+    //   - 10 digits: DDD (2) + landline (8)
+    //   - 11 digits: DDD (2) + mobile (9, usually starts with 9)
+    // - Some international numbers (ex: US/Canada) can be 11 digits starting with country code 1,
+    //   which conflicts with Brazilian DDDs 11-19. To reduce false positives:
+    //   - If length is 11 and starts with '1' and the 3rd digit is NOT '9', treat as international.
     const detectNumberType = (numero: string): string => {
-      // Remove any non-digit characters
-      const cleanNumber = numero.replace(/\D/g, '');
-      
+      const cleanNumber = (numero ?? '').replace(/\D/g, '');
       if (cleanNumber.length === 0) return 'N/A';
-      
-      // Check if starts with 55 (Brazil DDI)
-      if (cleanNumber.startsWith('55')) {
-        return '🇧🇷 Nacional';
+
+      // Brazil with DDI
+      if (cleanNumber.startsWith('55')) return '🇧🇷 Nacional';
+
+      // Likely NANP (US/Canada): 1 + 10 digits. Avoid misclassifying as Brazilian DDD 11-19.
+      // Example provided: 15307790079 (should be international)
+      if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
+        const thirdDigit = cleanNumber.charAt(2);
+        if (thirdDigit !== '9') return '🌍 Internacional';
       }
-      
-      // Check if it's a Brazilian number without DDI (10-11 digits starting with valid DDD 11-99)
-      if (cleanNumber.length >= 10 && cleanNumber.length <= 11) {
-        const possibleDDD = parseInt(cleanNumber.substring(0, 2), 10);
-        // Valid Brazilian DDDs range from 11 to 99
-        if (possibleDDD >= 11 && possibleDDD <= 99) {
-          return '🇧🇷 Nacional';
-        }
+
+      // Brazil without DDI
+      if (cleanNumber.length === 10) {
+        const ddd = parseInt(cleanNumber.substring(0, 2), 10);
+        if (ddd >= 11 && ddd <= 99) return '🇧🇷 Nacional';
       }
-      
-      // Otherwise, it's international
+
+      if (cleanNumber.length === 11) {
+        const ddd = parseInt(cleanNumber.substring(0, 2), 10);
+        const thirdDigit = cleanNumber.charAt(2);
+        // Mobile in BR is typically 9 digits starting with 9 (after DDD)
+        if (ddd >= 11 && ddd <= 99 && thirdDigit === '9') return '🇧🇷 Nacional';
+      }
+
       return '🌍 Internacional';
     };
 
