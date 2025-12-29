@@ -164,42 +164,32 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           navigate(item.path);
         }}
         className={cn(
-          "w-full justify-start gap-3 h-11 px-3 relative group transition-all duration-300",
+          "w-full justify-start gap-3 h-11 px-3 relative group",
+          "transition-[background,transform] duration-200 ease-out",
           isActive
-            ? "bg-gradient-to-r from-primary/20 to-primary/5 text-primary font-medium hover:from-primary/25 hover:to-primary/10"
-            : "text-muted-foreground hover:text-foreground hover:bg-gradient-to-r hover:from-muted/80 hover:to-muted/40",
+            ? "bg-primary/15 text-primary font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
           collapsed && "justify-center px-0"
         )}
       >
-        {/* Active indicator with glow */}
+        {/* Active indicator */}
         {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-gradient-to-b from-primary via-primary to-primary/50 rounded-r-full shadow-lg shadow-primary/50" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
         )}
         
-        {/* Icon with gradient background on active */}
+        {/* Icon */}
         <div className={cn(
-          "relative flex items-center justify-center shrink-0 transition-all duration-300",
-          isActive ? "scale-110" : "group-hover:scale-105"
+          "relative flex items-center justify-center shrink-0",
+          isActive && "scale-110"
         )}>
-          {isActive && (
-            <div className={cn(
-              "absolute inset-0 rounded-lg bg-gradient-to-br opacity-20 blur-sm -m-1",
-              item.gradient || "from-primary to-primary/50"
-            )} />
-          )}
           <item.icon className={cn(
-            "h-5 w-5 relative z-10 transition-colors duration-300",
+            "h-5 w-5",
             isActive ? "text-primary" : item.color || "text-muted-foreground group-hover:text-foreground"
           )} />
         </div>
         
         {!collapsed && (
           <span className="truncate text-sm">{item.title}</span>
-        )}
-        
-        {/* Hover glow effect */}
-        {!isActive && !collapsed && (
-          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
       </Button>
     );
@@ -210,7 +200,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           <TooltipTrigger asChild>
             {button}
           </TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover/95 backdrop-blur-sm border-border/50 shadow-xl">
+          <TooltipContent side="right" className="bg-popover border-border shadow-lg">
             {item.title}
           </TooltipContent>
         </Tooltip>
@@ -222,88 +212,70 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
 
   return (
     <aside className={cn(
-      "fixed left-0 top-0 h-full bg-gradient-to-b from-card via-card to-card/95 border-r border-border/30 flex flex-col transition-all duration-300 z-20",
-      collapsed ? "w-[68px]" : "w-60",
-      // Glass morphism effect
-      "backdrop-blur-xl shadow-2xl shadow-black/20"
+      "fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col transition-[width] duration-300 z-20",
+      collapsed ? "w-[68px]" : "w-60"
     )}>
-      {/* Decorative gradient line at top */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       
       {/* Header */}
       <div className={cn(
-        "p-4 border-b border-border/30 flex items-center relative overflow-hidden",
+        "p-4 border-b border-border flex items-center",
         collapsed ? "justify-center" : "justify-between"
       )}>
-        {/* Background glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-        
         {!collapsed ? (
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="relative group">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary to-primary/60 blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
                 <span className="text-primary-foreground font-bold text-lg">A</span>
-                <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-yellow-400 animate-pulse" />
               </div>
+              <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-amber-400" />
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-bold text-foreground text-sm tracking-wide">Astros CRM</span>
-              <span className="text-[10px] text-muted-foreground/80 font-medium">Sistema de Gestão</span>
+              <span className="font-display font-bold text-foreground text-sm">Astros CRM</span>
+              <span className="text-[10px] text-muted-foreground">Sistema de Gestão</span>
             </div>
           </div>
         ) : (
-          <div className="relative group">
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary to-primary/60 blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground font-bold text-lg">A</span>
-            </div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
+            <span className="text-primary-foreground font-bold text-lg">A</span>
           </div>
         )}
       </div>
 
       {/* Toggle Button */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
         onClick={handleToggle}
-        className={cn(
-          "absolute -right-3 top-20 h-6 w-6 rounded-full border border-border/50 bg-card/95 backdrop-blur-sm shadow-lg hover:bg-muted hover:scale-110 transition-all duration-300",
-          "flex items-center justify-center z-30"
-        )}
+        className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-card shadow-md hover:bg-muted transition-colors z-30"
       >
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </Button>
 
       {/* User Info */}
       {!collapsed && (
-        <div className="px-4 py-3 border-b border-border/30 relative overflow-hidden">
-          {/* Background shimmer */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-50" />
-          
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 blur-sm" />
-              <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/30 shadow-inner">
-                {isLoading ? (
-                  <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
-                ) : (
-                  <span className="text-primary font-semibold text-sm">
-                    {(userName || 'U').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+              {isLoading ? (
+                <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
+              ) : (
+                <span className="text-primary font-semibold text-sm">
+                  {(userName || 'U').charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               {isLoading ? (
-                <div className="h-4 w-24 bg-muted/50 rounded animate-pulse mb-1" />
+                <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
               ) : (
                 <p className="text-sm font-medium text-foreground truncate">{userName}</p>
               )}
-              <p className="text-[10px] text-muted-foreground/80 font-medium flex items-center gap-1">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
                 <span className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  isAdmin ? "bg-primary animate-pulse" : "bg-muted-foreground"
+                  isAdmin ? "bg-primary" : "bg-muted-foreground"
                 )} />
                 {isAdmin ? 'Administrador' : 'Usuário'}
               </p>
@@ -315,10 +287,10 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       {/* Navigation */}
       <nav
         ref={navRef}
-        className="flex-1 p-2 space-y-1 overflow-y-auto scrollbar-thin"
+        className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin"
       >
         {!collapsed && (
-          <p className="px-3 py-2 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.15em]">
+          <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
             Clientes
           </p>
         )}
@@ -330,11 +302,11 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         {visibleAdminItems.length > 0 && (
           <>
             {!collapsed ? (
-              <p className="px-3 py-2 mt-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.15em]">
+              <p className="px-3 py-2 mt-4 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Administração
               </p>
             ) : (
-              <div className="my-3 mx-2 border-t border-border/30" />
+              <div className="my-3 mx-2 border-t border-border" />
             )}
             {visibleAdminItems.map((item) => (
               <NavButton key={item.path} item={item} />
@@ -351,15 +323,15 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
                   <Button
                     variant="ghost"
                     onClick={onOpenChat}
-                    className="w-full justify-center h-11 px-0 mt-2 text-purple-400 hover:text-purple-300 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-purple-500/5 transition-all duration-300 group"
+                    className="w-full justify-center h-11 px-0 mt-2 text-purple-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
                   >
                     <div className="relative">
-                      <MessageCircle className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                      <MessageCircle className="h-5 w-5" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
                     </div>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-popover/95 backdrop-blur-sm border-border/50 shadow-xl">
+                <TooltipContent side="right" className="bg-popover border-border shadow-lg">
                   Ajuda
                 </TooltipContent>
               </Tooltip>
@@ -367,14 +339,13 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
               <Button
                 variant="ghost"
                 onClick={onOpenChat}
-                className="w-full justify-start gap-3 h-11 px-3 mt-2 text-purple-400 hover:text-purple-300 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-purple-500/5 transition-all duration-300 group relative overflow-hidden"
+                className="w-full justify-start gap-3 h-11 px-3 mt-2 text-purple-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="relative">
-                  <MessageCircle className="h-5 w-5 shrink-0 group-hover:scale-110 transition-transform duration-300" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
+                  <MessageCircle className="h-5 w-5 shrink-0" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
                 </div>
-                <span className="text-sm relative z-10">Ajuda</span>
+                <span className="text-sm">Ajuda</span>
               </Button>
             )}
           </>
@@ -382,22 +353,19 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       </nav>
 
       {/* Footer */}
-      <div className="p-2 border-t border-border/30 relative">
-        {/* Subtle gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-destructive/5 to-transparent pointer-events-none opacity-0 hover:opacity-100 transition-opacity" />
-        
+      <div className="p-2 border-t border-border">
         {collapsed ? (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 onClick={handleSignOut}
-                className="w-full justify-center h-11 px-0 text-muted-foreground hover:text-destructive hover:bg-gradient-to-r hover:from-destructive/20 hover:to-destructive/5 transition-all duration-300 group"
+                className="w-full justify-center h-11 px-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
-                <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                <LogOut className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="bg-popover/95 backdrop-blur-sm border-border/50 shadow-xl">
+            <TooltipContent side="right" className="bg-popover border-border shadow-lg">
               Sair
             </TooltipContent>
           </Tooltip>
@@ -405,17 +373,13 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           <Button
             variant="ghost"
             onClick={handleSignOut}
-            className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-destructive hover:bg-gradient-to-r hover:from-destructive/20 hover:to-destructive/5 transition-all duration-300 group relative overflow-hidden"
+            className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-destructive/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <LogOut className="h-5 w-5 shrink-0 group-hover:scale-110 transition-transform duration-300 relative z-10" />
-            <span className="text-sm relative z-10">Sair</span>
+            <LogOut className="h-5 w-5 shrink-0" />
+            <span className="text-sm">Sair</span>
           </Button>
         )}
       </div>
-      
-      {/* Bottom decorative line */}
-      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
     </aside>
   );
 }
