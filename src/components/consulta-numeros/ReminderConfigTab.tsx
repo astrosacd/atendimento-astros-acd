@@ -657,9 +657,14 @@ export function ReminderConfigTab() {
             <div className="p-4 bg-muted/50 rounded-lg space-y-2">
               <p className="text-sm font-medium">Variáveis disponíveis:</p>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li><code className="bg-muted px-1 rounded">{'{count}'}</code> - Quantidade de números encontrados</li>
-                <li><code className="bg-muted px-1 rounded">{'{numbers}'}</code> - Lista dos números (um por linha)</li>
+                <li><code className="bg-muted px-1 rounded">{'{count}'}</code> - Quantidade total de números encontrados</li>
+                <li><code className="bg-muted px-1 rounded">{'{nationals}'}</code> - Quantidade de números nacionais (🇧🇷)</li>
+                <li><code className="bg-muted px-1 rounded">{'{internationals}'}</code> - Quantidade de números internacionais (🌍)</li>
+                <li><code className="bg-muted px-1 rounded">{'{numbers}'}</code> - Lista dos números com status e tipo (Nacional/Internacional)</li>
               </ul>
+              <p className="text-xs text-muted-foreground mt-2">
+                <strong>Nota:</strong> Cada número será exibido no formato: <code className="bg-muted px-1 rounded">número - status - 🇧🇷 Nacional</code> ou <code className="bg-muted px-1 rounded">número - status - 🌍 Internacional</code>
+              </p>
             </div>
           </div>
 

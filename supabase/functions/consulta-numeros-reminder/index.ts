@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
     }
 
     // Filter rows by monitored statuses
-    const matchingRows: { numero: string; status: string }[] = [];
+    const matchingRows: { numero: string; status: string; tipo: string }[] = [];
 
     const normalizeStatus = (s: unknown): string => {
       if (!s) return '';
@@ -280,6 +280,20 @@ Deno.serve(async (req) => {
         if (obj.id != null) return excluidoOptionsById[String(obj.id)] || '';
       }
       return '';
+    };
+
+    // Function to detect if number is national (Brazil) or international
+    const detectNumberType = (numero: string): string => {
+      // Remove any non-digit characters
+      const cleanNumber = numero.replace(/\D/g, '');
+      
+      // Check if starts with 55 (Brazil DDI)
+      if (cleanNumber.startsWith('55')) {
+        return '🇧🇷 Nacional';
+      } else if (cleanNumber.length > 0) {
+        return '🌍 Internacional';
+      }
+      return 'N/A';
     };
 
     for (const row of allRows) {
@@ -304,7 +318,8 @@ Deno.serve(async (req) => {
 
       if (statusValue && config.status_to_monitor.includes(statusValue)) {
         const numero = row.Numero || row.numero || row.Telefone || row.telefone || 'N/A';
-        matchingRows.push({ numero, status: statusValue });
+        const tipo = detectNumberType(numero);
+        matchingRows.push({ numero, status: statusValue, tipo });
       }
     }
 
@@ -322,12 +337,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Format numbers list with status (ex: 15981705823 - EXCLUIDO)
-    const numbersList = matchingRows.map(r => `${r.numero} - ${r.status}`).join('\n');
+    // Count nationals and internationals
+    const nationalsCount = matchingRows.filter(r => r.tipo.includes('Nacional')).length;
+    const internationalsCount = matchingRows.filter(r => r.tipo.includes('Internacional')).length;
+
+    // Format numbers list with status and type (ex: 5585981705823 - EXCLUIDO - 🇧🇷 Nacional)
+    const numbersList = matchingRows.map(r => `${r.numero} - ${r.status} - ${r.tipo}`).join('\n');
     
     // Replace placeholders in message template
     const message = config.message_template
       .replace(/{count}/g, matchingRows.length.toString())
+      .replace(/{nationals}/g, nationalsCount.toString())
+      .replace(/{internationals}/g, internationalsCount.toString())
       .replace(/{numbers}/g, numbersList);
 
     const results: { channel: string; status: string; error?: string }[] = [];
