@@ -282,215 +282,215 @@ Deno.serve(async (req) => {
       return '';
     };
 
-    // Mapeamento de DDIs para siglas e bandeiras de países
-    const countryData: Record<string, { code: string; flag: string }> = {
-      '1': { code: 'US/CA', flag: '🇺🇸' },    // Estados Unidos / Canadá
-      '7': { code: 'RU', flag: '🇷🇺' },       // Rússia
-      '20': { code: 'EG', flag: '🇪🇬' },      // Egito
-      '27': { code: 'ZA', flag: '🇿🇦' },      // África do Sul
-      '30': { code: 'GR', flag: '🇬🇷' },      // Grécia
-      '31': { code: 'NL', flag: '🇳🇱' },      // Holanda
-      '32': { code: 'BE', flag: '🇧🇪' },      // Bélgica
-      '33': { code: 'FR', flag: '🇫🇷' },      // França
-      '34': { code: 'ES', flag: '🇪🇸' },      // Espanha
-      '36': { code: 'HU', flag: '🇭🇺' },      // Hungria
-      '39': { code: 'IT', flag: '🇮🇹' },      // Itália
-      '40': { code: 'RO', flag: '🇷🇴' },      // Romênia
-      '41': { code: 'CH', flag: '🇨🇭' },      // Suíça
-      '43': { code: 'AT', flag: '🇦🇹' },      // Áustria
-      '44': { code: 'GB', flag: '🇬🇧' },      // Reino Unido
-      '45': { code: 'DK', flag: '🇩🇰' },      // Dinamarca
-      '46': { code: 'SE', flag: '🇸🇪' },      // Suécia
-      '47': { code: 'NO', flag: '🇳🇴' },      // Noruega
-      '48': { code: 'PL', flag: '🇵🇱' },      // Polônia
-      '49': { code: 'DE', flag: '🇩🇪' },      // Alemanha
-      '51': { code: 'PE', flag: '🇵🇪' },      // Peru
-      '52': { code: 'MX', flag: '🇲🇽' },      // México
-      '53': { code: 'CU', flag: '🇨🇺' },      // Cuba
-      '54': { code: 'AR', flag: '🇦🇷' },      // Argentina
-      '55': { code: 'BR', flag: '🇧🇷' },      // Brasil
-      '56': { code: 'CL', flag: '🇨🇱' },      // Chile
-      '57': { code: 'CO', flag: '🇨🇴' },      // Colômbia
-      '58': { code: 'VE', flag: '🇻🇪' },      // Venezuela
-      '60': { code: 'MY', flag: '🇲🇾' },      // Malásia
-      '61': { code: 'AU', flag: '🇦🇺' },      // Austrália
-      '62': { code: 'ID', flag: '🇮🇩' },      // Indonésia
-      '63': { code: 'PH', flag: '🇵🇭' },      // Filipinas
-      '64': { code: 'NZ', flag: '🇳🇿' },      // Nova Zelândia
-      '65': { code: 'SG', flag: '🇸🇬' },      // Singapura
-      '66': { code: 'TH', flag: '🇹🇭' },      // Tailândia
-      '81': { code: 'JP', flag: '🇯🇵' },      // Japão
-      '82': { code: 'KR', flag: '🇰🇷' },      // Coreia do Sul
-      '84': { code: 'VN', flag: '🇻🇳' },      // Vietnã
-      '86': { code: 'CN', flag: '🇨🇳' },      // China
-      '90': { code: 'TR', flag: '🇹🇷' },      // Turquia
-      '91': { code: 'IN', flag: '🇮🇳' },      // Índia
-      '92': { code: 'PK', flag: '🇵🇰' },      // Paquistão
-      '93': { code: 'AF', flag: '🇦🇫' },      // Afeganistão
-      '94': { code: 'LK', flag: '🇱🇰' },      // Sri Lanka
-      '95': { code: 'MM', flag: '🇲🇲' },      // Mianmar
-      '98': { code: 'IR', flag: '🇮🇷' },      // Irã
-      '212': { code: 'MA', flag: '🇲🇦' },     // Marrocos
-      '213': { code: 'DZ', flag: '🇩🇿' },     // Argélia
-      '216': { code: 'TN', flag: '🇹🇳' },     // Tunísia
-      '218': { code: 'LY', flag: '🇱🇾' },     // Líbia
-      '220': { code: 'GM', flag: '🇬🇲' },     // Gâmbia
-      '221': { code: 'SN', flag: '🇸🇳' },     // Senegal
-      '222': { code: 'MR', flag: '🇲🇷' },     // Mauritânia
-      '223': { code: 'ML', flag: '🇲🇱' },     // Mali
-      '224': { code: 'GN', flag: '🇬🇳' },     // Guiné
-      '225': { code: 'CI', flag: '🇨🇮' },     // Costa do Marfim
-      '226': { code: 'BF', flag: '🇧🇫' },     // Burkina Faso
-      '227': { code: 'NE', flag: '🇳🇪' },     // Níger
-      '228': { code: 'TG', flag: '🇹🇬' },     // Togo
-      '229': { code: 'BJ', flag: '🇧🇯' },     // Benin
-      '230': { code: 'MU', flag: '🇲🇺' },     // Maurício
-      '231': { code: 'LR', flag: '🇱🇷' },     // Libéria
-      '232': { code: 'SL', flag: '🇸🇱' },     // Serra Leoa
-      '233': { code: 'GH', flag: '🇬🇭' },     // Gana
-      '234': { code: 'NG', flag: '🇳🇬' },     // Nigéria
-      '235': { code: 'TD', flag: '🇹🇩' },     // Chade
-      '236': { code: 'CF', flag: '🇨🇫' },     // República Centro-Africana
-      '237': { code: 'CM', flag: '🇨🇲' },     // Camarões
-      '238': { code: 'CV', flag: '🇨🇻' },     // Cabo Verde
-      '239': { code: 'ST', flag: '🇸🇹' },     // São Tomé e Príncipe
-      '240': { code: 'GQ', flag: '🇬🇶' },     // Guiné Equatorial
-      '241': { code: 'GA', flag: '🇬🇦' },     // Gabão
-      '242': { code: 'CG', flag: '🇨🇬' },     // Congo
-      '243': { code: 'CD', flag: '🇨🇩' },     // RD Congo
-      '244': { code: 'AO', flag: '🇦🇴' },     // Angola
-      '245': { code: 'GW', flag: '🇬🇼' },     // Guiné-Bissau
-      '248': { code: 'SC', flag: '🇸🇨' },     // Seychelles
-      '249': { code: 'SD', flag: '🇸🇩' },     // Sudão
-      '250': { code: 'RW', flag: '🇷🇼' },     // Ruanda
-      '251': { code: 'ET', flag: '🇪🇹' },     // Etiópia
-      '252': { code: 'SO', flag: '🇸🇴' },     // Somália
-      '253': { code: 'DJ', flag: '🇩🇯' },     // Djibuti
-      '254': { code: 'KE', flag: '🇰🇪' },     // Quênia
-      '255': { code: 'TZ', flag: '🇹🇿' },     // Tanzânia
-      '256': { code: 'UG', flag: '🇺🇬' },     // Uganda
-      '257': { code: 'BI', flag: '🇧🇮' },     // Burundi
-      '258': { code: 'MZ', flag: '🇲🇿' },     // Moçambique
-      '260': { code: 'ZM', flag: '🇿🇲' },     // Zâmbia
-      '261': { code: 'MG', flag: '🇲🇬' },     // Madagascar
-      '262': { code: 'RE', flag: '🇷🇪' },     // Reunião
-      '263': { code: 'ZW', flag: '🇿🇼' },     // Zimbábue
-      '264': { code: 'NA', flag: '🇳🇦' },     // Namíbia
-      '265': { code: 'MW', flag: '🇲🇼' },     // Malawi
-      '266': { code: 'LS', flag: '🇱🇸' },     // Lesoto
-      '267': { code: 'BW', flag: '🇧🇼' },     // Botsuana
-      '268': { code: 'SZ', flag: '🇸🇿' },     // Eswatini
-      '269': { code: 'KM', flag: '🇰🇲' },     // Comores
-      '290': { code: 'SH', flag: '🇸🇭' },     // Santa Helena
-      '291': { code: 'ER', flag: '🇪🇷' },     // Eritreia
-      '297': { code: 'AW', flag: '🇦🇼' },     // Aruba
-      '298': { code: 'FO', flag: '🇫🇴' },     // Ilhas Faroé
-      '299': { code: 'GL', flag: '🇬🇱' },     // Groenlândia
-      '350': { code: 'GI', flag: '🇬🇮' },     // Gibraltar
-      '351': { code: 'PT', flag: '🇵🇹' },     // Portugal
-      '352': { code: 'LU', flag: '🇱🇺' },     // Luxemburgo
-      '353': { code: 'IE', flag: '🇮🇪' },     // Irlanda
-      '354': { code: 'IS', flag: '🇮🇸' },     // Islândia
-      '355': { code: 'AL', flag: '🇦🇱' },     // Albânia
-      '356': { code: 'MT', flag: '🇲🇹' },     // Malta
-      '357': { code: 'CY', flag: '🇨🇾' },     // Chipre
-      '358': { code: 'FI', flag: '🇫🇮' },     // Finlândia
-      '359': { code: 'BG', flag: '🇧🇬' },     // Bulgária
-      '370': { code: 'LT', flag: '🇱🇹' },     // Lituânia
-      '371': { code: 'LV', flag: '🇱🇻' },     // Letônia
-      '372': { code: 'EE', flag: '🇪🇪' },     // Estônia
-      '373': { code: 'MD', flag: '🇲🇩' },     // Moldávia
-      '374': { code: 'AM', flag: '🇦🇲' },     // Armênia
-      '375': { code: 'BY', flag: '🇧🇾' },     // Bielorrússia
-      '376': { code: 'AD', flag: '🇦🇩' },     // Andorra
-      '377': { code: 'MC', flag: '🇲🇨' },     // Mônaco
-      '378': { code: 'SM', flag: '🇸🇲' },     // San Marino
-      '380': { code: 'UA', flag: '🇺🇦' },     // Ucrânia
-      '381': { code: 'RS', flag: '🇷🇸' },     // Sérvia
-      '382': { code: 'ME', flag: '🇲🇪' },     // Montenegro
-      '383': { code: 'XK', flag: '🇽🇰' },     // Kosovo
-      '385': { code: 'HR', flag: '🇭🇷' },     // Croácia
-      '386': { code: 'SI', flag: '🇸🇮' },     // Eslovênia
-      '387': { code: 'BA', flag: '🇧🇦' },     // Bósnia
-      '389': { code: 'MK', flag: '🇲🇰' },     // Macedônia do Norte
-      '420': { code: 'CZ', flag: '🇨🇿' },     // Tchéquia
-      '421': { code: 'SK', flag: '🇸🇰' },     // Eslováquia
-      '423': { code: 'LI', flag: '🇱🇮' },     // Liechtenstein
-      '500': { code: 'FK', flag: '🇫🇰' },     // Ilhas Malvinas
-      '501': { code: 'BZ', flag: '🇧🇿' },     // Belize
-      '502': { code: 'GT', flag: '🇬🇹' },     // Guatemala
-      '503': { code: 'SV', flag: '🇸🇻' },     // El Salvador
-      '504': { code: 'HN', flag: '🇭🇳' },     // Honduras
-      '505': { code: 'NI', flag: '🇳🇮' },     // Nicarágua
-      '506': { code: 'CR', flag: '🇨🇷' },     // Costa Rica
-      '507': { code: 'PA', flag: '🇵🇦' },     // Panamá
-      '508': { code: 'PM', flag: '🇵🇲' },     // Saint Pierre
-      '509': { code: 'HT', flag: '🇭🇹' },     // Haiti
-      '590': { code: 'GP', flag: '🇬🇵' },     // Guadalupe
-      '591': { code: 'BO', flag: '🇧🇴' },     // Bolívia
-      '592': { code: 'GY', flag: '🇬🇾' },     // Guiana
-      '593': { code: 'EC', flag: '🇪🇨' },     // Equador
-      '594': { code: 'GF', flag: '🇬🇫' },     // Guiana Francesa
-      '595': { code: 'PY', flag: '🇵🇾' },     // Paraguai
-      '596': { code: 'MQ', flag: '🇲🇶' },     // Martinica
-      '597': { code: 'SR', flag: '🇸🇷' },     // Suriname
-      '598': { code: 'UY', flag: '🇺🇾' },     // Uruguai
-      '599': { code: 'CW', flag: '🇨🇼' },     // Curaçao
-      '670': { code: 'TL', flag: '🇹🇱' },     // Timor-Leste
-      '672': { code: 'NF', flag: '🇳🇫' },     // Ilha Norfolk
-      '673': { code: 'BN', flag: '🇧🇳' },     // Brunei
-      '674': { code: 'NR', flag: '🇳🇷' },     // Nauru
-      '675': { code: 'PG', flag: '🇵🇬' },     // Papua Nova Guiné
-      '676': { code: 'TO', flag: '🇹🇴' },     // Tonga
-      '677': { code: 'SB', flag: '🇸🇧' },     // Ilhas Salomão
-      '678': { code: 'VU', flag: '🇻🇺' },     // Vanuatu
-      '679': { code: 'FJ', flag: '🇫🇯' },     // Fiji
-      '680': { code: 'PW', flag: '🇵🇼' },     // Palau
-      '681': { code: 'WF', flag: '🇼🇫' },     // Wallis e Futuna
-      '682': { code: 'CK', flag: '🇨🇰' },     // Ilhas Cook
-      '683': { code: 'NU', flag: '🇳🇺' },     // Niue
-      '685': { code: 'WS', flag: '🇼🇸' },     // Samoa
-      '686': { code: 'KI', flag: '🇰🇮' },     // Kiribati
-      '687': { code: 'NC', flag: '🇳🇨' },     // Nova Caledônia
-      '688': { code: 'TV', flag: '🇹🇻' },     // Tuvalu
-      '689': { code: 'PF', flag: '🇵🇫' },     // Polinésia Francesa
-      '690': { code: 'TK', flag: '🇹🇰' },     // Tokelau
-      '691': { code: 'FM', flag: '🇫🇲' },     // Micronésia
-      '692': { code: 'MH', flag: '🇲🇭' },     // Ilhas Marshall
-      '850': { code: 'KP', flag: '🇰🇵' },     // Coreia do Norte
-      '852': { code: 'HK', flag: '🇭🇰' },     // Hong Kong
-      '853': { code: 'MO', flag: '🇲🇴' },     // Macau
-      '855': { code: 'KH', flag: '🇰🇭' },     // Camboja
-      '856': { code: 'LA', flag: '🇱🇦' },     // Laos
-      '880': { code: 'BD', flag: '🇧🇩' },     // Bangladesh
-      '886': { code: 'TW', flag: '🇹🇼' },     // Taiwan
-      '960': { code: 'MV', flag: '🇲🇻' },     // Maldivas
-      '961': { code: 'LB', flag: '🇱🇧' },     // Líbano
-      '962': { code: 'JO', flag: '🇯🇴' },     // Jordânia
-      '963': { code: 'SY', flag: '🇸🇾' },     // Síria
-      '964': { code: 'IQ', flag: '🇮🇶' },     // Iraque
-      '965': { code: 'KW', flag: '🇰🇼' },     // Kuwait
-      '966': { code: 'SA', flag: '🇸🇦' },     // Arábia Saudita
-      '967': { code: 'YE', flag: '🇾🇪' },     // Iêmen
-      '968': { code: 'OM', flag: '🇴🇲' },     // Omã
-      '970': { code: 'PS', flag: '🇵🇸' },     // Palestina
-      '971': { code: 'AE', flag: '🇦🇪' },     // Emirados Árabes
-      '972': { code: 'IL', flag: '🇮🇱' },     // Israel
-      '973': { code: 'BH', flag: '🇧🇭' },     // Bahrein
-      '974': { code: 'QA', flag: '🇶🇦' },     // Catar
-      '975': { code: 'BT', flag: '🇧🇹' },     // Butão
-      '976': { code: 'MN', flag: '🇲🇳' },     // Mongólia
-      '977': { code: 'NP', flag: '🇳🇵' },     // Nepal
-      '992': { code: 'TJ', flag: '🇹🇯' },     // Tajiquistão
-      '993': { code: 'TM', flag: '🇹🇲' },     // Turcomenistão
-      '994': { code: 'AZ', flag: '🇦🇿' },     // Azerbaijão
-      '995': { code: 'GE', flag: '🇬🇪' },     // Geórgia
-      '996': { code: 'KG', flag: '🇰🇬' },     // Quirguistão
-      '998': { code: 'UZ', flag: '🇺🇿' },     // Uzbequistão
+    // Mapeamento de DDIs para nomes completos e bandeiras de países (em português)
+    const countryData: Record<string, { name: string; flag: string }> = {
+      '1': { name: 'Estados Unidos/Canadá', flag: '🇺🇸' },
+      '7': { name: 'Rússia', flag: '🇷🇺' },
+      '20': { name: 'Egito', flag: '🇪🇬' },
+      '27': { name: 'África do Sul', flag: '🇿🇦' },
+      '30': { name: 'Grécia', flag: '🇬🇷' },
+      '31': { name: 'Holanda', flag: '🇳🇱' },
+      '32': { name: 'Bélgica', flag: '🇧🇪' },
+      '33': { name: 'França', flag: '🇫🇷' },
+      '34': { name: 'Espanha', flag: '🇪🇸' },
+      '36': { name: 'Hungria', flag: '🇭🇺' },
+      '39': { name: 'Itália', flag: '🇮🇹' },
+      '40': { name: 'Romênia', flag: '🇷🇴' },
+      '41': { name: 'Suíça', flag: '🇨🇭' },
+      '43': { name: 'Áustria', flag: '🇦🇹' },
+      '44': { name: 'Reino Unido', flag: '🇬🇧' },
+      '45': { name: 'Dinamarca', flag: '🇩🇰' },
+      '46': { name: 'Suécia', flag: '🇸🇪' },
+      '47': { name: 'Noruega', flag: '🇳🇴' },
+      '48': { name: 'Polônia', flag: '🇵🇱' },
+      '49': { name: 'Alemanha', flag: '🇩🇪' },
+      '51': { name: 'Peru', flag: '🇵🇪' },
+      '52': { name: 'México', flag: '🇲🇽' },
+      '53': { name: 'Cuba', flag: '🇨🇺' },
+      '54': { name: 'Argentina', flag: '🇦🇷' },
+      '55': { name: 'Brasil', flag: '🇧🇷' },
+      '56': { name: 'Chile', flag: '🇨🇱' },
+      '57': { name: 'Colômbia', flag: '🇨🇴' },
+      '58': { name: 'Venezuela', flag: '🇻🇪' },
+      '60': { name: 'Malásia', flag: '🇲🇾' },
+      '61': { name: 'Austrália', flag: '🇦🇺' },
+      '62': { name: 'Indonésia', flag: '🇮🇩' },
+      '63': { name: 'Filipinas', flag: '🇵🇭' },
+      '64': { name: 'Nova Zelândia', flag: '🇳🇿' },
+      '65': { name: 'Singapura', flag: '🇸🇬' },
+      '66': { name: 'Tailândia', flag: '🇹🇭' },
+      '81': { name: 'Japão', flag: '🇯🇵' },
+      '82': { name: 'Coreia do Sul', flag: '🇰🇷' },
+      '84': { name: 'Vietnã', flag: '🇻🇳' },
+      '86': { name: 'China', flag: '🇨🇳' },
+      '90': { name: 'Turquia', flag: '🇹🇷' },
+      '91': { name: 'Índia', flag: '🇮🇳' },
+      '92': { name: 'Paquistão', flag: '🇵🇰' },
+      '93': { name: 'Afeganistão', flag: '🇦🇫' },
+      '94': { name: 'Sri Lanka', flag: '🇱🇰' },
+      '95': { name: 'Mianmar', flag: '🇲🇲' },
+      '98': { name: 'Irã', flag: '🇮🇷' },
+      '212': { name: 'Marrocos', flag: '🇲🇦' },
+      '213': { name: 'Argélia', flag: '🇩🇿' },
+      '216': { name: 'Tunísia', flag: '🇹🇳' },
+      '218': { name: 'Líbia', flag: '🇱🇾' },
+      '220': { name: 'Gâmbia', flag: '🇬🇲' },
+      '221': { name: 'Senegal', flag: '🇸🇳' },
+      '222': { name: 'Mauritânia', flag: '🇲🇷' },
+      '223': { name: 'Mali', flag: '🇲🇱' },
+      '224': { name: 'Guiné', flag: '🇬🇳' },
+      '225': { name: 'Costa do Marfim', flag: '🇨🇮' },
+      '226': { name: 'Burkina Faso', flag: '🇧🇫' },
+      '227': { name: 'Níger', flag: '🇳🇪' },
+      '228': { name: 'Togo', flag: '🇹🇬' },
+      '229': { name: 'Benin', flag: '🇧🇯' },
+      '230': { name: 'Maurício', flag: '🇲🇺' },
+      '231': { name: 'Libéria', flag: '🇱🇷' },
+      '232': { name: 'Serra Leoa', flag: '🇸🇱' },
+      '233': { name: 'Gana', flag: '🇬🇭' },
+      '234': { name: 'Nigéria', flag: '🇳🇬' },
+      '235': { name: 'Chade', flag: '🇹🇩' },
+      '236': { name: 'Rep. Centro-Africana', flag: '🇨🇫' },
+      '237': { name: 'Camarões', flag: '🇨🇲' },
+      '238': { name: 'Cabo Verde', flag: '🇨🇻' },
+      '239': { name: 'São Tomé e Príncipe', flag: '🇸🇹' },
+      '240': { name: 'Guiné Equatorial', flag: '🇬🇶' },
+      '241': { name: 'Gabão', flag: '🇬🇦' },
+      '242': { name: 'Congo', flag: '🇨🇬' },
+      '243': { name: 'RD Congo', flag: '🇨🇩' },
+      '244': { name: 'Angola', flag: '🇦🇴' },
+      '245': { name: 'Guiné-Bissau', flag: '🇬🇼' },
+      '248': { name: 'Seychelles', flag: '🇸🇨' },
+      '249': { name: 'Sudão', flag: '🇸🇩' },
+      '250': { name: 'Ruanda', flag: '🇷🇼' },
+      '251': { name: 'Etiópia', flag: '🇪🇹' },
+      '252': { name: 'Somália', flag: '🇸🇴' },
+      '253': { name: 'Djibuti', flag: '🇩🇯' },
+      '254': { name: 'Quênia', flag: '🇰🇪' },
+      '255': { name: 'Tanzânia', flag: '🇹🇿' },
+      '256': { name: 'Uganda', flag: '🇺🇬' },
+      '257': { name: 'Burundi', flag: '🇧🇮' },
+      '258': { name: 'Moçambique', flag: '🇲🇿' },
+      '260': { name: 'Zâmbia', flag: '🇿🇲' },
+      '261': { name: 'Madagascar', flag: '🇲🇬' },
+      '262': { name: 'Reunião', flag: '🇷🇪' },
+      '263': { name: 'Zimbábue', flag: '🇿🇼' },
+      '264': { name: 'Namíbia', flag: '🇳🇦' },
+      '265': { name: 'Malawi', flag: '🇲🇼' },
+      '266': { name: 'Lesoto', flag: '🇱🇸' },
+      '267': { name: 'Botsuana', flag: '🇧🇼' },
+      '268': { name: 'Eswatini', flag: '🇸🇿' },
+      '269': { name: 'Comores', flag: '🇰🇲' },
+      '290': { name: 'Santa Helena', flag: '🇸🇭' },
+      '291': { name: 'Eritreia', flag: '🇪🇷' },
+      '297': { name: 'Aruba', flag: '🇦🇼' },
+      '298': { name: 'Ilhas Faroé', flag: '🇫🇴' },
+      '299': { name: 'Groenlândia', flag: '🇬🇱' },
+      '350': { name: 'Gibraltar', flag: '🇬🇮' },
+      '351': { name: 'Portugal', flag: '🇵🇹' },
+      '352': { name: 'Luxemburgo', flag: '🇱🇺' },
+      '353': { name: 'Irlanda', flag: '🇮🇪' },
+      '354': { name: 'Islândia', flag: '🇮🇸' },
+      '355': { name: 'Albânia', flag: '🇦🇱' },
+      '356': { name: 'Malta', flag: '🇲🇹' },
+      '357': { name: 'Chipre', flag: '🇨🇾' },
+      '358': { name: 'Finlândia', flag: '🇫🇮' },
+      '359': { name: 'Bulgária', flag: '🇧🇬' },
+      '370': { name: 'Lituânia', flag: '🇱🇹' },
+      '371': { name: 'Letônia', flag: '🇱🇻' },
+      '372': { name: 'Estônia', flag: '🇪🇪' },
+      '373': { name: 'Moldávia', flag: '🇲🇩' },
+      '374': { name: 'Armênia', flag: '🇦🇲' },
+      '375': { name: 'Bielorrússia', flag: '🇧🇾' },
+      '376': { name: 'Andorra', flag: '🇦🇩' },
+      '377': { name: 'Mônaco', flag: '🇲🇨' },
+      '378': { name: 'San Marino', flag: '🇸🇲' },
+      '380': { name: 'Ucrânia', flag: '🇺🇦' },
+      '381': { name: 'Sérvia', flag: '🇷🇸' },
+      '382': { name: 'Montenegro', flag: '🇲🇪' },
+      '383': { name: 'Kosovo', flag: '🇽🇰' },
+      '385': { name: 'Croácia', flag: '🇭🇷' },
+      '386': { name: 'Eslovênia', flag: '🇸🇮' },
+      '387': { name: 'Bósnia e Herzegovina', flag: '🇧🇦' },
+      '389': { name: 'Macedônia do Norte', flag: '🇲🇰' },
+      '420': { name: 'Tchéquia', flag: '🇨🇿' },
+      '421': { name: 'Eslováquia', flag: '🇸🇰' },
+      '423': { name: 'Liechtenstein', flag: '🇱🇮' },
+      '500': { name: 'Ilhas Malvinas', flag: '🇫🇰' },
+      '501': { name: 'Belize', flag: '🇧🇿' },
+      '502': { name: 'Guatemala', flag: '🇬🇹' },
+      '503': { name: 'El Salvador', flag: '🇸🇻' },
+      '504': { name: 'Honduras', flag: '🇭🇳' },
+      '505': { name: 'Nicarágua', flag: '🇳🇮' },
+      '506': { name: 'Costa Rica', flag: '🇨🇷' },
+      '507': { name: 'Panamá', flag: '🇵🇦' },
+      '508': { name: 'Saint Pierre e Miquelon', flag: '🇵🇲' },
+      '509': { name: 'Haiti', flag: '🇭🇹' },
+      '590': { name: 'Guadalupe', flag: '🇬🇵' },
+      '591': { name: 'Bolívia', flag: '🇧🇴' },
+      '592': { name: 'Guiana', flag: '🇬🇾' },
+      '593': { name: 'Equador', flag: '🇪🇨' },
+      '594': { name: 'Guiana Francesa', flag: '🇬🇫' },
+      '595': { name: 'Paraguai', flag: '🇵🇾' },
+      '596': { name: 'Martinica', flag: '🇲🇶' },
+      '597': { name: 'Suriname', flag: '🇸🇷' },
+      '598': { name: 'Uruguai', flag: '🇺🇾' },
+      '599': { name: 'Curaçao', flag: '🇨🇼' },
+      '670': { name: 'Timor-Leste', flag: '🇹🇱' },
+      '672': { name: 'Ilha Norfolk', flag: '🇳🇫' },
+      '673': { name: 'Brunei', flag: '🇧🇳' },
+      '674': { name: 'Nauru', flag: '🇳🇷' },
+      '675': { name: 'Papua Nova Guiné', flag: '🇵🇬' },
+      '676': { name: 'Tonga', flag: '🇹🇴' },
+      '677': { name: 'Ilhas Salomão', flag: '🇸🇧' },
+      '678': { name: 'Vanuatu', flag: '🇻🇺' },
+      '679': { name: 'Fiji', flag: '🇫🇯' },
+      '680': { name: 'Palau', flag: '🇵🇼' },
+      '681': { name: 'Wallis e Futuna', flag: '🇼🇫' },
+      '682': { name: 'Ilhas Cook', flag: '🇨🇰' },
+      '683': { name: 'Niue', flag: '🇳🇺' },
+      '685': { name: 'Samoa', flag: '🇼🇸' },
+      '686': { name: 'Kiribati', flag: '🇰🇮' },
+      '687': { name: 'Nova Caledônia', flag: '🇳🇨' },
+      '688': { name: 'Tuvalu', flag: '🇹🇻' },
+      '689': { name: 'Polinésia Francesa', flag: '🇵🇫' },
+      '690': { name: 'Tokelau', flag: '🇹🇰' },
+      '691': { name: 'Micronésia', flag: '🇫🇲' },
+      '692': { name: 'Ilhas Marshall', flag: '🇲🇭' },
+      '850': { name: 'Coreia do Norte', flag: '🇰🇵' },
+      '852': { name: 'Hong Kong', flag: '🇭🇰' },
+      '853': { name: 'Macau', flag: '🇲🇴' },
+      '855': { name: 'Camboja', flag: '🇰🇭' },
+      '856': { name: 'Laos', flag: '🇱🇦' },
+      '880': { name: 'Bangladesh', flag: '🇧🇩' },
+      '886': { name: 'Taiwan', flag: '🇹🇼' },
+      '960': { name: 'Maldivas', flag: '🇲🇻' },
+      '961': { name: 'Líbano', flag: '🇱🇧' },
+      '962': { name: 'Jordânia', flag: '🇯🇴' },
+      '963': { name: 'Síria', flag: '🇸🇾' },
+      '964': { name: 'Iraque', flag: '🇮🇶' },
+      '965': { name: 'Kuwait', flag: '🇰🇼' },
+      '966': { name: 'Arábia Saudita', flag: '🇸🇦' },
+      '967': { name: 'Iêmen', flag: '🇾🇪' },
+      '968': { name: 'Omã', flag: '🇴🇲' },
+      '970': { name: 'Palestina', flag: '🇵🇸' },
+      '971': { name: 'Emirados Árabes', flag: '🇦🇪' },
+      '972': { name: 'Israel', flag: '🇮🇱' },
+      '973': { name: 'Bahrein', flag: '🇧🇭' },
+      '974': { name: 'Catar', flag: '🇶🇦' },
+      '975': { name: 'Butão', flag: '🇧🇹' },
+      '976': { name: 'Mongólia', flag: '🇲🇳' },
+      '977': { name: 'Nepal', flag: '🇳🇵' },
+      '992': { name: 'Tajiquistão', flag: '🇹🇯' },
+      '993': { name: 'Turcomenistão', flag: '🇹🇲' },
+      '994': { name: 'Azerbaijão', flag: '🇦🇿' },
+      '995': { name: 'Geórgia', flag: '🇬🇪' },
+      '996': { name: 'Quirguistão', flag: '🇰🇬' },
+      '998': { name: 'Uzbequistão', flag: '🇺🇿' },
     };
 
     // Função para detectar país pelo DDI
-    const getCountryByDDI = (cleanNumber: string): { code: string; flag: string } | null => {
+    const getCountryByDDI = (cleanNumber: string): { name: string; flag: string } | null => {
       // Tenta DDIs de 3 dígitos primeiro, depois 2, depois 1
       for (const len of [3, 2, 1]) {
         const prefix = cleanNumber.slice(0, len);
@@ -502,7 +502,7 @@ Deno.serve(async (req) => {
     };
 
     // Function to detect if number is national (Brazil) or international
-    // Returns: { display: "🇧🇷 BR", isNational: true } or { display: "🇺🇸 US/CA", isNational: false }
+    // Returns: { display: "🇧🇷 Brasil", isNational: true } or { display: "🇺🇸 Estados Unidos/Canadá", isNational: false }
     const detectNumberType = (numero: any): { display: string; isNational: boolean } => {
       const raw = numero == null ? '' : String(numero);
       const cleanNumber = raw.replace(/\D/g, '');
@@ -511,14 +511,14 @@ Deno.serve(async (req) => {
       const debugId = `${cleanNumber.slice(0, 3)}…(len=${cleanNumber.length})`;
 
       // Brazil with DDI
-      if (cleanNumber.startsWith('55')) return { display: '🇧🇷 BR', isNational: true };
+      if (cleanNumber.startsWith('55')) return { display: '🇧🇷 Brasil', isNational: true };
 
       // Likely NANP (US/Canada): 1 + 10 digits.
       if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
         const thirdDigit = cleanNumber.charAt(2);
         if (thirdDigit !== '9') {
-          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (US/CA)`);
-          return { display: '🇺🇸 US/CA', isNational: false };
+          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (Estados Unidos/Canadá)`);
+          return { display: '🇺🇸 Estados Unidos/Canadá', isNational: false };
         }
       }
 
@@ -526,30 +526,30 @@ Deno.serve(async (req) => {
       if (cleanNumber.length > 11) {
         const country = getCountryByDDI(cleanNumber);
         if (country) {
-          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (${country.code})`);
-          return { display: `${country.flag} ${country.code}`, isNational: country.code === 'BR' };
+          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (${country.name})`);
+          return { display: `${country.flag} ${country.name}`, isNational: country.name === 'Brasil' };
         }
       }
 
       // Brazil without DDI
       if (cleanNumber.length === 10) {
         const ddd = parseInt(cleanNumber.substring(0, 2), 10);
-        if (ddd >= 11 && ddd <= 99) return { display: '🇧🇷 BR', isNational: true };
+        if (ddd >= 11 && ddd <= 99) return { display: '🇧🇷 Brasil', isNational: true };
       }
 
       if (cleanNumber.length === 11) {
         const ddd = parseInt(cleanNumber.substring(0, 2), 10);
         const thirdDigit = cleanNumber.charAt(2);
-        if (ddd >= 11 && ddd <= 99 && thirdDigit === '9') return { display: '🇧🇷 BR', isNational: true };
+        if (ddd >= 11 && ddd <= 99 && thirdDigit === '9') return { display: '🇧🇷 Brasil', isNational: true };
       }
 
       // Fallback: tentar identificar pelo DDI
       const country = getCountryByDDI(cleanNumber);
       if (country) {
-        return { display: `${country.flag} ${country.code}`, isNational: country.code === 'BR' };
+        return { display: `${country.flag} ${country.name}`, isNational: country.name === 'Brasil' };
       }
 
-      return { display: '🌍 INT', isNational: false };
+      return { display: '🌍 Internacional', isNational: false };
     };
 
     for (const row of allRows) {
