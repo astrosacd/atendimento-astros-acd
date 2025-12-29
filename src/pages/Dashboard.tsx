@@ -14,6 +14,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -62,6 +63,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
+  const { canManageTasks } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -245,12 +247,14 @@ export default function Dashboard() {
         chamadosEmAndamento = emAndamento || 0;
       }
 
-      // Task stats (for all users)
-      const taskStats = await getTaskStats();
-      tarefasPendentes = taskStats.pendentes;
-      tarefasEmAndamento = taskStats.em_andamento;
-      tarefasAtrasadas = taskStats.atrasadas;
-      tarefasConcluidas = taskStats.concluidas;
+      // Task stats (only for users with task permission)
+      if (canManageTasks()) {
+        const taskStats = await getTaskStats();
+        tarefasPendentes = taskStats.pendentes;
+        tarefasEmAndamento = taskStats.em_andamento;
+        tarefasAtrasadas = taskStats.atrasadas;
+        tarefasConcluidas = taskStats.concluidas;
+      }
 
       setStats({
         totalClientes: clientes?.length || 0,
@@ -279,10 +283,12 @@ export default function Dashboard() {
     };
 
     if (user) fetchStats();
-  }, [user, isAdmin, getTaskStats]);
+  }, [user, isAdmin, getTaskStats, canManageTasks]);
 
-  // Fetch urgent tasks and show alerts
+  // Fetch urgent tasks and show alerts (only for users with task permission)
   useEffect(() => {
+    if (!canManageTasks()) return;
+    
     const fetchUrgentTasks = async () => {
       const urgent = await getUrgentTasks();
       setUrgentTasks(urgent);
@@ -311,7 +317,7 @@ export default function Dashboard() {
     };
 
     if (user) fetchUrgentTasks();
-  }, [user, getUrgentTasks, alertsShown, toast]);
+  }, [user, getUrgentTasks, alertsShown, toast, canManageTasks]);
 
   const getClientesPorMes = (clientes: any[]) => {
     const meses: { [key: string]: number } = {};
@@ -622,92 +628,96 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* Section: Tarefas */}
-        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-          <span className="h-5 w-1 bg-primary rounded-full"></span>
-          Tarefas
-        </h3>
-        {/* Task Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card 
-            className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/tarefas')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                    <ListTodo className="h-5 w-5 text-amber-500" />
+        {/* Section: Tarefas - Only for users with task permission */}
+        {canManageTasks() && (
+          <>
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+              <span className="h-5 w-1 bg-primary rounded-full"></span>
+              Tarefas
+            </h3>
+            {/* Task Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Card 
+                className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
+                onClick={() => navigate('/tarefas')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                        <ListTodo className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
+                        <p className="text-xs text-muted-foreground">Pendentes</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <Card 
-            className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/tarefas')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 text-cyan-500" />
+              <Card 
+                className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
+                onClick={() => navigate('/tarefas')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 text-cyan-500" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
+                        <p className="text-xs text-muted-foreground">Em Andamento</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
-                    <p className="text-xs text-muted-foreground">Em Andamento</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <Card 
-            className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
-            onClick={() => navigate('/tarefas')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
-                    <AlertCircle className="h-5 w-5 text-destructive" />
+              <Card 
+                className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
+                onClick={() => navigate('/tarefas')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
+                        <AlertCircle className="h-5 w-5 text-destructive" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
+                        <p className="text-xs text-muted-foreground">Atrasadas</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
-                    <p className="text-xs text-muted-foreground">Atrasadas</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <Card 
-            className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/tarefas')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
+              <Card 
+                className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
+                onClick={() => navigate('/tarefas')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
+                        <p className="text-xs text-muted-foreground">Concluídas</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
-                    <p className="text-xs text-muted-foreground">Concluídas</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
 
-        {/* Urgent Tasks Alert */}
-        {(urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
+        {/* Urgent Tasks Alert - Only for users with task permission */}
+        {canManageTasks() && (urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
           <Card className="bg-gradient-to-br from-destructive/5 to-amber-500/5 border-destructive/30 mb-6">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">

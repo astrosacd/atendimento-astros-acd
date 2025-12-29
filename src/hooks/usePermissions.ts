@@ -106,6 +106,9 @@ export function usePermissions() {
   const canManageRevendedorPlanos = () => hasPermission('manage_revendedor_planos');
   const canManageRevendedorLicencas = () => hasPermission('manage_revendedor_licencas');
 
+  // Tarefas permissions
+  const canManageTasks = () => hasPermission('manage_tasks');
+
   return {
     permissions,
     hasPermission,
@@ -173,5 +176,7 @@ export function usePermissions() {
     canViewRevendedor,
     canManageRevendedorPlanos,
     canManageRevendedorLicencas,
+    // Tarefas
+    canManageTasks,
   };
 }
