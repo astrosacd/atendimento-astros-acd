@@ -153,53 +153,52 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
 
   const NavButton = ({ item }: { item: NavItem }) => {
     const isActive = location.pathname === item.path;
-    
-    const button = (
-      <Button
-        variant="ghost"
+
+    const base = cn(
+      "w-full h-11 px-3 rounded-md flex items-center gap-3 relative",
+      "text-sm text-left",
+      "transition-colors duration-150",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      collapsed && "justify-center px-0",
+      isActive
+        ? "bg-primary/15 text-primary"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+    );
+
+    const content = (
+      <button
+        type="button"
+        aria-current={isActive ? "page" : undefined}
         onClick={() => {
           if (navRef.current) {
             sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
           }
           navigate(item.path);
         }}
-        className={cn(
-          "w-full justify-start gap-3 h-11 px-3 relative group",
-          "transition-[background,transform] duration-200 ease-out",
-          isActive
-            ? "bg-primary/15 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
-          collapsed && "justify-center px-0"
-        )}
+        className={base}
       >
-        {/* Active indicator */}
         {isActive && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
         )}
-        
-        {/* Icon */}
-        <div className={cn(
-          "relative flex items-center justify-center shrink-0",
-          isActive && "scale-110"
-        )}>
-          <item.icon className={cn(
-            "h-5 w-5",
-            isActive ? "text-primary" : item.color || "text-muted-foreground group-hover:text-foreground"
-          )} />
+
+        <div className={cn("relative flex items-center justify-center shrink-0", isActive && "scale-110")}
+        >
+          <item.icon
+            className={cn(
+              "h-5 w-5",
+              isActive ? "text-primary" : item.color || "text-muted-foreground",
+            )}
+          />
         </div>
-        
-        {!collapsed && (
-          <span className="truncate text-sm">{item.title}</span>
-        )}
-      </Button>
+
+        {!collapsed && <span className="truncate">{item.title}</span>}
+      </button>
     );
 
     if (collapsed) {
       return (
         <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
           <TooltipContent side="right" className="bg-popover border-border shadow-lg">
             {item.title}
           </TooltipContent>
@@ -207,7 +206,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       );
     }
 
-    return button;
+    return content;
   };
 
   return (
