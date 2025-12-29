@@ -289,20 +289,26 @@ Deno.serve(async (req) => {
     //   - 10 digits: DDD (2) + landline (8)
     //   - 11 digits: DDD (2) + mobile (9, usually starts with 9)
     // - Some international numbers (ex: US/Canada) can be 11 digits starting with country code 1,
-    //   which conflicts with Brazilian DDDs 11-19. To reduce false positives:
+    //   which conflicts with Brazilian DDDs 12-19. To reduce false positives:
     //   - If length is 11 and starts with '1' and the 3rd digit is NOT '9', treat as international.
-    const detectNumberType = (numero: string): string => {
-      const cleanNumber = (numero ?? '').replace(/\D/g, '');
+    const detectNumberType = (numero: any): string => {
+      const raw = numero == null ? '' : String(numero);
+      const cleanNumber = raw.replace(/\D/g, '');
       if (cleanNumber.length === 0) return 'N/A';
+
+      const debugId = `${cleanNumber.slice(0, 3)}…(len=${cleanNumber.length})`;
 
       // Brazil with DDI
       if (cleanNumber.startsWith('55')) return '🇧🇷 Nacional';
 
-      // Likely NANP (US/Canada): 1 + 10 digits. Avoid misclassifying as Brazilian DDD 11-19.
-      // Example provided: 15307790079 (should be international)
+      // Likely NANP (US/Canada): 1 + 10 digits.
+      // Avoid misclassifying as Brazilian DDD 12-19 (ex: 15307790079, 14152301300)
       if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
         const thirdDigit = cleanNumber.charAt(2);
-        if (thirdDigit !== '9') return '🌍 Internacional';
+        if (thirdDigit !== '9') {
+          console.log(`[consulta-numeros-reminder] detectNumberType: ${debugId} => Internacional (NANP heuristic)`);
+          return '🌍 Internacional';
+        }
       }
 
       // Brazil without DDI
