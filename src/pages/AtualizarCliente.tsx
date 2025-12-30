@@ -175,6 +175,8 @@ export default function AtualizarCliente() {
       setNewValor('');
       setNewPlano(null);
       setIsOriginallyReseller(false);
+      setSearchPerformed(false);
+      setSearchResults([]);
     }
     setShowConfirm(false);
   };
