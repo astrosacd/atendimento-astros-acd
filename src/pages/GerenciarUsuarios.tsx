@@ -297,15 +297,15 @@ export default function GerenciarUsuarios() {
       setApprovingUserId(null);
       setApproveRole('user');
       toast({
-        title: 'Usuário aprovado!',
-        description: 'O usuário agora pode acessar o sistema e receberá uma mensagem de boas-vindas.',
+        title: t('userManagement.toast.userApproved'),
+        description: t('userManagement.toast.userApprovedDesc'),
       });
     },
     onError: (error) => {
       console.error('Error approving user:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível aprovar o usuário.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorApproving'),
         variant: 'destructive',
       });
     },
@@ -345,15 +345,15 @@ export default function GerenciarUsuarios() {
       setRejectingUserId(null);
       setRejectionReason('');
       toast({
-        title: 'Usuário rejeitado!',
-        description: 'O usuário foi notificado com o motivo da rejeição.',
+        title: t('userManagement.toast.userRejected'),
+        description: t('userManagement.toast.userRejectedDesc'),
       });
     },
     onError: (error) => {
       console.error('Error rejecting user:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível rejeitar o usuário.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorRejecting'),
         variant: 'destructive',
       });
     },
@@ -395,14 +395,14 @@ export default function GerenciarUsuarios() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({
-        title: 'Sucesso!',
-        description: 'Papel do usuário atualizado.',
+        title: t('userManagement.toast.success'),
+        description: t('userManagement.toast.roleUpdated'),
       });
     },
     onError: () => {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o papel.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorUpdatingRole'),
         variant: 'destructive',
       });
     },
@@ -430,14 +430,14 @@ export default function GerenciarUsuarios() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({
-        title: 'Usuário excluído!',
-        description: 'O usuário foi removido do sistema.',
+        title: t('userManagement.toast.userDeleted'),
+        description: t('userManagement.toast.userDeletedDesc'),
       });
     },
     onError: () => {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o usuário.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorDeleting'),
         variant: 'destructive',
       });
     },
@@ -465,14 +465,14 @@ export default function GerenciarUsuarios() {
       setBlockingUserName('');
       setBlockReason('');
       toast({
-        title: 'Usuário bloqueado!',
-        description: 'O usuário não poderá mais acessar o sistema.',
+        title: t('userManagement.toast.userBlocked'),
+        description: t('userManagement.toast.userBlockedDesc'),
       });
     },
     onError: () => {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível bloquear o usuário.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorBlocking'),
         variant: 'destructive',
       });
     },
@@ -496,14 +496,14 @@ export default function GerenciarUsuarios() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({
-        title: 'Usuário desbloqueado!',
-        description: 'O usuário pode acessar o sistema novamente.',
+        title: t('userManagement.toast.userUnblocked'),
+        description: t('userManagement.toast.userUnblockedDesc'),
       });
     },
     onError: () => {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível desbloquear o usuário.',
+        title: t('userManagement.toast.error'),
+        description: t('userManagement.toast.errorUnblocking'),
         variant: 'destructive',
       });
     },
@@ -554,7 +554,7 @@ export default function GerenciarUsuarios() {
     
     if (emailError) {
       toast({
-        title: "Email inválido",
+        title: t('userManagement.toast.invalidEmail'),
         description: emailError,
         variant: "destructive",
       });
@@ -579,24 +579,24 @@ export default function GerenciarUsuarios() {
         
         // Translate common error messages
         if (errorMsg.includes("already been registered")) {
-          friendlyMsg = "Este email já está cadastrado no sistema.";
+          friendlyMsg = t('userManagement.toast.emailAlreadyRegistered');
         } else if (errorMsg.includes("Invalid email")) {
-          friendlyMsg = "O email informado é inválido.";
+          friendlyMsg = t('userManagement.toast.emailInvalid');
         } else if (errorMsg.includes("Password")) {
-          friendlyMsg = "A senha deve ter pelo menos 6 caracteres.";
+          friendlyMsg = t('userManagement.toast.passwordTooShort');
         }
         
         throw new Error(friendlyMsg);
       }
 
       if (error) {
-        throw new Error(error.message || "Erro ao conectar com o servidor.");
+        throw new Error(error.message || t('userManagement.toast.serverError'));
       }
 
       const userId = (data as { userId?: string } | null)?.userId;
 
       if (!userId) {
-        throw new Error("Falha ao criar usuário. Tente novamente.");
+        throw new Error(t('userManagement.toast.failedToCreate'));
       }
 
       // Aguarda criação de perfil/role via gatilhos, se existirem
@@ -648,8 +648,8 @@ export default function GerenciarUsuarios() {
       }
 
       toast({
-        title: "Usuário criado!",
-        description: `${newUserEmail} foi cadastrado e aprovado com sucesso.`,
+        title: t('userManagement.toast.userCreated'),
+        description: t('userManagement.toast.userCreatedDesc', { email: newUserEmail }),
       });
 
       setNewUserEmail("");
@@ -661,8 +661,8 @@ export default function GerenciarUsuarios() {
       queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
     } catch (error: any) {
       toast({
-        title: "Erro ao criar usuário",
-        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
+        title: t('userManagement.toast.errorCreating'),
+        description: error.message || t('userManagement.toast.unexpectedError'),
         variant: "destructive",
       });
     } finally {
@@ -673,8 +673,8 @@ export default function GerenciarUsuarios() {
   const handleRoleChange = (userId: string, newRole: string) => {
     if (userId === currentUser?.id) {
       toast({
-        title: 'Ação não permitida',
-        description: 'Você não pode alterar seu próprio papel.',
+        title: t('userManagement.toast.actionNotAllowed'),
+        description: t('userManagement.toast.cantChangeOwnRole'),
         variant: 'destructive',
       });
       return;
@@ -717,8 +717,8 @@ export default function GerenciarUsuarios() {
       });
 
       toast({
-        title: 'Credenciais reenviadas!',
-        description: `Uma nova senha foi gerada e enviada para ${resendingUser.email}.`,
+        title: t('userManagement.toast.credentialsResent'),
+        description: t('userManagement.toast.credentialsResentDesc', { email: resendingUser.email }),
       });
 
       setResendDialogOpen(false);
@@ -726,8 +726,8 @@ export default function GerenciarUsuarios() {
       setResendPhone('');
     } catch (error: any) {
       toast({
-        title: 'Erro ao reenviar',
-        description: error.message || 'Tente novamente.',
+        title: t('userManagement.toast.errorResending'),
+        description: error.message || t('userManagement.toast.tryAgain'),
         variant: 'destructive',
       });
     } finally {
