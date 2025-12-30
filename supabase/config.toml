@@ -117,3 +117,6 @@ verify_jwt = false
 
 [functions.api-licencas]
 verify_jwt = false
+
+[functions.send-receipt]
+verify_jwt = true

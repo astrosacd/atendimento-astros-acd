@@ -1018,6 +1018,7 @@ const AdminCobranca = () => {
             <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
             <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />Canais</TabsTrigger>
             <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />Mensagens</TabsTrigger>
+            <TabsTrigger value="receipt"><FileText className="w-4 h-4 mr-2" />Recibo</TabsTrigger>
             <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
             <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />Histórico</TabsTrigger>
           </TabsList>
@@ -2390,6 +2391,190 @@ const AdminCobranca = () => {
                 </>
               );
             })()}
+          </TabsContent>
+
+          {/* Recibo Tab */}
+          <TabsContent value="receipt" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Status do Recibo */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-400" />
+                    Emissão de Recibo
+                  </CardTitle>
+                  <CardDescription>
+                    Configure o envio automático de recibos quando um pagamento for confirmado
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-background to-muted/30 border">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${config.receipt_enabled === 'true' ? 'bg-emerald-500/20' : 'bg-muted'}`}>
+                        <FileText className={`w-5 h-5 ${config.receipt_enabled === 'true' ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Recibo Automático</p>
+                        <p className="text-sm text-muted-foreground">
+                          {config.receipt_enabled === 'true' ? 'Recibo será enviado ao confirmar pagamento' : 'Recibo desativado'}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={config.receipt_enabled === 'true'}
+                      onCheckedChange={(checked) => setConfig({ ...config, receipt_enabled: checked ? 'true' : 'false' })}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-blue-500/5 to-blue-500/10 border border-blue-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${config.receipt_email_enabled === 'true' ? 'bg-blue-500/20' : 'bg-muted'}`}>
+                          <Mail className={`w-5 h-5 ${config.receipt_email_enabled === 'true' ? 'text-blue-400' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold">Enviar por Email</p>
+                          <p className="text-sm text-muted-foreground">
+                            Usa as credenciais Gmail já configuradas
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={config.receipt_email_enabled === 'true'}
+                        onCheckedChange={(checked) => setConfig({ ...config, receipt_email_enabled: checked ? 'true' : 'false' })}
+                        disabled={config.receipt_enabled !== 'true'}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-500/5 to-green-500/10 border border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${config.receipt_whatsapp_enabled === 'true' ? 'bg-green-500/20' : 'bg-muted'}`}>
+                          <Phone className={`w-5 h-5 ${config.receipt_whatsapp_enabled === 'true' ? 'text-green-400' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold">Enviar por WhatsApp</p>
+                          <p className="text-sm text-muted-foreground">
+                            Usa a instância Evolution ativa
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={config.receipt_whatsapp_enabled === 'true'}
+                        onCheckedChange={(checked) => setConfig({ ...config, receipt_whatsapp_enabled: checked ? 'true' : 'false' })}
+                        disabled={config.receipt_enabled !== 'true'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-sm text-amber-400">
+                      <AlertCircle className="w-4 h-4 inline mr-2" />
+                      <strong>Como funciona:</strong> Quando você marca um pagamento como "Pago" no sistema, 
+                      o recibo é enviado automaticamente por Email e/ou WhatsApp para o cliente.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Variáveis disponíveis */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    Variáveis Disponíveis
+                  </CardTitle>
+                  <CardDescription>
+                    Use estas variáveis nos templates de recibo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      { var: '{nome}', desc: 'Nome do cliente' },
+                      { var: '{email}', desc: 'Email do cliente' },
+                      { var: '{cpf}', desc: 'CPF/CNPJ' },
+                      { var: '{produto}', desc: 'Produto contratado' },
+                      { var: '{plano}', desc: 'Plano do cliente' },
+                      { var: '{valor}', desc: 'Valor pago (com moeda)' },
+                      { var: '{data_pagamento}', desc: 'Data do pagamento' },
+                      { var: '{proxima_renovacao}', desc: 'Próxima renovação' },
+                    ].map((item) => (
+                      <div key={item.var} className="p-2 rounded-lg bg-muted/50 border">
+                        <code className="text-purple-400 font-mono text-xs">{item.var}</code>
+                        <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Templates */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Email Template */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-blue-400" />
+                    Template de Email
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Assunto do Email</Label>
+                    <Input
+                      value={config.receipt_email_subject || 'Recibo de Pagamento - {produto}'}
+                      onChange={(e) => setConfig({ ...config, receipt_email_subject: e.target.value })}
+                      placeholder="Recibo de Pagamento - {produto}"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Corpo do Email (HTML)</Label>
+                    <Textarea
+                      value={config.receipt_email_template || ''}
+                      onChange={(e) => setConfig({ ...config, receipt_email_template: e.target.value })}
+                      placeholder="Template HTML do recibo..."
+                      rows={12}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* WhatsApp Template */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-green-400" />
+                    Template de WhatsApp
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Mensagem do Recibo</Label>
+                    <Textarea
+                      value={config.receipt_whatsapp_template || ''}
+                      onChange={(e) => setConfig({ ...config, receipt_whatsapp_template: e.target.value })}
+                      placeholder="Template da mensagem de recibo..."
+                      rows={15}
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use *texto* para negrito no WhatsApp
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={saveConfig} disabled={isSaving} className="min-w-[150px]">
+                {isSaving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Salvar Configurações
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

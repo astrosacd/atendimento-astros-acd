@@ -122,7 +122,7 @@ export function usePaymentStatus() {
   };
 
   // Mark payment as paid manually (for payments outside Mercado Pago)
-  // Also updates the client's renewal date to next month
+  // Also updates the client's renewal date to next month and sends receipt
   const markPaymentAsPaid = async (paymentId: string): Promise<boolean> => {
     try {
       // First get the payment to find the cliente_id
@@ -134,18 +134,20 @@ export function usePaymentStatus() {
       
       if (fetchError) throw fetchError;
       
+      const paidAt = new Date().toISOString();
+      
       // Update payment status
       const { error } = await supabase
         .from('client_payments')
         .update({ 
           status: 'paid', 
-          paid_at: new Date().toISOString(),
+          paid_at: paidAt,
         })
         .eq('id', paymentId);
       
       if (error) throw error;
       
-      // If we have a cliente_id, update the renewal date
+      // If we have a cliente_id, update the renewal date and send receipt
       if (payment?.cliente_id) {
         // Get current client renewal date
         const { data: cliente, error: clienteError } = await supabase
@@ -166,11 +168,31 @@ export function usePaymentStatus() {
             .update({ data_renovacao: newRenewalDate })
             .eq('id', payment.cliente_id);
         }
+        
+        // Send receipt via edge function
+        try {
+          console.log('Enviando recibo para cliente:', payment.cliente_id);
+          const { data: receiptResult, error: receiptError } = await supabase.functions.invoke('send-receipt', {
+            body: {
+              clienteId: payment.cliente_id,
+              paymentId: paymentId,
+              paidAt: paidAt,
+            },
+          });
+          
+          if (receiptError) {
+            console.error('Erro ao enviar recibo:', receiptError);
+          } else {
+            console.log('Resultado do recibo:', receiptResult);
+          }
+        } catch (receiptErr) {
+          console.error('Erro ao chamar função de recibo:', receiptErr);
+        }
       }
       
       toast({
         title: 'Pagamento confirmado',
-        description: 'Status atualizado e data de renovação avançada para o próximo mês',
+        description: 'Status atualizado, data de renovação avançada e recibo enviado',
       });
       
       return true;
