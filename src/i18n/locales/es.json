@@ -166,6 +166,44 @@
     "myAccount": "Mi Cuenta",
     "role": "Rol"
   },
+  "admin": {
+    "title": "Panel Administrativo",
+    "subtitle": "Gestión del sistema",
+    "modulesTitle": "Módulos de Administración",
+    "accessModule": "Acceder al módulo",
+    "stats": {
+      "activeModules": "Módulos Activos",
+      "accessLevel": "Nivel de Acceso",
+      "system": "Sistema",
+      "online": "Online"
+    },
+    "modules": {
+      "manageUsers": {
+        "title": "Gestionar Usuarios",
+        "description": "Aprobar, rechazar y gestionar cuentas y permisos"
+      },
+      "systemPermissions": {
+        "title": "Permisos del Sistema",
+        "description": "Gestione roles y permisos de acceso"
+      },
+      "passwordRecovery": {
+        "title": "Recuperación de Contraseña",
+        "description": "Configurar métodos de recuperación de contraseña"
+      },
+      "welcomeMessages": {
+        "title": "Mensajes de Bienvenida",
+        "description": "Configurar envío automático a nuevos usuarios"
+      },
+      "helpChat": {
+        "title": "Chat de Ayuda (Lyra)",
+        "description": "Configurar asistente virtual"
+      },
+      "configurationGuide": {
+        "title": "Guía de Configuración",
+        "description": "Aprenda a configurar todos los módulos del sistema"
+      }
+    }
+  },
   "users": {
     "title": "Gestionar Usuarios",
     "manageUsersDesc": "Cree y gestione usuarios del sistema",
@@ -174,27 +212,30 @@
     "approvalHistory": "Historial de Aprobaciones",
     "createUser": "Crear Usuario",
     "createNewUser": "Crear nuevo usuario",
+    "creating": "Creando...",
     "name": "Nombre",
     "email": "Correo",
     "password": "Contraseña",
     "phone": "Teléfono",
     "role": "Rol",
     "status": "Estado",
+    "createdAt": "Creado el",
     "actions": "Acciones",
     "approve": "Aprobar",
     "reject": "Rechazar",
     "delete": "Eliminar",
     "block": "Bloquear",
     "unblock": "Desbloquear",
+    "blocked": "Bloqueado",
     "resendCredentials": "Reenviar Credenciales",
     "pending": "Pendiente",
     "approved": "Aprobado",
     "rejected": "Rechazado",
-    "blocked": "Bloqueado",
     "filterByRole": "Filtrar por rol",
     "allRoles": "Todos los roles",
     "noUsers": "No se encontraron usuarios",
     "noPendingUsers": "No hay solicitudes pendientes",
+    "noApprovedUsers": "No hay usuarios aprobados",
     "userCreatedSuccess": "¡Usuario creado con éxito!",
     "userApprovedSuccess": "¡Usuario aprobado con éxito!",
     "userRejectedSuccess": "¡Usuario rechazado!",
@@ -203,6 +244,7 @@
     "userUnblockedSuccess": "¡Usuario desbloqueado!",
     "credentialsSentSuccess": "¡Credenciales enviadas!",
     "rejectionReason": "Motivo del rechazo",
+    "previousRejectionReason": "Motivo del rechazo anterior:",
     "blockReason": "Motivo del bloqueo",
     "userResponse": "Respuesta del usuario",
     "selectRole": "Seleccione un rol",

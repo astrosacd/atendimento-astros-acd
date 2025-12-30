@@ -238,16 +238,18 @@ export default function ConsultarCliente() {
       <div className="flex items-center justify-center p-4">
         <Card className="w-full max-w-4xl bg-card border-border card-glow">
           <CardHeader className="border-b border-border pb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="p-2.5 rounded-xl bg-info/10 glow-blue">
                   <Eye className="w-6 h-6 text-info" />
                 </div>
-                <CardTitle className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-                  {t('clients.search.title')}
-                </CardTitle>
               </div>
-              <div className="flex gap-2">
+
+              <CardTitle className="text-2xl sm:text-3xl font-bold font-display text-foreground text-center">
+                {t('clients.search.title')}
+              </CardTitle>
+
+              <div className="flex gap-2 justify-end">
                 <Sheet open={showFilters} onOpenChange={setShowFilters}>
                   <SheetTrigger asChild>
                     <Button 

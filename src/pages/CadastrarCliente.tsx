@@ -298,7 +298,7 @@ export default function CadastrarCliente() {
                   <UserPlus className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle className="text-2xl font-semibold text-foreground">
-                  {t('clients.register')}
+                  {t('clients.register.title')}
                 </CardTitle>
               </div>
               <p className="text-center text-muted-foreground mt-2">

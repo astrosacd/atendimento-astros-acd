@@ -166,6 +166,44 @@
     "myAccount": "Minha Conta",
     "role": "Função"
   },
+  "admin": {
+    "title": "Painel Administrativo",
+    "subtitle": "Gerenciamento do sistema",
+    "modulesTitle": "Módulos de Administração",
+    "accessModule": "Acessar módulo",
+    "stats": {
+      "activeModules": "Módulos Ativos",
+      "accessLevel": "Nível de Acesso",
+      "system": "Sistema",
+      "online": "Online"
+    },
+    "modules": {
+      "manageUsers": {
+        "title": "Gerenciar Usuários",
+        "description": "Aprovar, rejeitar e gerenciar contas e permissões"
+      },
+      "systemPermissions": {
+        "title": "Permissões do Sistema",
+        "description": "Gerencie funções e permissões de acesso"
+      },
+      "passwordRecovery": {
+        "title": "Recuperação de Senha",
+        "description": "Configurar métodos de recuperação de senha"
+      },
+      "welcomeMessages": {
+        "title": "Mensagens de Boas-vindas",
+        "description": "Configurar envio automático para novos usuários"
+      },
+      "helpChat": {
+        "title": "Chat de Ajuda (Lyra)",
+        "description": "Configurar assistente virtual"
+      },
+      "configurationGuide": {
+        "title": "Guia de Configuração",
+        "description": "Aprenda a configurar todos os módulos do sistema"
+      }
+    }
+  },
   "users": {
     "title": "Gerenciar Usuários",
     "manageUsersDesc": "Crie e gerencie usuários do sistema",
@@ -174,27 +212,30 @@
     "approvalHistory": "Histórico de Aprovações",
     "createUser": "Criar Usuário",
     "createNewUser": "Criar novo usuário",
+    "creating": "Criando...",
     "name": "Nome",
     "email": "E-mail",
     "password": "Senha",
     "phone": "Telefone",
     "role": "Função",
     "status": "Status",
+    "createdAt": "Criado em",
     "actions": "Ações",
     "approve": "Aprovar",
     "reject": "Rejeitar",
     "delete": "Excluir",
     "block": "Bloquear",
     "unblock": "Desbloquear",
+    "blocked": "Bloqueado",
     "resendCredentials": "Reenviar Credenciais",
     "pending": "Pendente",
     "approved": "Aprovado",
     "rejected": "Rejeitado",
-    "blocked": "Bloqueado",
     "filterByRole": "Filtrar por função",
     "allRoles": "Todas as funções",
     "noUsers": "Nenhum usuário encontrado",
     "noPendingUsers": "Nenhuma solicitação pendente",
+    "noApprovedUsers": "Nenhum usuário aprovado",
     "userCreatedSuccess": "Usuário criado com sucesso!",
     "userApprovedSuccess": "Usuário aprovado com sucesso!",
     "userRejectedSuccess": "Usuário rejeitado!",
@@ -203,6 +244,7 @@
     "userUnblockedSuccess": "Usuário desbloqueado!",
     "credentialsSentSuccess": "Credenciais enviadas!",
     "rejectionReason": "Motivo da rejeição",
+    "previousRejectionReason": "Motivo da rejeição anterior:",
     "blockReason": "Motivo do bloqueio",
     "userResponse": "Resposta do usuário",
     "selectRole": "Selecione uma função",
@@ -262,7 +304,14 @@
     "addNewClient": "Adicionar novo cliente ao sistema",
     "searchViewClients": "Buscar e visualizar clientes",
     "editClientInfo": "Editar informações de clientes",
-    "removeClient": "Remover cliente do sistema"
+    "removeClient": "Remover cliente do sistema",
+    "tasksNeedAttention": "Tarefas que precisam de atenção",
+    "overdueLabel": "Atrasada",
+    "dueTodayLabel": "Vence hoje",
+    "viewAllTasks": "Ver todas as tarefas",
+    "additionalMetricsTitle": "Métricas Adicionais",
+    "forecast30DaysBrl": "Previsão 30 dias (R$)",
+    "forecast30DaysUsd": "Previsão 30 dias ($)"
   },
   "clients": {
     "title": "Clientes",
