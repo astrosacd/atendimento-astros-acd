@@ -197,7 +197,7 @@ export default function AtualizarCliente() {
               <RefreshCw className="w-6 h-6 text-update" />
             </div>
             <CardTitle className="text-2xl font-semibold text-foreground">
-              Atualizar Cliente
+              {t('clients.update.title')}
             </CardTitle>
           </div>
         </CardHeader>
@@ -206,7 +206,7 @@ export default function AtualizarCliente() {
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="space-y-4">
                 <Input
-                  placeholder="Buscar por CPF, número, email ou nome"
+                  placeholder={t('clients.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
@@ -217,13 +217,13 @@ export default function AtualizarCliente() {
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Buscando...' : 'Buscar'}
+                  {isLoading ? t('common.loading') : t('common.search')}
                 </Button>
               </form>
 
               {searchResults.length > 0 ? (
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground text-sm">Selecione o cliente:</Label>
+                  <Label className="text-muted-foreground text-sm">{t('clients.selectClient')}:</Label>
                   {searchResults.map((cliente) => (
                     <Button
                       key={cliente.id}
@@ -238,8 +238,8 @@ export default function AtualizarCliente() {
               ) : searchPerformed ? (
                 <div className="text-center py-6 border border-border/50 rounded-lg bg-muted/20">
                   <AlertCircle className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground font-medium">Nenhum cliente encontrado</p>
-                  <p className="text-sm text-muted-foreground mt-1">Tente buscar por outro CPF, número, email ou nome</p>
+                  <p className="text-muted-foreground font-medium">{t('clients.noClientsFound')}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('clients.tryDifferentSearch')}</p>
                 </div>
               ) : null}
 
@@ -250,7 +250,7 @@ export default function AtualizarCliente() {
                 className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar ao Menu
+                {t('common.back')}
               </Button>
             </div>
           ) : (
@@ -260,36 +260,35 @@ export default function AtualizarCliente() {
                   <h3 className={`font-semibold text-lg ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
                   {isClienteVitalicio && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
-                      Registro
+                      {t('clients.registrationOnly')}
                     </span>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{selectedCliente.cpf}</span></p>
-                  <p className="text-muted-foreground">Produto: <span className="text-foreground">{selectedCliente.produto}</span></p>
+                  <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf}</span></p>
+                  <p className="text-muted-foreground">{t('clients.product')}: <span className="text-foreground">{selectedCliente.produto}</span></p>
                 </div>
                 {!isClienteVitalicio && (
                   <p className="text-sm text-muted-foreground">
-                    Data atual: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+                    {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
                   </p>
                 )}
               </div>
 
-              {/* Plano Revendedor - logo após info do cliente */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Store className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                  <Label htmlFor="plano" className="text-foreground font-medium">{t('clients.resellerPlan')}</Label>
                 </div>
                 <Select
                   value={newPlano || 'none'}
                   onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
                 >
                   <SelectTrigger className="bg-secondary border-border text-foreground h-12">
-                    <SelectValue placeholder="Selecione o plano" />
+                    <SelectValue placeholder={t('clients.selectPlan')} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="none">Nenhum (Cliente comum)</SelectItem>
+                    <SelectItem value="none">{t('clients.noPlan')}</SelectItem>
                     {availablePlanos.map(plano => (
                       <SelectItem key={plano.id} value={plano.nome}>
                         {plano.nome}
@@ -297,13 +296,13 @@ export default function AtualizarCliente() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Associe um plano para clientes revendedores</p>
+                <p className="text-xs text-muted-foreground">{t('clients.resellerPlanDesc')}</p>
               </div>
 
               {!isClienteVitalicio && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="newDate" className="text-foreground font-medium">Nova Data de Renovação</Label>
+                    <Label htmlFor="newDate" className="text-foreground font-medium">{t('clients.newRenewalDate')}</Label>
                     <Input
                       id="newDate"
                       type="date"
@@ -316,21 +315,21 @@ export default function AtualizarCliente() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Repeat className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">Ciclo de Cobrança</Label>
+                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">{t('clients.billingCycle')}</Label>
                     </div>
                     <Select
                       value={newCicloCobranca}
                       onValueChange={(value) => setNewCicloCobranca(value as CicloCobranca)}
                     >
                       <SelectTrigger className="bg-secondary border-border text-foreground h-12">
-                        <SelectValue placeholder="Selecione o ciclo" />
+                        <SelectValue placeholder={t('clients.selectCycle')} />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
-                        <SelectItem value="mensal">Mensal (1 mês)</SelectItem>
-                        <SelectItem value="bimestral">Bimestral (2 meses)</SelectItem>
-                        <SelectItem value="trimestral">Trimestral (3 meses)</SelectItem>
-                        <SelectItem value="semestral">Semestral (6 meses)</SelectItem>
-                        <SelectItem value="anual">Anual (12 meses)</SelectItem>
+                        <SelectItem value="mensal">{t('clients.monthly')} (1 {t('common.month')})</SelectItem>
+                        <SelectItem value="bimestral">{t('clients.bimonthly')} (2 {t('common.months')})</SelectItem>
+                        <SelectItem value="trimestral">{t('clients.quarterly')} (3 {t('common.months')})</SelectItem>
+                        <SelectItem value="semestral">{t('clients.semiannual')} (6 {t('common.months')})</SelectItem>
+                        <SelectItem value="anual">{t('clients.annual')} (12 {t('common.months')})</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -338,7 +337,7 @@ export default function AtualizarCliente() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      <Label htmlFor="moeda" className="text-foreground font-medium">Moeda</Label>
+                      <Label htmlFor="moeda" className="text-foreground font-medium">{t('clients.currency')}</Label>
                     </div>
                     <Select
                       value={newMoeda}
@@ -349,11 +348,11 @@ export default function AtualizarCliente() {
                       }}
                     >
                       <SelectTrigger className="bg-secondary border-border text-foreground h-12">
-                        <SelectValue placeholder="Selecione a moeda" />
+                        <SelectValue placeholder={t('clients.selectCurrency')} />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
                         <SelectItem value="BRL">R$ Real (BRL)</SelectItem>
-                        <SelectItem value="USD">$ Dólar (USD)</SelectItem>
+                        <SelectItem value="USD">$ Dollar (USD)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -363,7 +362,7 @@ export default function AtualizarCliente() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="newValor" className="text-foreground font-medium">Valor</Label>
+                  <Label htmlFor="newValor" className="text-foreground font-medium">{t('clients.value')}</Label>
                 </div>
                 <Input
                   id="newValor"
@@ -377,7 +376,7 @@ export default function AtualizarCliente() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="newNumero" className="text-foreground font-medium">Número (WhatsApp)</Label>
+                  <Label htmlFor="newNumero" className="text-foreground font-medium">{t('clients.phone')} (WhatsApp)</Label>
                 </div>
                 <PhoneInputWithCountry
                   value={newNumero}
@@ -392,20 +391,20 @@ export default function AtualizarCliente() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  <Label htmlFor="observacao" className="text-foreground font-medium">Observações</Label>
+                  <Label htmlFor="observacao" className="text-foreground font-medium">{t('clients.observations')}</Label>
                 </div>
                 <Textarea
                   id="observacao"
-                  placeholder="Adicione ou edite notas sobre o cliente..."
+                  placeholder={t('clients.observationsPlaceholder')}
                   value={newObservacao}
                   onChange={(e) => setNewObservacao(e.target.value)}
                   className="bg-secondary border-border text-foreground min-h-[100px] resize-none focus:ring-2 focus:ring-update/20"
                 />
-                <p className="text-xs text-muted-foreground">Campo opcional para anotações internas</p>
+                <p className="text-xs text-muted-foreground">{t('clients.observationsDesc')}</p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-foreground font-medium">Tags</Label>
+                <Label className="text-foreground font-medium">{t('clients.tags')}</Label>
                 <TagInput
                   tags={newTags}
                   onTagsChange={setNewTags}
@@ -435,7 +434,7 @@ export default function AtualizarCliente() {
                 disabled={isLoading}
               >
                 <Check className="w-4 h-4 mr-2" />
-                Atualizar
+                {t('common.update')}
               </Button>
 
               <Button 
@@ -447,7 +446,7 @@ export default function AtualizarCliente() {
                 className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                {t('common.back')}
               </Button>
             </div>
           )}
@@ -457,21 +456,21 @@ export default function AtualizarCliente() {
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar Atualização</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">{t('clients.confirmUpdate')}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
               {isClienteVitalicio 
-                ? `Deseja atualizar as informações do cliente ${selectedCliente?.nome}?`
-                : `Deseja atualizar a data de renovação do cliente ${selectedCliente?.nome} para ${newDate ? formatDate(newDate) : ''}?`
+                ? t('clients.confirmUpdateRegistration', { name: selectedCliente?.nome })
+                : t('clients.confirmUpdateRenewal', { name: selectedCliente?.nome, date: newDate ? formatDate(newDate) : '' })
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary text-foreground border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-secondary text-foreground border-border">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmUpdate}
               className={isClienteVitalicio ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-update text-update-foreground hover:bg-update/90"}
             >
-              {isLoading ? 'Atualizando...' : 'Sim, atualizar!'}
+              {isLoading ? t('common.updating') : t('common.yesUpdate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

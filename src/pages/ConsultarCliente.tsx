@@ -213,9 +213,9 @@ export default function ConsultarCliente() {
 
   const getActionLabel = (action: string) => {
     switch (action) {
-      case 'created': return 'Cadastrado';
-      case 'updated': return 'Atualizado';
-      case 'deleted': return 'Excluído';
+      case 'created': return t('clients.history.created');
+      case 'updated': return t('clients.history.updated');
+      case 'deleted': return t('clients.history.deleted');
       default: return action;
     }
   };
@@ -244,7 +244,7 @@ export default function ConsultarCliente() {
                   <Eye className="w-6 h-6 text-info" />
                 </div>
                 <CardTitle className="text-2xl sm:text-3xl font-bold font-display text-foreground">
-                  Consulta de Cliente
+                  {t('clients.search.title')}
                 </CardTitle>
               </div>
               <div className="flex gap-2">
@@ -260,14 +260,14 @@ export default function ConsultarCliente() {
                   </SheetTrigger>
                   <SheetContent className="bg-card border-border">
                     <SheetHeader>
-                      <SheetTitle className="text-foreground font-display">Filtros Avançados</SheetTitle>
+                      <SheetTitle className="text-foreground font-display">{t('clients.advancedFilters')}</SheetTitle>
                       <SheetDescription className="text-muted-foreground">
-                        Refine sua busca com filtros específicos
+                        {t('clients.refineSearch')}
                       </SheetDescription>
                     </SheetHeader>
                     <div className="space-y-4 mt-6">
                       <div className="space-y-2">
-                        <Label className="text-foreground">Período de Renovação</Label>
+                        <Label className="text-foreground">{t('clients.renewalPeriod')}</Label>
                         <div className="grid grid-cols-2 gap-2">
                           <Input
                             type="date"
@@ -287,36 +287,36 @@ export default function ConsultarCliente() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label className="text-foreground">Faixa de Valor</Label>
+                        <Label className="text-foreground">{t('clients.valueRange')}</Label>
                         <div className="grid grid-cols-2 gap-2">
                           <Input
                             type="number"
                             value={filters.valorMin}
                             onChange={(e) => setFilters({ ...filters, valorMin: e.target.value })}
                             className="bg-secondary border-border text-foreground"
-                            placeholder="Mínimo"
+                            placeholder={t('clients.minimum')}
                           />
                           <Input
                             type="number"
                             value={filters.valorMax}
                             onChange={(e) => setFilters({ ...filters, valorMax: e.target.value })}
                             className="bg-secondary border-border text-foreground"
-                            placeholder="Máximo"
+                            placeholder={t('clients.maximum')}
                           />
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <Label className="text-foreground">Produto</Label>
+                        <Label className="text-foreground">{t('clients.product')}</Label>
                         <Select
                           value={filters.produto}
                           onValueChange={(value) => setFilters({ ...filters, produto: value })}
                         >
                           <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder="Todos os produtos" />
+                            <SelectValue placeholder={t('clients.allProducts')} />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">Todos os produtos</SelectItem>
+                            <SelectItem value="all">{t('clients.allProducts')}</SelectItem>
                             {uniqueProducts.map((produto) => (
                               <SelectItem key={produto} value={produto}>{produto}</SelectItem>
                             ))}
@@ -325,16 +325,16 @@ export default function ConsultarCliente() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label className="text-foreground">Plano</Label>
+                        <Label className="text-foreground">{t('clients.plan')}</Label>
                         <Select
                           value={filters.plano}
                           onValueChange={(value) => setFilters({ ...filters, plano: value })}
                         >
                           <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder="Todos os planos" />
+                            <SelectValue placeholder={t('clients.allPlans')} />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">Todos os planos</SelectItem>
+                            <SelectItem value="all">{t('clients.allPlans')}</SelectItem>
                             {uniquePlans.map((plano) => (
                               <SelectItem key={plano} value={plano!}>{plano}</SelectItem>
                             ))}
@@ -343,16 +343,16 @@ export default function ConsultarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-foreground">Tag</Label>
+                        <Label className="text-foreground">{t('clients.tags')}</Label>
                         <Select
                           value={filters.tag}
                           onValueChange={(value) => setFilters({ ...filters, tag: value })}
                         >
                           <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder="Todas as tags" />
+                            <SelectValue placeholder={t('clients.allTags')} />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">Todas as tags</SelectItem>
+                            <SelectItem value="all">{t('clients.allTags')}</SelectItem>
                             {availableTags.map((tag) => (
                               <SelectItem key={tag} value={tag}>{tag}</SelectItem>
                             ))}
@@ -361,18 +361,18 @@ export default function ConsultarCliente() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-foreground">Tipo de Cliente</Label>
+                        <Label className="text-foreground">{t('clients.clientType')}</Label>
                         <Select
                           value={filters.tipoCliente}
                           onValueChange={(value) => setFilters({ ...filters, tipoCliente: value })}
                         >
                           <SelectTrigger className="bg-secondary border-border text-foreground">
-                            <SelectValue placeholder="Todos os tipos" />
+                            <SelectValue placeholder={t('clients.allTypes')} />
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border">
-                            <SelectItem value="all">Todos os tipos</SelectItem>
-                            <SelectItem value="mensal">Mensal</SelectItem>
-                            <SelectItem value="registro">Registro</SelectItem>
+                            <SelectItem value="all">{t('clients.allTypes')}</SelectItem>
+                            <SelectItem value="mensal">{t('clients.monthly')}</SelectItem>
+                            <SelectItem value="registro">{t('clients.registrationOnly')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -388,7 +388,7 @@ export default function ConsultarCliente() {
                           }}
                           className="flex-1 bg-info text-info-foreground hover:bg-info/90 btn-3d"
                         >
-                          Aplicar Filtros
+                          {t('common.apply')}
                         </Button>
                         <Button 
                           onClick={clearFilters}
@@ -408,7 +408,7 @@ export default function ConsultarCliente() {
                     variant="outline"
                     size="icon"
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                    title="Exportar CSV"
+                    title={t('common.export')}
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -420,7 +420,7 @@ export default function ConsultarCliente() {
             {!results ? (
               <form onSubmit={handleSearch} className="space-y-4">
                 <Input
-                  placeholder="Digite o CPF, CNPJ, número, email ou nome (deixe vazio para listar todos)"
+                  placeholder={t('clients.searchPlaceholder')}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
@@ -431,7 +431,7 @@ export default function ConsultarCliente() {
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Consultando...' : 'Consultar'}
+                  {isLoading ? t('common.loading') : t('common.search')}
                 </Button>
                 <Button 
                   type="button"
@@ -440,18 +440,18 @@ export default function ConsultarCliente() {
                   className="w-full border-border text-muted-foreground hover:bg-secondary h-12"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar ao Menu
+                  {t('common.back')}
                 </Button>
               </form>
             ) : (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-info font-display">
-                    {results.length > 0 ? `${results.length} cliente(s) encontrado(s)` : 'Nenhum cliente encontrado'}
+                    {results.length > 0 ? `${results.length} ${t('clients.clientsFound')}` : t('clients.noClientsFound')}
                   </h2>
                   {hasActiveFilters && (
                     <span className="text-xs bg-info/10 text-info px-2 py-1 rounded-full">
-                      Filtros ativos
+                      {t('clients.filtersActive')}
                     </span>
                   )}
                 </div>
@@ -474,7 +474,7 @@ export default function ConsultarCliente() {
                             }`}>{cliente.nome}</h3>
                             {cliente.cobranca_ativa === false && (
                               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
-                                Registro
+                                {t('clients.registrationOnly')}
                               </Badge>
                             )}
                           </div>
@@ -526,15 +526,15 @@ export default function ConsultarCliente() {
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <p className="text-muted-foreground">ID: <span className="text-foreground">{cliente.id.slice(0, 8)}...</span></p>
-                          <p className="text-muted-foreground">Telefone: <span className="text-foreground">{formatPhone(cliente.numero)}</span></p>
-                          <p className="text-muted-foreground">Email: <span className="text-foreground">{cliente.email}</span></p>
-                          <p className="text-muted-foreground">CPF/CNPJ: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
-                          <p className="text-muted-foreground">Produto: <span className="text-foreground">{cliente.produto}</span></p>
+                          <p className="text-muted-foreground">{t('clients.phone')}: <span className="text-foreground">{formatPhone(cliente.numero)}</span></p>
+                          <p className="text-muted-foreground">{t('clients.email')}: <span className="text-foreground">{cliente.email}</span></p>
+                          <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
+                          <p className="text-muted-foreground">{t('clients.product')}: <span className="text-foreground">{cliente.produto}</span></p>
                           {cliente.cobranca_ativa !== false && (
                             <>
-                              <p className="text-muted-foreground">Plano: <span className="text-foreground">{cliente.plano || 'Nenhum'}</span></p>
-                              <p className="text-muted-foreground">Valor: <span className="text-primary font-medium">{formatCurrency(cliente.valor, cliente.moeda)}</span></p>
-                              <p className="text-muted-foreground">Renovação: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
+                              <p className="text-muted-foreground">{t('clients.plan')}: <span className="text-foreground">{cliente.plano || t('common.none')}</span></p>
+                              <p className="text-muted-foreground">{t('clients.value')}: <span className="text-primary font-medium">{formatCurrency(cliente.valor, cliente.moeda)}</span></p>
+                              <p className="text-muted-foreground">{t('clients.renewalDate')}: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
                             </>
                           )}
                         </div>
@@ -551,7 +551,7 @@ export default function ConsultarCliente() {
                         {cliente.observacao && (
                           <div className="pt-2 border-t border-info/10">
                             <p className="text-sm text-muted-foreground">
-                              <span className="font-medium">Obs:</span> {cliente.observacao}
+                              <span className="font-medium">{t('clients.observations')}:</span> {cliente.observacao}
                             </p>
                           </div>
                         )}
@@ -560,7 +560,7 @@ export default function ConsultarCliente() {
                   </div>
                 ) : (
                   <p className="text-center text-destructive">
-                    Nenhum cliente encontrado com os dados informados.
+                    {t('clients.tryDifferentSearch')}
                   </p>
                 )}
 
@@ -570,7 +570,7 @@ export default function ConsultarCliente() {
                     className="bg-info text-info-foreground hover:bg-info/90 h-11 btn-3d"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Nova Consulta
+                    {t('clients.newSearch')}
                   </Button>
                   <Button 
                     onClick={() => navigate('/')}
@@ -578,7 +578,7 @@ export default function ConsultarCliente() {
                     className="border-border text-muted-foreground hover:bg-secondary h-11"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Voltar ao Menu
+                    {t('common.back')}
                   </Button>
                 </div>
               </div>
@@ -592,7 +592,7 @@ export default function ConsultarCliente() {
             <DialogHeader>
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <History className="h-5 w-5 text-info" />
-                Histórico de Alterações
+                {t('clients.history.title')}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {selectedCliente?.nome}
@@ -600,7 +600,7 @@ export default function ConsultarCliente() {
             </DialogHeader>
             
             {loadingHistory ? (
-              <div className="py-8 text-center text-muted-foreground">Carregando...</div>
+              <div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>
             ) : clienteHistory.length > 0 ? (
               <div className="space-y-3 mt-4">
                 {clienteHistory.map((entry) => (
@@ -617,11 +617,11 @@ export default function ConsultarCliente() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Por: {entry.changed_by_email || 'Sistema'}
+                      {t('clients.history.changedBy')}: {entry.changed_by_email || t('common.system')}
                     </p>
                     {entry.changed_fields && entry.changed_fields.length > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Campos alterados: {entry.changed_fields.join(', ')}
+                        {t('clients.history.changedFields')}: {entry.changed_fields.join(', ')}
                       </p>
                     )}
                   </div>
@@ -629,7 +629,7 @@ export default function ConsultarCliente() {
               </div>
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                Nenhum histórico encontrado
+                {t('clients.history.noHistoryFound')}
               </div>
             )}
           </DialogContent>
@@ -650,7 +650,7 @@ export default function ConsultarCliente() {
             <DialogHeader>
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <File className="h-5 w-5 text-amber-500" />
-                Arquivos
+                {t('files.title')}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {filesClienteName}
