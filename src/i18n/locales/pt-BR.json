@@ -1323,5 +1323,133 @@
       "reports": "Relatórios",
       "system": "Sistema"
     }
+  },
+  "billing": {
+    "title": "Cobrança Automática",
+    "subtitle": "Gerencie cobranças automáticas e manuais",
+    "tabs": {
+      "config": "Configurações",
+      "channels": "Canais",
+      "messages": "Mensagens",
+      "payments": "Pagamentos",
+      "metrics": "Métricas",
+      "logs": "Histórico"
+    },
+    "stats": {
+      "totalSent": "Total Enviadas",
+      "sentToday": "Enviadas Hoje",
+      "successRate": "Taxa de Sucesso",
+      "errors": "Erros"
+    },
+    "config": {
+      "cronSchedule": "Agendamento CRON",
+      "cronHour": "Hora de Execução",
+      "cronMinute": "Minuto",
+      "billingEnabled": "Cobrança Automática Ativa",
+      "emailEnabled": "Enviar por E-mail",
+      "whatsappEnabled": "Enviar por WhatsApp",
+      "lastExecution": "Última Execução",
+      "nextExecution": "Próxima Execução",
+      "cronMissed": "Execução Perdida",
+      "runNow": "Executar Agora",
+      "running": "Executando...",
+      "testMode": "Modo de Teste",
+      "saveConfig": "Salvar Configurações"
+    },
+    "channels": {
+      "gmail": "Gmail",
+      "gmailDesc": "Configure o Gmail para envio de cobranças por e-mail",
+      "gmailUser": "E-mail Gmail",
+      "gmailPassword": "Senha de App",
+      "whatsapp": "WhatsApp",
+      "whatsappDesc": "Configure instâncias do WhatsApp para envio de cobranças",
+      "addInstance": "Adicionar Instância",
+      "noInstances": "Nenhuma instância configurada",
+      "instanceName": "Nome",
+      "apiUrl": "URL da API",
+      "apiKey": "Chave da API"
+    },
+    "messages": {
+      "title": "Mensagens de Cobrança",
+      "description": "Configure as mensagens para cada etapa da cobrança",
+      "dMinus3": "D-3 (3 dias antes)",
+      "dZero": "D0 (Dia do vencimento)",
+      "dPlus1": "D+1 (1 dia atrasado)",
+      "dPlus2": "D+2 (2 dias atrasado)",
+      "dPlus15": "D+15 (15 dias atrasado)",
+      "dPlus30": "D+30 (30 dias atrasado)",
+      "variables": "Variáveis disponíveis",
+      "restoreDefaults": "Restaurar Padrões"
+    },
+    "payments": {
+      "stripe": "Stripe",
+      "stripeEnabled": "Pagamento via Stripe",
+      "stripeSecretKey": "Chave Secreta Stripe",
+      "stripeTax": "Taxa (%)",
+      "mercadoPago": "Mercado Pago",
+      "accessToken": "Access Token",
+      "pixKey": "Chave PIX",
+      "pixType": "Tipo da Chave",
+      "beneficiary": "Beneficiário",
+      "cardRate": "Taxa Cartão (%)",
+      "boletoRate": "Taxa Boleto (R$)",
+      "enablePaymentLink": "Gerar Link de Pagamento",
+      "enableBoleto": "Gerar Boleto",
+      "checkPayments": "Verificar Pagamentos",
+      "pendingPayments": "Pagamentos Pendentes"
+    },
+    "metrics": {
+      "title": "Métricas de Cobrança",
+      "successRate": "Taxa de Sucesso",
+      "totalValue": "Valor Total",
+      "projectedValue": "Valor Projetado",
+      "clientsWithPending": "Clientes com Pendência",
+      "avgResponseTime": "Tempo Médio de Resposta",
+      "byChannel": "Por Canal",
+      "byType": "Por Tipo",
+      "monthlyTrend": "Tendência Mensal"
+    },
+    "logs": {
+      "title": "Histórico de Envios",
+      "client": "Cliente",
+      "type": "Tipo",
+      "channel": "Canal",
+      "status": "Status",
+      "date": "Data",
+      "errorMessage": "Mensagem de Erro",
+      "sent": "Enviado",
+      "error": "Erro",
+      "filters": {
+        "status": "Status",
+        "channel": "Canal",
+        "type": "Tipo",
+        "period": "Período",
+        "all": "Todos",
+        "last7Days": "Últimos 7 dias",
+        "last30Days": "Últimos 30 dias",
+        "last90Days": "Últimos 90 dias"
+      },
+      "noLogs": "Nenhum log encontrado",
+      "exportPdf": "Exportar PDF"
+    },
+    "manual": {
+      "title": "Envio Manual",
+      "selectClients": "Selecionar Clientes",
+      "selectMessageType": "Tipo de Mensagem",
+      "send": "Enviar Cobrança",
+      "sending": "Enviando...",
+      "selectedCount": "{{count}} selecionado(s)"
+    },
+    "toast": {
+      "configSaved": "Configurações salvas!",
+      "configSavedDesc": "As configurações de cobrança foram atualizadas.",
+      "manualSent": "Cobranças enviadas!",
+      "manualSentDesc": "{{count}} cobranças foram enviadas.",
+      "errorSaving": "Erro ao salvar configurações",
+      "errorSending": "Erro ao enviar cobranças",
+      "instanceAdded": "Instância adicionada!",
+      "instanceRemoved": "Instância removida!",
+      "stripeSaved": "Configuração Stripe salva!"
+    }
   }
 }
