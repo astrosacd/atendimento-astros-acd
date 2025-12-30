@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -61,6 +62,7 @@ interface CustomRole {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
   const { canManageTasks } = usePermissions();
@@ -441,8 +443,8 @@ export default function Dashboard() {
 
   const clientActions = [
     {
-      title: 'Cadastrar',
-      description: 'Adicionar novo cliente ao sistema',
+      title: t('sidebar.register'),
+      description: t('dashboard.addNewClient'),
       icon: UserPlus,
       path: '/cadastrar',
       adminOnly: true,
@@ -450,8 +452,8 @@ export default function Dashboard() {
       glow: 'glow-green',
     },
     {
-      title: 'Consultar',
-      description: 'Buscar e visualizar clientes',
+      title: t('sidebar.search'),
+      description: t('dashboard.searchViewClients'),
       icon: Search,
       path: '/consultar',
       adminOnly: false,
@@ -459,8 +461,8 @@ export default function Dashboard() {
       glow: 'glow-blue',
     },
     {
-      title: 'Atualizar',
-      description: 'Editar informações de clientes',
+      title: t('sidebar.update'),
+      description: t('dashboard.editClientInfo'),
       icon: Edit,
       path: '/atualizar',
       adminOnly: true,
@@ -468,8 +470,8 @@ export default function Dashboard() {
       glow: 'glow-violet',
     },
     {
-      title: 'Excluir',
-      description: 'Remover cliente do sistema',
+      title: t('sidebar.delete'),
+      description: t('dashboard.removeClient'),
       icon: Trash2,
       path: '/excluir',
       adminOnly: true,
@@ -479,16 +481,16 @@ export default function Dashboard() {
   ];
 
   const adminActions = [
-    { title: 'Gerenciar Usuários', description: 'Criar, editar e gerenciar acessos', icon: Users, path: '/usuarios' },
-    { title: 'Webhooks', description: 'Integrações e automações', icon: Webhook, path: '/admin/webhooks' },
-    { title: 'Configurações', description: 'Recuperação de senha e mais', icon: Settings, path: '/admin' },
+    { title: t('dashboard.manageUsers'), description: t('dashboard.manageUsersDesc'), icon: Users, path: '/usuarios' },
+    { title: t('sidebar.webhooks'), description: t('dashboard.integrations'), icon: Webhook, path: '/admin/webhooks' },
+    { title: t('sidebar.settings'), description: t('dashboard.passwordRecoveryAndMore'), icon: Settings, path: '/admin' },
   ];
 
   const visibleClientActions = clientActions.filter(item => isAdmin || !item.adminOnly);
 
   const billingData = [
-    { name: 'Sucesso', value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
-    { name: 'Erros', value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
+    { name: t('common.success'), value: stats.billingSuccess, fill: 'hsl(152, 76%, 45%)' },
+    { name: t('common.error'), value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
   ];
 
   return (
@@ -498,10 +500,10 @@ export default function Dashboard() {
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold font-display text-gradient">
-              Bem-vindo de volta!
+              {t('auth.welcomeBack')}
             </h1>
             <p className="text-muted-foreground mt-1">
-              {user?.email} • <span className="text-primary font-medium">{roleDisplayName || 'Carregando...'}</span>
+              {user?.email} • <span className="text-primary font-medium">{roleDisplayName || t('common.loading')}</span>
             </p>
           </div>
           
@@ -510,12 +512,12 @@ export default function Dashboard() {
               {isSupported && permission !== 'granted' && (
                 <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
                   <Bell className="h-4 w-4 mr-2" />
-                  Ativar Notificações
+                  {t('dashboard.enableNotifications')}
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
                 <Database className="h-4 w-4 mr-2" />
-                {isBackingUp ? 'Baixando...' : 'Backup'}
+                {isBackingUp ? t('common.loading') : t('dashboard.backup')}
               </Button>
             </div>
           )}
@@ -524,7 +526,7 @@ export default function Dashboard() {
         {/* Section: Financeiro */}
         <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
           <span className="h-5 w-1 bg-info rounded-full"></span>
-          Financeiro
+          {t('sidebar.billing')}
         </h3>
         {/* Primary Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -536,7 +538,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
-                  <p className="text-xs text-muted-foreground">Clientes Cadastrados</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.totalClients')}</p>
                 </div>
               </div>
             </CardContent>
@@ -550,7 +552,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
-                  <p className="text-xs text-muted-foreground">MRR (Reais)</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (BRL)</p>
                 </div>
               </div>
             </CardContent>
@@ -564,7 +566,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.mrrUsd)}</p>
-                  <p className="text-xs text-muted-foreground">MRR (Dólar)</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (USD)</p>
                 </div>
               </div>
             </CardContent>
@@ -578,7 +580,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
-                  <p className="text-xs text-muted-foreground">Renovações (7 dias)</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
                 </div>
               </div>
             </CardContent>
@@ -592,7 +594,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
-                  <p className="text-xs text-muted-foreground">Inadimplentes</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
                 </div>
               </div>
             </CardContent>
@@ -604,7 +606,7 @@ export default function Dashboard() {
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
-              Chamados
+              {t('sidebar.tickets')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card 
@@ -619,7 +621,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAbertos}</p>
-                      <p className="text-xs text-muted-foreground">Chamados Abertos</p>
+                      <p className="text-xs text-muted-foreground">{t('dashboard.openTickets')}</p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
@@ -639,7 +641,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosEmAndamento}</p>
-                      <p className="text-xs text-muted-foreground">Chamados Em Andamento</p>
+                      <p className="text-xs text-muted-foreground">{t('dashboard.ticketsInProgress')}</p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
@@ -655,7 +657,7 @@ export default function Dashboard() {
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-primary rounded-full"></span>
-              Tarefas
+              {t('sidebar.tasks')}
             </h3>
             {/* Task Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -671,7 +673,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
-                        <p className="text-xs text-muted-foreground">Pendentes</p>
+                        <p className="text-xs text-muted-foreground">{t('dashboard.pendingTasks')}</p>
                       </div>
                     </div>
                   </div>
@@ -690,7 +692,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
-                        <p className="text-xs text-muted-foreground">Em Andamento</p>
+                        <p className="text-xs text-muted-foreground">{t('dashboard.tasksInProgress')}</p>
                       </div>
                     </div>
                   </div>
@@ -709,7 +711,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
-                        <p className="text-xs text-muted-foreground">Atrasadas</p>
+                        <p className="text-xs text-muted-foreground">{t('dashboard.overdueTasks')}</p>
                       </div>
                     </div>
                   </div>
@@ -728,7 +730,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
-                        <p className="text-xs text-muted-foreground">Concluídas</p>
+                        <p className="text-xs text-muted-foreground">{t('dashboard.completedTasks')}</p>
                       </div>
                     </div>
                   </div>
@@ -1065,7 +1067,7 @@ export default function Dashboard() {
         <section className="mb-10">
           <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2 font-display">
             <span className="h-6 w-1.5 bg-primary rounded-full"></span>
-            Gestão de Clientes
+            {t('sidebar.clients')}
           </h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {visibleClientActions.map((item) => (
@@ -1095,7 +1097,7 @@ export default function Dashboard() {
           <section>
             <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2 font-display">
               <span className="h-6 w-1.5 bg-warning rounded-full"></span>
-              Administração
+              {t('sidebar.administration')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {adminActions.map((item) => (

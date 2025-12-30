@@ -19,9 +19,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from 'react-i18next';
 
 export default function ExcluirCliente() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { searchCliente, deleteCliente, isLoading } = useClientes();
   const { toast } = useToast();
   
@@ -79,7 +81,7 @@ export default function ExcluirCliente() {
               <Trash2 className="w-6 h-6 text-destructive" />
             </div>
             <CardTitle className="text-2xl font-semibold text-foreground">
-              Excluir Cliente
+              {t('clients.delete')}
             </CardTitle>
           </div>
         </CardHeader>
@@ -88,7 +90,7 @@ export default function ExcluirCliente() {
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="space-y-4">
                 <Input
-                  placeholder="Buscar por CPF, número, email ou nome"
+                  placeholder={t('clients.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-secondary border-border text-foreground h-12"
@@ -99,13 +101,13 @@ export default function ExcluirCliente() {
                   disabled={isLoading}
                 >
                   <Search className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Buscando...' : 'Buscar'}
+                  {isLoading ? t('common.loading') : t('common.search')}
                 </Button>
               </form>
 
               {searchResults.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground text-sm">Selecione o cliente para excluir:</Label>
+                  <Label className="text-muted-foreground text-sm">{t('clients.selectClientToDelete')}:</Label>
                   {searchResults.map((cliente) => (
                     <Button
                       key={cliente.id}
@@ -126,7 +128,7 @@ export default function ExcluirCliente() {
                 className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar ao Menu
+                {t('clients.backToMenu')}
               </Button>
             </div>
           ) : (

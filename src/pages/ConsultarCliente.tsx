@@ -31,9 +31,11 @@ import { useClientHistory, ClientHistoryEntry } from '@/hooks/useClientHistory';
 import { Badge } from '@/components/ui/badge';
 import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
+import { useTranslation } from 'react-i18next';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { searchCliente, fetchClientes, isLoading } = useClientes();
   const { isAdmin } = useAuth();
   const { fetchClientHistory } = useClientHistory();
