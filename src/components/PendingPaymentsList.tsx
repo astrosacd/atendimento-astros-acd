@@ -112,7 +112,16 @@ export function PendingPaymentsList({ onPaymentUpdated }: PendingPaymentsListPro
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const isStripePayment = (type: string) => 
+    type?.toLowerCase().includes('stripe');
+
+  const formatCurrency = (value: number, paymentType: string) => {
+    if (isStripePayment(paymentType)) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(value);
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -185,7 +194,7 @@ export function PendingPaymentsList({ onPaymentUpdated }: PendingPaymentsListPro
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium text-primary">
-                      {formatCurrency(payment.amount)}
+                      {formatCurrency(payment.amount, payment.payment_type)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(payment.billing_date)}
@@ -234,7 +243,7 @@ export function PendingPaymentsList({ onPaymentUpdated }: PendingPaymentsListPro
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(payment.amount)}
+                      {formatCurrency(payment.amount, payment.payment_type)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(payment.billing_date)}
@@ -273,7 +282,7 @@ export function PendingPaymentsList({ onPaymentUpdated }: PendingPaymentsListPro
                 <p className="font-medium">{selectedPayment.cliente?.nome || 'Cliente'}</p>
                 <p className="text-sm text-muted-foreground">{selectedPayment.cliente?.email}</p>
                 <p className="text-lg font-bold text-primary mt-2">
-                  {formatCurrency(selectedPayment.amount)}
+                  {formatCurrency(selectedPayment.amount, selectedPayment.payment_type)}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm">

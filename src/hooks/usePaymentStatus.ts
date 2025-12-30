@@ -90,7 +90,7 @@ export function usePaymentStatus() {
     try {
       const { data, error } = await supabase
         .from('client_payments')
-        .select('status, amount');
+        .select('status, amount, payment_type');
       
       if (error) throw error;
       
@@ -99,17 +99,33 @@ export function usePaymentStatus() {
         paid: 0,
         pending: 0,
         rejected: 0,
-        totalPaid: 0,
-        totalPending: 0,
+        totalPaidBrl: 0,
+        totalPaidUsd: 0,
+        totalPendingBrl: 0,
+        totalPendingUsd: 0,
       };
       
+      // Stripe types are paid in USD, everything else is BRL
+      const isStripePayment = (type: string) => 
+        type?.toLowerCase().includes('stripe');
+      
       data?.forEach(payment => {
+        const isUsd = isStripePayment(payment.payment_type);
+        
         if (payment.status === 'paid') {
           stats.paid++;
-          stats.totalPaid += Number(payment.amount);
+          if (isUsd) {
+            stats.totalPaidUsd += Number(payment.amount);
+          } else {
+            stats.totalPaidBrl += Number(payment.amount);
+          }
         } else if (payment.status === 'pending') {
           stats.pending++;
-          stats.totalPending += Number(payment.amount);
+          if (isUsd) {
+            stats.totalPendingUsd += Number(payment.amount);
+          } else {
+            stats.totalPendingBrl += Number(payment.amount);
+          }
         } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
           stats.rejected++;
         }
