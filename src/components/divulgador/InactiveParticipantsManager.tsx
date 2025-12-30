@@ -20,9 +20,11 @@ import {
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, differenceInDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 
 export function InactiveParticipantsManager() {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [inactiveDays, setInactiveDays] = useState(30);
   const [selectedGroup, setSelectedGroup] = useState<string>('_all');
@@ -30,6 +32,14 @@ export function InactiveParticipantsManager() {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  const getDateLocale = () => {
+    switch (i18n.language) {
+      case 'en': return enUS;
+      case 'es': return es;
+      default: return ptBR;
+    }
+  };
 
   const { data: groups = [] } = useQuery({
     queryKey: ['divulgador-groups'],
@@ -60,12 +70,11 @@ export function InactiveParticipantsManager() {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Filter by inactivity
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
 
       return (data || []).filter((p: any) => {
-        if (!p.last_message_at) return true; // Never sent message
+        if (!p.last_message_at) return true;
         return new Date(p.last_message_at) < cutoffDate;
       });
     },
@@ -99,7 +108,6 @@ export function InactiveParticipantsManager() {
 
     setIsRemoving(true);
     try {
-      // Group participants by group
       const participantsToRemove = participants.filter((p: any) => selectedParticipants.includes(p.id));
       const byGroup: Record<string, { groupId: string; whatsappGroupId: string; numbers: string[] }> = {};
 
@@ -112,7 +120,6 @@ export function InactiveParticipantsManager() {
         byGroup[groupId].numbers.push(p.whatsapp_number);
       }
 
-      // Remove from WhatsApp via Edge Function
       for (const group of Object.values(byGroup)) {
         const { error } = await supabase.functions.invoke('divulgador-groups', {
           body: {
@@ -121,23 +128,22 @@ export function InactiveParticipantsManager() {
             numbers: group.numbers,
           },
         });
-        if (error) console.error('Erro ao remover do grupo:', error);
+        if (error) console.error('Error removing from group:', error);
       }
 
-      // Mark as left in database
       await (supabase as any)
         .from('divulgador_participants')
         .update({ left_at: new Date().toISOString() })
         .in('id', selectedParticipants);
 
-      toast.success(`${selectedParticipants.length} participantes removidos!`);
+      toast.success(`${selectedParticipants.length} ${t('broadcaster.participantsRemoved')}`);
       setSelectedParticipants([]);
       setIsConfirmDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['inactive-participants'] });
       queryClient.invalidateQueries({ queryKey: ['divulgador-participants'] });
       queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
     } catch (error: any) {
-      toast.error('Erro ao remover: ' + error.message);
+      toast.error(t('common.error') + ': ' + error.message);
     } finally {
       setIsRemoving(false);
     }
@@ -145,12 +151,12 @@ export function InactiveParticipantsManager() {
 
   const getInactivityInfo = (participant: any) => {
     if (!participant.last_message_at) {
-      return { text: 'Nunca enviou', days: null, color: 'text-destructive' };
+      return { text: t('broadcaster.neverSent'), days: null, color: 'text-destructive' };
     }
     const days = differenceInDays(new Date(), new Date(participant.last_message_at));
-    if (days >= 60) return { text: `${days} dias`, days, color: 'text-destructive' };
-    if (days >= 30) return { text: `${days} dias`, days, color: 'text-amber-500' };
-    return { text: `${days} dias`, days, color: 'text-muted-foreground' };
+    if (days >= 60) return { text: `${days} ${t('broadcaster.days')}`, days, color: 'text-destructive' };
+    if (days >= 30) return { text: `${days} ${t('broadcaster.days')}`, days, color: 'text-amber-500' };
+    return { text: `${days} ${t('broadcaster.days')}`, days, color: 'text-muted-foreground' };
   };
 
   return (
@@ -158,23 +164,23 @@ export function InactiveParticipantsManager() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserMinus className="h-5 w-5 text-red-500" />
-          Remoção de Participantes Inativos
+          {t('broadcaster.removeInactive')}
         </CardTitle>
         <CardDescription>
-          Identifique membros que não interagem e remova-os em massa dos grupos
+          {t('broadcaster.removeInactiveDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
         <div className="flex flex-wrap gap-4 items-end">
           <div className="space-y-2">
-            <Label>Grupo</Label>
+            <Label>{t('broadcaster.group')}</Label>
             <Select value={selectedGroup} onValueChange={setSelectedGroup}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Todos os grupos" />
+                <SelectValue placeholder={t('broadcaster.allGroups')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_all">Todos os grupos</SelectItem>
+                <SelectItem value="_all">{t('broadcaster.allGroups')}</SelectItem>
                 {groups.map((g: any) => (
                   <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                 ))}
@@ -182,7 +188,7 @@ export function InactiveParticipantsManager() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Inativo há mais de (dias)</Label>
+            <Label>{t('broadcaster.inactiveDays')}</Label>
             <Input
               type="number"
               className="w-[120px]"
@@ -193,7 +199,7 @@ export function InactiveParticipantsManager() {
           </div>
           <Button onClick={handleSearch} disabled={isLoading || isFetching}>
             {(isLoading || isFetching) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-            Buscar Inativos
+            {t('broadcaster.searchInactive')}
           </Button>
           {selectedParticipants.length > 0 && (
             <Button
@@ -201,7 +207,7 @@ export function InactiveParticipantsManager() {
               onClick={() => setIsConfirmDialogOpen(true)}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Remover ({selectedParticipants.length})
+              {t('broadcaster.removeSelected')} ({selectedParticipants.length})
             </Button>
           )}
         </div>
@@ -209,7 +215,7 @@ export function InactiveParticipantsManager() {
         {/* Results */}
         {!hasSearched ? (
           <div className="text-center py-8 border rounded-lg border-dashed">
-            <p className="text-muted-foreground">Configure os filtros e clique em "Buscar Inativos" para ver os resultados</p>
+            <p className="text-muted-foreground">{t('broadcaster.configureFilters')}</p>
           </div>
         ) : (isLoading || isFetching) ? (
           <div className="flex justify-center py-8">
@@ -217,16 +223,16 @@ export function InactiveParticipantsManager() {
           </div>
         ) : participants.length === 0 ? (
           <div className="text-center py-8 border rounded-lg border-dashed">
-            <p className="text-muted-foreground">Nenhum participante inativo encontrado com os critérios selecionados</p>
+            <p className="text-muted-foreground">{t('broadcaster.noInactiveFound')}</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{participants.length}</span> participantes inativos há mais de {inactiveDays} dias
+                <span className="font-medium text-foreground">{participants.length}</span> {t('broadcaster.inactiveParticipants')} {inactiveDays} {t('broadcaster.days')}
               </p>
               <Button variant="ghost" size="sm" onClick={toggleSelectAll}>
-                {selectedParticipants.length === participants.length ? 'Desmarcar todos' : 'Selecionar todos'}
+                {selectedParticipants.length === participants.length ? t('broadcaster.deselectAll') : t('broadcaster.selectAll')}
               </Button>
             </div>
             <ScrollArea className="h-[400px]">
@@ -239,12 +245,12 @@ export function InactiveParticipantsManager() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead>Última Mensagem</TableHead>
-                    <TableHead>Inatividade</TableHead>
-                    <TableHead>Mensagens</TableHead>
+                    <TableHead>{t('broadcaster.number')}</TableHead>
+                    <TableHead>{t('broadcaster.name')}</TableHead>
+                    <TableHead>{t('broadcaster.group')}</TableHead>
+                    <TableHead>{t('broadcaster.lastMessage')}</TableHead>
+                    <TableHead>{t('broadcaster.inactivity')}</TableHead>
+                    <TableHead>{t('broadcaster.messages')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -265,7 +271,7 @@ export function InactiveParticipantsManager() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {p.last_message_at
-                            ? format(new Date(p.last_message_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                            ? format(new Date(p.last_message_at), 'dd/MM/yyyy HH:mm', { locale: getDateLocale() })
                             : '-'}
                         </TableCell>
                         <TableCell>
@@ -296,20 +302,19 @@ export function InactiveParticipantsManager() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Confirmar Remoção
+              {t('broadcaster.confirmRemoval')}
             </DialogTitle>
             <DialogDescription>
-              Você está prestes a remover <strong>{selectedParticipants.length}</strong> participantes inativos dos grupos.
-              Eles serão removidos do WhatsApp e marcados como saídos no sistema.
+              {t('broadcaster.confirmRemovalDesc').replace('inactive participants', `${selectedParticipants.length} ${t('broadcaster.participants').toLowerCase()}`)}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)} disabled={isRemoving}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={removeParticipants} disabled={isRemoving}>
               {isRemoving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Remover Participantes
+              {t('broadcaster.removeParticipants')}
             </Button>
           </DialogFooter>
         </DialogContent>
