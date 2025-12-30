@@ -434,17 +434,17 @@ export default function AdminPermissoes() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              Matriz de Permissões
+              {t('permissions.permissionMatrix')}
             </CardTitle>
             <CardDescription>
-              Clique nas células para ativar/desativar permissões. Admin não pode ser editado.
+              {t('permissions.permissionMatrixDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Permissão</TableHead>
+                  <TableHead className="w-[300px]">{t('permissions.permission')}</TableHead>
                   {roles.map((role) => (
                     <TableHead key={role.id} className="text-center min-w-[120px]">
                       <Badge className={cn("text-xs", getRoleColor(role.color))}>

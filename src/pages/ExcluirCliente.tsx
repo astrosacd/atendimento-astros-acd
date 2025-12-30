@@ -49,8 +49,8 @@ export default function ExcluirCliente() {
   const handleDelete = () => {
     if (motivo.length < 10) {
       toast({
-        title: 'Motivo muito curto',
-        description: 'Por favor, descreva melhor o motivo da exclusão (mínimo 10 caracteres).',
+        title: t('clients.delete.reasonTooShort'),
+        description: t('clients.delete.reasonTooShortDesc'),
         variant: 'destructive',
       });
       return;
@@ -81,7 +81,7 @@ export default function ExcluirCliente() {
               <Trash2 className="w-6 h-6 text-destructive" />
             </div>
             <CardTitle className="text-2xl font-semibold text-foreground">
-              {t('clients.delete')}
+              {t('clients.delete.title')}
             </CardTitle>
           </div>
         </CardHeader>
@@ -146,10 +146,10 @@ export default function ExcluirCliente() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="motivo" className="text-foreground font-medium">Motivo da Exclusão</Label>
+                <Label htmlFor="motivo" className="text-foreground font-medium">{t('clients.delete.reason')}</Label>
                 <Textarea
                   id="motivo"
-                  placeholder="Descreva o motivo da exclusão (mínimo 10 caracteres)"
+                  placeholder={t('clients.delete.reasonPlaceholder')}
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   className="bg-secondary border-border text-foreground min-h-[100px] resize-none"
@@ -162,7 +162,7 @@ export default function ExcluirCliente() {
                 disabled={isLoading}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Excluir Cliente
+                {t('clients.delete.title')}
               </Button>
 
               <Button 
@@ -175,7 +175,7 @@ export default function ExcluirCliente() {
                 className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                {t('common.back')}
               </Button>
             </div>
           )}
@@ -187,19 +187,19 @@ export default function ExcluirCliente() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
-              Tem certeza?
+              {t('common.confirmDelete')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Deseja excluir o cliente <strong className="text-foreground">{selectedCliente?.nome}</strong>? Esta ação não pode ser desfeita.
+              {t('clients.delete.confirmMessage', { name: selectedCliente?.nome })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-secondary text-foreground border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="bg-secondary text-foreground border-border">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? 'Excluindo...' : 'Sim, excluir!'}
+              {isLoading ? t('clients.delete.deleting') : t('clients.delete.confirmButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
