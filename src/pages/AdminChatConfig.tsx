@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft,
   MessageCircle,
@@ -106,6 +107,7 @@ interface AITopic {
 
 const AdminChatConfig = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -388,14 +390,14 @@ Instruções:
                 <MessageCircle className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Chat de Ajuda ({config.chat_name})</h1>
-                <p className="text-sm text-muted-foreground">Configurar assistente virtual</p>
+                <h1 className="text-xl font-bold text-foreground">{t('chatConfig.title')} ({config.chat_name})</h1>
+                <p className="text-sm text-muted-foreground">{t('chatConfig.subtitle')}</p>
               </div>
             </div>
           </div>
           <Button onClick={saveConfig} disabled={saving} className="gap-2">
             <Save className="h-4 w-4" />
-            {saving ? 'Salvando...' : 'Salvar'}
+            {saving ? t('common.loading') : t('common.save')}
           </Button>
         </div>
       </header>
@@ -406,27 +408,27 @@ Instruções:
           <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="geral" className="gap-2">
               <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">Geral</span>
+              <span className="hidden sm:inline">{t('chatConfig.general')}</span>
             </TabsTrigger>
             <TabsTrigger value="aparencia" className="gap-2">
               <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Aparência</span>
+              <span className="hidden sm:inline">{t('chatConfig.appearance')}</span>
             </TabsTrigger>
             <TabsTrigger value="horario" className="gap-2">
               <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">Horário</span>
+              <span className="hidden sm:inline">{t('chatConfig.schedule')}</span>
             </TabsTrigger>
             <TabsTrigger value="respostas" className="gap-2">
               <ListChecks className="h-4 w-4" />
-              <span className="hidden sm:inline">Respostas</span>
+              <span className="hidden sm:inline">{t('chatConfig.responses')}</span>
             </TabsTrigger>
             <TabsTrigger value="ia" className="gap-2">
               <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">IA</span>
+              <span className="hidden sm:inline">{t('chatConfig.ai')}</span>
             </TabsTrigger>
             <TabsTrigger value="permissoes" className="gap-2">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Permissões</span>
+              <span className="hidden sm:inline">{t('chatConfig.permissions')}</span>
             </TabsTrigger>
           </TabsList>
 

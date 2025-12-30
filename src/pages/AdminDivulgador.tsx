@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Megaphone, Settings, Target, Users, MessageSquare, Sparkles,
   UserMinus, BarChart3, Plus, Save, RefreshCw, Wifi, WifiOff, Send,
@@ -54,6 +55,7 @@ import { PollResultsHistory } from '@/components/divulgador/PollResultsHistory';
 export default function AdminDivulgador() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('instances');
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
