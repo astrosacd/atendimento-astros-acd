@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarChart3, Users, Calendar, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS, es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface GroupedPollResult {
   poll_name: string;
@@ -27,8 +28,17 @@ interface GroupedPollResult {
 }
 
 export const PollResultsHistory = () => {
+  const { t, i18n } = useTranslation();
   const [expandedPolls, setExpandedPolls] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+
+  const getDateLocale = () => {
+    switch (i18n.language) {
+      case 'en': return enUS;
+      case 'es': return es;
+      default: return ptBR;
+    }
+  };
 
   const { data: pollResults, isLoading } = useQuery({
     queryKey: ["divulgador-poll-results"],
@@ -55,10 +65,10 @@ export const PollResultsHistory = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["divulgador-poll-results"] });
-      toast.success(data?.message || "Resultados atualizados com sucesso");
+      toast.success(data?.message || t('broadcaster.resultsUpdated'));
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao buscar resultados: ${error.message}`);
+      toast.error(`${t('broadcaster.errorFetchingResults')}: ${error.message}`);
     },
   });
 
@@ -68,7 +78,7 @@ export const PollResultsHistory = () => {
       acc[key] = {
         poll_name: result.poll_name,
         message_id: result.message_id,
-        group_name: result.divulgador_groups?.name || "Grupo desconhecido",
+        group_name: result.divulgador_groups?.name || t('broadcaster.unknownGroup'),
         total_votes: 0,
         options: [],
         created_at: result.created_at,
@@ -111,7 +121,7 @@ export const PollResultsHistory = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Resultados das Enquetes
+            {t('broadcaster.pollResults')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -130,7 +140,7 @@ export const PollResultsHistory = () => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
-          Resultados das Enquetes
+          {t('broadcaster.pollResults')}
         </CardTitle>
         <Button 
           variant="outline" 
@@ -139,16 +149,16 @@ export const PollResultsHistory = () => {
           disabled={fetchResultsMutation.isPending}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${fetchResultsMutation.isPending ? "animate-spin" : ""}`} />
-          {fetchResultsMutation.isPending ? "Buscando..." : "Atualizar Resultados"}
+          {fetchResultsMutation.isPending ? t('broadcaster.searching') : t('broadcaster.updateResults')}
         </Button>
       </CardHeader>
       <CardContent>
         {polls.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum resultado de enquete ainda.</p>
+            <p>{t('broadcaster.noPollResults')}</p>
             <p className="text-sm mt-1">
-              Clique em "Atualizar Resultados" para buscar os votos das enquetes enviadas.
+              {t('broadcaster.clickUpdateResults')}
             </p>
           </div>
         ) : (
@@ -173,7 +183,7 @@ export const PollResultsHistory = () => {
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Users className="h-3 w-3" />
-                              {poll.total_votes} votos
+                              {poll.total_votes} {t('broadcaster.votes')}
                             </span>
                             <Badge variant="outline" className="text-xs">
                               {poll.group_name}
@@ -181,7 +191,7 @@ export const PollResultsHistory = () => {
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {format(new Date(poll.created_at), "dd/MM/yyyy", {
-                                locale: ptBR,
+                                locale: getDateLocale(),
                               })}
                             </span>
                           </div>
@@ -206,9 +216,9 @@ export const PollResultsHistory = () => {
                             <Progress value={option.percentage} className="h-2" />
                             {option.voters.length > 0 && (
                               <p className="text-xs text-muted-foreground truncate">
-                                Votantes: {option.voters.slice(0, 3).join(", ")}
+                                {t('broadcaster.voters')}: {option.voters.slice(0, 3).join(", ")}
                                 {option.voters.length > 3 &&
-                                  ` +${option.voters.length - 3} mais`}
+                                  ` +${option.voters.length - 3} ${t('broadcaster.more')}`}
                               </p>
                             )}
                           </div>
