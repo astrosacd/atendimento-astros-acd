@@ -166,6 +166,50 @@
     "myAccount": "Minha Conta",
     "role": "Função"
   },
+  "users": {
+    "title": "Gerenciar Usuários",
+    "manageUsersDesc": "Crie e gerencie usuários do sistema",
+    "pendingApprovals": "Aprovações Pendentes",
+    "approvedUsers": "Usuários Aprovados",
+    "approvalHistory": "Histórico de Aprovações",
+    "createUser": "Criar Usuário",
+    "createNewUser": "Criar novo usuário",
+    "name": "Nome",
+    "email": "E-mail",
+    "password": "Senha",
+    "phone": "Telefone",
+    "role": "Função",
+    "status": "Status",
+    "actions": "Ações",
+    "approve": "Aprovar",
+    "reject": "Rejeitar",
+    "delete": "Excluir",
+    "block": "Bloquear",
+    "unblock": "Desbloquear",
+    "resendCredentials": "Reenviar Credenciais",
+    "pending": "Pendente",
+    "approved": "Aprovado",
+    "rejected": "Rejeitado",
+    "blocked": "Bloqueado",
+    "filterByRole": "Filtrar por função",
+    "allRoles": "Todas as funções",
+    "noUsers": "Nenhum usuário encontrado",
+    "noPendingUsers": "Nenhuma solicitação pendente",
+    "userCreatedSuccess": "Usuário criado com sucesso!",
+    "userApprovedSuccess": "Usuário aprovado com sucesso!",
+    "userRejectedSuccess": "Usuário rejeitado!",
+    "userDeletedSuccess": "Usuário excluído com sucesso!",
+    "userBlockedSuccess": "Usuário bloqueado!",
+    "userUnblockedSuccess": "Usuário desbloqueado!",
+    "credentialsSentSuccess": "Credenciais enviadas!",
+    "rejectionReason": "Motivo da rejeição",
+    "blockReason": "Motivo do bloqueio",
+    "userResponse": "Resposta do usuário",
+    "selectRole": "Selecione uma função",
+    "confirmDelete": "Confirmar exclusão",
+    "confirmDeleteDesc": "Esta ação é irreversível. O usuário será removido do sistema.",
+    "back": "Voltar"
+  },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Bem-vindo",
@@ -223,10 +267,18 @@
   "clients": {
     "title": "Clientes",
     "client": "Cliente",
-    "register": "Cadastrar Cliente",
-    "search": "Consultar Cliente",
-    "update": "Atualizar Cliente",
-    "delete": "Excluir Cliente",
+    "register": {
+      "title": "Cadastrar Cliente"
+    },
+    "search": {
+      "title": "Consulta de Cliente"
+    },
+    "update": {
+      "title": "Atualizar Cliente"
+    },
+    "delete": {
+      "title": "Excluir Cliente"
+    },
     "name": "Nome",
     "email": "E-mail",
     "phone": "Telefone",
@@ -360,7 +412,16 @@
     "associatedClient": "Cliente Associado",
     "noClient": "Sem cliente associado",
     "selectClient": "Selecione um cliente",
-    "optional": "opcional"
+    "optional": "opcional",
+    "manageClientTasks": "Gerencie todas as tarefas dos clientes",
+    "total": "Total",
+    "overdue": "Atrasada",
+    "searchPlaceholder": "Buscar por título ou cliente...",
+    "allStatuses": "Todos os Status",
+    "allPriorities": "Todas Prioridades",
+    "createNewTask": "Crie uma nova tarefa para começar.",
+    "confirmDeleteTask": "Tem certeza que deseja excluir esta tarefa?",
+    "actionCantBeUndone": "Esta ação não pode ser desfeita."
   },
   "tickets": {
     "title": "Chamados",
@@ -446,6 +507,171 @@
     "systemDefault": "Padrão do Sistema",
     "saveSettings": "Salvar Configurações",
     "settingsSaved": "Configurações salvas!"
+  },
+  "guide": {
+    "title": "Guia do Sistema",
+    "subtitle": "Documentação completa do sistema",
+    "selectCategory": "Selecione uma categoria",
+    "categories": {
+      "communication": "Comunicação",
+      "integrations": "Integrações",
+      "users": "Usuários",
+      "tickets": "Chamados",
+      "financial": "Financeiro",
+      "clients": "Clientes",
+      "broadcasting": "Divulgação",
+      "numbers": "Números",
+      "gateway": "Gateway",
+      "reports": "Relatórios",
+      "system": "Sistema"
+    },
+    "gmail": {
+      "title": "Configuração do Gmail",
+      "description": "Configure o envio de e-mails para recuperação de senha e cobranças"
+    },
+    "evolution": {
+      "title": "Evolution API (WhatsApp)",
+      "description": "Configure o WhatsApp para envio de mensagens automáticas"
+    },
+    "welcome": {
+      "title": "Mensagens de Boas-vindas",
+      "description": "Configure o envio automático de credenciais para novos usuários"
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Integre com sistemas externos como n8n para automações"
+    },
+    "api": {
+      "title": "API Keys",
+      "description": "Permita que sistemas externos acessem os dados do sistema"
+    },
+    "mercadopago": {
+      "title": "Mercado Pago",
+      "description": "Configure pagamentos automáticos via Mercado Pago"
+    },
+    "usersGuide": {
+      "title": "Usuários e Acesso",
+      "description": "Entenda como funciona a gestão de usuários"
+    },
+    "permissions": {
+      "title": "Roles e Permissões",
+      "description": "Configure roles customizadas e permissões granulares"
+    },
+    "billing": {
+      "title": "Sistema de Cobrança",
+      "description": "Configure cobrança automática de clientes"
+    },
+    "paymentVerification": {
+      "title": "Verificação de Pagamento",
+      "description": "Verifique status de pagamentos e gere recibos"
+    },
+    "tags": {
+      "title": "Sistema de Tags",
+      "description": "Organize clientes com tags personalizadas"
+    },
+    "registrationClients": {
+      "title": "Clientes de Registro",
+      "description": "Cadastre clientes sem cobrança recorrente"
+    },
+    "tasks": {
+      "title": "Tarefas",
+      "description": "Gerencie tarefas associadas a clientes"
+    },
+    "broadcaster": {
+      "title": "Divulgador WhatsApp",
+      "description": "Envie mensagens em massa para grupos"
+    },
+    "numberStatus": {
+      "title": "Status de Números",
+      "description": "Monitore e gerencie números de aquecimento"
+    },
+    "numberQuery": {
+      "title": "Consulta de Números",
+      "description": "Consulte informações de números no Baserow"
+    },
+    "gatewayOverview": {
+      "title": "Visão Geral do Gateway",
+      "description": "Entenda o sistema de gateway de pagamentos"
+    },
+    "products": {
+      "title": "Produtos",
+      "description": "Cadastre e gerencie produtos do gateway"
+    },
+    "orderBumps": {
+      "title": "Order Bumps",
+      "description": "Configure ofertas adicionais no checkout"
+    },
+    "coupons": {
+      "title": "Cupons",
+      "description": "Crie cupons de desconto para seus produtos"
+    },
+    "checkout": {
+      "title": "Checkout",
+      "description": "Configure a página de checkout"
+    },
+    "orders": {
+      "title": "Pedidos",
+      "description": "Gerencie pedidos e status de pagamento"
+    },
+    "gatewayConfig": {
+      "title": "Configurações do Gateway",
+      "description": "Configure integrações de pagamento"
+    },
+    "reportsOverview": {
+      "title": "Visão Geral de Relatórios",
+      "description": "Analise métricas e performance do sistema"
+    },
+    "metrics": {
+      "title": "Métricas",
+      "description": "Indicadores chave de performance"
+    },
+    "chat": {
+      "title": "Chat com Lyra",
+      "description": "Assistente de IA integrada ao sistema"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Visão geral e métricas principais"
+    },
+    "activityLogs": {
+      "title": "Logs de Atividade",
+      "description": "Monitore ações dos usuários"
+    },
+    "restoration": {
+      "title": "Restauração de Dados",
+      "description": "Recupere dados de clientes excluídos"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "description": "Configure notificações push do navegador"
+    },
+    "backup": {
+      "title": "Backup",
+      "description": "Faça backup dos dados do sistema"
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "description": "Resolva problemas comuns do sistema"
+    },
+    "ticketsOverview": {
+      "title": "Visão Geral de Chamados",
+      "description": "Sistema de suporte e atendimento"
+    },
+    "ticketsApi": {
+      "title": "API de Chamados",
+      "description": "Integre chamados com sistemas externos"
+    },
+    "ticketsWebhooks": {
+      "title": "Webhooks de Chamados",
+      "description": "Configure notificações automáticas"
+    },
+    "ticketsConfig": {
+      "title": "Configurações de Chamados",
+      "description": "Personalize o sistema de chamados"
+    },
+    "steps": "Passos",
+    "tips": "Dicas",
+    "back": "Voltar"
   },
   "validation": {
     "required": "Este campo é obrigatório",

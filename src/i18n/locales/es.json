@@ -166,6 +166,50 @@
     "myAccount": "Mi Cuenta",
     "role": "Rol"
   },
+  "users": {
+    "title": "Gestionar Usuarios",
+    "manageUsersDesc": "Cree y gestione usuarios del sistema",
+    "pendingApprovals": "Aprobaciones Pendientes",
+    "approvedUsers": "Usuarios Aprobados",
+    "approvalHistory": "Historial de Aprobaciones",
+    "createUser": "Crear Usuario",
+    "createNewUser": "Crear nuevo usuario",
+    "name": "Nombre",
+    "email": "Correo",
+    "password": "Contraseña",
+    "phone": "Teléfono",
+    "role": "Rol",
+    "status": "Estado",
+    "actions": "Acciones",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "delete": "Eliminar",
+    "block": "Bloquear",
+    "unblock": "Desbloquear",
+    "resendCredentials": "Reenviar Credenciales",
+    "pending": "Pendiente",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "blocked": "Bloqueado",
+    "filterByRole": "Filtrar por rol",
+    "allRoles": "Todos los roles",
+    "noUsers": "No se encontraron usuarios",
+    "noPendingUsers": "No hay solicitudes pendientes",
+    "userCreatedSuccess": "¡Usuario creado con éxito!",
+    "userApprovedSuccess": "¡Usuario aprobado con éxito!",
+    "userRejectedSuccess": "¡Usuario rechazado!",
+    "userDeletedSuccess": "¡Usuario eliminado con éxito!",
+    "userBlockedSuccess": "¡Usuario bloqueado!",
+    "userUnblockedSuccess": "¡Usuario desbloqueado!",
+    "credentialsSentSuccess": "¡Credenciales enviadas!",
+    "rejectionReason": "Motivo del rechazo",
+    "blockReason": "Motivo del bloqueo",
+    "userResponse": "Respuesta del usuario",
+    "selectRole": "Seleccione un rol",
+    "confirmDelete": "Confirmar eliminación",
+    "confirmDeleteDesc": "Esta acción es irreversible. El usuario será eliminado del sistema.",
+    "back": "Volver"
+  },
   "dashboard": {
     "title": "Panel",
     "welcome": "Bienvenido",
@@ -223,10 +267,18 @@
   "clients": {
     "title": "Clientes",
     "client": "Cliente",
-    "register": "Registrar Cliente",
-    "search": "Buscar Cliente",
-    "update": "Actualizar Cliente",
-    "delete": "Eliminar Cliente",
+    "register": {
+      "title": "Registrar Cliente"
+    },
+    "search": {
+      "title": "Búsqueda de Cliente"
+    },
+    "update": {
+      "title": "Actualizar Cliente"
+    },
+    "delete": {
+      "title": "Eliminar Cliente"
+    },
     "name": "Nombre",
     "email": "Correo",
     "phone": "Teléfono",
@@ -360,7 +412,16 @@
     "associatedClient": "Cliente Asociado",
     "noClient": "Sin cliente asociado",
     "selectClient": "Seleccione un cliente",
-    "optional": "opcional"
+    "optional": "opcional",
+    "manageClientTasks": "Gestione todas las tareas de los clientes",
+    "total": "Total",
+    "overdue": "Atrasada",
+    "searchPlaceholder": "Buscar por título o cliente...",
+    "allStatuses": "Todos los Estados",
+    "allPriorities": "Todas las Prioridades",
+    "createNewTask": "Cree una nueva tarea para comenzar.",
+    "confirmDeleteTask": "¿Está seguro que desea eliminar esta tarea?",
+    "actionCantBeUndone": "Esta acción no se puede deshacer."
   },
   "tickets": {
     "title": "Tickets",
@@ -446,6 +507,27 @@
     "systemDefault": "Predeterminado del Sistema",
     "saveSettings": "Guardar Configuración",
     "settingsSaved": "¡Configuración guardada!"
+  },
+  "guide": {
+    "title": "Guía del Sistema",
+    "subtitle": "Documentación completa del sistema",
+    "selectCategory": "Seleccione una categoría",
+    "categories": {
+      "communication": "Comunicación",
+      "integrations": "Integraciones",
+      "users": "Usuarios",
+      "tickets": "Tickets",
+      "financial": "Financiero",
+      "clients": "Clientes",
+      "broadcasting": "Difusión",
+      "numbers": "Números",
+      "gateway": "Gateway",
+      "reports": "Informes",
+      "system": "Sistema"
+    },
+    "steps": "Pasos",
+    "tips": "Consejos",
+    "back": "Volver"
   },
   "validation": {
     "required": "Este campo es obligatorio",

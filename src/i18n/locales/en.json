@@ -166,6 +166,50 @@
     "myAccount": "My Account",
     "role": "Role"
   },
+  "users": {
+    "title": "Manage Users",
+    "manageUsersDesc": "Create and manage system users",
+    "pendingApprovals": "Pending Approvals",
+    "approvedUsers": "Approved Users",
+    "approvalHistory": "Approval History",
+    "createUser": "Create User",
+    "createNewUser": "Create new user",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "phone": "Phone",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "delete": "Delete",
+    "block": "Block",
+    "unblock": "Unblock",
+    "resendCredentials": "Resend Credentials",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "blocked": "Blocked",
+    "filterByRole": "Filter by role",
+    "allRoles": "All roles",
+    "noUsers": "No users found",
+    "noPendingUsers": "No pending requests",
+    "userCreatedSuccess": "User created successfully!",
+    "userApprovedSuccess": "User approved successfully!",
+    "userRejectedSuccess": "User rejected!",
+    "userDeletedSuccess": "User deleted successfully!",
+    "userBlockedSuccess": "User blocked!",
+    "userUnblockedSuccess": "User unblocked!",
+    "credentialsSentSuccess": "Credentials sent!",
+    "rejectionReason": "Rejection reason",
+    "blockReason": "Block reason",
+    "userResponse": "User response",
+    "selectRole": "Select a role",
+    "confirmDelete": "Confirm deletion",
+    "confirmDeleteDesc": "This action is irreversible. The user will be removed from the system.",
+    "back": "Back"
+  },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome",
@@ -223,10 +267,18 @@
   "clients": {
     "title": "Clients",
     "client": "Client",
-    "register": "Register Client",
-    "search": "Search Client",
-    "update": "Update Client",
-    "delete": "Delete Client",
+    "register": {
+      "title": "Register Client"
+    },
+    "search": {
+      "title": "Client Search"
+    },
+    "update": {
+      "title": "Update Client"
+    },
+    "delete": {
+      "title": "Delete Client"
+    },
     "name": "Name",
     "email": "Email",
     "phone": "Phone",
@@ -360,7 +412,16 @@
     "associatedClient": "Associated Client",
     "noClient": "No associated client",
     "selectClient": "Select a client",
-    "optional": "optional"
+    "optional": "optional",
+    "manageClientTasks": "Manage all client tasks",
+    "total": "Total",
+    "overdue": "Overdue",
+    "searchPlaceholder": "Search by title or client...",
+    "allStatuses": "All Statuses",
+    "allPriorities": "All Priorities",
+    "createNewTask": "Create a new task to get started.",
+    "confirmDeleteTask": "Are you sure you want to delete this task?",
+    "actionCantBeUndone": "This action cannot be undone."
   },
   "tickets": {
     "title": "Tickets",
@@ -446,6 +507,27 @@
     "systemDefault": "System Default",
     "saveSettings": "Save Settings",
     "settingsSaved": "Settings saved!"
+  },
+  "guide": {
+    "title": "System Guide",
+    "subtitle": "Complete system documentation",
+    "selectCategory": "Select a category",
+    "categories": {
+      "communication": "Communication",
+      "integrations": "Integrations",
+      "users": "Users",
+      "tickets": "Tickets",
+      "financial": "Financial",
+      "clients": "Clients",
+      "broadcasting": "Broadcasting",
+      "numbers": "Numbers",
+      "gateway": "Gateway",
+      "reports": "Reports",
+      "system": "System"
+    },
+    "steps": "Steps",
+    "tips": "Tips",
+    "back": "Back"
   },
   "validation": {
     "required": "This field is required",

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,7 @@ interface ApprovalHistoryEntry {
 
 export default function GerenciarUsuarios() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -774,8 +776,8 @@ export default function GerenciarUsuarios() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-primary">Gerenciar Usuários</h1>
-            <p className="text-muted-foreground">Crie e gerencie usuários do sistema</p>
+            <h1 className="text-2xl font-bold text-primary">{t('users.title')}</h1>
+            <p className="text-muted-foreground">{t('users.manageUsersDesc')}</p>
           </div>
         </div>
 
