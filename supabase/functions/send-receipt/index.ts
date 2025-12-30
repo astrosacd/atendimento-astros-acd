@@ -38,26 +38,189 @@ interface WhatsAppInstance {
   is_active: boolean;
 }
 
-const formatMessage = (template: string, cliente: Cliente, paidAt: string, nextRenewal: string): string => {
+const generateProfessionalEmailHTML = (
+  cliente: Cliente,
+  paidAt: string,
+  nextRenewal: string,
+  companyName: string
+): string => {
   const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
   const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
   const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
   const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
-  
-  return template
-    .replace(/{nome}/g, cliente.nome)
-    .replace(/{email}/g, cliente.email)
-    .replace(/{cpf}/g, cliente.cpf)
-    .replace(/{produto}/g, cliente.produto)
-    .replace(/{plano}/g, cliente.plano || 'N/A')
-    .replace(/{valor}/g, formattedValue)
-    .replace(/{data_pagamento}/g, paidDate)
-    .replace(/{proxima_renovacao}/g, renewalDate);
+  const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
+  const currentYear = new Date().getFullYear();
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recibo de Pagamento</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f4;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f4f4;padding:20px 0;">
+<tr>
+<td align="center">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+
+<!-- Header -->
+<tr>
+<td style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:30px 40px;text-align:center;">
+<h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:bold;">RECIBO DE PAGAMENTO</h1>
+<p style="margin:10px 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Comprovante de pagamento confirmado</p>
+</td>
+</tr>
+
+<!-- Receipt Number -->
+<tr>
+<td style="padding:20px 40px 0;text-align:center;">
+<p style="margin:0;color:#6b7280;font-size:12px;">Recibo N</p>
+<p style="margin:5px 0 0;color:#111827;font-size:18px;font-weight:bold;font-family:monospace;">${receiptNumber}</p>
+</td>
+</tr>
+
+<!-- Client Info -->
+<tr>
+<td style="padding:30px 40px 0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;border-radius:8px;padding:20px;">
+<tr>
+<td style="padding:20px;">
+<h2 style="margin:0 0 15px;color:#374151;font-size:16px;font-weight:600;border-bottom:2px solid #10b981;padding-bottom:10px;">DADOS DO CLIENTE</h2>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;width:100px;">Nome:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;font-weight:500;">${cliente.nome}</td>
+</tr>
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;">Email:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;">${cliente.email}</td>
+</tr>
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;">CPF/CNPJ:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;">${cliente.cpf}</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Payment Details -->
+<tr>
+<td style="padding:20px 40px 0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;border-radius:8px;">
+<tr>
+<td style="padding:20px;">
+<h2 style="margin:0 0 15px;color:#374151;font-size:16px;font-weight:600;border-bottom:2px solid #10b981;padding-bottom:10px;">DETALHES DO PAGAMENTO</h2>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;width:140px;">Produto:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;font-weight:500;">${cliente.produto}</td>
+</tr>
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;">Plano:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;">${cliente.plano || 'N/A'}</td>
+</tr>
+<tr>
+<td style="padding:8px 0;color:#6b7280;font-size:14px;">Data Pagamento:</td>
+<td style="padding:8px 0;color:#111827;font-size:14px;">${paidDate}</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Value Box -->
+<tr>
+<td style="padding:20px 40px;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-radius:8px;">
+<tr>
+<td style="padding:25px;text-align:center;">
+<p style="margin:0;color:rgba(255,255,255,0.9);font-size:14px;text-transform:uppercase;">Valor Pago</p>
+<p style="margin:10px 0 0;color:#ffffff;font-size:32px;font-weight:bold;">${formattedValue}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Next Renewal -->
+<tr>
+<td style="padding:0 40px 30px;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+<tr>
+<td style="padding:15px 20px;">
+<p style="margin:0;color:#92400e;font-size:13px;">Proxima renovacao:</p>
+<p style="margin:5px 0 0;color:#78350f;font-size:16px;font-weight:bold;">${renewalDate}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="background-color:#f9fafb;padding:25px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+<p style="margin:0;color:#6b7280;font-size:13px;">Obrigado pela confianca!</p>
+<p style="margin:10px 0 0;color:#9ca3af;font-size:12px;">${companyName} - ${currentYear}</p>
+<p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este e um comprovante automatico. Guarde-o para sua referencia.</p>
+</td>
+</tr>
+
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`;
+};
+
+const generateProfessionalWhatsAppMessage = (
+  cliente: Cliente,
+  paidAt: string,
+  nextRenewal: string,
+  companyName: string
+): string => {
+  const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
+  const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
+  const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
+  const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
+  const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
+
+  return `━━━━━━━━━━━━━━━━━━━━━━
+✅ *RECIBO DE PAGAMENTO*
+━━━━━━━━━━━━━━━━━━━━━━
+
+📋 *Recibo:* ${receiptNumber}
+
+👤 *CLIENTE*
+   Nome: ${cliente.nome}
+   CPF/CNPJ: ${cliente.cpf}
+
+📦 *SERVIÇO*
+   Produto: ${cliente.produto}
+   Plano: ${cliente.plano || 'N/A'}
+
+💰 *PAGAMENTO*
+   Valor: *${formattedValue}*
+   Data: ${paidDate}
+
+📅 *Próxima Renovação:* ${renewalDate}
+
+━━━━━━━━━━━━━━━━━━━━━━
+🙏 Obrigado pela confiança!
+_${companyName}_
+━━━━━━━━━━━━━━━━━━━━━━`;
 };
 
 const sendEmailViaSMTP = async (
   gmailUser: string,
   gmailPassword: string,
+  senderName: string,
   to: string,
   subject: string,
   html: string
@@ -77,8 +240,10 @@ const sendEmailViaSMTP = async (
       },
     });
 
+    const fromAddress = senderName ? `${senderName} <${gmailUser}>` : gmailUser;
+
     await client.send({
-      from: gmailUser,
+      from: fromAddress,
       to: to,
       subject: subject,
       content: "Este email requer um cliente com suporte a HTML.",
@@ -209,6 +374,7 @@ serve(async (req) => {
     }
 
     const paymentDate = paidAt || new Date().toISOString();
+    const companyName = config.billing_sender_name || config.receipt_company_name || 'Sistema de Gestão';
     const results = {
       email: { sent: false, error: null as string | null },
       whatsapp: { sent: false, error: null as string | null },
@@ -218,13 +384,14 @@ serve(async (req) => {
     if (config.receipt_email_enabled === 'true') {
       const gmailUser = config.billing_gmail_user;
       const gmailPassword = config.billing_gmail_password;
+      const senderName = config.billing_sender_name || '';
       
       if (gmailUser && gmailPassword && cliente.email) {
-        const emailTemplate = config.receipt_email_template || '';
-        const emailSubject = formatMessage(config.receipt_email_subject || 'Recibo de Pagamento', cliente, paymentDate, cliente.data_renovacao);
-        const emailBody = formatMessage(emailTemplate, cliente, paymentDate, cliente.data_renovacao);
+        // Generate professional HTML email
+        const emailHtml = generateProfessionalEmailHTML(cliente, paymentDate, cliente.data_renovacao, companyName);
+        const emailSubject = `✅ Recibo de Pagamento - ${cliente.produto}`;
         
-        const emailResult = await sendEmailViaSMTP(gmailUser, gmailPassword, cliente.email, emailSubject, emailBody);
+        const emailResult = await sendEmailViaSMTP(gmailUser, gmailPassword, senderName, cliente.email, emailSubject, emailHtml);
         results.email.sent = emailResult.success;
         results.email.error = emailResult.error || null;
         
@@ -257,8 +424,8 @@ serve(async (req) => {
       const instance = instances?.[0];
       
       if (instance && cliente.numero) {
-        const whatsappTemplate = config.receipt_whatsapp_template || '';
-        const whatsappMessage = formatMessage(whatsappTemplate, cliente, paymentDate, cliente.data_renovacao);
+        // Generate professional WhatsApp message
+        const whatsappMessage = generateProfessionalWhatsAppMessage(cliente, paymentDate, cliente.data_renovacao, companyName);
         
         const whatsappResult = await sendWhatsAppMessage(
           instance.api_url,
