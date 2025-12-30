@@ -26,6 +26,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslation } from 'react-i18next';
 
 interface UserProfile {
   user_id: string;
@@ -56,6 +57,7 @@ const AdminRecuperacaoSenha = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
@@ -180,13 +182,13 @@ const AdminRecuperacaoSenha = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gmail-config'] });
       toast({
-        title: "Configurações salvas!",
-        description: "As configurações foram atualizadas com sucesso.",
+        title: t('passwordRecovery.configSaved'),
+        description: t('passwordRecovery.configSavedDesc'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao salvar",
+        title: t('passwordRecovery.errorSaving'),
         description: error.message,
         variant: "destructive"
       });
@@ -211,7 +213,7 @@ const AdminRecuperacaoSenha = () => {
       setNewInstanceApiUrl("");
       setNewInstanceApiKey("");
       toast({
-        title: "Instância adicionada!",
+        title: t('passwordRecovery.instanceAdded'),
         description: "A instância foi salva com sucesso.",
       });
     },
@@ -252,7 +254,7 @@ const AdminRecuperacaoSenha = () => {
   const addWhatsAppInstance = () => {
     if (!newInstanceName || !newInstanceApiUrl || !newInstanceApiKey) {
       toast({
-        title: "Preencha todos os campos",
+        title: t('passwordRecovery.fillAllFields'),
         variant: "destructive"
       });
       return;
@@ -319,8 +321,8 @@ const AdminRecuperacaoSenha = () => {
   const handleSendRecoveryEmail = async () => {
     if (!selectedUser?.email) {
       toast({
-        title: "Erro",
-        description: "Usuário não possui email cadastrado",
+        title: t('common.error'),
+        description: t('passwordRecovery.noEmail'),
         variant: "destructive"
       });
       return;
@@ -341,14 +343,14 @@ const AdminRecuperacaoSenha = () => {
       await logRecoveryAttempt(selectedUser.email, 'email', 'sent');
 
       toast({
-        title: "Email enviado!",
-        description: `Link de recuperação enviado para ${selectedUser.email}`,
+        title: t('passwordRecovery.emailSent'),
+        description: `${t('passwordRecovery.emailSentDesc')} ${selectedUser.email}`,
       });
     } catch (error: any) {
       await logRecoveryAttempt(selectedUser.email, 'email', 'error', error.message);
       toast({
-        title: "Erro ao enviar email",
-        description: error.message || "Tente novamente mais tarde",
+        title: t('passwordRecovery.errorSendingEmail'),
+        description: error.message || t('common.errorOccurred'),
         variant: "destructive"
       });
     } finally {
@@ -359,8 +361,8 @@ const AdminRecuperacaoSenha = () => {
   const handleSendRecoveryWhatsApp = async () => {
     if (!whatsappNumber) {
       toast({
-        title: "Erro",
-        description: "Informe o número do WhatsApp",
+        title: t('common.error'),
+        description: t('passwordRecovery.noWhatsapp'),
         variant: "destructive"
       });
       return;
@@ -368,8 +370,8 @@ const AdminRecuperacaoSenha = () => {
 
     if (!selectedUser) {
       toast({
-        title: "Erro",
-        description: "Selecione um usuário",
+        title: t('common.error'),
+        description: t('passwordRecovery.noUser'),
         variant: "destructive"
       });
       return;
@@ -378,8 +380,8 @@ const AdminRecuperacaoSenha = () => {
     const instance = await getNextInstance();
     if (!instance) {
       toast({
-        title: "Erro",
-        description: "Configure pelo menos uma instância ativa do WhatsApp",
+        title: t('common.error'),
+        description: t('passwordRecovery.noActiveInstance'),
         variant: "destructive"
       });
       return;
@@ -409,8 +411,8 @@ const AdminRecuperacaoSenha = () => {
       );
 
       toast({
-        title: "Mensagem enviada!",
-        description: `Link enviado via ${instance.instance_name}`,
+        title: t('passwordRecovery.whatsappSent'),
+        description: `${t('passwordRecovery.whatsappSentDesc')} ${instance.instance_name}`,
       });
     } catch (error: any) {
       await logRecoveryAttempt(
@@ -421,8 +423,8 @@ const AdminRecuperacaoSenha = () => {
         instance.id
       );
       toast({
-        title: "Erro ao enviar WhatsApp",
-        description: error.message || "Tente novamente mais tarde",
+        title: t('passwordRecovery.errorSendingWhatsApp'),
+        description: error.message || t('common.errorOccurred'),
         variant: "destructive"
       });
     } finally {
@@ -455,8 +457,8 @@ const AdminRecuperacaoSenha = () => {
                 <KeyRound className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Recuperação de Senha</h1>
-                <p className="text-sm text-muted-foreground">Enviar link de recuperação para usuários</p>
+                <h1 className="text-xl font-bold text-foreground">{t('passwordRecovery.title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('passwordRecovery.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -468,8 +470,8 @@ const AdminRecuperacaoSenha = () => {
         <Card className="border-border/40 bg-card/50 backdrop-blur-sm mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-foreground">Métodos de Recuperação</CardTitle>
-              <CardDescription>Configure quais métodos estão disponíveis</CardDescription>
+              <CardTitle className="text-foreground">{t('passwordRecovery.methods')}</CardTitle>
+              <CardDescription>{t('passwordRecovery.methodsDesc')}</CardDescription>
             </div>
             <Button
               onClick={handleSaveConfig}
@@ -481,7 +483,7 @@ const AdminRecuperacaoSenha = () => {
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              Salvar Configurações
+              {t('passwordRecovery.saveConfig')}
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -491,8 +493,8 @@ const AdminRecuperacaoSenha = () => {
                 <div className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-blue-500" />
                   <div>
-                    <p className="font-medium text-foreground">Email</p>
-                    <p className="text-sm text-muted-foreground">Enviar link por email (Gmail)</p>
+                    <p className="font-medium text-foreground">{t('passwordRecovery.email')}</p>
+                    <p className="text-sm text-muted-foreground">{t('passwordRecovery.emailDesc')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
