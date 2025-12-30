@@ -168,8 +168,10 @@ const AdminCobranca = () => {
     paid: number;
     pending: number;
     rejected: number;
-    totalPaid: number;
-    totalPending: number;
+    totalPaidBrl: number;
+    totalPaidUsd: number;
+    totalPendingBrl: number;
+    totalPendingUsd: number;
   } | null>(null);
   const [dbCronSchedule, setDbCronSchedule] = useState<string | null>(null);
   const [lastExecution, setLastExecution] = useState<{ date: string; count: number; success: number; errors: number } | null>(null);
@@ -1689,7 +1691,7 @@ const AdminCobranca = () => {
                   Verificação Automática de Pagamentos
                 </CardTitle>
                 <CardDescription>
-                  Verifica automaticamente o status dos pagamentos no Mercado Pago
+                  Verifica automaticamente o status dos pagamentos no Mercado Pago e Stripe
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1702,12 +1704,26 @@ const AdminCobranca = () => {
                     <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                       <p className="text-xs text-muted-foreground">Pagos</p>
                       <p className="text-xl font-bold text-emerald-400">{paymentStats.paid}</p>
-                      <p className="text-xs text-muted-foreground">R$ {paymentStats.totalPaid.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        R$ {paymentStats.totalPaidBrl.toFixed(2)}
+                      </p>
+                      {paymentStats.totalPaidUsd > 0 && (
+                        <p className="text-xs text-emerald-400">
+                          + $ {paymentStats.totalPaidUsd.toFixed(2)} USD
+                        </p>
+                      )}
                     </div>
                     <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                       <p className="text-xs text-muted-foreground">Pendentes</p>
                       <p className="text-xl font-bold text-amber-400">{paymentStats.pending}</p>
-                      <p className="text-xs text-muted-foreground">R$ {paymentStats.totalPending.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        R$ {paymentStats.totalPendingBrl.toFixed(2)}
+                      </p>
+                      {paymentStats.totalPendingUsd > 0 && (
+                        <p className="text-xs text-amber-400">
+                          + $ {paymentStats.totalPendingUsd.toFixed(2)} USD
+                        </p>
+                      )}
                     </div>
                     <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
                       <p className="text-xs text-muted-foreground">Rejeitados</p>
@@ -1724,7 +1740,7 @@ const AdminCobranca = () => {
                   {isCheckingPayments ? 'Verificando...' : 'Verificar Status Agora'}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Consulta a API do Mercado Pago para atualizar o status de pagamentos pendentes
+                  Consulta a API do Mercado Pago e Stripe para atualizar o status de pagamentos pendentes
                 </p>
               </CardContent>
             </Card>
