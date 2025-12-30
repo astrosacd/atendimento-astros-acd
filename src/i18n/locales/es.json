@@ -1204,5 +1204,133 @@
       "reports": "Informes",
       "system": "Sistema"
     }
+  },
+  "billing": {
+    "title": "Facturación Automática",
+    "subtitle": "Gestione facturación automática y manual",
+    "tabs": {
+      "config": "Configuración",
+      "channels": "Canales",
+      "messages": "Mensajes",
+      "payments": "Pagos",
+      "metrics": "Métricas",
+      "logs": "Historial"
+    },
+    "stats": {
+      "totalSent": "Total Enviadas",
+      "sentToday": "Enviadas Hoy",
+      "successRate": "Tasa de Éxito",
+      "errors": "Errores"
+    },
+    "config": {
+      "cronSchedule": "Programación CRON",
+      "cronHour": "Hora de Ejecución",
+      "cronMinute": "Minuto",
+      "billingEnabled": "Facturación Automática Activa",
+      "emailEnabled": "Enviar por Email",
+      "whatsappEnabled": "Enviar por WhatsApp",
+      "lastExecution": "Última Ejecución",
+      "nextExecution": "Próxima Ejecución",
+      "cronMissed": "Ejecución Perdida",
+      "runNow": "Ejecutar Ahora",
+      "running": "Ejecutando...",
+      "testMode": "Modo de Prueba",
+      "saveConfig": "Guardar Configuración"
+    },
+    "channels": {
+      "gmail": "Gmail",
+      "gmailDesc": "Configure Gmail para envío de facturas por email",
+      "gmailUser": "Email Gmail",
+      "gmailPassword": "Contraseña de App",
+      "whatsapp": "WhatsApp",
+      "whatsappDesc": "Configure instancias de WhatsApp para envío de facturas",
+      "addInstance": "Agregar Instancia",
+      "noInstances": "No hay instancias configuradas",
+      "instanceName": "Nombre",
+      "apiUrl": "URL de API",
+      "apiKey": "Clave de API"
+    },
+    "messages": {
+      "title": "Mensajes de Facturación",
+      "description": "Configure los mensajes para cada etapa de facturación",
+      "dMinus3": "D-3 (3 días antes)",
+      "dZero": "D0 (Día de vencimiento)",
+      "dPlus1": "D+1 (1 día atrasado)",
+      "dPlus2": "D+2 (2 días atrasado)",
+      "dPlus15": "D+15 (15 días atrasado)",
+      "dPlus30": "D+30 (30 días atrasado)",
+      "variables": "Variables disponibles",
+      "restoreDefaults": "Restaurar Valores"
+    },
+    "payments": {
+      "stripe": "Stripe",
+      "stripeEnabled": "Pago con Stripe",
+      "stripeSecretKey": "Clave Secreta Stripe",
+      "stripeTax": "Tasa (%)",
+      "mercadoPago": "Mercado Pago",
+      "accessToken": "Access Token",
+      "pixKey": "Clave PIX",
+      "pixType": "Tipo de Clave",
+      "beneficiary": "Beneficiario",
+      "cardRate": "Tasa Tarjeta (%)",
+      "boletoRate": "Tasa Boleto (R$)",
+      "enablePaymentLink": "Generar Link de Pago",
+      "enableBoleto": "Generar Boleto",
+      "checkPayments": "Verificar Pagos",
+      "pendingPayments": "Pagos Pendientes"
+    },
+    "metrics": {
+      "title": "Métricas de Facturación",
+      "successRate": "Tasa de Éxito",
+      "totalValue": "Valor Total",
+      "projectedValue": "Valor Proyectado",
+      "clientsWithPending": "Clientes con Pendientes",
+      "avgResponseTime": "Tiempo Promedio de Respuesta",
+      "byChannel": "Por Canal",
+      "byType": "Por Tipo",
+      "monthlyTrend": "Tendencia Mensual"
+    },
+    "logs": {
+      "title": "Historial de Envíos",
+      "client": "Cliente",
+      "type": "Tipo",
+      "channel": "Canal",
+      "status": "Estado",
+      "date": "Fecha",
+      "errorMessage": "Mensaje de Error",
+      "sent": "Enviado",
+      "error": "Error",
+      "filters": {
+        "status": "Estado",
+        "channel": "Canal",
+        "type": "Tipo",
+        "period": "Período",
+        "all": "Todos",
+        "last7Days": "Últimos 7 días",
+        "last30Days": "Últimos 30 días",
+        "last90Days": "Últimos 90 días"
+      },
+      "noLogs": "No se encontraron registros",
+      "exportPdf": "Exportar PDF"
+    },
+    "manual": {
+      "title": "Envío Manual",
+      "selectClients": "Seleccionar Clientes",
+      "selectMessageType": "Tipo de Mensaje",
+      "send": "Enviar Facturación",
+      "sending": "Enviando...",
+      "selectedCount": "{{count}} seleccionado(s)"
+    },
+    "toast": {
+      "configSaved": "¡Configuración guardada!",
+      "configSavedDesc": "La configuración de facturación fue actualizada.",
+      "manualSent": "¡Facturas enviadas!",
+      "manualSentDesc": "Se enviaron {{count}} facturas.",
+      "errorSaving": "Error al guardar configuración",
+      "errorSending": "Error al enviar facturas",
+      "instanceAdded": "¡Instancia agregada!",
+      "instanceRemoved": "¡Instancia eliminada!",
+      "stripeSaved": "¡Configuración Stripe guardada!"
+    }
   }
 }

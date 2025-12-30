@@ -889,10 +889,10 @@ const AdminCobranca = () => {
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-                  Sistema de Cobrança Automática
+                  {t('billing.title')}
                 </h1>
                 <p className="text-muted-foreground text-sm lg:text-base">
-                  Gerencie cobranças por Email e WhatsApp com IA
+                  {t('billing.subtitle')}
                 </p>
               </div>
             </div>
@@ -1015,10 +1015,10 @@ const AdminCobranca = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Enviados', value: stats.total, icon: Send, color: 'blue' },
-            { label: 'Sucesso', value: stats.sent, icon: CheckCircle, color: 'emerald' },
-            { label: 'Erros', value: stats.errors, icon: XCircle, color: 'red' },
-            { label: 'Hoje', value: stats.today, icon: Calendar, color: 'amber' },
+            { label: t('billing.stats.totalSent'), value: stats.total, icon: Send, color: 'blue' },
+            { label: t('billing.stats.successRate'), value: stats.sent, icon: CheckCircle, color: 'emerald' },
+            { label: t('billing.stats.errors'), value: stats.errors, icon: XCircle, color: 'red' },
+            { label: t('billing.stats.sentToday'), value: stats.today, icon: Calendar, color: 'amber' },
           ].map((stat) => (
             <Card key={stat.label} className="bg-gradient-to-br from-card to-card/50 border-border/50 hover:shadow-lg transition-shadow">
               <CardContent className="p-4">
@@ -1038,15 +1038,15 @@ const AdminCobranca = () => {
 
         <Tabs defaultValue="metrics" className="space-y-6">
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
-            <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />Métricas</TabsTrigger>
-            <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />Geral</TabsTrigger>
-            <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />Pagamentos</TabsTrigger>
+            <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />{t('billing.tabs.metrics')}</TabsTrigger>
+            <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />{t('billing.tabs.config')}</TabsTrigger>
+            <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />{t('billing.tabs.payments')}</TabsTrigger>
             <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
-            <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />Canais</TabsTrigger>
-            <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />Mensagens</TabsTrigger>
+            <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />{t('billing.tabs.channels')}</TabsTrigger>
+            <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />{t('billing.tabs.messages')}</TabsTrigger>
             <TabsTrigger value="receipt"><FileText className="w-4 h-4 mr-2" />Recibo</TabsTrigger>
             <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
-            <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />Histórico</TabsTrigger>
+            <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />{t('billing.tabs.logs')}</TabsTrigger>
           </TabsList>
 
           {/* Métricas Dashboard Tab */}

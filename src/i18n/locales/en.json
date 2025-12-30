@@ -1204,5 +1204,133 @@
       "reports": "Reports",
       "system": "System"
     }
+  },
+  "billing": {
+    "title": "Automatic Billing",
+    "subtitle": "Manage automatic and manual billing",
+    "tabs": {
+      "config": "Settings",
+      "channels": "Channels",
+      "messages": "Messages",
+      "payments": "Payments",
+      "metrics": "Metrics",
+      "logs": "History"
+    },
+    "stats": {
+      "totalSent": "Total Sent",
+      "sentToday": "Sent Today",
+      "successRate": "Success Rate",
+      "errors": "Errors"
+    },
+    "config": {
+      "cronSchedule": "CRON Schedule",
+      "cronHour": "Execution Hour",
+      "cronMinute": "Minute",
+      "billingEnabled": "Automatic Billing Enabled",
+      "emailEnabled": "Send via Email",
+      "whatsappEnabled": "Send via WhatsApp",
+      "lastExecution": "Last Execution",
+      "nextExecution": "Next Execution",
+      "cronMissed": "Missed Execution",
+      "runNow": "Run Now",
+      "running": "Running...",
+      "testMode": "Test Mode",
+      "saveConfig": "Save Settings"
+    },
+    "channels": {
+      "gmail": "Gmail",
+      "gmailDesc": "Configure Gmail for billing email delivery",
+      "gmailUser": "Gmail Email",
+      "gmailPassword": "App Password",
+      "whatsapp": "WhatsApp",
+      "whatsappDesc": "Configure WhatsApp instances for billing delivery",
+      "addInstance": "Add Instance",
+      "noInstances": "No instances configured",
+      "instanceName": "Name",
+      "apiUrl": "API URL",
+      "apiKey": "API Key"
+    },
+    "messages": {
+      "title": "Billing Messages",
+      "description": "Configure messages for each billing stage",
+      "dMinus3": "D-3 (3 days before)",
+      "dZero": "D0 (Due date)",
+      "dPlus1": "D+1 (1 day late)",
+      "dPlus2": "D+2 (2 days late)",
+      "dPlus15": "D+15 (15 days late)",
+      "dPlus30": "D+30 (30 days late)",
+      "variables": "Available variables",
+      "restoreDefaults": "Restore Defaults"
+    },
+    "payments": {
+      "stripe": "Stripe",
+      "stripeEnabled": "Stripe Payment",
+      "stripeSecretKey": "Stripe Secret Key",
+      "stripeTax": "Tax (%)",
+      "mercadoPago": "Mercado Pago",
+      "accessToken": "Access Token",
+      "pixKey": "PIX Key",
+      "pixType": "Key Type",
+      "beneficiary": "Beneficiary",
+      "cardRate": "Card Rate (%)",
+      "boletoRate": "Boleto Rate (R$)",
+      "enablePaymentLink": "Generate Payment Link",
+      "enableBoleto": "Generate Boleto",
+      "checkPayments": "Check Payments",
+      "pendingPayments": "Pending Payments"
+    },
+    "metrics": {
+      "title": "Billing Metrics",
+      "successRate": "Success Rate",
+      "totalValue": "Total Value",
+      "projectedValue": "Projected Value",
+      "clientsWithPending": "Clients with Pending",
+      "avgResponseTime": "Avg Response Time",
+      "byChannel": "By Channel",
+      "byType": "By Type",
+      "monthlyTrend": "Monthly Trend"
+    },
+    "logs": {
+      "title": "Send History",
+      "client": "Client",
+      "type": "Type",
+      "channel": "Channel",
+      "status": "Status",
+      "date": "Date",
+      "errorMessage": "Error Message",
+      "sent": "Sent",
+      "error": "Error",
+      "filters": {
+        "status": "Status",
+        "channel": "Channel",
+        "type": "Type",
+        "period": "Period",
+        "all": "All",
+        "last7Days": "Last 7 days",
+        "last30Days": "Last 30 days",
+        "last90Days": "Last 90 days"
+      },
+      "noLogs": "No logs found",
+      "exportPdf": "Export PDF"
+    },
+    "manual": {
+      "title": "Manual Send",
+      "selectClients": "Select Clients",
+      "selectMessageType": "Message Type",
+      "send": "Send Billing",
+      "sending": "Sending...",
+      "selectedCount": "{{count}} selected"
+    },
+    "toast": {
+      "configSaved": "Settings saved!",
+      "configSavedDesc": "Billing settings have been updated.",
+      "manualSent": "Billings sent!",
+      "manualSentDesc": "{{count}} billings were sent.",
+      "errorSaving": "Error saving settings",
+      "errorSending": "Error sending billings",
+      "instanceAdded": "Instance added!",
+      "instanceRemoved": "Instance removed!",
+      "stripeSaved": "Stripe settings saved!"
+    }
   }
 }

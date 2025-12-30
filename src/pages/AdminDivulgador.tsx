@@ -1220,14 +1220,14 @@ export default function AdminDivulgador() {
                 <Megaphone className="h-6 w-6 text-orange-500" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Divulgador Interno</h1>
-                <p className="text-sm text-muted-foreground">Automação de grupos WhatsApp</p>
+                <h1 className="text-2xl font-bold text-foreground">{t('broadcaster.title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('broadcaster.subtitle')}</p>
               </div>
             </div>
           </div>
           <Badge variant={activeInstances > 0 ? "default" : "secondary"} className="gap-1.5">
             {activeInstances > 0 ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {activeInstances} {activeInstances === 1 ? 'instância' : 'instâncias'} ativas
+            {activeInstances} {activeInstances === 1 ? t('broadcaster.instances').slice(0, -1) : t('broadcaster.instances').toLowerCase()}
           </Badge>
         </div>
 
@@ -1239,7 +1239,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-orange-500/10"><Wifi className="h-4 w-4 text-orange-500" /></div>
                 <div>
                   <p className="text-2xl font-bold">{instances.length}</p>
-                  <p className="text-xs text-muted-foreground">Instâncias</p>
+                  <p className="text-xs text-muted-foreground">{t('broadcaster.instances')}</p>
                 </div>
               </div>
             </CardContent>
@@ -1250,7 +1250,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-primary/10"><Target className="h-4 w-4 text-primary" /></div>
                 <div>
                   <p className="text-2xl font-bold">{campaigns.length}</p>
-                  <p className="text-xs text-muted-foreground">Campanhas</p>
+                  <p className="text-xs text-muted-foreground">{t('broadcaster.campaigns')}</p>
                 </div>
               </div>
             </CardContent>
@@ -1261,7 +1261,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-info/10"><Users className="h-4 w-4 text-info" /></div>
                 <div>
                   <p className="text-2xl font-bold">{totalGroups}</p>
-                  <p className="text-xs text-muted-foreground">Grupos ({activeGroups} ativos)</p>
+                  <p className="text-xs text-muted-foreground">{t('broadcaster.groups')} ({activeGroups})</p>
                 </div>
               </div>
             </CardContent>
@@ -1272,7 +1272,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-emerald-500/10"><MessageSquare className="h-4 w-4 text-emerald-500" /></div>
                 <div>
                   <p className="text-2xl font-bold">{messages.length}</p>
-                  <p className="text-xs text-muted-foreground">{pendingMessages} pendentes</p>
+                  <p className="text-xs text-muted-foreground">{pendingMessages} {t('broadcaster.pending')}</p>
                 </div>
               </div>
             </CardContent>
@@ -1283,7 +1283,7 @@ export default function AdminDivulgador() {
                 <div className="p-2 rounded-lg bg-violet-500/10"><UserMinus className="h-4 w-4 text-violet-500" /></div>
                 <div>
                   <p className="text-2xl font-bold">{totalParticipants}</p>
-                  <p className="text-xs text-muted-foreground">Participantes</p>
+                  <p className="text-xs text-muted-foreground">{t('broadcaster.participants')}</p>
                 </div>
               </div>
             </CardContent>
@@ -1294,13 +1294,13 @@ export default function AdminDivulgador() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-8 h-auto p-1">
             <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
-            <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">Campanhas</span></TabsTrigger>
-            <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">Grupos</span></TabsTrigger>
-            <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Mensagens</span></TabsTrigger>
-            <TabsTrigger value="polls" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">Enquetes</span></TabsTrigger>
-            <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">Automáticas</span></TabsTrigger>
-            <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">Participantes</span></TabsTrigger>
-            <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">Logs</span></TabsTrigger>
+            <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.campaigns')}</span></TabsTrigger>
+            <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.groups')}</span></TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.messages')}</span></TabsTrigger>
+            <TabsTrigger value="polls" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.polls')}</span></TabsTrigger>
+            <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.welcome')}</span></TabsTrigger>
+            <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.participants')}</span></TabsTrigger>
+            <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.logs')}</span></TabsTrigger>
           </TabsList>
 
           {/* TAB: INSTÂNCIAS WHATSAPP */}
