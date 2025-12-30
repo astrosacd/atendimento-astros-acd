@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +19,6 @@ async function updateClientRenewalDate(supabase: any, clienteId: string) {
   if (!clienteId) return;
   
   try {
-    // Get current client data
     const { data: cliente, error: fetchError } = await supabase
       .from('clientes')
       .select('data_renovacao')
@@ -30,10 +30,8 @@ async function updateClientRenewalDate(supabase: any, clienteId: string) {
       return;
     }
     
-    // Calculate new renewal date (current + 1 month)
     const newRenewalDate = addOneMonth(cliente.data_renovacao);
     
-    // Update the client - the trigger will recalculate D-3, D+1, D+2, D+15, D+30
     const { error: updateError } = await supabase
       .from('clientes')
       .update({ data_renovacao: newRenewalDate })
@@ -49,6 +47,91 @@ async function updateClientRenewalDate(supabase: any, clienteId: string) {
   }
 }
 
+// Check Stripe payment status
+async function checkStripePayment(stripe: Stripe, payment: any, supabase: any, results: any) {
+  try {
+    // payment_id for Stripe is the PaymentIntent ID (starts with pi_) or Session ID (starts with cs_)
+    const paymentId = payment.payment_id;
+    
+    let newStatus = payment.status;
+    let paidAt = null;
+    
+    if (paymentId.startsWith('pi_')) {
+      // It's a PaymentIntent
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+      console.log(`Stripe PaymentIntent ${paymentId} status: ${paymentIntent.status}`);
+      
+      if (paymentIntent.status === 'succeeded') {
+        newStatus = 'paid';
+        paidAt = new Date(paymentIntent.created * 1000).toISOString();
+      } else if (paymentIntent.status === 'canceled') {
+        newStatus = 'cancelled';
+      }
+    } else if (paymentId.startsWith('cs_')) {
+      // It's a Checkout Session
+      const session = await stripe.checkout.sessions.retrieve(paymentId);
+      console.log(`Stripe Session ${paymentId} status: ${session.payment_status}`);
+      
+      if (session.payment_status === 'paid') {
+        newStatus = 'paid';
+        paidAt = new Date().toISOString();
+      } else if (session.status === 'expired') {
+        newStatus = 'cancelled';
+      }
+    } else {
+      // Try to search by payment ID in metadata
+      const paymentIntents = await stripe.paymentIntents.search({
+        query: `metadata['payment_id']:'${paymentId}'`,
+        limit: 1,
+      });
+      
+      if (paymentIntents.data.length > 0) {
+        const pi = paymentIntents.data[0];
+        console.log(`Stripe PaymentIntent found via search, status: ${pi.status}`);
+        
+        if (pi.status === 'succeeded') {
+          newStatus = 'paid';
+          paidAt = new Date(pi.created * 1000).toISOString();
+        } else if (pi.status === 'canceled') {
+          newStatus = 'cancelled';
+        }
+      }
+    }
+    
+    if (newStatus !== payment.status) {
+      const { error: updateError } = await supabase
+        .from('client_payments')
+        .update({
+          status: newStatus,
+          paid_at: paidAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', payment.id);
+
+      if (updateError) {
+        console.error(`Error updating Stripe payment ${payment.id}:`, updateError);
+        results.errors++;
+      } else {
+        results.updated++;
+        results.details.push({
+          payment_id: payment.payment_id,
+          old_status: payment.status,
+          new_status: newStatus,
+          cliente_id: payment.cliente_id,
+          gateway: 'stripe'
+        });
+        
+        if (newStatus === 'paid' && payment.cliente_id) {
+          await updateClientRenewalDate(supabase, payment.cliente_id);
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`Error checking Stripe payment ${payment.payment_id}:`, err);
+    results.errors++;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -59,15 +142,23 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const mercadoPagoToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN');
 
-    if (!mercadoPagoToken) {
-      console.log('MERCADOPAGO_ACCESS_TOKEN not configured');
-      return new Response(
-        JSON.stringify({ error: 'Mercado Pago not configured' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch Stripe config from database
+    const { data: stripeConfig } = await supabase
+      .from('billing_stripe_config')
+      .select('stripe_enabled, stripe_secret_key')
+      .single();
+    
+    const stripeEnabled = stripeConfig?.stripe_enabled && stripeConfig?.stripe_secret_key;
+    let stripe: Stripe | null = null;
+    
+    if (stripeEnabled) {
+      stripe = new Stripe(stripeConfig.stripe_secret_key, {
+        apiVersion: '2023-10-16',
+      });
+      console.log('Stripe verification enabled');
+    }
 
     // Get all pending payments
     const { data: pendingPayments, error: fetchError } = await supabase
@@ -86,14 +177,37 @@ serve(async (req) => {
       checked: 0,
       updated: 0,
       errors: 0,
-      details: [] as any[]
+      details: [] as any[],
+      mercadoPagoChecked: 0,
+      stripeChecked: 0
     };
 
     for (const payment of pendingPayments || []) {
       results.checked++;
       
+      // Check if it's a Stripe payment
+      const isStripePayment = payment.payment_type?.toLowerCase().includes('stripe');
+      
+      if (isStripePayment) {
+        results.stripeChecked++;
+        
+        if (stripe) {
+          await checkStripePayment(stripe, payment, supabase, results);
+        } else {
+          console.log(`Stripe payment ${payment.payment_id} skipped - Stripe not configured`);
+        }
+        continue;
+      }
+      
+      // Mercado Pago payment
+      results.mercadoPagoChecked++;
+      
+      if (!mercadoPagoToken) {
+        console.log(`MP payment ${payment.payment_id} skipped - Mercado Pago not configured`);
+        continue;
+      }
+      
       try {
-        // Check payment status via Mercado Pago API
         const mpResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${payment.payment_id}`,
           {
@@ -107,7 +221,6 @@ serve(async (req) => {
           const mpData = await mpResponse.json();
           console.log(`Payment ${payment.payment_id} status: ${mpData.status}`);
 
-          // Map Mercado Pago status to our status
           let newStatus = payment.status;
           let paidAt = null;
 
@@ -139,10 +252,10 @@ serve(async (req) => {
                 payment_id: payment.payment_id,
                 old_status: payment.status,
                 new_status: newStatus,
-                cliente_id: payment.cliente_id
+                cliente_id: payment.cliente_id,
+                gateway: 'mercadopago'
               });
               
-              // If payment was approved, update client renewal date
               if (newStatus === 'paid' && payment.cliente_id) {
                 await updateClientRenewalDate(supabase, payment.cliente_id);
               }
@@ -190,10 +303,10 @@ serve(async (req) => {
                       payment_id: foundPayment.id,
                       old_status: payment.status,
                       new_status: newStatus,
-                      cliente_id: payment.cliente_id
+                      cliente_id: payment.cliente_id,
+                      gateway: 'mercadopago'
                     });
                     
-                    // If payment was approved, update client renewal date
                     if (newStatus === 'paid' && payment.cliente_id) {
                       await updateClientRenewalDate(supabase, payment.cliente_id);
                     }
