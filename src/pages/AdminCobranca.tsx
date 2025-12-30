@@ -104,9 +104,11 @@ interface MonthlyStats {
 interface MetricsData {
   successRate: number;
   previousSuccessRate: number;
-  totalValue: number;
+  totalValueBrl: number;
+  totalValueUsd: number;
   previousTotalValue: number;
-  projectedValue: number;
+  projectedValueBrl: number;
+  projectedValueUsd: number;
   clientsWithPending: number;
   avgResponseTime: number;
 }
@@ -153,9 +155,11 @@ const AdminCobranca = () => {
   const [metrics, setMetrics] = useState<MetricsData>({
     successRate: 0,
     previousSuccessRate: 0,
-    totalValue: 0,
+    totalValueBrl: 0,
+    totalValueUsd: 0,
     previousTotalValue: 0,
-    projectedValue: 0,
+    projectedValueBrl: 0,
+    projectedValueUsd: 0,
     clientsWithPending: 0,
     avgResponseTime: 0,
   });
@@ -586,7 +590,7 @@ const AdminCobranca = () => {
 
       const { data: allClientes } = await supabase
         .from('clientes')
-        .select('id, valor, data_renovacao');
+        .select('id, valor, data_renovacao, moeda');
 
       // Calculate metrics
       const currentSent = currentLogs?.filter(l => l.status === 'sent').length || 0;
@@ -597,25 +601,43 @@ const AdminCobranca = () => {
       const previousTotal = previousLogs?.length || 1;
       const previousSuccessRate = (previousSent / previousTotal) * 100;
 
-      // Total value from clients
-      const totalValue = allClientes?.reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
+      // Total value from clients - separated by currency
+      const totalValueBrl = allClientes?.reduce((sum, c) => {
+        if (c.moeda === 'USD') return sum;
+        return sum + (c.valor || 0);
+      }, 0) || 0;
+
+      const totalValueUsd = allClientes?.reduce((sum, c) => {
+        if (c.moeda !== 'USD') return sum;
+        return sum + (c.valor || 0);
+      }, 0) || 0;
 
       // Clients with pending (overdue)
       const today = new Date().toISOString().split('T')[0];
       const clientsWithPending = allClientes?.filter(c => c.data_renovacao < today).length || 0;
 
-      // Projected value (clients renewing this month)
+      // Projected value (clients renewing this month) - separated by currency
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      const projectedValue = allClientes?.filter(c => 
+      const clientesRenovando = allClientes?.filter(c => 
         c.data_renovacao >= today && c.data_renovacao <= endOfMonth
-      ).reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
+      ) || [];
+
+      const projectedValueBrl = clientesRenovando
+        .filter(c => (c.moeda || 'BRL') !== 'USD')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
+
+      const projectedValueUsd = clientesRenovando
+        .filter(c => c.moeda === 'USD')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
 
       setMetrics({
         successRate: currentSuccessRate,
         previousSuccessRate: previousSuccessRate,
-        totalValue: totalValue,
-        previousTotalValue: totalValue * 0.95, // Approximate
-        projectedValue: projectedValue,
+        totalValueBrl: totalValueBrl,
+        totalValueUsd: totalValueUsd,
+        previousTotalValue: totalValueBrl * 0.95, // Approximate
+        projectedValueBrl: projectedValueBrl,
+        projectedValueUsd: projectedValueUsd,
         clientsWithPending: clientsWithPending,
         avgResponseTime: 2.5, // Placeholder
       });
@@ -1050,18 +1072,25 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Valor Total */}
+              {/* Valor Total BRL */}
               <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Valor Total (Carteira)</p>
+                      <p className="text-sm text-muted-foreground mb-1">Valor Total (BRL)</p>
                       <p className="text-3xl font-bold text-blue-400">
-                        R$ {metrics.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {metrics.totalValueBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {clientes.length} clientes ativos
-                      </p>
+                      {metrics.totalValueUsd > 0 && (
+                        <p className="text-sm text-emerald-400 mt-2">
+                          + $ {metrics.totalValueUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                        </p>
+                      )}
+                      {metrics.totalValueUsd === 0 && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {clientes.length} clientes ativos
+                        </p>
+                      )}
                     </div>
                     <div className="p-3 rounded-xl bg-blue-500/20">
                       <DollarSign className="w-6 h-6 text-blue-400" />
@@ -1077,11 +1106,18 @@ const AdminCobranca = () => {
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">Previsão do Mês</p>
                       <p className="text-3xl font-bold text-purple-400">
-                        R$ {metrics.projectedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {metrics.projectedValueBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Renovações previstas
-                      </p>
+                      {metrics.projectedValueUsd > 0 && (
+                        <p className="text-sm text-emerald-400 mt-2">
+                          + $ {metrics.projectedValueUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                        </p>
+                      )}
+                      {metrics.projectedValueUsd === 0 && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Renovações previstas
+                        </p>
+                      )}
                     </div>
                     <div className="p-3 rounded-xl bg-purple-500/20">
                       <TrendingUp className="w-6 h-6 text-purple-400" />
