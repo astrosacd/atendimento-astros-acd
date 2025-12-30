@@ -558,9 +558,12 @@
     "settingsSaved": "Settings saved!"
   },
   "guide": {
-    "title": "System Guide",
-    "subtitle": "Complete system documentation",
-    "selectCategory": "Select a category",
+    "title": "Configuration Guide",
+    "subtitle": "Learn how to configure all system modules",
+    "selectCategory": "Select a category to view the guide",
+    "importantTips": "Important Tips",
+    "securityNote": "All credentials are stored securely and encrypted.",
+    "backToPanel": "Back to Panel",
     "categories": {
       "communication": "Communication",
       "integrations": "Integrations",
@@ -573,10 +576,7 @@
       "gateway": "Gateway",
       "reports": "Reports",
       "system": "System"
-    },
-    "steps": "Steps",
-    "tips": "Tips",
-    "back": "Back"
+    }
   },
   "validation": {
     "required": "This field is required",
@@ -756,7 +756,50 @@
     "errorDeleting": "Error deleting",
     "errorPermission": "Error changing permission",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "categories": {
+      "dashboard": "Dashboard",
+      "clients": "Clients",
+      "admin": "Administration",
+      "tags": "Tags",
+      "broadcaster": "Internal Broadcaster",
+      "tasks": "Tasks",
+      "guide": "Guide",
+      "numberQuery": "Number Query",
+      "numberStatus": "Number Status",
+      "reports": "Advanced Reports",
+      "tickets": "Ticket System"
+    },
+    "legend": {
+      "allowed": "Allowed",
+      "notAllowed": "Not Allowed",
+      "clickToToggle": "* Click to toggle permissions (except Admin)"
+    },
+    "dialog": {
+      "createTitle": "New Role",
+      "editTitle": "Edit Role",
+      "createDesc": "Create a new role with custom permissions.",
+      "editDesc": "Update role information.",
+      "slugLabel": "Identifier (slug)",
+      "slugPlaceholder": "e.g.: financial",
+      "slugHelp": "Used internally. Letters and underscore only.",
+      "displayNameLabel": "Display Name",
+      "displayNamePlaceholder": "e.g.: Financial",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe this role's responsibilities...",
+      "colorLabel": "Color"
+    },
+    "colors": {
+      "green": "Green",
+      "orange": "Orange",
+      "purple": "Purple",
+      "blue": "Blue",
+      "red": "Red",
+      "yellow": "Yellow",
+      "pink": "Pink",
+      "gray": "Gray"
+    },
+    "tagAccess": "Access to clients with this tag"
   },
   "tickets": {
     "system": "Ticket System",

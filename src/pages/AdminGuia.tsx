@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import DOMPurify from "dompurify";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,6 +133,7 @@ const categoryToPermission: Record<string, string> = {
 
 const AdminGuia = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isAdmin } = useAuth();
   const { hasPermission, canViewGuia } = usePermissions();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -3599,10 +3601,10 @@ Isso evita confusão ao somar moedas diferentes.
               </div>
               <div>
                 <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  Guia de Configuração
+                  {t('guide.title')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Aprenda a configurar todos os módulos do sistema
+                  {t('guide.subtitle')}
                 </p>
               </div>
             </div>
@@ -3733,7 +3735,7 @@ Isso evita confusão ao somar moedas diferentes.
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-5 w-5 text-amber-400" />
                           <CardTitle className="text-base font-semibold text-amber-400">
-                            Dicas Importantes
+                            {t('guide.importantTips')}
                           </CardTitle>
                         </div>
                       </CardHeader>
@@ -3796,10 +3798,10 @@ Isso evita confusão ao somar moedas diferentes.
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
-            <span>Todas as credenciais são armazenadas de forma segura e criptografada.</span>
+            <span>{t('guide.securityNote')}</span>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
-            Voltar ao Painel
+            {t('guide.backToPanel')}
           </Button>
         </div>
       </div>
