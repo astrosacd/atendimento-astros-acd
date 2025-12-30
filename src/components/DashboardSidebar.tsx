@@ -118,32 +118,32 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   }, []);
 
   const clientItems: NavItem[] = [
-    { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', color: 'text-info', gradient: 'from-blue-500 to-cyan-500' },
-    { title: 'Cadastrar', icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
-    { title: 'Consultar', icon: Search, path: '/consultar', color: 'text-info', gradient: 'from-blue-500 to-indigo-500' },
-    { title: 'Atualizar', icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
-    { title: 'Excluir', icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
-    { title: 'Tarefas', icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
+    { title: t('sidebar.dashboard'), icon: LayoutDashboard, path: '/dashboard', color: 'text-info', gradient: 'from-blue-500 to-cyan-500' },
+    { title: t('sidebar.register'), icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
+    { title: t('sidebar.search'), icon: Search, path: '/consultar', color: 'text-info', gradient: 'from-blue-500 to-indigo-500' },
+    { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
+    { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
+    { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
   ];
 
   const adminItems: NavItem[] = [
-    { title: 'Usuários', icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500', gradient: 'from-blue-500 to-sky-500' },
-    { title: 'Chamados', icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
-    { title: 'Divulgador', icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
-    { title: 'Status Números', icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500', gradient: 'from-lime-500 to-green-500' },
-    { title: 'Consulta Números', icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
-    { title: 'Permissões', icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
-    { title: 'Cobrança', icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Gateway', icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
-    { title: 'Revendedor', icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
-    { title: 'Relatórios', icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
-    { title: 'Tags', icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
-    { title: 'Webhooks', icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
-    { title: 'API REST', icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
-    { title: 'Logs API', icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500', gradient: 'from-rose-500 to-red-500' },
-    { title: 'Atividades', icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
-    { title: 'Configurações', icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400', gradient: 'from-slate-500 to-zinc-500' },
-    { title: 'Guia', icon: HelpCircle, path: '/admin/guia', adminOnly: !canViewGuia(), color: 'text-purple-500', gradient: 'from-purple-500 to-violet-500' },
+    { title: t('sidebar.users'), icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500', gradient: 'from-blue-500 to-sky-500' },
+    { title: t('sidebar.tickets'), icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
+    { title: t('sidebar.broadcaster'), icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
+    { title: t('sidebar.numberStatus'), icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500', gradient: 'from-lime-500 to-green-500' },
+    { title: t('sidebar.numberQuery'), icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+    { title: t('sidebar.permissions'), icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
+    { title: t('sidebar.billing'), icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+    { title: t('sidebar.gateway'), icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
+    { title: t('sidebar.reseller'), icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
+    { title: t('sidebar.reports'), icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
+    { title: t('sidebar.tags'), icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
+    { title: t('sidebar.webhooks'), icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
+    { title: t('sidebar.apiRest'), icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
+    { title: t('sidebar.apiLogs'), icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500', gradient: 'from-rose-500 to-red-500' },
+    { title: t('sidebar.activities'), icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
+    { title: t('sidebar.settings'), icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400', gradient: 'from-slate-500 to-zinc-500' },
+    { title: t('sidebar.guide'), icon: HelpCircle, path: '/admin/guia', adminOnly: !canViewGuia(), color: 'text-purple-500', gradient: 'from-purple-500 to-violet-500' },
   ];
 
   const visibleClientItems = clientItems.filter(item => !item.adminOnly || isAdmin);
@@ -279,7 +279,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
                   "w-1.5 h-1.5 rounded-full",
                   isAdmin ? "bg-primary" : "bg-muted-foreground"
                 )} />
-                {isAdmin ? 'Administrador' : 'Usuário'}
+                {isAdmin ? t('user.administrator') : t('user.user')}
               </p>
             </div>
           </div>
@@ -293,7 +293,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       >
         {!collapsed && (
           <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            Clientes
+            {t('sidebar.clients')}
           </p>
         )}
         {collapsed && <div className="py-1" />}
@@ -305,7 +305,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
           <>
             {!collapsed ? (
               <p className="px-3 py-2 mt-4 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Administração
+                {t('sidebar.administration')}
               </p>
             ) : (
               <div className="my-3 mx-2 border-t border-border" />
@@ -334,7 +334,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-                  Ajuda
+                  {t('sidebar.help')}
                 </TooltipContent>
               </Tooltip>
             ) : (
@@ -347,7 +347,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
                   <MessageCircle className="h-5 w-5 shrink-0" />
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
                 </div>
-                <span className="text-sm">Ajuda</span>
+                <span className="text-sm">{t('sidebar.help')}</span>
               </Button>
             )}
           </>
