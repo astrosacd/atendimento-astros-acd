@@ -51,13 +51,13 @@ const generateProfessionalEmailHTML = (
   cliente: Cliente,
   paidAt: string,
   nextRenewal: string,
-  companyName: string
+  companyName: string,
+  receiptNumber: string
 ): string => {
   const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
   const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
   const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
   const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
-  const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
   const normalizedCompany = (companyName || '').trim();
   const companyLine =
     normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
@@ -88,7 +88,7 @@ const generateProfessionalEmailHTML = (
 <!-- Receipt Number -->
 <tr>
 <td style="padding:20px 40px 0;text-align:center;">
-<p style="margin:0;color:#6b7280;font-size:12px;">Recibo N</p>
+<p style="margin:0;color:#6b7280;font-size:12px;">Recibo N&ordm;</p>
 <p style="margin:5px 0 0;color:#111827;font-size:18px;font-weight:bold;font-family:monospace;">${receiptNumber}</p>
 </td>
 </tr>
@@ -196,13 +196,13 @@ const generateProfessionalWhatsAppMessage = (
   cliente: Cliente,
   paidAt: string,
   nextRenewal: string,
-  companyName: string
+  companyName: string,
+  receiptNumber: string
 ): string => {
   const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
   const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
   const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
   const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
-  const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
   const normalizedCompany = (companyName || '').trim();
   const companyBlock =
     normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
@@ -393,6 +393,7 @@ serve(async (req) => {
     const paymentDate = paidAt || new Date().toISOString();
     const rawCompanyName = (config.billing_sender_name || config.receipt_company_name || '').trim();
     const companyName = rawCompanyName && normalizeCompanyLabel(rawCompanyName) !== 'sistema de gestao' ? rawCompanyName : '';
+    const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
     const results = {
       email: { sent: false, error: null as string | null },
       whatsapp: { sent: false, error: null as string | null },
@@ -406,7 +407,7 @@ serve(async (req) => {
       
       if (gmailUser && gmailPassword && cliente.email) {
         // Generate professional HTML email
-        const emailHtml = generateProfessionalEmailHTML(cliente, paymentDate, cliente.data_renovacao, companyName);
+        const emailHtml = generateProfessionalEmailHTML(cliente, paymentDate, cliente.data_renovacao, companyName, receiptNumber);
         const emailSubject = `✅ Recibo de Pagamento - ${cliente.produto}`;
         
         const emailResult = await sendEmailViaSMTP(gmailUser, gmailPassword, senderName, cliente.email, emailSubject, emailHtml);
@@ -443,7 +444,7 @@ serve(async (req) => {
       
       if (instance && cliente.numero) {
         // Generate professional WhatsApp message
-        const whatsappMessage = generateProfessionalWhatsAppMessage(cliente, paymentDate, cliente.data_renovacao, companyName);
+        const whatsappMessage = generateProfessionalWhatsAppMessage(cliente, paymentDate, cliente.data_renovacao, companyName, receiptNumber);
         
         const whatsappResult = await sendWhatsAppMessage(
           instance.api_url,
