@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Webhook, Copy, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface WebhookData {
   id: string;
@@ -31,18 +32,11 @@ interface WebhookData {
   created_at: string;
 }
 
-const EVENT_TYPES = [
-  { id: 'cliente.created', label: 'Cliente Criado' },
-  { id: 'cliente.updated', label: 'Cliente Atualizado' },
-  { id: 'cliente.deleted', label: 'Cliente Excluído' },
-  { id: 'licenca.created', label: 'Licença Registrada' },
-  { id: 'licenca.deleted', label: 'Licença Excluída' },
-];
-
 export default function AdminWebhooks() {
   const navigate = useNavigate();
   const { user, isAdmin, isApproved } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [webhooks, setWebhooks] = useState<WebhookData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,16 +70,24 @@ export default function AdminWebhooks() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      toast({ title: 'Erro ao carregar webhooks', description: error.message, variant: 'destructive' });
+      toast({ title: t('webhooks.errorLoading'), description: error.message, variant: 'destructive' });
     } else {
       setWebhooks(data || []);
     }
     setIsLoading(false);
   };
 
+  const EVENT_TYPES = [
+    { id: 'cliente.created', label: t('webhooks.eventTypes.clienteCreated') },
+    { id: 'cliente.updated', label: t('webhooks.eventTypes.clienteUpdated') },
+    { id: 'cliente.deleted', label: t('webhooks.eventTypes.clienteDeleted') },
+    { id: 'licenca.created', label: t('webhooks.eventTypes.licencaCreated') },
+    { id: 'licenca.deleted', label: t('webhooks.eventTypes.licencaDeleted') },
+  ];
+
   const createWebhook = async () => {
     if (!newWebhook.name || !newWebhook.url || newWebhook.events.length === 0) {
-      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      toast({ title: t('webhooks.fillAllFields'), variant: 'destructive' });
       return;
     }
 
@@ -98,9 +100,9 @@ export default function AdminWebhooks() {
     });
 
     if (error) {
-      toast({ title: 'Erro ao criar webhook', description: error.message, variant: 'destructive' });
+      toast({ title: t('webhooks.errorCreating'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Webhook criado com sucesso!' });
+      toast({ title: t('webhooks.webhookCreated') });
       setDialogOpen(false);
       setNewWebhook({ name: '', url: '', events: [], secret_key: '' });
       loadWebhooks();
@@ -114,7 +116,7 @@ export default function AdminWebhooks() {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'Erro ao atualizar webhook', variant: 'destructive' });
+      toast({ title: t('webhooks.errorUpdating'), variant: 'destructive' });
     } else {
       loadWebhooks();
     }
@@ -124,16 +126,16 @@ export default function AdminWebhooks() {
     const { error } = await supabase.from('webhooks').delete().eq('id', id);
 
     if (error) {
-      toast({ title: 'Erro ao excluir webhook', variant: 'destructive' });
+      toast({ title: t('webhooks.errorDeleting'), variant: 'destructive' });
     } else {
-      toast({ title: 'Webhook excluído!' });
+      toast({ title: t('webhooks.webhookDeleted') });
       loadWebhooks();
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copiado!' });
+    toast({ title: t('webhooks.copied') });
   };
 
   const toggleEventSelection = (eventId: string) => {
@@ -151,9 +153,9 @@ export default function AdminWebhooks() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Webhooks</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t('webhooks.title')}</h1>
             <p className="text-muted-foreground">
-              Receba notificações em tempo real quando clientes são criados, atualizados ou excluídos
+              {t('webhooks.subtitle')}
             </p>
           </div>
         </div>
@@ -164,47 +166,47 @@ export default function AdminWebhooks() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Webhook className="h-5 w-5 text-primary" />
-                Webhooks Configurados
+                {t('webhooks.configured')}
               </CardTitle>
               <CardDescription>
-                Configure endpoints para receber eventos via n8n ou outros sistemas
+                {t('webhooks.configuredDesc')}
               </CardDescription>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
-                  Novo Webhook
+                  {t('webhooks.newWebhook')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Criar Webhook</DialogTitle>
+                  <DialogTitle>{t('webhooks.createWebhook')}</DialogTitle>
                   <DialogDescription>
-                    Configure um webhook para receber eventos de alteração de clientes
+                    {t('webhooks.dialogDescription')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome</Label>
+                    <Label htmlFor="name">{t('webhooks.name')}</Label>
                     <Input
                       id="name"
-                      placeholder="Ex: n8n Production"
+                      placeholder={t('webhooks.namePlaceholder')}
                       value={newWebhook.name}
                       onChange={(e) => setNewWebhook(prev => ({ ...prev, name: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="url">URL do Webhook</Label>
+                    <Label htmlFor="url">{t('webhooks.url')}</Label>
                     <Input
                       id="url"
-                      placeholder="https://n8n.example.com/webhook/..."
+                      placeholder={t('webhooks.urlPlaceholder')}
                       value={newWebhook.url}
                       onChange={(e) => setNewWebhook(prev => ({ ...prev, url: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Eventos</Label>
+                    <Label>{t('webhooks.events')}</Label>
                     <div className="space-y-2">
                       {EVENT_TYPES.map((event) => (
                         <div key={event.id} className="flex items-center space-x-2">
@@ -221,10 +223,10 @@ export default function AdminWebhooks() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="secret">Chave Secreta (opcional)</Label>
+                    <Label htmlFor="secret">{t('webhooks.secretKey')}</Label>
                     <Input
                       id="secret"
-                      placeholder="Para validação de assinatura"
+                      placeholder={t('webhooks.secretPlaceholder')}
                       value={newWebhook.secret_key}
                       onChange={(e) => setNewWebhook(prev => ({ ...prev, secret_key: e.target.value }))}
                     />
@@ -232,32 +234,32 @@ export default function AdminWebhooks() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
+                    {t('webhooks.cancel')}
                   </Button>
-                  <Button onClick={createWebhook}>Criar Webhook</Button>
+                  <Button onClick={createWebhook}>{t('webhooks.create')}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+              <div className="text-center py-8 text-muted-foreground">{t('webhooks.loading')}</div>
             ) : webhooks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Webhook className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                <p>Nenhum webhook configurado</p>
-                <p className="text-sm">Crie um webhook para começar a receber eventos</p>
+                <p>{t('webhooks.noWebhooks')}</p>
+                <p className="text-sm">{t('webhooks.noWebhooksDesc')}</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Eventos</TableHead>
-                    <TableHead>Chave</TableHead>
-                    <TableHead>Ativo</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
+                    <TableHead>{t('webhooks.tableHeaders.name')}</TableHead>
+                    <TableHead>{t('webhooks.tableHeaders.url')}</TableHead>
+                    <TableHead>{t('webhooks.tableHeaders.events')}</TableHead>
+                    <TableHead>{t('webhooks.tableHeaders.key')}</TableHead>
+                    <TableHead>{t('webhooks.tableHeaders.active')}</TableHead>
+                    <TableHead className="w-[100px]">{t('webhooks.tableHeaders.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -334,8 +336,8 @@ export default function AdminWebhooks() {
         {/* Webhook Payload Example */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Formato do Payload</CardTitle>
-            <CardDescription>Exemplo do payload enviado para seu webhook quando um evento ocorre</CardDescription>
+            <CardTitle className="text-base">{t('webhooks.payloadFormat')}</CardTitle>
+            <CardDescription>{t('webhooks.payloadDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
