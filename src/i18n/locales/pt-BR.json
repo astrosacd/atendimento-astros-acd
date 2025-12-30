@@ -568,9 +568,12 @@
     "settingsSaved": "Configurações salvas!"
   },
   "guide": {
-    "title": "Guia do Sistema",
-    "subtitle": "Documentação completa do sistema",
-    "selectCategory": "Selecione uma categoria",
+    "title": "Guia de Configuração",
+    "subtitle": "Aprenda a configurar todos os módulos do sistema",
+    "selectCategory": "Selecione uma categoria para visualizar o guia",
+    "importantTips": "Dicas Importantes",
+    "securityNote": "Todas as credenciais são armazenadas de forma segura e criptografada.",
+    "backToPanel": "Voltar ao Painel",
     "categories": {
       "communication": "Comunicação",
       "integrations": "Integrações",
@@ -910,7 +913,50 @@
     "errorDeleting": "Erro ao excluir",
     "errorPermission": "Erro ao alterar permissão",
     "save": "Salvar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "categories": {
+      "dashboard": "Dashboard",
+      "clients": "Clientes",
+      "admin": "Administração",
+      "tags": "Tags",
+      "broadcaster": "Divulgador Interno",
+      "tasks": "Tarefas",
+      "guide": "Guia",
+      "numberQuery": "Consulta de Números",
+      "numberStatus": "Números Aquecimento",
+      "reports": "Relatórios Avançados",
+      "tickets": "Sistema de Chamados"
+    },
+    "legend": {
+      "allowed": "Permitido",
+      "notAllowed": "Não Permitido",
+      "clickToToggle": "* Clique para alternar permissões (exceto Admin)"
+    },
+    "dialog": {
+      "createTitle": "Nova Role",
+      "editTitle": "Editar Role",
+      "createDesc": "Crie uma nova role com permissões personalizadas.",
+      "editDesc": "Atualize as informações da role.",
+      "slugLabel": "Identificador (slug)",
+      "slugPlaceholder": "ex: financeiro",
+      "slugHelp": "Usado internamente. Apenas letras e underscore.",
+      "displayNameLabel": "Nome de Exibição",
+      "displayNamePlaceholder": "ex: Financeiro",
+      "descriptionLabel": "Descrição",
+      "descriptionPlaceholder": "Descreva as responsabilidades desta role...",
+      "colorLabel": "Cor"
+    },
+    "colors": {
+      "green": "Verde",
+      "orange": "Laranja",
+      "purple": "Roxo",
+      "blue": "Azul",
+      "red": "Vermelho",
+      "yellow": "Amarelo",
+      "pink": "Rosa",
+      "gray": "Cinza"
+    },
+    "tagAccess": "Acesso a clientes com esta tag"
   },
   "tickets": {
     "system": "Sistema de Chamados",

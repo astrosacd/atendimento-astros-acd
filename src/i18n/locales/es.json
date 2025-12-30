@@ -558,9 +558,12 @@
     "settingsSaved": "¡Configuración guardada!"
   },
   "guide": {
-    "title": "Guía del Sistema",
-    "subtitle": "Documentación completa del sistema",
-    "selectCategory": "Seleccione una categoría",
+    "title": "Guía de Configuración",
+    "subtitle": "Aprenda a configurar todos los módulos del sistema",
+    "selectCategory": "Seleccione una categoría para ver la guía",
+    "importantTips": "Consejos Importantes",
+    "securityNote": "Todas las credenciales se almacenan de forma segura y encriptada.",
+    "backToPanel": "Volver al Panel",
     "categories": {
       "communication": "Comunicación",
       "integrations": "Integraciones",
@@ -573,10 +576,7 @@
       "gateway": "Gateway",
       "reports": "Informes",
       "system": "Sistema"
-    },
-    "steps": "Pasos",
-    "tips": "Consejos",
-    "back": "Volver"
+    }
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -756,7 +756,50 @@
     "errorDeleting": "Error al eliminar",
     "errorPermission": "Error al cambiar permiso",
     "save": "Guardar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "categories": {
+      "dashboard": "Panel",
+      "clients": "Clientes",
+      "admin": "Administración",
+      "tags": "Etiquetas",
+      "broadcaster": "Difusor Interno",
+      "tasks": "Tareas",
+      "guide": "Guía",
+      "numberQuery": "Consulta de Números",
+      "numberStatus": "Estado de Números",
+      "reports": "Informes Avanzados",
+      "tickets": "Sistema de Tickets"
+    },
+    "legend": {
+      "allowed": "Permitido",
+      "notAllowed": "No Permitido",
+      "clickToToggle": "* Haga clic para alternar permisos (excepto Admin)"
+    },
+    "dialog": {
+      "createTitle": "Nuevo Rol",
+      "editTitle": "Editar Rol",
+      "createDesc": "Cree un nuevo rol con permisos personalizados.",
+      "editDesc": "Actualice la información del rol.",
+      "slugLabel": "Identificador (slug)",
+      "slugPlaceholder": "ej: financiero",
+      "slugHelp": "Usado internamente. Solo letras y guión bajo.",
+      "displayNameLabel": "Nombre para Mostrar",
+      "displayNamePlaceholder": "ej: Financiero",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Describa las responsabilidades de este rol...",
+      "colorLabel": "Color"
+    },
+    "colors": {
+      "green": "Verde",
+      "orange": "Naranja",
+      "purple": "Púrpura",
+      "blue": "Azul",
+      "red": "Rojo",
+      "yellow": "Amarillo",
+      "pink": "Rosa",
+      "gray": "Gris"
+    },
+    "tagAccess": "Acceso a clientes con esta etiqueta"
   },
   "tickets": {
     "system": "Sistema de Tickets",

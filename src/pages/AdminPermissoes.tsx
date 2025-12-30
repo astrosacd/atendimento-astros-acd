@@ -65,15 +65,15 @@ interface RolePermission {
   permission_key: string;
 }
 
-const colorOptions = [
-  { value: 'emerald', label: 'Verde', class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500' },
-  { value: 'orange', label: 'Laranja', class: 'bg-orange-500/20 text-orange-400 border-orange-500' },
-  { value: 'purple', label: 'Roxo', class: 'bg-purple-500/20 text-purple-400 border-purple-500' },
-  { value: 'blue', label: 'Azul', class: 'bg-blue-500/20 text-blue-400 border-blue-500' },
-  { value: 'red', label: 'Vermelho', class: 'bg-red-500/20 text-red-400 border-red-500' },
-  { value: 'yellow', label: 'Amarelo', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500' },
-  { value: 'pink', label: 'Rosa', class: 'bg-pink-500/20 text-pink-400 border-pink-500' },
-  { value: 'gray', label: 'Cinza', class: 'bg-gray-500/20 text-gray-400 border-gray-500' },
+const getColorOptions = (t: (key: string) => string) => [
+  { value: 'emerald', label: t('permissions.colors.green'), class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500' },
+  { value: 'orange', label: t('permissions.colors.orange'), class: 'bg-orange-500/20 text-orange-400 border-orange-500' },
+  { value: 'purple', label: t('permissions.colors.purple'), class: 'bg-purple-500/20 text-purple-400 border-purple-500' },
+  { value: 'blue', label: t('permissions.colors.blue'), class: 'bg-blue-500/20 text-blue-400 border-blue-500' },
+  { value: 'red', label: t('permissions.colors.red'), class: 'bg-red-500/20 text-red-400 border-red-500' },
+  { value: 'yellow', label: t('permissions.colors.yellow'), class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500' },
+  { value: 'pink', label: t('permissions.colors.pink'), class: 'bg-pink-500/20 text-pink-400 border-pink-500' },
+  { value: 'gray', label: t('permissions.colors.gray'), class: 'bg-gray-500/20 text-gray-400 border-gray-500' },
 ];
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -200,12 +200,12 @@ export default function AdminPermissoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-roles'] });
-      toast.success('Role criada com sucesso!');
+      toast.success(t('permissions.roleCreated'));
       setIsRoleDialogOpen(false);
       resetForm();
     },
     onError: (error: Error) => {
-      toast.error('Erro ao criar role: ' + error.message);
+      toast.error(t('permissions.errorCreating') + ': ' + error.message);
     },
   });
 
@@ -224,12 +224,12 @@ export default function AdminPermissoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-roles'] });
-      toast.success('Role atualizada!');
+      toast.success(t('permissions.roleUpdated'));
       setEditingRole(null);
       setIsRoleDialogOpen(false);
     },
     onError: (error: Error) => {
-      toast.error('Erro ao atualizar: ' + error.message);
+      toast.error(t('permissions.errorUpdating') + ': ' + error.message);
     },
   });
 
@@ -244,10 +244,10 @@ export default function AdminPermissoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-roles'] });
-      toast.success('Role excluída!');
+      toast.success(t('permissions.roleDeleted'));
     },
     onError: (error: Error) => {
-      toast.error('Erro ao excluir: ' + error.message);
+      toast.error(t('permissions.errorDeleting') + ': ' + error.message);
     },
   });
 
@@ -276,7 +276,7 @@ export default function AdminPermissoes() {
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
     },
     onError: (error: Error) => {
-      toast.error('Erro ao alterar permissão: ' + error.message);
+      toast.error(t('permissions.errorPermission') + ': ' + error.message);
     },
   });
 
@@ -285,7 +285,8 @@ export default function AdminPermissoes() {
   };
 
   const getRoleColor = (colorName: string) => {
-    return colorOptions.find(c => c.value === colorName)?.class || colorOptions[7].class;
+    const colors = getColorOptions(t);
+    return colors.find(c => c.value === colorName)?.class || colors[7].class;
   };
 
   const resetForm = () => {
@@ -323,19 +324,22 @@ export default function AdminPermissoes() {
     return acc;
   }, {} as Record<string, SystemPermission[]>);
 
-  const categoryNames: Record<string, string> = {
-    dashboard: 'Dashboard',
-    clientes: 'Clientes',
-    admin: 'Administração',
-    tags: 'Tags',
-    divulgador: 'Divulgador Interno',
-    tarefas: 'Tarefas',
-    'Guia': 'Guia',
-    'Consulta de Números': 'Consulta de Números',
-    'Números Aquecimento': 'Números Aquecimento',
-    'Relatórios': 'Relatórios Avançados',
-    'Chamados': 'Sistema de Chamados',
-  };
+  const getCategoryNames = () => ({
+    dashboard: t('permissions.categories.dashboard'),
+    clientes: t('permissions.categories.clients'),
+    admin: t('permissions.categories.admin'),
+    tags: t('permissions.categories.tags'),
+    divulgador: t('permissions.categories.broadcaster'),
+    tarefas: t('permissions.categories.tasks'),
+    'Guia': t('permissions.categories.guide'),
+    'Consulta de Números': t('permissions.categories.numberQuery'),
+    'Números Aquecimento': t('permissions.categories.numberStatus'),
+    'Relatórios': t('permissions.categories.reports'),
+    'Chamados': t('permissions.categories.tickets'),
+  });
+
+  const colorOptions = getColorOptions(t);
+  const categoryNames = getCategoryNames();
 
   return (
     <DashboardLayout>
@@ -411,7 +415,7 @@ export default function AdminPermissoes() {
                 </div>
                 {role.is_system_role && (
                   <Badge variant="outline" className="w-fit text-xs">
-                    Sistema
+                    {t('permissions.systemRole')}
                   </Badge>
                 )}
               </CardHeader>
@@ -526,7 +530,7 @@ export default function AdminPermissoes() {
                               <Tag className="h-4 w-4 text-muted-foreground" />
                               <div>
                                 <p className="font-medium capitalize">{tag}</p>
-                                <p className="text-xs text-muted-foreground">Acesso a clientes com esta tag</p>
+                                <p className="text-xs text-muted-foreground">{t('permissions.tagAccess')}</p>
                               </div>
                             </div>
                           </TableCell>
@@ -574,16 +578,16 @@ export default function AdminPermissoes() {
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20">
                   <Check className="h-3 w-3 text-primary" />
                 </div>
-                <span className="text-muted-foreground">Permitido</span>
+                <span className="text-muted-foreground">{t('permissions.legend.allowed')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted">
                   <X className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <span className="text-muted-foreground">Não Permitido</span>
+                <span className="text-muted-foreground">{t('permissions.legend.notAllowed')}</span>
               </div>
               <div className="text-muted-foreground/70 text-xs ml-auto">
-                * Clique para alternar permissões (exceto Admin)
+                {t('permissions.legend.clickToToggle')}
               </div>
             </div>
           </CardContent>
@@ -594,44 +598,44 @@ export default function AdminPermissoes() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingRole ? 'Editar Role' : 'Nova Role'}
+                {editingRole ? t('permissions.dialog.editTitle') : t('permissions.dialog.createTitle')}
               </DialogTitle>
               <DialogDescription>
-                {editingRole ? 'Atualize as informações da role.' : 'Crie uma nova role com permissões personalizadas.'}
+                {editingRole ? t('permissions.dialog.editDesc') : t('permissions.dialog.createDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {!editingRole && (
                 <div className="space-y-2">
-                  <Label>Identificador (slug)</Label>
+                  <Label>{t('permissions.dialog.slugLabel')}</Label>
                   <Input
-                    placeholder="ex: financeiro"
+                    placeholder={t('permissions.dialog.slugPlaceholder')}
                     value={newRole.name}
                     onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Usado internamente. Apenas letras e underscore.
+                    {t('permissions.dialog.slugHelp')}
                   </p>
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Nome de Exibição</Label>
+                <Label>{t('permissions.dialog.displayNameLabel')}</Label>
                 <Input
-                  placeholder="ex: Financeiro"
+                  placeholder={t('permissions.dialog.displayNamePlaceholder')}
                   value={newRole.display_name}
                   onChange={(e) => setNewRole({ ...newRole, display_name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Descrição</Label>
+                <Label>{t('permissions.dialog.descriptionLabel')}</Label>
                 <Textarea
-                  placeholder="Descreva as responsabilidades desta role..."
+                  placeholder={t('permissions.dialog.descriptionPlaceholder')}
                   value={newRole.description}
                   onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cor</Label>
+                <Label>{t('permissions.dialog.colorLabel')}</Label>
                 <Select
                   value={newRole.color}
                   onValueChange={(value) => setNewRole({ ...newRole, color: value })}
@@ -654,14 +658,14 @@ export default function AdminPermissoes() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
-                Cancelar
+                {t('permissions.cancel')}
               </Button>
               <Button 
                 onClick={handleSubmit}
                 disabled={!newRole.display_name || (!editingRole && !newRole.name)}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {editingRole ? 'Salvar' : 'Criar'}
+                {editingRole ? t('permissions.save') : t('common.create')}
               </Button>
             </DialogFooter>
           </DialogContent>
