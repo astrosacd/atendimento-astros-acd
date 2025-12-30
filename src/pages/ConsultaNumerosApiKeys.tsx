@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { ArrowLeft, Plus, Copy, Trash2, RefreshCw, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS, es } from 'date-fns/locale';
 
 interface ApiKey {
   id: string;
@@ -37,12 +38,19 @@ const AVAILABLE_PERMISSIONS = [
 ];
 
 export default function ConsultaNumerosApiKeys() {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyDescription, setNewKeyDescription] = useState('');
   const [newKeyPermissions, setNewKeyPermissions] = useState<string[]>([]);
   const [generatedKey, setGeneratedKey] = useState('');
+  
+  const getLocale = () => {
+    if (i18n.language === 'en') return enUS;
+    if (i18n.language === 'es') return es;
+    return ptBR;
+  };
 
   // Fetch API keys
   const { data: apiKeys = [], isLoading } = useQuery<ApiKey[]>({
@@ -81,7 +89,7 @@ export default function ConsultaNumerosApiKeys() {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-api-keys'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao criar chave', description: error.message, variant: 'destructive' });
+      toast({ title: t('numberQuery.apiKeys.errorCreating'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -96,7 +104,7 @@ export default function ConsultaNumerosApiKeys() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-api-keys'] });
-      toast({ title: 'Status atualizado!' });
+      toast({ title: t('numberQuery.apiKeys.statusUpdated') });
     },
   });
 
@@ -111,13 +119,13 @@ export default function ConsultaNumerosApiKeys() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-api-keys'] });
-      toast({ title: 'Chave excluída!' });
+      toast({ title: t('numberQuery.apiKeys.keyDeleted') });
     },
   });
 
   const handleCreate = () => {
     if (!newKeyName.trim()) {
-      toast({ title: 'Nome é obrigatório', variant: 'destructive' });
+      toast({ title: t('numberQuery.apiKeys.nameRequired'), variant: 'destructive' });
       return;
     }
     createMutation.mutate();
@@ -125,7 +133,7 @@ export default function ConsultaNumerosApiKeys() {
 
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
-    toast({ title: 'Chave copiada!' });
+    toast({ title: t('numberQuery.apiKeys.keyCopied') });
   };
 
   const resetCreateForm = () => {

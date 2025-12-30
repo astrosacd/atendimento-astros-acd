@@ -301,13 +301,13 @@ export default function ConsultaNumeros() {
       return json;
     },
     onSuccess: () => {
-      toast({ title: 'Atualizado com sucesso!' });
+      toast({ title: t('numberQuery.updatedSuccess') });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
       setEditDialogOpen(false);
       setSelectedRow(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' });
+      toast({ title: t('numberQuery.errorUpdating'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -316,7 +316,7 @@ export default function ConsultaNumeros() {
     mutationFn: async (data: Record<string, any>) => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
-        throw new Error('Sessão inválida. Faça login novamente.');
+        throw new Error(t('numberQuery.invalidSession'));
       }
       
       const res = await fetch(
@@ -333,7 +333,7 @@ export default function ConsultaNumeros() {
 
       if (res.status === 401) {
         await supabase.auth.signOut();
-        throw new Error('Sessão expirada. Faça login novamente.');
+        throw new Error(t('numberQuery.invalidSession'));
       }
       
       const json = await res.json();
@@ -349,7 +349,7 @@ export default function ConsultaNumeros() {
       return json;
     },
     onSuccess: () => {
-      toast({ title: 'Número cadastrado com sucesso!' });
+      toast({ title: t('numberQuery.registeredSuccess') });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
       setCreateDialogOpen(false);
       resetCreateForm();
@@ -357,12 +357,12 @@ export default function ConsultaNumeros() {
     onError: (error: Error & { duplicate?: boolean }) => {
       if (error.duplicate) {
         toast({ 
-          title: '⚠️ Número duplicado!', 
+          title: '⚠️ ' + t('numberQuery.duplicateNumber'), 
           description: error.message, 
           variant: 'destructive',
         });
       } else {
-        toast({ title: 'Erro ao cadastrar', description: error.message, variant: 'destructive' });
+        toast({ title: t('numberQuery.errorRegistering'), description: error.message, variant: 'destructive' });
       }
     },
   });
@@ -400,13 +400,13 @@ export default function ConsultaNumeros() {
     const numeroValue = newValues[numeroField?.name || 'numero'];
     
     if (!numeroValue?.trim()) {
-      toast({ title: 'Número é obrigatório', variant: 'destructive' });
+      toast({ title: t('numberQuery.numberRequired'), variant: 'destructive' });
       return;
     }
 
     // Validate numero is only numbers
     if (!isValidNumber(numeroValue)) {
-      toast({ title: 'Número deve conter apenas dígitos', variant: 'destructive' });
+      toast({ title: t('numberQuery.numberOnlyDigits'), variant: 'destructive' });
       return;
     }
 
@@ -415,18 +415,18 @@ export default function ConsultaNumeros() {
     const emailValue = newValues[emailField?.name || 'email'];
 
     if (!emailValue?.trim()) {
-      toast({ title: 'E-mail é obrigatório', variant: 'destructive' });
+      toast({ title: t('numberQuery.emailRequired'), variant: 'destructive' });
       return;
     }
 
     if (!isValidEmail(emailValue)) {
-      toast({ title: 'E-mail inválido', variant: 'destructive' });
+      toast({ title: t('numberQuery.invalidEmail'), variant: 'destructive' });
       return;
     }
 
     // Validação obrigatória de seguro para números internos
     if (createType === 'interno' && !selectedSeguro) {
-      toast({ title: 'Selecione uma opção de seguro', description: 'É obrigatório escolher "SEM SEGURO" ou "COM SEGURO"', variant: 'destructive' });
+      toast({ title: t('numberQuery.selectInsurance'), description: t('numberQuery.selectInsuranceDesc'), variant: 'destructive' });
       return;
     }
 
@@ -483,11 +483,11 @@ export default function ConsultaNumeros() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast({ title: 'Por favor, selecione uma imagem', variant: 'destructive' });
+        toast({ title: t('numberQuery.selectImage'), variant: 'destructive' });
         return;
       }
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast({ title: 'A imagem deve ter no máximo 10MB', variant: 'destructive' });
+        toast({ title: t('numberQuery.imageTooLarge'), variant: 'destructive' });
         return;
       }
       setDesbanimentoImage(file);
@@ -523,7 +523,7 @@ export default function ConsultaNumeros() {
     const numero = selectedRow[numeroField?.name || 'numero'] || '';
     
     if (!email) {
-      toast({ title: 'Email do cliente não encontrado', variant: 'destructive' });
+      toast({ title: t('numberQuery.emailNotFound'), variant: 'destructive' });
       return false;
     }
     
@@ -544,7 +544,7 @@ export default function ConsultaNumeros() {
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast({ title: 'Sessão expirada', variant: 'destructive' });
+        toast({ title: t('numberQuery.sessionExpired'), variant: 'destructive' });
         return false;
       }
       
@@ -569,16 +569,16 @@ export default function ConsultaNumeros() {
       const result = await res.json();
       
       if (!result.success) {
-        toast({ title: 'Erro ao enviar email', description: result.error, variant: 'destructive' });
+        toast({ title: t('numberQuery.errorSendingEmail'), description: result.error, variant: 'destructive' });
         return false;
       }
       
-      toast({ title: 'Email enviado com sucesso!', description: `Enviado para ${email}` });
+      toast({ title: t('numberQuery.emailSentSuccess'), description: t('numberQuery.sentTo', { email }) });
       return true;
       
     } catch (error: any) {
       console.error('Error sending email:', error);
-      toast({ title: 'Erro ao enviar email', description: error.message, variant: 'destructive' });
+      toast({ title: t('numberQuery.errorSendingEmail'), description: error.message, variant: 'destructive' });
       return false;
     } finally {
       setSendingEmail(false);
@@ -731,7 +731,7 @@ export default function ConsultaNumeros() {
     link.click();
     URL.revokeObjectURL(url);
     
-    toast({ title: 'Exportação concluída!' });
+    toast({ title: t('numberQuery.exportComplete') });
   };
 
   return (
