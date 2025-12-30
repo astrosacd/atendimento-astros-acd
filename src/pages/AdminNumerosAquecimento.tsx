@@ -29,6 +29,7 @@ import {
   CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from 'react-i18next';
 import {
   useNumerosAquecimento,
   useNumerosStatus,
@@ -68,6 +69,7 @@ const statusColorMap: Record<string, string> = {
 };
 
 export default function AdminNumerosAquecimento() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('numeros');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -165,17 +167,17 @@ export default function AdminNumerosAquecimento() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
               <Smartphone className="h-7 w-7 text-primary" />
-              Status de Números
+              {t('numberStatus.title')}
             </h1>
             <p className="text-muted-foreground">
-              Gerencie seus números aquecidos, modelos e status
+              {t('numberStatus.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
             {canExport && (
               <Button variant="outline" onClick={exportCSV}>
                 <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
+                {t('numberStatus.exportCsv')}
               </Button>
             )}
             {canCreate && (
@@ -192,21 +194,21 @@ export default function AdminNumerosAquecimento() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatsCard title="Total" value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
-          <StatsCard title="Ativos" value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
-          <StatsCard title="Em Aquecimento" value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
-          <StatsCard title="Bloqueados" value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
-          <StatsCard title="Vendidos" value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
+          <StatsCard title={t('numberStatus.total')} value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
+          <StatsCard title={t('numberStatus.active')} value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
+          <StatsCard title={t('numberStatus.warmingUp')} value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
+          <StatsCard title={t('numberStatus.blocked')} value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
+          <StatsCard title={t('numberStatus.sold')} value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="numeros">Números</TabsTrigger>
-            <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>Configurações</TabsTrigger>
-            <TabsTrigger value="history" disabled={!canViewHistory}>Histórico</TabsTrigger>
-            <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>Webhooks</TabsTrigger>
-            <TabsTrigger value="api" disabled={!canManageApi}>API REST</TabsTrigger>
+            <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
+            <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
+            <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
+            <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
+            <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
           </TabsList>
 
           {/* Números Tab */}

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, 
   Mail, 
@@ -39,6 +40,7 @@ const AdminBoasVindas = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [isSaving, setIsSaving] = useState(false);
   const [showGmailPassword, setShowGmailPassword] = useState(false);
@@ -403,8 +405,8 @@ Acesse: {url}`;
                 <UserPlus className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Mensagens de Boas-vindas</h1>
-                <p className="text-sm text-muted-foreground">Configure o envio automático para novos usuários</p>
+                <h1 className="text-xl font-bold text-foreground">{t('welcomeMessages.title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('welcomeMessages.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -418,7 +420,7 @@ Acesse: {url}`;
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Salvar
+            {t('common.save')}
           </Button>
         </div>
       </header>
@@ -428,15 +430,15 @@ Acesse: {url}`;
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="mensagens" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Mensagens
+              {t('welcomeMessages.messages')}
             </TabsTrigger>
             <TabsTrigger value="email" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
-              Gmail
+              {t('welcomeMessages.gmail')}
             </TabsTrigger>
             <TabsTrigger value="whatsapp" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              WhatsApp
+              {t('welcomeMessages.whatsapp')}
             </TabsTrigger>
           </TabsList>
 
