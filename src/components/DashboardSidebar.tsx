@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
@@ -15,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 interface NavItem {
   title: string;
@@ -36,6 +38,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
   const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports } = usePermissions();
+  const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize from cache immediately to prevent flicker on navigation
@@ -352,7 +355,11 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       </nav>
 
       {/* Footer */}
-      <div className="p-2 border-t border-border">
+      <div className="p-2 border-t border-border space-y-1">
+        {/* Language Selector */}
+        <LanguageSelector collapsed={collapsed} />
+        
+        {/* Logout Button */}
         {collapsed ? (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
@@ -365,7 +372,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-              Sair
+              {t('auth.logout')}
             </TooltipContent>
           </Tooltip>
         ) : (
@@ -375,7 +382,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
             className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            <span className="text-sm">Sair</span>
+            <span className="text-sm">{t('auth.logout')}</span>
           </Button>
         )}
       </div>

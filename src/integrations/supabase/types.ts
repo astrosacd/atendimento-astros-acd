@@ -2666,6 +2666,7 @@ export type Database = {
           email: string | null
           id: string
           is_blocked: boolean | null
+          language: string | null
           name: string
           phone: string | null
           rejection_reason: string | null
@@ -2683,6 +2684,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_blocked?: boolean | null
+          language?: string | null
           name: string
           phone?: string | null
           rejection_reason?: string | null
@@ -2700,6 +2702,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_blocked?: boolean | null
+          language?: string | null
           name?: string
           phone?: string | null
           rejection_reason?: string | null
