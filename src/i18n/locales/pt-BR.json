@@ -789,7 +789,14 @@
     "coupons": "Cupons",
     "orders": "Pedidos",
     "settings": "Configurações",
-    "reports": "Relatórios"
+    "reports": "Relatórios",
+    "totalSales": "Total de Vendas",
+    "ordersToday": "Pedidos Hoje",
+    "avgTicket": "Ticket Médio",
+    "conversionRate": "Taxa de Conversão",
+    "paidOrders": "pedidos pagos",
+    "salesLast30Days": "Vendas dos últimos 30 dias",
+    "sales": "Vendas"
   },
   "billing": {
     "title": "Módulo de Cobrança",

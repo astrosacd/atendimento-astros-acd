@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, Shield, Users, Eye, UserPlus, Edit, Trash2, 
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
@@ -117,6 +118,7 @@ const permissionIcons: Record<string, React.ReactNode> = {
 export default function AdminPermissoes() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<CustomRole | null>(null);
   const [newRole, setNewRole] = useState({
@@ -351,10 +353,10 @@ export default function AdminPermissoes() {
             </Button>
             <div>
               <h1 className="text-2xl font-display font-bold text-foreground">
-                Permissões do Sistema
+                {t('permissions.title')}
               </h1>
               <p className="text-muted-foreground">
-                Gerencie roles e permissões de acesso
+                {t('permissions.subtitle')}
               </p>
             </div>
           </div>
@@ -366,7 +368,7 @@ export default function AdminPermissoes() {
             className="bg-primary hover:bg-primary/90"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Role
+            {t('permissions.newRole')}
           </Button>
         </div>
 

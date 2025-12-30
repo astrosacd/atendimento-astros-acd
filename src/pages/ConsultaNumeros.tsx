@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface NumeroResult {
   id: number;
@@ -52,6 +53,7 @@ export default function ConsultaNumeros() {
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
+  const { t } = useTranslation();
   
   const [inputSearchQuery, setInputSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');

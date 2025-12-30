@@ -638,7 +638,14 @@
     "coupons": "Coupons",
     "orders": "Orders",
     "settings": "Settings",
-    "reports": "Reports"
+    "reports": "Reports",
+    "totalSales": "Total Sales",
+    "ordersToday": "Orders Today",
+    "avgTicket": "Average Ticket",
+    "conversionRate": "Conversion Rate",
+    "paidOrders": "paid orders",
+    "salesLast30Days": "Sales in the last 30 days",
+    "sales": "Sales"
   },
   "billing": {
     "title": "Billing Module",
@@ -743,7 +750,7 @@
     "save": "Save",
     "cancel": "Cancel"
   },
-  "ticketsModule": {
+  "tickets": {
     "system": "Ticket System",
     "systemDesc": "Manage customer tickets",
     "config": "Settings",
@@ -774,7 +781,28 @@
     "internalComment": "Internal Note",
     "addComment": "Add",
     "statusUpdated": "Status updated successfully",
-    "commentAdded": "Comment added"
+    "commentAdded": "Comment added",
+    "title": "Tickets",
+    "ticket": "Ticket",
+    "newTicket": "New Ticket",
+    "openTicket": "Open Ticket",
+    "code": "Code",
+    "subject": "Subject",
+    "requester": "Requester",
+    "contact": "Contact",
+    "technician": "Technician",
+    "closed": "Closed",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical",
+    "noTickets": "No tickets found",
+    "ticketCreatedSuccess": "Ticket created successfully!",
+    "ticketUpdatedSuccess": "Ticket updated successfully!",
+    "comments": "Comments",
+    "assignToMe": "Assign to me",
+    "closeTicket": "Close Ticket",
+    "reopenTicket": "Reopen Ticket"
   },
   "numberQuery": {
     "title": "Number Query",

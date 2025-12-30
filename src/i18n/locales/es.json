@@ -638,7 +638,14 @@
     "coupons": "Cupones",
     "orders": "Pedidos",
     "settings": "Configuración",
-    "reports": "Informes"
+    "reports": "Informes",
+    "totalSales": "Total de Ventas",
+    "ordersToday": "Pedidos Hoy",
+    "avgTicket": "Ticket Promedio",
+    "conversionRate": "Tasa de Conversión",
+    "paidOrders": "pedidos pagados",
+    "salesLast30Days": "Ventas de los últimos 30 días",
+    "sales": "Ventas"
   },
   "billing": {
     "title": "Módulo de Facturación",
@@ -743,7 +750,7 @@
     "save": "Guardar",
     "cancel": "Cancelar"
   },
-  "ticketsModule": {
+  "tickets": {
     "system": "Sistema de Tickets",
     "systemDesc": "Gestione los tickets de los clientes",
     "config": "Configuración",
@@ -774,7 +781,28 @@
     "internalComment": "Nota Interna",
     "addComment": "Agregar",
     "statusUpdated": "Estado actualizado con éxito",
-    "commentAdded": "Comentario agregado"
+    "commentAdded": "Comentario agregado",
+    "title": "Tickets",
+    "ticket": "Ticket",
+    "newTicket": "Nuevo Ticket",
+    "openTicket": "Abrir Ticket",
+    "code": "Código",
+    "subject": "Asunto",
+    "requester": "Solicitante",
+    "contact": "Contacto",
+    "technician": "Técnico",
+    "closed": "Cerrado",
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica",
+    "noTickets": "No se encontraron tickets",
+    "ticketCreatedSuccess": "¡Ticket creado con éxito!",
+    "ticketUpdatedSuccess": "¡Ticket actualizado con éxito!",
+    "comments": "Comentarios",
+    "assignToMe": "Asignarme",
+    "closeTicket": "Cerrar Ticket",
+    "reopenTicket": "Reabrir Ticket"
   },
   "numberQuery": {
     "title": "Consulta de Números",

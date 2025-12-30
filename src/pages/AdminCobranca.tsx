@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PendingPaymentsList } from '@/components/PendingPaymentsList';
+import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
@@ -126,6 +127,7 @@ const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#e
 
 const AdminCobranca = () => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { checkPaymentStatus, getPaymentStats, isLoading: isCheckingPayments } = usePaymentStatus();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
