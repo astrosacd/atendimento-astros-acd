@@ -745,6 +745,7 @@ export type Database = {
           payment_id: string
           payment_type: string
           preference_id: string | null
+          receipt_number: string | null
           status: string
           updated_at: string
         }
@@ -758,6 +759,7 @@ export type Database = {
           payment_id: string
           payment_type: string
           preference_id?: string | null
+          receipt_number?: string | null
           status?: string
           updated_at?: string
         }
@@ -771,6 +773,7 @@ export type Database = {
           payment_id?: string
           payment_type?: string
           preference_id?: string | null
+          receipt_number?: string | null
           status?: string
           updated_at?: string
         }
