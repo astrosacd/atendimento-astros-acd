@@ -304,7 +304,17 @@
     "addNewClient": "Add new client to the system",
     "searchViewClients": "Search and view clients",
     "editClientInfo": "Edit client information",
-    "removeClient": "Remove client from system"
+    "removeClient": "Remove client from system",
+    "tasksNeedAttention": "Tasks that need attention",
+    "overdueLabel": "Overdue",
+    "dueTodayLabel": "Due today",
+    "viewAllTasks": "View all tasks",
+    "additionalMetricsTitle": "Additional Metrics",
+    "forecast30DaysBrl": "30-day forecast (R$)",
+    "forecast30DaysUsd": "30-day forecast ($)",
+    "clients": "clients",
+    "registrations": "registrations",
+    "last6Months": "Last 6 months"
   },
   "clients": {
     "title": "Clients",
@@ -939,20 +949,6 @@
       "statusUpdated": "Status updated!",
       "saveError": "Error saving"
     }
-  },
-  "dashboard": {
-    "tasksNeedAttention": "Tasks that need attention",
-    "overdueLabel": "Overdue",
-    "dueTodayLabel": "Due today",
-    "viewAllTasks": "View all tasks",
-    "additionalMetricsTitle": "Additional Metrics",
-    "forecast30DaysBrl": "30-day forecast (R$)",
-    "forecast30DaysUsd": "30-day forecast ($)",
-    "clients": "clients",
-    "registrations": "registrations",
-    "last6Months": "Last 6 months",
-    "clientsByMonth": "Clients by Month",
-    "clientsByPlan": "Clients by Plan"
   },
   "activities": {
     "title": "Activity Logs",
