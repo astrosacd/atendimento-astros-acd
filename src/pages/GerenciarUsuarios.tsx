@@ -878,7 +878,7 @@ export default function GerenciarUsuarios() {
                         {/* Rejection reason if previously rejected */}
                         {user.rejection_reason && (
                           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                            <p className="text-xs font-medium text-destructive mb-1">Motivo da rejeição anterior:</p>
+                            <p className="text-xs font-medium text-destructive mb-1">{t('users.previousRejectionReason')}</p>
                             <p className="text-sm text-muted-foreground line-clamp-2">
                               {user.rejection_reason}
                             </p>
@@ -891,13 +891,13 @@ export default function GerenciarUsuarios() {
                             size="sm"
                             onClick={() => {
                               setApprovingUserId(user.id);
-                              setApproveRole("user");
+                              setApproveRole('user');
                               setApproveDialogOpen(true);
                             }}
                             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            Aprovar
+                            {t('users.approve')}
                           </Button>
                           <Button
                             size="sm"
@@ -906,7 +906,7 @@ export default function GerenciarUsuarios() {
                             className="flex-1"
                           >
                             <X className="h-4 w-4 mr-1" />
-                            Rejeitar
+                            {t('users.reject')}
                           </Button>
                         </div>
                       </CardContent>
@@ -923,24 +923,24 @@ export default function GerenciarUsuarios() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <UserPlus className="h-5 w-5" />
-              Criar Novo Usuário
+              {t('users.createNewUser')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateUser} className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
+                <Label htmlFor="name">{t('users.name')}</Label>
                 <Input
                   id="name"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  placeholder="Nome completo"
+                  placeholder={t('auth.fullName')}
                   required
                   className="border-border"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
+                <Label htmlFor="email">{t('users.email')}</Label>
                 <div className="relative">
                   <Input
                     id="email"
@@ -954,8 +954,8 @@ export default function GerenciarUsuarios() {
                     placeholder="email@exemplo.com"
                     required
                     className={cn(
-                      "border-border pr-10",
-                      emailError && "border-destructive focus-visible:ring-destructive"
+                      'border-border pr-10',
+                      emailError && 'border-destructive focus-visible:ring-destructive'
                     )}
                   />
                   {isCheckingEmail && (
@@ -973,7 +973,7 @@ export default function GerenciarUsuarios() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">WhatsApp (opcional)</Label>
+                <Label htmlFor="phone">{t('users.phone')} ({t('common.optional', { defaultValue: 'opcional' })})</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -984,20 +984,20 @@ export default function GerenciarUsuarios() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">{t('users.password')}</Label>
                 <Input
                   id="password"
                   type="password"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
-                  placeholder="Senha segura"
+                  placeholder={t('auth.password')}
                   required
                   minLength={6}
                   className="border-border"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Tipo</Label>
+                <Label htmlFor="role">{t('users.role')}</Label>
                 <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v)}>
                   <SelectTrigger className="border-border">
                     <SelectValue />
@@ -1006,7 +1006,7 @@ export default function GerenciarUsuarios() {
                     {customRoles.map((role) => (
                       <SelectItem key={role.id} value={role.name}>
                         <span className="flex items-center gap-2">
-                          <Shield className={cn("h-4 w-4", getRoleColor(role.color).split(' ')[1])} />
+                          <Shield className={cn('h-4 w-4', getRoleColor(role.color).split(' ')[1])} />
                           {role.display_name}
                         </span>
                       </SelectItem>
@@ -1020,7 +1020,7 @@ export default function GerenciarUsuarios() {
                   disabled={isCreating}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  {isCreating ? 'Criando...' : 'Criar Usuário'}
+                  {isCreating ? t('users.creating') : t('users.createUser')}
                 </Button>
               </div>
             </form>
@@ -1031,7 +1031,7 @@ export default function GerenciarUsuarios() {
         <Card className="border-border bg-card">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle className="text-primary">Usuários Aprovados</CardTitle>
+              <CardTitle className="text-primary">{t('users.approvedUsers')}</CardTitle>
               <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   variant={roleFilter === 'all' ? 'default' : 'outline'}
@@ -1039,7 +1039,7 @@ export default function GerenciarUsuarios() {
                   onClick={() => setRoleFilter('all')}
                   className={roleFilter === 'all' ? 'bg-primary text-primary-foreground' : 'border-border'}
                 >
-                  Todos ({users.filter(u => u.approval_status === 'approved').length})
+                  {t('common.all')} ({users.filter(u => u.approval_status === 'approved').length})
                 </Button>
                 {customRoles.map((role) => (
                   <Button
@@ -1062,27 +1062,27 @@ export default function GerenciarUsuarios() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+              <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
             ) : approvedUsers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhum usuário aprovado
+                {t('users.noApprovedUsers')}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
-                      <TableHead>Nome</TableHead>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead>{t('users.name')}</TableHead>
+                      <TableHead>{t('users.email')}</TableHead>
+                      <TableHead>{t('users.role')}</TableHead>
+                      <TableHead>{t('users.status')}</TableHead>
+                      <TableHead>{t('users.createdAt', { defaultValue: 'Criado em' })}</TableHead>
+                      <TableHead>{t('users.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {approvedUsers.map((user) => (
-                      <TableRow key={user.id} className={cn("border-border", user.is_blocked && "opacity-60")}>
+                      <TableRow key={user.id} className={cn('border-border', user.is_blocked && 'opacity-60')}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
@@ -1092,14 +1092,15 @@ export default function GerenciarUsuarios() {
                           {user.is_blocked ? (
                             <Badge variant="destructive" className="gap-1">
                               <Ban className="h-3 w-3" />
-                              Bloqueado
+                              {t('users.blocked')}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="border-green-500 text-green-500 gap-1">
                               <Check className="h-3 w-3" />
-                              Ativo
+                              {t('common.active')}
                             </Badge>
-                          )}</TableCell>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {new Date(user.created_at).toLocaleDateString('pt-BR')}
                         </TableCell>

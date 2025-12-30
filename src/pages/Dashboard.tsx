@@ -749,12 +749,12 @@ export default function Dashboard() {
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-foreground mb-2">Tarefas que precisam de atenção</h4>
+                  <h4 className="font-semibold text-foreground mb-2">{t('dashboard.tasksNeedAttention')}</h4>
                   <div className="space-y-2">
                     {urgentTasks.overdue.slice(0, 3).map((task) => (
                       <div key={task.id} className="flex items-center gap-2 text-sm">
                         <span className="h-2 w-2 rounded-full bg-destructive"></span>
-                        <span className="text-destructive font-medium">Atrasada:</span>
+                        <span className="text-destructive font-medium">{t('dashboard.overdueLabel')}:</span>
                         <span className="text-muted-foreground">{task.title}</span>
                         {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
                       </div>
@@ -762,7 +762,7 @@ export default function Dashboard() {
                     {urgentTasks.dueSoon.slice(0, 3).map((task) => (
                       <div key={task.id} className="flex items-center gap-2 text-sm">
                         <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span className="text-amber-500 font-medium">Vence hoje:</span>
+                        <span className="text-amber-500 font-medium">{t('dashboard.dueTodayLabel')}:</span>
                         <span className="text-muted-foreground">{task.title}</span>
                         {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
                       </div>
@@ -773,7 +773,7 @@ export default function Dashboard() {
                     className="p-0 h-auto mt-2 text-primary"
                     onClick={() => navigate('/tarefas')}
                   >
-                    Ver todas as tarefas <ChevronRight className="h-4 w-4 ml-1" />
+                    {t('dashboard.viewAllTasks')} <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -786,43 +786,43 @@ export default function Dashboard() {
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-update rounded-full"></span>
-              Métricas Adicionais
+              {t('dashboard.additionalMetricsTitle')}
             </h3>
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">Taxa Inadimplência</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.delinquencyRate')}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
-                <p className="text-xs text-muted-foreground">Previsão 30 dias (R$)</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysBrl')}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.previsaoFaturamentoUsd)}</p>
-                <p className="text-xs text-muted-foreground">Previsão 30 dias ($)</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysUsd')}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.clientesNovos30d}</p>
-                <p className="text-xs text-muted-foreground">Novos (30 dias)</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.newClientsLast30Days')}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
-                <p className="text-xs text-muted-foreground">Usuários Pendentes</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.pendingApprovals')}</p>
               </CardContent>
             </Card>
             <Card className="bg-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold text-foreground font-display">{stats.activeWebhooks}</p>
-                <p className="text-xs text-muted-foreground">Webhooks Ativos</p>
+                <p className="text-xs text-muted-foreground">{t('dashboard.activeWebhooks')}</p>
               </CardContent>
             </Card>
           </div>

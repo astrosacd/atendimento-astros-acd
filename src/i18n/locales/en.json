@@ -166,6 +166,44 @@
     "myAccount": "My Account",
     "role": "Role"
   },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "System management",
+    "modulesTitle": "Administration Modules",
+    "accessModule": "Open module",
+    "stats": {
+      "activeModules": "Active Modules",
+      "accessLevel": "Access Level",
+      "system": "System",
+      "online": "Online"
+    },
+    "modules": {
+      "manageUsers": {
+        "title": "Manage Users",
+        "description": "Approve, reject and manage accounts and permissions"
+      },
+      "systemPermissions": {
+        "title": "System Permissions",
+        "description": "Manage roles and access permissions"
+      },
+      "passwordRecovery": {
+        "title": "Password Recovery",
+        "description": "Configure password recovery methods"
+      },
+      "welcomeMessages": {
+        "title": "Welcome Messages",
+        "description": "Configure automatic sending to new users"
+      },
+      "helpChat": {
+        "title": "Help Chat (Lyra)",
+        "description": "Configure the virtual assistant"
+      },
+      "configurationGuide": {
+        "title": "Configuration Guide",
+        "description": "Learn how to configure all system modules"
+      }
+    }
+  },
   "users": {
     "title": "Manage Users",
     "manageUsersDesc": "Create and manage system users",
@@ -174,27 +212,30 @@
     "approvalHistory": "Approval History",
     "createUser": "Create User",
     "createNewUser": "Create new user",
+    "creating": "Creating...",
     "name": "Name",
     "email": "Email",
     "password": "Password",
     "phone": "Phone",
     "role": "Role",
     "status": "Status",
+    "createdAt": "Created at",
     "actions": "Actions",
     "approve": "Approve",
     "reject": "Reject",
     "delete": "Delete",
     "block": "Block",
     "unblock": "Unblock",
+    "blocked": "Blocked",
     "resendCredentials": "Resend Credentials",
     "pending": "Pending",
     "approved": "Approved",
     "rejected": "Rejected",
-    "blocked": "Blocked",
     "filterByRole": "Filter by role",
     "allRoles": "All roles",
     "noUsers": "No users found",
     "noPendingUsers": "No pending requests",
+    "noApprovedUsers": "No approved users",
     "userCreatedSuccess": "User created successfully!",
     "userApprovedSuccess": "User approved successfully!",
     "userRejectedSuccess": "User rejected!",
@@ -203,6 +244,7 @@
     "userUnblockedSuccess": "User unblocked!",
     "credentialsSentSuccess": "Credentials sent!",
     "rejectionReason": "Rejection reason",
+    "previousRejectionReason": "Previous rejection reason:",
     "blockReason": "Block reason",
     "userResponse": "User response",
     "selectRole": "Select a role",
