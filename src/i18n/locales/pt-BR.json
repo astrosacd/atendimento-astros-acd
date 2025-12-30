@@ -983,6 +983,53 @@
     "selectImage": "Selecionar Imagem",
     "desbanimentoOk": "Desbanimento OK"
   },
+  "numberQueryWebhooks": {
+    "title": "Webhooks",
+    "subtitle": "Configure webhooks para receber notificações",
+    "newWebhook": "Novo Webhook",
+    "createWebhook": "Criar Webhook",
+    "editWebhook": "Editar Webhook",
+    "dialogDescription": "Configure um endpoint para receber notificações de eventos",
+    "configuredWebhooks": "Webhooks Configurados",
+    "configuredCount": "{{count}} webhook(s) configurado(s)",
+    "emptyState": "Nenhum webhook configurado.",
+    "never": "Nunca",
+    "deleteTitle": "Excluir webhook?",
+    "deleteDescription": "Esta ação não pode ser desfeita. O webhook \"{{name}}\" será permanentemente excluído.",
+    "form": {
+      "name": "Nome",
+      "namePlaceholder": "Ex: Notificação n8n",
+      "url": "URL do Webhook",
+      "urlPlaceholder": "https://exemplo.com/webhook",
+      "secretKey": "Chave Secreta (opcional)",
+      "secretPlaceholder": "Chave para validação",
+      "generate": "Gerar",
+      "secretHint": "Será enviada no header X-Webhook-Secret",
+      "events": "Eventos"
+    },
+    "table": {
+      "events": "Eventos",
+      "lastTrigger": "Último Disparo"
+    },
+    "events": {
+      "cadastro": "Número cadastrado",
+      "consulta": "Consulta realizada",
+      "atualizacao_status": "Status atualizado",
+      "atualizacao_obs": "Observações atualizadas",
+      "atualizacao_status_obs": "Status + Obs atualizados"
+    },
+    "validation": {
+      "nameUrlRequired": "Nome e URL são obrigatórios",
+      "selectAtLeastOneEvent": "Selecione pelo menos um evento"
+    },
+    "toast": {
+      "created": "Webhook criado!",
+      "updated": "Webhook atualizado!",
+      "deleted": "Webhook excluído!",
+      "statusUpdated": "Status atualizado!",
+      "saveError": "Erro ao salvar"
+    }
+  },
   "activities": {
     "title": "Logs de Atividade",
     "subtitle": "Histórico completo de todas as ações no sistema",

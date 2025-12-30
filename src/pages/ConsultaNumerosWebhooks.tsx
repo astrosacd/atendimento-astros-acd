@@ -11,11 +11,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Copy, Trash2, RefreshCw, Webhook, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, RefreshCw, Webhook, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 
 interface WebhookConfig {
   id: string;
@@ -28,15 +29,8 @@ interface WebhookConfig {
   created_at: string;
 }
 
-const AVAILABLE_EVENTS = [
-  { key: 'cadastro', label: 'Número cadastrado' },
-  { key: 'consulta', label: 'Consulta realizada' },
-  { key: 'atualizacao_status', label: 'Status atualizado' },
-  { key: 'atualizacao_obs', label: 'Observações atualizadas' },
-  { key: 'atualizacao_status_obs', label: 'Status + Obs atualizados' },
-];
-
 export default function ConsultaNumerosWebhooks() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null);
@@ -46,6 +40,14 @@ export default function ConsultaNumerosWebhooks() {
     secret_key: '',
     eventos: [] as string[],
   });
+
+  const AVAILABLE_EVENTS = [
+    { key: 'cadastro', label: t('numberQueryWebhooks.events.cadastro') },
+    { key: 'consulta', label: t('numberQueryWebhooks.events.consulta') },
+    { key: 'atualizacao_status', label: t('numberQueryWebhooks.events.atualizacao_status') },
+    { key: 'atualizacao_obs', label: t('numberQueryWebhooks.events.atualizacao_obs') },
+    { key: 'atualizacao_status_obs', label: t('numberQueryWebhooks.events.atualizacao_status_obs') },
+  ];
 
   // Fetch webhooks
   const { data: webhooks = [], isLoading } = useQuery<WebhookConfig[]>({
@@ -64,7 +66,7 @@ export default function ConsultaNumerosWebhooks() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (editingWebhook) {
         const { error } = await supabase
           .from('consulta_numeros_webhooks')
@@ -91,11 +93,11 @@ export default function ConsultaNumerosWebhooks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-webhooks'] });
-      toast({ title: editingWebhook ? 'Webhook atualizado!' : 'Webhook criado!' });
+      toast({ title: editingWebhook ? t('numberQueryWebhooks.toast.updated') : t('numberQueryWebhooks.toast.created') });
       resetForm();
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      toast({ title: t('numberQueryWebhooks.toast.saveError'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -110,7 +112,7 @@ export default function ConsultaNumerosWebhooks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-webhooks'] });
-      toast({ title: 'Status atualizado!' });
+      toast({ title: t('numberQueryWebhooks.toast.statusUpdated') });
     },
   });
 
@@ -125,17 +127,17 @@ export default function ConsultaNumerosWebhooks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-webhooks'] });
-      toast({ title: 'Webhook excluído!' });
+      toast({ title: t('numberQueryWebhooks.toast.deleted') });
     },
   });
 
   const handleSave = () => {
     if (!formData.nome.trim() || !formData.url.trim()) {
-      toast({ title: 'Nome e URL são obrigatórios', variant: 'destructive' });
+      toast({ title: t('numberQueryWebhooks.validation.nameUrlRequired'), variant: 'destructive' });
       return;
     }
     if (formData.eventos.length === 0) {
-      toast({ title: 'Selecione pelo menos um evento', variant: 'destructive' });
+      toast({ title: t('numberQueryWebhooks.validation.selectAtLeastOneEvent'), variant: 'destructive' });
       return;
     }
     saveMutation.mutate();
@@ -179,65 +181,65 @@ export default function ConsultaNumerosWebhooks() {
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => window.location.href = '/admin/consulta-numeros'}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+              {t('common.back')}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Webhooks</h1>
-              <p className="text-muted-foreground">Configure webhooks para receber notificações</p>
+              <h1 className="text-2xl font-bold text-foreground">{t('numberQueryWebhooks.title')}</h1>
+              <p className="text-muted-foreground">{t('numberQueryWebhooks.subtitle')}</p>
             </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); else setDialogOpen(true); }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Webhook
+                {t('numberQueryWebhooks.newWebhook')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingWebhook ? 'Editar Webhook' : 'Criar Webhook'}</DialogTitle>
+                <DialogTitle>{editingWebhook ? t('numberQueryWebhooks.editWebhook') : t('numberQueryWebhooks.createWebhook')}</DialogTitle>
                 <DialogDescription>
-                  Configure um endpoint para receber notificações de eventos
+                  {t('numberQueryWebhooks.dialogDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome *</Label>
+                  <Label htmlFor="nome">{t('numberQueryWebhooks.form.name')} *</Label>
                   <Input
                     id="nome"
                     value={formData.nome}
                     onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: Notificação N8N"
+                    placeholder={t('numberQueryWebhooks.form.namePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="url">URL do Webhook *</Label>
+                  <Label htmlFor="url">{t('numberQueryWebhooks.form.url')} *</Label>
                   <Input
                     id="url"
                     value={formData.url}
                     onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                    placeholder="https://exemplo.com/webhook"
+                    placeholder={t('numberQueryWebhooks.form.urlPlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="secret">Chave Secreta (opcional)</Label>
+                  <Label htmlFor="secret">{t('numberQueryWebhooks.form.secretKey')}</Label>
                   <div className="flex gap-2">
                     <Input
                       id="secret"
                       value={formData.secret_key}
                       onChange={(e) => setFormData(prev => ({ ...prev, secret_key: e.target.value }))}
-                      placeholder="Chave para validação"
+                      placeholder={t('numberQueryWebhooks.form.secretPlaceholder')}
                     />
                     <Button variant="outline" onClick={generateSecret} type="button">
-                      Gerar
+                      {t('numberQueryWebhooks.form.generate')}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Será enviada no header X-Webhook-Secret
+                    {t('numberQueryWebhooks.form.secretHint')}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Eventos *</Label>
+                  <Label>{t('numberQueryWebhooks.form.events')} *</Label>
                   <div className="space-y-2">
                     {AVAILABLE_EVENTS.map((event) => (
                       <div key={event.key} className="flex items-center space-x-2">
@@ -253,9 +255,9 @@ export default function ConsultaNumerosWebhooks() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={resetForm}>Cancelar</Button>
+                <Button variant="outline" onClick={resetForm}>{t('common.cancel')}</Button>
                 <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
+                  {saveMutation.isPending ? t('common.loading') : t('common.save')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -266,10 +268,10 @@ export default function ConsultaNumerosWebhooks() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Webhook className="h-5 w-5" />
-              Webhooks Configurados
+              {t('numberQueryWebhooks.configuredWebhooks')}
             </CardTitle>
             <CardDescription>
-              {webhooks.length} webhook(s) configurado(s)
+              {t('numberQueryWebhooks.configuredCount', { count: webhooks.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -279,19 +281,19 @@ export default function ConsultaNumerosWebhooks() {
               </div>
             ) : webhooks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Nenhum webhook configurado.
+                {t('numberQueryWebhooks.emptyState')}
               </div>
             ) : (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
+                      <TableHead>{t('common.name')}</TableHead>
                       <TableHead>URL</TableHead>
-                      <TableHead>Eventos</TableHead>
-                      <TableHead>Último Disparo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[120px]">Ações</TableHead>
+                      <TableHead>{t('numberQueryWebhooks.table.events')}</TableHead>
+                      <TableHead>{t('numberQueryWebhooks.table.lastTrigger')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="w-[120px]">{t('common.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -311,9 +313,9 @@ export default function ConsultaNumerosWebhooks() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {webhook.last_triggered_at 
+                          {webhook.last_triggered_at
                             ? format(new Date(webhook.last_triggered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                            : 'Nunca'}
+                            : t('numberQueryWebhooks.never')}
                         </TableCell>
                         <TableCell>
                           <Switch
@@ -334,15 +336,15 @@ export default function ConsultaNumerosWebhooks() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir webhook?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t('numberQueryWebhooks.deleteTitle')}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. O webhook "{webhook.nome}" será permanentemente excluído.
+                                    {t('numberQueryWebhooks.deleteDescription', { name: webhook.nome })}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => deleteMutation.mutate(webhook.id)}>
-                                    Excluir
+                                    {t('common.delete')}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -361,3 +363,4 @@ export default function ConsultaNumerosWebhooks() {
     </DashboardLayout>
   );
 }
+
