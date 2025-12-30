@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -36,6 +37,7 @@ interface PlanoFerramenta {
 }
 
 const AdminPlanosRevendedor = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [planos, setPlanos] = useState<Plano[]>([]);
   const [ferramentas, setFerramentas] = useState<PlanoFerramenta[]>([]);
@@ -231,8 +233,8 @@ const AdminPlanosRevendedor = () => {
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Planos Revendedor</h1>
-            <p className="text-muted-foreground">Gerencie os planos e ferramentas de revenda</p>
+            <h1 className="text-2xl font-bold">{t('reseller.title')}</h1>
+            <p className="text-muted-foreground">{t('reseller.subtitle')}</p>
           </div>
         </div>
 
@@ -240,7 +242,7 @@ const AdminPlanosRevendedor = () => {
           <TabsList>
             <TabsTrigger value="planos" className="gap-2">
               <Package className="h-4 w-4" />
-              Planos
+              {t('reseller.plans')}
             </TabsTrigger>
           </TabsList>
 
