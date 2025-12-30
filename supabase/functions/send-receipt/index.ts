@@ -165,8 +165,8 @@ const generateProfessionalEmailHTML = (
 <!-- Footer -->
 <tr>
 <td style="background-color:#f9fafb;padding:25px 40px;text-align:center;border-top:1px solid #e5e7eb;">
-<p style="margin:0;color:#6b7280;font-size:13px;">Obrigado pela confianca!</p>
-<p style="margin:10px 0 0;color:#9ca3af;font-size:12px;">${companyName} - ${currentYear}</p>
+<p style="margin:0;color:#374151;font-size:15px;font-weight:600;">${companyName}</p>
+<p style="margin:8px 0 0;color:#6b7280;font-size:13px;">Obrigado pela confianca!</p>
 <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este e um comprovante automatico. Guarde-o para sua referencia.</p>
 </td>
 </tr>
@@ -212,8 +212,8 @@ const generateProfessionalWhatsAppMessage = (
 📅 *Próxima Renovação:* ${renewalDate}
 
 ━━━━━━━━━━━━━━━━━━━━━━
+*${companyName}*
 🙏 Obrigado pela confiança!
-_${companyName}_
 ━━━━━━━━━━━━━━━━━━━━━━`;
 };
 
