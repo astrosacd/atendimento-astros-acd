@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ const AdminTags = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [search, setSearch] = useState("");
   const [editingTag, setEditingTag] = useState<string | null>(null);
@@ -286,9 +288,9 @@ const AdminTags = () => {
                 <Tag className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold font-heading">Gerenciamento de Tags</h1>
+                <h1 className="text-2xl font-bold font-heading">{t('tags.title')}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Crie, edite e exclua tags para organizar clientes
+                  {t('tags.subtitle')}
                 </p>
               </div>
             </div>
@@ -303,7 +305,7 @@ const AdminTags = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar tags..."
+              placeholder={t('tags.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -316,11 +318,11 @@ const AdminTags = () => {
               disabled={isLoading || isFetching}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${(isLoading || isFetching) ? 'animate-spin' : ''}`} />
-              Atualizar
+              {t('tags.refresh')}
             </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Nova Tag
+              {t('tags.newTag')}
             </Button>
           </div>
         </div>

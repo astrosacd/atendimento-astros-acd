@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { 
   ArrowLeft, 
   Ticket, 
@@ -75,6 +76,7 @@ const prioridadeConfig: Record<ChamadoPrioridade, { label: string; color: string
 const AdminChamados = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null);
@@ -239,27 +241,27 @@ const AdminChamados = () => {
                 <Ticket className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Sistema de Chamados</h1>
-                <p className="text-sm text-muted-foreground">Gerencie os chamados dos clientes</p>
+                <h1 className="text-xl font-bold text-foreground">{t('tickets.system')}</h1>
+                <p className="text-sm text-muted-foreground">{t('tickets.systemDesc')}</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')}>
               <Settings className="h-4 w-4 mr-2" />
-              Configurações
+              {t('tickets.config')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/webhooks')}>
               <Webhook className="h-4 w-4 mr-2" />
-              Webhooks
+              {t('tickets.webhooks')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/api')}>
               <Key className="h-4 w-4 mr-2" />
-              API Keys
+              {t('tickets.apiKeys')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')}>
               <BookOpen className="h-4 w-4 mr-2" />
-              Guia
+              {t('tickets.guide')}
             </Button>
           </div>
         </div>
@@ -275,7 +277,7 @@ const AdminChamados = () => {
                   <Ticket className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-sm text-muted-foreground">{t('tickets.total')}</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
               </div>
@@ -288,7 +290,7 @@ const AdminChamados = () => {
                   <AlertCircle className="h-6 w-6 text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Abertos</p>
+                  <p className="text-sm text-muted-foreground">{t('tickets.open')}</p>
                   <p className="text-2xl font-bold">{stats.abertos}</p>
                 </div>
               </div>
@@ -301,7 +303,7 @@ const AdminChamados = () => {
                   <Clock className="h-6 w-6 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Em Andamento</p>
+                  <p className="text-sm text-muted-foreground">{t('tickets.inProgress')}</p>
                   <p className="text-2xl font-bold">{stats.emAndamento}</p>
                 </div>
               </div>
@@ -314,7 +316,7 @@ const AdminChamados = () => {
                   <CheckCircle className="h-6 w-6 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Resolvidos</p>
+                  <p className="text-sm text-muted-foreground">{t('tickets.resolved')}</p>
                   <p className="text-2xl font-bold">{stats.resolvidos}</p>
                 </div>
               </div>
@@ -328,7 +330,7 @@ const AdminChamados = () => {
             <Card className="border-border/40 bg-card/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Chamados</CardTitle>
+                  <CardTitle>{t('tickets.title')}</CardTitle>
                   <Button variant="ghost" size="icon" onClick={() => refetch()}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -337,7 +339,7 @@ const AdminChamados = () => {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por código, nome, email..."
+                      placeholder={t('tickets.searchPlaceholder')}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className="pl-10"
@@ -345,15 +347,15 @@ const AdminChamados = () => {
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filtrar status" />
+                      <SelectValue placeholder={t('tickets.filterStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="aberto">Aberto</SelectItem>
-                      <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="aguardando_cliente">Aguardando Cliente</SelectItem>
-                      <SelectItem value="resolvido">Resolvido</SelectItem>
-                      <SelectItem value="fechado">Fechado</SelectItem>
+                      <SelectItem value="all">{t('tickets.all')}</SelectItem>
+                      <SelectItem value="aberto">{t('tickets.statusOpen')}</SelectItem>
+                      <SelectItem value="em_andamento">{t('tickets.statusInProgress')}</SelectItem>
+                      <SelectItem value="aguardando_cliente">{t('tickets.statusWaitingClient')}</SelectItem>
+                      <SelectItem value="resolvido">{t('tickets.statusResolved')}</SelectItem>
+                      <SelectItem value="fechado">{t('tickets.statusClosed')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -365,7 +367,7 @@ const AdminChamados = () => {
                   </div>
                 ) : filteredChamados?.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Nenhum chamado encontrado
+                    {t('tickets.noTicketsFound')}
                   </div>
                 ) : (
                   <div className="space-y-3">

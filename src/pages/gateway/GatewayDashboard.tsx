@@ -2,9 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGatewayDashboard } from '@/hooks/useGateway';
 import { DollarSign, ShoppingCart, TrendingUp, Percent } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 export default function GatewayDashboard() {
   const { data: stats, isLoading } = useGatewayDashboard();
+  const { t } = useTranslation();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -16,21 +18,21 @@ export default function GatewayDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+        <div className="animate-pulse text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
 
   const cards = [
     {
-      title: 'Total de Vendas',
+      title: t('gateway.totalSales', 'Total de Vendas'),
       value: formatCurrency(stats?.totalSales || 0),
       icon: DollarSign,
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-500/10',
     },
     {
-      title: 'Pedidos Hoje',
+      title: t('gateway.ordersToday', 'Pedidos Hoje'),
       value: stats?.todayOrdersCount || 0,
       subtitle: formatCurrency(stats?.todaySales || 0),
       icon: ShoppingCart,
@@ -38,16 +40,16 @@ export default function GatewayDashboard() {
       bgColor: 'bg-blue-500/10',
     },
     {
-      title: 'Ticket Médio',
+      title: t('gateway.avgTicket', 'Ticket Médio'),
       value: formatCurrency(stats?.avgTicket || 0),
       icon: TrendingUp,
       color: 'text-purple-500',
       bgColor: 'bg-purple-500/10',
     },
     {
-      title: 'Taxa de Conversão',
+      title: t('gateway.conversionRate', 'Taxa de Conversão'),
       value: `${(stats?.conversionRate || 0).toFixed(1)}%`,
-      subtitle: `${stats?.totalOrders || 0} pedidos pagos`,
+      subtitle: `${stats?.totalOrders || 0} ${t('gateway.paidOrders', 'pedidos pagos')}`,
       icon: Percent,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
@@ -79,7 +81,7 @@ export default function GatewayDashboard() {
 
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle className="text-lg">Vendas dos últimos 30 dias</CardTitle>
+          <CardTitle className="text-lg">{t('gateway.salesLast30Days', 'Vendas dos últimos 30 dias')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
@@ -99,7 +101,7 @@ export default function GatewayDashboard() {
                   tickFormatter={(value) => formatCurrency(value)}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'Vendas']}
+                  formatter={(value: number) => [formatCurrency(value), t('gateway.sales', 'Vendas')]}
                   labelFormatter={(label) => {
                     const date = new Date(label);
                     return date.toLocaleDateString('pt-BR');
