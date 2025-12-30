@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +8,16 @@ export function useLanguage() {
   const { i18n } = useTranslation();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>('pt-BR');
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(() => {
+    // Initialize from localStorage immediately to prevent flicker
+    if (user?.id) {
+      const cached = localStorage.getItem(`user_language_${user.id}`);
+      if (cached) {
+        return cached as LanguageCode;
+      }
+    }
+    return 'pt-BR';
+  });
 
   // Load language preference on mount
   useEffect(() => {
@@ -21,9 +30,13 @@ export function useLanguage() {
     const cached = localStorage.getItem(cacheKey);
     
     if (cached) {
-      setCurrentLanguage(cached as LanguageCode);
-      i18n.changeLanguage(cached);
+      const lang = cached as LanguageCode;
+      setCurrentLanguage(lang);
+      if (i18n.language !== lang) {
+        i18n.changeLanguage(lang);
+      }
       setIsLoading(false);
+      return; // Use cached value, don't fetch from DB
     }
 
     const loadLanguage = async () => {
@@ -45,19 +58,21 @@ export function useLanguage() {
     loadLanguage();
   }, [user?.id, i18n]);
 
-  const changeLanguage = async (language: LanguageCode) => {
+  const changeLanguage = useCallback(async (language: LanguageCode) => {
     if (!user?.id) return;
 
+    // Update immediately for instant feedback
     setCurrentLanguage(language);
     i18n.changeLanguage(language);
     localStorage.setItem(`user_language_${user.id}`, language);
 
-    // Update in database
-    await supabase
+    // Update in database (fire and forget)
+    supabase
       .from('profiles')
       .update({ language })
-      .eq('user_id', user.id);
-  };
+      .eq('user_id', user.id)
+      .then(() => {});
+  }, [user?.id, i18n]);
 
   return {
     currentLanguage,
