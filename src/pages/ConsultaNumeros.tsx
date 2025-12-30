@@ -740,15 +740,15 @@ export default function ConsultaNumeros() {
         <div className="space-y-6 w-full min-w-0">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">Consulta de Números</h1>
-            <p className="text-muted-foreground">Consulte e gerencie números no Baserow</p>
+            <h1 className="text-2xl font-bold text-foreground">{t('numberQuery.title')}</h1>
+            <p className="text-muted-foreground">{t('numberQuery.subtitle')}</p>
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
             {canCreate && (
               <Button onClick={openCreateDialog} className="shrink-0">
                 <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Número
+                {t('numberQuery.create')} {t('numberQuery.number')}
               </Button>
             )}
             {canViewHistory && (
@@ -758,7 +758,7 @@ export default function ConsultaNumeros() {
                 className="shrink-0"
               >
                 <History className="h-4 w-4 mr-2" />
-                Histórico
+                {t('numberQuery.history')}
               </Button>
             )}
 
@@ -770,8 +770,8 @@ export default function ConsultaNumeros() {
                     variant="outline"
                     size="icon"
                     className="relative shrink-0"
-                    aria-label="Abrir configurações"
-                    title="Configurações"
+                    aria-label={t('numberQuery.config')}
+                    title={t('numberQuery.config')}
                   >
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -780,7 +780,7 @@ export default function ConsultaNumeros() {
                   align="end"
                   className="w-56 bg-popover border border-border shadow-lg z-50"
                 >
-                  <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('numberQuery.config')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {canManageConfig && (
                     <DropdownMenuItem
@@ -788,7 +788,7 @@ export default function ConsultaNumeros() {
                       className="cursor-pointer"
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      Configurações Gerais
+                      {t('numberQuery.config')}
                     </DropdownMenuItem>
                   )}
                   {canManageApi && (
@@ -797,7 +797,7 @@ export default function ConsultaNumeros() {
                       className="cursor-pointer"
                     >
                       <Key className="h-4 w-4 mr-2" />
-                      Chaves API
+                      {t('numberQuery.apiKeys')}
                     </DropdownMenuItem>
                   )}
                   {canManageWebhooks && (
@@ -806,7 +806,7 @@ export default function ConsultaNumeros() {
                       className="cursor-pointer"
                     >
                       <Webhook className="h-4 w-4 mr-2" />
-                      Webhooks
+                      {t('numberQuery.webhooks')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
@@ -815,7 +815,7 @@ export default function ConsultaNumeros() {
                     className="cursor-pointer"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Guia de Uso
+                    {t('numberQuery.guide')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -828,14 +828,14 @@ export default function ConsultaNumeros() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Buscar Número
+              {t('numberQuery.search')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <Input
-                  placeholder="Digite o número para buscar..."
+                  placeholder={t('numberQuery.searchPlaceholder')}
                   value={inputSearchQuery}
                   onChange={(e) => setInputSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -845,29 +845,29 @@ export default function ConsultaNumeros() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-between">
-                      {statusFilters.length === 0 
-                        ? "Todos os status" 
+                      {statusFilters.length === 0
+                        ? t('numberQuery.clearFilters')
                         : statusFilters.length === 1
-                          ? statusField?.select_options?.find(s => s.id.toString() === statusFilters[0])?.value || "1 status"
-                          : `${statusFilters.length} status selecionados`
+                          ? statusField?.select_options?.find(s => s.id.toString() === statusFilters[0])?.value || `1 ${t('common.status')}`
+                          : `${statusFilters.length} ${t('common.status')} ${t('common.selected', { defaultValue: 'selected' } as any)}`
                       }
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="start">
                     <div className="space-y-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="w-full justify-start text-muted-foreground"
                         onClick={() => setStatusFilters([])}
                       >
-                        Limpar filtros
+                        {t('numberQuery.clearFilters')}
                       </Button>
                       <div className="border-t pt-2 space-y-1">
                         {statusField?.select_options?.map((s) => (
-                          <label 
-                            key={s.id} 
+                          <label
+                            key={s.id}
                             className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
                           >
                             <Checkbox
@@ -890,12 +890,12 @@ export default function ConsultaNumeros() {
               </div>
               <Button onClick={handleSearch} disabled={isLoading}>
                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                Buscar
+                {t('numberQuery.search')}
               </Button>
               {canExport && queryResult?.data?.length > 0 && (
                 <Button variant="outline" onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
-                  Exportar
+                  {t('numberQuery.export')}
                 </Button>
               )}
             </div>

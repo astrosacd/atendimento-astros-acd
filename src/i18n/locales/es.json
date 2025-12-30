@@ -850,6 +850,53 @@
     "selectImage": "Seleccionar Imagen",
     "desbanimentoOk": "Desbaneo OK"
   },
+  "numberQueryWebhooks": {
+    "title": "Webhooks",
+    "subtitle": "Configure webhooks para recibir notificaciones",
+    "newWebhook": "Nuevo Webhook",
+    "createWebhook": "Crear Webhook",
+    "editWebhook": "Editar Webhook",
+    "dialogDescription": "Configure un endpoint para recibir notificaciones de eventos",
+    "configuredWebhooks": "Webhooks Configurados",
+    "configuredCount": "{{count}} webhook(s) configurado(s)",
+    "emptyState": "Ningún webhook configurado.",
+    "never": "Nunca",
+    "deleteTitle": "¿Eliminar webhook?",
+    "deleteDescription": "Esta acción no se puede deshacer. El webhook \"{{name}}\" será eliminado permanentemente.",
+    "form": {
+      "name": "Nombre",
+      "namePlaceholder": "Ej: notificación n8n",
+      "url": "URL del Webhook",
+      "urlPlaceholder": "https://ejemplo.com/webhook",
+      "secretKey": "Clave secreta (opcional)",
+      "secretPlaceholder": "Clave para validación",
+      "generate": "Generar",
+      "secretHint": "Se enviará en el header X-Webhook-Secret",
+      "events": "Eventos"
+    },
+    "table": {
+      "events": "Eventos",
+      "lastTrigger": "Último Disparo"
+    },
+    "events": {
+      "cadastro": "Número registrado",
+      "consulta": "Consulta realizada",
+      "atualizacao_status": "Estado actualizado",
+      "atualizacao_obs": "Observaciones actualizadas",
+      "atualizacao_status_obs": "Estado + observaciones actualizadas"
+    },
+    "validation": {
+      "nameUrlRequired": "Nombre y URL son obligatorios",
+      "selectAtLeastOneEvent": "Seleccione al menos un evento"
+    },
+    "toast": {
+      "created": "¡Webhook creado!",
+      "updated": "¡Webhook actualizado!",
+      "deleted": "¡Webhook eliminado!",
+      "statusUpdated": "¡Estado actualizado!",
+      "saveError": "Error al guardar"
+    }
+  },
   "dashboard": {
     "tasksNeedAttention": "Tareas que necesitan atención",
     "overdueLabel": "Atrasada",

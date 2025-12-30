@@ -850,6 +850,53 @@
     "selectImage": "Select Image",
     "desbanimentoOk": "Unban OK"
   },
+  "numberQueryWebhooks": {
+    "title": "Webhooks",
+    "subtitle": "Configure webhooks to receive notifications",
+    "newWebhook": "New Webhook",
+    "createWebhook": "Create Webhook",
+    "editWebhook": "Edit Webhook",
+    "dialogDescription": "Configure an endpoint to receive event notifications",
+    "configuredWebhooks": "Configured Webhooks",
+    "configuredCount": "{{count}} webhook(s) configured",
+    "emptyState": "No webhooks configured.",
+    "never": "Never",
+    "deleteTitle": "Delete webhook?",
+    "deleteDescription": "This action cannot be undone. The webhook \"{{name}}\" will be permanently deleted.",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g., n8n notification",
+      "url": "Webhook URL",
+      "urlPlaceholder": "https://example.com/webhook",
+      "secretKey": "Secret key (optional)",
+      "secretPlaceholder": "Key for validation",
+      "generate": "Generate",
+      "secretHint": "Sent in the X-Webhook-Secret header",
+      "events": "Events"
+    },
+    "table": {
+      "events": "Events",
+      "lastTrigger": "Last Trigger"
+    },
+    "events": {
+      "cadastro": "Number registered",
+      "consulta": "Query performed",
+      "atualizacao_status": "Status updated",
+      "atualizacao_obs": "Observations updated",
+      "atualizacao_status_obs": "Status + observations updated"
+    },
+    "validation": {
+      "nameUrlRequired": "Name and URL are required",
+      "selectAtLeastOneEvent": "Select at least one event"
+    },
+    "toast": {
+      "created": "Webhook created!",
+      "updated": "Webhook updated!",
+      "deleted": "Webhook deleted!",
+      "statusUpdated": "Status updated!",
+      "saveError": "Error saving"
+    }
+  },
   "dashboard": {
     "tasksNeedAttention": "Tasks that need attention",
     "overdueLabel": "Overdue",

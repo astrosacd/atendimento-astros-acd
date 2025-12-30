@@ -221,7 +221,7 @@ export default function AdminNumerosAquecimento() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Buscar por número ou observações..."
+                        placeholder={t('numberStatus.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -230,10 +230,10 @@ export default function AdminNumerosAquecimento() {
                   </div>
                   <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Filtrar por status" />
+                      <SelectValue placeholder={t('numberStatus.filterByStatus')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">Todos os status</SelectItem>
+                      <SelectItem value="__all__">{t('numberStatus.allStatuses')}</SelectItem>
                       {statusList.map((status) => (
                         <SelectItem key={status.id} value={status.id}>
                           {status.nome}
@@ -243,10 +243,10 @@ export default function AdminNumerosAquecimento() {
                   </Select>
                   <Select value={modeloFilter || '__all__'} onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Filtrar por modelo" />
+                      <SelectValue placeholder={t('numberStatus.filterByModel')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">Todos os modelos</SelectItem>
+                      <SelectItem value="__all__">{t('numberStatus.allModels')}</SelectItem>
                       {modelosList.map((modelo) => (
                         <SelectItem key={modelo.id} value={modelo.id}>
                           {modelo.nome}
@@ -265,11 +265,11 @@ export default function AdminNumerosAquecimento() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Modelo</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Última Atividade</TableHead>
-                        <TableHead>Observações</TableHead>
+                        <TableHead>{t('numberStatus.number')}</TableHead>
+                        <TableHead>{t('numberStatus.model')}</TableHead>
+                        <TableHead>{t('numberStatus.status')}</TableHead>
+                        <TableHead>{t('numberStatus.lastActivity')}</TableHead>
+                        <TableHead>{t('numberStatus.observations')}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -277,13 +277,13 @@ export default function AdminNumerosAquecimento() {
                       {isLoading ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Carregando...
+                            {t('numberStatus.loading')}
                           </TableCell>
                         </TableRow>
                       ) : paginatedNumeros.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Nenhum número encontrado
+                            {t('numberStatus.noNumbers')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -330,7 +330,7 @@ export default function AdminNumerosAquecimento() {
                 {/* Pagination */}
                 <div className="flex items-center justify-between p-4 border-t">
                   <div className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages || 1}
+                    {t('numberStatus.page')} {currentPage} {t('numberStatus.of')} {totalPages || 1}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -339,7 +339,7 @@ export default function AdminNumerosAquecimento() {
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
-                      Anterior
+                      {t('numberStatus.previous')}
                     </Button>
                     <Button
                       variant="outline"
@@ -347,7 +347,7 @@ export default function AdminNumerosAquecimento() {
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
                     >
-                      Próxima
+                      {t('numberStatus.next')}
                     </Button>
                   </div>
                 </div>
