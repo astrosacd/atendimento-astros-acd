@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,6 +55,7 @@ const CICLO_MESES: Record<string, number> = {
 };
 
 export default function AdminRelatorios() {
+  const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
@@ -401,8 +403,8 @@ export default function AdminRelatorios() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Relatórios Avançados</h1>
-            <p className="text-muted-foreground">Métricas de conversão, churn e LTV</p>
+            <h1 className="text-3xl font-bold">{t('reports.title')}</h1>
+            <p className="text-muted-foreground">{t('reports.subtitle')}</p>
           </div>
           <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
             <SelectTrigger className="w-40">
@@ -410,9 +412,9 @@ export default function AdminRelatorios() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="3">Últimos 3 meses</SelectItem>
-              <SelectItem value="6">Últimos 6 meses</SelectItem>
-              <SelectItem value="12">Últimos 12 meses</SelectItem>
+              <SelectItem value="3">{t('reports.last3Months')}</SelectItem>
+              <SelectItem value="6">{t('reports.last6Months')}</SelectItem>
+              <SelectItem value="12">{t('reports.last12Months')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

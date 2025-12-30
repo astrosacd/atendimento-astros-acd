@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -16,49 +17,50 @@ import GatewaySettings from './gateway/GatewaySettings';
 import GatewayReports from './gateway/GatewayReports';
 
 export default function AdminGateway() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
     <DashboardLayout>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Gateway de Pagamentos</h1>
-          <p className="text-muted-foreground">Gerencie produtos, pedidos e configurações de pagamento</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('gateway.title')}</h1>
+          <p className="text-muted-foreground">{t('gateway.subtitle')}</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
             <TabsTrigger value="dashboard" className="gap-2 data-[state=active]:bg-background">
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              {t('gateway.dashboard')}
             </TabsTrigger>
             <TabsTrigger value="produtos" className="gap-2 data-[state=active]:bg-background">
               <Package className="h-4 w-4" />
-              Produtos
+              {t('gateway.products')}
             </TabsTrigger>
             <TabsTrigger value="categorias" className="gap-2 data-[state=active]:bg-background">
               <FolderOpen className="h-4 w-4" />
-              Categorias
+              {t('gateway.categories')}
             </TabsTrigger>
             <TabsTrigger value="order-bumps" className="gap-2 data-[state=active]:bg-background">
               <Gift className="h-4 w-4" />
-              Order Bumps
+              {t('gateway.orderBumps')}
             </TabsTrigger>
             <TabsTrigger value="cupons" className="gap-2 data-[state=active]:bg-background">
               <Ticket className="h-4 w-4" />
-              Cupons
+              {t('gateway.coupons')}
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="gap-2 data-[state=active]:bg-background">
               <ShoppingCart className="h-4 w-4" />
-              Pedidos
+              {t('gateway.orders')}
             </TabsTrigger>
             <TabsTrigger value="configuracoes" className="gap-2 data-[state=active]:bg-background">
               <Settings className="h-4 w-4" />
-              Configurações
+              {t('gateway.settings')}
             </TabsTrigger>
             <TabsTrigger value="relatorios" className="gap-2 data-[state=active]:bg-background">
               <BarChart3 className="h-4 w-4" />
-              Relatórios
+              {t('gateway.reports')}
             </TabsTrigger>
           </TabsList>
 
