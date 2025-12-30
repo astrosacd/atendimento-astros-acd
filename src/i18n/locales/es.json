@@ -304,7 +304,17 @@
     "addNewClient": "Agregar nuevo cliente al sistema",
     "searchViewClients": "Buscar y ver clientes",
     "editClientInfo": "Editar información de clientes",
-    "removeClient": "Eliminar cliente del sistema"
+    "removeClient": "Eliminar cliente del sistema",
+    "tasksNeedAttention": "Tareas que necesitan atención",
+    "overdueLabel": "Atrasada",
+    "dueTodayLabel": "Vence hoy",
+    "viewAllTasks": "Ver todas las tareas",
+    "additionalMetricsTitle": "Métricas Adicionales",
+    "forecast30DaysBrl": "Previsión 30 días (R$)",
+    "forecast30DaysUsd": "Previsión 30 días ($)",
+    "clients": "clientes",
+    "registrations": "registros",
+    "last6Months": "Últimos 6 meses"
   },
   "clients": {
     "title": "Clientes",
@@ -939,20 +949,6 @@
       "statusUpdated": "¡Estado actualizado!",
       "saveError": "Error al guardar"
     }
-  },
-  "dashboard": {
-    "tasksNeedAttention": "Tareas que necesitan atención",
-    "overdueLabel": "Atrasada",
-    "dueTodayLabel": "Vence hoy",
-    "viewAllTasks": "Ver todas las tareas",
-    "additionalMetricsTitle": "Métricas Adicionales",
-    "forecast30DaysBrl": "Previsión 30 días (R$)",
-    "forecast30DaysUsd": "Previsión 30 días ($)",
-    "clients": "clientes",
-    "registrations": "registros",
-    "last6Months": "Últimos 6 meses",
-    "clientsByMonth": "Clientes por Mes",
-    "clientsByPlan": "Clientes por Plan"
   },
   "activities": {
     "title": "Logs de Actividad",
