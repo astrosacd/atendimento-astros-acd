@@ -1224,26 +1224,6 @@
     "errorSaving": "Error al guardar",
     "fillAllFields": "Complete todos los campos"
   },
-  "guide": {
-    "title": "Guía de Configuración",
-    "subtitle": "Aprenda a configurar y usar el sistema",
-    "back": "Volver",
-    "selectTopic": "Seleccione un tema para ver la guía",
-    "tips": "Consejos",
-    "groups": {
-      "communication": "Comunicación",
-      "integration": "Integraciones",
-      "usersPermissions": "Usuarios",
-      "tickets": "Tickets",
-      "financial": "Financiero",
-      "clients": "Clientes",
-      "broadcast": "Difusión",
-      "numbers": "Números",
-      "gateway": "Gateway",
-      "reports": "Informes",
-      "system": "Sistema"
-    }
-  },
   "billing": {
     "title": "Facturación Automática",
     "subtitle": "Gestione facturación automática y manual",

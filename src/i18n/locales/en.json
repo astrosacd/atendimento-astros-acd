@@ -1224,26 +1224,6 @@
     "errorSaving": "Error saving",
     "fillAllFields": "Fill in all fields"
   },
-  "guide": {
-    "title": "Configuration Guide",
-    "subtitle": "Learn how to configure and use the system",
-    "back": "Back",
-    "selectTopic": "Select a topic to view the guide",
-    "tips": "Tips",
-    "groups": {
-      "communication": "Communication",
-      "integration": "Integrations",
-      "usersPermissions": "Users",
-      "tickets": "Tickets",
-      "financial": "Financial",
-      "clients": "Clients",
-      "broadcast": "Broadcast",
-      "numbers": "Numbers",
-      "gateway": "Gateway",
-      "reports": "Reports",
-      "system": "System"
-    }
-  },
   "billing": {
     "title": "Automatic Billing",
     "subtitle": "Manage automatic and manual billing",
