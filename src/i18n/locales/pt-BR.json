@@ -1350,26 +1350,6 @@
     "errorSaving": "Erro ao salvar",
     "fillAllFields": "Preencha todos os campos"
   },
-  "guide": {
-    "title": "Guia de Configuração",
-    "subtitle": "Aprenda a configurar e usar o sistema",
-    "back": "Voltar",
-    "selectTopic": "Selecione um tópico para ver o guia",
-    "tips": "Dicas",
-    "groups": {
-      "communication": "Comunicação",
-      "integration": "Integrações",
-      "usersPermissions": "Usuários",
-      "tickets": "Chamados",
-      "financial": "Financeiro",
-      "clients": "Clientes",
-      "broadcast": "Divulgação",
-      "numbers": "Números",
-      "gateway": "Gateway",
-      "reports": "Relatórios",
-      "system": "Sistema"
-    }
-  },
   "billing": {
     "title": "Cobrança Automática",
     "subtitle": "Gerencie cobranças automáticas e manuais",
