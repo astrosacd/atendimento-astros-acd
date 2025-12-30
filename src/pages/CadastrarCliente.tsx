@@ -16,6 +16,7 @@ import { TagInput } from '@/components/TagInput';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
+import { useTranslation } from 'react-i18next';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
@@ -47,6 +48,7 @@ export default function CadastrarCliente() {
   const navigate = useNavigate();
   const { createCliente, isLoading } = useClientes();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -296,11 +298,11 @@ export default function CadastrarCliente() {
                   <UserPlus className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle className="text-2xl font-semibold text-foreground">
-                  Cadastro de Cliente
+                  {t('clients.register')}
                 </CardTitle>
               </div>
               <p className="text-center text-muted-foreground mt-2">
-                Selecione o tipo de cadastro
+                {t('clients.selectClientType')}
               </p>
             </CardHeader>
             <CardContent className="pt-8 pb-8">
@@ -316,18 +318,18 @@ export default function CadastrarCliente() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">
-                        Cobrança Mensal
+                        {t('clients.monthlyBilling')}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Cliente com renovação periódica e cobrança automática recorrente
+                        {t('clients.monthlyBillingDesc')}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 justify-center mt-2">
                       <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                        Renovação automática
+                        {t('clients.automaticRenewal')}
                       </span>
                       <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                        Lembretes de cobrança
+                        {t('clients.billingReminders')}
                       </span>
                     </div>
                   </div>
@@ -344,18 +346,18 @@ export default function CadastrarCliente() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">
-                        Registro
+                        {t('clients.registrationOnly')}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Cliente sem cobrança recorrente, apenas para armazenar informações e arquivos
+                        {t('clients.registrationOnlyDesc')}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 justify-center mt-2">
                       <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">
-                        Sem cobrança
+                        {t('clients.noBilling')}
                       </span>
                       <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">
-                        Upload de arquivos
+                        {t('clients.fileUpload')}
                       </span>
                     </div>
                   </div>
@@ -369,7 +371,7 @@ export default function CadastrarCliente() {
                 className="btn-3d w-full border-border text-muted-foreground hover:bg-secondary h-12 mt-8"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar ao Menu
+                {t('clients.backToMenu')}
               </Button>
             </CardContent>
           </Card>

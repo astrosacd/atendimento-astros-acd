@@ -26,9 +26,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from 'react-i18next';
 
 export default function AtualizarCliente() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { searchCliente, updateCliente, isLoading } = useClientes();
   const { toast } = useToast();
   
