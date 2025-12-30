@@ -38,6 +38,15 @@ interface WhatsAppInstance {
   is_active: boolean;
 }
 
+const normalizeCompanyLabel = (value: string): string => {
+  return (value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+};
+
 const generateProfessionalEmailHTML = (
   cliente: Cliente,
   paidAt: string,
@@ -49,7 +58,11 @@ const generateProfessionalEmailHTML = (
   const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
   const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
   const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
-  const currentYear = new Date().getFullYear();
+  const normalizedCompany = (companyName || '').trim();
+  const companyLine =
+    normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
+      ? `<p style="margin:0;color:#374151;font-size:15px;font-weight:600;">${normalizedCompany}</p>`
+      : '';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -165,8 +178,8 @@ const generateProfessionalEmailHTML = (
 <!-- Footer -->
 <tr>
 <td style="background-color:#f9fafb;padding:25px 40px;text-align:center;border-top:1px solid #e5e7eb;">
-<p style="margin:0;color:#374151;font-size:15px;font-weight:600;">${companyName}</p>
-<p style="margin:8px 0 0;color:#6b7280;font-size:13px;">Obrigado pela confianca!</p>
+${companyLine}
+<p style="margin:${companyLine ? '8px' : '0'} 0 0;color:#6b7280;font-size:13px;">Obrigado pela confianca!</p>
 <p style="margin:10px 0 0;color:#9ca3af;font-size:11px;">Este e um comprovante automatico. Guarde-o para sua referencia.</p>
 </td>
 </tr>
@@ -190,6 +203,11 @@ const generateProfessionalWhatsAppMessage = (
   const paidDate = new Date(paidAt).toLocaleDateString('pt-BR');
   const renewalDate = new Date(nextRenewal).toLocaleDateString('pt-BR');
   const receiptNumber = `REC-${Date.now().toString(36).toUpperCase()}`;
+  const normalizedCompany = (companyName || '').trim();
+  const companyBlock =
+    normalizedCompany && normalizeCompanyLabel(normalizedCompany) !== 'sistema de gestao'
+      ? `\n*${normalizedCompany}*`
+      : '';
 
   return `━━━━━━━━━━━━━━━━━━━━━━
 ✅ *RECIBO DE PAGAMENTO*
@@ -211,8 +229,7 @@ const generateProfessionalWhatsAppMessage = (
 
 📅 *Próxima Renovação:* ${renewalDate}
 
-━━━━━━━━━━━━━━━━━━━━━━
-*${companyName}*
+━━━━━━━━━━━━━━━━━━━━━━${companyBlock}
 🙏 Obrigado pela confiança!
 ━━━━━━━━━━━━━━━━━━━━━━`;
 };
@@ -374,7 +391,8 @@ serve(async (req) => {
     }
 
     const paymentDate = paidAt || new Date().toISOString();
-    const companyName = config.billing_sender_name || config.receipt_company_name || 'Sistema de Gestão';
+    const rawCompanyName = (config.billing_sender_name || config.receipt_company_name || '').trim();
+    const companyName = rawCompanyName && normalizeCompanyLabel(rawCompanyName) !== 'sistema de gestao' ? rawCompanyName : '';
     const results = {
       email: { sent: false, error: null as string | null },
       whatsapp: { sent: false, error: null as string | null },
