@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { formatCPFOrCNPJ } from '@/utils/formatters';
@@ -38,6 +39,7 @@ import { useClientes, Cliente } from '@/hooks/useClientes';
 
 export default function Tarefas() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isLoading, fetchTasksWithClients, createTask, updateTask, deleteTask, getTaskStats } = useClientTasks();
   const { fetchClientes } = useClientes();
   
@@ -177,10 +179,10 @@ export default function Tarefas() {
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
-      case 'baixa': return 'Baixa';
-      case 'media': return 'Média';
-      case 'alta': return 'Alta';
-      case 'urgente': return 'Urgente';
+      case 'baixa': return t('tasks.low');
+      case 'media': return t('tasks.medium');
+      case 'alta': return t('tasks.high');
+      case 'urgente': return t('tasks.urgent');
       default: return priority;
     }
   };
@@ -197,10 +199,10 @@ export default function Tarefas() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'pendente': return 'Pendente';
-      case 'em_andamento': return 'Em Andamento';
-      case 'concluida': return 'Concluída';
-      case 'cancelada': return 'Cancelada';
+      case 'pendente': return t('tasks.pending');
+      case 'em_andamento': return t('tasks.inProgress');
+      case 'concluida': return t('tasks.completed');
+      case 'cancelada': return t('tasks.cancelled');
       default: return status;
     }
   };
@@ -231,8 +233,8 @@ export default function Tarefas() {
               <ListTodo className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-display text-foreground">Tarefas</h1>
-              <p className="text-sm text-muted-foreground">Gerencie todas as tarefas dos clientes</p>
+              <h1 className="text-2xl font-bold font-display text-foreground">{t('tasks.title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('tasks.manageClientTasks')}</p>
             </div>
           </div>
           <Button 
@@ -240,7 +242,7 @@ export default function Tarefas() {
             onClick={() => handleOpenDialog()}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Tarefa
+            {t('tasks.newTask')}
           </Button>
         </div>
 
