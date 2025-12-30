@@ -838,10 +838,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-display text-foreground flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
-                    Cadastros por Mês
+                    {t('dashboard.clientsByMonth')}
                   </CardTitle>
                   <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    Últimos 6 meses
+                    {t('dashboard.last6Months')}
                   </span>
                 </div>
               </CardHeader>
@@ -880,7 +880,7 @@ export default function Dashboard() {
                         }}
                         labelStyle={{ color: 'hsl(0, 0%, 98%)', fontWeight: 'bold', marginBottom: '4px' }}
                         itemStyle={{ color: 'hsl(152, 76%, 55%)' }}
-                        formatter={(value: number) => [`${value} clientes`, 'Cadastros']}
+                        formatter={(value: number) => [`${value} ${t('dashboard.clients')}`, t('dashboard.registrations')]}
                         cursor={{ stroke: 'hsl(152, 76%, 45%)', strokeWidth: 1, strokeDasharray: '5 5' }}
                       />
                       <Area 
@@ -899,7 +899,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span>Total: {stats.clientesPorMes.reduce((acc, item) => acc + item.quantidade, 0)} cadastros</span>
+                    <span>{t('common.total')}: {stats.clientesPorMes.reduce((acc, item) => acc + item.quantidade, 0)} {t('dashboard.registrations')}</span>
                   </div>
                 </div>
               </CardContent>
@@ -911,10 +911,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-display text-foreground flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-info animate-pulse" />
-                    Clientes por Plano
+                    {t('dashboard.clientsByPlan')}
                   </CardTitle>
                   <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                    {stats.clientesPorPlano.reduce((acc, item) => acc + item.quantidade, 0)} clientes
+                    {stats.clientesPorPlano.reduce((acc, item) => acc + item.quantidade, 0)} {t('dashboard.clients')}
                   </span>
                 </div>
               </CardHeader>
