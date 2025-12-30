@@ -25,6 +25,7 @@ interface ClientPayment {
   paid_at: string | null;
   billing_date: string;
   created_at: string;
+  receipt_number: string | null;
 }
 
 export function usePaymentStatus() {

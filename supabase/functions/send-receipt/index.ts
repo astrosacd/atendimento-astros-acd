@@ -399,6 +399,20 @@ serve(async (req) => {
       whatsapp: { sent: false, error: null as string | null },
     };
 
+    // Save receipt number to the payment record if paymentId is provided
+    if (paymentId) {
+      const { error: updateError } = await supabase
+        .from('client_payments')
+        .update({ receipt_number: receiptNumber })
+        .eq('id', paymentId);
+      
+      if (updateError) {
+        console.log(`⚠️ Erro ao salvar número do recibo: ${updateError.message}`);
+      } else {
+        console.log(`📝 Número do recibo salvo: ${receiptNumber}`);
+      }
+    }
+
     // Send email receipt
     if (config.receipt_email_enabled === 'true') {
       const gmailUser = config.billing_gmail_user;
@@ -490,6 +504,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         results,
+        receiptNumber,
         cliente: {
           nome: cliente.nome,
           email: cliente.email,

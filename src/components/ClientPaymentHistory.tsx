@@ -13,7 +13,8 @@ import {
   DollarSign,
   QrCode,
   Link as LinkIcon,
-  FileText
+  FileText,
+  Receipt
 } from 'lucide-react';
 
 interface Payment {
@@ -27,6 +28,7 @@ interface Payment {
   paid_at: string | null;
   billing_date: string;
   created_at: string;
+  receipt_number: string | null;
 }
 
 interface ClientPaymentHistoryProps {
@@ -302,19 +304,25 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                   <div className="p-2 rounded-lg bg-background/50">
                                     {getPaymentTypeIcon(payment.payment_type)}
                                   </div>
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-sm">{getPaymentTypeLabel(payment.payment_type)}</span>
-                                      <span className={`font-bold ${currency === 'USD' ? 'text-purple-400' : 'text-primary'}`}>
-                                        {formatCurrency(payment.amount, currency)}
-                                      </span>
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm">{getPaymentTypeLabel(payment.payment_type)}</span>
+                                        <span className={`font-bold ${currency === 'USD' ? 'text-purple-400' : 'text-primary'}`}>
+                                          {formatCurrency(payment.amount, currency)}
+                                        </span>
+                                      </div>
+                                      {payment.receipt_number && (
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Receipt className="w-3 h-3" />
+                                          {payment.receipt_number}
+                                        </p>
+                                      )}
+                                      {payment.paid_at && (
+                                        <p className="text-xs text-emerald-400">
+                                          Pago em {formatDateTime(payment.paid_at)}
+                                        </p>
+                                      )}
                                     </div>
-                                    {payment.paid_at && (
-                                      <p className="text-xs text-emerald-400">
-                                        Pago em {formatDateTime(payment.paid_at)}
-                                      </p>
-                                    )}
-                                  </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {getStatusBadge(payment.status)}
