@@ -163,8 +163,7 @@ export const useClientTasks = () => {
         .from('client_tasks')
         .select(`
           *,
-          clientes:cliente_id (nome),
-          profiles:created_by (name)
+          clientes:cliente_id (nome)
         `)
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -183,12 +182,29 @@ export const useClientTasks = () => {
 
       if (error) throw error;
       
-      return (data || []).map((task: any) => ({
+      // Fetch creator names separately
+      const tasks = data || [];
+      const creatorIds = [...new Set(tasks.map((t: any) => t.created_by).filter(Boolean))];
+      
+      let creatorNames: Record<string, string> = {};
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, name')
+          .in('user_id', creatorIds);
+        
+        if (profiles) {
+          profiles.forEach((p: any) => {
+            creatorNames[p.user_id] = p.name;
+          });
+        }
+      }
+      
+      return tasks.map((task: any) => ({
         ...task,
         cliente_nome: task.clientes?.nome || null,
-        created_by_name: task.profiles?.name || null,
+        created_by_name: task.created_by ? creatorNames[task.created_by] || null : null,
         clientes: undefined,
-        profiles: undefined,
       })) as ClientTask[];
     } catch (error: any) {
       console.error('Error fetching tasks:', error);
