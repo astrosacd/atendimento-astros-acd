@@ -31,9 +31,82 @@ export interface CreateTaskInput {
   assigned_to_email?: string | null;
 }
 
+export interface TaskHistoryEntry {
+  id: string;
+  task_id: string | null;
+  action: 'created' | 'updated' | 'deleted' | 'status_changed';
+  user_id: string | null;
+  user_email: string | null;
+  user_name: string | null;
+  previous_data: Record<string, any> | null;
+  new_data: Record<string, any> | null;
+  changed_fields: string[] | null;
+  created_at: string;
+}
+
 export const useClientTasks = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Helper function to log task history
+  const logTaskHistory = async (
+    taskId: string | null,
+    action: 'created' | 'updated' | 'deleted' | 'status_changed',
+    previousData: Record<string, any> | null,
+    newData: Record<string, any> | null,
+    changedFields: string[] | null
+  ) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+
+      // Get user name from profiles
+      let userName = null;
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', user.id)
+          .single();
+        userName = profile?.name || null;
+      }
+
+      await supabase
+        .from('client_tasks_history')
+        .insert({
+          task_id: taskId,
+          action,
+          user_id: user?.id || null,
+          user_email: user?.email || null,
+          user_name: userName,
+          previous_data: previousData,
+          new_data: newData,
+          changed_fields: changedFields,
+        });
+    } catch (error) {
+      console.error('Error logging task history:', error);
+    }
+  };
+
+  // Calculate changed fields between two objects
+  const getChangedFields = (
+    previous: Record<string, any>,
+    updated: Record<string, any>
+  ): string[] => {
+    const changedFields: string[] = [];
+    const allKeys = new Set([...Object.keys(previous), ...Object.keys(updated)]);
+    
+    allKeys.forEach(key => {
+      // Skip internal fields
+      if (['updated_at', 'created_at', 'id'].includes(key)) return;
+      
+      if (JSON.stringify(previous[key]) !== JSON.stringify(updated[key])) {
+        changedFields.push(key);
+      }
+    });
+    
+    return changedFields;
+  };
 
   const fetchTasks = async (filters?: {
     cliente_id?: string;
@@ -135,6 +208,9 @@ export const useClientTasks = () => {
 
       if (error) throw error;
 
+      // Log history
+      await logTaskHistory(data.id, 'created', null, data, null);
+
       toast({
         title: 'Tarefa criada',
         description: 'A tarefa foi criada com sucesso.',
@@ -157,6 +233,15 @@ export const useClientTasks = () => {
   const updateTask = async (id: string, updates: Partial<ClientTask>): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Fetch current task data before update
+      const { data: previousTask, error: fetchError } = await supabase
+        .from('client_tasks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       // If marking as complete, set completed_at
       if (updates.status === 'concluida' && !updates.completed_at) {
         updates.completed_at = new Date().toISOString();
@@ -166,12 +251,23 @@ export const useClientTasks = () => {
         updates.completed_at = null;
       }
 
-      const { error } = await supabase
+      const { data: updatedTask, error } = await supabase
         .from('client_tasks')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Determine action type and changed fields
+      const changedFields = getChangedFields(previousTask, updatedTask);
+      const action = changedFields.length === 1 && changedFields[0] === 'status' 
+        ? 'status_changed' 
+        : 'updated';
+
+      // Log history
+      await logTaskHistory(id, action, previousTask, updatedTask, changedFields);
 
       toast({
         title: 'Tarefa atualizada',
@@ -195,6 +291,18 @@ export const useClientTasks = () => {
   const deleteTask = async (id: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Fetch task data before delete
+      const { data: taskData, error: fetchError } = await supabase
+        .from('client_tasks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Log history BEFORE delete (because task_id will be null after delete)
+      await logTaskHistory(id, 'deleted', taskData, null, null);
+
       const { error } = await supabase
         .from('client_tasks')
         .delete()
@@ -218,6 +326,28 @@ export const useClientTasks = () => {
       return false;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTaskHistory = async (taskId?: string): Promise<TaskHistoryEntry[]> => {
+    try {
+      let query = supabase
+        .from('client_tasks_history')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (taskId) {
+        query = query.eq('task_id', taskId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return (data || []) as TaskHistoryEntry[];
+    } catch (error: any) {
+      console.error('Error fetching task history:', error);
+      return [];
     }
   };
 
@@ -320,6 +450,7 @@ export const useClientTasks = () => {
     createTask,
     updateTask,
     deleteTask,
+    fetchTaskHistory,
     getTaskStats,
     getUrgentTasks,
   };

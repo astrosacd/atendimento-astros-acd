@@ -30,12 +30,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, 
-  Plus, Filter, RefreshCw, ListTodo, User, Search
+  Plus, Filter, RefreshCw, ListTodo, User, Search, History
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useClientes, Cliente } from '@/hooks/useClientes';
+import { TaskHistoryDialog } from '@/components/TaskHistoryDialog';
 
 export default function Tarefas() {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ export default function Tarefas() {
   });
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ClientTask | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   
@@ -237,13 +239,23 @@ export default function Tarefas() {
               <p className="text-sm text-muted-foreground">{t('tasks.manageClientTasks')}</p>
             </div>
           </div>
-          <Button 
-            className="bg-primary text-primary-foreground"
-            onClick={() => handleOpenDialog()}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t('tasks.newTask')}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setIsHistoryOpen(true)}
+              className="border-border"
+            >
+              <History className="h-4 w-4 mr-2" />
+              {t('tasks.history.title', 'Histórico')}
+            </Button>
+            <Button 
+              className="bg-primary text-primary-foreground"
+              onClick={() => handleOpenDialog()}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t('tasks.newTask')}
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -583,6 +595,12 @@ export default function Tarefas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Task History Dialog */}
+      <TaskHistoryDialog 
+        open={isHistoryOpen} 
+        onOpenChange={setIsHistoryOpen} 
+      />
     </DashboardLayout>
   );
 }
