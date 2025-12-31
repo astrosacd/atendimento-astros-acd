@@ -65,7 +65,14 @@ export default function Tarefas() {
     title: '',
     description: '',
     due_date: '' as string | null,
-    priority: 'media' as 'baixa' | 'media' | 'alta' | 'urgente',
+    priority: '' as '' | 'baixa' | 'media' | 'alta' | 'urgente',
+  });
+
+  const [formErrors, setFormErrors] = useState({
+    title: false,
+    description: false,
+    due_date: false,
+    priority: false,
   });
 
   useEffect(() => {
@@ -100,7 +107,13 @@ export default function Tarefas() {
       title: '',
       description: '',
       due_date: null,
-      priority: 'media',
+      priority: '',
+    });
+    setFormErrors({
+      title: false,
+      description: false,
+      due_date: false,
+      priority: false,
     });
     setEditingTask(null);
   };
@@ -121,8 +134,23 @@ export default function Tarefas() {
     setIsDialogOpen(true);
   };
 
+  const validateForm = () => {
+    const errors = {
+      title: !formData.title.trim(),
+      description: !formData.description.trim(),
+      due_date: !formData.due_date,
+      priority: !formData.priority,
+    };
+    setFormErrors(errors);
+    return !Object.values(errors).some(Boolean);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
     
     if (editingTask) {
       const success = await updateTask(editingTask.id, {
@@ -130,7 +158,7 @@ export default function Tarefas() {
         title: formData.title,
         description: formData.description,
         due_date: formData.due_date ? `${formData.due_date}T12:00:00Z` : null,
-        priority: formData.priority,
+        priority: formData.priority as 'baixa' | 'media' | 'alta' | 'urgente',
       });
       if (success) {
         setIsDialogOpen(false);
@@ -143,7 +171,7 @@ export default function Tarefas() {
         title: formData.title,
         description: formData.description,
         due_date: formData.due_date ? `${formData.due_date}T12:00:00Z` : null,
-        priority: formData.priority,
+        priority: formData.priority as 'baixa' | 'media' | 'alta' | 'urgente',
       });
       if (task) {
         setIsDialogOpen(false);
@@ -529,43 +557,63 @@ export default function Tarefas() {
               <Label className="text-foreground">Título *</Label>
               <Input
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  if (e.target.value.trim()) setFormErrors({ ...formErrors, title: false });
+                }}
                 placeholder="Ex: Ligar sobre renovação"
-                required
-                className="bg-secondary border-border text-foreground"
+                className={`bg-secondary border-border text-foreground ${formErrors.title ? 'border-destructive' : ''}`}
               />
+              {formErrors.title && (
+                <p className="text-xs text-destructive">Título é obrigatório</p>
+              )}
             </div>
             
             <div className="space-y-2">
-              <Label className="text-foreground">Descrição</Label>
+              <Label className="text-foreground">Descrição *</Label>
               <Textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  if (e.target.value.trim()) setFormErrors({ ...formErrors, description: false });
+                }}
                 placeholder="Detalhes da tarefa..."
-                className="bg-secondary border-border text-foreground"
+                className={`bg-secondary border-border text-foreground ${formErrors.description ? 'border-destructive' : ''}`}
                 rows={3}
               />
+              {formErrors.description && (
+                <p className="text-xs text-destructive">Descrição é obrigatória</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-foreground">Data Limite</Label>
+                <Label className="text-foreground">Data Limite *</Label>
                 <Input
                   type="date"
                   value={formData.due_date || ''}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value || null })}
-                  className="bg-secondary border-border text-foreground"
+                  onChange={(e) => {
+                    setFormData({ ...formData, due_date: e.target.value || null });
+                    if (e.target.value) setFormErrors({ ...formErrors, due_date: false });
+                  }}
+                  className={`bg-secondary border-border text-foreground ${formErrors.due_date ? 'border-destructive' : ''}`}
                 />
+                {formErrors.due_date && (
+                  <p className="text-xs text-destructive">Data limite é obrigatória</p>
+                )}
               </div>
               
               <div className="space-y-2">
-                <Label className="text-foreground">Prioridade</Label>
+                <Label className="text-foreground">Prioridade *</Label>
                 <Select
                   value={formData.priority}
-                  onValueChange={(value: any) => setFormData({ ...formData, priority: value })}
+                  onValueChange={(value: any) => {
+                    setFormData({ ...formData, priority: value });
+                    if (value) setFormErrors({ ...formErrors, priority: false });
+                  }}
                 >
-                  <SelectTrigger className="bg-secondary border-border text-foreground">
-                    <SelectValue />
+                  <SelectTrigger className={`bg-secondary border-border text-foreground ${formErrors.priority ? 'border-destructive' : ''}`}>
+                    <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
                     <SelectItem value="baixa">Baixa</SelectItem>
@@ -574,6 +622,9 @@ export default function Tarefas() {
                     <SelectItem value="urgente">Urgente</SelectItem>
                   </SelectContent>
                 </Select>
+                {formErrors.priority && (
+                  <p className="text-xs text-destructive">Prioridade é obrigatória</p>
+                )}
               </div>
             </div>
 
