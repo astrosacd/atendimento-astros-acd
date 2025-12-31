@@ -792,6 +792,7 @@ export type Database = {
           assigned_to: string | null
           assigned_to_email: string | null
           cliente_id: string | null
+          codigo: string | null
           completed_at: string | null
           created_at: string
           created_by: string | null
@@ -808,6 +809,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_email?: string | null
           cliente_id?: string | null
+          codigo?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -824,6 +826,7 @@ export type Database = {
           assigned_to?: string | null
           assigned_to_email?: string | null
           cliente_id?: string | null
+          codigo?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -851,6 +854,7 @@ export type Database = {
           action: string
           changed_fields: string[] | null
           created_at: string
+          deletion_reason: string | null
           id: string
           new_data: Json | null
           previous_data: Json | null
@@ -863,6 +867,7 @@ export type Database = {
           action: string
           changed_fields?: string[] | null
           created_at?: string
+          deletion_reason?: string | null
           id?: string
           new_data?: Json | null
           previous_data?: Json | null
@@ -875,6 +880,7 @@ export type Database = {
           action?: string
           changed_fields?: string[] | null
           created_at?: string
+          deletion_reason?: string | null
           id?: string
           new_data?: Json | null
           previous_data?: Json | null

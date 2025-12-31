@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface ClientTask {
   id: string;
+  codigo: string | null;
   cliente_id: string | null;
   title: string;
   description: string | null;
@@ -19,6 +20,7 @@ export interface ClientTask {
   updated_at: string;
   // Joined fields
   cliente_nome?: string;
+  created_by_name?: string;
 }
 
 export interface CreateTaskInput {
@@ -41,6 +43,7 @@ export interface TaskHistoryEntry {
   previous_data: Record<string, any> | null;
   new_data: Record<string, any> | null;
   changed_fields: string[] | null;
+  deletion_reason: string | null;
   created_at: string;
 }
 
@@ -54,7 +57,8 @@ export const useClientTasks = () => {
     action: 'created' | 'updated' | 'deleted' | 'status_changed',
     previousData: Record<string, any> | null,
     newData: Record<string, any> | null,
-    changedFields: string[] | null
+    changedFields: string[] | null,
+    deletionReason?: string | null
   ) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -82,6 +86,7 @@ export const useClientTasks = () => {
           previous_data: previousData,
           new_data: newData,
           changed_fields: changedFields,
+          deletion_reason: deletionReason || null,
         });
     } catch (error) {
       console.error('Error logging task history:', error);
@@ -158,7 +163,8 @@ export const useClientTasks = () => {
         .from('client_tasks')
         .select(`
           *,
-          clientes:cliente_id (nome)
+          clientes:cliente_id (nome),
+          profiles:created_by (name)
         `)
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -180,7 +186,9 @@ export const useClientTasks = () => {
       return (data || []).map((task: any) => ({
         ...task,
         cliente_nome: task.clientes?.nome || null,
+        created_by_name: task.profiles?.name || null,
         clientes: undefined,
+        profiles: undefined,
       })) as ClientTask[];
     } catch (error: any) {
       console.error('Error fetching tasks:', error);
@@ -288,7 +296,7 @@ export const useClientTasks = () => {
     }
   };
 
-  const deleteTask = async (id: string): Promise<boolean> => {
+  const deleteTask = async (id: string, deletionReason?: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Fetch task data before delete
@@ -301,7 +309,7 @@ export const useClientTasks = () => {
       if (fetchError) throw fetchError;
 
       // Log history BEFORE delete (because task_id will be null after delete)
-      await logTaskHistory(id, 'deleted', taskData, null, null);
+      await logTaskHistory(id, 'deleted', taskData, null, null, deletionReason);
 
       const { error } = await supabase
         .from('client_tasks')

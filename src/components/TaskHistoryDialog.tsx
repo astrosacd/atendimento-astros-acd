@@ -145,9 +145,20 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
 
     if (entry.action === 'deleted' && entry.previous_data) {
       return (
-        <div className="mt-2 text-xs text-muted-foreground">
-          <span className="font-medium">{t('tasks.history.taskDeleted', 'Tarefa excluída')}: </span>
-          {entry.previous_data.title}
+        <div className="mt-2 text-xs space-y-1">
+          <div className="text-muted-foreground">
+            <span className="font-medium">{t('tasks.history.taskDeleted', 'Tarefa excluída')}: </span>
+            {entry.previous_data.title}
+            {entry.previous_data.codigo && (
+              <span className="ml-2 font-mono text-muted-foreground/60">({entry.previous_data.codigo})</span>
+            )}
+          </div>
+          {entry.deletion_reason && (
+            <div className="text-warning bg-warning/10 rounded px-2 py-1">
+              <span className="font-medium">{t('tasks.history.deletionReason', 'Motivo')}: </span>
+              {entry.deletion_reason}
+            </div>
+          )}
         </div>
       );
     }
@@ -198,17 +209,17 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
               <p className="text-muted-foreground">{t('tasks.history.noHistory', 'Nenhum histórico encontrado')}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pl-2">
               {history.map((entry) => (
                 <div 
                   key={entry.id} 
-                  className="relative pl-8 pb-4 border-l-2 border-border last:border-l-0"
+                  className="relative pl-10 pb-4 border-l-2 border-border last:border-l-0"
                 >
-                  <div className="absolute left-[-9px] top-0 p-1 bg-card rounded-full border border-border">
+                  <div className="absolute left-[-12px] top-0 p-1.5 bg-card rounded-full border border-border">
                     {getActionIcon(entry.action)}
                   </div>
                   
-                  <div className="bg-secondary/30 rounded-lg p-3">
+                  <div className="bg-secondary/30 rounded-lg p-3 ml-2">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Badge className={`text-xs ${getActionBadgeVariant(entry.action)}`}>
@@ -222,7 +233,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
                     </div>
                     
                     <div className="flex items-center gap-2 mt-2 text-sm">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="font-medium text-foreground">{entry.user_name || t('tasks.history.unknownUser', 'Usuário desconhecido')}</span>
                       {entry.user_email && (
                         <span className="text-muted-foreground text-xs">({entry.user_email})</span>

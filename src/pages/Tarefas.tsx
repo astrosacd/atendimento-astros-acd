@@ -58,6 +58,7 @@ export default function Tarefas() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ClientTask | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
   
   const [formData, setFormData] = useState({
     cliente_id: '' as string | null,
@@ -161,9 +162,10 @@ export default function Tarefas() {
 
   const handleDelete = async () => {
     if (deleteTaskId) {
-      const success = await deleteTask(deleteTaskId);
+      const success = await deleteTask(deleteTaskId, deleteReason || undefined);
       if (success) {
         setDeleteTaskId(null);
+        setDeleteReason('');
         loadData();
       }
     }
@@ -218,7 +220,8 @@ export default function Tarefas() {
     if (filters.search) {
       const search = filters.search.toLowerCase();
       if (!task.title.toLowerCase().includes(search) && 
-          !task.cliente_nome?.toLowerCase().includes(search)) {
+          !task.cliente_nome?.toLowerCase().includes(search) &&
+          !task.codigo?.toLowerCase().includes(search)) {
         return false;
       }
     }
@@ -414,6 +417,11 @@ export default function Tarefas() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {task.codigo && (
+                          <Badge variant="secondary" className="text-xs font-mono bg-muted text-muted-foreground">
+                            {task.codigo}
+                          </Badge>
+                        )}
                         <span className={`font-medium text-foreground ${task.status === 'concluida' ? 'line-through opacity-60' : ''}`}>
                           {task.title}
                         </span>
@@ -429,7 +437,7 @@ export default function Tarefas() {
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
                       )}
                       
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                         {task.cliente_nome && (
                           <div className="flex items-center gap-1">
                             <User className="h-3 w-3" />
@@ -445,6 +453,17 @@ export default function Tarefas() {
                         <span className="text-muted-foreground/60">
                           {getStatusLabel(task.status)}
                         </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground/60">
+                        <span>
+                          {t('tasks.createdAt', 'Criado em')}: {format(new Date(task.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </span>
+                        {(task.created_by_name || task.created_by_email) && (
+                          <span>
+                            {t('tasks.createdBy', 'por')}: {task.created_by_name || task.created_by_email}
+                          </span>
+                        )}
                       </div>
                     </div>
                     
@@ -579,18 +598,37 @@ export default function Tarefas() {
       <AlertDialog open={!!deleteTaskId} onOpenChange={() => setDeleteTaskId(null)}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Excluir Tarefa</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">{t('tasks.deleteTask', 'Excluir Tarefa')}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.
+              {t('tasks.deleteConfirmation', 'Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="delete-reason" className="text-foreground">
+              {t('tasks.deletionReason', 'Motivo da exclusão')} *
+            </Label>
+            <Textarea
+              id="delete-reason"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder={t('tasks.deletionReasonPlaceholder', 'Informe o motivo da exclusão...')}
+              className="mt-2 bg-secondary border-border text-foreground"
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel 
+              className="border-border"
+              onClick={() => { setDeleteTaskId(null); setDeleteReason(''); }}
+            >
+              {t('common.cancel', 'Cancelar')}
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!deleteReason.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
             >
-              Excluir
+              {t('common.delete', 'Excluir')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
