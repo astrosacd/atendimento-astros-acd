@@ -10,6 +10,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
   History,
   Plus,
@@ -20,8 +28,9 @@ import {
   Calendar,
   Clock,
   Search,
+  X,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface TaskHistoryDialogProps {
@@ -36,6 +45,8 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (open) {
@@ -48,6 +59,11 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
     const data = await fetchTaskHistory(taskId);
     setHistory(data);
     setIsLoading(false);
+  };
+
+  const clearDateFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
   };
 
   const getActionIcon = (action: string) => {
@@ -206,30 +222,56 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
   };
 
   const filteredHistory = useMemo(() => {
+    let filtered = history;
+
+    // Date range filter
+    if (startDate || endDate) {
+      filtered = filtered.filter((entry) => {
+        const entryDate = new Date(entry.created_at);
+        
+        if (startDate && endDate) {
+          return isWithinInterval(entryDate, {
+            start: startOfDay(startDate),
+            end: endOfDay(endDate),
+          });
+        } else if (startDate) {
+          return entryDate >= startOfDay(startDate);
+        } else if (endDate) {
+          return entryDate <= endOfDay(endDate);
+        }
+        return true;
+      });
+    }
+
+    // Text search filter
     const q = search.trim().toLowerCase();
-    if (!q) return history;
+    if (q) {
+      filtered = filtered.filter((entry) => {
+        const action = getActionLabel(entry.action).toLowerCase();
+        const user = `${entry.user_name || ''} ${entry.user_email || ''}`.toLowerCase();
 
-    return history.filter((entry) => {
-      const action = getActionLabel(entry.action).toLowerCase();
-      const user = `${entry.user_name || ''} ${entry.user_email || ''}`.toLowerCase();
+        const titleFromNew = (entry.new_data?.title || '').toLowerCase();
+        const titleFromPrev = (entry.previous_data?.title || '').toLowerCase();
+        const codeFromNew = (entry.new_data?.codigo || '').toLowerCase();
+        const codeFromPrev = (entry.previous_data?.codigo || '').toLowerCase();
+        const reason = (entry.deletion_reason || '').toLowerCase();
 
-      const titleFromNew = (entry.new_data?.title || '').toLowerCase();
-      const titleFromPrev = (entry.previous_data?.title || '').toLowerCase();
-      const codeFromNew = (entry.new_data?.codigo || '').toLowerCase();
-      const codeFromPrev = (entry.previous_data?.codigo || '').toLowerCase();
-      const reason = (entry.deletion_reason || '').toLowerCase();
+        return (
+          action.includes(q) ||
+          user.includes(q) ||
+          titleFromNew.includes(q) ||
+          titleFromPrev.includes(q) ||
+          codeFromNew.includes(q) ||
+          codeFromPrev.includes(q) ||
+          reason.includes(q)
+        );
+      });
+    }
 
-      return (
-        action.includes(q) ||
-        user.includes(q) ||
-        titleFromNew.includes(q) ||
-        titleFromPrev.includes(q) ||
-        codeFromNew.includes(q) ||
-        codeFromPrev.includes(q) ||
-        reason.includes(q)
-      );
-    });
-  }, [history, search, t]);
+    return filtered;
+  }, [history, search, startDate, endDate, t]);
+
+  const hasActiveFilters = search.trim() || startDate || endDate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -241,17 +283,89 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
           </DialogTitle>
         </DialogHeader>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('tasks.history.searchPlaceholder', 'Pesquisar no histórico (título, código, usuário...)')}
-            className="pl-10 bg-secondary border-border text-foreground"
-          />
+        {/* Search and Date Filters */}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('tasks.history.searchPlaceholder', 'Pesquisar no histórico (título, código, usuário...)')}
+              className="pl-10 bg-secondary border-border text-foreground"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Start Date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'justify-start text-left font-normal border-border',
+                    !startDate && 'text-muted-foreground'
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, 'dd/MM/yyyy', { locale: ptBR }) : t('tasks.history.startDate', 'Data início')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className={cn('p-3 pointer-events-auto')}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* End Date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'justify-start text-left font-normal border-border',
+                    !endDate && 'text-muted-foreground'
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, 'dd/MM/yyyy', { locale: ptBR }) : t('tasks.history.endDate', 'Data fim')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-card border-border z-50" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  className={cn('p-3 pointer-events-auto')}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Clear filters button */}
+            {(startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearDateFilters}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                {t('tasks.history.clearDates', 'Limpar datas')}
+              </Button>
+            )}
+          </div>
         </div>
 
-        <ScrollArea className="h-[60vh] pr-4">
+        <ScrollArea className="h-[55vh] pr-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Clock className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -260,7 +374,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
             <div className="text-center py-8">
               <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {search.trim()
+                {hasActiveFilters
                   ? t('tasks.history.noResults', 'Nenhum resultado para a pesquisa')
                   : t('tasks.history.noHistory', 'Nenhum histórico encontrado')}
               </p>
@@ -269,7 +383,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
             <div className="space-y-4">
               {filteredHistory.map((entry, idx) => (
                 <div key={entry.id} className="flex gap-3">
-                  {/* Timeline column (kept inside viewport so it won't be clipped by ScrollArea) */}
+                  {/* Timeline column */}
                   <div className="relative flex flex-col items-center w-8 flex-shrink-0">
                     <div className="p-1.5 bg-card rounded-full border border-border">
                       {getActionIcon(entry.action)}
