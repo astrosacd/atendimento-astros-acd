@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useClientTasks, TaskHistoryEntry } from '@/hooks/useClientTasks';
 import {
@@ -9,8 +9,17 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  History, Plus, Pencil, Trash2, ArrowRightLeft, User, Calendar, Clock
+import { Input } from '@/components/ui/input';
+import {
+  History,
+  Plus,
+  Pencil,
+  Trash2,
+  ArrowRightLeft,
+  User,
+  Calendar,
+  Clock,
+  Search,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -26,6 +35,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
   const { fetchTaskHistory } = useClientTasks();
   const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -101,7 +111,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
 
   const formatValue = (field: string, value: any) => {
     if (value === null || value === undefined) return '-';
-    
+
     if (field === 'priority') {
       const labels: Record<string, string> = {
         baixa: t('tasks.low', 'Baixa'),
@@ -111,7 +121,7 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
       };
       return labels[value] || value;
     }
-    
+
     if (field === 'status') {
       const labels: Record<string, string> = {
         pendente: t('tasks.pending', 'Pendente'),
@@ -121,15 +131,15 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
       };
       return labels[value] || value;
     }
-    
+
     if (field === 'due_date' || field === 'completed_at') {
       try {
-        return format(new Date(value), "dd/MM/yyyy HH:mm", { locale: ptBR });
+        return format(new Date(value), 'dd/MM/yyyy HH:mm', { locale: ptBR });
       } catch {
         return value;
       }
     }
-    
+
     return String(value);
   };
 
@@ -139,6 +149,9 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
         <div className="mt-2 text-xs text-muted-foreground">
           <span className="font-medium">{t('tasks.history.taskCreated', 'Tarefa criada')}: </span>
           {entry.new_data.title}
+          {entry.new_data.codigo && (
+            <span className="ml-2 font-mono text-muted-foreground/60">({entry.new_data.codigo})</span>
+          )}
         </div>
       );
     }
@@ -163,17 +176,21 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
       );
     }
 
-    if ((entry.action === 'updated' || entry.action === 'status_changed') && entry.changed_fields && entry.changed_fields.length > 0) {
+    if (
+      (entry.action === 'updated' || entry.action === 'status_changed') &&
+      entry.changed_fields &&
+      entry.changed_fields.length > 0
+    ) {
       return (
         <div className="mt-2 space-y-1">
           {entry.changed_fields.map((field) => {
             const previousValue = entry.previous_data?.[field];
             const newValue = entry.new_data?.[field];
-            
+
             return (
               <div key={field} className="text-xs">
                 <span className="font-medium text-muted-foreground">{getFieldLabel(field)}:</span>
-                <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-2 ml-2 flex-wrap">
                   <span className="text-destructive/80 line-through">{formatValue(field, previousValue)}</span>
                   <span className="text-muted-foreground">→</span>
                   <span className="text-primary">{formatValue(field, newValue)}</span>
@@ -188,6 +205,32 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
     return null;
   };
 
+  const filteredHistory = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return history;
+
+    return history.filter((entry) => {
+      const action = getActionLabel(entry.action).toLowerCase();
+      const user = `${entry.user_name || ''} ${entry.user_email || ''}`.toLowerCase();
+
+      const titleFromNew = (entry.new_data?.title || '').toLowerCase();
+      const titleFromPrev = (entry.previous_data?.title || '').toLowerCase();
+      const codeFromNew = (entry.new_data?.codigo || '').toLowerCase();
+      const codeFromPrev = (entry.previous_data?.codigo || '').toLowerCase();
+      const reason = (entry.deletion_reason || '').toLowerCase();
+
+      return (
+        action.includes(q) ||
+        user.includes(q) ||
+        titleFromNew.includes(q) ||
+        titleFromPrev.includes(q) ||
+        codeFromNew.includes(q) ||
+        codeFromPrev.includes(q) ||
+        reason.includes(q)
+      );
+    });
+  }, [history, search, t]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col bg-card border-border">
@@ -198,28 +241,45 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4 max-h-[60vh]">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('tasks.history.searchPlaceholder', 'Pesquisar no histórico (título, código, usuário...)')}
+            className="pl-10 bg-secondary border-border text-foreground"
+          />
+        </div>
+
+        <ScrollArea className="h-[60vh] pr-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Clock className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : history.length === 0 ? (
+          ) : filteredHistory.length === 0 ? (
             <div className="text-center py-8">
               <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">{t('tasks.history.noHistory', 'Nenhum histórico encontrado')}</p>
+              <p className="text-muted-foreground">
+                {search.trim()
+                  ? t('tasks.history.noResults', 'Nenhum resultado para a pesquisa')
+                  : t('tasks.history.noHistory', 'Nenhum histórico encontrado')}
+              </p>
             </div>
           ) : (
-            <div className="space-y-4 pl-2">
-              {history.map((entry) => (
-                <div 
-                  key={entry.id} 
-                  className="relative pl-10 pb-4 border-l-2 border-border last:border-l-0"
-                >
-                  <div className="absolute left-[-12px] top-0 p-1.5 bg-card rounded-full border border-border">
-                    {getActionIcon(entry.action)}
+            <div className="space-y-4">
+              {filteredHistory.map((entry, idx) => (
+                <div key={entry.id} className="flex gap-3">
+                  {/* Timeline column (kept inside viewport so it won't be clipped by ScrollArea) */}
+                  <div className="relative flex flex-col items-center w-8 flex-shrink-0">
+                    <div className="p-1.5 bg-card rounded-full border border-border">
+                      {getActionIcon(entry.action)}
+                    </div>
+                    {idx !== filteredHistory.length - 1 && (
+                      <div className="w-px flex-1 bg-border mt-2" />
+                    )}
                   </div>
-                  
-                  <div className="bg-secondary/30 rounded-lg p-3 ml-2">
+
+                  <div className="bg-secondary/30 rounded-lg p-3 flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Badge className={`text-xs ${getActionBadgeVariant(entry.action)}`}>
@@ -231,15 +291,17 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
                         {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 mt-2 text-sm">
+
+                    <div className="flex items-center gap-2 mt-2 text-sm min-w-0">
                       <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="font-medium text-foreground">{entry.user_name || t('tasks.history.unknownUser', 'Usuário desconhecido')}</span>
+                      <span className="font-medium text-foreground truncate">
+                        {entry.user_name || t('tasks.history.unknownUser', 'Usuário desconhecido')}
+                      </span>
                       {entry.user_email && (
-                        <span className="text-muted-foreground text-xs">({entry.user_email})</span>
+                        <span className="text-muted-foreground text-xs truncate">({entry.user_email})</span>
                       )}
                     </div>
-                    
+
                     {renderChanges(entry)}
                   </div>
                 </div>
@@ -251,3 +313,4 @@ export function TaskHistoryDialog({ open, onOpenChange, taskId }: TaskHistoryDia
     </Dialog>
   );
 }
+
