@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -29,14 +31,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { 
-  CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, 
+  CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, CalendarIcon,
   Plus, Filter, RefreshCw, ListTodo, User, Search, History
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useClientes, Cliente } from '@/hooks/useClientes';
 import { TaskHistoryDialog } from '@/components/TaskHistoryDialog';
+import { cn } from '@/lib/utils';
 
 export default function Tarefas() {
   const navigate = useNavigate();
@@ -589,15 +592,37 @@ export default function Tarefas() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-foreground">Data Limite *</Label>
-                <Input
-                  type="date"
-                  value={formData.due_date || ''}
-                  onChange={(e) => {
-                    setFormData({ ...formData, due_date: e.target.value || null });
-                    if (e.target.value) setFormErrors({ ...formErrors, due_date: false });
-                  }}
-                  className={`bg-secondary border-border text-foreground ${formErrors.due_date ? 'border-destructive' : ''}`}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal bg-secondary border-border text-foreground",
+                        !formData.due_date && "text-muted-foreground",
+                        formErrors.due_date && "border-destructive"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.due_date ? format(new Date(formData.due_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione...</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={formData.due_date ? new Date(formData.due_date + 'T12:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFormData({ ...formData, due_date: format(date, 'yyyy-MM-dd') });
+                          setFormErrors({ ...formErrors, due_date: false });
+                        }
+                      }}
+                      disabled={(date) => startOfDay(date) < startOfDay(new Date())}
+                      initialFocus
+                      locale={ptBR}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
                 {formErrors.due_date && (
                   <p className="text-xs text-destructive">Data limite é obrigatória</p>
                 )}
