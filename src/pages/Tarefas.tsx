@@ -75,6 +75,7 @@ export default function Tarefas() {
     title: false,
     description: false,
     due_date: false,
+    due_date_past: false,
     priority: false,
   });
 
@@ -116,6 +117,7 @@ export default function Tarefas() {
       title: false,
       description: false,
       due_date: false,
+      due_date_past: false,
       priority: false,
     });
     setEditingTask(null);
@@ -138,10 +140,19 @@ export default function Tarefas() {
   };
 
   const validateForm = () => {
+    const today = startOfDay(new Date());
+    let isDatePast = false;
+    
+    if (formData.due_date) {
+      const selectedDate = startOfDay(new Date(formData.due_date + 'T12:00:00'));
+      isDatePast = selectedDate < today;
+    }
+    
     const errors = {
       title: !formData.title.trim(),
       description: !formData.description.trim(),
       due_date: !formData.due_date,
+      due_date_past: isDatePast,
       priority: !formData.priority,
     };
     setFormErrors(errors);
@@ -625,6 +636,9 @@ export default function Tarefas() {
                 </Popover>
                 {formErrors.due_date && (
                   <p className="text-xs text-destructive">Data limite é obrigatória</p>
+                )}
+                {formErrors.due_date_past && (
+                  <p className="text-xs text-destructive">Data limite não pode ser anterior a hoje</p>
                 )}
               </div>
               
