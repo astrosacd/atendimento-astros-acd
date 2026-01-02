@@ -74,6 +74,7 @@ export default function ConsultarCliente() {
     const filter = searchParams.get('filter');
     if (filter === 'inadimplente') {
       setFilterInadimplente(true);
+      setFilters(prev => ({ ...prev, tipoCliente: 'inadimplente' }));
     }
   }, [searchParams]);
 
@@ -407,7 +408,15 @@ export default function ConsultarCliente() {
                         <Label className="text-foreground">{t('clients.clientType')}</Label>
                         <Select
                           value={filters.tipoCliente}
-                          onValueChange={(value) => setFilters({ ...filters, tipoCliente: value })}
+                          onValueChange={(value) => {
+                            setFilters({ ...filters, tipoCliente: value });
+                            // If selecting inadimplente, also set the flag
+                            if (value === 'inadimplente') {
+                              setFilterInadimplente(true);
+                            } else {
+                              setFilterInadimplente(false);
+                            }
+                          }}
                         >
                           <SelectTrigger className="bg-secondary border-border text-foreground">
                             <SelectValue placeholder={t('clients.allTypes')} />
@@ -416,6 +425,7 @@ export default function ConsultarCliente() {
                             <SelectItem value="all">{t('clients.allTypes')}</SelectItem>
                             <SelectItem value="mensal">{t('clients.monthly')}</SelectItem>
                             <SelectItem value="registro">{t('clients.registrationOnly')}</SelectItem>
+                            <SelectItem value="inadimplente" className="text-destructive">{t('dashboard.overduedClients')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
