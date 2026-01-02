@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +56,7 @@ const CICLO_MESES: Record<string, number> = {
 };
 
 export default function AdminRelatorios() {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
@@ -822,7 +824,10 @@ export default function AdminRelatorios() {
                   <ShoppingBag className="h-5 w-5" />
                   Vendas Únicas (Vitalícios / Compras Avulsas)
                   {clientesRegistroSemValor > 0 && (
-                    <span className="text-xs font-normal text-muted-foreground ml-2">
+                    <span 
+                      className="text-xs font-normal text-muted-foreground ml-2 cursor-pointer hover:text-purple-500 hover:underline transition-colors"
+                      onClick={() => navigate('/consultar?filter=registro-sem-valor')}
+                    >
                       * {clientesRegistroSemValor} cliente(s) não contabilizado(s) por não ter valor
                     </span>
                   )}

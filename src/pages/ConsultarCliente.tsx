@@ -73,11 +73,13 @@ export default function ConsultarCliente() {
     loadAllClientes();
     loadAvailableTags();
     
-    // Check URL params for inadimplente filter
+    // Check URL params for filters
     const filter = searchParams.get('filter');
     if (filter === 'inadimplente') {
       setFilterInadimplente(true);
       setFilters(prev => ({ ...prev, tipoCliente: 'inadimplente' }));
+    } else if (filter === 'registro-sem-valor') {
+      setFilters(prev => ({ ...prev, tipoCliente: 'registro-sem-valor' }));
     }
   }, [searchParams]);
 
@@ -94,6 +96,12 @@ export default function ConsultarCliente() {
         if (!cliente.cobranca_ativa) return false; // Only active billing clients
         const renewalDate = new Date(cliente.data_renovacao);
         return renewalDate < today;
+      });
+      setResults(filtered);
+    } else if (filter === 'registro-sem-valor') {
+      // Filter registro clients without value
+      const filtered = data.filter(cliente => {
+        return cliente.cobranca_ativa === false && (!cliente.valor || cliente.valor === 0);
       });
       setResults(filtered);
     }
