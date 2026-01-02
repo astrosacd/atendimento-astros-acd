@@ -787,6 +787,50 @@ export type Database = {
           },
         ]
       }
+      client_purchases: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_compra: string
+          descricao: string | null
+          id: string
+          moeda: string
+          produto: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          moeda?: string
+          produto: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_compra?: string
+          descricao?: string | null
+          id?: string
+          moeda?: string
+          produto?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_purchases_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_to: string | null
