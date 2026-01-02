@@ -72,11 +72,11 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      const [clientesRes, ordersRes, eventsRes, allClientesRes] = await Promise.all([
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano'),
+      // Busca apenas clientes com cobrança ativa (exclui clientes "registro")
+      const [clientesRes, ordersRes, eventsRes] = await Promise.all([
+        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano'),
       ]);
 
       if (clientesRes.data) setClientes(clientesRes.data);
