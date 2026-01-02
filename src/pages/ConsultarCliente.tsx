@@ -302,14 +302,14 @@ export default function ConsultarCliente() {
                       <Filter className="h-4 w-4" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent className="bg-card border-border flex flex-col h-full">
-                    <SheetHeader className="flex-shrink-0">
+                  <SheetContent className="bg-card border-border flex flex-col h-full p-6">
+                    <SheetHeader className="flex-shrink-0 mb-4">
                       <SheetTitle className="text-foreground font-display">{t('clients.advancedFilters')}</SheetTitle>
                       <SheetDescription className="text-muted-foreground">
                         {t('clients.refineSearch')}
                       </SheetDescription>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto space-y-4 mt-6 pr-2">
+                    <div className="flex-1 overflow-y-auto space-y-5 pr-2">
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.renewalPeriod')}</Label>
                         <div className="grid grid-cols-2 gap-2">
