@@ -661,7 +661,10 @@ export default function Dashboard() {
               <span className="h-5 w-1 bg-purple-500 rounded-full"></span>
               Vendas Únicas (Vitalícios)
               {stats.clientesRegistroSemValor > 0 && (
-                <span className="text-xs font-normal text-muted-foreground ml-2">
+                <span 
+                  className="text-xs font-normal text-muted-foreground ml-2 cursor-pointer hover:text-purple-500 hover:underline transition-colors"
+                  onClick={() => navigate('/consultar?filter=registro-sem-valor')}
+                >
                   * {stats.clientesRegistroSemValor} cliente(s) não contabilizado(s) por não ter valor
                 </span>
               )}
