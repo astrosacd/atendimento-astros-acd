@@ -797,7 +797,7 @@ export default function ConsultaNumeros() {
                       className="cursor-pointer"
                     >
                       <Key className="h-4 w-4 mr-2" />
-                      {t('numberQuery.apiKeys')}
+                      {t('numberQuery.apiKeys.title')}
                     </DropdownMenuItem>
                   )}
                   {canManageWebhooks && (
