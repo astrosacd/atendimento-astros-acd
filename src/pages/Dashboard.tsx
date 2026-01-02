@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
-  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle
+  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -601,16 +601,20 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors">
+          <Card 
+            className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
+            onClick={() => navigate('/consultar-cliente?filter=inadimplente')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <AlertTriangle className="h-6 w-6 text-destructive" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
                   <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
                 </div>
+                <ArrowRight className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </CardContent>
           </Card>

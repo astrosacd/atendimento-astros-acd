@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useClientes, Cliente } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +35,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { searchCliente, fetchClientes, isLoading } = useClientes();
   const { isAdmin } = useAuth();
@@ -51,6 +52,7 @@ export default function ConsultarCliente() {
   const [filesClienteId, setFilesClienteId] = useState<string | null>(null);
   const [filesClienteName, setFilesClienteName] = useState<string>('');
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [filterInadimplente, setFilterInadimplente] = useState(false);
   
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -67,11 +69,30 @@ export default function ConsultarCliente() {
   useEffect(() => {
     loadAllClientes();
     loadAvailableTags();
-  }, []);
+    
+    // Check URL params for inadimplente filter
+    const filter = searchParams.get('filter');
+    if (filter === 'inadimplente') {
+      setFilterInadimplente(true);
+    }
+  }, [searchParams]);
 
   const loadAllClientes = async () => {
     const data = await fetchClientes();
     setAllClientes(data);
+    
+    // If inadimplente filter is active, auto-filter results
+    const filter = searchParams.get('filter');
+    if (filter === 'inadimplente') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const filtered = data.filter(cliente => {
+        if (!cliente.cobranca_ativa) return false; // Only active billing clients
+        const renewalDate = new Date(cliente.data_renovacao);
+        return renewalDate < today;
+      });
+      setResults(filtered);
+    }
   };
 
   const loadAvailableTags = async () => {
@@ -101,6 +122,15 @@ export default function ConsultarCliente() {
 
   const applyFilters = (data: Cliente[]): Cliente[] => {
     return data.filter(cliente => {
+      // Inadimplente filter (overdue clients)
+      if (filterInadimplente) {
+        if (!cliente.cobranca_ativa) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const renewalDate = new Date(cliente.data_renovacao);
+        if (renewalDate >= today) return false;
+      }
+      
       // Client type filter
       if (filters.tipoCliente && filters.tipoCliente !== 'all') {
         if (filters.tipoCliente === 'mensal' && cliente.cobranca_ativa === false) return false;
@@ -149,9 +179,12 @@ export default function ConsultarCliente() {
       tag: '',
       tipoCliente: '',
     });
+    setFilterInadimplente(false);
+    // Remove URL param
+    navigate('/consultar-cliente', { replace: true });
   };
 
-  const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== 'all');
+  const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== 'all') || filterInadimplente;
 
   const resetSearch = () => {
     setQuery('');
@@ -245,9 +278,17 @@ export default function ConsultarCliente() {
                 </div>
               </div>
 
-              <CardTitle className="text-2xl sm:text-3xl font-bold font-display text-foreground text-center">
-                {t('clients.search.title')}
-              </CardTitle>
+              <div className="flex flex-col items-center gap-1">
+                <CardTitle className="text-2xl sm:text-3xl font-bold font-display text-foreground text-center">
+                  {t('clients.search.title')}
+                </CardTitle>
+                {filterInadimplente && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    {t('dashboard.overduedClients')}
+                  </Badge>
+                )}
+              </div>
 
               <div className="flex gap-2 justify-end">
                 <Sheet open={showFilters} onOpenChange={setShowFilters}>
