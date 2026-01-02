@@ -449,7 +449,8 @@
     "observationsDesc": "Add important notes about this client",
     "confirmUpdate": "Confirm Update",
     "confirmUpdateRenewal": "Do you want to update client {{name}}? The new renewal date will be {{date}}.",
-    "confirmUpdateRegistration": "Do you want to update the information of client {{name}}?"
+    "confirmUpdateRegistration": "Do you want to update the information of client {{name}}?",
+    "selectClient": "Select the client"
   },
   "tasks": {
     "title": "Tasks",

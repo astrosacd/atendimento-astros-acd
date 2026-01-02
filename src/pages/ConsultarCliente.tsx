@@ -181,7 +181,7 @@ export default function ConsultarCliente() {
     });
     setFilterInadimplente(false);
     // Remove URL param
-    navigate('/consultar-cliente', { replace: true });
+    navigate('/consultar', { replace: true });
   };
 
   const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== 'all') || filterInadimplente;
