@@ -231,7 +231,7 @@ export function ClientFilesManager({ clienteId, readOnly = false }: ClientFilesM
           {files.map((file) => (
             <div 
               key={file.id}
-              className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border overflow-hidden"
+              className="flex w-full items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border overflow-hidden"
             >
               <div className="flex-shrink-0">
                 {getFileIcon(file.file_type)}
@@ -244,7 +244,7 @@ export function ClientFilesManager({ clienteId, readOnly = false }: ClientFilesM
                   {formatFileSize(file.file_size)}
                 </p>
               </div>
-              <div className="flex gap-1">
+              <div className="flex flex-shrink-0 gap-1">
                 <Button
                   type="button"
                   variant="ghost"
