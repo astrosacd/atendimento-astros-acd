@@ -588,11 +588,17 @@ export default function ConsultarCliente() {
                           <p className="text-muted-foreground">{t('clients.email')}: <span className="text-foreground">{cliente.email}</span></p>
                           <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
                           <p className="text-muted-foreground">{t('clients.product')}: <span className="text-foreground">{cliente.produto}</span></p>
-                          {cliente.cobranca_ativa !== false && (
+                          {cliente.cobranca_ativa !== false ? (
                             <>
                               <p className="text-muted-foreground">{t('clients.plan')}: <span className="text-foreground">{cliente.plano || t('common.none')}</span></p>
                               <p className="text-muted-foreground">{t('clients.value')}: <span className="text-primary font-medium">{formatCurrency(cliente.valor, cliente.moeda)}</span></p>
                               <p className="text-muted-foreground">{t('clients.renewalDate')}: <span className="text-info font-medium">{formatDate(cliente.data_renovacao)}</span></p>
+                            </>
+                          ) : (
+                            <>
+                              {cliente.valor > 0 && (
+                                <p className="text-muted-foreground">Valor Pago: <span className="text-amber-500 font-medium">{formatCurrency(cliente.valor, cliente.moeda)}</span></p>
+                              )}
                             </>
                           )}
                         </div>
