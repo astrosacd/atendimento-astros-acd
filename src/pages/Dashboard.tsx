@@ -603,7 +603,7 @@ export default function Dashboard() {
 
           <Card 
             className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/consultar-cliente?filter=inadimplente')}
+            onClick={() => navigate('/consultar?filter=inadimplente')}
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">

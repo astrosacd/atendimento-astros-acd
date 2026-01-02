@@ -449,7 +449,8 @@
     "observationsDesc": "Adicione notas importantes sobre este cliente",
     "confirmUpdate": "Confirmar Atualização",
     "confirmUpdateRenewal": "Deseja atualizar o cliente {{name}}? A nova data de renovação será {{date}}.",
-    "confirmUpdateRegistration": "Deseja atualizar as informações do cliente {{name}}?"
+    "confirmUpdateRegistration": "Deseja atualizar as informações do cliente {{name}}?",
+    "selectClient": "Selecione o cliente"
   },
   "tasks": {
     "title": "Tarefas",
