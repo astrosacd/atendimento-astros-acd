@@ -59,6 +59,7 @@ export default function AdminRelatorios() {
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
+  const [clientesRegistroSemValor, setClientesRegistroSemValor] = useState(0);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,9 +76,10 @@ export default function AdminRelatorios() {
 
     try {
       // Busca clientes recorrentes, clientes registro e histórico de compras
-      const [clientesRecorrentesRes, clientesRegistroRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
+      const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
         supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
         supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
+        supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0'),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
@@ -85,6 +87,7 @@ export default function AdminRelatorios() {
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
       if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
+      setClientesRegistroSemValor(clientesSemValorRes.count || 0);
       if (purchasesRes.data) setPurchases(purchasesRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
@@ -818,6 +821,11 @@ export default function AdminRelatorios() {
                 <CardTitle className="flex items-center gap-2 text-purple-600">
                   <ShoppingBag className="h-5 w-5" />
                   Vendas Únicas (Vitalícios / Compras Avulsas)
+                  {clientesRegistroSemValor > 0 && (
+                    <span className="text-xs font-normal text-muted-foreground ml-2">
+                      * {clientesRegistroSemValor} cliente(s) não contabilizado(s) por não ter valor
+                    </span>
+                  )}
                 </CardTitle>
                 <CardDescription>
                   Clientes que pagaram uma vez e não têm recorrência mensal
