@@ -147,6 +147,11 @@ export default function Dashboard() {
         .from('clientes')
         .select('*');
 
+      // Fetch purchase history for registro clients
+      const { data: purchases } = await supabase
+        .from('client_purchases')
+        .select('valor, moeda, cliente_id');
+
       if (!isMounted) return;
 
       const today = new Date();
@@ -162,15 +167,27 @@ export default function Dashboard() {
         return renovacao >= today && renovacao <= nextWeek;
       }).length || 0;
 
-      // Count recurrent vs registration clients
+      // Count recurrent vs registration clients (only count registro clients with value > 0)
       const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
-      const clientesRegistro = clientes?.filter(c => c.cobranca_ativa === false).length || 0;
+      const clientesRegistroComValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) > 0) || [];
+      const clientesRegistro = clientesRegistroComValor.length;
 
-      // Calculate single sales (vendas únicas) from registration clients
-      const vendasUnicasBrl = clientes?.filter(c => !c.cobranca_ativa && (c.moeda || 'BRL') === 'BRL')
-        .reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
-      const vendasUnicasUsd = clientes?.filter(c => !c.cobranca_ativa && c.moeda === 'USD')
-        .reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
+      // Calculate single sales (vendas únicas) from registration clients WITH value > 0 + purchase history
+      const vendasClientesBrl = clientesRegistroComValor
+        .filter(c => (c.moeda || 'BRL') === 'BRL')
+        .reduce((acc, c) => acc + (c.valor || 0), 0);
+      const vendasClientesUsd = clientesRegistroComValor
+        .filter(c => c.moeda === 'USD')
+        .reduce((acc, c) => acc + (c.valor || 0), 0);
+
+      // Add purchase history totals
+      const purchasesBrl = purchases?.filter(p => (p.moeda || 'BRL') === 'BRL')
+        .reduce((acc, p) => acc + (p.valor || 0), 0) || 0;
+      const purchasesUsd = purchases?.filter(p => p.moeda === 'USD')
+        .reduce((acc, p) => acc + (p.valor || 0), 0) || 0;
+
+      const vendasUnicasBrl = vendasClientesBrl + purchasesBrl;
+      const vendasUnicasUsd = vendasClientesUsd + purchasesUsd;
 
       // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {

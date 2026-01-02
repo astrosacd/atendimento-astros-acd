@@ -58,6 +58,7 @@ export default function AdminRelatorios() {
   const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
   const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
+  const [purchases, setPurchases] = useState<{ valor: number; moeda: string; cliente_id: string }[]>([]);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,16 +74,18 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca clientes recorrentes e clientes registro separadamente
-      const [clientesRecorrentesRes, clientesRegistroRes, ordersRes, eventsRes] = await Promise.all([
+      // Busca clientes recorrentes, clientes registro e histórico de compras
+      const [clientesRecorrentesRes, clientesRegistroRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
         supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false),
+        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
+        supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
       ]);
 
       if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
       if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
+      if (purchasesRes.data) setPurchases(purchasesRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
     } catch (error) {
@@ -92,21 +95,36 @@ export default function AdminRelatorios() {
     }
   };
 
-  // Métricas de Vendas Únicas (Clientes Registro)
+  // Métricas de Vendas Únicas (Clientes Registro + Histórico de Compras)
   const vendasUnicasMetrics = useMemo(() => {
-    const registroBRL = clientesRegistro.filter(c => c.moeda === 'BRL');
+    // Clientes registro com valor > 0
+    const registroBRL = clientesRegistro.filter(c => (c.moeda || 'BRL') === 'BRL');
     const registroUSD = clientesRegistro.filter(c => c.moeda === 'USD');
     
+    // Histórico de compras
+    const purchasesBRL = purchases.filter(p => (p.moeda || 'BRL') === 'BRL');
+    const purchasesUSD = purchases.filter(p => p.moeda === 'USD');
+
+    const totalClientesBRL = registroBRL.reduce((acc, c) => acc + (c.valor || 0), 0);
+    const totalClientesUSD = registroUSD.reduce((acc, c) => acc + (c.valor || 0), 0);
+    const totalPurchasesBRL = purchasesBRL.reduce((acc, p) => acc + (p.valor || 0), 0);
+    const totalPurchasesUSD = purchasesUSD.reduce((acc, p) => acc + (p.valor || 0), 0);
+
+    const totalBRL = totalClientesBRL + totalPurchasesBRL;
+    const totalUSD = totalClientesUSD + totalPurchasesUSD;
+    const totalItems = clientesRegistro.length + purchases.length;
+
     return {
       totalClientes: clientesRegistro.length,
-      totalBRL: registroBRL.reduce((acc, c) => acc + (c.valor || 0), 0),
-      totalUSD: registroUSD.reduce((acc, c) => acc + (c.valor || 0), 0),
+      totalCompras: purchases.length,
+      totalBRL,
+      totalUSD,
       clientesBRL: registroBRL.length,
       clientesUSD: registroUSD.length,
-      ticketMedioBRL: registroBRL.length > 0 ? registroBRL.reduce((acc, c) => acc + (c.valor || 0), 0) / registroBRL.length : 0,
-      ticketMedioUSD: registroUSD.length > 0 ? registroUSD.reduce((acc, c) => acc + (c.valor || 0), 0) / registroUSD.length : 0,
+      ticketMedioBRL: totalItems > 0 ? totalBRL / (registroBRL.length + purchasesBRL.length || 1) : 0,
+      ticketMedioUSD: (registroUSD.length + purchasesUSD.length) > 0 ? totalUSD / (registroUSD.length + purchasesUSD.length) : 0,
     };
-  }, [clientesRegistro]);
+  }, [clientesRegistro, purchases]);
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
