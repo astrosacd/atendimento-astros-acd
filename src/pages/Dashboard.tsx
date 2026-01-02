@@ -153,10 +153,10 @@ export default function Dashboard() {
         return renovacao >= today && renovacao <= nextWeek;
       }).length || 0;
 
-      // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (plano = 'registro')
+      // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {
-        // Skip clients that are just "registro" - they don't have renewal dates
-        if (c.plano === 'registro') return false;
+        // Skip clients that have billing disabled (Cliente Registro)
+        if (!c.cobranca_ativa) return false;
         const renovacao = new Date(c.data_renovacao);
         return renovacao < today;
       }).length || 0;
