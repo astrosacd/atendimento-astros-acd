@@ -583,6 +583,16 @@ Deno.serve(async (req) => {
     console.log(`[consulta-numeros-reminder] Found ${matchingRows.length} numbers matching monitored statuses`);
 
     if (matchingRows.length === 0) {
+      console.log(`[consulta-numeros-reminder] No numbers found with monitored statuses - skipping notifications`);
+      
+      // Log even when no numbers found (for visibility)
+      await supabase.from('consulta_numeros_reminder_logs').insert({
+        channel: 'cron_check',
+        status: 'no_numbers',
+        numbers_count: 0,
+        status_monitored: config.status_to_monitor.join(', '),
+      });
+      
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Nenhum número encontrado com os status monitorados. Verifique se o nome do status está exatamente igual ao Baserow.',
