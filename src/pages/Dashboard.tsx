@@ -542,21 +542,25 @@ export default function Dashboard() {
         </h3>
         {/* Primary Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors col-span-2 lg:col-span-1">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <TrendingUp className="h-6 w-6 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.totalClients')}</p>
-                  <div className="flex gap-2 mt-1">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-info/20 text-info font-medium">
-                      {stats.clientesRecorrentes} recorrentes
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-                      {stats.clientesRegistro} registro
+                  <p className="text-xs text-muted-foreground mb-2">{t('dashboard.totalClients')}</p>
+                  {/* Visual breakdown bar */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-muted/50 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-info rounded-full transition-all"
+                        style={{ width: stats.totalClientes > 0 ? `${(stats.clientesRecorrentes / stats.totalClientes) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      {stats.clientesRecorrentes} rec. / {stats.clientesRegistro} reg.
                     </span>
                   </div>
                 </div>
