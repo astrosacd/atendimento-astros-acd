@@ -383,10 +383,15 @@ export default function ConsultarCliente() {
                         <Button 
                           onClick={() => {
                             setShowFilters(false);
-                            if (results) {
-                              const filtered = applyFilters(results);
-                              setResults(filtered);
-                            }
+                            // Always filter from original data (allClientes or search results)
+                            const baseData = query.trim() ? allClientes.filter(c => 
+                              c.cpf.includes(query) || 
+                              c.numero.includes(query) || 
+                              c.nome.toLowerCase().includes(query.toLowerCase()) ||
+                              c.email.toLowerCase().includes(query.toLowerCase())
+                            ) : allClientes;
+                            const filtered = applyFilters(baseData);
+                            setResults(filtered);
                           }}
                           className="flex-1 bg-info text-info-foreground hover:bg-info/90 btn-3d"
                         >
