@@ -28,6 +28,8 @@ const CICLO_MESES: Record<string, number> = {
 
 interface ClienteStats {
   totalClientes: number;
+  clientesRecorrentes: number; // Clients with cobranca_ativa = true
+  clientesRegistro: number; // Clients with cobranca_ativa = false
   pendingUsers: number;
   activeWebhooks: number;
   totalValor: number;
@@ -73,6 +75,8 @@ export default function Dashboard() {
   const [alertsShown, setAlertsShown] = useState(false);
   const [stats, setStats] = useState<ClienteStats>({
     totalClientes: 0,
+    clientesRecorrentes: 0,
+    clientesRegistro: 0,
     pendingUsers: 0,
     activeWebhooks: 0,
     totalValor: 0,
@@ -153,6 +157,10 @@ export default function Dashboard() {
         return renovacao >= today && renovacao <= nextWeek;
       }).length || 0;
 
+      // Count recurrent vs registration clients
+      const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
+      const clientesRegistro = clientes?.filter(c => c.cobranca_ativa === false).length || 0;
+
       // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {
         // Skip clients that have billing disabled (Cliente Registro)
@@ -161,8 +169,8 @@ export default function Dashboard() {
         return renovacao < today;
       }).length || 0;
 
-      // Calculate delinquency rate
-      const taxaInadimplencia = clientes?.length ? (inadimplentes / clientes.length) * 100 : 0;
+      // Calculate delinquency rate (based on recurrent clients only)
+      const taxaInadimplencia = clientesRecorrentes > 0 ? (inadimplentes / clientesRecorrentes) * 100 : 0;
 
       // Calculate MRR (Monthly Recurring Revenue) - normalized by billing cycle
       // Separate by currency
@@ -269,6 +277,8 @@ export default function Dashboard() {
 
       setStats({
         totalClientes: clientes?.length || 0,
+        clientesRecorrentes,
+        clientesRegistro,
         pendingUsers: pendingCount,
         activeWebhooks: webhookCount,
         totalValor,
@@ -541,6 +551,14 @@ export default function Dashboard() {
                 <div>
                   <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
                   <p className="text-xs text-muted-foreground">{t('dashboard.totalClients')}</p>
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-info/20 text-info font-medium">
+                      {stats.clientesRecorrentes} recorrentes
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                      {stats.clientesRegistro} registro
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
