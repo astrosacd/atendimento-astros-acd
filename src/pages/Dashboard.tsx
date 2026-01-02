@@ -542,27 +542,18 @@ export default function Dashboard() {
         </h3>
         {/* Primary Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors col-span-2 lg:col-span-1">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
                   <TrendingUp className="h-6 w-6 text-primary" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div>
                   <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
-                  <p className="text-xs text-muted-foreground mb-2">{t('dashboard.totalClients')}</p>
-                  {/* Visual breakdown bar */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-muted/50 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-info rounded-full transition-all"
-                        style={{ width: stats.totalClientes > 0 ? `${(stats.clientesRecorrentes / stats.totalClientes) * 100}%` : '0%' }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      {stats.clientesRecorrentes} rec. / {stats.clientesRegistro} reg.
-                    </span>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('dashboard.totalClients')}
+                    <span className="text-primary ml-1">({stats.clientesRecorrentes} ativos)</span>
+                  </p>
                 </div>
               </div>
             </CardContent>
