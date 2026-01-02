@@ -227,7 +227,7 @@ export function ClientFilesManager({ clienteId, readOnly = false }: ClientFilesM
           <p className="text-sm text-muted-foreground">Nenhum arquivo anexado</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
           {files.map((file) => (
             <div 
               key={file.id}
