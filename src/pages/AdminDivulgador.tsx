@@ -1679,18 +1679,18 @@ export default function AdminDivulgador() {
                   {groups.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">Nenhum grupo encontrado. Clique em "Sincronizar do WhatsApp" para importar grupos existentes.</p>
                   ) : (
-                  <ScrollArea className="h-[500px]">
-                    <Table>
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">Foto</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Instância</TableHead>
-                          <TableHead>Participantes</TableHead>
-                          <TableHead>Permissões</TableHead>
-                          <TableHead>Link</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Ações</TableHead>
+                          <TableHead className="min-w-[120px]">Nome</TableHead>
+                          <TableHead className="min-w-[140px]">Instância</TableHead>
+                          <TableHead className="w-[100px]">Participantes</TableHead>
+                          <TableHead className="w-[100px]">Permissões</TableHead>
+                          <TableHead className="w-[100px]">Link</TableHead>
+                          <TableHead className="w-[80px]">Status</TableHead>
+                          <TableHead className="w-[100px]">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1817,7 +1817,7 @@ export default function AdminDivulgador() {
                         ))}
                       </TableBody>
                     </Table>
-                  </ScrollArea>
+                  </div>
                   )}
                 </CardContent>
               </Card>
