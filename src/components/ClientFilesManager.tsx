@@ -237,7 +237,10 @@ export function ClientFilesManager({ clienteId, readOnly = false }: ClientFilesM
                 {getFileIcon(file.file_type)}
               </div>
               <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-sm font-medium text-foreground truncate max-w-full" title={file.file_name}>
+                <p
+                  className="text-sm font-medium text-foreground whitespace-normal break-all leading-snug"
+                  title={file.file_name}
+                >
                   {file.file_name}
                 </p>
                 <p className="text-xs text-muted-foreground">
