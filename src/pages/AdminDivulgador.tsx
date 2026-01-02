@@ -94,6 +94,7 @@ export default function AdminDivulgador() {
   const [checkingWebhookId, setCheckingWebhookId] = useState<string | null>(null);
   const [webhookStatus, setWebhookStatus] = useState<any>(null);
   const [isReconfiguringWebhook, setIsReconfiguringWebhook] = useState(false);
+  const [groupSearchTerm, setGroupSearchTerm] = useState('');
   // ================== QUERIES ==================
 
   // Fetch instances
@@ -1619,36 +1620,51 @@ export default function AdminDivulgador() {
 
           {/* TAB: GRUPOS */}
           <TabsContent value="groups" className="space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <div>
-                <h2 className="text-lg font-semibold">Grupos</h2>
-                <p className="text-sm text-muted-foreground">Gerencie os grupos vinculados às campanhas</p>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">Grupos</h2>
+                  <p className="text-sm text-muted-foreground">Gerencie os grupos vinculados às campanhas</p>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
+                    {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Sincronizar do WhatsApp
+                  </Button>
+                  <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
+                    {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
+                    Auto-criar Grupos
+                  </Button>
+                  <Button onClick={() => { 
+                    const connectedInstances = instances.filter((i: any) => i.is_connected);
+                    setGroupForm({ 
+                      name: '', 
+                      description: '', 
+                      campaign_id: '', 
+                      initial_participant: defaultParticipant,
+                      instance_id: connectedInstances.length === 1 ? connectedInstances[0].id : '',
+                      photo_url: '',
+                      admin_only: false,
+                    });
+                    setIsGroupDialogOpen(true); 
+                  }} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
+                    <Plus className="h-4 w-4 mr-2" />Criar Grupo
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={syncGroupsFromWhatsApp} disabled={isSyncing || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
-                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  Sincronizar do WhatsApp
-                </Button>
-                <Button variant="outline" onClick={runMonitoring} disabled={isMonitoring || instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
-                  {isMonitoring ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
-                  Auto-criar Grupos
-                </Button>
-                <Button onClick={() => { 
-                  const connectedInstances = instances.filter((i: any) => i.is_connected);
-                  setGroupForm({ 
-                    name: '', 
-                    description: '', 
-                    campaign_id: '', 
-                    initial_participant: defaultParticipant,
-                    instance_id: connectedInstances.length === 1 ? connectedInstances[0].id : '',
-                    photo_url: '',
-                    admin_only: false,
-                  });
-                  setIsGroupDialogOpen(true); 
-                }} disabled={instances.length === 0 || !instances.some((i: any) => i.is_connected)}>
-                  <Plus className="h-4 w-4 mr-2" />Criar Grupo
-                </Button>
-              </div>
+              
+              {/* Campo de pesquisa de grupos */}
+              {groups.length > 0 && (
+                <div className="relative max-w-sm">
+                  <Input
+                    placeholder="Pesquisar grupos..."
+                    value={groupSearchTerm}
+                    onChange={(e) => setGroupSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
             </div>
 
             {instances.length === 0 ? (
@@ -1694,7 +1710,13 @@ export default function AdminDivulgador() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {groups.map((group: any) => (
+                        {groups
+                          .filter((group: any) => 
+                            groupSearchTerm === '' || 
+                            group.name?.toLowerCase().includes(groupSearchTerm.toLowerCase()) ||
+                            group.divulgador_instances?.instance_name?.toLowerCase().includes(groupSearchTerm.toLowerCase())
+                          )
+                          .map((group: any) => (
                           <TableRow key={group.id}>
                             <TableCell>
                               <Avatar className="h-8 w-8">
