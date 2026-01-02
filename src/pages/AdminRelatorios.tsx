@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, UserMinus, Target, Calendar, Info, ShoppingBag } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth, differenceInMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -57,6 +57,7 @@ const CICLO_MESES: Record<string, number> = {
 export default function AdminRelatorios() {
   const { t } = useTranslation();
   const [clientes, setClientes] = useState<ClienteData[]>([]);
+  const [clientesRegistro, setClientesRegistro] = useState<ClienteData[]>([]);
   const [orders, setOrders] = useState<GatewayOrder[]>([]);
   const [events, setEvents] = useState<GatewayEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,14 +73,16 @@ export default function AdminRelatorios() {
     const dataInicio = subMonths(new Date(), mesesAtras).toISOString();
 
     try {
-      // Busca apenas clientes com cobrança ativa (exclui clientes "registro")
-      const [clientesRes, ordersRes, eventsRes] = await Promise.all([
+      // Busca clientes recorrentes e clientes registro separadamente
+      const [clientesRecorrentesRes, clientesRegistroRes, ordersRes, eventsRes] = await Promise.all([
         supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
+        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
         supabase.from('gateway_events').select('id, event_type, created_at, slug').gte('created_at', dataInicio),
       ]);
 
-      if (clientesRes.data) setClientes(clientesRes.data);
+      if (clientesRecorrentesRes.data) setClientes(clientesRecorrentesRes.data);
+      if (clientesRegistroRes.data) setClientesRegistro(clientesRegistroRes.data);
       if (ordersRes.data) setOrders(ordersRes.data);
       if (eventsRes.data) setEvents(eventsRes.data);
     } catch (error) {
@@ -88,6 +91,22 @@ export default function AdminRelatorios() {
       setLoading(false);
     }
   };
+
+  // Métricas de Vendas Únicas (Clientes Registro)
+  const vendasUnicasMetrics = useMemo(() => {
+    const registroBRL = clientesRegistro.filter(c => c.moeda === 'BRL');
+    const registroUSD = clientesRegistro.filter(c => c.moeda === 'USD');
+    
+    return {
+      totalClientes: clientesRegistro.length,
+      totalBRL: registroBRL.reduce((acc, c) => acc + (c.valor || 0), 0),
+      totalUSD: registroUSD.reduce((acc, c) => acc + (c.valor || 0), 0),
+      clientesBRL: registroBRL.length,
+      clientesUSD: registroUSD.length,
+      ticketMedioBRL: registroBRL.length > 0 ? registroBRL.reduce((acc, c) => acc + (c.valor || 0), 0) / registroBRL.length : 0,
+      ticketMedioUSD: registroUSD.length > 0 ? registroUSD.reduce((acc, c) => acc + (c.valor || 0), 0) / registroUSD.length : 0,
+    };
+  }, [clientesRegistro]);
 
   // Métricas de Conversão (Gateway)
   const conversaoMetrics = useMemo(() => {
@@ -507,6 +526,7 @@ export default function AdminRelatorios() {
             <TabsTrigger value="churn">Churn</TabsTrigger>
             <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
             <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
+            <TabsTrigger value="vendas-unicas">Vendas Únicas</TabsTrigger>
           </TabsList>
 
           {/* Tab Conversão */}
@@ -771,6 +791,134 @@ export default function AdminRelatorios() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Tab Vendas Únicas */}
+          <TabsContent value="vendas-unicas" className="space-y-4">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-purple-600">
+                  <ShoppingBag className="h-5 w-5" />
+                  Vendas Únicas (Vitalícios / Compras Avulsas)
+                </CardTitle>
+                <CardDescription>
+                  Clientes que pagaram uma vez e não têm recorrência mensal
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Esses valores representam vendas de produtos vitalícios ou compras avulsas. 
+                  Não são contabilizados no MRR pois não há recorrência.
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-card/50 backdrop-blur-sm border-purple-500/30">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Clientes Registro
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">{vendasUnicasMetrics.totalClientes}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {vendasUnicasMetrics.clientesBRL} BRL • {vendasUnicasMetrics.clientesUSD} USD
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-purple-500/30">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Vendas Únicas (BRL)
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">{formatCurrency(vendasUnicasMetrics.totalBRL, 'BRL')}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ticket médio: {formatCurrency(vendasUnicasMetrics.ticketMedioBRL, 'BRL')}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-purple-500/30">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Vendas Únicas (USD)
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">{formatCurrency(vendasUnicasMetrics.totalUSD, 'USD')}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Ticket médio: {formatCurrency(vendasUnicasMetrics.ticketMedioUSD, 'USD')}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50 backdrop-blur-sm border-purple-500/30">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Geral
+                  </CardTitle>
+                  <ShoppingBag className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl font-bold text-purple-600">
+                    {formatCurrency(vendasUnicasMetrics.totalBRL, 'BRL')}
+                  </div>
+                  {vendasUnicasMetrics.totalUSD > 0 && (
+                    <div className="text-lg font-bold text-purple-600">
+                      + {formatCurrency(vendasUnicasMetrics.totalUSD, 'USD')}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detalhamento por Plano */}
+            {clientesRegistro.length > 0 && (
+              <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-purple-500" />
+                    Vendas Únicas por Plano/Produto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={(() => {
+                      const planos: Record<string, { total: number; count: number }> = {};
+                      clientesRegistro.forEach(c => {
+                        const plano = c.plano || 'Sem plano';
+                        if (!planos[plano]) planos[plano] = { total: 0, count: 0 };
+                        planos[plano].total += c.valor || 0;
+                        planos[plano].count++;
+                      });
+                      return Object.entries(planos)
+                        .map(([plano, data]) => ({ plano, total: data.total, clientes: data.count }))
+                        .sort((a, b) => b.total - a.total);
+                    })()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="plano" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCurrency(value, 'BRL')} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                        formatter={(value: number, name: string) => [
+                          name === 'total' ? formatCurrency(value, 'BRL') : value,
+                          name === 'total' ? 'Total' : 'Clientes'
+                        ]}
+                      />
+                      <Legend />
+                      <Bar dataKey="total" fill="hsl(271, 81%, 56%)" name="Total" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
