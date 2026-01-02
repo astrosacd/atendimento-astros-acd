@@ -231,11 +231,13 @@ export function ClientFilesManager({ clienteId, readOnly = false }: ClientFilesM
           {files.map((file) => (
             <div 
               key={file.id}
-              className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border"
+              className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border overflow-hidden"
             >
-              {getFileIcon(file.file_type)}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+              <div className="flex-shrink-0">
+                {getFileIcon(file.file_type)}
+              </div>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <p className="text-sm font-medium text-foreground truncate max-w-full" title={file.file_name}>
                   {file.file_name}
                 </p>
                 <p className="text-xs text-muted-foreground">
