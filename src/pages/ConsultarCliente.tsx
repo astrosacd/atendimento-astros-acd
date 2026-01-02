@@ -309,7 +309,7 @@ export default function ConsultarCliente() {
                         {t('clients.refineSearch')}
                       </SheetDescription>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto space-y-5 pr-2">
+                    <div className="flex-1 overflow-y-auto overflow-x-visible space-y-5 px-1 pr-3">
                       <div className="space-y-2">
                         <Label className="text-foreground">{t('clients.renewalPeriod')}</Label>
                         <div className="grid grid-cols-2 gap-2">
