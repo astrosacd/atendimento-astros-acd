@@ -450,7 +450,8 @@
     "confirmUpdate": "Confirmar Actualización",
     "confirmUpdateRenewal": "¿Desea actualizar el cliente {{name}}? La nueva fecha de renovación será {{date}}.",
     "confirmUpdateRegistration": "¿Desea actualizar la información del cliente {{name}}?",
-    "selectClient": "Seleccione el cliente"
+    "selectClient": "Seleccione el cliente",
+    "filtersActive": "Filtros activos"
   },
   "tasks": {
     "title": "Tareas",
