@@ -153,8 +153,10 @@ export default function Dashboard() {
         return renovacao >= today && renovacao <= nextWeek;
       }).length || 0;
 
-      // Calculate overdue clients (inadimplentes)
+      // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (plano = 'registro')
       const inadimplentes = clientes?.filter(c => {
+        // Skip clients that are just "registro" - they don't have renewal dates
+        if (c.plano === 'registro') return false;
         const renovacao = new Date(c.data_renovacao);
         return renovacao < today;
       }).length || 0;
