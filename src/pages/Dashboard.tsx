@@ -54,6 +54,9 @@ interface ClienteStats {
   tarefasEmAndamento: number;
   tarefasAtrasadas: number;
   tarefasConcluidas: number;
+  // Vendas Únicas (clientes registro)
+  vendasUnicasBrl: number;
+  vendasUnicasUsd: number;
 }
 
 interface CustomRole {
@@ -98,6 +101,8 @@ export default function Dashboard() {
     tarefasEmAndamento: 0,
     tarefasAtrasadas: 0,
     tarefasConcluidas: 0,
+    vendasUnicasBrl: 0,
+    vendasUnicasUsd: 0,
   });
 
   useEffect(() => {
@@ -161,6 +166,12 @@ export default function Dashboard() {
       const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
       const clientesRegistro = clientes?.filter(c => c.cobranca_ativa === false).length || 0;
 
+      // Calculate single sales (vendas únicas) from registration clients
+      const vendasUnicasBrl = clientes?.filter(c => !c.cobranca_ativa && (c.moeda || 'BRL') === 'BRL')
+        .reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
+      const vendasUnicasUsd = clientes?.filter(c => !c.cobranca_ativa && c.moeda === 'USD')
+        .reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
+
       // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {
         // Skip clients that have billing disabled (Cliente Registro)
@@ -173,15 +184,15 @@ export default function Dashboard() {
       const taxaInadimplencia = clientesRecorrentes > 0 ? (inadimplentes / clientesRecorrentes) * 100 : 0;
 
       // Calculate MRR (Monthly Recurring Revenue) - normalized by billing cycle
-      // Separate by currency
-      const mrrBrl = clientes?.reduce((acc, c) => {
+      // Separate by currency - only from active billing clients
+      const mrrBrl = clientes?.filter(c => c.cobranca_ativa).reduce((acc, c) => {
         if (c.moeda === 'USD') return acc;
         const ciclo = c.ciclo_cobranca || 'mensal';
         const meses = CICLO_MESES[ciclo] || 1;
         return acc + ((c.valor || 0) / meses);
       }, 0) || 0;
 
-      const mrrUsd = clientes?.reduce((acc, c) => {
+      const mrrUsd = clientes?.filter(c => c.cobranca_ativa).reduce((acc, c) => {
         if (c.moeda !== 'USD') return acc;
         const ciclo = c.ciclo_cobranca || 'mensal';
         const meses = CICLO_MESES[ciclo] || 1;
@@ -300,6 +311,8 @@ export default function Dashboard() {
         tarefasEmAndamento,
         tarefasAtrasadas,
         tarefasConcluidas,
+        vendasUnicasBrl,
+        vendasUnicasUsd,
       });
     };
 
@@ -619,6 +632,61 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Section: Vendas Únicas (Clientes Registro) */}
+        {(stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
+          <>
+            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
+              <span className="h-5 w-1 bg-purple-500 rounded-full"></span>
+              Vendas Únicas (Vitalícios)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                      <Users className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-foreground font-display">{stats.clientesRegistro}</p>
+                      <p className="text-xs text-muted-foreground">Clientes Registro</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                      <DollarSign className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.vendasUnicasBrl)}</p>
+                      <p className="text-xs text-muted-foreground">Vendas Únicas (BRL)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {stats.vendasUnicasUsd > 0 && (
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                        <DollarSign className="h-6 w-6 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.vendasUnicasUsd)}</p>
+                        <p className="text-xs text-muted-foreground">Vendas Únicas (USD)</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Section: Chamados - Admin Only */}
         {isAdmin && (
