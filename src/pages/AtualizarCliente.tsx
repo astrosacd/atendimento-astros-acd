@@ -156,13 +156,13 @@ export default function AtualizarCliente() {
       numero: newNumero,
       valor: parseCurrency(newValor),
       plano: newPlano,
+      moeda: newMoeda,
     };
     
-    // Só atualiza a data, ciclo e moeda se for cliente mensal
+    // Só atualiza a data e ciclo se for cliente mensal
     if (selectedCliente.cobranca_ativa) {
       updateData.data_renovacao = newDate;
       updateData.ciclo_cobranca = newCicloCobranca;
-      updateData.moeda = newMoeda;
     }
     
     const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
@@ -364,13 +364,34 @@ export default function AtualizarCliente() {
                   <DollarSign className="w-4 h-4 text-muted-foreground" />
                   <Label htmlFor="newValor" className="text-foreground font-medium">{t('clients.value')}</Label>
                 </div>
-                <Input
-                  id="newValor"
-                  placeholder={newMoeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
-                  value={newValor}
-                  onChange={(e) => setNewValor(formatCurrencyInput(e.target.value, newMoeda))}
-                  className="bg-secondary border-border text-foreground h-12"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="newValor"
+                    placeholder={newMoeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                    value={newValor}
+                    onChange={(e) => setNewValor(formatCurrencyInput(e.target.value, newMoeda))}
+                    className="bg-secondary border-border text-foreground h-12 flex-1"
+                  />
+                  <Select
+                    value={newMoeda}
+                    onValueChange={(value) => {
+                      setNewMoeda(value as Moeda);
+                      const numericValue = parseCurrency(newValor);
+                      setNewValor(formatCurrencyInput(numericValue.toString(), value as Moeda));
+                    }}
+                  >
+                    <SelectTrigger className="bg-secondary border-border text-foreground h-12 w-32">
+                      <SelectValue placeholder={t('clients.selectCurrency')} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="BRL">R$ BRL</SelectItem>
+                      <SelectItem value="USD">$ USD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {isClienteVitalicio && (
+                  <p className="text-xs text-muted-foreground">Valor pago na venda única (vitalício)</p>
+                )}
               </div>
 
               <div className="space-y-2">
