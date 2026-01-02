@@ -213,9 +213,9 @@ export default function ConsultarCliente() {
 
   const getActionLabel = (action: string) => {
     switch (action) {
-      case 'created': return t('clients.history.created');
-      case 'updated': return t('clients.history.updated');
-      case 'deleted': return t('clients.history.deleted');
+      case 'created': return t('clients.created');
+      case 'updated': return t('clients.updated');
+      case 'deleted': return t('clients.deleted');
       default: return action;
     }
   };
@@ -599,7 +599,7 @@ export default function ConsultarCliente() {
             <DialogHeader>
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <History className="h-5 w-5 text-info" />
-                {t('clients.history.title')}
+                {t('clients.clientHistory')}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {selectedCliente?.nome}
@@ -624,11 +624,11 @@ export default function ConsultarCliente() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {t('clients.history.changedBy')}: {entry.changed_by_email || t('common.system')}
+                      {t('clients.changedBy')}: {entry.changed_by_email || t('common.system')}
                     </p>
                     {entry.changed_fields && entry.changed_fields.length > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        {t('clients.history.changedFields')}: {entry.changed_fields.join(', ')}
+                        {t('clients.changedFields')}: {entry.changed_fields.join(', ')}
                       </p>
                     )}
                   </div>
@@ -636,7 +636,7 @@ export default function ConsultarCliente() {
               </div>
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                {t('clients.history.noHistoryFound')}
+                {t('clients.noHistoryFound')}
               </div>
             )}
           </DialogContent>
