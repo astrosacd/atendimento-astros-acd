@@ -35,6 +35,8 @@ const clienteVitalicioSchema = z.object({
   produto: z.string().min(2, 'Produto é obrigatório'),
   email: z.string().email('Email inválido'),
   cpf: z.string().min(11, 'CPF/CNPJ deve ter pelo menos 11 dígitos'),
+  valor: z.number().min(0, 'Valor deve ser zero ou maior'),
+  moeda: z.enum(['BRL', 'USD']).optional(),
 });
 
 type ClienteType = 'mensal' | 'registro' | null;
@@ -105,7 +107,6 @@ export default function CadastrarCliente() {
         ...prev, 
         cobranca_ativa: false,
         data_renovacao: new Date().toISOString().split('T')[0],
-        valor: 0,
         plano: 'Nenhum'
       }));
     }
@@ -185,6 +186,8 @@ export default function CadastrarCliente() {
           produto: formData.produto,
           email: formData.email,
           cpf: formData.cpf,
+          valor: Number(formData.valor),
+          moeda: formData.moeda,
         }
       : {
           ...formData,
@@ -558,6 +561,40 @@ export default function CadastrarCliente() {
                   </>
                 )}
               </div>
+
+              {/* Campo de Valor - Para Cliente Registro */}
+              {clienteType === 'registro' && (
+                <div className="space-y-3 mt-4">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-amber-500" />
+                    <Label className="text-foreground font-medium">Valor da Venda (Opcional)</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Registre o valor pago pelo cliente para contabilização nos relatórios
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="valor-registro"
+                      placeholder={formData.moeda === 'USD' ? '$ 0.00' : 'R$ 0,00'}
+                      value={formData.valor ? formatCurrencyInput(Math.round(formData.valor * 100).toString(), formData.moeda || 'BRL') : ''}
+                      onChange={(e) => setFormData({ ...formData, valor: parseCurrency(e.target.value) })}
+                      className="bg-secondary border-border text-foreground h-11 flex-1"
+                    />
+                    <Select
+                      value={formData.moeda || 'BRL'}
+                      onValueChange={(value) => setFormData({ ...formData, moeda: value as Moeda })}
+                    >
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-11 w-28">
+                        <SelectValue placeholder="Moeda" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="BRL">R$ BRL</SelectItem>
+                        <SelectItem value="USD">$ USD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
 
               {/* Upload de Arquivos - Apenas para Registro */}
               {clienteType === 'registro' && (
