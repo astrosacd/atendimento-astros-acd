@@ -57,6 +57,7 @@ interface ClienteStats {
   // Vendas Únicas (clientes registro)
   vendasUnicasBrl: number;
   vendasUnicasUsd: number;
+  clientesRegistroSemValor: number;
 }
 
 interface CustomRole {
@@ -103,6 +104,7 @@ export default function Dashboard() {
     tarefasConcluidas: 0,
     vendasUnicasBrl: 0,
     vendasUnicasUsd: 0,
+    clientesRegistroSemValor: 0,
   });
 
   useEffect(() => {
@@ -170,6 +172,7 @@ export default function Dashboard() {
       // Count recurrent vs registration clients (only count registro clients with value > 0)
       const clientesRecorrentes = clientes?.filter(c => c.cobranca_ativa === true).length || 0;
       const clientesRegistroComValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) > 0) || [];
+      const clientesRegistroSemValor = clientes?.filter(c => c.cobranca_ativa === false && (c.valor || 0) === 0).length || 0;
       const clientesRegistro = clientesRegistroComValor.length;
 
       // Calculate single sales (vendas únicas) from registration clients WITH value > 0 + purchase history
@@ -330,6 +333,7 @@ export default function Dashboard() {
         tarefasConcluidas,
         vendasUnicasBrl,
         vendasUnicasUsd,
+        clientesRegistroSemValor,
       });
     };
 
@@ -656,6 +660,11 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-purple-500 rounded-full"></span>
               Vendas Únicas (Vitalícios)
+              {stats.clientesRegistroSemValor > 0 && (
+                <span className="text-xs font-normal text-muted-foreground ml-2">
+                  * {stats.clientesRegistroSemValor} cliente(s) não contabilizado(s) por não ter valor
+                </span>
+              )}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
