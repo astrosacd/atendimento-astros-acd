@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,6 +56,7 @@ export default function ConsultarCliente() {
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
+  const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
   
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -80,6 +81,9 @@ export default function ConsultarCliente() {
       setFilters(prev => ({ ...prev, tipoCliente: 'inadimplente' }));
     } else if (filter === 'registro-sem-valor') {
       setFilters(prev => ({ ...prev, tipoCliente: 'registro-sem-valor' }));
+    } else if (filter === 'renovacao-proxima') {
+      setFilterRenovacaoProxima(true);
+      setFilters(prev => ({ ...prev, tipoCliente: 'renovacao-proxima' }));
     }
   }, [searchParams]);
 
@@ -102,6 +106,16 @@ export default function ConsultarCliente() {
       // Filter registro clients without value
       const filtered = data.filter(cliente => {
         return cliente.cobranca_ativa === false && (!cliente.valor || cliente.valor === 0);
+      });
+      setResults(filtered);
+    } else if (filter === 'renovacao-proxima') {
+      // Filter clients with renewal in next 7 days
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const filtered = data.filter(cliente => {
+        const renewalDate = new Date(cliente.data_renovacao);
+        return renewalDate >= today && renewalDate <= nextWeek;
       });
       setResults(filtered);
     }
@@ -141,6 +155,15 @@ export default function ConsultarCliente() {
         today.setHours(0, 0, 0, 0);
         const renewalDate = new Date(cliente.data_renovacao);
         if (renewalDate >= today) return false;
+      }
+      
+      // Renovação próxima filter (clients renewing in next 7 days)
+      if (filterRenovacaoProxima) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const renewalDate = new Date(cliente.data_renovacao);
+        if (renewalDate < today || renewalDate > nextWeek) return false;
       }
       
       // Client type filter
@@ -192,11 +215,12 @@ export default function ConsultarCliente() {
       tipoCliente: '',
     });
     setFilterInadimplente(false);
+    setFilterRenovacaoProxima(false);
     // Remove URL param
     navigate('/consultar', { replace: true });
   };
 
-  const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== 'all') || filterInadimplente;
+  const hasActiveFilters = Object.values(filters).some(v => v !== '' && v !== 'all') || filterInadimplente || filterRenovacaoProxima;
 
   const resetSearch = () => {
     setQuery('');
@@ -298,6 +322,12 @@ export default function ConsultarCliente() {
                   <Badge variant="destructive" className="text-xs">
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     {t('dashboard.overduedClients')}
+                  </Badge>
+                )}
+                {filterRenovacaoProxima && (
+                  <Badge variant="outline" className="text-xs border-update text-update">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {t('dashboard.upcomingRenewals')} (7 dias)
                   </Badge>
                 )}
               </div>

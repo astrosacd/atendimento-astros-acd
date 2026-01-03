@@ -621,16 +621,20 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors">
+          <Card 
+            className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
+            onClick={() => navigate('/consultar?filter=renovacao-proxima')}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Clock className="h-6 w-6 text-update" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
                   <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
                 </div>
+                <ArrowRight className="h-4 w-4 text-update opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </CardContent>
           </Card>
