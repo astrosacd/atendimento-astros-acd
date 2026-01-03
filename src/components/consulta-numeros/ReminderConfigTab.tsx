@@ -729,8 +729,14 @@ export function ReminderConfigTab() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'}>
-                          {log.status === 'success' ? 'Sucesso' : 'Erro'}
+                        <Badge variant={
+                          log.status === 'success' ? 'default' : 
+                          log.status === 'no_numbers' ? 'secondary' :
+                          log.status === 'error' ? 'destructive' : 'outline'
+                        }>
+                          {log.status === 'success' ? 'Sucesso' : 
+                           log.status === 'no_numbers' ? 'Sem números' :
+                           log.status === 'error' ? 'Erro' : log.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{log.numbers_count}</TableCell>
