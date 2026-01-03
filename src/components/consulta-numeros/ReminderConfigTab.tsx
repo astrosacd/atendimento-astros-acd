@@ -724,19 +724,45 @@ export function ReminderConfigTab() {
                         {format(new Date(log.sent_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={log.channel === 'whatsapp' ? 'default' : 'secondary'}>
-                          {log.channel === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                        <Badge
+                          variant={
+                            log.channel === 'whatsapp'
+                              ? 'default'
+                              : log.channel === 'cron_check'
+                                ? 'outline'
+                                : 'secondary'
+                          }
+                        >
+                          {log.channel === 'whatsapp'
+                            ? 'WhatsApp'
+                            : log.channel === 'cron_check'
+                              ? 'Cron'
+                              : 'Email'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={
-                          log.status === 'success' ? 'default' : 
-                          log.status === 'no_numbers' ? 'secondary' :
-                          log.status === 'error' ? 'destructive' : 'outline'
-                        }>
-                          {log.status === 'success' ? 'Sucesso' : 
-                           log.status === 'no_numbers' ? 'Sem números' :
-                           log.status === 'error' ? 'Erro' : log.status}
+                        <Badge
+                          variant={
+                            log.status === 'success'
+                              ? 'default'
+                              : log.status === 'no_numbers'
+                                ? 'secondary'
+                                : log.status === 'error'
+                                  ? 'destructive'
+                                  : log.status === 'started'
+                                    ? 'outline'
+                                    : 'outline'
+                          }
+                        >
+                          {log.status === 'success'
+                            ? 'Sucesso'
+                            : log.status === 'no_numbers'
+                              ? 'Sem números'
+                              : log.status === 'error'
+                                ? 'Erro'
+                                : log.status === 'started'
+                                  ? 'Iniciado'
+                                  : log.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{log.numbers_count}</TableCell>
