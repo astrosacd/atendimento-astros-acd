@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
 interface ReminderConfig {
@@ -713,7 +713,7 @@ export function ReminderConfigTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Data/Hora (Brasília)</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Qtd Números</TableHead>
@@ -731,7 +731,7 @@ export function ReminderConfigTab() {
                   logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-sm">
-                        {format(new Date(log.sent_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        {formatInTimeZone(new Date(log.sent_at), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                       </TableCell>
                       <TableCell>
                         <Badge
