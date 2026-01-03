@@ -118,7 +118,8 @@ export function ReminderConfigTab() {
     },
   });
 
-  // Fetch logs
+  // Fetch logs - filter out intermediate cron_check logs (started/triggered)
+  // Only show actual results: whatsapp, gmail, or no_numbers
   const { data: logs = [] } = useQuery({
     queryKey: ['consulta-numeros-reminder-logs'],
     queryFn: async () => {
@@ -126,9 +127,18 @@ export function ReminderConfigTab() {
         .from('consulta_numeros_reminder_logs')
         .select('*')
         .order('sent_at', { ascending: false })
-        .limit(20);
+        .limit(50);
       if (error) throw error;
-      return data as ReminderLog[];
+      
+      // Filter: show whatsapp, gmail, or cron_check with no_numbers
+      const filtered = (data as ReminderLog[]).filter(log => {
+        if (log.channel === 'whatsapp' || log.channel === 'gmail') return true;
+        if (log.channel === 'cron_check' && log.status === 'no_numbers') return true;
+        if (log.channel === 'cron_check' && log.status === 'error') return true;
+        return false;
+      });
+      
+      return filtered.slice(0, 20);
     },
   });
 
@@ -728,16 +738,16 @@ export function ReminderConfigTab() {
                           variant={
                             log.channel === 'whatsapp'
                               ? 'default'
-                              : log.channel === 'cron_check'
-                                ? 'outline'
-                                : 'secondary'
+                              : log.channel === 'gmail'
+                                ? 'secondary'
+                                : 'outline'
                           }
                         >
                           {log.channel === 'whatsapp'
                             ? 'WhatsApp'
-                            : log.channel === 'cron_check'
-                              ? 'Cron'
-                              : 'Email'}
+                            : log.channel === 'gmail'
+                              ? 'Email'
+                              : 'Cron'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -749,9 +759,7 @@ export function ReminderConfigTab() {
                                 ? 'secondary'
                                 : log.status === 'error'
                                   ? 'destructive'
-                                  : log.status === 'started' || log.status === 'triggered'
-                                    ? 'outline'
-                                    : 'outline'
+                                  : 'outline'
                           }
                         >
                           {log.status === 'success'
@@ -760,11 +768,7 @@ export function ReminderConfigTab() {
                               ? 'Sem números'
                               : log.status === 'error'
                                 ? 'Erro'
-                                : log.status === 'started'
-                                  ? 'Iniciado'
-                                  : log.status === 'triggered'
-                                    ? 'Disparado'
-                                    : log.status}
+                                : log.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{log.numbers_count}</TableCell>
