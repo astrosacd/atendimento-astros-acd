@@ -325,21 +325,24 @@ export function ReminderConfigTab() {
   const handleSimulateCron = async () => {
     setCronSimLoading(true);
     try {
-      // Call the exact same SQL function that pg_cron uses
-      const { error } = await supabase.rpc('execute_consulta_numeros_reminder' as never);
+      // Call the edge function directly with forceRun: false to simulate cron behavior
+      // but without waiting for the full response (background execution)
+      const { error } = await supabase.functions.invoke('consulta-numeros-reminder', {
+        body: { forceRun: false, source: 'manual_cron_simulation' }
+      });
       
       if (error) throw error;
       
       toast({
         title: 'Cron simulado!',
-        description: 'A função foi executada em background. Aguarde alguns segundos e verifique os logs.',
+        description: 'A função foi executada. Aguarde alguns segundos e verifique os logs.',
       });
       
       // Wait a bit then refresh logs
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
         queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
-      }, 5000);
+      }, 10000);
     } catch (error) {
       console.error('Cron simulation error:', error);
       toast({ 
