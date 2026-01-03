@@ -739,21 +739,52 @@ Deno.serve(async (req) => {
     // For manual calls (force: true): wait for result
     if (!forceRun) {
       console.log('[consulta-numeros-reminder] Cron call detected - processing in background');
-      
+
+      // Write a lightweight log entry immediately so the UI shows that the cron actually fired
+      // (even if the heavy work continues in background / fails later)
+      try {
+        const { data: cfg } = await supabase
+          .from('consulta_numeros_reminder_config')
+          .select('status_to_monitor')
+          .single();
+
+        await supabase.from('consulta_numeros_reminder_logs').insert({
+          channel: 'cron_check',
+          status: 'started',
+          numbers_count: 0,
+          status_monitored: (cfg?.status_to_monitor || []).join(', '),
+        });
+      } catch (e) {
+        console.error('[consulta-numeros-reminder] Failed to write cron start log:', e);
+      }
+
       // Start background processing
       EdgeRuntime.waitUntil(
-        processReminder(false).catch((err) => {
+        processReminder(false).catch(async (err) => {
           console.error('[consulta-numeros-reminder] Background processing error:', err);
+          try {
+            await supabase.from('consulta_numeros_reminder_logs').insert({
+              channel: 'cron_check',
+              status: 'error',
+              numbers_count: 0,
+              error_message: sanitizePII(String(err)).substring(0, 500),
+            });
+          } catch (e) {
+            console.error('[consulta-numeros-reminder] Failed to write background error log:', e);
+          }
         })
       );
-      
+
       // Respond immediately to avoid pg_net timeout
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Processing started in background' 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Processing started in background',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // For manual/test calls, wait for the result
