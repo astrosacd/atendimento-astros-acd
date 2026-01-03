@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History } from 'lucide-react';
+import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { addHours } from 'date-fns';
@@ -88,6 +88,7 @@ export function ReminderConfigTab() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [newRecipient, setNewRecipient] = useState('');
   const [testLoading, setTestLoading] = useState(false);
+  const [cronSimLoading, setCronSimLoading] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig>({
     id: '',
@@ -318,6 +319,36 @@ export function ReminderConfigTab() {
       toast({ title: 'Erro no teste', description: String(error), variant: 'destructive' });
     } finally {
       setTestLoading(false);
+    }
+  };
+
+  const handleSimulateCron = async () => {
+    setCronSimLoading(true);
+    try {
+      // Call the exact same SQL function that pg_cron uses
+      const { error } = await supabase.rpc('execute_consulta_numeros_reminder' as never);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Cron simulado!',
+        description: 'A função foi executada em background. Aguarde alguns segundos e verifique os logs.',
+      });
+      
+      // Wait a bit then refresh logs
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
+      }, 5000);
+    } catch (error) {
+      console.error('Cron simulation error:', error);
+      toast({ 
+        title: 'Erro ao simular cron', 
+        description: String(error), 
+        variant: 'destructive' 
+      });
+    } finally {
+      setCronSimLoading(false);
     }
   };
 
@@ -814,6 +845,14 @@ export function ReminderConfigTab() {
                 <Send className="h-4 w-4 mr-2" />
               )}
               Testar Agora
+            </Button>
+            <Button variant="secondary" onClick={handleSimulateCron} disabled={cronSimLoading}>
+              {cronSimLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-2" />
+              )}
+              Simular Cron
             </Button>
           </div>
         </CardContent>
