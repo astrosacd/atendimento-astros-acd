@@ -740,25 +740,7 @@ Deno.serve(async (req) => {
     if (!forceRun) {
       console.log('[consulta-numeros-reminder] Cron call detected - processing in background');
 
-      // Write a lightweight log entry immediately so the UI shows that the cron actually fired
-      // (even if the heavy work continues in background / fails later)
-      try {
-        const { data: cfg } = await supabase
-          .from('consulta_numeros_reminder_config')
-          .select('status_to_monitor')
-          .single();
-
-        await supabase.from('consulta_numeros_reminder_logs').insert({
-          channel: 'cron_check',
-          status: 'started',
-          numbers_count: 0,
-          status_monitored: (cfg?.status_to_monitor || []).join(', '),
-        });
-      } catch (e) {
-        console.error('[consulta-numeros-reminder] Failed to write cron start log:', e);
-      }
-
-      // Start background processing
+      // Start background processing (logs are written inside processReminder)
       EdgeRuntime.waitUntil(
         processReminder(false).catch(async (err) => {
           console.error('[consulta-numeros-reminder] Background processing error:', err);
