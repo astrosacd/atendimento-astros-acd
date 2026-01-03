@@ -500,6 +500,57 @@ export function ReminderConfigTab() {
               )}
             </div>
 
+            {/* Próximas Execuções Previstas */}
+            <div className="rounded-lg border bg-green-500/10 p-3 text-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-700 dark:text-green-400">Próximas Execuções (se houver números)</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {(() => {
+                  const now = new Date();
+                  const nextRuns: Date[] = [];
+                  const startHour = config.cron_start_hour;
+                  const endHour = config.cron_end_hour;
+                  const interval = config.cron_interval_hours;
+                  const days = config.cron_days.map(d => parseInt(d));
+                  
+                  // Generate next 5 valid execution times
+                  for (let i = 0; i < 72 && nextRuns.length < 5; i++) { // Check next 72 hours
+                    const checkTime = new Date(now.getTime() + i * 60 * 60 * 1000);
+                    // Convert to Brasília time
+                    const brTime = new Date(checkTime.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+                    const hour = brTime.getHours();
+                    const dayOfWeek = brTime.getDay();
+                    
+                    // Check if it's a valid hour (on the hour, within range, matching interval)
+                    if (hour >= startHour && hour <= endHour && days.includes(dayOfWeek)) {
+                      // Only add if it's in the future
+                      if (checkTime > now) {
+                        // Check if this hour aligns with interval from start
+                        if ((hour - startHour) % interval === 0) {
+                          nextRuns.push(checkTime);
+                        }
+                      }
+                    }
+                  }
+                  
+                  if (nextRuns.length === 0) {
+                    return <span className="col-span-5 text-muted-foreground">Nenhuma execução prevista com a configuração atual</span>;
+                  }
+                  
+                  return nextRuns.map((run, idx) => (
+                    <Badge key={idx} variant="outline" className="justify-center py-1 text-xs bg-background">
+                      {formatInTimeZone(run, 'America/Sao_Paulo', 'EEE dd/MM HH:mm', { locale: ptBR })}
+                    </Badge>
+                  ));
+                })()}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                ⚠️ Só envia se existirem números com os status monitorados
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Intervalo</Label>
