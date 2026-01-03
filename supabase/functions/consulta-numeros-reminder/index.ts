@@ -71,6 +71,15 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
   // Skip is_active check if forced
   if (!forceRun && !config.is_active) {
     console.log('[consulta-numeros-reminder] Reminders are disabled');
+
+    // Persist a visible log so you can confirm the cron actually ran
+    await supabase.from('consulta_numeros_reminder_logs').insert({
+      channel: 'cron_check',
+      status: 'disabled',
+      numbers_count: 0,
+      status_monitored: (config.status_to_monitor || []).join(', '),
+    });
+
     return { success: true, message: 'Reminders disabled' };
   }
 
@@ -90,11 +99,27 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
     if (currentHour < config.cron_start_hour || currentHour >= config.cron_end_hour) {
       console.log(`[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`);
+
+      await supabase.from('consulta_numeros_reminder_logs').insert({
+        channel: 'cron_check',
+        status: 'outside_hours',
+        numbers_count: 0,
+        status_monitored: (config.status_to_monitor || []).join(', '),
+      });
+
       return { success: true, message: 'Outside operating hours' };
     }
 
     if (!config.cron_days.includes(currentDay)) {
       console.log(`[consulta-numeros-reminder] Not a configured day (${currentDay}, allowed: ${config.cron_days.join(',')})`);
+
+      await supabase.from('consulta_numeros_reminder_logs').insert({
+        channel: 'cron_check',
+        status: 'outside_day',
+        numbers_count: 0,
+        status_monitored: (config.status_to_monitor || []).join(', '),
+      });
+
       return { success: true, message: 'Not a configured day' };
     }
   }
