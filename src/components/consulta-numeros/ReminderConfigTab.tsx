@@ -749,7 +749,7 @@ export function ReminderConfigTab() {
                                 ? 'secondary'
                                 : log.status === 'error'
                                   ? 'destructive'
-                                  : log.status === 'started'
+                                  : log.status === 'started' || log.status === 'triggered'
                                     ? 'outline'
                                     : 'outline'
                           }
@@ -762,7 +762,9 @@ export function ReminderConfigTab() {
                                 ? 'Erro'
                                 : log.status === 'started'
                                   ? 'Iniciado'
-                                  : log.status}
+                                  : log.status === 'triggered'
+                                    ? 'Disparado'
+                                    : log.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{log.numbers_count}</TableCell>
