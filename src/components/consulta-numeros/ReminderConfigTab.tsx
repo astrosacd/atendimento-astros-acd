@@ -168,9 +168,10 @@ export function ReminderConfigTab() {
   const { data: cronHealth } = useQuery({
     queryKey: ['consulta-numeros-reminder-cron-health'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder-health');
+      // Agora usamos RPC (função no banco) ao invés de edge function com schema proibido
+      const { data, error } = await supabase.rpc('get_consulta_numeros_reminder_cron_health');
       if (error) throw error;
-      return data as CronHealthResponse;
+      return data as unknown as CronHealthResponse;
     },
     refetchInterval: 60_000,
   });
