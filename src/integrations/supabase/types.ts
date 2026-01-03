@@ -3008,6 +3008,7 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_consulta_numeros_reminder_cron_health: { Args: never; Returns: Json }
       get_consulta_numeros_reminder_cron_schedule: {
         Args: never
         Returns: {
