@@ -49,6 +49,28 @@ interface ReminderLog {
   sent_at: string;
 }
 
+interface CronHealthJob {
+  jobid: number;
+  schedule: string;
+  command: string;
+  active: boolean;
+}
+
+interface CronHealthRun {
+  jobid: number;
+  status: string;
+  start_time: string;
+  end_time: string | null;
+  return_message: string | null;
+}
+
+interface CronHealthResponse {
+  success: boolean;
+  job: CronHealthJob | null;
+  lastRuns: CronHealthRun[];
+  nowUtc: string;
+}
+
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Domingo' },
   { value: '1', label: 'Segunda' },
@@ -140,6 +162,17 @@ export function ReminderConfigTab() {
 
       return filtered.slice(0, 20);
     },
+  });
+
+  // Cron health (para saber se o automático está executando no backend)
+  const { data: cronHealth } = useQuery({
+    queryKey: ['consulta-numeros-reminder-cron-health'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder-health');
+      if (error) throw error;
+      return data as CronHealthResponse;
+    },
+    refetchInterval: 60_000,
   });
 
   useEffect(() => {
@@ -438,6 +471,32 @@ export function ReminderConfigTab() {
             <div className="flex items-center gap-2 mb-4">
               <Clock className="h-5 w-5" />
               <h4 className="font-medium">Agendamento</h4>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">Última execução automática (Brasília)</span>
+                {cronHealth?.job?.active ? (
+                  <Badge variant="secondary">Ativo</Badge>
+                ) : (
+                  <Badge variant="destructive">Inativo</Badge>
+                )}
+              </div>
+              <div className="mt-1">
+                {cronHealth?.lastRuns?.[0]?.start_time ? (
+                  <span className="font-medium">
+                    {formatInTimeZone(new Date(cronHealth.lastRuns[0].start_time), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                    {cronHealth.lastRuns[0].status ? ` — ${cronHealth.lastRuns[0].status}` : ''}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Sem execuções registradas ainda.</span>
+                )}
+              </div>
+              {cronHealth?.job?.schedule && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Cron do sistema: <code className="bg-muted px-1 rounded">{cronHealth.job.schedule}</code>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
