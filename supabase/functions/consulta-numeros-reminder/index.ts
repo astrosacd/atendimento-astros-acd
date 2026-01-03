@@ -67,6 +67,16 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
   const config = configData as ReminderConfig;
 
+  // If it's a cron run, log that it triggered (with the exact statuses configured)
+  if (!forceRun) {
+    await supabase.from('consulta_numeros_reminder_logs').insert({
+      channel: 'cron_check',
+      status: 'triggered',
+      numbers_count: 0,
+      status_monitored: (config.status_to_monitor || []).join(', '),
+    });
+  }
+
   // Skip is_active check if forced
   if (!forceRun && !config.is_active) {
     console.log('[consulta-numeros-reminder] Reminders are disabled');
@@ -96,8 +106,11 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     const currentHour = brazilTime.getHours();
     const currentDay = brazilTime.getDay().toString();
 
-    if (currentHour < config.cron_start_hour || currentHour >= config.cron_end_hour) {
-      console.log(`[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`);
+    // IMPORTANT: end hour is inclusive (e.g. end=19 allows 19:00)
+    if (currentHour < config.cron_start_hour || currentHour > config.cron_end_hour) {
+      console.log(
+        `[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`
+      );
 
       await supabase.from('consulta_numeros_reminder_logs').insert({
         channel: 'cron_check',
@@ -572,14 +585,6 @@ Deno.serve(async (req) => {
     // For manual calls (force: true): wait for result
     if (!forceRun) {
       console.log('[consulta-numeros-reminder] Cron call detected - processing in background');
-
-      // Log that cron triggered
-      await supabase.from('consulta_numeros_reminder_logs').insert({
-        channel: 'cron_check',
-        status: 'triggered',
-        numbers_count: 0,
-        status_monitored: null,
-      });
 
       // Start background processing (logs are written inside processReminder)
       EdgeRuntime.waitUntil(
