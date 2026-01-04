@@ -113,17 +113,24 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
       return { success: true, message: 'Outside retry window (not first 5 minutes of hour)' };
     }
     
-    // Converte horário atual para minutos desde meia-noite (using only hour for window check)
-    const currentHourMinutes = currentHour * 60;
-    
-    // Converte configuração para minutos desde meia-noite
-    const startTimeMinutes = config.cron_start_hour * 60;
-    const endTimeMinutes = config.cron_end_hour * 60 + 59; // Always include until end of that hour
-
     // Check if current hour is within allowed range
-    if (currentHourMinutes < startTimeMinutes || currentHourMinutes > endTimeMinutes) {
+    // Handle case where window crosses midnight (e.g., 22:00 - 02:00 or 08:00 - 00:00)
+    const startHour = config.cron_start_hour;
+    const endHour = config.cron_end_hour;
+    
+    let inTimeWindow = false;
+    if (endHour >= startHour) {
+      // Normal window (e.g., 08:00 - 23:00)
+      inTimeWindow = currentHour >= startHour && currentHour <= endHour;
+    } else {
+      // Window crosses midnight (e.g., 08:00 - 00:00 means 08:00-23:59 AND 00:00)
+      // Or 22:00 - 06:00 means 22:00-23:59 AND 00:00-06:00
+      inTimeWindow = currentHour >= startHour || currentHour <= endHour;
+    }
+    
+    if (!inTimeWindow) {
       console.log(
-        `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${config.cron_start_hour}:00-${config.cron_end_hour}:59)`
+        `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${startHour}:00-${endHour}:59)`
       );
 
       await supabase.from('consulta_numeros_reminder_logs').insert({
