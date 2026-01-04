@@ -516,11 +516,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, serviceKey);
-
-    // Read request body once
+    // Read request body FIRST to determine action type
     let body: any = {};
     try {
       body = await req.json();
@@ -529,10 +525,52 @@ Deno.serve(async (req) => {
     }
 
     // Check if this is a forced/test request (skip time validations)
-    const forceRun = body?.force === true;
+    const forceRun = body?.force === true || body?.forceRun === true;
     const action = body?.action as string | undefined;
 
-    console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun}${action ? `, action: ${action}` : ''})`);
+    console.log(`[consulta-numeros-reminder] Starting reminder check... (force: ${forceRun}${action ? `, action: ${action}` : ''})`)
+
+    // For cron calls (no force, no action): respond IMMEDIATELY and process in background
+    // This prevents pg_net 5s timeout issues
+    if (!forceRun && !action) {
+      console.log('[consulta-numeros-reminder] Cron call detected - responding immediately');
+
+      // Start background processing
+      EdgeRuntime.waitUntil(
+        processReminder(false).catch(async (err) => {
+          console.error('[consulta-numeros-reminder] Background processing error:', err);
+          try {
+            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+            const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            const supabase = createClient(supabaseUrl, serviceKey);
+            await supabase.from('consulta_numeros_reminder_logs').insert({
+              channel: 'cron_check',
+              status: 'error',
+              numbers_count: 0,
+              error_message: sanitizePII(String(err)).substring(0, 500),
+            });
+          } catch (e) {
+            console.error('[consulta-numeros-reminder] Failed to write background error log:', e);
+          }
+        })
+      );
+
+      // Respond IMMEDIATELY to avoid pg_net timeout
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Processing started in background',
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // From here on, we need Supabase client for action handlers and forced runs
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     // Action: list available statuses from Baserow (field: excluido_da_base)
     if (action === 'list_statuses') {
@@ -592,40 +630,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For cron calls (no force, no action): respond immediately and process in background
-    // For manual calls (force: true): wait for result
-    if (!forceRun) {
-      console.log('[consulta-numeros-reminder] Cron call detected - processing in background');
-
-      // Start background processing (logs are written inside processReminder)
-      EdgeRuntime.waitUntil(
-        processReminder(false).catch(async (err) => {
-          console.error('[consulta-numeros-reminder] Background processing error:', err);
-          try {
-            await supabase.from('consulta_numeros_reminder_logs').insert({
-              channel: 'cron_check',
-              status: 'error',
-              numbers_count: 0,
-              error_message: sanitizePII(String(err)).substring(0, 500),
-            });
-          } catch (e) {
-            console.error('[consulta-numeros-reminder] Failed to write background error log:', e);
-          }
-        })
-      );
-
-      // Respond immediately to avoid pg_net timeout
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Processing started in background',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
+    // For manual/test calls with force flag, wait for the result
     // For manual/test calls, wait for the result
     console.log('[consulta-numeros-reminder] Manual call detected - waiting for result');
     const result = await processReminder(true);
