@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail, Eye } from 'lucide-react';
+import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -822,6 +823,15 @@ export default function ConsultaNumeros() {
             )}
           </div>
         </div>
+
+        {/* Monitored Status Display Card */}
+        {isAdmin && (
+          <MonitoredStatusDisplay
+            baserowFields={baserowFields}
+            onEditRow={handleEdit}
+            onViewRow={(row) => setQuickViewRow(row)}
+          />
+        )}
 
         {/* Search Card */}
         <Card>
