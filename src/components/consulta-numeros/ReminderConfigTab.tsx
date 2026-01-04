@@ -529,32 +529,30 @@ export function ReminderConfigTab() {
                   const tz = 'America/Sao_Paulo';
                   const now = new Date();
                   const nowZoned = toZonedTime(now, tz);
-                  const intervalMinutes = config.cron_interval_minutes || 60;
-                  const startTotalMin = config.cron_start_hour * 60 + (config.cron_start_minute || 0);
-                  const endTotalMin = config.cron_end_hour * 60 + (config.cron_end_minute || 0);
+                  const startHour = config.cron_start_hour;
+                  const endHour = config.cron_end_hour;
                   const days = config.cron_days.map((d) => parseInt(d, 10));
 
-                  // Próximo minuto redondo
+                  // Find next runs - one per hour at minute 0
                   let candidateZoned = new Date(nowZoned);
                   candidateZoned.setSeconds(0, 0);
-                  candidateZoned.setMinutes(candidateZoned.getMinutes() + 1);
+                  candidateZoned.setMinutes(0); // Round to hour
+                  if (nowZoned.getMinutes() > 0 || nowZoned.getSeconds() > 0) {
+                    candidateZoned.setHours(candidateZoned.getHours() + 1);
+                  }
 
                   const nextRuns: Date[] = [];
-                  for (let i = 0; i < 1440 * 7 && nextRuns.length < 5; i++) {
+                  for (let i = 0; i < 24 * 7 && nextRuns.length < 5; i++) {
                     const hour = candidateZoned.getHours();
-                    const min = candidateZoned.getMinutes();
                     const dayOfWeek = candidateZoned.getDay();
-                    const currTotalMin = hour * 60 + min;
 
-                    const inWindow = currTotalMin >= startTotalMin && currTotalMin <= endTotalMin && days.includes(dayOfWeek);
-                    const offsetFromStart = currTotalMin - startTotalMin;
-                    const inInterval = offsetFromStart >= 0 && offsetFromStart % intervalMinutes === 0;
+                    const inWindow = hour >= startHour && hour <= endHour && days.includes(dayOfWeek);
 
-                    if (inWindow && inInterval) {
+                    if (inWindow) {
                       nextRuns.push(fromZonedTime(candidateZoned, tz));
                     }
 
-                    candidateZoned = new Date(candidateZoned.getTime() + 60_000);
+                    candidateZoned.setHours(candidateZoned.getHours() + 1);
                   }
 
                   if (nextRuns.length === 0) {
@@ -573,35 +571,11 @@ export function ReminderConfigTab() {
                 })()}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Observação: executa nesse horário e só envia se existirem números com os status monitorados.
+                Executa a cada hora cheia (com 5 minutos de retry). Só envia se existirem números com os status monitorados.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Intervalo</Label>
-                <Select
-                  value={config.cron_interval_minutes.toString()}
-                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_interval_minutes: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">A cada 1 minuto</SelectItem>
-                    <SelectItem value="2">A cada 2 minutos</SelectItem>
-                    <SelectItem value="5">A cada 5 minutos</SelectItem>
-                    <SelectItem value="10">A cada 10 minutos</SelectItem>
-                    <SelectItem value="15">A cada 15 minutos</SelectItem>
-                    <SelectItem value="30">A cada 30 minutos</SelectItem>
-                    <SelectItem value="60">A cada 1 hora</SelectItem>
-                    <SelectItem value="120">A cada 2 horas</SelectItem>
-                    <SelectItem value="180">A cada 3 horas</SelectItem>
-                    <SelectItem value="240">A cada 4 horas</SelectItem>
-                    <SelectItem value="360">A cada 6 horas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <div className="space-y-2">
                 <Label>Horário Início</Label>
