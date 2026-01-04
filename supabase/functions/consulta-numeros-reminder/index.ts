@@ -70,15 +70,8 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
   const config = configData as ReminderConfig;
 
-  // If it's a cron run, log that it triggered (with the exact statuses configured)
-  if (!forceRun) {
-    await supabase.from('consulta_numeros_reminder_logs').insert({
-      channel: 'cron_check',
-      status: 'triggered',
-      numbers_count: 0,
-      status_monitored: (config.status_to_monitor || []).join(', '),
-    });
-  }
+  // NOTE: We no longer log every cron trigger - only log when actually processing or on error
+  // This prevents flooding the logs table with useless entries
 
   // Skip is_active check if forced
   if (!forceRun && !config.is_active) {
