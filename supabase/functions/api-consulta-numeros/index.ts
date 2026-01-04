@@ -199,26 +199,35 @@ async function queryBaserow(
             f?.type === 'single_select' && Array.isArray(f?.select_options) && f.select_options.length > 0
         );
 
-      const statusFieldId = Number.parseInt(String(statusFieldCandidate?.id), 10);
-      const firstStatusId = Number.parseInt(String(statusFilters[0]), 10);
-
-      if (Number.isFinite(statusFieldId) && Number.isFinite(firstStatusId)) {
-        if (statusFilters.length > 1) {
-          console.warn(
-            '[api-consulta-numeros] Multiple status filters provided; using the first one only for compatibility.',
-            statusFilters
-          );
-        }
-        url.searchParams.set(
-          `filter__field_${statusFieldId}__single_select_equal`,
-          String(firstStatusId)
+      if (statusFieldCandidate && statusFieldCandidate.select_options) {
+        const statusFieldId = Number.parseInt(String(statusFieldCandidate.id), 10);
+        
+        // Find the option ID by matching the status name (case-insensitive)
+        const statusName = statusFilters[0];
+        const matchingOption = statusFieldCandidate.select_options.find(
+          (opt: any) => opt.value?.toLowerCase() === statusName?.toLowerCase()
         );
+
+        if (Number.isFinite(statusFieldId) && matchingOption?.id) {
+          if (statusFilters.length > 1) {
+            console.warn(
+              '[api-consulta-numeros] Multiple status filters provided; using the first one only for compatibility.',
+              statusFilters
+            );
+          }
+          console.log(`[api-consulta-numeros] Filtering by status: "${statusName}" (option ID: ${matchingOption.id})`);
+          url.searchParams.set(
+            `filter__field_${statusFieldId}__single_select_equal`,
+            String(matchingOption.id)
+          );
+        } else {
+          console.warn('[api-consulta-numeros] Could not find matching status option:', {
+            statusName,
+            availableOptions: statusFieldCandidate.select_options.map((o: any) => o.value),
+          });
+        }
       } else {
-        console.warn('[api-consulta-numeros] Invalid status filter resolution; skipping', {
-          statusFieldCandidate,
-          statusFieldId,
-          statusFilters,
-        });
+        console.warn('[api-consulta-numeros] Status field not found or has no options');
       }
     }
   }
