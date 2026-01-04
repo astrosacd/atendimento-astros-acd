@@ -858,7 +858,7 @@ export default function ConsultaNumeros() {
                       {statusFilters.length === 0
                         ? t('numberQuery.clearFilters')
                         : statusFilters.length === 1
-                          ? statusField?.select_options?.find(s => s.id.toString() === statusFilters[0])?.value || `1 ${t('common.status')}`
+                          ? statusFilters[0]
                           : `${statusFilters.length} ${t('common.status')} ${t('common.selected', { defaultValue: 'selected' } as any)}`
                       }
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -874,19 +874,19 @@ export default function ConsultaNumeros() {
                       >
                         {t('numberQuery.clearFilters')}
                       </Button>
-                      <div className="border-t pt-2 space-y-1">
+                    <div className="border-t pt-2 space-y-1">
                         {statusField?.select_options?.map((s) => (
                           <label
                             key={s.id}
                             className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer"
                           >
                             <Checkbox
-                              checked={statusFilters.includes(s.id.toString())}
+                              checked={statusFilters.includes(s.value)}
                               onCheckedChange={(checked) => {
                                 if (checked) {
-                                  setStatusFilters([...statusFilters, s.id.toString()]);
+                                  setStatusFilters([...statusFilters, s.value]);
                                 } else {
-                                  setStatusFilters(statusFilters.filter(id => id !== s.id.toString()));
+                                  setStatusFilters(statusFilters.filter(v => v !== s.value));
                                 }
                               }}
                             />
