@@ -110,17 +110,27 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     const currentMinute = brazilTime.getMinutes();
     const currentDay = brazilTime.getDay().toString();
     
-    // Converte horário atual para minutos desde meia-noite
-    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    console.log(`[consulta-numeros-reminder] Current time in Brazil: ${currentHour}:${String(currentMinute).padStart(2,'0')}, day: ${currentDay}`);
+    
+    // Check if we're in the first 5 minutes of the hour (retry window)
+    // This allows the cron to run every minute but only process in the 0-4 minute window
+    if (currentMinute > 4) {
+      console.log(`[consulta-numeros-reminder] Outside retry window (minute ${currentMinute}, only 0-4 allowed)`);
+      // Don't log this to avoid flooding logs - just silently skip
+      return { success: true, message: 'Outside retry window (not first 5 minutes of hour)' };
+    }
+    
+    // Converte horário atual para minutos desde meia-noite (using only hour for window check)
+    const currentHourMinutes = currentHour * 60;
     
     // Converte configuração para minutos desde meia-noite
-    const startTimeMinutes = config.cron_start_hour * 60 + (config.cron_start_minute || 0);
-    const endTimeMinutes = config.cron_end_hour * 60 + (config.cron_end_minute || 0);
+    const startTimeMinutes = config.cron_start_hour * 60;
+    const endTimeMinutes = config.cron_end_hour * 60 + 59; // Always include until end of that hour
 
-    // IMPORTANT: end time is inclusive
-    if (currentTimeMinutes < startTimeMinutes || currentTimeMinutes > endTimeMinutes) {
+    // Check if current hour is within allowed range
+    if (currentHourMinutes < startTimeMinutes || currentHourMinutes > endTimeMinutes) {
       console.log(
-        `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${config.cron_start_hour}:${String(config.cron_start_minute||0).padStart(2,'0')}-${config.cron_end_hour}:${String(config.cron_end_minute||0).padStart(2,'0')})`
+        `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${config.cron_start_hour}:00-${config.cron_end_hour}:59)`
       );
 
       await supabase.from('consulta_numeros_reminder_logs').insert({
@@ -144,6 +154,26 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
       });
 
       return { success: true, message: 'Not a configured day' };
+    }
+    
+    // Check if we already sent successfully this hour (deduplication)
+    // This prevents flooding if the cron runs multiple times in the 0-4 minute window
+    const hourStart = new Date(brazilTime);
+    hourStart.setMinutes(0, 0, 0);
+    const hourStartUTC = new Date(now.getTime() - (currentMinute * 60 * 1000) - (now.getSeconds() * 1000) - now.getMilliseconds());
+    
+    const { data: recentLogs } = await supabase
+      .from('consulta_numeros_reminder_logs')
+      .select('id, channel, status, sent_at')
+      .in('channel', ['whatsapp', 'gmail'])
+      .eq('status', 'success')
+      .gte('sent_at', hourStartUTC.toISOString())
+      .limit(1);
+    
+    if (recentLogs && recentLogs.length > 0) {
+      console.log(`[consulta-numeros-reminder] Already sent this hour (found success log at ${recentLogs[0].sent_at})`);
+      // Don't log to avoid flooding
+      return { success: true, message: 'Already sent this hour' };
     }
   }
 
