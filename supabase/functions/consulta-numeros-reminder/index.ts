@@ -157,24 +157,37 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     }
     
     // Check if we already sent successfully this hour (deduplication)
-    // This prevents flooding if the cron runs multiple times in the 0-4 minute window
-    const hourStart = new Date(brazilTime);
-    hourStart.setMinutes(0, 0, 0);
-    const hourStartUTC = new Date(now.getTime() - (currentMinute * 60 * 1000) - (now.getSeconds() * 1000) - now.getMilliseconds());
-    
+    // This prevents flooding if the cron runs multiple times in the 0-4 minute window.
+    // IMPORTANT: Only skip when ALL enabled channels have a success log for this hour.
+    const hourStartBrazil = new Date(brazilTime);
+    hourStartBrazil.setMinutes(0, 0, 0);
+
+    // Convert "Brazil hour start" to a UTC instant.
+    // We compute the current offset between system time (UTC) and brazilTime, then apply it.
+    const offsetMs = now.getTime() - brazilTime.getTime();
+    const hourStartUTC = new Date(hourStartBrazil.getTime() + offsetMs);
+
     const { data: recentLogs } = await supabase
       .from('consulta_numeros_reminder_logs')
-      .select('id, channel, status, sent_at')
+      .select('channel, status, sent_at')
       .in('channel', ['whatsapp', 'gmail'])
       .eq('status', 'success')
-      .gte('sent_at', hourStartUTC.toISOString())
-      .limit(1);
-    
-    if (recentLogs && recentLogs.length > 0) {
-      console.log(`[consulta-numeros-reminder] Already sent this hour (found success log at ${recentLogs[0].sent_at})`);
-      // Don't log to avoid flooding
+      .gte('sent_at', hourStartUTC.toISOString());
+
+    const sentChannels = new Set((recentLogs || []).map((l) => l.channel));
+    const requiredChannels: string[] = [];
+    if (config.whatsapp_enabled) requiredChannels.push('whatsapp');
+    if (config.gmail_enabled) requiredChannels.push('gmail');
+
+    const allDone = requiredChannels.length > 0 && requiredChannels.every((ch) => sentChannels.has(ch));
+
+    if (allDone) {
+      console.log(
+        `[consulta-numeros-reminder] Already sent this hour for all enabled channels (${requiredChannels.join(', ')})`
+      );
       return { success: true, message: 'Already sent this hour' };
     }
+
   }
 
   // Get Baserow config
