@@ -81,17 +81,17 @@ export function MonitoredNumbersCard() {
 
   return (
     <Card 
-      className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
-      onClick={() => navigate('/consulta-numeros')}
+      className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40 transition-colors cursor-pointer group"
+      onClick={() => navigate('/admin/consulta-numeros')}
     >
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
               {isLoading ? (
-                <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
+                <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
               ) : (
-                <Bell className="h-6 w-6 text-amber-500" />
+                <Bell className="h-6 w-6 text-indigo-500" />
               )}
             </div>
             <div>
@@ -121,7 +121,7 @@ export function MonitoredNumbersCard() {
                 </Badge>
               )}
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
           </div>
         </div>
       </CardContent>
