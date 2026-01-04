@@ -605,68 +605,37 @@ export function ReminderConfigTab() {
 
               <div className="space-y-2">
                 <Label>Horário Início</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={config.cron_start_hour.toString()}
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_hour: parseInt(value) }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="self-center">:</span>
-                  <Select
-                    value={(config.cron_start_minute || 0).toString()}
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_minute: parseInt(value) }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                        <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={config.cron_start_hour.toString()}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_hour: parseInt(value), cron_start_minute: 0 }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}:00</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>Horário Fim</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={config.cron_end_hour.toString()}
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_hour: parseInt(value) }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="self-center">:</span>
-                  <Select
-                    value={(config.cron_end_minute || 0).toString()}
-                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_minute: parseInt(value) }))}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                        <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={config.cron_end_hour.toString()}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_hour: parseInt(value), cron_end_minute: 59 }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}:00</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Executa até {config.cron_end_hour}:04 (5 minutos de retry)</p>
               </div>
             </div>
 
