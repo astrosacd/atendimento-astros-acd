@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History, Play } from 'lucide-react';
+import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { addHours } from 'date-fns';
@@ -88,7 +88,6 @@ export function ReminderConfigTab() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [newRecipient, setNewRecipient] = useState('');
   const [testLoading, setTestLoading] = useState(false);
-  const [cronSimLoading, setCronSimLoading] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig>({
     id: '',
@@ -289,69 +288,41 @@ export function ReminderConfigTab() {
   const handleTestReminder = async () => {
     setTestLoading(true);
     try {
-      // Pass force: true to skip time/day validations during test
+      // Executa AGORA (sem depender de "hora cheia") e espera o processamento.
+      // Mantém o comportamento do cron (forceRun=false é usado só no automático),
+      // mas aqui precisamos aguardar o resultado para você ver se enviou mesmo.
       const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder', {
-        body: { force: true }
+        body: { forceRun: true, source: 'manual_run' },
       });
       if (error) throw error;
-      
-      if (data?.success && data?.results?.length > 0) {
+
+      if (data?.success && (data?.results?.length ?? 0) > 0) {
         toast({
-          title: 'Teste executado!',
-          description: `Encontrados ${data.count || 0} números. ${data.results.map((r: { channel: string; status: string }) => `${r.channel}: ${r.status}`).join(', ')}`,
+          title: 'Execução manual concluída!',
+          description: `Encontrados ${data.count || 0} números. ${data.results
+            .map((r: { channel: string; status: string }) => `${r.channel}: ${r.status}`)
+            .join(', ')}`,
         });
       } else if (data?.success && data?.count > 0) {
         toast({
-          title: 'Números encontrados mas nenhum canal configurado',
-          description: `Encontrados ${data.count} números. Configure WhatsApp ou Gmail para enviar.`,
+          title: 'Números encontrados, mas nenhum canal enviou',
+          description: `Encontrados ${data.count} números. Verifique se WhatsApp e/ou Gmail estão habilitados e configurados.`,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Resultado do teste',
+          title: 'Execução manual concluída',
           description: data?.message || 'Nenhum número encontrado com os status monitorados',
         });
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
     } catch (error) {
-      console.error('Test error:', error);
-      toast({ title: 'Erro no teste', description: String(error), variant: 'destructive' });
+      console.error('Manual run error:', error);
+      toast({ title: 'Erro ao executar agora', description: String(error), variant: 'destructive' });
     } finally {
       setTestLoading(false);
-    }
-  };
-
-  const handleSimulateCron = async () => {
-    setCronSimLoading(true);
-    try {
-      // Call the edge function directly with forceRun: false to simulate cron behavior
-      // but without waiting for the full response (background execution)
-      const { error } = await supabase.functions.invoke('consulta-numeros-reminder', {
-        body: { forceRun: false, source: 'manual_cron_simulation' }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: 'Cron simulado!',
-        description: 'A função foi executada. Aguarde alguns segundos e verifique os logs.',
-      });
-      
-      // Wait a bit then refresh logs
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
-        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
-      }, 10000);
-    } catch (error) {
-      console.error('Cron simulation error:', error);
-      toast({ 
-        title: 'Erro ao simular cron', 
-        description: String(error), 
-        variant: 'destructive' 
-      });
-    } finally {
-      setCronSimLoading(false);
     }
   };
 
@@ -847,15 +818,7 @@ export function ReminderConfigTab() {
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}
-              Testar Agora
-            </Button>
-            <Button variant="secondary" onClick={handleSimulateCron} disabled={cronSimLoading}>
-              {cronSimLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4 mr-2" />
-              )}
-              Simular Cron
+              Rodar agora
             </Button>
           </div>
         </CardContent>
