@@ -10,8 +10,11 @@ interface ReminderConfig {
   is_active: boolean;
   status_to_monitor: string[];
   cron_interval_hours: number;
+  cron_interval_minutes: number;
   cron_start_hour: number;
+  cron_start_minute: number;
   cron_end_hour: number;
+  cron_end_minute: number;
   cron_days: string[];
   whatsapp_enabled: boolean;
   evolution_api_url: string | null;
@@ -104,12 +107,20 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     const brazilOffset = -3 * 60;
     const brazilTime = new Date(now.getTime() + (brazilOffset + now.getTimezoneOffset()) * 60000);
     const currentHour = brazilTime.getHours();
+    const currentMinute = brazilTime.getMinutes();
     const currentDay = brazilTime.getDay().toString();
+    
+    // Converte horário atual para minutos desde meia-noite
+    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    
+    // Converte configuração para minutos desde meia-noite
+    const startTimeMinutes = config.cron_start_hour * 60 + (config.cron_start_minute || 0);
+    const endTimeMinutes = config.cron_end_hour * 60 + (config.cron_end_minute || 0);
 
-    // IMPORTANT: end hour is inclusive (e.g. end=19 allows 19:00)
-    if (currentHour < config.cron_start_hour || currentHour > config.cron_end_hour) {
+    // IMPORTANT: end time is inclusive
+    if (currentTimeMinutes < startTimeMinutes || currentTimeMinutes > endTimeMinutes) {
       console.log(
-        `[consulta-numeros-reminder] Outside operating hours (${currentHour}h, allowed: ${config.cron_start_hour}-${config.cron_end_hour})`
+        `[consulta-numeros-reminder] Outside operating hours (${currentHour}:${String(currentMinute).padStart(2,'0')}, allowed: ${config.cron_start_hour}:${String(config.cron_start_minute||0).padStart(2,'0')}-${config.cron_end_hour}:${String(config.cron_end_minute||0).padStart(2,'0')})`
       );
 
       await supabase.from('consulta_numeros_reminder_logs').insert({
