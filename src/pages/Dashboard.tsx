@@ -16,6 +16,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
+import { MonitoredNumbersCard } from '@/components/dashboard/MonitoredNumbersCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -721,14 +722,15 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* Section: Chamados - Admin Only */}
+        {/* Section: Chamados & Consulta Números - Admin Only */}
         {isAdmin && (
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
-              {t('sidebar.tickets')}
+              {t('sidebar.tickets')} & Consulta Números
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <MonitoredNumbersCard />
             <Card 
               className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
               onClick={() => navigate('/admin/chamados')}
