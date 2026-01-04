@@ -1221,8 +1221,11 @@ export type Database = {
           created_at: string
           cron_days: string[]
           cron_end_hour: number
+          cron_end_minute: number | null
           cron_interval_hours: number
+          cron_interval_minutes: number | null
           cron_start_hour: number
+          cron_start_minute: number | null
           evolution_api_key: string | null
           evolution_api_url: string | null
           evolution_instance_name: string | null
@@ -1244,8 +1247,11 @@ export type Database = {
           created_at?: string
           cron_days?: string[]
           cron_end_hour?: number
+          cron_end_minute?: number | null
           cron_interval_hours?: number
+          cron_interval_minutes?: number | null
           cron_start_hour?: number
+          cron_start_minute?: number | null
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance_name?: string | null
@@ -1267,8 +1273,11 @@ export type Database = {
           created_at?: string
           cron_days?: string[]
           cron_end_hour?: number
+          cron_end_minute?: number | null
           cron_interval_hours?: number
+          cron_interval_minutes?: number | null
           cron_start_hour?: number
+          cron_start_minute?: number | null
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance_name?: string | null

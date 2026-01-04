@@ -22,8 +22,11 @@ interface ReminderConfig {
   is_active: boolean;
   status_to_monitor: string[];
   cron_interval_hours: number;
+  cron_interval_minutes: number;
   cron_start_hour: number;
+  cron_start_minute: number;
   cron_end_hour: number;
+  cron_end_minute: number;
   cron_days: string[];
   whatsapp_enabled: boolean;
   evolution_api_url: string | null;
@@ -94,8 +97,11 @@ export function ReminderConfigTab() {
     is_active: false,
     status_to_monitor: [],
     cron_interval_hours: 1,
+    cron_interval_minutes: 60,
     cron_start_hour: 8,
+    cron_start_minute: 0,
     cron_end_hour: 18,
+    cron_end_minute: 0,
     cron_days: ['1', '2', '3', '4', '5', '6'],
     whatsapp_enabled: false,
     evolution_api_url: '',
@@ -190,6 +196,9 @@ export function ReminderConfigTab() {
         gmail_recipients: configData.gmail_recipients || [],
         status_to_monitor: configData.status_to_monitor || [],
         cron_days: configData.cron_days || ['1', '2', '3', '4', '5', '6'],
+        cron_interval_minutes: configData.cron_interval_minutes ?? (configData.cron_interval_hours * 60),
+        cron_start_minute: configData.cron_start_minute ?? 0,
+        cron_end_minute: configData.cron_end_minute ?? 0,
       });
     }
   }, [configData]);
@@ -202,9 +211,12 @@ export function ReminderConfigTab() {
         .update({
           is_active: config.is_active,
           status_to_monitor: config.status_to_monitor,
-          cron_interval_hours: config.cron_interval_hours,
+          cron_interval_hours: Math.floor(config.cron_interval_minutes / 60) || 1,
+          cron_interval_minutes: config.cron_interval_minutes,
           cron_start_hour: config.cron_start_hour,
+          cron_start_minute: config.cron_start_minute,
           cron_end_hour: config.cron_end_hour,
+          cron_end_minute: config.cron_end_minute,
           cron_days: config.cron_days,
           whatsapp_enabled: config.whatsapp_enabled,
           evolution_api_url: config.evolution_api_url || null,
@@ -517,31 +529,32 @@ export function ReminderConfigTab() {
                   const tz = 'America/Sao_Paulo';
                   const now = new Date();
                   const nowZoned = toZonedTime(now, tz);
-
-                  // start from next full hour in Brasília
-                  let candidateZoned = new Date(nowZoned);
-                  candidateZoned.setMinutes(0, 0, 0);
-                  if (candidateZoned <= nowZoned) candidateZoned = addHours(candidateZoned, 1);
-
-                  const nextRuns: Date[] = [];
-                  const startHour = config.cron_start_hour;
-                  const endHour = config.cron_end_hour;
-                  const interval = config.cron_interval_hours;
+                  const intervalMinutes = config.cron_interval_minutes || 60;
+                  const startTotalMin = config.cron_start_hour * 60 + (config.cron_start_minute || 0);
+                  const endTotalMin = config.cron_end_hour * 60 + (config.cron_end_minute || 0);
                   const days = config.cron_days.map((d) => parseInt(d, 10));
 
-                  for (let i = 0; i < 300 && nextRuns.length < 5; i++) {
-                    const hour = candidateZoned.getHours();
-                    const dayOfWeek = candidateZoned.getDay();
+                  // Próximo minuto redondo
+                  let candidateZoned = new Date(nowZoned);
+                  candidateZoned.setSeconds(0, 0);
+                  candidateZoned.setMinutes(candidateZoned.getMinutes() + 1);
 
-                    const inWindow = hour >= startHour && hour <= endHour && days.includes(dayOfWeek);
-                    const inInterval = (hour - startHour) % interval === 0;
+                  const nextRuns: Date[] = [];
+                  for (let i = 0; i < 1440 * 7 && nextRuns.length < 5; i++) {
+                    const hour = candidateZoned.getHours();
+                    const min = candidateZoned.getMinutes();
+                    const dayOfWeek = candidateZoned.getDay();
+                    const currTotalMin = hour * 60 + min;
+
+                    const inWindow = currTotalMin >= startTotalMin && currTotalMin <= endTotalMin && days.includes(dayOfWeek);
+                    const offsetFromStart = currTotalMin - startTotalMin;
+                    const inInterval = offsetFromStart >= 0 && offsetFromStart % intervalMinutes === 0;
 
                     if (inWindow && inInterval) {
-                      // Convert the zoned wall-time back to a real instant
                       nextRuns.push(fromZonedTime(candidateZoned, tz));
                     }
 
-                    candidateZoned = addHours(candidateZoned, 1);
+                    candidateZoned = new Date(candidateZoned.getTime() + 60_000);
                   }
 
                   if (nextRuns.length === 0) {
@@ -568,54 +581,92 @@ export function ReminderConfigTab() {
               <div className="space-y-2">
                 <Label>Intervalo</Label>
                 <Select
-                  value={config.cron_interval_hours.toString()}
-                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_interval_hours: parseInt(value) }))}
+                  value={config.cron_interval_minutes.toString()}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_interval_minutes: parseInt(value) }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">A cada 1 hora</SelectItem>
-                    <SelectItem value="2">A cada 2 horas</SelectItem>
-                    <SelectItem value="3">A cada 3 horas</SelectItem>
-                    <SelectItem value="4">A cada 4 horas</SelectItem>
-                    <SelectItem value="6">A cada 6 horas</SelectItem>
+                    <SelectItem value="1">A cada 1 minuto</SelectItem>
+                    <SelectItem value="2">A cada 2 minutos</SelectItem>
+                    <SelectItem value="5">A cada 5 minutos</SelectItem>
+                    <SelectItem value="10">A cada 10 minutos</SelectItem>
+                    <SelectItem value="15">A cada 15 minutos</SelectItem>
+                    <SelectItem value="30">A cada 30 minutos</SelectItem>
+                    <SelectItem value="60">A cada 1 hora</SelectItem>
+                    <SelectItem value="120">A cada 2 horas</SelectItem>
+                    <SelectItem value="180">A cada 3 horas</SelectItem>
+                    <SelectItem value="240">A cada 4 horas</SelectItem>
+                    <SelectItem value="360">A cada 6 horas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label>Horário Início</Label>
-                <Select
-                  value={config.cron_start_hour.toString()}
-                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_hour: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}:00</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={config.cron_start_hour.toString()}
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_hour: parseInt(value) }))}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="self-center">:</span>
+                  <Select
+                    value={(config.cron_start_minute || 0).toString()}
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_start_minute: parseInt(value) }))}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                        <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Horário Fim</Label>
-                <Select
-                  value={config.cron_end_hour.toString()}
-                  onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_hour: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}:00</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={config.cron_end_hour.toString()}
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_hour: parseInt(value) }))}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>{i.toString().padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="self-center">:</span>
+                  <Select
+                    value={(config.cron_end_minute || 0).toString()}
+                    onValueChange={(value) => setConfig(prev => ({ ...prev, cron_end_minute: parseInt(value) }))}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                        <SelectItem key={m} value={m.toString()}>{m.toString().padStart(2, '0')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
