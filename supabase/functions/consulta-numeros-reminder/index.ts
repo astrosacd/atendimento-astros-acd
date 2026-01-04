@@ -102,10 +102,10 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
   // Skip time checks if forced
   if (!forceRun) {
-    // Check current time is within operating hours (Brazil timezone)
+    // Check current time is within operating hours (America/Sao_Paulo)
+    // IMPORTANT: do not rely on server timezone; always compute using IANA timezone.
     const now = new Date();
-    const brazilOffset = -3 * 60;
-    const brazilTime = new Date(now.getTime() + (brazilOffset + now.getTimezoneOffset()) * 60000);
+    const brazilTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const currentHour = brazilTime.getHours();
     const currentMinute = brazilTime.getMinutes();
     const currentDay = brazilTime.getDay().toString();
