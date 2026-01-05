@@ -30,7 +30,7 @@ export function NumerosAquecimentoCard() {
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary/50"
-      onClick={() => navigate('/admin/numeros-aquecimento')}
+      onClick={() => navigate('/admin/numeros')}
     >
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base">
