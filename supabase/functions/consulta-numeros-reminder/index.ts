@@ -16,6 +16,7 @@ interface ReminderConfig {
   cron_end_hour: number;
   cron_end_minute: number;
   cron_days: string[];
+  retry_window_minutes: number;
   whatsapp_enabled: boolean;
   evolution_api_url: string | null;
   evolution_api_key: string | null;
@@ -105,12 +106,13 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     
     console.log(`[consulta-numeros-reminder] Current time in Brazil: ${currentHour}:${String(currentMinute).padStart(2,'0')}, day: ${currentDay}`);
     
-    // Check if we're in the first 5 minutes of the hour (retry window)
-    // This allows the cron to run every minute but only process in the 0-4 minute window
-    if (currentMinute > 4) {
-      console.log(`[consulta-numeros-reminder] Outside retry window (minute ${currentMinute}, only 0-4 allowed)`);
+    // Check if we're within the retry window (configurable, default 5 minutes)
+    // This allows the cron to run every minute but only process within the configured window
+    const retryWindow = config.retry_window_minutes ?? 5;
+    if (currentMinute >= retryWindow) {
+      console.log(`[consulta-numeros-reminder] Outside retry window (minute ${currentMinute}, only 0-${retryWindow - 1} allowed)`);
       // Don't log this to avoid flooding logs - just silently skip
-      return { success: true, message: 'Outside retry window (not first 5 minutes of hour)' };
+      return { success: true, message: `Outside retry window (not first ${retryWindow} minutes of hour)` };
     }
     
     // Check if current hour is within allowed range

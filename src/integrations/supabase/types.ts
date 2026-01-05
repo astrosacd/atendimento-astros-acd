@@ -1237,6 +1237,7 @@ export type Database = {
           id: string
           is_active: boolean
           message_template: string | null
+          retry_window_minutes: number
           status_to_monitor: string[]
           updated_at: string
           whatsapp_enabled: boolean
@@ -1263,6 +1264,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           message_template?: string | null
+          retry_window_minutes?: number
           status_to_monitor?: string[]
           updated_at?: string
           whatsapp_enabled?: boolean
@@ -1289,6 +1291,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           message_template?: string | null
+          retry_window_minutes?: number
           status_to_monitor?: string[]
           updated_at?: string
           whatsapp_enabled?: boolean
