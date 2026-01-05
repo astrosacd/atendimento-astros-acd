@@ -259,6 +259,16 @@ const AdminTags = () => {
   };
 
   const handleDelete = (tagName: string) => {
+    // Find the tag and check if it has clients
+    const tag = tags.find(t => t.name === tagName);
+    if (tag && tag.count > 0) {
+      toast({
+        title: "Não é possível excluir",
+        description: `A tag "${tagName}" está vinculada a ${tag.count} cliente(s). Desvincule a tag dos clientes antes de excluí-la.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setTagToDelete(tagName);
     setDeleteDialogOpen(true);
   };
