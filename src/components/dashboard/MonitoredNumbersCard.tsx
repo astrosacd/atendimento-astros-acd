@@ -5,9 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, ChevronRight, Loader2 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function MonitoredNumbersCard() {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  
+  // Check permission first
+  const canView = hasPermission('view_consulta_numeros');
 
   // Fetch reminder config to get monitored statuses
   const { data: reminderConfig, isLoading: configLoading } = useQuery({
@@ -74,8 +79,8 @@ export function MonitoredNumbersCard() {
 
   const isLoading = configLoading || countLoading;
 
-  // Don't show if no statuses configured
-  if (!configLoading && monitoredStatuses.length === 0) {
+  // Don't show if no permission or no statuses configured
+  if (!canView || (!configLoading && monitoredStatuses.length === 0)) {
     return null;
   }
 

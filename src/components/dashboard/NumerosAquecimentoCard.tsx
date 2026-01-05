@@ -3,12 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smartphone, CheckCircle, Clock, XCircle, ShoppingCart, Loader2, ChevronRight } from 'lucide-react';
 import { useNumerosAquecimento, useNumerosStatus } from '@/hooks/useNumerosAquecimento';
 import { useTranslation } from 'react-i18next';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function NumerosAquecimentoCard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { hasPermission } = usePermissions();
+  
+  // Check permission first
+  const canView = hasPermission('view_numeros_aquecimento');
+  
   const { data: numeros = [], isLoading } = useNumerosAquecimento();
   const { data: statusList = [] } = useNumerosStatus();
+
+  // Don't render if user doesn't have permission
+  if (!canView) {
+    return null;
+  }
 
   // Calculate stats
   const stats = {
