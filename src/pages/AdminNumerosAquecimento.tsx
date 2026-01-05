@@ -56,6 +56,7 @@ import {
   NumeroStatus,
   NumeroModelo,
 } from '@/hooks/useNumerosAquecimento';
+import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { toast } from 'sonner';
 
 // Color map for status badges
@@ -357,6 +358,9 @@ export default function AdminNumerosAquecimento() {
 
           {/* Config Tab */}
           <TabsContent value="config" className="space-y-4">
+            {/* Alert Configuration - Full Width */}
+            <AlertConfigCard />
+            
             <div className="grid md:grid-cols-2 gap-4 items-stretch">
               {/* Status Management */}
               <Card className="flex flex-col h-[400px]">
@@ -426,12 +430,10 @@ export default function AdminNumerosAquecimento() {
                         return (
                           <div key={modelo.id} className="flex items-center justify-between p-2 border rounded-lg">
                             <div className="flex items-center gap-2">
-                              <div>
-                                <span className="font-medium">{modelo.nome}</span>
-                                {modelo.marca && (
-                                  <span className="text-muted-foreground text-sm ml-2">({modelo.marca})</span>
-                                )}
-                              </div>
+                              <span className="font-medium">{modelo.nome}</span>
+                              {modelo.marca && (
+                                <span className="text-sm text-muted-foreground">({modelo.marca})</span>
+                              )}
                               <Badge variant="outline" className="text-xs">
                                 {count} número{count !== 1 ? 's' : ''}
                               </Badge>
