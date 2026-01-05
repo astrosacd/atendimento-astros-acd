@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History } from 'lucide-react';
+import { Bell, Save, Loader2, Plus, X, Send, Clock, MessageSquare, Mail, History, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { addHours } from 'date-fns';
@@ -92,7 +92,7 @@ export function ReminderConfigTab() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [newRecipient, setNewRecipient] = useState('');
   const [testLoading, setTestLoading] = useState(false);
-
+  const [clearLogsLoading, setClearLogsLoading] = useState(false);
   const [config, setConfig] = useState<ReminderConfig>({
     id: '',
     is_active: false,
@@ -844,11 +844,42 @@ export function ReminderConfigTab() {
 
       {/* Logs */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Histórico de Envios
           </CardTitle>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={clearLogsLoading || logs.length === 0}
+            onClick={async () => {
+              if (!confirm('Tem certeza que deseja apagar todo o histórico de envios? Esta ação não pode ser desfeita.')) {
+                return;
+              }
+              setClearLogsLoading(true);
+              try {
+                const { error } = await supabase
+                  .from('consulta_numeros_reminder_logs')
+                  .delete()
+                  .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+                if (error) throw error;
+                toast({ title: 'Histórico apagado com sucesso!' });
+                queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+              } catch (error) {
+                toast({ title: 'Erro ao apagar histórico', description: String(error), variant: 'destructive' });
+              } finally {
+                setClearLogsLoading(false);
+              }
+            }}
+          >
+            {clearLogsLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Trash2 className="h-4 w-4 mr-2" />
+            )}
+            Limpar Histórico
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
