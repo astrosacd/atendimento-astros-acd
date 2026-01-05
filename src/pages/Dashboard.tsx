@@ -20,6 +20,7 @@ import { MonitoredNumbersCard } from '@/components/dashboard/MonitoredNumbersCar
 import { NumerosAquecimentoCard } from '@/components/dashboard/NumerosAquecimentoCard';
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
+import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -662,6 +663,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Alert Banner for Numeros Aquecimento */}
+        <NumerosAquecimentoAlertBanner />
 
         {/* Section: Vendas Únicas (Clientes Registro) */}
         {canViewClients && (stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (

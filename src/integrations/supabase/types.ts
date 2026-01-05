@@ -2455,6 +2455,42 @@ export type Database = {
           },
         ]
       }
+      numeros_aquecimento_alert_config: {
+        Row: {
+          alert_interval_hours: number
+          alert_interval_minutes: number
+          created_at: string
+          id: string
+          is_active: boolean
+          last_alert_at: string | null
+          message_template: string | null
+          status_to_monitor: string[]
+          updated_at: string
+        }
+        Insert: {
+          alert_interval_hours?: number
+          alert_interval_minutes?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alert_at?: string | null
+          message_template?: string | null
+          status_to_monitor?: string[]
+          updated_at?: string
+        }
+        Update: {
+          alert_interval_hours?: number
+          alert_interval_minutes?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_alert_at?: string | null
+          message_template?: string | null
+          status_to_monitor?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       numeros_aquecimento_api_keys: {
         Row: {
           api_key: string
