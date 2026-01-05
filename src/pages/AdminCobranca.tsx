@@ -594,7 +594,7 @@ const AdminCobranca = () => {
 
       const { data: allClientes } = await supabase
         .from('clientes')
-        .select('id, valor, data_renovacao, moeda');
+        .select('id, valor, data_renovacao, moeda, ciclo_cobranca');
 
       // Calculate metrics
       const currentSent = currentLogs?.filter(l => l.status === 'sent').length || 0;
@@ -605,26 +605,29 @@ const AdminCobranca = () => {
       const previousTotal = previousLogs?.length || 1;
       const previousSuccessRate = (previousSent / previousTotal) * 100;
 
-      // Total value from clients - separated by currency
-      const totalValueBrl = allClientes?.reduce((sum, c) => {
+      // Filter only clients with monthly billing cycle
+      const clientesMensal = allClientes?.filter(c => c.ciclo_cobranca === 'mensal') || [];
+
+      // Total value from monthly clients - separated by currency
+      const totalValueBrl = clientesMensal.reduce((sum, c) => {
         if (c.moeda === 'USD') return sum;
         return sum + (c.valor || 0);
-      }, 0) || 0;
+      }, 0);
 
-      const totalValueUsd = allClientes?.reduce((sum, c) => {
+      const totalValueUsd = clientesMensal.reduce((sum, c) => {
         if (c.moeda !== 'USD') return sum;
         return sum + (c.valor || 0);
-      }, 0) || 0;
+      }, 0);
 
-      // Clients with pending (overdue)
+      // Clients with pending (overdue) - only monthly billing clients
       const today = new Date().toISOString().split('T')[0];
-      const clientsWithPending = allClientes?.filter(c => c.data_renovacao < today).length || 0;
+      const clientsWithPending = clientesMensal.filter(c => c.data_renovacao < today).length;
 
-      // Projected value (clients renewing this month) - separated by currency
+      // Projected value (monthly clients renewing this month) - separated by currency
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      const clientesRenovando = allClientes?.filter(c => 
+      const clientesRenovando = clientesMensal.filter(c => 
         c.data_renovacao >= today && c.data_renovacao <= endOfMonth
-      ) || [];
+      );
 
       const projectedValueBrl = clientesRenovando
         .filter(c => (c.moeda || 'BRL') !== 'USD')
