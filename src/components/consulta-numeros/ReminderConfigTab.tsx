@@ -28,6 +28,7 @@ interface ReminderConfig {
   cron_end_hour: number;
   cron_end_minute: number;
   cron_days: string[];
+  retry_window_minutes: number;
   whatsapp_enabled: boolean;
   evolution_api_url: string | null;
   evolution_api_key: string | null;
@@ -103,6 +104,7 @@ export function ReminderConfigTab() {
     cron_end_hour: 18,
     cron_end_minute: 0,
     cron_days: ['1', '2', '3', '4', '5', '6'],
+    retry_window_minutes: 5,
     whatsapp_enabled: false,
     evolution_api_url: '',
     evolution_api_key: '',
@@ -199,6 +201,7 @@ export function ReminderConfigTab() {
         cron_interval_minutes: configData.cron_interval_minutes ?? (configData.cron_interval_hours * 60),
         cron_start_minute: configData.cron_start_minute ?? 0,
         cron_end_minute: configData.cron_end_minute ?? 0,
+        retry_window_minutes: configData.retry_window_minutes ?? 5,
       });
     }
   }, [configData]);
@@ -218,6 +221,7 @@ export function ReminderConfigTab() {
           cron_end_hour: config.cron_end_hour,
           cron_end_minute: config.cron_end_minute,
           cron_days: config.cron_days,
+          retry_window_minutes: config.retry_window_minutes,
           whatsapp_enabled: config.whatsapp_enabled,
           evolution_api_url: config.evolution_api_url || null,
           evolution_api_key: config.evolution_api_key || null,
@@ -571,11 +575,11 @@ export function ReminderConfigTab() {
                 })()}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Executa a cada hora cheia (com 5 minutos de retry). Só envia se existirem números com os status monitorados.
+                Executa a cada hora cheia (com {config.retry_window_minutes} minutos de retry). Só envia se existirem números com os status monitorados.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
               <div className="space-y-2">
                 <Label>Horário Início</Label>
@@ -609,7 +613,27 @@ export function ReminderConfigTab() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Executa até {config.cron_end_hour}:04 (5 minutos de retry)</p>
+                <p className="text-xs text-muted-foreground">Executa até {config.cron_end_hour}:{String(config.retry_window_minutes - 1).padStart(2, '0')}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Janela de Retry (minutos)</Label>
+                <Select
+                  value={config.retry_window_minutes.toString()}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, retry_window_minutes: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 15, 20, 30].map((mins) => (
+                      <SelectItem key={mins} value={mins.toString()}>{mins} minutos</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  A cada hora, tenta enviar do minuto 0 até o minuto {config.retry_window_minutes - 1}
+                </p>
               </div>
             </div>
 
