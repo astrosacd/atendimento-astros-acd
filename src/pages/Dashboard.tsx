@@ -75,8 +75,9 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
-  const { canManageTasks } = usePermissions();
+  const { canManageTasks, canViewChamados, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
+  const canViewClients = hasPermission('view_clients');
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [urgentTasks, setUrgentTasks] = useState<{ overdue: ClientTask[]; dueSoon: ClientTask[] }>({ overdue: [], dueSoon: [] });
@@ -663,7 +664,7 @@ export default function Dashboard() {
         </div>
 
         {/* Section: Vendas Únicas (Clientes Registro) */}
-        {(stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
+        {canViewClients && (stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-purple-500 rounded-full"></span>
@@ -732,7 +733,7 @@ export default function Dashboard() {
         <ConsultaNumerosSection />
 
         {/* Section: Chamados - Admin Only */}
-        {isAdmin && (
+        {canViewChamados() && (
           <>
             <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
               <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
