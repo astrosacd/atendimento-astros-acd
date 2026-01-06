@@ -24,7 +24,9 @@ import {
   UserPlus,
   TrendingUp,
   Clock,
-  MessageSquare
+  MessageSquare,
+  ShoppingBag,
+  Users
 } from 'lucide-react';
 
 interface Cliente {
@@ -37,6 +39,7 @@ interface Cliente {
   valor: number;
   moeda: string;
   data_renovacao: string;
+  cobranca_ativa: boolean;
 }
 
 interface RecoveryAttempt {
@@ -59,8 +62,10 @@ interface RecoveryAttempt {
 export const ClientRecoveryManager = () => {
   const { toast } = useToast();
   const [overdueClients, setOverdueClients] = useState<Cliente[]>([]);
+  const [registroClients, setRegistroClients] = useState<Cliente[]>([]);
   const [recoveryHistory, setRecoveryHistory] = useState<RecoveryAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRegistro, setIsLoadingRegistro] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Cliente | null>(null);
   const [generatedMessage, setGeneratedMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -68,10 +73,13 @@ export const ClientRecoveryManager = () => {
   const [selectedChannel, setSelectedChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueryRegistro, setSearchQueryRegistro] = useState('');
   const [activeTab, setActiveTab] = useState('clients');
+  const [isNewSaleMode, setIsNewSaleMode] = useState(false);
 
   useEffect(() => {
     loadOverdueClients();
+    loadRegistroClients();
     loadRecoveryHistory();
   }, []);
 
@@ -83,7 +91,7 @@ export const ClientRecoveryManager = () => {
       
       const { data, error } = await supabase
         .from('clientes')
-        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao')
+        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa')
         .eq('cobranca_ativa', true)
         .lt('data_renovacao', thirtyDaysAgo.toISOString().split('T')[0])
         .order('data_renovacao', { ascending: true });
@@ -101,6 +109,28 @@ export const ClientRecoveryManager = () => {
     }
   };
 
+  const loadRegistroClients = async () => {
+    setIsLoadingRegistro(true);
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa')
+        .eq('cobranca_ativa', false)
+        .order('data_renovacao', { ascending: false });
+
+      if (error) throw error;
+      setRegistroClients(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao carregar clientes registro',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingRegistro(false);
+    }
+  };
+
   const loadRecoveryHistory = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('client-recovery', {
@@ -114,16 +144,17 @@ export const ClientRecoveryManager = () => {
     }
   };
 
-  const generateMessage = async (cliente: Cliente) => {
+  const generateMessage = async (cliente: Cliente, forNewSale: boolean = false) => {
     setSelectedClient(cliente);
     setIsGenerating(true);
     setIsDialogOpen(true);
     setGeneratedMessage('');
+    setIsNewSaleMode(forNewSale);
 
     try {
       const { data, error } = await supabase.functions.invoke('client-recovery', {
         body: { 
-          action: 'generate-message',
+          action: forNewSale ? 'generate-new-sale-message' : 'generate-message',
           clienteId: cliente.id 
         },
       });
@@ -227,8 +258,16 @@ export const ClientRecoveryManager = () => {
     c.produto.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredRegistroClients = registroClients.filter(c =>
+    c.nome.toLowerCase().includes(searchQueryRegistro.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchQueryRegistro.toLowerCase()) ||
+    c.numero.includes(searchQueryRegistro) ||
+    c.produto.toLowerCase().includes(searchQueryRegistro.toLowerCase())
+  );
+
   const stats = {
     total: overdueClients.length,
+    registro: registroClients.length,
     attempts: recoveryHistory.length,
     converted: recoveryHistory.filter(r => r.converteu === true).length,
     pending: recoveryHistory.filter(r => r.converteu === null).length,
@@ -237,7 +276,7 @@ export const ClientRecoveryManager = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -245,8 +284,22 @@ export const ClientRecoveryManager = () => {
                 <AlertCircle className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Inadimplentes +30d</p>
+                <p className="text-xs text-muted-foreground">Mensais +30d</p>
                 <p className="text-2xl font-bold text-red-400">{stats.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-500/20">
+                <ShoppingBag className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Clientes Registro</p>
+                <p className="text-2xl font-bold text-purple-400">{stats.registro}</p>
               </div>
             </div>
           </CardContent>
@@ -259,7 +312,7 @@ export const ClientRecoveryManager = () => {
                 <Send className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Tentativas de Recuperação</p>
+                <p className="text-xs text-muted-foreground">Tentativas</p>
                 <p className="text-2xl font-bold text-blue-400">{stats.attempts}</p>
               </div>
             </div>
@@ -287,7 +340,7 @@ export const ClientRecoveryManager = () => {
                 <Clock className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Aguardando Resposta</p>
+                <p className="text-xs text-muted-foreground">Aguardando</p>
                 <p className="text-2xl font-bold text-amber-400">{stats.pending}</p>
               </div>
             </div>
@@ -298,12 +351,16 @@ export const ClientRecoveryManager = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="clients">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Clientes para Recuperar
+            <Users className="w-4 h-4 mr-2" />
+            Mensais Inadimplentes
+          </TabsTrigger>
+          <TabsTrigger value="registro">
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Clientes Registro
           </TabsTrigger>
           <TabsTrigger value="history">
             <History className="w-4 h-4 mr-2" />
-            Histórico de Tentativas
+            Histórico
           </TabsTrigger>
         </TabsList>
 
@@ -400,11 +457,122 @@ export const ClientRecoveryManager = () => {
                             <TableCell className="text-right">
                               <Button 
                                 size="sm" 
-                                onClick={() => generateMessage(cliente)}
+                                onClick={() => generateMessage(cliente, false)}
                                 className="bg-gradient-to-r from-purple-500 to-violet-600"
                               >
                                 <Sparkles className="w-4 h-4 mr-1" />
                                 Recuperar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="registro" className="space-y-4">
+          <Card className="border-border/50">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-purple-400" />
+                    Clientes Registro - Nova Venda
+                  </CardTitle>
+                  <CardDescription>
+                    Clientes que fizeram compras únicas. Entre em contato para oferecer novos produtos/serviços.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar..."
+                      value={searchQueryRegistro}
+                      onChange={(e) => setSearchQueryRegistro(e.target.value)}
+                      className="pl-10 w-[200px]"
+                    />
+                  </div>
+                  <Button variant="outline" onClick={loadRegistroClients} disabled={isLoadingRegistro}>
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingRegistro ? 'animate-spin' : ''}`} />
+                    Atualizar
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Produto Comprado</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Última Compra</TableHead>
+                      <TableHead>Dias Desde Compra</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingRegistro ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10">
+                          <RefreshCw className="w-6 h-6 mx-auto mb-2 animate-spin text-muted-foreground" />
+                          Carregando...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredRegistroClients.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10">
+                          <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                          <p className="text-muted-foreground">Nenhum cliente registro encontrado</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRegistroClients.map((cliente) => {
+                        const daysSincePurchase = getDaysOverdue(cliente.data_renovacao);
+                        return (
+                          <TableRow key={cliente.id} className="hover:bg-muted/30">
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{cliente.nome}</p>
+                                <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p>{cliente.produto}</p>
+                                {cliente.plano && (
+                                  <p className="text-xs text-muted-foreground">{cliente.plano}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-mono">
+                                {cliente.moeda === 'USD' ? '$' : 'R$'} {cliente.valor.toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">
+                                {daysSincePurchase} dias
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                size="sm" 
+                                onClick={() => generateMessage(cliente, true)}
+                                className="bg-gradient-to-r from-emerald-500 to-teal-600"
+                              >
+                                <ShoppingBag className="w-4 h-4 mr-1" />
+                                Nova Venda
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -545,8 +713,17 @@ export const ClientRecoveryManager = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              Recuperar Cliente
+              {isNewSaleMode ? (
+                <>
+                  <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                  Nova Venda - Cliente Registro
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  Recuperar Cliente
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
               {selectedClient && (
@@ -609,9 +786,9 @@ export const ClientRecoveryManager = () => {
                     Cancelar
                   </Button>
                   <Button 
-                    onClick={() => selectedClient && generateMessage(selectedClient)}
+                    onClick={() => selectedClient && generateMessage(selectedClient, isNewSaleMode)}
                     variant="outline"
-                    className="border-purple-500/30 text-purple-400"
+                    className={isNewSaleMode ? "border-emerald-500/30 text-emerald-400" : "border-purple-500/30 text-purple-400"}
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Regenerar
@@ -619,7 +796,10 @@ export const ClientRecoveryManager = () => {
                   <Button 
                     onClick={sendRecoveryMessage}
                     disabled={isSending || !generatedMessage}
-                    className="bg-gradient-to-r from-purple-500 to-violet-600"
+                    className={isNewSaleMode 
+                      ? "bg-gradient-to-r from-emerald-500 to-teal-600" 
+                      : "bg-gradient-to-r from-purple-500 to-violet-600"
+                    }
                   >
                     {isSending ? (
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
