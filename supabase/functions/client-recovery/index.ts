@@ -415,9 +415,30 @@ Aguardo seu retorno! 😊`;
               }),
             });
             
+            const responseData = await response.json().catch(() => null);
+            
             if (!response.ok) {
-              const errorText = await response.text();
+              // Detectar se o número não existe no WhatsApp
+              const errorText = JSON.stringify(responseData) || 'Unknown error';
+              if (errorText.toLowerCase().includes('not registered') || 
+                  errorText.toLowerCase().includes('not on whatsapp') ||
+                  errorText.toLowerCase().includes('número não existe') ||
+                  errorText.toLowerCase().includes('not found') ||
+                  responseData?.error?.includes('not registered')) {
+                throw new Error('Número não existe no WhatsApp');
+              }
               throw new Error(`WhatsApp API error: ${errorText}`);
+            }
+            
+            // Verificar se a resposta indica que o número não existe
+            if (responseData?.error || responseData?.status === 'error') {
+              const errMsg = responseData?.error || responseData?.message || 'Erro desconhecido';
+              if (errMsg.toLowerCase().includes('not registered') || 
+                  errMsg.toLowerCase().includes('not on whatsapp') ||
+                  errMsg.toLowerCase().includes('not found')) {
+                throw new Error('Número não existe no WhatsApp');
+              }
+              throw new Error(errMsg);
             }
           } catch (error: any) {
             sendStatus = 'error';
