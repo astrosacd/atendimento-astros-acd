@@ -21,7 +21,7 @@ serve(async (req) => {
     
     // Parse body only once
     const body = await req.json();
-    const { clienteId, action, message, channel, attemptId, converted } = body;
+    const { clienteId, action, message, channel, attemptId, converted, isNewSale } = body;
     
     if (action === 'generate-message') {
       // Fetch client data
@@ -457,10 +457,14 @@ Aguardo seu retorno! 😊`;
 
             const htmlMessage = String(message || '').replace(/\n/g, '<br/>');
 
+            const emailSubject = isNewSale 
+              ? `${cliente.produto || 'Produto'} - ${cliente.nome}`
+              : `Recuperação - ${cliente.produto || 'Assinatura'} - ${cliente.nome}`;
+
             await client.send({
               from: gmailUser,
               to: cliente.email,
-              subject: `Recuperação - ${cliente.produto || 'Assinatura'} (${cliente.nome})`,
+              subject: emailSubject,
               content: message,
               html: `
                 <div style="font-family: Arial, sans-serif; line-height: 1.5">
