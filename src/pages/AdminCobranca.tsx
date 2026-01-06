@@ -20,6 +20,7 @@ import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PendingPaymentsList } from '@/components/PendingPaymentsList';
 import { ClientRecoveryManager } from '@/components/billing/ClientRecoveryManager';
 import { useTranslation } from 'react-i18next';
+import { usePermissions } from '@/hooks/usePermissions';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
   Clock, 
@@ -136,6 +137,18 @@ const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#e
 const AdminCobranca = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
+  const {
+    canViewCobrancaMetricas,
+    canViewCobrancaRecuperacao,
+    canViewCobrancaConfig,
+    canViewCobrancaPagamentos,
+    canViewCobrancaIA,
+    canViewCobrancaCanais,
+    canViewCobrancaMensagens,
+    canViewCobrancaRecibo,
+    canViewCobrancaRelatorios,
+    canViewCobrancaLogs,
+  } = usePermissions();
   const { checkPaymentStatus, getPaymentStats, isLoading: isCheckingPayments } = usePaymentStatus();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1139,21 +1152,42 @@ const AdminCobranca = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="metrics" className="space-y-6">
+        <Tabs defaultValue={canViewCobrancaMetricas() ? "metrics" : canViewCobrancaRecuperacao() ? "recovery" : canViewCobrancaConfig() ? "config" : "logs"} className="space-y-6">
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
-            <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />{t('billing.tabs.metrics')}</TabsTrigger>
-            <TabsTrigger value="recovery"><UserPlus className="w-4 h-4 mr-2" />Recuperação</TabsTrigger>
-            <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />{t('billing.tabs.config')}</TabsTrigger>
-            <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />{t('billing.tabs.payments')}</TabsTrigger>
-            <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
-            <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />{t('billing.tabs.channels')}</TabsTrigger>
-            <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />{t('billing.tabs.messages')}</TabsTrigger>
-            <TabsTrigger value="receipt"><FileText className="w-4 h-4 mr-2" />Recibo</TabsTrigger>
-            <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
-            <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />{t('billing.tabs.logs')}</TabsTrigger>
+            {canViewCobrancaMetricas() && (
+              <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />{t('billing.tabs.metrics')}</TabsTrigger>
+            )}
+            {canViewCobrancaRecuperacao() && (
+              <TabsTrigger value="recovery"><UserPlus className="w-4 h-4 mr-2" />Recuperação</TabsTrigger>
+            )}
+            {canViewCobrancaConfig() && (
+              <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />{t('billing.tabs.config')}</TabsTrigger>
+            )}
+            {canViewCobrancaPagamentos() && (
+              <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />{t('billing.tabs.payments')}</TabsTrigger>
+            )}
+            {canViewCobrancaIA() && (
+              <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
+            )}
+            {canViewCobrancaCanais() && (
+              <TabsTrigger value="channels"><MessageSquare className="w-4 h-4 mr-2" />{t('billing.tabs.channels')}</TabsTrigger>
+            )}
+            {canViewCobrancaMensagens() && (
+              <TabsTrigger value="messages"><Edit className="w-4 h-4 mr-2" />{t('billing.tabs.messages')}</TabsTrigger>
+            )}
+            {canViewCobrancaRecibo() && (
+              <TabsTrigger value="receipt"><FileText className="w-4 h-4 mr-2" />Recibo</TabsTrigger>
+            )}
+            {canViewCobrancaRelatorios() && (
+              <TabsTrigger value="reports"><BarChart3 className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
+            )}
+            {canViewCobrancaLogs() && (
+              <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />{t('billing.tabs.logs')}</TabsTrigger>
+            )}
           </TabsList>
 
           {/* Métricas Dashboard Tab */}
+          {canViewCobrancaMetricas() && (
           <TabsContent value="metrics" className="space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1347,13 +1381,17 @@ const AdminCobranca = () => {
               </Card>
             </div>
           </TabsContent>
+          )}
 
           {/* Recuperação de Clientes Tab */}
+          {canViewCobrancaRecuperacao() && (
           <TabsContent value="recovery" className="space-y-6">
             <ClientRecoveryManager />
           </TabsContent>
+          )}
 
           {/* Configurações Gerais */}
+          {canViewCobrancaConfig() && (
           <TabsContent value="config" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-border/50">
@@ -1576,8 +1614,10 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
 
           {/* Pagamentos Tab (Mercado Pago) */}
+          {canViewCobrancaPagamentos() && (
           <TabsContent value="payments" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Mercado Pago Config */}
@@ -1866,8 +1906,10 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
 
           {/* IA Tab */}
+          {canViewCobrancaIA() && (
           <TabsContent value="ai" className="space-y-6">
             <Card className="border-border/50">
               <CardHeader>
@@ -2135,8 +2177,10 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
 
           {/* Canais Tab */}
+          {canViewCobrancaCanais() && (
           <TabsContent value="channels" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Email Config */}
@@ -2302,8 +2346,10 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
 
           {/* Mensagens Tab */}
+          {canViewCobrancaMensagens() && (
           <TabsContent value="messages" className="space-y-6">
             <Card className="border-border/50">
               <CardHeader>
@@ -2345,8 +2391,10 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
 
           {/* Relatórios Tab */}
+          {canViewCobrancaRelatorios() && (
           <TabsContent value="reports" className="space-y-6">
             <div className="flex justify-end">
               <Button
@@ -2432,8 +2480,10 @@ const AdminCobranca = () => {
               </Card>
             </div>
           </TabsContent>
+          )}
 
           {/* Logs Tab - Enhanced */}
+          {canViewCobrancaLogs() && (
           <TabsContent value="logs" className="space-y-6">
             {/* Filters */}
             <Card className="border-border/50">
@@ -2714,8 +2764,10 @@ const AdminCobranca = () => {
               );
             })()}
           </TabsContent>
+          )}
 
           {/* Recibo Tab */}
+          {canViewCobrancaRecibo() && (
           <TabsContent value="receipt" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Status do Recibo */}
@@ -2898,6 +2950,7 @@ const AdminCobranca = () => {
               </Button>
             </div>
           </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
