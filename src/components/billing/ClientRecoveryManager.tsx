@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,6 +52,7 @@ interface RecoveryAttempt {
   canal: string;
   status: string;
   converteu: boolean | null;
+  error_message?: string | null;
   clientes?: {
     nome: string;
     produto: string;
@@ -661,10 +663,19 @@ export const ClientRecoveryManager = () => {
                                 Enviado
                               </Badge>
                             ) : (
-                              <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Erro
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 cursor-help">
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Erro
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{attempt.error_message || 'Erro ao enviar mensagem'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </TableCell>
                           <TableCell>
