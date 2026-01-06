@@ -38,13 +38,36 @@ serve(async (req) => {
         );
       }
       
+      // Fetch AI config from billing_config
+      const { data: aiConfigs } = await supabase
+        .from('billing_config')
+        .select('config_key, config_value')
+        .in('config_key', [
+          'recovery_ai_provider', 
+          'recovery_ai_model', 
+          'recovery_ai_prompt',
+          'recovery_openai_api_key',
+          'recovery_grok_api_key'
+        ]);
+      
+      const configMap: Record<string, string> = {};
+      aiConfigs?.forEach(c => { configMap[c.config_key] = c.config_value; });
+      
+      const aiProvider = configMap.recovery_ai_provider || 'lovable';
+      const aiModel = configMap.recovery_ai_model || 'google/gemini-2.5-flash';
+      const customPrompt = configMap.recovery_ai_prompt || '';
+      const openaiApiKey = configMap.recovery_openai_api_key || '';
+      const grokApiKey = configMap.recovery_grok_api_key || '';
+      
       // Calculate days overdue
       const today = new Date();
       const renovacao = new Date(cliente.data_renovacao);
       const daysOverdue = Math.floor((today.getTime() - renovacao.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Generate message with AI
-      const prompt = `Você é um especialista em recuperação de clientes inadimplentes. Gere uma mensagem persuasiva e personalizada para recuperar o cliente.
+      // Build the prompt
+      const baseInstructions = customPrompt || 'Você é um especialista em recuperação de clientes inadimplentes. Gere uma mensagem persuasiva e personalizada para recuperar o cliente.';
+      
+      const prompt = `${baseInstructions}
 
 Dados do cliente:
 - Nome: ${cliente.nome}
@@ -66,9 +89,8 @@ Instruções:
 
 Responda APENAS com a mensagem, sem explicações adicionais.`;
 
-      if (!lovableApiKey) {
-        // Fallback message if no AI
-        const fallbackMessage = `Olá ${cliente.nome}! 👋
+      // Fallback message
+      const fallbackMessage = `Olá ${cliente.nome}! 👋
 
 Notamos que sua assinatura do ${cliente.produto} está pendente há ${daysOverdue} dias.
 
@@ -78,50 +100,92 @@ Valor: ${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor}
 
 Entre em contato para regularizar e continuar aproveitando todos os benefícios! 🚀`;
 
+      // If AI is disabled, return fallback
+      if (aiProvider === 'none') {
         return new Response(
           JSON.stringify({ message: fallbackMessage, usedAI: false }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "user", content: prompt },
-          ],
-        }),
-      });
+      let aiResponse: Response | null = null;
+      let usedProvider = aiProvider;
 
-      if (!aiResponse.ok) {
-        console.error("AI gateway error:", aiResponse.status);
-        // Fallback message
-        const fallbackMessage = `Olá ${cliente.nome}! 👋
+      try {
+        if (aiProvider === 'lovable') {
+          // Use Lovable AI Gateway
+          if (!lovableApiKey) {
+            throw new Error('LOVABLE_API_KEY not configured');
+          }
+          
+          aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        } else if (aiProvider === 'openai') {
+          // Use OpenAI directly
+          if (!openaiApiKey) {
+            throw new Error('OpenAI API key not configured');
+          }
+          
+          aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openaiApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        } else if (aiProvider === 'grok') {
+          // Use Grok (xAI)
+          if (!grokApiKey) {
+            throw new Error('Grok API key not configured');
+          }
+          
+          aiResponse = await fetch("https://api.x.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${grokApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        }
 
-Notamos que sua assinatura do ${cliente.produto} está pendente há ${daysOverdue} dias.
+        if (!aiResponse || !aiResponse.ok) {
+          const errorText = aiResponse ? await aiResponse.text() : 'No response';
+          console.error(`AI ${aiProvider} error:`, errorText);
+          throw new Error(`AI error: ${errorText}`);
+        }
 
-Valor: ${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor}
-
-Podemos ajudar a regularizar? Entre em contato! 🚀`;
+        const aiData = await aiResponse.json();
+        const generatedMessage = aiData.choices?.[0]?.message?.content || '';
 
         return new Response(
-          JSON.stringify({ message: fallbackMessage, usedAI: false }),
+          JSON.stringify({ message: generatedMessage, usedAI: true, provider: usedProvider }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: any) {
+        console.error('AI generation error:', error.message);
+        // Return fallback on error
+        return new Response(
+          JSON.stringify({ message: fallbackMessage, usedAI: false, error: error.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const aiData = await aiResponse.json();
-      const generatedMessage = aiData.choices?.[0]?.message?.content || '';
-
-      return new Response(
-        JSON.stringify({ message: generatedMessage, usedAI: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
     
     if (action === 'send-recovery') {

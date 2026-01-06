@@ -1873,10 +1873,169 @@ const AdminCobranca = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-purple-400" />
-                  Geração de Mensagens com IA
+                  Geração de Mensagens com IA (Recuperação)
                 </CardTitle>
                 <CardDescription>
-                  Configure uma IA para gerar mensagens personalizadas automaticamente
+                  Configure a IA para gerar mensagens personalizadas de recuperação de clientes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <Label>Provedor de IA</Label>
+                    <Select value={config.recovery_ai_provider || 'lovable'} onValueChange={(v) => setConfig({ ...config, recovery_ai_provider: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lovable">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-purple-400" />
+                            Lovable AI (Gemini) - Recomendado
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="openai">
+                          <div className="flex items-center gap-2">
+                            <Bot className="w-4 h-4 text-green-400" />
+                            OpenAI (GPT)
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="grok">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-blue-400" />
+                            Grok (xAI)
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="none">Desativado (usar mensagem padrão)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {config.recovery_ai_provider === 'lovable' && (
+                      <p className="text-xs text-muted-foreground">
+                        Usa Gemini via Lovable AI. Não precisa de API key.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label>Modelo</Label>
+                    <Select 
+                      value={config.recovery_ai_model || 'google/gemini-2.5-flash'} 
+                      onValueChange={(v) => setConfig({ ...config, recovery_ai_model: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(config.recovery_ai_provider === 'lovable' || !config.recovery_ai_provider) && (
+                          <>
+                            <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash (Rápido)</SelectItem>
+                            <SelectItem value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Mais rápido)</SelectItem>
+                            <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro (Melhor qualidade)</SelectItem>
+                            <SelectItem value="openai/gpt-5-mini">GPT-5 Mini</SelectItem>
+                            <SelectItem value="openai/gpt-5-nano">GPT-5 Nano (Mais rápido)</SelectItem>
+                          </>
+                        )}
+                        {config.recovery_ai_provider === 'openai' && (
+                          <>
+                            <SelectItem value="gpt-4o-mini">GPT-4o Mini (Recomendado)</SelectItem>
+                            <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                          </>
+                        )}
+                        {config.recovery_ai_provider === 'grok' && (
+                          <>
+                            <SelectItem value="grok-3">Grok 3 (Mais rápido)</SelectItem>
+                            <SelectItem value="grok-3-mini">Grok 3 Mini</SelectItem>
+                          </>
+                        )}
+                        {config.recovery_ai_provider === 'none' && (
+                          <SelectItem value="none">IA desativada</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {config.recovery_ai_provider === 'openai' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      API Key da OpenAI
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={config.recovery_openai_api_key || ''}
+                      onChange={(e) => setConfig({ ...config, recovery_openai_api_key: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-primary underline">platform.openai.com/api-keys</a>
+                    </p>
+                  </div>
+                )}
+
+                {config.recovery_ai_provider === 'grok' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      API Key do Grok (xAI)
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="xai-..."
+                      value={config.recovery_grok_api_key || ''}
+                      onChange={(e) => setConfig({ ...config, recovery_grok_api_key: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha em: <a href="https://console.x.ai" target="_blank" rel="noreferrer" className="text-primary underline">console.x.ai</a>
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Contexto/Prompt da IA</Label>
+                  <Textarea
+                    placeholder="Instruções para a IA gerar as mensagens de recuperação..."
+                    value={config.recovery_ai_prompt || 'Você é um especialista em recuperação de clientes inadimplentes. Gere uma mensagem persuasiva e personalizada para recuperar o cliente.'}
+                    onChange={(e) => setConfig({ ...config, recovery_ai_prompt: e.target.value })}
+                    className="min-h-[120px]"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Defina o tom e estilo das mensagens de recuperação que a IA deve gerar.
+                  </p>
+                </div>
+
+                {/* Status indicator */}
+                <div className="p-4 rounded-lg bg-background border">
+                  <div className="flex items-center gap-3">
+                    {config.recovery_ai_provider === 'none' ? (
+                      <>
+                        <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                        <span className="text-muted-foreground">IA desativada - será usada mensagem padrão</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-emerald-400">
+                          IA ativa: {config.recovery_ai_provider === 'lovable' ? 'Lovable AI' : config.recovery_ai_provider === 'openai' ? 'OpenAI' : 'Grok'} 
+                          {' '}({config.recovery_ai_model || 'google/gemini-2.5-flash'})
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Legacy AI Config for billing messages */}
+            <Card className="border-border/50 opacity-75">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-muted-foreground" />
+                  IA para Mensagens de Cobrança (Legado)
+                </CardTitle>
+                <CardDescription>
+                  Configuração antiga para geração de mensagens de cobrança automática
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
