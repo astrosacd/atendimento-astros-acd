@@ -942,7 +942,8 @@
       "numberQuery": "Consulta de Números",
       "numberStatus": "Números Aquecimento",
       "reports": "Relatórios Avançados",
-      "tickets": "Sistema de Chamados"
+      "tickets": "Sistema de Chamados",
+      "billing": "Cobrança"
     },
     "legend": {
       "allowed": "Permitido",
