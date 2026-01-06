@@ -666,13 +666,13 @@ export const ClientRecoveryManager = () => {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 cursor-help">
+                                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 cursor-help">
                                       <XCircle className="w-3 h-3 mr-1" />
-                                      Erro
+                                      Não enviado
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">{attempt.error_message || 'Erro ao enviar mensagem'}</p>
+                                    <p className="text-sm">{attempt.error_message || 'Falha no envio'}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -689,7 +689,7 @@ export const ClientRecoveryManager = () => {
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
                                     <p className="text-sm">
-                                      {attempt.error_message || 'Falha no envio (ex: número não existe no WhatsApp)'}
+                                      {attempt.error_message || 'Falha no envio'}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
