@@ -18,7 +18,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { clienteId, action } = await req.json();
+    // Parse body only once
+    const body = await req.json();
+    const { clienteId, action, message, channel, attemptId, converted } = body;
     
     if (action === 'generate-message') {
       // Fetch client data
@@ -122,7 +124,7 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
     }
     
     if (action === 'send-recovery') {
-      const { message, channel } = await req.json();
+      // message and channel already extracted from body above
       
       // Fetch client data
       const { data: cliente, error: clienteError } = await supabase
@@ -256,7 +258,7 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
     }
     
     if (action === 'mark-converted') {
-      const { attemptId, converted } = await req.json();
+      // attemptId and converted already extracted from body above
       
       const { error } = await supabase
         .from('client_recovery_attempts')
