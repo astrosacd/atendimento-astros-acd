@@ -239,20 +239,42 @@ export default function AdminRelatorios() {
       clientesBRL: 0, clientesUSD: 0
     };
 
+    const today = new Date();
+    // Tolerância de 7 dias para considerar cliente ainda "ativo" para MRR
+    const toleranciaDias = 7;
+    const dataLimite = new Date(today);
+    dataLimite.setDate(dataLimite.getDate() - toleranciaDias);
+
+    // Filtrar clientes realmente ativos para MRR (renovação futura ou até 7 dias atrás)
+    const clientesAtivosMRR = clientes.filter(c => {
+      const renovacao = parseISO(c.data_renovacao);
+      return renovacao >= dataLimite;
+    });
+
     const clientesBRL = clientes.filter(c => c.moeda === 'BRL');
     const clientesUSD = clientes.filter(c => c.moeda === 'USD');
+    
+    // Para MRR: apenas clientes com renovação futura ou recente
+    const clientesBRLAtivos = clientesAtivosMRR.filter(c => c.moeda === 'BRL');
+    const clientesUSDAtivos = clientesAtivosMRR.filter(c => c.moeda === 'USD');
 
-    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[]) => {
+    const calcularMetricasPorMoeda = (clientesMoeda: ClienteData[], clientesMoedaAtivos: ClienteData[]) => {
       if (clientesMoeda.length === 0) return { ticketMedio: 0, mrr: 0, ltv: 0 };
       
-      const valoresMensais = clientesMoeda.map(c => {
+      // Ticket médio considera todos os clientes (histórico)
+      const valoresMensaisTodos = clientesMoeda.map(c => {
         const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
         return c.valor / cicloMeses;
       });
-      const ticketMedio = valoresMensais.reduce((a, b) => a + b, 0) / valoresMensais.length;
-      const mrr = valoresMensais.reduce((a, b) => a + b, 0);
+      const ticketMedio = valoresMensaisTodos.reduce((a, b) => a + b, 0) / valoresMensaisTodos.length;
       
-      const today = new Date();
+      // MRR considera apenas clientes ativos (renovação futura ou até 7 dias atrás)
+      const valoresMensaisAtivos = clientesMoedaAtivos.map(c => {
+        const cicloMeses = CICLO_MESES[c.ciclo_cobranca] || 1;
+        return c.valor / cicloMeses;
+      });
+      const mrr = valoresMensaisAtivos.reduce((a, b) => a + b, 0);
+      
       const temposMeses = clientesMoeda.map(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
@@ -265,18 +287,17 @@ export default function AdminRelatorios() {
       return { ticketMedio, mrr, ltv };
     };
 
-    const metricasBRL = calcularMetricasPorMoeda(clientesBRL);
-    const metricasUSD = calcularMetricasPorMoeda(clientesUSD);
+    const metricasBRL = calcularMetricasPorMoeda(clientesBRL, clientesBRLAtivos);
+    const metricasUSD = calcularMetricasPorMoeda(clientesUSD, clientesUSDAtivos);
 
     // Tempo médio geral
-    const today = new Date();
-    const temposMeses = clientes.map(c => {
+    const temposMesesGeral = clientes.map(c => {
       const createdAt = parseISO(c.created_at);
       const renovacao = parseISO(c.data_renovacao);
       const dataFim = renovacao < today ? renovacao : today;
       return Math.max(1, differenceInMonths(dataFim, createdAt));
     });
-    const tempoMedioMeses = temposMeses.length > 0 ? temposMeses.reduce((a, b) => a + b, 0) / temposMeses.length : 0;
+    const tempoMedioMeses = temposMesesGeral.length > 0 ? temposMesesGeral.reduce((a, b) => a + b, 0) / temposMesesGeral.length : 0;
 
     return { 
       ltvBRL: metricasBRL.ltv, 
