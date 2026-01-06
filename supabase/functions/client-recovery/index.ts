@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -185,19 +186,43 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
           errorMessage = 'Nenhuma instância WhatsApp ativa';
         }
       } else if (channel === 'email') {
-        // Get Gmail config
-        const { data: configs } = await supabase
-          .from('billing_config')
-          .select('config_key, config_value')
-          .in('config_key', ['billing_gmail_user', 'billing_gmail_password']);
-        
-        const gmailUser = configs?.find(c => c.config_key === 'billing_gmail_user')?.config_value;
-        const gmailPassword = configs?.find(c => c.config_key === 'billing_gmail_password')?.config_value;
-        
-        if (gmailUser && gmailPassword) {
+        // Envio via Gmail SMTP (usa secrets do projeto)
+        const gmailUser = Deno.env.get('GMAIL_USER');
+        const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
+
+        if (gmailUser && gmailAppPassword) {
           try {
-            // Simple SMTP email send (simplified for demo)
-            // In production, use a proper email service
+            if (!cliente.email) {
+              throw new Error('Cliente sem email cadastrado');
+            }
+
+            const client = new SMTPClient({
+              connection: {
+                hostname: "smtp.gmail.com",
+                port: 465,
+                tls: true,
+                auth: {
+                  username: gmailUser,
+                  password: gmailAppPassword,
+                },
+              },
+            });
+
+            const htmlMessage = String(message || '').replace(/\n/g, '<br/>');
+
+            await client.send({
+              from: gmailUser,
+              to: cliente.email,
+              subject: `Cobrança - ${cliente.produto || 'Assinatura'} (${cliente.nome})`,
+              content: message,
+              html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.5">
+                  <p>${htmlMessage}</p>
+                </div>
+              `.trim(),
+            });
+
+            await client.close();
             sendStatus = 'sent';
           } catch (error: any) {
             sendStatus = 'error';
@@ -205,10 +230,10 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
           }
         } else {
           sendStatus = 'error';
-          errorMessage = 'Credenciais Gmail não configuradas';
+          errorMessage = 'Credenciais Gmail não configuradas (GMAIL_USER / GMAIL_APP_PASSWORD)';
         }
       }
-      
+
       // Log the recovery attempt
       const { error: logError } = await supabase
         .from('client_recovery_attempts')
