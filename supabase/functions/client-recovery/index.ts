@@ -506,7 +506,7 @@ Aguardo seu retorno! 😊`;
         }
       }
 
-      // Log the recovery attempt
+      // Log the recovery attempt with error details if any
       const { error: logError } = await supabase
         .from('client_recovery_attempts')
         .insert({
@@ -515,6 +515,7 @@ Aguardo seu retorno! 😊`;
           mensagem_enviada: message,
           canal: channel,
           status: sendStatus,
+          error_message: errorMessage,
         });
       
       if (logError) {

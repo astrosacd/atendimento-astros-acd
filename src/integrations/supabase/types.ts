@@ -839,6 +839,7 @@ export type Database = {
           created_at: string
           data_envio: string
           data_vencimento: string
+          error_message: string | null
           id: string
           mensagem_enviada: string
           status: string
@@ -851,6 +852,7 @@ export type Database = {
           created_at?: string
           data_envio?: string
           data_vencimento: string
+          error_message?: string | null
           id?: string
           mensagem_enviada: string
           status?: string
@@ -863,6 +865,7 @@ export type Database = {
           created_at?: string
           data_envio?: string
           data_vencimento?: string
+          error_message?: string | null
           id?: string
           mensagem_enviada?: string
           status?: string
