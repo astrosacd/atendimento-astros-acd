@@ -679,7 +679,22 @@ export const ClientRecoveryManager = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            {attempt.converteu === true ? (
+                            {attempt.status !== 'sent' ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge className="bg-amber-500/20 text-amber-400 cursor-help">
+                                      Não enviado
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">
+                                      {attempt.error_message || 'Falha no envio (ex: número não existe no WhatsApp)'}
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : attempt.converteu === true ? (
                               <Badge className="bg-emerald-500/20 text-emerald-400">Sim</Badge>
                             ) : attempt.converteu === false ? (
                               <Badge className="bg-red-500/20 text-red-400">Não</Badge>
@@ -688,7 +703,7 @@ export const ClientRecoveryManager = () => {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            {attempt.converteu === null && (
+                            {attempt.status === 'sent' && attempt.converteu === null && (
                               <div className="flex gap-1 justify-end">
                                 <Button 
                                   size="sm" 
