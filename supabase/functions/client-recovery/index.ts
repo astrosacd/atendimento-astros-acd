@@ -186,11 +186,16 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
           errorMessage = 'Nenhuma instância WhatsApp ativa';
         }
       } else if (channel === 'email') {
-        // Envio via Gmail SMTP (usa secrets do projeto)
-        const gmailUser = Deno.env.get('GMAIL_USER');
-        const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
+        // Buscar credenciais Gmail da aba Canais (billing_config) - mesmo lugar usado pela cobrança
+        const { data: configs } = await supabase
+          .from('billing_config')
+          .select('config_key, config_value')
+          .in('config_key', ['billing_gmail_user', 'billing_gmail_password']);
 
-        if (gmailUser && gmailAppPassword) {
+        const gmailUser = configs?.find(c => c.config_key === 'billing_gmail_user')?.config_value;
+        const gmailPassword = configs?.find(c => c.config_key === 'billing_gmail_password')?.config_value;
+
+        if (gmailUser && gmailPassword) {
           try {
             if (!cliente.email) {
               throw new Error('Cliente sem email cadastrado');
@@ -203,7 +208,7 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
                 tls: true,
                 auth: {
                   username: gmailUser,
-                  password: gmailAppPassword,
+                  password: gmailPassword,
                 },
               },
             });
@@ -213,7 +218,7 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
             await client.send({
               from: gmailUser,
               to: cliente.email,
-              subject: `Cobrança - ${cliente.produto || 'Assinatura'} (${cliente.nome})`,
+              subject: `Recuperação - ${cliente.produto || 'Assinatura'} (${cliente.nome})`,
               content: message,
               html: `
                 <div style="font-family: Arial, sans-serif; line-height: 1.5">
@@ -230,7 +235,7 @@ Podemos ajudar a regularizar? Entre em contato! 🚀`;
           }
         } else {
           sendStatus = 'error';
-          errorMessage = 'Credenciais Gmail não configuradas (GMAIL_USER / GMAIL_APP_PASSWORD)';
+          errorMessage = 'Credenciais Gmail não configuradas em Canais';
         }
       }
 
