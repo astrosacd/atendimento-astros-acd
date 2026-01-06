@@ -210,20 +210,30 @@ export default function Dashboard() {
       const taxaInadimplencia = clientesRecorrentes > 0 ? (inadimplentes / clientesRecorrentes) * 100 : 0;
 
       // Calculate MRR (Monthly Recurring Revenue) - normalized by billing cycle
-      // Separate by currency - only from active billing clients
-      const mrrBrl = clientes?.filter(c => c.cobranca_ativa).reduce((acc, c) => {
+      // Separate by currency - only from clients with future renewal (or up to 7 days overdue)
+      const toleranciaDias = 7;
+      const dataLimiteMrr = new Date(today);
+      dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
+
+      const clientesAtivosMRR = clientes?.filter(c => {
+        if (!c.cobranca_ativa) return false;
+        const renovacao = new Date(c.data_renovacao);
+        return renovacao >= dataLimiteMrr;
+      }) || [];
+
+      const mrrBrl = clientesAtivosMRR.reduce((acc, c) => {
         if (c.moeda === 'USD') return acc;
         const ciclo = c.ciclo_cobranca || 'mensal';
         const meses = CICLO_MESES[ciclo] || 1;
         return acc + ((c.valor || 0) / meses);
-      }, 0) || 0;
+      }, 0);
 
-      const mrrUsd = clientes?.filter(c => c.cobranca_ativa).reduce((acc, c) => {
+      const mrrUsd = clientesAtivosMRR.reduce((acc, c) => {
         if (c.moeda !== 'USD') return acc;
         const ciclo = c.ciclo_cobranca || 'mensal';
         const meses = CICLO_MESES[ciclo] || 1;
         return acc + ((c.valor || 0) / meses);
-      }, 0) || 0;
+      }, 0);
 
       // Revenue forecast (clients renewing in next 30 days) - separated by currency
       const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
