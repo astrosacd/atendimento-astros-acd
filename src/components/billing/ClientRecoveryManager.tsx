@@ -190,6 +190,7 @@ export const ClientRecoveryManager = () => {
           clienteId: selectedClient.id,
           message: generatedMessage,
           channel: selectedChannel,
+          isNewSale: isNewSaleMode,
         },
       });
 
