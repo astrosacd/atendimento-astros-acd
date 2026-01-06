@@ -87,6 +87,12 @@ interface Cliente {
   plano: string | null;
   valor: number;
   data_renovacao: string;
+  data_d_menos_3: string | null;
+  data_d_mais_1: string | null;
+  data_d_mais_2: string | null;
+  data_d_mais_15: string | null;
+  data_d_mais_30: string | null;
+  cobranca_ativa: boolean;
 }
 
 interface WhatsAppInstance {
@@ -149,6 +155,8 @@ const AdminCobranca = () => {
   const [whatsappInstances, setWhatsappInstances] = useState<WhatsAppInstance[]>([]);
   const [newInstance, setNewInstance] = useState({ instance_name: '', api_url: '', api_key: '' });
   const [isAddingInstance, setIsAddingInstance] = useState(false);
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>('all'); // 'all', 'mensal', 'registro'
+  const [dateFilter, setDateFilter] = useState<string>('none'); // 'none', 'd_menos_3', 'd_zero', 'd_mais_1', etc.
   
   // Log filters
   const [logSearchQuery, setLogSearchQuery] = useState('');
@@ -826,11 +834,43 @@ const AdminCobranca = () => {
     }
   };
 
-  const filteredClientes = clientes.filter(c =>
-    c.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.numero.includes(searchQuery)
-  );
+  const filteredClientes = clientes.filter(c => {
+    // Filtro por texto (nome, email, telefone)
+    const matchesSearch = 
+      c.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.numero.includes(searchQuery);
+    
+    if (!matchesSearch) return false;
+    
+    // Filtro por tipo de cliente (mensal vs registro)
+    if (clientTypeFilter === 'mensal' && !c.cobranca_ativa) return false;
+    if (clientTypeFilter === 'registro' && c.cobranca_ativa) return false;
+    
+    // Filtro por data de vencimento
+    if (dateFilter !== 'none') {
+      const today = new Date().toISOString().split('T')[0];
+      
+      switch (dateFilter) {
+        case 'd_menos_3':
+          return c.data_d_menos_3 === today;
+        case 'd_zero':
+          return c.data_renovacao === today;
+        case 'd_mais_1':
+          return c.data_d_mais_1 === today;
+        case 'd_mais_2':
+          return c.data_d_mais_2 === today;
+        case 'd_mais_15':
+          return c.data_d_mais_15 === today;
+        case 'd_mais_30':
+          return c.data_d_mais_30 === today;
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  });
 
   const toggleClienteSelection = (id: string) => {
     setSelectedClientes(prev =>
@@ -917,21 +957,55 @@ const AdminCobranca = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-                    <div className="flex flex-col sm:flex-row items-center gap-3 p-1">
-                      <div className="flex-1 w-full">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Buscar por nome, email ou telefone..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                          />
+                    <div className="flex flex-col gap-3 p-1">
+                      {/* Primeira linha: busca e filtros */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="flex-1 w-full">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar por nome, email ou telefone..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                        </div>
+                        <div className="w-full sm:w-auto sm:min-w-[140px] shrink-0">
+                          <Select value={clientTypeFilter} onValueChange={setClientTypeFilter}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="mensal">🔄 Mensal</SelectItem>
+                              <SelectItem value="registro">📝 Registro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-full sm:w-auto sm:min-w-[160px] shrink-0">
+                          <Select value={dateFilter} onValueChange={setDateFilter}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Filtrar por data" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem filtro de data</SelectItem>
+                              <SelectItem value="d_menos_3">D-3 (Hoje)</SelectItem>
+                              <SelectItem value="d_zero">D - Vencimento (Hoje)</SelectItem>
+                              <SelectItem value="d_mais_1">D+1 (Hoje)</SelectItem>
+                              <SelectItem value="d_mais_2">D+2 (Hoje)</SelectItem>
+                              <SelectItem value="d_mais_15">D+15 (Hoje)</SelectItem>
+                              <SelectItem value="d_mais_30">D+30 (Hoje)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                      <div className="w-full sm:w-auto sm:min-w-[180px] shrink-0">
+                      
+                      {/* Segunda linha: tipo de mensagem */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">Mensagem:</span>
                         <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-auto min-w-[180px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -961,23 +1035,47 @@ const AdminCobranca = () => {
                           <TableRow>
                             <TableHead className="w-12"></TableHead>
                             <TableHead>Nome</TableHead>
-                            <TableHead className="hidden sm:table-cell">Email</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead className="hidden sm:table-cell">Vencimento</TableHead>
                             <TableHead className="hidden md:table-cell">Telefone</TableHead>
                             <TableHead className="hidden lg:table-cell">Produto</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredClientes.map((cliente) => (
-                            <TableRow key={cliente.id} className="cursor-pointer" onClick={() => toggleClienteSelection(cliente.id)}>
-                              <TableCell>
-                                <Checkbox checked={selectedClientes.includes(cliente.id)} />
+                          {filteredClientes.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                {dateFilter !== 'none' 
+                                  ? `Nenhum cliente com ${getMessageTypeLabel(dateFilter)} para hoje`
+                                  : 'Nenhum cliente encontrado'}
                               </TableCell>
-                              <TableCell className="font-medium">{cliente.nome}</TableCell>
-                              <TableCell className="hidden sm:table-cell text-muted-foreground">{cliente.email}</TableCell>
-                              <TableCell className="hidden md:table-cell text-muted-foreground">{cliente.numero}</TableCell>
-                              <TableCell className="hidden lg:table-cell text-muted-foreground">{cliente.produto}</TableCell>
                             </TableRow>
-                          ))}
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <TableRow key={cliente.id} className="cursor-pointer" onClick={() => toggleClienteSelection(cliente.id)}>
+                                <TableCell>
+                                  <Checkbox checked={selectedClientes.includes(cliente.id)} />
+                                </TableCell>
+                                <TableCell className="font-medium">{cliente.nome}</TableCell>
+                                <TableCell>
+                                  {cliente.cobranca_ativa ? (
+                                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
+                                      🔄 Mensal
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-xs">
+                                      📝 Registro
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell text-muted-foreground">
+                                  {new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell text-muted-foreground">{cliente.numero}</TableCell>
+                                <TableCell className="hidden lg:table-cell text-muted-foreground">{cliente.produto}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
                         </TableBody>
                       </Table>
                     </div>
