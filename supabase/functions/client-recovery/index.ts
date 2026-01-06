@@ -188,6 +188,184 @@ Entre em contato para regularizar e continuar aproveitando todos os benefícios!
       }
     }
     
+    if (action === 'generate-new-sale-message') {
+      // Fetch client data for registro clients (new sale)
+      const { data: cliente, error: clienteError } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('id', clienteId)
+        .single();
+      
+      if (clienteError || !cliente) {
+        return new Response(
+          JSON.stringify({ error: 'Cliente não encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fetch purchases for this client
+      const { data: purchases } = await supabase
+        .from('client_purchases')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('data_compra', { ascending: false })
+        .limit(5);
+      
+      // Fetch AI config from billing_config
+      const { data: aiConfigs } = await supabase
+        .from('billing_config')
+        .select('config_key, config_value')
+        .in('config_key', [
+          'recovery_ai_provider', 
+          'recovery_ai_model', 
+          'recovery_new_sale_prompt',
+          'recovery_openai_api_key',
+          'recovery_grok_api_key'
+        ]);
+      
+      const configMap: Record<string, string> = {};
+      aiConfigs?.forEach(c => { configMap[c.config_key] = c.config_value; });
+      
+      const aiProvider = configMap.recovery_ai_provider || 'lovable';
+      const aiModel = configMap.recovery_ai_model || 'google/gemini-2.5-flash';
+      const customPrompt = configMap.recovery_new_sale_prompt || '';
+      const openaiApiKey = configMap.recovery_openai_api_key || '';
+      const grokApiKey = configMap.recovery_grok_api_key || '';
+      
+      // Calculate days since last purchase
+      const today = new Date();
+      const lastPurchase = new Date(cliente.data_renovacao);
+      const daysSincePurchase = Math.floor((today.getTime() - lastPurchase.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Build purchases list for context
+      const purchasesList = purchases?.map(p => 
+        `- ${p.produto}: ${p.moeda === 'USD' ? '$' : 'R$'} ${p.valor} em ${new Date(p.data_compra).toLocaleDateString('pt-BR')}`
+      ).join('\n') || 'Nenhuma compra anterior registrada';
+      
+      // Build the prompt for new sale
+      const baseInstructions = customPrompt || 'Você é um especialista em vendas. Gere uma mensagem persuasiva para oferecer novos produtos/serviços ao cliente com base no histórico de compras.';
+      
+      const prompt = `${baseInstructions}
+
+Dados do cliente:
+- Nome: ${cliente.nome}
+- Último produto comprado: ${cliente.produto}
+- Valor da última compra: ${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor}
+- Data da última compra: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
+- Dias desde a última compra: ${daysSincePurchase}
+
+Histórico de compras:
+${purchasesList}
+
+Instruções:
+1. Seja cordial e profissional
+2. Mencione que você notou o interesse anterior no produto
+3. Sugira produtos/serviços complementares ou upgrades
+4. Destaque os benefícios e novidades
+5. Crie interesse sem ser insistente
+6. A mensagem deve ter no máximo 500 caracteres
+7. Use emojis de forma moderada
+8. NÃO inclua links ou preços específicos na mensagem
+9. Pergunte se há interesse em saber mais
+
+Responda APENAS com a mensagem, sem explicações adicionais.`;
+
+      // Fallback message for new sale
+      const fallbackMessage = `Olá ${cliente.nome}! 👋
+
+Tudo bem? Vi que você adquiriu o ${cliente.produto} há ${daysSincePurchase} dias.
+
+Estamos com novidades que podem te interessar! 🚀
+
+Gostaria de saber mais sobre nossos outros produtos e serviços?
+
+Aguardo seu retorno! 😊`;
+
+      // If AI is disabled, return fallback
+      if (aiProvider === 'none') {
+        return new Response(
+          JSON.stringify({ message: fallbackMessage, usedAI: false }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let aiResponse: Response | null = null;
+      let usedProvider = aiProvider;
+
+      try {
+        if (aiProvider === 'lovable') {
+          const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+          if (!lovableApiKey) {
+            throw new Error('LOVABLE_API_KEY not configured');
+          }
+          
+          aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        } else if (aiProvider === 'openai') {
+          if (!openaiApiKey) {
+            throw new Error('OpenAI API key not configured');
+          }
+          
+          aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openaiApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        } else if (aiProvider === 'grok') {
+          if (!grokApiKey) {
+            throw new Error('Grok API key not configured');
+          }
+          
+          aiResponse = await fetch("https://api.x.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${grokApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: aiModel,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+        }
+
+        if (!aiResponse || !aiResponse.ok) {
+          const errorText = aiResponse ? await aiResponse.text() : 'No response';
+          console.error(`AI ${aiProvider} error:`, errorText);
+          throw new Error(`AI error: ${errorText}`);
+        }
+
+        const aiData = await aiResponse.json();
+        const generatedMessage = aiData.choices?.[0]?.message?.content || '';
+
+        return new Response(
+          JSON.stringify({ message: generatedMessage, usedAI: true, provider: usedProvider }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error: any) {
+        console.error('AI generation error:', error.message);
+        return new Response(
+          JSON.stringify({ message: fallbackMessage, usedAI: false, error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
     if (action === 'send-recovery') {
       // message and channel already extracted from body above
       
