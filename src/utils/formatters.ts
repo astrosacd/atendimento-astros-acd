@@ -91,14 +91,64 @@ export const parseCurrency = (value: string): number => {
   return parseInt(limitedDigits, 10) / 100 || 0;
 };
 
-// Format phone: (00) 00000-0000 or (00) 0000-0000
+// Format phone with DDI support: (DDI) (DD) 00000-0000
 export const formatPhone = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, '');
   
-  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (!digits) return '';
+  
+  // Check if number has DDI (more than 11 digits for Brazil, or starts with known DDIs)
+  // Brazilian numbers with DDI: 55 + 2 (DDD) + 8 or 9 digits = 12-13 digits
+  // Other countries may vary
+  
+  // If number has 12+ digits, assume it has DDI
+  if (digits.length >= 12) {
+    // Extract DDI (first 2 digits for most countries, 3 for some)
+    let ddi = '';
+    let phoneWithoutDDI = '';
+    
+    // Common 2-digit DDIs
+    const twoDigitDDIs = ['55', '54', '56', '57', '51', '52', '58', '34', '39', '49', '33', '44', '61', '81', '86', '91', '27'];
+    // Common 3-digit DDIs
+    const threeDigitDDIs = ['351', '598', '595', '593', '591', '971'];
+    
+    if (threeDigitDDIs.includes(digits.slice(0, 3))) {
+      ddi = digits.slice(0, 3);
+      phoneWithoutDDI = digits.slice(3);
+    } else if (twoDigitDDIs.includes(digits.slice(0, 2))) {
+      ddi = digits.slice(0, 2);
+      phoneWithoutDDI = digits.slice(2);
+    } else {
+      // Default: assume 2-digit DDI
+      ddi = digits.slice(0, 2);
+      phoneWithoutDDI = digits.slice(2);
+    }
+    
+    // Format Brazilian phone (DDI 55)
+    if (ddi === '55') {
+      const ddd = phoneWithoutDDI.slice(0, 2);
+      const number = phoneWithoutDDI.slice(2);
+      if (number.length <= 4) {
+        return `(${ddi}) ${ddd} ${number}`;
+      }
+      if (number.length <= 8) {
+        return `(${ddi}) ${ddd} ${number.slice(0, 4)}-${number.slice(4)}`;
+      }
+      // 9-digit mobile
+      return `(${ddi}) ${ddd} ${number.slice(0, 5)}-${number.slice(5, 9)}`;
+    }
+    
+    // Format other countries: (DDI) rest of number with spaces
+    return `(${ddi}) ${phoneWithoutDDI.replace(/(\d{3,4})(?=\d)/g, '$1-').slice(0, 15)}`;
+  }
+  
+  // No DDI - format as local Brazilian number
+  const localDigits = digits.slice(0, 11);
+  
+  if (localDigits.length <= 2) return localDigits.length ? `(${localDigits}` : '';
+  if (localDigits.length <= 6) return `(${localDigits.slice(0, 2)}) ${localDigits.slice(2)}`;
+  if (localDigits.length <= 10) return `(${localDigits.slice(0, 2)}) ${localDigits.slice(2, 6)}-${localDigits.slice(6)}`;
+  return `(${localDigits.slice(0, 2)}) ${localDigits.slice(2, 7)}-${localDigits.slice(7)}`;
 };
 
 // Remove formatting and get raw digits
