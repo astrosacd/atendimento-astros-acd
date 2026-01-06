@@ -831,6 +831,53 @@ export type Database = {
           },
         ]
       }
+      client_recovery_attempts: {
+        Row: {
+          canal: string
+          cliente_id: string | null
+          converteu: boolean | null
+          created_at: string
+          data_envio: string
+          data_vencimento: string
+          id: string
+          mensagem_enviada: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          canal?: string
+          cliente_id?: string | null
+          converteu?: boolean | null
+          created_at?: string
+          data_envio?: string
+          data_vencimento: string
+          id?: string
+          mensagem_enviada: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          canal?: string
+          cliente_id?: string | null
+          converteu?: boolean | null
+          created_at?: string
+          data_envio?: string
+          data_vencimento?: string
+          id?: string
+          mensagem_enviada?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_recovery_attempts_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_to: string | null

@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PendingPaymentsList } from '@/components/PendingPaymentsList';
+import { ClientRecoveryManager } from '@/components/billing/ClientRecoveryManager';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { 
@@ -57,7 +58,8 @@ import {
   QrCode,
   Link2,
   FileText,
-  Download
+  Download,
+  UserPlus
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -1042,6 +1044,7 @@ const AdminCobranca = () => {
         <Tabs defaultValue="metrics" className="space-y-6">
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
             <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />{t('billing.tabs.metrics')}</TabsTrigger>
+            <TabsTrigger value="recovery"><UserPlus className="w-4 h-4 mr-2" />Recuperação</TabsTrigger>
             <TabsTrigger value="config"><Settings className="w-4 h-4 mr-2" />{t('billing.tabs.config')}</TabsTrigger>
             <TabsTrigger value="payments"><CreditCard className="w-4 h-4 mr-2" />{t('billing.tabs.payments')}</TabsTrigger>
             <TabsTrigger value="ai"><Bot className="w-4 h-4 mr-2" />IA</TabsTrigger>
@@ -1245,6 +1248,11 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Recuperação de Clientes Tab */}
+          <TabsContent value="recovery" className="space-y-6">
+            <ClientRecoveryManager />
           </TabsContent>
 
           {/* Configurações Gerais */}
