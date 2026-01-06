@@ -69,25 +69,28 @@ serve(async (req) => {
       
       const prompt = `${baseInstructions}
 
-Dados do cliente:
-- Nome: ${cliente.nome}
-- Produto: ${cliente.produto}
+Dados do cliente (USE ESSES VALORES EXATOS na mensagem, NÃO use variáveis como [Produto] ou {nome}):
+- Nome do cliente: ${cliente.nome}
+- Nome do produto: ${cliente.produto}
 - Plano: ${cliente.plano || 'Não especificado'}
 - Valor: ${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor}
+- Email: ${cliente.email}
 - Data de vencimento: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
 - Dias em atraso: ${daysOverdue}
 
-Instruções:
-1. Seja cordial mas direto
-2. Mencione o produto/serviço pelo nome
-3. Destaque os benefícios que o cliente pode estar perdendo
-4. Ofereça ajuda para resolver qualquer problema
-5. Crie senso de urgência sem ser agressivo
-6. A mensagem deve ter no máximo 500 caracteres
-7. Use emojis de forma moderada
-8. NÃO inclua links de pagamento na mensagem
+IMPORTANTE - Instruções obrigatórias:
+1. Use o NOME REAL do cliente na mensagem (ex: "Olá ${cliente.nome}")
+2. Use o NOME REAL do produto na mensagem (ex: "sua assinatura do ${cliente.produto}")
+3. NUNCA escreva [Produto], [Nome], {produto}, {nome} ou qualquer variável - use os valores reais acima
+4. Seja cordial mas direto
+5. Destaque os benefícios que o cliente pode estar perdendo
+6. Ofereça ajuda para resolver qualquer problema
+7. Crie senso de urgência sem ser agressivo
+8. A mensagem deve ter no máximo 500 caracteres
+9. Use emojis de forma moderada
+10. NÃO inclua links de pagamento na mensagem
 
-Responda APENAS com a mensagem, sem explicações adicionais.`;
+Responda APENAS com a mensagem pronta para enviar, sem explicações.`;
 
       // Fallback message
       const fallbackMessage = `Olá ${cliente.nome}! 👋
@@ -247,8 +250,9 @@ Entre em contato para regularizar e continuar aproveitando todos os benefícios!
       
       const prompt = `${baseInstructions}
 
-Dados do cliente:
-- Nome: ${cliente.nome}
+Dados do cliente (USE ESSES VALORES EXATOS na mensagem, NÃO use variáveis como [Produto] ou {nome}):
+- Nome do cliente: ${cliente.nome}
+- Email: ${cliente.email}
 - Último produto comprado: ${cliente.produto}
 - Valor da última compra: ${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor}
 - Data da última compra: ${new Date(cliente.data_renovacao).toLocaleDateString('pt-BR')}
@@ -257,18 +261,21 @@ Dados do cliente:
 Histórico de compras:
 ${purchasesList}
 
-Instruções:
-1. Seja cordial e profissional
-2. Mencione que você notou o interesse anterior no produto
-3. Sugira produtos/serviços complementares ou upgrades
-4. Destaque os benefícios e novidades
-5. Crie interesse sem ser insistente
-6. A mensagem deve ter no máximo 500 caracteres
-7. Use emojis de forma moderada
-8. NÃO inclua links ou preços específicos na mensagem
-9. Pergunte se há interesse em saber mais
+IMPORTANTE - Instruções obrigatórias:
+1. Use o NOME REAL do cliente na mensagem (ex: "Olá ${cliente.nome}")
+2. Use o NOME REAL do produto na mensagem (ex: "você adquiriu o ${cliente.produto}")
+3. NUNCA escreva [Produto], [Nome], {produto}, {nome} ou qualquer variável - use os valores reais acima
+4. Seja cordial e profissional
+5. Mencione que você notou o interesse anterior no produto
+6. Sugira produtos/serviços complementares ou upgrades
+7. Destaque os benefícios e novidades
+8. Crie interesse sem ser insistente
+9. A mensagem deve ter no máximo 500 caracteres
+10. Use emojis de forma moderada
+11. NÃO inclua links ou preços específicos na mensagem
+12. Pergunte se há interesse em saber mais
 
-Responda APENAS com a mensagem, sem explicações adicionais.`;
+Responda APENAS com a mensagem pronta para enviar, sem explicações.`;
 
       // Fallback message for new sale
       const fallbackMessage = `Olá ${cliente.nome}! 👋
