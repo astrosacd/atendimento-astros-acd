@@ -120,3 +120,6 @@ verify_jwt = false
 
 [functions.send-receipt]
 verify_jwt = true
+
+[functions.client-recovery]
+verify_jwt = true
