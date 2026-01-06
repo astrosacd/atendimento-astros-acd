@@ -680,20 +680,9 @@ export const ClientRecoveryManager = () => {
                           </TableCell>
                           <TableCell>
                             {attempt.status !== 'sent' ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge className="bg-amber-500/20 text-amber-400 cursor-help">
-                                      Não enviado
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">
-                                      {attempt.error_message || 'Falha no envio'}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              <Badge variant="outline" className="border-border/50 text-muted-foreground">
+                                —
+                              </Badge>
                             ) : attempt.converteu === true ? (
                               <Badge className="bg-emerald-500/20 text-emerald-400">Sim</Badge>
                             ) : attempt.converteu === false ? (
