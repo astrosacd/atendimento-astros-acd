@@ -109,6 +109,18 @@ export function usePermissions() {
   // Tarefas permissions
   const canManageTasks = () => hasPermission('manage_tasks');
 
+  // Cobrança tab permissions
+  const canViewCobrancaMetricas = () => hasPermission('view_cobranca_metricas');
+  const canViewCobrancaRecuperacao = () => hasPermission('view_cobranca_recuperacao');
+  const canViewCobrancaConfig = () => hasPermission('view_cobranca_config');
+  const canViewCobrancaPagamentos = () => hasPermission('view_cobranca_pagamentos');
+  const canViewCobrancaIA = () => hasPermission('view_cobranca_ia');
+  const canViewCobrancaCanais = () => hasPermission('view_cobranca_canais');
+  const canViewCobrancaMensagens = () => hasPermission('view_cobranca_mensagens');
+  const canViewCobrancaRecibo = () => hasPermission('view_cobranca_recibo');
+  const canViewCobrancaRelatorios = () => hasPermission('view_cobranca_relatorios');
+  const canViewCobrancaLogs = () => hasPermission('view_cobranca_logs');
+
   return {
     permissions,
     hasPermission,
@@ -178,5 +190,16 @@ export function usePermissions() {
     canManageRevendedorLicencas,
     // Tarefas
     canManageTasks,
+    // Cobrança tabs
+    canViewCobrancaMetricas,
+    canViewCobrancaRecuperacao,
+    canViewCobrancaConfig,
+    canViewCobrancaPagamentos,
+    canViewCobrancaIA,
+    canViewCobrancaCanais,
+    canViewCobrancaMensagens,
+    canViewCobrancaRecibo,
+    canViewCobrancaRelatorios,
+    canViewCobrancaLogs,
   };
 }
