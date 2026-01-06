@@ -770,6 +770,45 @@ export const ClientRecoveryManager = () => {
                   <p className="text-xs text-muted-foreground">
                     Você pode editar a mensagem antes de enviar
                   </p>
+                  
+                  {/* Variáveis disponíveis */}
+                  {selectedClient && (
+                    <div className="mt-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">📋 Dados do cliente disponíveis:</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Nome:</span>
+                          <span className="font-medium text-foreground">{selectedClient.nome}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Produto:</span>
+                          <span className="font-medium text-foreground">{selectedClient.produto}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Valor:</span>
+                          <span className="font-medium text-foreground">
+                            {selectedClient.moeda === 'USD' ? '$' : 'R$'} {selectedClient.valor}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Plano:</span>
+                          <span className="font-medium text-foreground">{selectedClient.plano || '—'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-medium text-foreground truncate max-w-[120px]" title={selectedClient.email}>
+                            {selectedClient.email}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Vencimento:</span>
+                          <span className="font-medium text-foreground">
+                            {new Date(selectedClient.data_renovacao).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4">
