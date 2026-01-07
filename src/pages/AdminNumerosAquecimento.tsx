@@ -26,7 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Smartphone, Plus, Search, Download, MoreHorizontal, Edit, Trash2, 
   History, Settings, Webhook, Key, FileCode, Copy, Eye, EyeOff,
-  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart
+  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
@@ -290,9 +290,19 @@ export default function AdminNumerosAquecimento() {
                       ) : (
                         paginatedNumeros.map((numero) => {
                           const status = statusList.find(s => s.id === numero.status_id);
+                          const isVendido = status?.nome === 'Vendido';
                           return (
-                            <TableRow key={numero.id}>
-                              <TableCell className="font-medium">{numero.numero}</TableCell>
+                            <TableRow key={numero.id} className={isVendido ? 'bg-muted/30' : ''}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  {numero.numero}
+                                  {isVendido && (
+                                    <span title="Número vendido - bloqueado para edição">
+                                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell>{numero.modelo?.nome || '-'}</TableCell>
                               <TableCell>
                                 {status ? (
@@ -317,6 +327,7 @@ export default function AdminNumerosAquecimento() {
                                   canChangeObs={canChangeObs}
                                   canDelete={canDelete}
                                   canViewHistory={canViewHistory}
+                                  isVendido={isVendido}
                                   onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
                                   onDelete={(motivo) => deleteNumero.mutate({ numero, motivo })}
                                 />
@@ -821,6 +832,7 @@ function NumeroActionsMenu({
   canChangeObs,
   canDelete,
   canViewHistory,
+  isVendido,
   onUpdate,
   onDelete,
 }: {
@@ -832,6 +844,7 @@ function NumeroActionsMenu({
   canChangeObs: boolean;
   canDelete: boolean;
   canViewHistory: boolean;
+  isVendido: boolean;
   onUpdate: (data: Partial<NumeroAquecimento>) => void;
   onDelete: (motivo: string) => void;
 }) {
@@ -847,6 +860,13 @@ function NumeroActionsMenu({
   const obsChanges = obsHistory.filter(h => h.campos_alterados?.includes('observacoes'));
 
   const handleSave = () => {
+    // Block any changes if status is "Vendido"
+    if (isVendido) {
+      toast.error('Números vendidos não podem ser alterados');
+      setEditOpen(false);
+      return;
+    }
+    
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
@@ -868,6 +888,15 @@ function NumeroActionsMenu({
     setDeleteMotivo('');
   };
 
+  // If the number is sold, show only delete option (or nothing if can't delete)
+  if (isVendido && !canDelete) {
+    return (
+      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+        <Lock className="h-4 w-4 text-muted-foreground" />
+      </Button>
+    );
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -877,10 +906,16 @@ function NumeroActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {(canEdit || canChangeStatus || canChangeObs) && (
+          {!isVendido && (canEdit || canChangeStatus || canChangeObs) && (
             <DropdownMenuItem onClick={() => setEditOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
+            </DropdownMenuItem>
+          )}
+          {isVendido && (
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              <Lock className="h-4 w-4 mr-2" />
+              Bloqueado (Vendido)
             </DropdownMenuItem>
           )}
           {canDelete && (
