@@ -86,6 +86,7 @@ export default function AdminNumerosAquecimento() {
   const canChangeStatus = hasPermission('change_status_numeros');
   const canChangeObs = hasPermission('change_obs_numeros');
   const canDelete = hasPermission('delete_numeros_aquecimento');
+  const canDeleteSold = hasPermission('delete_sold_numeros');
   const canExport = hasPermission('export_numeros_aquecimento');
   const canViewHistory = hasPermission('view_history_numeros');
   const canManageWebhooks = hasPermission('manage_webhooks_numeros');
@@ -326,6 +327,7 @@ export default function AdminNumerosAquecimento() {
                                   canChangeStatus={canChangeStatus}
                                   canChangeObs={canChangeObs}
                                   canDelete={canDelete}
+                                  canDeleteSold={canDeleteSold}
                                   canViewHistory={canViewHistory}
                                   isVendido={isVendido}
                                   onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
@@ -831,6 +833,7 @@ function NumeroActionsMenu({
   canChangeStatus,
   canChangeObs,
   canDelete,
+  canDeleteSold,
   canViewHistory,
   isVendido,
   onUpdate,
@@ -843,6 +846,7 @@ function NumeroActionsMenu({
   canChangeStatus: boolean;
   canChangeObs: boolean;
   canDelete: boolean;
+  canDeleteSold: boolean;
   canViewHistory: boolean;
   isVendido: boolean;
   onUpdate: (data: Partial<NumeroAquecimento>) => void;
@@ -858,6 +862,9 @@ function NumeroActionsMenu({
   // Fetch observation history for this number
   const { data: obsHistory = [] } = useNumeroHistory(numero.id);
   const obsChanges = obsHistory.filter(h => h.campos_alterados?.includes('observacoes'));
+
+  // Determinar se pode excluir este número específico
+  const canDeleteThisNumber = isVendido ? canDeleteSold : canDelete;
 
   const handleSave = () => {
     // Block any changes if status is "Vendido"
@@ -888,8 +895,8 @@ function NumeroActionsMenu({
     setDeleteMotivo('');
   };
 
-  // If the number is sold, show only delete option (or nothing if can't delete)
-  if (isVendido && !canDelete) {
+  // Se o número é vendido e não tem permissão para excluir vendidos, mostra bloqueado
+  if (isVendido && !canDeleteSold) {
     return (
       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
         <Lock className="h-4 w-4 text-muted-foreground" />
@@ -918,7 +925,7 @@ function NumeroActionsMenu({
               Bloqueado (Vendido)
             </DropdownMenuItem>
           )}
-          {canDelete && (
+          {canDeleteThisNumber && (
             <DropdownMenuItem 
               className="text-destructive"
               onClick={() => setDeleteOpen(true)}
