@@ -21,6 +21,7 @@ import { NumerosAquecimentoCard } from '@/components/dashboard/NumerosAqueciment
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
 import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
+import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -737,6 +738,9 @@ export default function Dashboard() {
                 </Card>
               )}
             </div>
+
+            {/* Card de Vendas Únicas por Mês */}
+            <MonthlyPurchasesCard />
           </>
         )}
 
