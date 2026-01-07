@@ -287,12 +287,14 @@ export function MonthlyPurchasesCard() {
                   tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
                 />
                 <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'var(--foreground)' }}
+                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
                   contentStyle={{ 
-                    backgroundColor: 'var(--background)', 
-                    border: '1px solid var(--border)',
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
+                    color: 'hsl(var(--foreground))',
                   }}
                 />
                 <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
