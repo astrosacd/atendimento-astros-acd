@@ -1,0 +1,353 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { formatUltimaAtividade, NumeroStatus, NumeroModelo } from '@/hooks/useNumerosAquecimento';
+import type { Json } from '@/integrations/supabase/types';
+
+interface DeletedNumber {
+  id: string;
+  numero_valor: string;
+  dados_anteriores: {
+    id?: string;
+    numero: string;
+    modelo_id?: string | null;
+    status_id?: string | null;
+    observacoes?: string | null;
+    motivo_exclusao?: string;
+    data_exclusao?: string;
+    modelo?: { nome: string } | null;
+    status?: { nome: string } | null;
+  };
+  usuario_email: string | null;
+  created_at: string;
+}
+
+interface RestoreNumbersTabProps {
+  statusList: NumeroStatus[];
+  modelosList: NumeroModelo[];
+}
+
+export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTabProps) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [selectedNumber, setSelectedNumber] = useState<DeletedNumber | null>(null);
+  const [restoreStatusId, setRestoreStatusId] = useState<string>('');
+  const [restoreModeloId, setRestoreModeloId] = useState<string>('');
+  const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
+
+  // Fetch deleted numbers from history
+  const { data: deletedNumbers = [], isLoading, refetch } = useQuery({
+    queryKey: ['numeros-aquecimento-deleted'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('numeros_aquecimento_history')
+        .select('*')
+        .eq('acao', 'exclusao')
+        .is('numero_id', null) // Deleted numbers have null numero_id
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Filter out numbers that have been restored (check if numero exists again)
+      const filteredNumbers: DeletedNumber[] = [];
+      
+      for (const record of data || []) {
+        const dados = record.dados_anteriores as DeletedNumber['dados_anteriores'];
+        if (!dados?.numero) continue;
+
+        // Check if this number still exists (was restored)
+        const { data: existingNumber } = await supabase
+          .from('numeros_aquecimento')
+          .select('id')
+          .eq('numero', dados.numero)
+          .maybeSingle();
+
+        // Only show if the number doesn't exist anymore
+        if (!existingNumber) {
+          filteredNumbers.push({
+            id: record.id,
+            numero_valor: record.numero_valor,
+            dados_anteriores: dados,
+            usuario_email: record.usuario_email,
+            created_at: record.created_at,
+          });
+        }
+      }
+
+      // Remove duplicates by numero_valor (keep most recent deletion)
+      const uniqueNumbers = new Map<string, DeletedNumber>();
+      for (const num of filteredNumbers) {
+        if (!uniqueNumbers.has(num.numero_valor)) {
+          uniqueNumbers.set(num.numero_valor, num);
+        }
+      }
+
+      return Array.from(uniqueNumbers.values());
+    },
+  });
+
+  // Restore number mutation
+  const restoreNumber = useMutation({
+    mutationFn: async ({
+      deletedRecord,
+      statusId,
+      modeloId,
+      observacoes,
+    }: {
+      deletedRecord: DeletedNumber;
+      statusId: string;
+      modeloId: string;
+      observacoes: string;
+    }) => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      // Insert the number back
+      const { data: numero, error } = await supabase
+        .from('numeros_aquecimento')
+        .insert({
+          numero: deletedRecord.numero_valor,
+          modelo_id: modeloId || null,
+          status_id: statusId || null,
+          observacoes: observacoes || null,
+          ultima_atividade: formatUltimaAtividade('cadastro'),
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log restoration in history
+      await supabase.from('numeros_aquecimento_history').insert([{
+        numero_id: numero.id,
+        numero_valor: numero.numero,
+        acao: 'restauracao',
+        dados_anteriores: deletedRecord.dados_anteriores as unknown as Json,
+        dados_novos: numero as unknown as Json,
+        usuario_id: user?.id,
+        usuario_email: profile?.email || user?.email,
+      }]);
+
+      return numero;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
+      queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-deleted'] });
+      queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
+      toast.success('Número restaurado com sucesso');
+      handleCloseRestoreDialog();
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao restaurar número: ${error.message}`);
+    },
+  });
+
+  const handleOpenRestoreDialog = (number: DeletedNumber) => {
+    setSelectedNumber(number);
+    // Pre-fill with original values if available
+    setRestoreStatusId(number.dados_anteriores?.status_id || '');
+    setRestoreModeloId(number.dados_anteriores?.modelo_id || '');
+    setRestoreObservacoes('');
+    setRestoreDialogOpen(true);
+  };
+
+  const handleCloseRestoreDialog = () => {
+    setRestoreDialogOpen(false);
+    setSelectedNumber(null);
+    setRestoreStatusId('');
+    setRestoreModeloId('');
+    setRestoreObservacoes('');
+  };
+
+  const handleRestore = () => {
+    if (!selectedNumber) return;
+    if (!restoreStatusId) {
+      toast.error('Selecione um status');
+      return;
+    }
+    if (!restoreModeloId) {
+      toast.error('Selecione um modelo');
+      return;
+    }
+
+    restoreNumber.mutate({
+      deletedRecord: selectedNumber,
+      statusId: restoreStatusId,
+      modeloId: restoreModeloId,
+      observacoes: restoreObservacoes,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                Restaurar Números
+              </CardTitle>
+              <CardDescription>
+                Restaure números que foram excluídos do sistema
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Número</TableHead>
+                <TableHead>Modelo Original</TableHead>
+                <TableHead>Status Original</TableHead>
+                <TableHead>Motivo da Exclusão</TableHead>
+                <TableHead>Excluído Por</TableHead>
+                <TableHead>Data Exclusão</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : deletedNumbers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <Trash2 className="h-8 w-8 text-muted-foreground/50" />
+                      Nenhum número excluído para restaurar
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                deletedNumbers.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium">{record.numero_valor}</TableCell>
+                    <TableCell>
+                      {record.dados_anteriores?.modelo?.nome || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {record.dados_anteriores?.status?.nome ? (
+                        <Badge variant="secondary">{record.dados_anteriores.status.nome}</Badge>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {record.dados_anteriores?.motivo_exclusao || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {record.usuario_email || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(record.created_at).toLocaleString('pt-BR')}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenRestoreDialog(record)}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Restaurar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Restore Dialog */}
+      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Restaurar Número</DialogTitle>
+            <DialogDescription>
+              Configure os dados do número <strong>{selectedNumber?.numero_valor}</strong> para restauração
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="restore-status">Status *</Label>
+              <Select value={restoreStatusId} onValueChange={setRestoreStatusId}>
+                <SelectTrigger id="restore-status">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusList.map((status) => (
+                    <SelectItem key={status.id} value={status.id}>
+                      {status.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="restore-modelo">Modelo *</Label>
+              <Select value={restoreModeloId} onValueChange={setRestoreModeloId}>
+                <SelectTrigger id="restore-modelo">
+                  <SelectValue placeholder="Selecione o modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {modelosList.map((modelo) => (
+                    <SelectItem key={modelo.id} value={modelo.id}>
+                      {modelo.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="restore-obs">Observações (opcional)</Label>
+              <Textarea
+                id="restore-obs"
+                placeholder="Observações sobre a restauração..."
+                value={restoreObservacoes}
+                onChange={(e) => setRestoreObservacoes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseRestoreDialog}>
+              Cancelar
+            </Button>
+            <Button onClick={handleRestore} disabled={restoreNumber.isPending}>
+              {restoreNumber.isPending ? 'Restaurando...' : 'Restaurar Número'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

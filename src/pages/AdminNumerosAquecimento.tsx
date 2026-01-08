@@ -26,7 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Smartphone, Plus, Search, Download, MoreHorizontal, Edit, Trash2, 
   History, Settings, Webhook, Key, FileCode, Copy, Eye, EyeOff,
-  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock
+  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock, RotateCcw
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +57,7 @@ import {
   NumeroModelo,
 } from '@/hooks/useNumerosAquecimento';
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
+import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { toast } from 'sonner';
 
 // Color map for status badges
@@ -93,6 +94,7 @@ export default function AdminNumerosAquecimento() {
   const canManageApi = hasPermission('manage_api_numeros');
   const canManageStatus = hasPermission('manage_status_numeros');
   const canManageModelos = hasPermission('manage_modelos_numeros');
+  const canRestoreNumbers = hasPermission('restore_numeros_aquecimento');
 
   // Data hooks
   const { data: numeros = [], isLoading } = useNumerosAquecimento({
@@ -205,10 +207,14 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
+            <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Restaurar
+            </TabsTrigger>
             <TabsTrigger value="webhooks" disabled={!canManageWebhooks}>{t('numberStatus.webhooks')}</TabsTrigger>
             <TabsTrigger value="api" disabled={!canManageApi}>{t('numberStatus.apiRest')}</TabsTrigger>
           </TabsList>
@@ -565,6 +571,11 @@ export default function AdminNumerosAquecimento() {
                 </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Restore Tab */}
+          <TabsContent value="restore" className="space-y-4">
+            <RestoreNumbersTab statusList={statusList} modelosList={modelosList} />
           </TabsContent>
 
           {/* Webhooks Tab */}
