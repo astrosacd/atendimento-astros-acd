@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import { RefreshCw, RotateCcw, Trash2, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,6 +48,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [restoreStatusId, setRestoreStatusId] = useState<string>('');
   const [restoreModeloId, setRestoreModeloId] = useState<string>('');
   const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Fetch deleted numbers from history
   const { data: deletedNumbers = [], isLoading, refetch } = useQuery({
@@ -98,6 +100,15 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       return Array.from(uniqueNumbers.values());
     },
   });
+
+  // Filter deleted numbers by search query
+  const filteredDeletedNumbers = useMemo(() => {
+    if (!searchQuery.trim()) return deletedNumbers;
+    const query = searchQuery.trim().toLowerCase();
+    return deletedNumbers.filter((record) =>
+      record.numero_valor.toLowerCase().includes(query)
+    );
+  }, [deletedNumbers, searchQuery]);
 
   // Restore number mutation
   const restoreNumber = useMutation({
@@ -216,6 +227,17 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
           </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por número..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -235,17 +257,17 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                     Carregando...
                   </TableCell>
                 </TableRow>
-              ) : deletedNumbers.length === 0 ? (
+              ) : filteredDeletedNumbers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Trash2 className="h-8 w-8 text-muted-foreground/50" />
-                      Nenhum número excluído para restaurar
+                      {searchQuery.trim() ? 'Nenhum número encontrado' : 'Nenhum número excluído para restaurar'}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                deletedNumbers.map((record) => (
+                filteredDeletedNumbers.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">{record.numero_valor}</TableCell>
                     <TableCell>
