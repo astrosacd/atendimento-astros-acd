@@ -273,7 +273,8 @@ export const ClientRecoveryManager = () => {
     registro: registroClients.length,
     attempts: recoveryHistory.length,
     converted: recoveryHistory.filter(r => r.converteu === true).length,
-    pending: recoveryHistory.filter(r => r.converteu === null).length,
+    // Só conta como "aguardando" se foi enviado com sucesso (status === 'sent') e ainda não tem resultado
+    pending: recoveryHistory.filter(r => r.converteu === null && r.status === 'sent').length,
   };
 
   return (
