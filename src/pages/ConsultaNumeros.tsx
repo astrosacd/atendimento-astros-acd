@@ -782,9 +782,9 @@ export default function ConsultaNumeros() {
         // Numero Externo - Banido Permanentemente - [data/hora]
         if (isExcluido) {
           finalValues[obsField.name] = `Numero Externo - Banido Permanentemente - [${timestamp}]`;
-        } else if (isDesbanimentoOK && isNumeroExterno) {
-          // Format as: Numero Externo - DESBANIMENTO OK - data/hora
-          finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - DESBANIMENTO OK - ${timestamp}`;
+        } else if (isDesbanimentoOK) {
+          // Format as: DESBANIMENTO OK - [data/hora] (replace completely)
+          finalValues[obsField.name] = `DESBANIMENTO OK - [${timestamp}]`;
         } else {
           // For any other status change, append: [timestamp] Status: <new_status>
           finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
