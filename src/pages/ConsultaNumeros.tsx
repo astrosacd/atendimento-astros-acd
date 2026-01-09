@@ -786,7 +786,13 @@ export default function ConsultaNumeros() {
     };
 
     const existingObsForCheck = getExistingObs();
-    const isNumeroExterno = existingObsForCheck.toLowerCase().includes('numero externo');
+    const normalizeText = (v: string) =>
+      v
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '');
+
+    const isNumeroExterno = normalizeText(existingObsForCheck).includes('numero externo');
 
     if (obsField || resolvedObsKey) {
       const hasNewObs = newObservacao.trim();
@@ -825,8 +831,8 @@ export default function ConsultaNumeros() {
             // Clear and set: Numero Externo - EXCLUÍDO - [data]
             finalValues[resolvedObsKey] = `Numero Externo - EXCLUÍDO - [${timestamp}]`;
           } else {
-            // Clear and set: [data] Status: EXCLUÍDO
-            finalValues[resolvedObsKey] = `[${timestamp}] Status: ${newStatus}`;
+            // Clear and set: EXCLUÍDO - [data]
+            finalValues[resolvedObsKey] = `EXCLUÍDO - [${timestamp}]`;
           }
         } else if (isDesbanimentoOK) {
           if (isNumeroExterno) {
