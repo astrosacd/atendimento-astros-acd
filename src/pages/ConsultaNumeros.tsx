@@ -847,6 +847,9 @@ export default function ConsultaNumeros() {
         const timestamp = new Date().toLocaleString('pt-BR');
         const separator = existingObs ? '\n---\n' : '';
 
+        // Recalcula aqui (evita usar valor “stale” se o estado mudou)
+        const hasNumeroExterno = /numero\s*externo/.test(normalizeText(existingObs));
+
         const newStatusLower = newStatus.toLowerCase();
         const isExcluido = newStatusLower.includes('excluído') || newStatusLower.includes('excluido');
 
@@ -855,11 +858,11 @@ export default function ConsultaNumeros() {
         //   COM "Numero Externo": "Numero Externo - <STATUS> - [data/hora]"
         //   SEM "Numero Externo": "<STATUS> - [data/hora]"
         if (isExcluido) {
-          finalValues[resolvedObsKey] = isNumeroExterno
+          finalValues[resolvedObsKey] = hasNumeroExterno
             ? `Numero Externo - EXCLUÍDO - [${timestamp}]`
             : `EXCLUÍDO - [${timestamp}]`;
         } else if (isDesbanimentoOK) {
-          finalValues[resolvedObsKey] = isNumeroExterno
+          finalValues[resolvedObsKey] = hasNumeroExterno
             ? `Numero Externo - DESBANIMENTO OK - [${timestamp}]`
             : `DESBANIMENTO OK - [${timestamp}]`;
         } else {
