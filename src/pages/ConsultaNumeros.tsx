@@ -791,9 +791,11 @@ export default function ConsultaNumeros() {
       return '';
     };
 
-    // Para decidir se deve manter "Numero Externo", use SOMENTE o valor atual da linha selecionada.
-    // (editValues pode ficar "sujo"/antigo e causar falso positivo)
-    const existingObsForCheck = readObsValue(selectedRow) || '';
+    // Para decidir se deve manter "Numero Externo":
+    // - se o usuário alterou manualmente o campo de observações neste modal, usa o valor editado
+    // - caso contrário, usa o valor atual da linha selecionada
+    const obsFromRow = readObsValue(selectedRow) || '';
+    const obsFromEdit = readObsValue(editValues) || '';
 
     const normalizeText = (v: string) =>
       v
@@ -801,6 +803,9 @@ export default function ConsultaNumeros() {
         .normalize('NFD')
         .replace(/\p{Diacritic}/gu, '')
         .trim();
+
+    const userEditedObs = normalizeText(obsFromEdit) !== normalizeText(obsFromRow);
+    const existingObsForCheck = userEditedObs ? obsFromEdit : obsFromRow;
 
     // Regra: só considera "Numero Externo" quando a observação COMEÇA com isso.
     const isNumeroExterno = /^numero externo\b/.test(normalizeText(existingObsForCheck));
