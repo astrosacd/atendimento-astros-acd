@@ -778,10 +778,14 @@ export default function ConsultaNumeros() {
         // Check if new status is "EXCLUÍDO" (case insensitive)
         const isExcluido = newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
         
-        // Special case for EXCLUIDO: REPLACE observations completely with the standardized note
-        // Numero Externo - Banido Permanentemente - [data/hora]
+        // Special case for EXCLUIDO: check if "Numero Externo" is in observations
         if (isExcluido) {
-          finalValues[obsField.name] = `Numero Externo - Banido Permanentemente - [${timestamp}]`;
+          if (isNumeroExterno) {
+            finalValues[obsField.name] = `Numero Externo - Banido Permanentemente - [${timestamp}]`;
+          } else {
+            // Normal status change for non-external numbers
+            finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
+          }
         } else if (isDesbanimentoOK) {
           // Check if "Numero Externo" is in observations
           if (isNumeroExterno) {
