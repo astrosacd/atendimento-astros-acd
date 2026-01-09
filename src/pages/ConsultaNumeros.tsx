@@ -814,10 +814,12 @@ export default function ConsultaNumeros() {
       v
         .toLowerCase()
         .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
 
-    const isNumeroExterno = normalizeText(obsForCheck).includes('numero externo');
+    // Aceita variações como "Numero   Externo", quebras de linha, etc.
+    const isNumeroExterno = /numero\s*externo/.test(normalizeText(obsForCheck));
 
     if (obsField || resolvedObsKey) {
       const hasNewObs = newObservacao.trim();
