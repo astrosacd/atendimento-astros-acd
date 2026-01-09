@@ -286,13 +286,19 @@ export default function ConsultaNumeros() {
   const setNumeroTipo = useSetNumeroTipo();
 
   // Detectar e salvar tipos na primeira consulta de cada número
+  // Usa um ref para evitar múltiplas chamadas para o mesmo ID
+  const processedTipoIds = useMemo(() => new Set<string>(), []);
+  
   useEffect(() => {
     if (!queryResult?.data?.length) return;
     
     queryResult.data.forEach((row: NumeroResult) => {
       const rowId = row.id.toString();
-      // Se já tem tipo salvo, não faz nada
-      if (tiposMap[rowId]) return;
+      // Se já processou ou já tem tipo salvo, não faz nada
+      if (processedTipoIds.has(rowId) || tiposMap[rowId]) return;
+      
+      // Marca como processado ANTES de chamar a mutação
+      processedTipoIds.add(rowId);
       
       // Detecta o tipo baseado na observação
       const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
@@ -304,7 +310,7 @@ export default function ConsultaNumeros() {
       // Salva o tipo (apenas uma vez)
       setNumeroTipo.mutate({ baserowRowId: rowId, tipo });
     });
-  }, [queryResult?.data, tiposMap, visibleFields]);
+  }, [queryResult?.data, visibleFields]); // Removido tiposMap das dependências para evitar loop
 
   // Fetch last active status for each number from history
   useEffect(() => {
