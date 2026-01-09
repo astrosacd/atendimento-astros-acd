@@ -735,9 +735,14 @@ export default function ConsultaNumeros() {
     // Check if status was changed
     const statusChanged = newStatus && originalStatus !== newStatus;
     
-    // Get "tipo" field value (ex: "Numero Externo")
-    // Check observacoes field directly since "Numero Externo" is stored there on creation
+    // Check if this is a "Numero Externo" by looking at observacoes
+    // Check both the original row value and the current edit value
     const getObservacoesValue = () => {
+      // First check editValues (current form state)
+      const editObs = editValues['observacoes'] || editValues['Observacoes'] || '';
+      if (editObs) return editObs;
+      
+      // Fallback to selectedRow (original value from database)
       const obsVal = selectedRow['observacoes'] || selectedRow['Observacoes'];
       if (obsVal && typeof obsVal === 'object' && 'value' in obsVal) {
         return obsVal.value || '';
@@ -746,7 +751,7 @@ export default function ConsultaNumeros() {
     };
     const observacoesValue = getObservacoesValue();
     
-    // Check if this is a "Numero Externo" by looking at observacoes (that's where it's stored when creating external numbers)
+    // Check if "Numero Externo" exists in observations (case insensitive)
     const isNumeroExterno = observacoesValue.toLowerCase().includes('numero externo');
     
     if (obsField) {
