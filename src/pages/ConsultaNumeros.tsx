@@ -796,9 +796,12 @@ export default function ConsultaNumeros() {
       v
         .toLowerCase()
         .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '');
+        .replace(/\p{Diacritic}/gu, '')
+        .trim();
 
-    const isNumeroExterno = normalizeText(existingObsForCheck).includes('numero externo');
+    // Regra: só considera "Numero Externo" quando a observação COMEÇA com isso.
+    // Evita falsos positivos (ex.: texto aleatório ou histórico antigo em outro lugar).
+    const isNumeroExterno = /^numero externo\b/.test(normalizeText(existingObsForCheck));
 
     if (obsField || resolvedObsKey) {
       const hasNewObs = newObservacao.trim();
