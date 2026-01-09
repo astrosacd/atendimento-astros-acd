@@ -627,42 +627,68 @@ Deno.serve(async (req) => {
         const statusParam = url.searchParams.get('status');
         const statusFilters = statusParam ? statusParam.split(',').filter(s => s.trim()) : undefined;
 
-        const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilters);
-        
-        // Return data directly from Baserow without transformation
-        const normalizedData = normalizeBaserowData(result.results || []);
+        try {
+          const result = await queryBaserow(config, searchQuery, page, pageSize, statusFilters);
 
-        // Log consultation
-        await logAction(
-          supabase,
-          searchQuery || '*',
-          null,
-          'consulta',
-          origem,
-          null,
-          { query: searchQuery, page, pageSize, statusFilters, resultCount: result.count },
-          null,
-          userId,
-          userEmail,
-          apiKeyId,
-          webhookId,
-          ipAddress,
-          userAgent
-        );
+          // Return data directly from Baserow without transformation
+          const normalizedData = normalizeBaserowData(result.results || []);
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            data: normalizedData,
-            pagination: {
-              count: result.count,
-              page,
-              pageSize,
-              totalPages: Math.ceil(result.count / pageSize),
-            },
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          // Log consultation
+          await logAction(
+            supabase,
+            searchQuery || '*',
+            null,
+            'consulta',
+            origem,
+            null,
+            { query: searchQuery, page, pageSize, statusFilters, resultCount: result.count },
+            null,
+            userId,
+            userEmail,
+            apiKeyId,
+            webhookId,
+            ipAddress,
+            userAgent
+          );
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              data: normalizedData,
+              pagination: {
+                count: result.count,
+                page,
+                pageSize,
+                totalPages: Math.ceil(result.count / pageSize),
+              },
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (e: any) {
+          // When Baserow is temporarily unreachable, do NOT crash the UI with a 502.
+          // Instead return a "soft" success with a flag the frontend can render.
+          if (e?.name === 'ExternalServiceError') {
+            console.warn('[api-consulta-numeros] Baserow unreachable on /consultar:', String(e?.message || e));
+
+            return new Response(
+              JSON.stringify({
+                success: true,
+                baserow_offline: true,
+                warning: e?.message || 'Baserow indisponível',
+                data: [],
+                pagination: {
+                  count: 0,
+                  page,
+                  pageSize,
+                  totalPages: 0,
+                },
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          throw e;
+        }
       }
 
       // GET /historico - Get history
