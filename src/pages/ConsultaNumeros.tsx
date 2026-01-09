@@ -35,6 +35,10 @@ interface NumeroResult {
   [key: string]: any;
 }
 
+interface LastStatusInfo {
+  [numberId: number]: string | null;
+}
+
 interface BaserowField {
   id: number;
   name: string;
@@ -83,6 +87,9 @@ export default function ConsultaNumeros() {
   // Expanded rows and quick view modal state
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
+
+  // Last active status cache for each number
+  const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
 
   const nonEditableFields = useMemo(() => {
     return new Set(['nome', 'numero', 'email', 'data_cadastro', 'data_da_ultima_consulta']);
@@ -268,6 +275,70 @@ export default function ConsultaNumeros() {
   // Check if error is configuration-related
   const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
   const isFieldsLoading = loadingFields && !fieldsError;
+
+  // Fetch last active status for each number from history
+  useEffect(() => {
+    const fetchLastStatuses = async () => {
+      if (!queryResult?.data?.length) return;
+      
+      const newCache: LastStatusInfo = {};
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      
+      // Get all unique baserow row IDs
+      const rowIds = queryResult.data.map((row: NumeroResult) => row.id.toString());
+      
+      // Fetch history for these rows to find the previous status
+      for (const rowId of rowIds) {
+        try {
+          const { data: historyData } = await supabase
+            .from('consulta_numeros_history')
+            .select('dados_anteriores, dados_novos, acao')
+            .eq('baserow_row_id', rowId)
+            .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+            .order('created_at', { ascending: false })
+            .limit(10);
+          
+          if (historyData && historyData.length > 0) {
+            // Find the most recent status change with a valid previous status
+            for (const entry of historyData) {
+              const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
+              if (dadosAnteriores) {
+                // Look for excluido_da_base or status in previous data
+                const prevStatus = 
+                  dadosAnteriores['excluido_da_base']?.value || 
+                  dadosAnteriores['excluido_da_base'] ||
+                  dadosAnteriores['Excluido_Da_Base']?.value ||
+                  dadosAnteriores['Excluido_Da_Base'] ||
+                  dadosAnteriores['status']?.value ||
+                  dadosAnteriores['status'] ||
+                  dadosAnteriores['Status']?.value ||
+                  dadosAnteriores['Status'];
+                
+                if (prevStatus && typeof prevStatus === 'string' && prevStatus.trim()) {
+                  newCache[parseInt(rowId)] = prevStatus;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // If no previous status found, set to null (will show "-")
+          if (!(parseInt(rowId) in newCache)) {
+            newCache[parseInt(rowId)] = null;
+          }
+        } catch (error) {
+          console.error('Error fetching history for row', rowId, error);
+          newCache[parseInt(rowId)] = null;
+        }
+      }
+      
+      setLastStatusCache(prev => ({ ...prev, ...newCache }));
+    };
+    
+    fetchLastStatuses();
+  }, [queryResult?.data]);
+
 
   // Update mutation
   const updateMutation = useMutation({
@@ -683,8 +754,16 @@ export default function ConsultaNumeros() {
         const timestamp = new Date().toLocaleString('pt-BR');
         const separator = existingObs ? '\n---\n' : '';
         
-        // Special case for DESBANIMENTO OK with "Numero Externo"
-        if (isDesbanimentoOK && 
+        // Check if new status is "EXCLUÍDO" (case insensitive)
+        const isExcluido = newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
+        
+        // Special case for EXCLUÍDO - add "Numero Externo - Banido Permanentemente - data"
+        if (isExcluido && 
+            (existingObs.toLowerCase().includes('numero externo') || 
+             (tipoValue && tipoValue.toLowerCase().includes('numero externo')))) {
+          // Format as: Numero Externo - Banido Permanentemente - data/hora
+          finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - Banido Permanentemente - ${timestamp}`;
+        } else if (isDesbanimentoOK && 
             (existingObs.toLowerCase().includes('numero externo') || 
              (tipoValue && tipoValue.toLowerCase().includes('numero externo')))) {
           // Format as: Numero Externo - DESBANIMENTO OK - data/hora
@@ -974,6 +1053,20 @@ export default function ConsultaNumeros() {
                         {visibleFields.map((field) => (
                           <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
+                        {/* Coluna Último Status Ativo */}
+                        <TableHead className="min-w-[140px]">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                                Último Status
+                                <History className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="z-50 max-w-[200px]">
+                                Status anterior a uma alteração (consultado do histórico)
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableHead>
                         {/* Coluna fixa à direita - Ações */}
                         <TableHead className="w-[80px] sticky right-0 bg-card z-20 border-l border-border/50 text-center">
                           Ações
@@ -1093,6 +1186,21 @@ export default function ConsultaNumeros() {
                                 );
                               })}
 
+                              {/* Coluna Último Status Ativo */}
+                              <TableCell className="min-w-[140px]">
+                                {lastStatusCache[row.id] !== undefined ? (
+                                  lastStatusCache[row.id] ? (
+                                    <Badge variant="outline" className="text-xs">
+                                      {lastStatusCache[row.id]}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">-</span>
+                                  )
+                                ) : (
+                                  <span className="text-muted-foreground text-xs animate-pulse">...</span>
+                                )}
+                              </TableCell>
+
                               {/* Coluna fixa à direita - Ações */}
                               <TableCell className="sticky right-0 bg-card z-10 border-l border-border/50 text-center">
                                 {(canUpdateStatus || canUpdateObs || canUpdateBoth) && (
@@ -1113,7 +1221,7 @@ export default function ConsultaNumeros() {
                             {/* Linha expandida com todos os detalhes */}
                             {isExpanded && (
                               <TableRow key={`${row.id}-expanded`} className="bg-muted/30">
-                                <TableCell colSpan={visibleFields.length + 3} className="p-4">
+                                <TableCell colSpan={visibleFields.length + 4} className="p-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {visibleFields.map((field) => {
                                       const cellValue = row[field.name];
@@ -1149,6 +1257,25 @@ export default function ConsultaNumeros() {
                                         </div>
                                       );
                                     })}
+                                    
+                                    {/* Último Status Ativo na seção expandida */}
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                                        <History className="h-3 w-3" />
+                                        Último Status
+                                      </p>
+                                      <p className="text-sm">
+                                        {lastStatusCache[row.id] !== undefined ? (
+                                          lastStatusCache[row.id] ? (
+                                            <Badge variant="outline">{lastStatusCache[row.id]}</Badge>
+                                          ) : (
+                                            <span className="text-muted-foreground">Sem histórico</span>
+                                          )
+                                        ) : (
+                                          <span className="text-muted-foreground animate-pulse">Carregando...</span>
+                                        )}
+                                      </p>
+                                    </div>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1287,6 +1414,25 @@ export default function ConsultaNumeros() {
                   </div>
                 );
               })}
+              
+              {/* Último Status Ativo */}
+              <div className="space-y-1 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <History className="h-3 w-3" />
+                  Último Status Ativo
+                </p>
+                <p className="text-sm">
+                  {lastStatusCache[quickViewRow.id] !== undefined ? (
+                    lastStatusCache[quickViewRow.id] ? (
+                      <Badge variant="outline" className="border-primary/50">{lastStatusCache[quickViewRow.id]}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Sem histórico de alterações</span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground animate-pulse">Carregando...</span>
+                  )}
+                </p>
+              </div>
             </div>
           )}
           <DialogFooter className="mt-4">
@@ -1311,6 +1457,26 @@ export default function ConsultaNumeros() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Info Box: Último Status Ativo */}
+            {selectedRow && (
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1 mb-1">
+                  <History className="h-3 w-3" />
+                  Último Status Ativo
+                </p>
+                <p className="text-sm">
+                  {lastStatusCache[selectedRow.id] !== undefined ? (
+                    lastStatusCache[selectedRow.id] ? (
+                      <Badge variant="outline" className="border-primary/50">{lastStatusCache[selectedRow.id]}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Sem histórico de alterações anteriores</span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground animate-pulse">Carregando...</span>
+                  )}
+                </p>
+              </div>
+            )}
             {visibleFields.map((field) => {
               // Ocultar campo data_da_ultima_consulta no modal de edição
               if (field.name.toLowerCase() === 'data_da_ultima_consulta') {
