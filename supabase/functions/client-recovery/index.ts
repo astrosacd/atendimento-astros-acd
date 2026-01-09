@@ -1,10 +1,140 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const utf8ToBase64 = (input: string) => {
+  const bytes = new TextEncoder().encode(input);
+  return base64Encode(bytes.buffer);
+};
+
+const encodeSubjectUtf8 = (subject: string) => {
+  // RFC 2047 (encoded-word) using Base64
+  return `=?UTF-8?B?${utf8ToBase64(subject)}?=`;
+};
+
+const sendGmailEmail = async (params: {
+  gmailUser: string;
+  gmailPassword: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}) => {
+  const { gmailUser, gmailPassword, to, subject, text, html } = params;
+
+  const conn = await Deno.connectTls({ hostname: 'smtp.gmail.com', port: 465 });
+  const writer = conn.writable.getWriter();
+  const reader = conn.readable.pipeThrough(new TextDecoderStream()).getReader();
+  const encoder = new TextEncoder();
+
+  let buffer = '';
+
+  const readLine = async (): Promise<string> => {
+    while (true) {
+      const idx = buffer.indexOf('\r\n');
+      if (idx >= 0) {
+        const line = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        return line;
+      }
+      const { value, done } = await reader.read();
+      if (done || value == null) throw new Error('SMTP connection closed');
+      buffer += value;
+    }
+  };
+
+  const readResponse = async (expectedCodes: number[]) => {
+    let lastLine = '';
+    while (true) {
+      const line = await readLine();
+      lastLine = line;
+      // multiline replies have '-' after code
+      if (line.length >= 4 && line[3] !== '-') break;
+    }
+    const code = parseInt(lastLine.slice(0, 3), 10);
+    if (!expectedCodes.includes(code)) {
+      throw new Error(`SMTP error ${code}: ${lastLine}`);
+    }
+  };
+
+  const writeCmd = async (cmd: string) => {
+    await writer.write(encoder.encode(cmd + '\r\n'));
+  };
+
+  const b64Line = (s: string) => utf8ToBase64(s);
+
+  try {
+    await readResponse([220]);
+
+    await writeCmd(`EHLO localhost`);
+    await readResponse([250]);
+
+    // AUTH LOGIN
+    await writeCmd('AUTH LOGIN');
+    await readResponse([334]);
+    await writeCmd(b64Line(gmailUser));
+    await readResponse([334]);
+    await writeCmd(b64Line(gmailPassword));
+    await readResponse([235]);
+
+    await writeCmd(`MAIL FROM:<${gmailUser}>`);
+    await readResponse([250]);
+
+    await writeCmd(`RCPT TO:<${to}>`);
+    await readResponse([250, 251]);
+
+    await writeCmd('DATA');
+    await readResponse([354]);
+
+    const boundary = `alt_${crypto.randomUUID().replace(/-/g, '')}`;
+
+    const headers = [
+      `From: <${gmailUser}>`,
+      `To: <${to}>`,
+      `Subject: ${encodeSubjectUtf8(subject)}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      ``,
+    ].join('\r\n');
+
+    const partText = [
+      `--${boundary}`,
+      `Content-Type: text/plain; charset="utf-8"`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      utf8ToBase64(text),
+      ``,
+    ].join('\r\n');
+
+    const partHtml = [
+      `--${boundary}`,
+      `Content-Type: text/html; charset="utf-8"`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      utf8ToBase64(html),
+      ``,
+      `--${boundary}--`,
+      ``,
+    ].join('\r\n');
+
+    const data = headers + partText + partHtml;
+
+    // End of DATA with <CRLF>.<CRLF>
+    await writer.write(encoder.encode(data + '\r\n.\r\n'));
+    await readResponse([250]);
+
+    await writeCmd('QUIT');
+    await readResponse([221]);
+  } finally {
+    try { await writer.close(); } catch (_) {}
+    try { await reader.cancel(); } catch (_) {}
+    try { conn.close(); } catch (_) {}
+  }
 };
 
 serve(async (req) => {
@@ -471,31 +601,18 @@ Aguardo seu retorno! 😊`;
               throw new Error('Cliente sem email cadastrado');
             }
 
-            const client = new SMTPClient({
-              connection: {
-                hostname: "smtp.gmail.com",
-                port: 465,
-                tls: true,
-                auth: {
-                  username: gmailUser,
-                  password: gmailPassword,
-                },
-              },
-            });
-
             const htmlMessage = String(message || '').replace(/\n/g, '<br/>');
 
             const emailSubject = isNewSale
               ? `${cliente.produto || 'Produto'} - ${cliente.nome}`
               : `Recuperação - ${cliente.produto || 'Assinatura'} - ${cliente.nome}`;
 
-            // NOTE: Do not pass raw MIME parts here.
-            // denomailer will build the correct headers/encoding when using `content` + `html`.
-            await client.send({
-              from: gmailUser,
+            await sendGmailEmail({
+              gmailUser,
+              gmailPassword,
               to: cliente.email,
               subject: emailSubject,
-              content: String(message || ''),
+              text: String(message || ''),
               html: `<!DOCTYPE html>
 <html>
 <head>
@@ -510,7 +627,6 @@ Aguardo seu retorno! 😊`;
 </html>`,
             });
 
-            await client.close();
             sendStatus = 'sent';
           } catch (error: any) {
             sendStatus = 'error';
