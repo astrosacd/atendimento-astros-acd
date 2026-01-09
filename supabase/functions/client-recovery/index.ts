@@ -485,15 +485,17 @@ Aguardo seu retorno! 😊`;
 
             const htmlMessage = String(message || '').replace(/\n/g, '<br/>');
 
-            const emailSubject = isNewSale 
+            const emailSubject = isNewSale
               ? `${cliente.produto || 'Produto'} - ${cliente.nome}`
               : `Recuperação - ${cliente.produto || 'Assinatura'} - ${cliente.nome}`;
 
+            // NOTE: Do not pass raw MIME parts here.
+            // denomailer will build the correct headers/encoding when using `content` + `html`.
             await client.send({
               from: gmailUser,
               to: cliente.email,
               subject: emailSubject,
-              content: message,
+              content: String(message || ''),
               html: `<!DOCTYPE html>
 <html>
 <head>
@@ -506,27 +508,6 @@ Aguardo seu retorno! 😊`;
   </div>
 </body>
 </html>`,
-              mimeContent: [
-                {
-                  mimeType: "text/plain; charset=UTF-8",
-                  content: message,
-                },
-                {
-                  mimeType: "text/html; charset=UTF-8",
-                  content: `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-</head>
-<body>
-  <div style="font-family: Arial, sans-serif; line-height: 1.5">
-    <p>${htmlMessage}</p>
-  </div>
-</body>
-</html>`,
-                },
-              ],
             });
 
             await client.close();
