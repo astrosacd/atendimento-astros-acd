@@ -735,15 +735,18 @@ export default function ConsultaNumeros() {
     // Check if status was changed
     const statusChanged = newStatus && originalStatus !== newStatus;
     
+    // Get the observacoes field name (obsField already declared above)
+    const obsFieldName = obsField?.name || 'observacoes';
+    
     // Check if this is a "Numero Externo" by looking at observacoes
-    // Check both the original row value and the current edit value
+    // Check both the current edit value and the original row value
     const getObservacoesValue = () => {
       // First check editValues (current form state)
-      const editObs = editValues['observacoes'] || editValues['Observacoes'] || '';
+      const editObs = editValues[obsFieldName] || '';
       if (editObs) return editObs;
       
       // Fallback to selectedRow (original value from database)
-      const obsVal = selectedRow['observacoes'] || selectedRow['Observacoes'];
+      const obsVal = selectedRow[obsFieldName];
       if (obsVal && typeof obsVal === 'object' && 'value' in obsVal) {
         return obsVal.value || '';
       }
