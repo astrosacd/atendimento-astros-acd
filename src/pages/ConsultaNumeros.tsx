@@ -791,7 +791,10 @@ export default function ConsultaNumeros() {
       return '';
     };
 
-    const existingObsForCheck = getExistingObs();
+    // Para decidir se deve manter "Numero Externo", use SOMENTE o valor atual da linha selecionada.
+    // (editValues pode ficar "sujo"/antigo e causar falso positivo)
+    const existingObsForCheck = readObsValue(selectedRow) || '';
+
     const normalizeText = (v: string) =>
       v
         .toLowerCase()
@@ -800,7 +803,6 @@ export default function ConsultaNumeros() {
         .trim();
 
     // Regra: só considera "Numero Externo" quando a observação COMEÇA com isso.
-    // Evita falsos positivos (ex.: texto aleatório ou histórico antigo em outro lugar).
     const isNumeroExterno = /^numero externo\b/.test(normalizeText(existingObsForCheck));
 
     if (obsField || resolvedObsKey) {
@@ -825,32 +827,26 @@ export default function ConsultaNumeros() {
         finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] ${parts.join(' - ')}`;
       } else if (statusChanged && newStatus) {
         // User did NOT add observation manually but changed the status
-        // Automatically add the status change to observations
         const existingObs = getExistingObs();
         const timestamp = new Date().toLocaleString('pt-BR');
         const separator = existingObs ? '\n---\n' : '';
 
-        // Check if new status is "EXCLUÍDO" (case insensitive)
-        const isExcluido =
-          newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
+        const newStatusLower = newStatus.toLowerCase();
+        const isExcluido = newStatusLower.includes('excluído') || newStatusLower.includes('excluido');
 
         // For EXCLUÍDO and DESBANIMENTO OK: ALWAYS replace everything (clear field)
         if (isExcluido) {
-          if (isNumeroExterno) {
-            // Clear and set: Numero Externo - EXCLUÍDO - [data]
-            finalValues[resolvedObsKey] = `Numero Externo - EXCLUÍDO - [${timestamp}]`;
-          } else {
-            // Clear and set: EXCLUÍDO - [data]
-            finalValues[resolvedObsKey] = `EXCLUÍDO - [${timestamp}]`;
-          }
+          // COM Numero Externo: "Numero Externo - EXCLUÍDO - [data]"
+          // SEM Numero Externo: "[data] Status: EXCLUÍDO"
+          finalValues[resolvedObsKey] = isNumeroExterno
+            ? `Numero Externo - EXCLUÍDO - [${timestamp}]`
+            : `[${timestamp}] Status: EXCLUÍDO`;
         } else if (isDesbanimentoOK) {
-          if (isNumeroExterno) {
-            // Clear and set: Numero Externo - DESBANIMENTO OK - [data]
-            finalValues[resolvedObsKey] = `Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
-          } else {
-            // Clear and set: DESBANIMENTO OK - [data]
-            finalValues[resolvedObsKey] = `DESBANIMENTO OK - [${timestamp}]`;
-          }
+          // COM Numero Externo: "Numero Externo - DESBANIMENTO OK - [data]"
+          // SEM Numero Externo: "DESBANIMENTO OK - [data]"
+          finalValues[resolvedObsKey] = isNumeroExterno
+            ? `Numero Externo - DESBANIMENTO OK - [${timestamp}]`
+            : `DESBANIMENTO OK - [${timestamp}]`;
         } else {
           // For any other status change, append: [timestamp] Status: <new_status>
           finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
