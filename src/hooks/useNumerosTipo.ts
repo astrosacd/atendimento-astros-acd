@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NumeroTipo {
@@ -37,8 +37,6 @@ export function useNumerosTipos(rowIds: string[]) {
 
 // Hook para criar/atualizar tipo de um número
 export function useSetNumeroTipo() {
-  const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async ({ baserowRowId, tipo }: { baserowRowId: string; tipo: 'EX' | 'IN' }) => {
       // Tenta inserir, ignorando se já existir (UNIQUE constraint)
@@ -52,9 +50,8 @@ export function useSetNumeroTipo() {
       if (error) throw error;
       return { baserowRowId, tipo };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-tipos'] });
-    },
+    // Não invalida queries para evitar re-render desnecessário
+    // O tipo já está sendo controlado pelo processedTipoIds no componente
   });
 }
 
