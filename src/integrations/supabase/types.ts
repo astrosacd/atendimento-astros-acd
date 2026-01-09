@@ -1383,6 +1383,27 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_tipo: {
+        Row: {
+          baserow_row_id: string
+          created_at: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          baserow_row_id: string
+          created_at?: string
+          id?: string
+          tipo: string
+        }
+        Update: {
+          baserow_row_id?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_webhooks: {
         Row: {
           created_at: string
