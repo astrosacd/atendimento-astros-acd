@@ -494,11 +494,39 @@ Aguardo seu retorno! 😊`;
               to: cliente.email,
               subject: emailSubject,
               content: message,
-              html: `
-                <div style="font-family: Arial, sans-serif; line-height: 1.5">
-                  <p>${htmlMessage}</p>
-                </div>
-              `.trim(),
+              html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+  <div style="font-family: Arial, sans-serif; line-height: 1.5">
+    <p>${htmlMessage}</p>
+  </div>
+</body>
+</html>`,
+              mimeContent: [
+                {
+                  mimeType: "text/plain; charset=UTF-8",
+                  content: message,
+                },
+                {
+                  mimeType: "text/html; charset=UTF-8",
+                  content: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+  <div style="font-family: Arial, sans-serif; line-height: 1.5">
+    <p>${htmlMessage}</p>
+  </div>
+</body>
+</html>`,
+                },
+              ],
             });
 
             await client.close();
