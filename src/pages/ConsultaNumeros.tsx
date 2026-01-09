@@ -770,12 +770,27 @@ export default function ConsultaNumeros() {
         'Observações',
       ];
 
+      // 1) tenta chaves conhecidas/derivadas
       for (const key of candidates) {
         const v = source?.[key];
         if (v == null) continue;
         if (typeof v === 'object' && 'value' in v) return (v as any).value?.toString() || '';
         return v?.toString?.() || '';
       }
+
+      // 2) fallback: procura qualquer chave que pareça "observa..."
+      if (source && typeof source === 'object') {
+        const keys = Object.keys(source);
+        for (const key of keys) {
+          const norm = normalizeFieldName(key);
+          if (!norm.includes('observa')) continue;
+          const v = (source as any)[key];
+          if (v == null) continue;
+          if (typeof v === 'object' && 'value' in v) return (v as any).value?.toString() || '';
+          return v?.toString?.() || '';
+        }
+      }
+
       return '';
     };
 
@@ -791,11 +806,9 @@ export default function ConsultaNumeros() {
       return '';
     };
 
-    // Para decidir se deve incluir "Numero Externo":
-    // - se a observação atual (linha selecionada) tiver, inclui
-    // - se a linha não trouxe o campo, usa o valor do modal como fallback
-    // Regra do usuário: se NÃO conter, NÃO inclui.
-    const obsForCheck = (readObsValue(selectedRow) || readObsValue(editValues) || '').toString();
+    // Regra: só inclui "Numero Externo" se as observações CONTIVEREM "Numero Externo".
+    // (se não contiver, não inclui)
+    const obsForCheck = getExistingObs();
 
     const normalizeText = (v: string) =>
       v
@@ -804,7 +817,6 @@ export default function ConsultaNumeros() {
         .replace(/\p{Diacritic}/gu, '')
         .trim();
 
-    // Regra: considera "Numero Externo" se a observação CONTIVER o termo (em qualquer posição)
     const isNumeroExterno = normalizeText(obsForCheck).includes('numero externo');
 
     if (obsField || resolvedObsKey) {
