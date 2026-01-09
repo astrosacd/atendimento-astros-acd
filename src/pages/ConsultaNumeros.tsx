@@ -178,29 +178,54 @@ export default function ConsultaNumeros() {
         console.error('Session error:', sessionError);
         throw new Error('Sessão inválida');
       }
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
+
+      // Timeout para evitar ficar "carregando" indefinidamente quando o Baserow estiver fora do ar
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            signal: controller.signal,
+          }
+        );
+
+        if (res.status === 401) {
+          await supabase.auth.signOut();
+          throw new Error('Sessão expirada');
         }
-      );
-      if (res.status === 401) {
-        await supabase.auth.signOut();
-        throw new Error('Sessão expirada');
+
+        if (!res.ok) {
+          // Tenta ler mensagem do backend
+          let message = 'Erro ao carregar campos';
+          try {
+            const j = await res.json();
+            message = j?.error || message;
+          } catch {
+            // ignore
+          }
+          throw new Error(message);
+        }
+
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
+        return json.data || [];
+      } catch (e: any) {
+        if (e?.name === 'AbortError') {
+          throw new Error('Tempo limite ao carregar campos (serviço externo indisponível)');
+        }
+        throw e;
+      } finally {
+        window.clearTimeout(timeout);
       }
-      if (!res.ok) {
-        throw new Error('Erro ao carregar campos');
-      }
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
-      return json.data || [];
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    retry: 2,
-    retryDelay: 1000,
+    retry: 0,
   });
 
   // Determine visible columns from fields (exclude internal fields)
@@ -1142,9 +1167,9 @@ export default function ConsultaNumeros() {
             ) : visibleFields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Nenhum campo disponível</h3>
+                <h3 className="text-lg font-semibold mb-2">Não foi possível carregar os campos</h3>
                 <p className="text-muted-foreground mb-4 max-w-md">
-                  Não foi possível carregar os campos do Baserow. Verifique a configuração.
+                  {fieldsError instanceof Error ? fieldsError.message : 'Verifique a configuração e tente novamente.'}
                 </p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
                   <RefreshCw className="h-4 w-4 mr-2" />
