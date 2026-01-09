@@ -819,20 +819,21 @@ export default function ConsultaNumeros() {
         const isExcluido =
           newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
 
+        // For EXCLUÍDO and DESBANIMENTO OK: ALWAYS replace everything (clear field)
         if (isExcluido) {
           if (isNumeroExterno) {
-            // Keep existing observations and append the standardized note
-            finalValues[resolvedObsKey] = `${existingObs}${separator}Numero Externo - EXCLUÍDO - [${timestamp}]`;
+            // Clear and set: Numero Externo - EXCLUÍDO - [data]
+            finalValues[resolvedObsKey] = `Numero Externo - EXCLUÍDO - [${timestamp}]`;
           } else {
-            // For non-external numbers, replace everything with the standard status line
+            // Clear and set: [data] Status: EXCLUÍDO
             finalValues[resolvedObsKey] = `[${timestamp}] Status: ${newStatus}`;
           }
         } else if (isDesbanimentoOK) {
           if (isNumeroExterno) {
-            // Keep existing observations and append the standardized note
-            finalValues[resolvedObsKey] = `${existingObs}${separator}Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
+            // Clear and set: Numero Externo - DESBANIMENTO OK - [data]
+            finalValues[resolvedObsKey] = `Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
           } else {
-            // For non-external numbers, replace everything with the standard status line
+            // Clear and set: DESBANIMENTO OK - [data]
             finalValues[resolvedObsKey] = `DESBANIMENTO OK - [${timestamp}]`;
           }
         } else {
