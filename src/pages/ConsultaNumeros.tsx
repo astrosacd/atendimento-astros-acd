@@ -30,7 +30,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
-
 interface NumeroResult {
   id: number;
   [key: string]: any;
@@ -173,38 +172,26 @@ export default function ConsultaNumeros() {
   const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError } = useQuery<BaserowField[]>({
     queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
         console.error('Session error:', sessionError);
         throw new Error('Sessão inválida');
       }
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        }
+      );
       if (res.status === 401) {
         await supabase.auth.signOut();
         throw new Error('Sessão expirada');
       }
-
       if (!res.ok) {
-        let message = 'Erro ao carregar campos';
-        try {
-          const j = await res.json();
-          message = j?.error || message;
-        } catch {
-          // ignore
-        }
-        throw new Error(message);
+        throw new Error('Erro ao carregar campos');
       }
-
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
       return json.data || [];
@@ -212,7 +199,7 @@ export default function ConsultaNumeros() {
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 2,
-    retryDelay: 1200,
+    retryDelay: 1000,
   });
 
   // Determine visible columns from fields (exclude internal fields)
@@ -289,88 +276,64 @@ export default function ConsultaNumeros() {
   const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
   const isFieldsLoading = loadingFields && !fieldsError;
 
-
   // Fetch last active status for each number from history
   useEffect(() => {
     const fetchLastStatuses = async () => {
       if (!queryResult?.data?.length) return;
       
       const newCache: LastStatusInfo = {};
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
       
       // Get all unique baserow row IDs
       const rowIds = queryResult.data.map((row: NumeroResult) => row.id.toString());
       
-      // Fetch history for all rows at once (more efficient)
-      try {
-        const { data: historyData, error } = await supabase
-          .from('consulta_numeros_history')
-          .select('baserow_row_id, dados_anteriores, acao, created_at')
-          .in('baserow_row_id', rowIds)
-          .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao', 'atualizacao_obs'])
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching history:', error);
-          // Set all to null on error
-          rowIds.forEach(id => { newCache[parseInt(id)] = null; });
-        } else if (historyData && historyData.length > 0) {
-          // Group history by row ID and find the most recent previous status
-          const processedIds = new Set<string>();
+      // Fetch history for these rows to find the previous status
+      for (const rowId of rowIds) {
+        try {
+          const { data: historyData } = await supabase
+            .from('consulta_numeros_history')
+            .select('dados_anteriores, dados_novos, acao')
+            .eq('baserow_row_id', rowId)
+            .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+            .order('created_at', { ascending: false })
+            .limit(10);
           
-          for (const entry of historyData) {
-            const rowId = entry.baserow_row_id;
-            if (!rowId || processedIds.has(rowId)) continue;
-            
-            const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
-            if (dadosAnteriores) {
-              // Look for excluido_da_base or status in previous data
-              // Handle both {value: "X"} object format and plain string format
-              const excluido = dadosAnteriores['excluido_da_base'] || dadosAnteriores['Excluido_Da_Base'];
-              const status = dadosAnteriores['status'] || dadosAnteriores['Status'];
-              
-              let prevStatus: string | null = null;
-              
-              // Try excluido_da_base first
-              if (excluido) {
-                if (typeof excluido === 'object' && excluido.value) {
-                  prevStatus = excluido.value;
-                } else if (typeof excluido === 'string') {
-                  prevStatus = excluido;
+          if (historyData && historyData.length > 0) {
+            // Find the most recent status change with a valid previous status
+            for (const entry of historyData) {
+              const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
+              if (dadosAnteriores) {
+                // Look for excluido_da_base or status in previous data
+                const prevStatus = 
+                  dadosAnteriores['excluido_da_base']?.value || 
+                  dadosAnteriores['excluido_da_base'] ||
+                  dadosAnteriores['Excluido_Da_Base']?.value ||
+                  dadosAnteriores['Excluido_Da_Base'] ||
+                  dadosAnteriores['status']?.value ||
+                  dadosAnteriores['status'] ||
+                  dadosAnteriores['Status']?.value ||
+                  dadosAnteriores['Status'];
+                
+                if (prevStatus && typeof prevStatus === 'string' && prevStatus.trim()) {
+                  newCache[parseInt(rowId)] = prevStatus;
+                  break;
                 }
-              }
-              
-              // Fallback to status field
-              if (!prevStatus && status) {
-                if (typeof status === 'object' && status.value) {
-                  prevStatus = status.value;
-                } else if (typeof status === 'string') {
-                  prevStatus = status;
-                }
-              }
-              
-              if (prevStatus && prevStatus.trim()) {
-                newCache[parseInt(rowId)] = prevStatus;
-                processedIds.add(rowId);
               }
             }
           }
           
-          // Set null for rows without history
-          rowIds.forEach(id => {
-            if (!(parseInt(id) in newCache)) {
-              newCache[parseInt(id)] = null;
-            }
-          });
-        } else {
-          // No history found
-          rowIds.forEach(id => { newCache[parseInt(id)] = null; });
+          // If no previous status found, set to null (will show "-")
+          if (!(parseInt(rowId) in newCache)) {
+            newCache[parseInt(rowId)] = null;
+          }
+        } catch (error) {
+          console.error('Error fetching history for row', rowId, error);
+          newCache[parseInt(rowId)] = null;
         }
-      } catch (error) {
-        console.error('Error fetching history:', error);
-        rowIds.forEach(id => { newCache[parseInt(id)] = null; });
       }
       
-      setLastStatusCache(newCache);
+      setLastStatusCache(prev => ({ ...prev, ...newCache }));
     };
     
     fetchLastStatuses();
@@ -730,120 +693,50 @@ export default function ConsultaNumeros() {
 
     // Merge nova observação e tags com as anteriores (se houver)
     const finalValues = { ...editValues };
-
-    // Resolve o nome REAL do campo de observações (pode variar: Observacoes/Observações/observacoes)
-    const normalizeFieldName = (name: string) =>
-      name
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-
-    const obsField = visibleFields.find((f) => normalizeFieldName(f.name) === 'observacoes') ||
-      visibleFields.find((f) => normalizeFieldName(f.name).includes('observa'));
-
-    const resolvedObsKey =
-      obsField?.name ||
-      Object.keys(selectedRow).find((k) => normalizeFieldName(k) === 'observacoes') ||
-      Object.keys(editValues).find((k) => normalizeFieldName(k) === 'observacoes') ||
-      'observacoes';
-
+    const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
+    
     // Get status field value (excluido_da_base or status)
     const statusFieldName = 'excluido_da_base';
-    const newStatus =
-      editValues[statusFieldName] ||
-      editValues['Excluido_Da_Base'] ||
-      editValues['status'] ||
-      editValues['Status'] ||
-      '';
-
+    const newStatus = editValues[statusFieldName] || editValues['Excluido_Da_Base'] || editValues['status'] || editValues['Status'] || '';
+    
     // Get original status from selectedRow
     const getOriginalStatus = () => {
-      const statusVal =
-        selectedRow[statusFieldName] ||
-        selectedRow['Excluido_Da_Base'] ||
-        selectedRow['status'] ||
-        selectedRow['Status'];
+      const statusVal = selectedRow[statusFieldName] || selectedRow['Excluido_Da_Base'] || selectedRow['status'] || selectedRow['Status'];
       if (statusVal && typeof statusVal === 'object' && 'value' in statusVal) {
-        return (statusVal as any).value || '';
+        return statusVal.value || '';
       }
       return statusVal?.toString() || '';
     };
     const originalStatus = getOriginalStatus();
-
+    
     // Check if status was changed
     const statusChanged = newStatus && originalStatus !== newStatus;
-
-    // Sempre pega a observação existente, SEM depender de um único nome de chave
-    const readObsValue = (source: any): string => {
-      const candidates = [
-        resolvedObsKey,
-        'observacoes',
-        'Observacoes',
-        'observações',
-        'Observações',
-      ];
-
-      // 1) tenta chaves conhecidas/derivadas
-      for (const key of candidates) {
-        const v = source?.[key];
-        if (v == null) continue;
-        if (typeof v === 'object' && 'value' in v) return (v as any).value?.toString() || '';
-        return v?.toString?.() || '';
+    
+    // Get "tipo" field value (ex: "Numero Externo")
+    const tipoFieldName = visibleFields.find(f => 
+      f.name.toLowerCase().includes('tipo') || 
+      f.name.toLowerCase().includes('escrito') ||
+      f.name.toLowerCase().includes('escrito_da_base')
+    )?.name || 'escrito_da_base';
+    
+    const getTipoValue = () => {
+      const tipoVal = selectedRow[tipoFieldName] || selectedRow['escrito_da_base'] || selectedRow['Escrito_Da_Base'] || selectedRow['tipo'] || selectedRow['Tipo'];
+      if (tipoVal && typeof tipoVal === 'object' && 'value' in tipoVal) {
+        return tipoVal.value || '';
       }
-
-      // 2) fallback: procura qualquer chave que pareça "observa..."
-      if (source && typeof source === 'object') {
-        const keys = Object.keys(source);
-        for (const key of keys) {
-          const norm = normalizeFieldName(key);
-          if (!norm.includes('observa')) continue;
-          const v = (source as any)[key];
-          if (v == null) continue;
-          if (typeof v === 'object' && 'value' in v) return (v as any).value?.toString() || '';
-          return v?.toString?.() || '';
-        }
-      }
-
-      return '';
+      return tipoVal?.toString() || '';
     };
-
-    const getExistingObs = () => {
-      // Prefer the latest value from the currently selected row (source of truth)
-      const fromRow = readObsValue(selectedRow);
-      if (fromRow) return fromRow;
-
-      // Fallback to editValues (can be stale if not synced after saving)
-      const fromEdit = readObsValue(editValues);
-      if (fromEdit) return fromEdit;
-
-      return '';
-    };
-
-    // Regra: só inclui "Numero Externo" se as observações CONTIVEREM "Numero Externo"
-    const obsForCheck = getExistingObs();
-
-    const normalizeText = (v: string) =>
-      v
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    // Aceita variações como "Numero   Externo", quebras de linha, etc.
-    const isNumeroExterno = /numero\s*externo/.test(normalizeText(obsForCheck));
-
-    if (obsField || resolvedObsKey) {
+    const tipoValue = getTipoValue();
+    
+    if (obsField) {
       const hasNewObs = newObservacao.trim();
       const hasTags = selectedObsTags.length > 0;
-
+      
       if (hasNewObs || hasTags) {
         // User added observation manually
         const timestamp = new Date().toLocaleString('pt-BR');
-        const existingObs = getExistingObs();
-        const separator = existingObs ? '\n---\n' : '';
-
+        const separator = editValues[obsField.name] ? '\n---\n' : '';
+        
         // Build the new observation entry
         const parts: string[] = [];
         if (hasTags) {
@@ -852,32 +745,32 @@ export default function ConsultaNumeros() {
         if (hasNewObs) {
           parts.push(newObservacao.trim());
         }
-
-        finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] ${parts.join(' - ')}`;
+        
+        finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
       } else if (statusChanged && newStatus) {
         // User did NOT add observation manually but changed the status
-        const existingObs = getExistingObs();
+        // Automatically add the status change to observations
+        const existingObs = editValues[obsField.name] || '';
         const timestamp = new Date().toLocaleString('pt-BR');
-
-        const newStatusLower = newStatus.toLowerCase();
-        const isExcluido = newStatusLower.includes('excluído') || newStatusLower.includes('excluido');
-
-        // Para EXCLUÍDO e DESBANIMENTO OK: substitui tudo
-        // Formato:
-        //   COM "Numero Externo": "Numero Externo - <STATUS> - [data/hora]"
-        //   SEM "Numero Externo": "<STATUS> - [data/hora]"
-        if (isExcluido) {
-          finalValues[resolvedObsKey] = isNumeroExterno
-            ? `Numero Externo - EXCLUÍDO - [${timestamp}]`
-            : `EXCLUÍDO - [${timestamp}]`;
-        } else if (isDesbanimentoOK) {
-          finalValues[resolvedObsKey] = isNumeroExterno
-            ? `Numero Externo - DESBANIMENTO OK - [${timestamp}]`
-            : `DESBANIMENTO OK - [${timestamp}]`;
+        const separator = existingObs ? '\n---\n' : '';
+        
+        // Check if new status is "EXCLUÍDO" (case insensitive)
+        const isExcluido = newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
+        
+        // Special case for EXCLUÍDO - add "Numero Externo - Banido Permanentemente - data"
+        if (isExcluido && 
+            (existingObs.toLowerCase().includes('numero externo') || 
+             (tipoValue && tipoValue.toLowerCase().includes('numero externo')))) {
+          // Format as: Numero Externo - Banido Permanentemente - data/hora
+          finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - Banido Permanentemente - ${timestamp}`;
+        } else if (isDesbanimentoOK && 
+            (existingObs.toLowerCase().includes('numero externo') || 
+             (tipoValue && tipoValue.toLowerCase().includes('numero externo')))) {
+          // Format as: Numero Externo - DESBANIMENTO OK - data/hora
+          finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - ${timestamp}`;
         } else {
-          // Para qualquer outra mudança de status, adiciona no final
-          const separator = existingObs ? '\n---\n' : '';
-          finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
+          // For any other status change, append: [timestamp] Status: <new_status>
+          finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
         }
       }
     }
@@ -1133,9 +1026,9 @@ export default function ConsultaNumeros() {
             ) : visibleFields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Não foi possível carregar os campos</h3>
+                <h3 className="text-lg font-semibold mb-2">Nenhum campo disponível</h3>
                 <p className="text-muted-foreground mb-4 max-w-md">
-                  {fieldsError instanceof Error ? fieldsError.message : 'Verifique a configuração e tente novamente.'}
+                  Não foi possível carregar os campos do Baserow. Verifique a configuração.
                 </p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
                   <RefreshCw className="h-4 w-4 mr-2" />
