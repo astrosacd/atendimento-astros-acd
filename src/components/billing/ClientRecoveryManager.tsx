@@ -76,6 +76,7 @@ export const ClientRecoveryManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchQueryRegistro, setSearchQueryRegistro] = useState('');
+  const [searchQueryHistory, setSearchQueryHistory] = useState('');
   const [activeTab, setActiveTab] = useState('clients');
   const [isNewSaleMode, setIsNewSaleMode] = useState(false);
 
@@ -593,13 +594,26 @@ export const ClientRecoveryManager = () => {
         <TabsContent value="history" className="space-y-4">
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="w-5 h-5 text-blue-400" />
-                Histórico de Recuperações
-              </CardTitle>
-              <CardDescription>
-                Registro de todas as tentativas de recuperação de clientes
-              </CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="w-5 h-5 text-blue-400" />
+                    Histórico de Recuperações
+                  </CardTitle>
+                  <CardDescription>
+                    Registro de todas as tentativas de recuperação de clientes
+                  </CardDescription>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou produto..."
+                    value={searchQueryHistory}
+                    onChange={(e) => setSearchQueryHistory(e.target.value)}
+                    className="pl-10 w-[250px]"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border overflow-hidden">
@@ -616,15 +630,23 @@ export const ClientRecoveryManager = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recoveryHistory.length === 0 ? (
+                    {recoveryHistory.filter(r => 
+                      r.clientes?.nome?.toLowerCase().includes(searchQueryHistory.toLowerCase()) ||
+                      r.clientes?.produto?.toLowerCase().includes(searchQueryHistory.toLowerCase())
+                    ).length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-10">
                           <History className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                          <p className="text-muted-foreground">Nenhuma tentativa de recuperação registrada</p>
+                          <p className="text-muted-foreground">
+                            {searchQueryHistory ? 'Nenhum resultado encontrado' : 'Nenhuma tentativa de recuperação registrada'}
+                          </p>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      recoveryHistory.map((attempt) => (
+                      recoveryHistory.filter(r => 
+                        r.clientes?.nome?.toLowerCase().includes(searchQueryHistory.toLowerCase()) ||
+                        r.clientes?.produto?.toLowerCase().includes(searchQueryHistory.toLowerCase())
+                      ).map((attempt) => (
                         <TableRow key={attempt.id} className="hover:bg-muted/30">
                           <TableCell className="font-mono text-sm">
                             {new Date(attempt.data_envio).toLocaleString('pt-BR', {
