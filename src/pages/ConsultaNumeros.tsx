@@ -274,7 +274,11 @@ export default function ConsultaNumeros() {
 
   // Error classification
   const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
-  const isBaserowOffline = baserowErrorMessage.includes('timeout') || baserowErrorMessage.includes('conectar ao baserow');
+  const baserowOfflineFromResponse = Boolean((queryResult as any)?.baserow_offline);
+  const isBaserowOffline =
+    baserowOfflineFromResponse ||
+    baserowErrorMessage.includes('timeout') ||
+    baserowErrorMessage.includes('conectar ao baserow');
   const isConfigError = !isBaserowOffline && (baserowErrorMessage.includes('configuração') || baserowErrorMessage.includes('baserow'));
   const isFieldsLoading = loadingFields && !fieldsError;
 
