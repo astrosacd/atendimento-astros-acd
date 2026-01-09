@@ -272,8 +272,10 @@ export default function ConsultaNumeros() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Check if error is configuration-related
-  const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
+  // Error classification
+  const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
+  const isBaserowOffline = baserowErrorMessage.includes('timeout') || baserowErrorMessage.includes('conectar ao baserow');
+  const isConfigError = !isBaserowOffline && (baserowErrorMessage.includes('configuração') || baserowErrorMessage.includes('baserow'));
   const isFieldsLoading = loadingFields && !fieldsError;
 
   // Fetch last active status for each number from history (optimized single query)
@@ -1004,7 +1006,20 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isConfigError ? (
+            {isBaserowOffline ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Sem conexão com o Baserow</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  O backend não está conseguindo acessar o Baserow agora (timeout). Isso normalmente acontece quando o Baserow está
+                  fora do ar, bloqueando conexões externas, ou com instabilidade.
+                </p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : isConfigError ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Configuração Necessária</h3>
@@ -1019,6 +1034,7 @@ export default function ConsultaNumeros() {
                 )}
               </div>
             ) : isFieldsLoading || isLoading ? (
+
               <div className="flex flex-col items-center justify-center py-8">
                 <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mt-2">

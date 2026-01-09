@@ -6,6 +6,35 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
 };
 
+class ExternalServiceError extends Error {
+  status: number;
+  constructor(message: string, status = 502) {
+    super(message);
+    this.name = 'ExternalServiceError';
+    this.status = status;
+  }
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 12_000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
+    }
+    if (String(e?.code || '').toUpperCase() === 'ETIMEDOUT' || String(e?.message || '').includes('timed out')) {
+      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
+    }
+    throw e;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+
 interface BaserowConfig {
   api_url: string;
   api_token: string;
@@ -43,6 +72,7 @@ async function validateApiKey(supabase: any, apiKey: string) {
 
 // Simple in-memory cache (per edge runtime instance)
 let cachedBaserowConfig: { value: BaserowConfig; cachedAt: number } | null = null;
+let cachedBaserowFields: { value: any[]; cachedAt: number } | null = null;
 
 // Get Baserow configuration
 async function getBaserowConfig(supabase: any): Promise<BaserowConfig | null> {
@@ -111,30 +141,52 @@ async function getFieldMappings(supabase: any): Promise<FieldMapping[]> {
 
 // Get all fields from Baserow table
 async function getBaserowFields(config: BaserowConfig) {
-  const url = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    console.error('Error fetching Baserow fields');
-    return [];
+  // 10min TTL for fields (they rarely change)
+  if (cachedBaserowFields && Date.now() - cachedBaserowFields.cachedAt < 10 * 60_000) {
+    return cachedBaserowFields.value;
   }
 
-  const fields = await response.json();
-  return fields.map((f: any) => ({
-    id: f.id,
-    name: f.name,
-    type: f.type,
-    order: f.order,
-    primary: f.primary || false,
-    select_options: f.select_options || null,
-  }));
+  const url = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
+
+  try {
+    const response = await fetchWithTimeout(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Token ${config.api_token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      12_000
+    );
+
+    if (!response.ok) {
+      const txt = await response.text();
+      console.error('Error fetching Baserow fields:', txt);
+      throw new ExternalServiceError('Erro ao buscar campos no Baserow.', 502);
+    }
+
+    const fields = await response.json();
+    const normalized = (fields || []).map((f: any) => ({
+      id: f.id,
+      name: f.name,
+      type: f.type,
+      order: f.order,
+      primary: f.primary || false,
+      select_options: f.select_options || null,
+    }));
+
+    cachedBaserowFields = { value: normalized, cachedAt: Date.now() };
+    return normalized;
+  } catch (e: any) {
+    // If Baserow is temporarily down, serve last known fields (stale) instead of failing the whole UI.
+    if (cachedBaserowFields?.value?.length) {
+      console.warn('[api-consulta-numeros] Serving cached fields due to error:', String(e?.message || e));
+      return cachedBaserowFields.value;
+    }
+    throw e;
+  }
 }
 
 // No mapping needed - return data as-is from Baserow with field names
@@ -234,13 +286,18 @@ async function queryBaserow(
 
   console.log('Querying Baserow:', url.toString());
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    url.toString(),
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
     },
-  });
+    15_000
+  );
+
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -255,13 +312,18 @@ async function queryBaserow(
 async function getBaserowRow(config: BaserowConfig, rowId: string) {
   const url = `${config.api_url}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
     },
-  });
+    12_000
+  );
+
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -278,14 +340,19 @@ async function updateBaserowRow(config: BaserowConfig, rowId: string, data: any)
 
   console.log('Updating Baserow row:', rowId, data);
 
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
+    15_000
+  );
+
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -302,14 +369,19 @@ async function createBaserowRow(config: BaserowConfig, data: any) {
 
   console.log('Creating Baserow row:', data);
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
+    15_000
+  );
+
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -404,21 +476,27 @@ async function triggerWebhooks(supabase: any, evento: string, payload: any) {
 async function getBaserowStatuses(config: BaserowConfig) {
   const url = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Token ${config.api_token}`,
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
     },
-  });
+    12_000
+  );
 
   if (!response.ok) {
-    return [];
+    const txt = await response.text();
+    console.error('Error fetching Baserow statuses:', txt);
+    throw new ExternalServiceError('Erro ao buscar status no Baserow.', 502);
   }
 
   const fields = await response.json();
-  const statusField = fields.find((f: any) => f.name === 'Status');
-  
+  const statusField = (fields || []).find((f: any) => f.name === 'Status');
+
   if (statusField && statusField.select_options) {
     return statusField.select_options.map((opt: any) => ({
       id: opt.id,
@@ -791,13 +869,18 @@ Deno.serve(async (req) => {
 
             console.log('Exact duplicate check URL:', exactUrl.toString());
 
-            const resp = await fetch(exactUrl.toString(), {
-              method: 'GET',
-              headers: {
-                'Authorization': `Token ${config.api_token}`,
-                'Content-Type': 'application/json',
-              },
-            });
+             const resp = await fetchWithTimeout(
+               exactUrl.toString(),
+               {
+                 method: 'GET',
+                 headers: {
+                   Authorization: `Token ${config.api_token}`,
+                   'Content-Type': 'application/json',
+                 },
+               },
+               12_000
+             );
+
 
             if (resp.ok) {
               const json = await resp.json();
@@ -983,6 +1066,14 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error:', error);
+
+    if (error instanceof ExternalServiceError) {
+      return new Response(
+        JSON.stringify({ success: false, error: error.message }),
+        { status: error.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // SECURITY: Don't expose internal error details
     return new Response(
       JSON.stringify({ success: false, error: 'Erro ao processar requisição' }),
