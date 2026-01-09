@@ -29,6 +29,7 @@ import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useNumerosTipos, useSetNumeroTipo, detectarTipo } from '@/hooks/useNumerosTipo';
 
 interface NumeroResult {
   id: number;
@@ -275,6 +276,35 @@ export default function ConsultaNumeros() {
   // Check if error is configuration-related
   const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
   const isFieldsLoading = loadingFields && !fieldsError;
+
+  // Hook para tipos de números (EX/IN)
+  const rowIdsForTipo = useMemo(() => {
+    return queryResult?.data?.map((row: NumeroResult) => row.id.toString()) || [];
+  }, [queryResult?.data]);
+  
+  const { data: tiposMap = {} } = useNumerosTipos(rowIdsForTipo);
+  const setNumeroTipo = useSetNumeroTipo();
+
+  // Detectar e salvar tipos na primeira consulta de cada número
+  useEffect(() => {
+    if (!queryResult?.data?.length) return;
+    
+    queryResult.data.forEach((row: NumeroResult) => {
+      const rowId = row.id.toString();
+      // Se já tem tipo salvo, não faz nada
+      if (tiposMap[rowId]) return;
+      
+      // Detecta o tipo baseado na observação
+      const obsField = visibleFields.find(f => f.name.toLowerCase() === 'observacoes');
+      const obs = row[obsField?.name || 'observacoes'];
+      const obsValue = typeof obs === 'string' ? obs : '';
+      
+      const tipo = detectarTipo(obsValue);
+      
+      // Salva o tipo (apenas uma vez)
+      setNumeroTipo.mutate({ baserowRowId: rowId, tipo });
+    });
+  }, [queryResult?.data, tiposMap, visibleFields]);
 
   // Fetch last active status for each number from history
   useEffect(() => {
@@ -806,20 +836,8 @@ export default function ConsultaNumeros() {
       return '';
     };
 
-    // Regra: só inclui "Numero Externo" se as observações CONTIVEREM "Numero Externo".
-    // (se não contiver, não inclui)
-    const obsForCheck = getExistingObs();
-
-    const normalizeText = (v: string) =>
-      v
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    // Aceita variações como "Numero   Externo", quebras de linha, etc.
-    const isNumeroExterno = /numero\s*externo/.test(normalizeText(obsForCheck));
+    // Usa o tipo salvo na tabela consulta_numeros_tipo (detectado na primeira consulta)
+    const numeroTipo = selectedRow ? tiposMap[selectedRow.id.toString()] : null;
 
     if (obsField || resolvedObsKey) {
       const hasNewObs = newObservacao.trim();
@@ -845,28 +863,23 @@ export default function ConsultaNumeros() {
         // User did NOT add observation manually but changed the status
         const existingObs = getExistingObs();
         const timestamp = new Date().toLocaleString('pt-BR');
-        const separator = existingObs ? '\n---\n' : '';
-
-        // Recalcula aqui (evita usar valor “stale” se o estado mudou)
-        const hasNumeroExterno = /numero\s*externo/.test(normalizeText(existingObs));
 
         const newStatusLower = newStatus.toLowerCase();
         const isExcluido = newStatusLower.includes('excluído') || newStatusLower.includes('excluido');
 
         // Para EXCLUÍDO e DESBANIMENTO OK: substitui tudo
-        // Formato:
-        //   COM "Numero Externo": "Numero Externo - <STATUS> - [data/hora]"
-        //   SEM "Numero Externo": "<STATUS> - [data/hora]"
+        // Formato baseado no TIPO salvo (EX = Externo, IN = Interno)
         if (isExcluido) {
-          finalValues[resolvedObsKey] = hasNumeroExterno
+          finalValues[resolvedObsKey] = numeroTipo === 'EX'
             ? `Numero Externo - EXCLUÍDO - [${timestamp}]`
             : `EXCLUÍDO - [${timestamp}]`;
         } else if (isDesbanimentoOK) {
-          finalValues[resolvedObsKey] = hasNumeroExterno
+          finalValues[resolvedObsKey] = numeroTipo === 'EX'
             ? `Numero Externo - DESBANIMENTO OK - [${timestamp}]`
             : `DESBANIMENTO OK - [${timestamp}]`;
         } else {
           // Para qualquer outra mudança de status, adiciona no final
+          const separator = existingObs ? '\n---\n' : '';
           finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
         }
       }
@@ -1147,6 +1160,19 @@ export default function ConsultaNumeros() {
                           <span className="sr-only">Ações rápidas</span>
                         </TableHead>
                         <TableHead className="w-[70px]">Linha</TableHead>
+                        {/* Coluna Tipo (EX/IN) */}
+                        <TableHead className="w-[60px]">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-help">
+                                Tipo
+                              </TooltipTrigger>
+                              <TooltipContent className="z-50 max-w-[200px]">
+                                EX = Número Externo | IN = Número Interno
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableHead>
                         {visibleFields.map((field) => (
                           <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
@@ -1227,6 +1253,19 @@ export default function ConsultaNumeros() {
                               </TableCell>
 
                               <TableCell className="font-mono text-muted-foreground">{row.id}</TableCell>
+                              {/* Coluna Tipo (EX/IN) */}
+                              <TableCell>
+                                {tiposMap[row.id.toString()] ? (
+                                  <Badge 
+                                    variant={tiposMap[row.id.toString()] === 'EX' ? 'destructive' : 'secondary'}
+                                    className="font-mono text-xs"
+                                  >
+                                    {tiposMap[row.id.toString()]}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs animate-pulse">...</span>
+                                )}
+                              </TableCell>
                               {visibleFields.map((field) => {
                                 const cellValue = row[field.name];
                                 const rawValue =
