@@ -780,9 +780,15 @@ export default function ConsultaNumeros() {
     };
 
     const getExistingObs = () => {
+      // Prefer the latest value from the currently selected row (source of truth)
+      const fromRow = readObsValue(selectedRow);
+      if (fromRow) return fromRow;
+
+      // Fallback to editValues (can be stale if not synced after saving)
       const fromEdit = readObsValue(editValues);
       if (fromEdit) return fromEdit;
-      return readObsValue(selectedRow);
+
+      return '';
     };
 
     const existingObsForCheck = getExistingObs();
