@@ -778,9 +778,9 @@ export default function ConsultaNumeros() {
         // Check if new status is "EXCLUÍDO" (case insensitive)
         const isExcluido = newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
         
-        // Special case for EXCLUÍDO on Numero Externo - add "Numero Externo - Banido Permanentemente - [data/hora]"
-        if (isExcluido && isNumeroExterno) {
-          // Format as: Numero Externo - Banido Permanentemente - [data/hora]
+        // Special case for EXCLUIDO: always append the standardized note
+        // Numero Externo - Banido Permanentemente - [data/hora]
+        if (isExcluido) {
           finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - Banido Permanentemente - [${timestamp}]`;
         } else if (isDesbanimentoOK && isNumeroExterno) {
           // Format as: Numero Externo - DESBANIMENTO OK - data/hora
