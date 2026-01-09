@@ -237,8 +237,21 @@ async function queryBaserow(
 
   // Status filtering (legacy query param by field id)
   // Avoid JSON `filters=` entirely to prevent "field None" / compatibility issues.
+  // IMPORTANT: if we can't reach Baserow to resolve field IDs/options, we *must not* fail the whole request.
+  // In that case we simply skip the status filter and still return the base list.
   if (statusFilters && statusFilters.length > 0) {
-    const fields = await getBaserowFields(config);
+    let fields: any[] = [];
+
+    try {
+      fields = await getBaserowFields(config);
+    } catch (e: any) {
+      if (e?.name === 'ExternalServiceError') {
+        console.warn('[api-consulta-numeros] Skipping status filter because fields could not be loaded:', String(e?.message || e));
+        fields = [];
+      } else {
+        throw e;
+      }
+    }
 
     if (!fields || fields.length === 0) {
       console.warn('[api-consulta-numeros] Could not fetch Baserow fields; skipping status filter');
@@ -253,7 +266,7 @@ async function queryBaserow(
 
       if (statusFieldCandidate && statusFieldCandidate.select_options) {
         const statusFieldId = Number.parseInt(String(statusFieldCandidate.id), 10);
-        
+
         // Find the option ID by matching the status name (case-insensitive)
         const statusName = statusFilters[0];
         const matchingOption = statusFieldCandidate.select_options.find(
