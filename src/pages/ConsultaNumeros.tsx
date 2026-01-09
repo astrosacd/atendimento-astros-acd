@@ -848,21 +848,20 @@ export default function ConsultaNumeros() {
         const newStatusLower = newStatus.toLowerCase();
         const isExcluido = newStatusLower.includes('excluído') || newStatusLower.includes('excluido');
 
-        // For EXCLUÍDO and DESBANIMENTO OK: ALWAYS replace everything (clear field)
+        // Para EXCLUÍDO e DESBANIMENTO OK: substitui tudo
+        // Formato:
+        //   COM "Numero Externo": "Numero Externo - <STATUS> - [data/hora]"
+        //   SEM "Numero Externo": "<STATUS> - [data/hora]"
         if (isExcluido) {
-          // COM Numero Externo: "Numero Externo - EXCLUÍDO - [data]"
-          // SEM Numero Externo: "[data] Status: EXCLUÍDO"
           finalValues[resolvedObsKey] = isNumeroExterno
             ? `Numero Externo - EXCLUÍDO - [${timestamp}]`
-            : `[${timestamp}] Status: EXCLUÍDO`;
+            : `EXCLUÍDO - [${timestamp}]`;
         } else if (isDesbanimentoOK) {
-          // COM Numero Externo: "Numero Externo - DESBANIMENTO OK - [data]"
-          // SEM Numero Externo: "DESBANIMENTO OK - [data]"
           finalValues[resolvedObsKey] = isNumeroExterno
             ? `Numero Externo - DESBANIMENTO OK - [${timestamp}]`
             : `DESBANIMENTO OK - [${timestamp}]`;
         } else {
-          // For any other status change, append: [timestamp] Status: <new_status>
+          // Para qualquer outra mudança de status, adiciona no final
           finalValues[resolvedObsKey] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
         }
       }
