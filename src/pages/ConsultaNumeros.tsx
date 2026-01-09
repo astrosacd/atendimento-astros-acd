@@ -783,8 +783,12 @@ export default function ConsultaNumeros() {
         if (isExcluido) {
           finalValues[obsField.name] = `Numero Externo - Banido Permanentemente - [${timestamp}]`;
         } else if (isDesbanimentoOK) {
-          // Format as: DESBANIMENTO OK - [data/hora] (replace completely)
-          finalValues[obsField.name] = `DESBANIMENTO OK - [${timestamp}]`;
+          // Check if "Numero Externo" is in observations
+          if (isNumeroExterno) {
+            finalValues[obsField.name] = `Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
+          } else {
+            finalValues[obsField.name] = `DESBANIMENTO OK - [${timestamp}]`;
+          }
         } else {
           // For any other status change, append: [timestamp] Status: <new_status>
           finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
