@@ -791,10 +791,11 @@ export default function ConsultaNumeros() {
       return '';
     };
 
-    // Para decidir se deve manter "Numero Externo", use SOMENTE o valor atual da linha selecionada
-    // (fonte de verdade vinda do backend). Assim, se em observações NÃO tiver "Numero Externo",
-    // nunca vai incluir.
-    const obsFromRow = readObsValue(selectedRow) || '';
+    // Para decidir se deve incluir "Numero Externo":
+    // - se a observação atual (linha selecionada) tiver, inclui
+    // - se a linha não trouxe o campo, usa o valor do modal como fallback
+    // Regra do usuário: se NÃO conter, NÃO inclui.
+    const obsForCheck = (readObsValue(selectedRow) || readObsValue(editValues) || '').toString();
 
     const normalizeText = (v: string) =>
       v
@@ -803,8 +804,8 @@ export default function ConsultaNumeros() {
         .replace(/\p{Diacritic}/gu, '')
         .trim();
 
-    // Regra: só considera "Numero Externo" quando a observação COMEÇA com isso.
-    const isNumeroExterno = /^numero externo\b/.test(normalizeText(obsFromRow));
+    // Regra: considera "Numero Externo" se a observação CONTIVER o termo (em qualquer posição)
+    const isNumeroExterno = normalizeText(obsForCheck).includes('numero externo');
 
     if (obsField || resolvedObsKey) {
       const hasNewObs = newObservacao.trim();
