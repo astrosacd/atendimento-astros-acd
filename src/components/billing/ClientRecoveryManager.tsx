@@ -269,6 +269,15 @@ export const ClientRecoveryManager = () => {
     c.produto.toLowerCase().includes(searchQueryRegistro.toLowerCase())
   );
 
+  // Verifica se cliente tem recuperação pendente (enviada com sucesso e aguardando resultado)
+  const hasPendingRecovery = (clienteId: string) => {
+    return recoveryHistory.some(r => 
+      r.cliente_id === clienteId && 
+      r.status === 'sent' && 
+      r.converteu === null
+    );
+  };
+
   const stats = {
     total: overdueClients.length,
     registro: registroClients.length,
@@ -460,14 +469,36 @@ export const ClientRecoveryManager = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button 
-                                size="sm" 
-                                onClick={() => generateMessage(cliente, false)}
-                                className="bg-gradient-to-r from-purple-500 to-violet-600"
-                              >
-                                <Sparkles className="w-4 h-4 mr-1" />
-                                Recuperar
-                              </Button>
+                              {hasPendingRecovery(cliente.id) ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button 
+                                          size="sm" 
+                                          disabled
+                                          className="opacity-50 cursor-not-allowed"
+                                        >
+                                          <Clock className="w-4 h-4 mr-1" />
+                                          Pendente
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Já existe uma recuperação pendente para este cliente</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => generateMessage(cliente, false)}
+                                  className="bg-gradient-to-r from-purple-500 to-violet-600"
+                                >
+                                  <Sparkles className="w-4 h-4 mr-1" />
+                                  Recuperar
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -571,14 +602,36 @@ export const ClientRecoveryManager = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button 
-                                size="sm" 
-                                onClick={() => generateMessage(cliente, true)}
-                                className="bg-gradient-to-r from-emerald-500 to-teal-600"
-                              >
-                                <ShoppingBag className="w-4 h-4 mr-1" />
-                                Nova Venda
-                              </Button>
+                              {hasPendingRecovery(cliente.id) ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button 
+                                          size="sm" 
+                                          disabled
+                                          className="opacity-50 cursor-not-allowed"
+                                        >
+                                          <Clock className="w-4 h-4 mr-1" />
+                                          Pendente
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Já existe uma recuperação pendente para este cliente</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => generateMessage(cliente, true)}
+                                  className="bg-gradient-to-r from-emerald-500 to-teal-600"
+                                >
+                                  <ShoppingBag className="w-4 h-4 mr-1" />
+                                  Nova Venda
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -616,17 +669,17 @@ export const ClientRecoveryManager = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-hidden">
-                <Table>
+              <div className="rounded-lg border overflow-hidden overflow-x-auto">
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead>Data Envio</TableHead>
+                      <TableHead className="whitespace-nowrap">Data</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead>Vencimento</TableHead>
-                      <TableHead>Canal</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Converteu?</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="whitespace-nowrap hidden md:table-cell">Venc.</TableHead>
+                      <TableHead className="whitespace-nowrap">Canal</TableHead>
+                      <TableHead className="whitespace-nowrap">Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Result.</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -648,51 +701,59 @@ export const ClientRecoveryManager = () => {
                         r.clientes?.produto?.toLowerCase().includes(searchQueryHistory.toLowerCase())
                       ).map((attempt) => (
                         <TableRow key={attempt.id} className="hover:bg-muted/30">
-                          <TableCell className="font-mono text-sm">
+                          <TableCell className="font-mono text-xs whitespace-nowrap">
                             {new Date(attempt.data_envio).toLocaleString('pt-BR', {
                               day: '2-digit',
                               month: '2-digit',
-                              year: '2-digit',
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
                           </TableCell>
                           <TableCell>
-                            <div>
-                              <p className="font-medium">{attempt.clientes?.nome || 'N/A'}</p>
-                              <p className="text-xs text-muted-foreground">{attempt.clientes?.produto}</p>
+                            <div className="max-w-[150px]">
+                              <p className="font-medium text-sm truncate">{attempt.clientes?.nome || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground truncate">{attempt.clientes?.produto}</p>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell text-xs">
                             {new Date(attempt.data_vencimento).toLocaleDateString('pt-BR')}
                           </TableCell>
                           <TableCell>
                             {attempt.canal === 'whatsapp' ? (
-                              <Badge variant="outline" className="border-green-500/30 text-green-400">
-                                <Phone className="w-3 h-3 mr-1" />
-                                WhatsApp
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Phone className="w-4 h-4 text-green-400" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>WhatsApp</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
-                              <Badge variant="outline" className="border-blue-500/30 text-blue-400">
-                                <Mail className="w-3 h-3 mr-1" />
-                                Email
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Mail className="w-4 h-4 text-blue-400" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Email</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </TableCell>
                           <TableCell>
                             {attempt.status === 'sent' ? (
-                              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Enviado
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Enviado</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 cursor-help">
-                                      <XCircle className="w-3 h-3 mr-1" />
-                                      Não enviado
-                                    </Badge>
+                                  <TooltipTrigger>
+                                    <XCircle className="w-4 h-4 text-amber-400" />
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
                                     <p className="text-sm">{attempt.error_message || 'Falha no envio'}</p>
@@ -703,32 +764,30 @@ export const ClientRecoveryManager = () => {
                           </TableCell>
                           <TableCell>
                             {attempt.status !== 'sent' ? (
-                              <Badge variant="outline" className="border-border/50 text-muted-foreground">
-                                —
-                              </Badge>
+                              <span className="text-muted-foreground">—</span>
                             ) : attempt.converteu === true ? (
-                              <Badge className="bg-emerald-500/20 text-emerald-400">Sim</Badge>
+                              <CheckCircle className="w-4 h-4 text-emerald-400" />
                             ) : attempt.converteu === false ? (
-                              <Badge className="bg-red-500/20 text-red-400">Não</Badge>
+                              <XCircle className="w-4 h-4 text-red-400" />
                             ) : (
-                              <Badge className="bg-amber-500/20 text-amber-400">Pendente</Badge>
+                              <Clock className="w-4 h-4 text-amber-400" />
                             )}
                           </TableCell>
                           <TableCell className="text-right">
                             {attempt.status === 'sent' && attempt.converteu === null && (
                               <div className="flex gap-1 justify-end">
                                 <Button 
-                                  size="sm" 
+                                  size="icon" 
                                   variant="ghost"
-                                  className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                  className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                                   onClick={() => markAsConverted(attempt.id, true)}
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
                                 <Button 
-                                  size="sm" 
+                                  size="icon" 
                                   variant="ghost"
-                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                  className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                                   onClick={() => markAsConverted(attempt.id, false)}
                                 >
                                   <XCircle className="w-4 h-4" />
