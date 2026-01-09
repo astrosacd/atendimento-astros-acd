@@ -760,12 +760,25 @@ export default function ConsultaNumeros() {
     if (obsField) {
       const hasNewObs = newObservacao.trim();
       const hasTags = selectedObsTags.length > 0;
-      
+
+      // Always resolve the current "observacoes" value from form or original row
+      const getExistingObs = () => {
+        const fromEdit = (editValues[obsFieldName] as unknown as string) || '';
+        if (fromEdit) return fromEdit;
+
+        const fromRow = selectedRow[obsFieldName];
+        if (fromRow && typeof fromRow === 'object' && 'value' in fromRow) {
+          return (fromRow as any).value || '';
+        }
+        return fromRow?.toString() || '';
+      };
+
       if (hasNewObs || hasTags) {
         // User added observation manually
         const timestamp = new Date().toLocaleString('pt-BR');
-        const separator = editValues[obsField.name] ? '\n---\n' : '';
-        
+        const existingObs = getExistingObs();
+        const separator = existingObs ? '\n---\n' : '';
+
         // Build the new observation entry
         const parts: string[] = [];
         if (hasTags) {
@@ -774,38 +787,38 @@ export default function ConsultaNumeros() {
         if (hasNewObs) {
           parts.push(newObservacao.trim());
         }
-        
-        finalValues[obsField.name] = `${editValues[obsField.name] || ''}${separator}[${timestamp}] ${parts.join(' - ')}`;
+
+        finalValues[obsFieldName] = `${existingObs}${separator}[${timestamp}] ${parts.join(' - ')}`;
       } else if (statusChanged && newStatus) {
         // User did NOT add observation manually but changed the status
         // Automatically add the status change to observations
-        const existingObs = editValues[obsField.name] || '';
+        const existingObs = getExistingObs();
         const timestamp = new Date().toLocaleString('pt-BR');
         const separator = existingObs ? '\n---\n' : '';
-        
+
         // Check if new status is "EXCLUÍDO" (case insensitive)
         const isExcluido = newStatus.toLowerCase().includes('excluído') || newStatus.toLowerCase().includes('excluido');
-        
+
         // Special case for EXCLUIDO
         if (isExcluido) {
           if (isNumeroExterno) {
             // Keep existing observations and append the standardized note
-            finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - Banido Permanentemente - [${timestamp}]`;
+            finalValues[obsFieldName] = `${existingObs}${separator}Numero Externo - Banido Permanentemente - [${timestamp}]`;
           } else {
             // For non-external numbers, replace everything with the standard status line
-            finalValues[obsField.name] = `[${timestamp}] Status: ${newStatus}`;
+            finalValues[obsFieldName] = `[${timestamp}] Status: ${newStatus}`;
           }
         } else if (isDesbanimentoOK) {
           if (isNumeroExterno) {
             // Keep existing observations and append the standardized note
-            finalValues[obsField.name] = `${existingObs}${separator}Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
+            finalValues[obsFieldName] = `${existingObs}${separator}Numero Externo - DESBANIMENTO OK - [${timestamp}]`;
           } else {
             // For non-external numbers, replace everything with the standard status line
-            finalValues[obsField.name] = `DESBANIMENTO OK - [${timestamp}]`;
+            finalValues[obsFieldName] = `DESBANIMENTO OK - [${timestamp}]`;
           }
         } else {
           // For any other status change, append: [timestamp] Status: <new_status>
-          finalValues[obsField.name] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
+          finalValues[obsFieldName] = `${existingObs}${separator}[${timestamp}] Status: ${newStatus}`;
         }
       }
     }
