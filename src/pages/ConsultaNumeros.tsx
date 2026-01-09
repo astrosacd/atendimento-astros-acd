@@ -276,64 +276,66 @@ export default function ConsultaNumeros() {
   const isConfigError = queryError?.message?.includes('Baserow') || queryError?.message?.includes('Configuração') || fieldsError?.message?.includes('Baserow');
   const isFieldsLoading = loadingFields && !fieldsError;
 
-  // Fetch last active status for each number from history
+  // Fetch last active status for each number from history (optimized single query)
   useEffect(() => {
     const fetchLastStatuses = async () => {
       if (!queryResult?.data?.length) return;
       
-      const newCache: LastStatusInfo = {};
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+      // Get all unique baserow row IDs that we don't already have in cache
+      const rowIds = queryResult.data
+        .map((row: NumeroResult) => row.id.toString())
+        .filter((id: string) => !(parseInt(id) in lastStatusCache));
       
-      // Get all unique baserow row IDs
-      const rowIds = queryResult.data.map((row: NumeroResult) => row.id.toString());
+      if (rowIds.length === 0) return;
       
-      // Fetch history for these rows to find the previous status
-      for (const rowId of rowIds) {
-        try {
-          const { data: historyData } = await supabase
-            .from('consulta_numeros_history')
-            .select('dados_anteriores, dados_novos, acao')
-            .eq('baserow_row_id', rowId)
-            .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
-            .order('created_at', { ascending: false })
-            .limit(10);
+      try {
+        // Single query to fetch history for all rows at once
+        const { data: historyData } = await supabase
+          .from('consulta_numeros_history')
+          .select('baserow_row_id, dados_anteriores, created_at')
+          .in('baserow_row_id', rowIds)
+          .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+          .order('created_at', { ascending: false });
+        
+        const newCache: LastStatusInfo = {};
+        
+        // Initialize all IDs with null
+        rowIds.forEach((id: string) => {
+          newCache[parseInt(id)] = null;
+        });
+        
+        if (historyData && historyData.length > 0) {
+          // Group by baserow_row_id and get the most recent previous status for each
+          const processedIds = new Set<string>();
           
-          if (historyData && historyData.length > 0) {
-            // Find the most recent status change with a valid previous status
-            for (const entry of historyData) {
-              const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
-              if (dadosAnteriores) {
-                // Look for excluido_da_base or status in previous data
-                const prevStatus = 
-                  dadosAnteriores['excluido_da_base']?.value || 
-                  dadosAnteriores['excluido_da_base'] ||
-                  dadosAnteriores['Excluido_Da_Base']?.value ||
-                  dadosAnteriores['Excluido_Da_Base'] ||
-                  dadosAnteriores['status']?.value ||
-                  dadosAnteriores['status'] ||
-                  dadosAnteriores['Status']?.value ||
-                  dadosAnteriores['Status'];
-                
-                if (prevStatus && typeof prevStatus === 'string' && prevStatus.trim()) {
-                  newCache[parseInt(rowId)] = prevStatus;
-                  break;
-                }
+          for (const entry of historyData) {
+            const rowId = entry.baserow_row_id;
+            if (!rowId || processedIds.has(rowId)) continue;
+            
+            const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
+            if (dadosAnteriores) {
+              const prevStatus = 
+                dadosAnteriores['excluido_da_base']?.value || 
+                dadosAnteriores['excluido_da_base'] ||
+                dadosAnteriores['Excluido_Da_Base']?.value ||
+                dadosAnteriores['Excluido_Da_Base'] ||
+                dadosAnteriores['status']?.value ||
+                dadosAnteriores['status'] ||
+                dadosAnteriores['Status']?.value ||
+                dadosAnteriores['Status'];
+              
+              if (prevStatus && typeof prevStatus === 'string' && prevStatus.trim()) {
+                newCache[parseInt(rowId)] = prevStatus;
+                processedIds.add(rowId);
               }
             }
           }
-          
-          // If no previous status found, set to null (will show "-")
-          if (!(parseInt(rowId) in newCache)) {
-            newCache[parseInt(rowId)] = null;
-          }
-        } catch (error) {
-          console.error('Error fetching history for row', rowId, error);
-          newCache[parseInt(rowId)] = null;
         }
+        
+        setLastStatusCache(prev => ({ ...prev, ...newCache }));
+      } catch (error) {
+        console.error('Error fetching history for rows:', error);
       }
-      
-      setLastStatusCache(prev => ({ ...prev, ...newCache }));
     };
     
     fetchLastStatuses();
