@@ -88,6 +88,9 @@ export default function ConsultaNumeros() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
 
+  // Backend availability flags
+  const [baserowOfflineFromFields, setBaserowOfflineFromFields] = useState(false);
+
   // Last active status cache for each number
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
 
@@ -177,6 +180,7 @@ export default function ConsultaNumeros() {
         console.error('Session error:', sessionError);
         throw new Error('Sessão inválida');
       }
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
         {
@@ -193,6 +197,14 @@ export default function ConsultaNumeros() {
         throw new Error('Erro ao carregar campos');
       }
       const json = await res.json();
+
+      // Soft offline mode
+      if (json?.baserow_offline) {
+        setBaserowOfflineFromFields(true);
+        return json.data || [];
+      }
+
+      setBaserowOfflineFromFields(false);
       if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
       return json.data || [];
     },
@@ -276,6 +288,7 @@ export default function ConsultaNumeros() {
   const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
   const baserowOfflineFromResponse = Boolean((queryResult as any)?.baserow_offline);
   const isBaserowOffline =
+    baserowOfflineFromFields ||
     baserowOfflineFromResponse ||
     baserowErrorMessage.includes('timeout') ||
     baserowErrorMessage.includes('conectar ao baserow');

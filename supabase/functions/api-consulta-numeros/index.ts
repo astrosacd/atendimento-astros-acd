@@ -612,11 +612,27 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       // GET /campos - Get available fields from Baserow
       if (endpoint === 'campos') {
-        const fields = await getBaserowFields(config);
-        return new Response(
-          JSON.stringify({ success: true, data: fields }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        try {
+          const fields = await getBaserowFields(config);
+          return new Response(
+            JSON.stringify({ success: true, data: fields }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (e: any) {
+          if (e?.name === 'ExternalServiceError') {
+            console.warn('[api-consulta-numeros] Baserow unreachable on /campos:', String(e?.message || e));
+            return new Response(
+              JSON.stringify({
+                success: true,
+                baserow_offline: true,
+                warning: e?.message || 'Baserow indisponível',
+                data: [],
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          throw e;
+        }
       }
 
       // GET /consultar - Query numbers
