@@ -212,6 +212,8 @@ export default function ConsultaNumeros() {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
           },
+          // Prevent infinite "Carregando campos..." if the network hangs
+          signal: AbortSignal.timeout(12_000),
         });
 
         if (res.status === 401) {
@@ -229,7 +231,6 @@ export default function ConsultaNumeros() {
       // Soft offline mode + one automatic retry (handles transient edge runtime/network hiccups)
       if (json?.baserow_offline) {
         try {
-          // quick retry with cache-buster
           json = await fetchCampos(true);
         } catch {
           // ignore and keep original offline payload
@@ -237,7 +238,6 @@ export default function ConsultaNumeros() {
       }
 
       if (json?.baserow_offline) {
-        // Do NOT wipe the UI if we have cached fields from a previous successful load.
         const cached = queryClient.getQueryData<BaserowField[]>(['consulta-numeros-campos']);
         setBaserowOfflineFromFields(true);
         if (Array.isArray(cached) && cached.length > 0) return cached;
@@ -250,8 +250,8 @@ export default function ConsultaNumeros() {
     },
     staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    retry: 2,
-    retryDelay: 1000,
+    // Avoid retry-loops that feel like "carregando infinito".
+    retry: 0,
   });
 
   // Determine visible columns from fields (exclude internal fields)
