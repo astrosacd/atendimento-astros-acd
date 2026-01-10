@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -91,6 +91,7 @@ export default function ConsultaNumeros() {
   // Sync status
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
+  const autoSyncTriggeredRef = useRef(false);
 
   const nonEditableFields = useMemo(() => {
     return new Set(['nome', 'numero', 'email', 'data_cadastro', 'data_da_ultima_consulta']);
@@ -395,11 +396,34 @@ export default function ConsultaNumeros() {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
-  // Check if cache is empty (needs sync)
-  const needsSync = syncStatus?.last_sync_status === 'pending' || !syncStatus?.last_sync_at;
-  
+  const hasCachedRows = (queryResult?.pagination?.count ?? 0) > 0;
+
+  // Only block the UI when we truly have no cached data.
+  // If there is cached data, we show it even if the last sync failed/has no timestamp.
+  const needsSync =
+    !hasCachedRows && (syncStatus?.last_sync_status === 'pending' || !syncStatus?.last_sync_at);
+
   const isConfigError = Boolean((fieldsError as any)?.message?.includes('configuração'));
   const isFieldsLoading = loadingFields && !fieldsError;
+
+  // Auto-sync on module open (no click) when cache is empty
+  useEffect(() => {
+    if (autoSyncTriggeredRef.current) return;
+    if (!isAdmin) return;
+    if (!canQuery) return;
+    if (hasCachedRows) return;
+    if (!syncStatus) return;
+
+    const shouldAutoSync =
+      syncStatus.last_sync_status === 'error' ||
+      syncStatus.last_sync_status === 'pending' ||
+      !syncStatus.last_sync_at;
+
+    if (!shouldAutoSync) return;
+
+    autoSyncTriggeredRef.current = true;
+    void handleSyncFromBaserow();
+  }, [isAdmin, canQuery, hasCachedRows, syncStatus]);
 
   // Fetch last active status for each number from history (optimized single query)
   useEffect(() => {
@@ -1142,6 +1166,10 @@ export default function ConsultaNumeros() {
                         </span>
                         <span className="text-muted-foreground"> ({syncStatus.rows_synced} números)</span>
                       </>
+                    ) : hasCachedRows ? (
+                      <span className="text-muted-foreground">
+                        Dados carregados automaticamente ({queryResult?.pagination?.count || 0} números). Última sincronização não registrada.
+                      </span>
                     ) : (
                       <span className="text-amber-500 font-medium">Nenhuma sincronização realizada ainda</span>
                     )}
