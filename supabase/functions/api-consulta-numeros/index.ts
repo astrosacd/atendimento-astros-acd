@@ -16,21 +16,24 @@ class ExternalServiceError extends Error {
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 25_000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-
+  // Use native AbortSignal.timeout() which is more reliable in Deno edge runtime
   try {
-    return await fetch(input, { ...init, signal: controller.signal });
+    const response = await fetch(input, { 
+      ...init, 
+      signal: AbortSignal.timeout(timeoutMs) 
+    });
+    return response;
   } catch (e: any) {
-    if (e?.name === 'AbortError') {
+    // Handle timeout/abort errors
+    if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
       throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
     }
-    if (String(e?.code || '').toUpperCase() === 'ETIMEDOUT' || String(e?.message || '').includes('timed out')) {
+    // Handle network errors that look like timeouts
+    const msg = String(e?.message || '').toLowerCase();
+    if (msg.includes('timed out') || msg.includes('timeout') || String(e?.code || '').toUpperCase() === 'ETIMEDOUT') {
       throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
     }
     throw e;
-  } finally {
-    clearTimeout(id);
   }
 }
 
