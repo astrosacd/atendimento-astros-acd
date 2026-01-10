@@ -208,22 +208,32 @@ export default function ConsultaNumeros() {
         const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`);
         if (cacheBust) url.searchParams.set('__ts', String(Date.now()));
 
-        const res = await fetch(url.toString(), {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          // Prevent infinite "Carregando campos..." if the network hangs
-          signal: AbortSignal.timeout(12_000),
-        });
+        try {
+          const res = await fetch(url.toString(), {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            // Client-side safety timeout (must be > backend timeout to avoid false negatives)
+            signal: AbortSignal.timeout(25_000),
+          });
 
-        if (res.status === 401) {
-          await supabase.auth.signOut();
-          throw new Error('Sessão expirada');
+          if (res.status === 401) {
+            await supabase.auth.signOut();
+            throw new Error('Sessão expirada');
+          }
+          if (!res.ok) {
+            throw new Error('Erro ao carregar campos');
+          }
+          return res.json();
+        } catch (e: any) {
+          const msg = String(e?.message || '').toLowerCase();
+          const isTimeout = msg.includes('timed out') || msg.includes('timeout') || e?.name === 'TimeoutError';
+
+          // Treat timeouts as "offline" so the UI exits the loading state and shows the retry panel.
+          if (isTimeout) return { baserow_offline: true, success: false, data: [] };
+
+          throw e;
         }
-        if (!res.ok) {
-          throw new Error('Erro ao carregar campos');
-        }
-        return res.json();
       };
 
       let json = await fetchCampos(false);
