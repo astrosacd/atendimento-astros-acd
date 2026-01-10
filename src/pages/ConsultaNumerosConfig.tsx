@@ -98,7 +98,12 @@ export default function ConsultaNumerosConfig() {
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
-        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
       );
 
       if (!res.ok) return [];
