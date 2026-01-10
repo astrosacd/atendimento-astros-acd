@@ -258,13 +258,18 @@ export default function ConsultaNumerosConfig() {
     mutationFn: async (fieldNames: string[]) => {
       if (fieldNames.length === 0) return;
       const payload = fieldNames.map((field_name) => ({ field_name, is_masked: false }));
+
+      // Use upsert to avoid duplicate inserts causing runtime errors / UI blank screens.
       const { error } = await supabase
         .from('consulta_numeros_masked_fields')
-        .insert(payload);
+        .upsert(payload, { onConflict: 'field_name' });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-masked-fields'] });
+    },
+    onError: () => {
+      // Silent: this is a best-effort sync and should never break the settings screen.
     },
   });
 

@@ -53,7 +53,8 @@ export function MonitoredNumbersCard() {
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
           {
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${session.access_token}`,
             },
           }
         );
