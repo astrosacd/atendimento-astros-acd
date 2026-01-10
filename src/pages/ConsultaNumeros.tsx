@@ -92,6 +92,10 @@ export default function ConsultaNumeros() {
   const [baserowOfflineFromFields, setBaserowOfflineFromFields] = useState(false);
   const [retryingBaserow, setRetryingBaserow] = useState(false);
 
+  // Fallback: quando o backend não consegue alcançar o Baserow (firewall/DNS/etc),
+  // permitimos (apenas para admins) consultar direto do navegador usando o token configurado.
+  const [useDirectBaserow, setUseDirectBaserow] = useState(false);
+
   // If "campos" falhar, ainda assim conseguimos listar números e inferir colunas a partir do retorno.
   const [fallbackFields, setFallbackFields] = useState<BaserowField[]>([]);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
@@ -302,11 +306,89 @@ export default function ConsultaNumeros() {
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery],
+    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery, useDirectBaserow],
     queryFn: async () => {
       // Always return a stable shape so the UI never renders a "tabela vazia" by accident.
       if (!canQuery) {
         return { success: true, data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
+      }
+
+      // Admin-only: direct browser fallback mode
+      if (useDirectBaserow && isAdmin) {
+        const { data: cfgRows, error: cfgErr } = await supabase
+          .from('consulta_numeros_config')
+          .select('config_key, config_value');
+        if (cfgErr) throw cfgErr;
+
+        const cfg: Record<string, string> = {};
+        (cfgRows || []).forEach((r: any) => (cfg[r.config_key] = r.config_value));
+
+        const apiUrl = (cfg.baserow_api_url || '').replace(/\/+$/, '');
+        const token = cfg.baserow_api_token || '';
+        const tableId = cfg.baserow_table_id || '';
+
+        if (!apiUrl || !token || !tableId) {
+          throw new Error('Configuração do Baserow incompleta. Vá em Configurações e revise URL/Token/Tabela.');
+        }
+
+        if (statusFilters.length > 0) {
+          // Mantemos simples no fallback: filtros avançados dependem do endpoint de campos.
+          toast({
+            title: 'Filtro de status indisponível no modo navegador',
+            description: 'Remova o filtro de status ou use o modo padrão quando o backend voltar.',
+            variant: 'destructive',
+          });
+        }
+
+        const url = new URL(`${apiUrl}/api/database/rows/table/${tableId}/`);
+        url.searchParams.set('user_field_names', 'true');
+        url.searchParams.set('page', String(currentPage));
+        url.searchParams.set('size', String(pageSize));
+        if (appliedSearchQuery) url.searchParams.set('search', appliedSearchQuery);
+
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+
+        try {
+          const res = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+              Authorization: `Token ${token}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Baserow: ${txt || res.statusText}`);
+          }
+
+          const json = await res.json();
+          const results = Array.isArray(json?.results) ? json.results : [];
+          const count = Number(json?.count || results.length || 0);
+          const totalPages = pageSize > 0 ? Math.ceil(count / pageSize) : 0;
+
+          return {
+            success: true,
+            data: results,
+            pagination: { count, page: currentPage, pageSize, totalPages },
+          };
+        } catch (e: any) {
+          const msg = String(e?.message || '').toLowerCase();
+          const isAbort = e?.name === 'AbortError' || msg.includes('aborted');
+          if (isAbort) {
+            return {
+              success: true,
+              baserow_offline: true,
+              data: [],
+              pagination: { count: 0, page: currentPage, pageSize, totalPages: 0 },
+            };
+          }
+          throw e;
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -1131,6 +1213,27 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {useDirectBaserow && isAdmin && (
+              <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <span className="font-medium">Modo navegador (fallback) ativo.</span>{' '}
+                    <span className="text-muted-foreground">Os dados estão sendo buscados direto do Baserow porque o backend está com timeout.</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setUseDirectBaserow(false);
+                      void refetch();
+                    }}
+                  >
+                    Voltar ao modo padrão
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {isFieldsOffline && visibleFields.length > 0 && (
               <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 Conexão com o Baserow instável no momento. Exibindo colunas já carregadas; tente novamente para atualizar.
@@ -1153,10 +1256,23 @@ export default function ConsultaNumeros() {
                   O backend não está conseguindo acessar o Baserow agora (timeout). Isso normalmente acontece quando o Baserow está
                   fora do ar, bloqueando conexões externas, ou com instabilidade.
                 </p>
-                <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${retryingBaserow ? 'animate-spin' : ''}`} />
-                  Tentar novamente
-                </Button>
+                <div className="flex flex-col items-center gap-3">
+                  <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${retryingBaserow ? 'animate-spin' : ''}`} />
+                    Tentar novamente
+                  </Button>
+
+                  {isAdmin && (
+                    <Button
+                      onClick={() => {
+                        setUseDirectBaserow(true);
+                        void refetch();
+                      }}
+                    >
+                      Usar modo navegador (fallback)
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : isConfigError ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
