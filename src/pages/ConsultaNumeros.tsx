@@ -1081,9 +1081,13 @@ export default function ConsultaNumeros() {
                 <p className="text-muted-foreground mb-4 max-w-md">
                   Não foi possível carregar os campos do Baserow. Verifique a configuração.
                 </p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Tentar novamente
+                <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
+                  {retryingBaserow ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {retryingBaserow ? 'Tentando...' : 'Tentar novamente'}
                 </Button>
               </div>
             ) : queryResult?.data?.length === 0 ? (
