@@ -216,6 +216,7 @@ export default function ConsultaNumeros() {
           try {
             const res = await fetch(url.toString(), {
               headers: {
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
                 Authorization: `Bearer ${session.access_token}`,
               },
               signal: controller.signal,
@@ -330,6 +331,7 @@ export default function ConsultaNumeros() {
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
           {
             headers: {
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               Authorization: `Bearer ${session.access_token}`,
             },
             signal: controller.signal,
