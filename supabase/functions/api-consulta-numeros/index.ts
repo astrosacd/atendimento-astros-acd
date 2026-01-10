@@ -15,10 +15,11 @@ class ExternalServiceError extends Error {
   }
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 25_000) {
-  // Use native AbortSignal.timeout() + small retries to handle transient network hiccups.
-  const maxAttempts = 3;
-  const backoffMs = 250;
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30_000) {
+  // Use AbortSignal.timeout() + limited retries to handle transient network hiccups.
+  // Important: keep total time bounded so the UI doesn't feel "travada".
+  const maxAttempts = 2;
+  const backoffMs = 350;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -36,7 +37,6 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
         String(e?.code || '').toUpperCase() === 'ETIMEDOUT';
 
       if (isTimeout && attempt < maxAttempts) {
-        // brief backoff then retry
         await new Promise((r) => setTimeout(r, backoffMs * attempt));
         continue;
       }
@@ -49,7 +49,6 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
     }
   }
 
-  // Should never reach here
   throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
 }
 
@@ -183,7 +182,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      12_000
+      25_000
     );
 
     if (!res.ok) {
@@ -226,7 +225,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      12_000
+      25_000
     );
 
     if (!response.ok) {
