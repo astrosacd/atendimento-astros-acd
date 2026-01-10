@@ -144,9 +144,21 @@ export function ReminderConfigTab() {
       const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder', {
         body: { action: 'list_statuses' },
       });
-      if (error) throw error;
+
+      // If Baserow is slow/unreachable, we prefer to keep the page usable and just show an empty list.
+      if (error) {
+        console.error('Failed to load available statuses:', error);
+        toast({
+          title: 'Não foi possível carregar os status',
+          description: 'O servidor do Baserow pode estar lento/fora do ar. Tente novamente em alguns minutos.',
+          variant: 'destructive',
+        });
+        return [];
+      }
+
       return (data?.statuses as string[]) || [];
     },
+    retry: false,
   });
 
   // Fetch logs
