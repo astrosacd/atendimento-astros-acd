@@ -12,18 +12,39 @@ interface BaserowConfig {
   table_id: string;
 }
 
-async function fetchWithTimeout(
+// Increased timeout and retry logic for slow Baserow connections
+async function fetchWithRetry(
   url: string,
   options: RequestInit = {},
-  timeoutMs = 30000
+  maxRetries = 3,
+  timeoutMs = 60000
 ): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
+    
+    try {
+      console.log(`[sync-consulta-numeros] Fetch attempt ${attempt}/${maxRetries}: ${url.slice(0, 80)}...`);
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(id);
+      return response;
+    } catch (error: any) {
+      clearTimeout(id);
+      lastError = error;
+      console.warn(`[sync-consulta-numeros] Attempt ${attempt} failed: ${error.message}`);
+      
+      if (attempt < maxRetries) {
+        // Wait before retrying (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        console.log(`[sync-consulta-numeros] Waiting ${delay}ms before retry...`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
   }
+  
+  throw lastError || new Error('All retries failed');
 }
 
 Deno.serve(async (req) => {
@@ -62,22 +83,33 @@ Deno.serve(async (req) => {
       throw new Error('Incomplete Baserow configuration');
     }
 
-    // Update sync status to "syncing"
-    await supabase
+    // Ensure sync_status row exists
+    const { data: existingStatus } = await supabase
       .from('consulta_numeros_sync_status')
-      .update({ last_sync_status: 'syncing', updated_at: new Date().toISOString() })
-      .eq('id', (await supabase.from('consulta_numeros_sync_status').select('id').single()).data?.id);
+      .select('id')
+      .single();
+
+    if (!existingStatus) {
+      await supabase
+        .from('consulta_numeros_sync_status')
+        .insert({ last_sync_status: 'syncing' });
+    } else {
+      await supabase
+        .from('consulta_numeros_sync_status')
+        .update({ last_sync_status: 'syncing', updated_at: new Date().toISOString() })
+        .eq('id', existingStatus.id);
+    }
 
     // Fetch fields from Baserow
     let fields: any[] = [];
     try {
       const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-      const fieldsRes = await fetchWithTimeout(fieldsUrl, {
+      const fieldsRes = await fetchWithRetry(fieldsUrl, {
         headers: {
           Authorization: `Token ${baserowConfig.api_token}`,
           'Content-Type': 'application/json',
         },
-      }, 20000);
+      }, 3, 45000);
 
       if (fieldsRes.ok) {
         fields = await fieldsRes.json();
@@ -93,8 +125,9 @@ Deno.serve(async (req) => {
           .from('consulta_numeros_fields_cache')
           .insert({ fields_data: fields });
       }
-    } catch (e) {
-      console.warn('[sync-consulta-numeros] Could not fetch fields:', e);
+    } catch (e: any) {
+      console.warn('[sync-consulta-numeros] Could not fetch fields:', e.message);
+      // Continue anyway - we can still sync rows
     }
 
     // Fetch all rows from Baserow (paginated)
@@ -111,12 +144,12 @@ Deno.serve(async (req) => {
 
       console.log(`[sync-consulta-numeros] Fetching page ${page}...`);
 
-      const res = await fetchWithTimeout(url.toString(), {
+      const res = await fetchWithRetry(url.toString(), {
         headers: {
           Authorization: `Token ${baserowConfig.api_token}`,
           'Content-Type': 'application/json',
         },
-      }, 30000);
+      }, 3, 60000);
 
       if (!res.ok) {
         const errorText = await res.text();
