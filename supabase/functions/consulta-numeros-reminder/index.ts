@@ -652,27 +652,40 @@ Deno.serve(async (req) => {
       }
 
       // Fetch fields metadata to get select options (reliable; does not depend on existing rows)
-      const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-      const fieldsResp = await fetch(fieldsUrl, {
-        headers: {
-          'Authorization': `Token ${baserowConfig.api_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Use timeout to prevent hanging when Baserow is slow/down
+      let statuses: string[] = [];
+      try {
+        const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+        const fieldsResp = await fetchWithTimeout(fieldsUrl, {
+          headers: {
+            'Authorization': `Token ${baserowConfig.api_token}`,
+            'Content-Type': 'application/json',
+          },
+        }, 15000);
 
-      if (!fieldsResp.ok) {
-        const errTxt = sanitizePII(await fieldsResp.text());
-        console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses):', errTxt);
-        return new Response(JSON.stringify({ success: false, message: 'Baserow fields fetch failed' }), {
-          status: 400,
+        if (!fieldsResp.ok) {
+          const errTxt = sanitizePII(await fieldsResp.text());
+          console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses):', errTxt);
+          return new Response(JSON.stringify({ success: false, message: 'Baserow fields fetch failed - server returned error' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const fields = await fieldsResp.json();
+        const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
+        const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
+        statuses = options.map((o) => o.value).filter(Boolean).sort();
+      } catch (e: any) {
+        console.error('[consulta-numeros-reminder] Baserow connection timeout (list_statuses):', String(e?.message || e));
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Baserow connection timeout - server may be slow or unreachable. Try again later.' 
+        }), {
+          status: 503,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-
-      const fields = await fieldsResp.json();
-      const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
-      const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
-      const statuses = options.map((o) => o.value).filter(Boolean).sort();
 
       console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} option(s)`);
 
