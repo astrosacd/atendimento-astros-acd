@@ -129,7 +129,7 @@ export default function ConsultaNumeros() {
       let totalSynced = 0;
       let loops = 0;
 
-      while (nextPage && loops < 80) {
+      while (nextPage && loops < 400) {
         loops += 1;
 
         const res = await fetch(
