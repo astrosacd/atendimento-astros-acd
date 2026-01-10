@@ -230,15 +230,18 @@ export default function ConsultaNumeros() {
       }
       const json = await res.json();
 
-      // Soft offline mode
-      if (json?.baserow_offline) {
-        setBaserowOfflineFromFields(true);
-        return json.data || [];
-      }
+       // Soft offline mode
+       if (json?.baserow_offline) {
+         // Do NOT wipe the UI if we have cached fields from a previous successful load.
+         const cached = queryClient.getQueryData<BaserowField[]>(['consulta-numeros-campos']);
+         setBaserowOfflineFromFields(true);
+         if (Array.isArray(cached) && cached.length > 0) return cached;
+         return json.data || [];
+       }
 
-      setBaserowOfflineFromFields(false);
-      if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
-      return json.data || [];
+       setBaserowOfflineFromFields(false);
+       if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
+       return json.data || [];
     },
     staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
@@ -1055,7 +1058,12 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isBaserowOffline ? (
+            {isBaserowOffline && visibleFields.length > 0 && (
+              <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                Conexão com o Baserow instável no momento. Exibindo colunas já carregadas; tente novamente para atualizar.
+              </div>
+            )}
+            {isBaserowOffline && visibleFields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Sem conexão com o Baserow</h3>
