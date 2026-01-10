@@ -118,6 +118,15 @@ export default function ConsultaNumeros() {
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  const handleRetryBaserow = async () => {
+    // Clear local offline hint and force refetch (avoids getting stuck in cached offline state)
+    setBaserowOfflineFromFields(false);
+    await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
+    await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+    await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
+    await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
+  };
+
   // Permissions
   const canQuery = isAdmin || hasPermission('query_consulta_numeros');
   const canCreate = isAdmin || hasPermission('update_both_consulta_numeros');
@@ -172,7 +181,7 @@ export default function ConsultaNumeros() {
   };
 
   // Fetch Baserow fields - this determines which columns to show
-  const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError } = useQuery<BaserowField[]>({
+  const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError, refetch: refetchFields } = useQuery<BaserowField[]>({
     queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -208,7 +217,7 @@ export default function ConsultaNumeros() {
       if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
       return json.data || [];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,
@@ -1031,7 +1040,7 @@ export default function ConsultaNumeros() {
                   O backend não está conseguindo acessar o Baserow agora (timeout). Isso normalmente acontece quando o Baserow está
                   fora do ar, bloqueando conexões externas, ou com instabilidade.
                 </p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
+                <Button variant="outline" onClick={handleRetryBaserow}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Tentar novamente
                 </Button>
