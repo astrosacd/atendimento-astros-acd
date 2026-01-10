@@ -116,7 +116,7 @@ export default function ConsultaNumeros() {
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  // Trigger sync from Baserow to local cache
+  // Trigger sync from Baserow to local cache (incremental to avoid backend timeouts)
   const handleSyncFromBaserow = async () => {
     setIsSyncing(true);
     try {
@@ -125,23 +125,47 @@ export default function ConsultaNumeros() {
         throw new Error('Sessão inválida');
       }
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-consulta-numeros`,
-        {
-          method: 'POST',
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      let nextPage: number | null = 1;
+      let totalSynced = 0;
+      let loops = 0;
 
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Erro ao sincronizar');
+      while (nextPage && loops < 80) {
+        loops += 1;
+
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-consulta-numeros`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ page: nextPage }),
+          }
+        );
+
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || 'Erro ao sincronizar');
+        }
+
+        totalSynced += Number(json.rows_synced || 0);
+        nextPage = json.done ? null : json.next_page;
+
+        // Small delay to avoid hammering the backend
+        if (nextPage) {
+          await new Promise((r) => setTimeout(r, 250));
+        }
+      }
+
+      if (nextPage) {
+        throw new Error('Sincronização demorou demais. Tente novamente.');
+      }
 
       toast({
         title: 'Sincronização concluída!',
-        description: `${json.rows_synced} números sincronizados do Baserow.`,
+        description: `${totalSynced} registros sincronizados.`,
       });
 
       // Refresh queries after sync

@@ -59,6 +59,21 @@ Deno.serve(async (req) => {
   try {
     console.log('[sync-consulta-numeros] Starting sync...');
 
+    const startedAt = Date.now();
+
+    // Read optional pagination input (to allow incremental sync to avoid platform timeouts)
+    let requestedPage: number | null = null;
+    try {
+      if (req.method === 'POST') {
+        const body = await req.json().catch(() => ({}));
+        if (body && typeof body.page === 'number' && Number.isFinite(body.page) && body.page >= 1) {
+          requestedPage = Math.floor(body.page);
+        }
+      }
+    } catch {
+      // ignore body parse errors
+    }
+
     // Get Baserow config
     const { data: configData, error: configError } = await supabase
       .from('consulta_numeros_config')
@@ -90,9 +105,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!existingStatus) {
-      await supabase
-        .from('consulta_numeros_sync_status')
-        .insert({ last_sync_status: 'syncing' });
+      await supabase.from('consulta_numeros_sync_status').insert({ last_sync_status: 'syncing' });
     } else {
       await supabase
         .from('consulta_numeros_sync_status')
@@ -100,56 +113,66 @@ Deno.serve(async (req) => {
         .eq('id', existingStatus.id);
     }
 
-    // Fetch fields from Baserow
+    // Fetch fields from Baserow (best effort)
     let fields: any[] = [];
     try {
       const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-      const fieldsRes = await fetchWithRetry(fieldsUrl, {
-        headers: {
-          Authorization: `Token ${baserowConfig.api_token}`,
-          'Content-Type': 'application/json',
+      const fieldsRes = await fetchWithRetry(
+        fieldsUrl,
+        {
+          headers: {
+            Authorization: `Token ${baserowConfig.api_token}`,
+            'Content-Type': 'application/json',
+          },
         },
-      }, 3, 45000);
+        2,
+        20000
+      );
 
       if (fieldsRes.ok) {
         fields = await fieldsRes.json();
         console.log(`[sync-consulta-numeros] Fetched ${fields.length} fields`);
 
-        // Save fields to cache
         await supabase
           .from('consulta_numeros_fields_cache')
           .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-        
-        await supabase
-          .from('consulta_numeros_fields_cache')
-          .insert({ fields_data: fields });
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+
+        await supabase.from('consulta_numeros_fields_cache').insert({ fields_data: fields });
       }
     } catch (e: any) {
-      console.warn('[sync-consulta-numeros] Could not fetch fields:', e.message);
-      // Continue anyway - we can still sync rows
+      console.warn('[sync-consulta-numeros] Could not fetch fields:', e?.message || String(e));
     }
 
-    // Fetch all rows from Baserow (paginated)
-    let allRows: any[] = [];
-    let page = 1;
-    const pageSize = 200;
+    // Incremental sync: fetch only a small number of pages per invocation.
+    // This avoids hard execution time limits (which were causing 500 timeout + UI stuck on "syncing").
+    const pageSize = 50;
+    const maxPagesPerInvocation = 1;
+
+    let page = requestedPage ?? 1;
+    let pagesProcessed = 0;
+    let rowsSyncedThisCall = 0;
     let hasMore = true;
 
-    while (hasMore) {
+    while (hasMore && pagesProcessed < maxPagesPerInvocation) {
       const url = new URL(`${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/`);
       url.searchParams.set('user_field_names', 'true');
       url.searchParams.set('page', String(page));
       url.searchParams.set('size', String(pageSize));
 
-      console.log(`[sync-consulta-numeros] Fetching page ${page}...`);
+      console.log(`[sync-consulta-numeros] Fetching page ${page} (size=${pageSize})...`);
 
-      const res = await fetchWithRetry(url.toString(), {
-        headers: {
-          Authorization: `Token ${baserowConfig.api_token}`,
-          'Content-Type': 'application/json',
+      const res = await fetchWithRetry(
+        url.toString(),
+        {
+          headers: {
+            Authorization: `Token ${baserowConfig.api_token}`,
+            'Content-Type': 'application/json',
+          },
         },
-      }, 3, 60000);
+        2,
+        20000
+      );
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -158,79 +181,71 @@ Deno.serve(async (req) => {
 
       const json = await res.json();
       const results = Array.isArray(json?.results) ? json.results : [];
-      allRows.push(...results);
 
-      console.log(`[sync-consulta-numeros] Page ${page}: ${results.length} rows (total: ${allRows.length})`);
+      // Upsert this page immediately (don’t keep everything in memory)
+      if (results.length > 0) {
+        const upsertData = results.map((row: any) => ({
+          baserow_row_id: row.id,
+          row_data: row,
+        }));
 
-      hasMore = !!json.next;
-      page++;
+        // Upsert in chunks
+        const chunkSize = 100;
+        for (let i = 0; i < upsertData.length; i += chunkSize) {
+          const chunk = upsertData.slice(i, i + chunkSize);
+          const { error: upsertError } = await supabase
+            .from('consulta_numeros_cache')
+            .upsert(chunk, { onConflict: 'baserow_row_id' });
+          if (upsertError) throw upsertError;
+        }
+      }
 
-      // Safety limit
-      if (page > 100) {
-        console.warn('[sync-consulta-numeros] Hit page limit');
+      rowsSyncedThisCall += results.length;
+
+      hasMore = !!json?.next;
+      pagesProcessed += 1;
+
+      // Budget guard: bail out if we’re close to platform timeout
+      if (Date.now() - startedAt > 22000) {
+        console.warn('[sync-consulta-numeros] Approaching runtime limit, stopping early');
         break;
       }
+
+      if (hasMore) page += 1;
     }
 
-    console.log(`[sync-consulta-numeros] Total rows fetched: ${allRows.length}`);
+    const done = !hasMore;
 
-    // Upsert all rows into cache
-    const upsertData = allRows.map((row) => ({
-      baserow_row_id: row.id,
-      row_data: row,
-    }));
-
-    // Delete rows that no longer exist in Baserow
-    const currentIds = allRows.map((r) => r.id);
-    if (currentIds.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('consulta_numeros_cache')
-        .delete()
-        .not('baserow_row_id', 'in', `(${currentIds.join(',')})`);
-      
-      if (deleteError) {
-        console.warn('[sync-consulta-numeros] Error deleting old rows:', deleteError);
-      }
-    }
-
-    // Batch upsert in chunks
-    const chunkSize = 100;
-    for (let i = 0; i < upsertData.length; i += chunkSize) {
-      const chunk = upsertData.slice(i, i + chunkSize);
-      const { error: upsertError } = await supabase
-        .from('consulta_numeros_cache')
-        .upsert(chunk, { onConflict: 'baserow_row_id' });
-
-      if (upsertError) {
-        console.error('[sync-consulta-numeros] Upsert error:', upsertError);
-        throw upsertError;
-      }
-    }
-
-    // Update sync status
+    // Update sync status (only mark success when we’re done with all pages)
     const { data: statusRow } = await supabase
       .from('consulta_numeros_sync_status')
       .select('id')
       .single();
 
-    await supabase
-      .from('consulta_numeros_sync_status')
-      .update({
-        last_sync_at: new Date().toISOString(),
-        last_sync_status: 'success',
-        rows_synced: allRows.length,
-        error_message: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', statusRow?.id);
+    if (statusRow?.id) {
+      await supabase
+        .from('consulta_numeros_sync_status')
+        .update({
+          last_sync_at: done ? new Date().toISOString() : null,
+          last_sync_status: done ? 'success' : 'syncing',
+          rows_synced: rowsSyncedThisCall,
+          error_message: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', statusRow.id);
+    }
 
-    console.log(`[sync-consulta-numeros] Sync completed successfully: ${allRows.length} rows`);
+    console.log(
+      `[sync-consulta-numeros] Completed invocation. done=${done} page=${page} rowsSyncedThisCall=${rowsSyncedThisCall}`
+    );
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Sync completed', 
-        rows_synced: allRows.length,
+      JSON.stringify({
+        success: true,
+        done,
+        next_page: done ? null : page + 1,
+        page_synced: page,
+        rows_synced: rowsSyncedThisCall,
         fields_synced: fields.length,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -238,28 +253,28 @@ Deno.serve(async (req) => {
   } catch (error: any) {
     console.error('[sync-consulta-numeros] Sync failed:', error);
 
-    // Update sync status with error
+    // Update sync status with error (best effort)
     const { data: statusRow } = await supabase
       .from('consulta_numeros_sync_status')
       .select('id')
       .single();
 
-    if (statusRow) {
+    if (statusRow?.id) {
       await supabase
         .from('consulta_numeros_sync_status')
         .update({
           last_sync_status: 'error',
-          error_message: error.message || 'Unknown error',
+          error_message: error?.message || 'Unknown error',
           updated_at: new Date().toISOString(),
         })
         .eq('id', statusRow.id);
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({ success: false, error: error?.message || 'Unknown error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
