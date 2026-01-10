@@ -92,7 +92,8 @@ export default function ConsultaNumeros() {
   const [baserowOfflineFromFields, setBaserowOfflineFromFields] = useState(false);
   const [retryingBaserow, setRetryingBaserow] = useState(false);
 
-  // Last active status cache for each number
+  // If "campos" falhar, ainda assim conseguimos listar números e inferir colunas a partir do retorno.
+  const [fallbackFields, setFallbackFields] = useState<BaserowField[]>([]);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
 
   const nonEditableFields = useMemo(() => {
@@ -266,10 +267,12 @@ export default function ConsultaNumeros() {
 
   // Determine visible columns from fields (exclude internal fields)
   const visibleFields = useMemo(() => {
-    return baserowFields
-      .filter(f => !['id', 'order'].includes(f.name.toLowerCase()))
+    const fromBaserow = baserowFields
+      .filter((f) => !['id', 'order'].includes(f.name.toLowerCase()))
       .sort((a, b) => a.order - b.order);
-  }, [baserowFields]);
+
+    return fromBaserow.length > 0 ? fromBaserow : fallbackFields;
+  }, [baserowFields, fallbackFields]);
 
   // Find Status field (prefer exact name match)
   const statusField = useMemo(() => {
@@ -327,14 +330,36 @@ export default function ConsultaNumeros() {
       if (!json.success) throw new Error(json.error);
       return json;
     },
-    enabled: canQuery && visibleFields.length > 0, // Only query when fields are loaded
+    enabled: canQuery, // Não travar o módulo por depender de /campos
     retry: 2,
-    retryDelay: 1000,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
-  // Error classification
+
+  // Se os campos não carregarem, inferimos as colunas a partir do primeiro resultado da consulta.
+  useEffect(() => {
+    if (baserowFields.length > 0) return; // já temos definição oficial
+    if (fallbackFields.length > 0) return;
+
+    const first = (queryResult as any)?.data?.[0];
+    if (!first || typeof first !== 'object') return;
+
+    const keys = Object.keys(first).filter((k) => !['id', 'order'].includes(k.toLowerCase()));
+    if (keys.length === 0) return;
+
+    const inferred: BaserowField[] = keys.map((name, idx) => ({
+      id: 990000 + idx,
+      name,
+      type: 'unknown',
+      order: idx,
+      primary: idx === 0,
+      select_options: null,
+    }));
+
+    setFallbackFields(inferred);
+  }, [baserowFields.length, fallbackFields.length, queryResult]);
+
   const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
   const baserowOfflineFromResponse = Boolean((queryResult as any)?.baserow_offline);
   const isBaserowOffline =
