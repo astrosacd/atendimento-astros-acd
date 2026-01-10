@@ -362,11 +362,17 @@ export default function ConsultaNumeros() {
 
   const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
   const baserowOfflineFromResponse = Boolean((queryResult as any)?.baserow_offline);
-  const isBaserowOffline =
+  const hasResults = Boolean((queryResult as any)?.data?.length);
+
+  // We treat "fields" failures as non-blocking when we already have rows to show.
+  const isFieldsOffline =
     baserowOfflineFromFields ||
-    baserowOfflineFromResponse ||
     baserowErrorMessage.includes('timeout') ||
     baserowErrorMessage.includes('conectar ao baserow');
+
+  // Only block the screen when we have no rows AND the backend is effectively offline.
+  const isBaserowOffline = !hasResults && (isFieldsOffline || baserowOfflineFromResponse);
+
   const isConfigError = !isBaserowOffline && (baserowErrorMessage.includes('configuração') || baserowErrorMessage.includes('baserow'));
   const isFieldsLoading = (loadingFields && !fieldsError) || retryingBaserow;
 
@@ -1098,7 +1104,7 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isBaserowOffline && visibleFields.length > 0 && (
+            {isFieldsOffline && visibleFields.length > 0 && (
               <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 Conexão com o Baserow instável no momento. Exibindo colunas já carregadas; tente novamente para atualizar.
               </div>
