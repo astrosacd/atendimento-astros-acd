@@ -167,7 +167,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      15_000
+      12_000
     );
 
     if (!res.ok) {
@@ -200,7 +200,7 @@ async function getBaserowFields(config: BaserowConfig) {
     return inferred;
   };
 
-  try {
+  const fetchFieldsEndpoint = async () => {
     const response = await fetchWithTimeout(
       url,
       {
@@ -210,7 +210,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      30_000
+      12_000
     );
 
     if (!response.ok) {
@@ -231,6 +231,16 @@ async function getBaserowFields(config: BaserowConfig) {
 
     cachedBaserowFields = { value: normalized, cachedAt: Date.now() };
     return normalized;
+  };
+
+  try {
+    // Prefer speed/reliability: try both ways in parallel and use the first that works.
+    // This prevents the whole UI from being blocked by the slower /fields endpoint.
+    const fieldsOrInferred = await Promise.any([
+      fetchFieldsEndpoint(),
+      inferFieldsFromSampleRow(),
+    ]);
+    return fieldsOrInferred;
   } catch (e: any) {
     // If Baserow is temporarily down, serve last known fields (stale) instead of failing the whole UI.
     if (cachedBaserowFields?.value?.length) {
@@ -238,13 +248,9 @@ async function getBaserowFields(config: BaserowConfig) {
       return cachedBaserowFields.value;
     }
 
-    // If the fields endpoint is timing out, try a safer fallback.
-    if (e?.name === 'ExternalServiceError') {
-      try {
-        return await inferFieldsFromSampleRow();
-      } catch (fallbackError) {
-        throw fallbackError;
-      }
+    // Normalize Promise.any AggregateError to our soft-offline handling upstream
+    if (e?.name === 'AggregateError') {
+      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
     }
 
     throw e;

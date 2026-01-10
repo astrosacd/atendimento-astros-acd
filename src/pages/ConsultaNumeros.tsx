@@ -213,35 +213,49 @@ export default function ConsultaNumeros() {
         throw new Error('Sessão inválida');
       }
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
-        {
+      const fetchCampos = async (cacheBust = false) => {
+        const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`);
+        if (cacheBust) url.searchParams.set('__ts', String(Date.now()));
+
+        const res = await fetch(url.toString(), {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
           },
+        });
+
+        if (res.status === 401) {
+          await supabase.auth.signOut();
+          throw new Error('Sessão expirada');
         }
-      );
-      if (res.status === 401) {
-        await supabase.auth.signOut();
-        throw new Error('Sessão expirada');
-      }
-      if (!res.ok) {
-        throw new Error('Erro ao carregar campos');
-      }
-      const json = await res.json();
+        if (!res.ok) {
+          throw new Error('Erro ao carregar campos');
+        }
+        return res.json();
+      };
 
-       // Soft offline mode
-       if (json?.baserow_offline) {
-         // Do NOT wipe the UI if we have cached fields from a previous successful load.
-         const cached = queryClient.getQueryData<BaserowField[]>(['consulta-numeros-campos']);
-         setBaserowOfflineFromFields(true);
-         if (Array.isArray(cached) && cached.length > 0) return cached;
-         return json.data || [];
-       }
+      let json = await fetchCampos(false);
 
-       setBaserowOfflineFromFields(false);
-       if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
-       return json.data || [];
+      // Soft offline mode + one automatic retry (handles transient edge runtime/network hiccups)
+      if (json?.baserow_offline) {
+        try {
+          // quick retry with cache-buster
+          json = await fetchCampos(true);
+        } catch {
+          // ignore and keep original offline payload
+        }
+      }
+
+      if (json?.baserow_offline) {
+        // Do NOT wipe the UI if we have cached fields from a previous successful load.
+        const cached = queryClient.getQueryData<BaserowField[]>(['consulta-numeros-campos']);
+        setBaserowOfflineFromFields(true);
+        if (Array.isArray(cached) && cached.length > 0) return cached;
+        return json.data || [];
+      }
+
+      setBaserowOfflineFromFields(false);
+      if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
+      return json.data || [];
     },
     staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
