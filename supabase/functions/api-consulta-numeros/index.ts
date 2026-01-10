@@ -148,6 +148,55 @@ async function getBaserowFields(config: BaserowConfig) {
 
   const url = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
 
+  const inferFieldsFromSampleRow = async () => {
+    // Fallback: infer columns from the row endpoint (this is what "Testar Conexão" uses).
+    // This avoids hard dependency on the fields endpoint (which can be slow/timeout).
+    const sampleUrl = new URL(`${config.api_url}/api/database/rows/table/${config.table_id}/`);
+    sampleUrl.searchParams.set('user_field_names', 'true');
+    sampleUrl.searchParams.set('size', '1');
+
+    const res = await fetchWithTimeout(
+      sampleUrl.toString(),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Token ${config.api_token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      15_000
+    );
+
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error('[api-consulta-numeros] Fallback rows sample failed:', txt);
+      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
+    }
+
+    const json = await res.json();
+    const sampleRow = (json?.results && Array.isArray(json.results) && json.results[0]) ? json.results[0] : null;
+
+    if (!sampleRow || typeof sampleRow !== 'object') {
+      // If the table is empty, we really have no way to infer. Return empty.
+      return [];
+    }
+
+    const keys = Object.keys(sampleRow);
+    const fieldNames = keys.filter((k) => !['id', 'order'].includes(k.toLowerCase()));
+
+    const inferred = fieldNames.map((name, idx) => ({
+      id: 900000 + idx,
+      name,
+      type: 'unknown',
+      order: idx,
+      primary: idx === 0,
+      select_options: null,
+    }));
+
+    cachedBaserowFields = { value: inferred, cachedAt: Date.now() };
+    return inferred;
+  };
+
   try {
     const response = await fetchWithTimeout(
       url,
@@ -185,6 +234,16 @@ async function getBaserowFields(config: BaserowConfig) {
       console.warn('[api-consulta-numeros] Serving cached fields due to error:', String(e?.message || e));
       return cachedBaserowFields.value;
     }
+
+    // If the fields endpoint is timing out, try a safer fallback.
+    if (e?.name === 'ExternalServiceError') {
+      try {
+        return await inferFieldsFromSampleRow();
+      } catch (fallbackError) {
+        throw fallbackError;
+      }
+    }
+
     throw e;
   }
 }
