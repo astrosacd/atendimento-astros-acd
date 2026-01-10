@@ -210,22 +210,28 @@ export default function ConsultaNumeros() {
         if (cacheBust) url.searchParams.set('__ts', String(Date.now()));
 
         try {
-          const res = await fetch(url.toString(), {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            // Client-side safety timeout (must be > backend timeout to avoid false negatives)
-            signal: AbortSignal.timeout(25_000),
-          });
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
 
-          if (res.status === 401) {
-            await supabase.auth.signOut();
-            throw new Error('Sessão expirada');
+          try {
+            const res = await fetch(url.toString(), {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              signal: controller.signal,
+            });
+
+            if (res.status === 401) {
+              await supabase.auth.signOut();
+              throw new Error('Sessão expirada');
+            }
+            if (!res.ok) {
+              throw new Error('Erro ao carregar campos');
+            }
+            return res.json();
+          } finally {
+            clearTimeout(timeoutId);
           }
-          if (!res.ok) {
-            throw new Error('Erro ao carregar campos');
-          }
-          return res.json();
         } catch (e: any) {
           const msg = String(e?.message || '').toLowerCase();
           const isTimeout = msg.includes('timed out') || msg.includes('timeout') || e?.name === 'TimeoutError';
@@ -295,9 +301,12 @@ export default function ConsultaNumeros() {
 
   // Query numbers
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize],
+    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery],
     queryFn: async () => {
-      if (!canQuery) return { data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
+      // Always return a stable shape so the UI never renders a "tabela vazia" by accident.
+      if (!canQuery) {
+        return { success: true, data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
+      }
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
@@ -316,7 +325,7 @@ export default function ConsultaNumeros() {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
         {
           headers: {
-            'Authorization': `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
         }
       );
@@ -325,12 +334,12 @@ export default function ConsultaNumeros() {
         await supabase.auth.signOut();
         throw new Error('Sessão expirada. Faça login novamente.');
       }
-      
+
       const json = await res.json();
-      if (!json.success) throw new Error(json.error);
+      if (!json?.success) throw new Error(json?.error || 'Erro ao consultar números');
       return json;
     },
-    enabled: canQuery, // Não travar o módulo por depender de /campos
+    enabled: true,
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -1109,7 +1118,16 @@ export default function ConsultaNumeros() {
                 Conexão com o Baserow instável no momento. Exibindo colunas já carregadas; tente novamente para atualizar.
               </div>
             )}
-            {isBaserowOffline && visibleFields.length === 0 ? (
+
+            {!canQuery ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Sem permissão para consultar</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Seu usuário não tem permissão para visualizar os resultados da Consulta de Números.
+                </p>
+              </div>
+            ) : isBaserowOffline && visibleFields.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Sem conexão com o Baserow</h3>
@@ -1130,7 +1148,7 @@ export default function ConsultaNumeros() {
                   O Baserow ainda não está configurado. Configure a conexão com o Baserow para começar a consultar números.
                 </p>
                 {canManageConfig && (
-                  <Button onClick={() => window.location.href = '/admin/consulta-numeros/config'}>
+                  <Button onClick={() => (window.location.href = '/admin/consulta-numeros/config')}>
                     <Settings className="h-4 w-4 mr-2" />
                     Configurar Baserow
                   </Button>
