@@ -321,23 +321,39 @@ export default function ConsultaNumeros() {
       if (appliedSearchQuery) params.append('q', appliedSearchQuery);
       if (statusFilters.length > 0) params.append('status', statusFilters.join(','));
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+      // IMPORTANT: without a timeout the UI can get stuck in "Carregando dados..." forever.
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            signal: controller.signal,
+          }
+        );
+
+        if (res.status === 401) {
+          await supabase.auth.signOut();
+          throw new Error('Sessão expirada. Faça login novamente.');
         }
-      );
 
-      if (res.status === 401) {
-        await supabase.auth.signOut();
-        throw new Error('Sessão expirada. Faça login novamente.');
+        const json = await res.json();
+        if (!json?.success) throw new Error(json?.error || 'Erro ao consultar números');
+        return json;
+      } catch (e: any) {
+        const msg = String(e?.message || '').toLowerCase();
+        const isAbort = e?.name === 'AbortError' || msg.includes('aborted');
+        if (isAbort) {
+          return { success: true, baserow_offline: true, data: [], pagination: { count: 0, page: currentPage, pageSize, totalPages: 0 } };
+        }
+        throw e;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const json = await res.json();
-      if (!json?.success) throw new Error(json?.error || 'Erro ao consultar números');
-      return json;
     },
     enabled: true,
     retry: 2,
@@ -1127,7 +1143,7 @@ export default function ConsultaNumeros() {
                   Seu usuário não tem permissão para visualizar os resultados da Consulta de Números.
                 </p>
               </div>
-            ) : isBaserowOffline && visibleFields.length === 0 ? (
+            ) : isBaserowOffline ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Sem conexão com o Baserow</h3>
