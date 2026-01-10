@@ -120,15 +120,31 @@ export default function ConsultaNumeros() {
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleRetryBaserow = async () => {
+    // Guard: never let the UI spin forever.
+    const withTimeout = <T,>(p: Promise<T>, ms: number) =>
+      Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+      ]);
+
     setRetryingBaserow(true);
     try {
-      // Keep the last known offline state until we successfully fetch again.
-      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
-      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
-      await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
-      await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
+      await withTimeout(
+        (async () => {
+          await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
+          await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+          await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
+          await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
+        })(),
+        12_000
+      );
     } catch (e) {
       console.error('Retry Baserow failed:', e);
+      toast({
+        title: 'Não foi possível reconectar agora',
+        description: 'Tente novamente em alguns segundos.',
+        variant: 'destructive',
+      });
     } finally {
       setRetryingBaserow(false);
     }
