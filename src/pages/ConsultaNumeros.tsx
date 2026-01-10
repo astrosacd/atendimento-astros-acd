@@ -90,6 +90,7 @@ export default function ConsultaNumeros() {
 
   // Backend availability flags
   const [baserowOfflineFromFields, setBaserowOfflineFromFields] = useState(false);
+  const [retryingBaserow, setRetryingBaserow] = useState(false);
 
   // Last active status cache for each number
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
@@ -119,12 +120,18 @@ export default function ConsultaNumeros() {
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleRetryBaserow = async () => {
-    // Clear local offline hint and force refetch (avoids getting stuck in cached offline state)
-    setBaserowOfflineFromFields(false);
-    await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
-    await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
-    await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
-    await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
+    setRetryingBaserow(true);
+    try {
+      // Keep the last known offline state until we successfully fetch again.
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+      await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
+      await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
+    } catch (e) {
+      console.error('Retry Baserow failed:', e);
+    } finally {
+      setRetryingBaserow(false);
+    }
   };
 
   // Permissions
@@ -302,7 +309,7 @@ export default function ConsultaNumeros() {
     baserowErrorMessage.includes('timeout') ||
     baserowErrorMessage.includes('conectar ao baserow');
   const isConfigError = !isBaserowOffline && (baserowErrorMessage.includes('configuração') || baserowErrorMessage.includes('baserow'));
-  const isFieldsLoading = loadingFields && !fieldsError;
+  const isFieldsLoading = (loadingFields && !fieldsError) || retryingBaserow;
 
   // Fetch last active status for each number from history (optimized single query)
   useEffect(() => {
@@ -1040,8 +1047,8 @@ export default function ConsultaNumeros() {
                   O backend não está conseguindo acessar o Baserow agora (timeout). Isso normalmente acontece quando o Baserow está
                   fora do ar, bloqueando conexões externas, ou com instabilidade.
                 </p>
-                <Button variant="outline" onClick={handleRetryBaserow}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${retryingBaserow ? 'animate-spin' : ''}`} />
                   Tentar novamente
                 </Button>
               </div>
