@@ -37,6 +37,11 @@ interface BaserowConfig {
   table_id: string;
 }
 
+// Utility fetch with timeout to prevent hanging when Baserow is slow/down
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+}
+
 // Sanitize PII from log messages
 function sanitizePII(message: string): string {
   return message
@@ -220,12 +225,12 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
   const fetchPage = async (page: number) => {
     const url = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=${pageSize}&page=${page}`;
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       headers: {
         'Authorization': `Token ${baserowConfig.api_token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 20000);
 
     if (!resp.ok) {
       const errTxt = sanitizePII(await resp.text());
@@ -237,24 +242,25 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
   };
 
   // Fetch field options to map single_select ids -> values (excluido_da_base)
-  const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-  const fieldsResp = await fetch(fieldsUrl, {
-    headers: {
-      'Authorization': `Token ${baserowConfig.api_token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
+  // Use timeout to prevent hanging when Baserow is slow
   let excluidoOptionsById: Record<string, string> = {};
-  if (fieldsResp.ok) {
-    try {
+  try {
+    const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+    const fieldsResp = await fetchWithTimeout(fieldsUrl, {
+      headers: {
+        'Authorization': `Token ${baserowConfig.api_token}`,
+        'Content-Type': 'application/json',
+      },
+    }, 12000);
+
+    if (fieldsResp.ok) {
       const fields = await fieldsResp.json();
       const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
       const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
       excluidoOptionsById = Object.fromEntries(options.map((o) => [String(o.id), o.value]));
-    } catch {
-      excluidoOptionsById = {};
     }
+  } catch (e: any) {
+    console.warn('[consulta-numeros-reminder] Could not fetch fields (timeout/error), proceeding without field options:', String(e?.message || e));
   }
 
   const allRows: any[] = [];
