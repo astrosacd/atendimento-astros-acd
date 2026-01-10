@@ -324,7 +324,7 @@ export default function ConsultaNumeros() {
     setCurrentPage(1);
   }, [statusFilters]);
 
-  // Query numbers directly from Baserow API (original behavior)
+  // Query numbers from local cache (fast, no external API calls!)
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery],
     queryFn: async () => {
@@ -332,42 +332,62 @@ export default function ConsultaNumeros() {
         return { success: true, data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Sessão inválida');
+      // Fetch all data from local cache
+      const { data: cacheData, error: cacheError, count } = await supabase
+        .from('consulta_numeros_cache')
+        .select('baserow_row_id, row_data', { count: 'exact' });
+
+      if (cacheError) {
+        console.error('Cache query error:', cacheError);
+        throw cacheError;
       }
 
-      // Build query params for the API
-      const params = new URLSearchParams();
-      params.set('page', String(currentPage));
-      params.set('pageSize', String(pageSize));
+      // Transform cache data to expected format
+      let results = (cacheData || []).map((row: any) => ({
+        id: row.baserow_row_id,
+        ...row.row_data,
+      }));
+
+      // Client-side search filter
       if (appliedSearchQuery) {
-        params.set('search', appliedSearchQuery);
+        const searchLower = appliedSearchQuery.toLowerCase();
+        results = results.filter((row: any) => {
+          return Object.values(row).some((val) => {
+            if (!val) return false;
+            if (typeof val === 'object' && 'value' in val) {
+              return String(val.value).toLowerCase().includes(searchLower);
+            }
+            return String(val).toLowerCase().includes(searchLower);
+          });
+        });
       }
+
+      // Client-side status filter
       if (statusFilters.length > 0) {
-        params.set('status', statusFilters.join(','));
+        results = results.filter((row: any) => {
+          const statusVal =
+            row['excluido_da_base']?.value ||
+            row['excluido_da_base'] ||
+            row['Excluido_Da_Base']?.value ||
+            row['Excluido_Da_Base'] ||
+            row['status']?.value ||
+            row['status'] ||
+            '';
+          const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+          return statusFilters.some((f) => f.toLowerCase() === normalizedStatus.toLowerCase());
+        });
       }
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params.toString()}`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      // Client-side pagination
+      const totalCount = results.length;
+      const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
+      const from = (currentPage - 1) * pageSize;
+      const paginatedResults = results.slice(from, from + pageSize);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.error || 'Erro ao consultar dados');
-      }
-
-      const json = await res.json();
       return {
         success: true,
-        data: json.data || [],
-        pagination: json.pagination || { count: 0, page: currentPage, pageSize, totalPages: 0 },
+        data: paginatedResults,
+        pagination: { count: totalCount, page: currentPage, pageSize, totalPages },
       };
     },
     enabled: true,
