@@ -18,12 +18,12 @@ class ExternalServiceError extends Error {
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
-  timeoutMs = 60_000,
+  timeoutMs = 20_000,
 ) {
-  // Use AbortController instead of AbortSignal.timeout() for maximum runtime compatibility.
-  // Add small retry/backoff to survive transient network hiccups.
-  const maxAttempts = 3;
-  const baseBackoffMs = 400;
+  // Use AbortController for maximum runtime compatibility.
+  // Keep retries small to avoid requests taking minutes and making the UI feel "stuck".
+  const maxAttempts = 2;
+  const baseBackoffMs = 300;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
@@ -193,7 +193,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      60_000
+      15_000
     );
 
     if (!res.ok) {
@@ -236,7 +236,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      60_000
+      12_000
     );
 
     if (!response.ok) {
@@ -402,7 +402,7 @@ async function queryBaserow(
         'Content-Type': 'application/json',
       },
     },
-    60_000
+    20_000
   );
 
 
@@ -428,7 +428,7 @@ async function getBaserowRow(config: BaserowConfig, rowId: string) {
         'Content-Type': 'application/json',
       },
     },
-    60_000
+    20_000
   );
 
 
@@ -457,7 +457,7 @@ async function updateBaserowRow(config: BaserowConfig, rowId: string, data: any)
       },
       body: JSON.stringify(data),
     },
-    60_000
+    20_000
   );
 
 
@@ -486,7 +486,7 @@ async function createBaserowRow(config: BaserowConfig, data: any) {
       },
       body: JSON.stringify(data),
     },
-    60_000
+    20_000
   );
 
 

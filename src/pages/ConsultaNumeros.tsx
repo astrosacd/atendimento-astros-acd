@@ -215,7 +215,7 @@ export default function ConsultaNumeros() {
 
         try {
            const controller = new AbortController();
-           const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+           const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
 
           try {
             const res = await fetch(url.toString(), {
@@ -347,7 +347,7 @@ export default function ConsultaNumeros() {
         if (appliedSearchQuery) url.searchParams.set('search', appliedSearchQuery);
 
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+        const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
 
         try {
           const res = await fetch(url.toString(), {
@@ -405,8 +405,8 @@ export default function ConsultaNumeros() {
       if (statusFilters.length > 0) params.append('status', statusFilters.join(','));
 
       // IMPORTANT: without a timeout the UI can get stuck in "Carregando dados..." forever.
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+       const controller = new AbortController();
+       const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
 
       try {
         const res = await fetch(
