@@ -182,7 +182,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      25_000
+      10_000
     );
 
     if (!res.ok) {
@@ -225,7 +225,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      25_000
+      10_000
     );
 
     if (!response.ok) {
