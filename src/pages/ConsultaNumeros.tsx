@@ -210,8 +210,8 @@ export default function ConsultaNumeros() {
         if (cacheBust) url.searchParams.set('__ts', String(Date.now()));
 
         try {
-          const controller = new AbortController();
-          const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
+           const controller = new AbortController();
+           const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
 
           try {
             const res = await fetch(url.toString(), {
