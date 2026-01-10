@@ -231,61 +231,22 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     return { success: false, message: 'Incomplete Baserow config' };
   }
 
-  // Fetch all rows from Baserow (paginate)
-  const pageSize = 200;
-  const maxPages = 20; // safety cap (up to 4000 rows)
+  // Use local cache instead of Baserow directly
+  const { data: cacheData, error: cacheError } = await supabase
+    .from('consulta_numeros_cache')
+    .select('baserow_row_id, row_data');
 
-  const fetchPage = async (page: number) => {
-    const url = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=${pageSize}&page=${page}`;
-    const resp = await fetchWithTimeout(url, {
-      headers: {
-        'Authorization': `Token ${baserowConfig.api_token}`,
-        'Content-Type': 'application/json',
-      },
-    }, 20000);
-
-    if (!resp.ok) {
-      const errTxt = sanitizePII(await resp.text());
-      console.error('[consulta-numeros-reminder] Baserow fetch failed:', errTxt);
-      throw new Error('Baserow fetch failed');
-    }
-
-    return await resp.json();
-  };
-
-  // Fetch field options to map single_select ids -> values (excluido_da_base)
-  // Use timeout to prevent hanging when Baserow is slow
-  let excluidoOptionsById: Record<string, string> = {};
-  try {
-    const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-    const fieldsResp = await fetchWithTimeout(fieldsUrl, {
-      headers: {
-        'Authorization': `Token ${baserowConfig.api_token}`,
-        'Content-Type': 'application/json',
-      },
-    }, 12000);
-
-    if (fieldsResp.ok) {
-      const fields = await fieldsResp.json();
-      const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
-      const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
-      excluidoOptionsById = Object.fromEntries(options.map((o) => [String(o.id), o.value]));
-    }
-  } catch (e: any) {
-    console.warn('[consulta-numeros-reminder] Could not fetch fields (timeout/error), proceeding without field options:', String(e?.message || e));
+  if (cacheError) {
+    console.error('[consulta-numeros-reminder] Error fetching cache:', cacheError);
+    return { success: false, message: 'Cache fetch failed' };
   }
 
-  const allRows: any[] = [];
-  for (let page = 1; page <= maxPages; page++) {
-    const data = await fetchPage(page);
-    const results = data?.results || [];
-    allRows.push(...results);
-    console.log(`[consulta-numeros-reminder] Total rows fetched so far: ${allRows.length} (page ${page})`);
+  const allRows = (cacheData || []).map((row: any) => ({
+    id: row.baserow_row_id,
+    ...row.row_data,
+  }));
 
-    if (results.length < pageSize) break; // no more pages
-  }
-
-  console.log(`[consulta-numeros-reminder] Total rows from Baserow: ${allRows.length}`);
+  console.log(`[consulta-numeros-reminder] Total rows from cache: ${allRows.length}`);
 
   // Log first row structure for debugging (without PII)
   if (allRows.length > 0) {

@@ -31,48 +31,30 @@ export function MonitoredNumbersCard() {
   const monitoredStatuses = reminderConfig?.status_to_monitor || [];
   const isReminderActive = reminderConfig?.is_active || false;
 
-  // Fetch count of numbers with monitored statuses
+  // Fetch count of numbers with monitored statuses from local cache
   const { data: totalCount = 0, isLoading: countLoading } = useQuery({
     queryKey: ['monitored-numbers-count', monitoredStatuses],
     queryFn: async () => {
       if (!monitoredStatuses.length) return 0;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return 0;
+      const { data: cacheData, error } = await supabase
+        .from('consulta_numeros_cache')
+        .select('baserow_row_id, row_data');
 
-      let total = 0;
-      const seenIds = new Set<number>();
+      if (error) return 0;
 
-      for (const status of monitoredStatuses) {
-        const params = new URLSearchParams({
-          status: status,
-          size: '200',
-        });
+      const matching = (cacheData || []).filter((row: any) => {
+        const statusVal =
+          row.row_data?.['excluido_da_base']?.value ||
+          row.row_data?.['excluido_da_base'] ||
+          row.row_data?.['status']?.value ||
+          row.row_data?.['status'] ||
+          '';
+        const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+        return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
+      });
 
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
-          {
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            json.data.forEach((row: any) => {
-              if (!seenIds.has(row.id)) {
-                seenIds.add(row.id);
-                total++;
-              }
-            });
-          }
-        }
-      }
-
-      return total;
+      return matching.length;
     },
     enabled: monitoredStatuses.length > 0,
     staleTime: 2 * 60 * 1000,
