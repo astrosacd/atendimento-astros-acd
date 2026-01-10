@@ -125,8 +125,8 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
         },
-        2,
-        20000
+        1,
+        12000
       );
 
       if (fieldsRes.ok) {
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
 
     // Incremental sync: fetch only a small number of pages per invocation.
     // This avoids hard execution time limits (which were causing 500 timeout + UI stuck on "syncing").
-    const pageSize = 50;
+    const pageSize = 10;
     const maxPagesPerInvocation = 1;
 
     let page = requestedPage ?? 1;
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
           },
         },
         2,
-        20000
+        30000
       );
 
       if (!res.ok) {
@@ -215,6 +215,7 @@ Deno.serve(async (req) => {
     }
 
     const done = !hasMore;
+    const nextPageToReturn = done ? null : page;
 
     // Update sync status (only mark success when we’re done with all pages)
     const { data: statusRow } = await supabase
@@ -243,8 +244,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         done,
-        next_page: done ? null : page + 1,
-        page_synced: page,
+        next_page: nextPageToReturn,
+        page_synced: requestedPage ?? 1,
         rows_synced: rowsSyncedThisCall,
         fields_synced: fields.length,
       }),
