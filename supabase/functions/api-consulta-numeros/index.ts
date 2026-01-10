@@ -15,29 +15,38 @@ class ExternalServiceError extends Error {
   }
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 30_000) {
-  // Use AbortSignal.timeout() + limited retries to handle transient network hiccups.
-  // Important: keep total time bounded so the UI doesn't feel "travada".
-  const maxAttempts = 2;
-  const backoffMs = 350;
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 25_000,
+) {
+  // Use AbortController instead of AbortSignal.timeout() for maximum runtime compatibility.
+  // Add small retry/backoff to survive transient network hiccups.
+  const maxAttempts = 3;
+  const baseBackoffMs = 400;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      return await fetch(input, {
+      const res = await fetch(input, {
         ...init,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: controller.signal,
       });
+      return res;
     } catch (e: any) {
       const msg = String(e?.message || '').toLowerCase();
       const isTimeout =
-        e?.name === 'TimeoutError' ||
         e?.name === 'AbortError' ||
+        e?.name === 'TimeoutError' ||
         msg.includes('timed out') ||
         msg.includes('timeout') ||
+        msg.includes('connection timed out') ||
         String(e?.code || '').toUpperCase() === 'ETIMEDOUT';
 
-      if (isTimeout && attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, backoffMs * attempt));
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, baseBackoffMs * attempt));
         continue;
       }
 
@@ -46,6 +55,8 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
       }
 
       throw e;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -182,7 +193,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      10_000
+      20_000
     );
 
     if (!res.ok) {
@@ -225,7 +236,7 @@ async function getBaserowFields(config: BaserowConfig) {
           'Content-Type': 'application/json',
         },
       },
-      10_000
+      20_000
     );
 
     if (!response.ok) {
@@ -391,7 +402,7 @@ async function queryBaserow(
         'Content-Type': 'application/json',
       },
     },
-    15_000
+    25_000
   );
 
 
@@ -417,7 +428,7 @@ async function getBaserowRow(config: BaserowConfig, rowId: string) {
         'Content-Type': 'application/json',
       },
     },
-    12_000
+    20_000
   );
 
 
@@ -446,7 +457,7 @@ async function updateBaserowRow(config: BaserowConfig, rowId: string, data: any)
       },
       body: JSON.stringify(data),
     },
-    15_000
+    25_000
   );
 
 
@@ -475,7 +486,7 @@ async function createBaserowRow(config: BaserowConfig, data: any) {
       },
       body: JSON.stringify(data),
     },
-    15_000
+    25_000
   );
 
 
