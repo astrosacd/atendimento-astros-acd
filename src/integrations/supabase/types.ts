@@ -1107,6 +1107,30 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_cache: {
+        Row: {
+          baserow_row_id: number
+          created_at: string
+          id: string
+          row_data: Json
+          updated_at: string
+        }
+        Insert: {
+          baserow_row_id: number
+          created_at?: string
+          id?: string
+          row_data: Json
+          updated_at?: string
+        }
+        Update: {
+          baserow_row_id?: number
+          created_at?: string
+          id?: string
+          row_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_config: {
         Row: {
           config_key: string
@@ -1158,6 +1182,24 @@ export type Database = {
           id?: string
           is_required?: boolean | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      consulta_numeros_fields_cache: {
+        Row: {
+          fields_data: Json
+          id: string
+          synced_at: string
+        }
+        Insert: {
+          fields_data: Json
+          id?: string
+          synced_at?: string
+        }
+        Update: {
+          fields_data?: Json
+          id?: string
+          synced_at?: string
         }
         Relationships: []
       }
@@ -1380,6 +1422,33 @@ export type Database = {
           sent_at?: string
           status?: string
           status_monitored?: string | null
+        }
+        Relationships: []
+      }
+      consulta_numeros_sync_status: {
+        Row: {
+          error_message: string | null
+          id: string
+          last_sync_at: string | null
+          last_sync_status: string | null
+          rows_synced: number | null
+          updated_at: string
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          rows_synced?: number | null
+          updated_at?: string
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          rows_synced?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

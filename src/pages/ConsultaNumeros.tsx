@@ -88,16 +88,8 @@ export default function ConsultaNumeros() {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<NumeroResult | null>(null);
 
-  // Backend availability flags
-  const [baserowOfflineFromFields, setBaserowOfflineFromFields] = useState(false);
-  const [retryingBaserow, setRetryingBaserow] = useState(false);
-
-  // Fallback: quando o backend não consegue alcançar o Baserow (firewall/DNS/etc),
-  // permitimos (apenas para admins) consultar direto do navegador usando o token configurado.
-  const [useDirectBaserow, setUseDirectBaserow] = useState(false);
-
-  // If "campos" falhar, ainda assim conseguimos listar números e inferir colunas a partir do retorno.
-  const [fallbackFields, setFallbackFields] = useState<BaserowField[]>([]);
+  // Sync status
+  const [isSyncing, setIsSyncing] = useState(false);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
 
   const nonEditableFields = useMemo(() => {
@@ -124,25 +116,47 @@ export default function ConsultaNumeros() {
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  const handleRetryBaserow = async () => {
-    setRetryingBaserow(true);
+  // Trigger sync from Baserow to local cache
+  const handleSyncFromBaserow = async () => {
+    setIsSyncing(true);
     try {
-      // Refetch fields first (this unlocks the rest of the screen)
-      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
-      await refetchFields();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sessão inválida');
+      }
 
-      // Then refresh the main query (if it's enabled)
-      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
-      await queryClient.refetchQueries({ queryKey: ['consulta-numeros'], type: 'active' });
-    } catch (e) {
-      console.error('Retry Baserow failed:', e);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-consulta-numeros`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Erro ao sincronizar');
+
       toast({
-        title: 'Não foi possível reconectar agora',
-        description: 'Tente novamente em alguns segundos.',
+        title: 'Sincronização concluída!',
+        description: `${json.rows_synced} números sincronizados do Baserow.`,
+      });
+
+      // Refresh queries after sync
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+      await queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+    } catch (e: any) {
+      console.error('Sync failed:', e);
+      toast({
+        title: 'Erro ao sincronizar',
+        description: e.message || 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
     } finally {
-      setRetryingBaserow(false);
+      setIsSyncing(false);
     }
   };
 
@@ -199,81 +213,63 @@ export default function ConsultaNumeros() {
     return str.substring(0, 2) + '•'.repeat(Math.min(str.length - 2, 8)) + str.substring(str.length - 1);
   };
 
-  // Fetch Baserow fields - this determines which columns to show
-  const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError, refetch: refetchFields } = useQuery<BaserowField[]>({
+  // Fetch sync status
+  const { data: syncStatus } = useQuery({
+    queryKey: ['sync-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_sync_status')
+        .select('*')
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // Fetch fields from local cache (fast!)
+  const { data: baserowFields = [], isLoading: loadingFields, error: fieldsError } = useQuery<BaserowField[]>({
     queryKey: ['consulta-numeros-campos'],
     queryFn: async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.access_token) {
-        console.error('Session error:', sessionError);
+      // First try local cache
+      const { data: cacheData, error: cacheError } = await supabase
+        .from('consulta_numeros_fields_cache')
+        .select('fields_data')
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!cacheError && cacheData?.fields_data) {
+        return cacheData.fields_data as unknown as BaserowField[];
+      }
+
+      // Fallback: try edge function (will also populate cache)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
         throw new Error('Sessão inválida');
       }
 
-      const fetchCampos = async (cacheBust = false) => {
-        const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`);
-        if (cacheBust) url.searchParams.set('__ts', String(Date.now()));
-
-        try {
-           const controller = new AbortController();
-           const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
-
-          try {
-            const res = await fetch(url.toString(), {
-              headers: {
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              signal: controller.signal,
-            });
-
-            if (res.status === 401) {
-              await supabase.auth.signOut();
-              throw new Error('Sessão expirada');
-            }
-            if (!res.ok) {
-              throw new Error('Erro ao carregar campos');
-            }
-            return res.json();
-          } finally {
-            clearTimeout(timeoutId);
-          }
-        } catch (e: any) {
-          const msg = String(e?.message || '').toLowerCase();
-          const isTimeout = msg.includes('timed out') || msg.includes('timeout') || e?.name === 'TimeoutError';
-
-          // Treat timeouts as "offline" so the UI exits the loading state and shows the retry panel.
-          if (isTimeout) return { baserow_offline: true, success: false, data: [] };
-
-          throw e;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/campos`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
         }
-      };
+      );
 
-      let json = await fetchCampos(false);
-
-      // Soft offline mode + one automatic retry (handles transient edge runtime/network hiccups)
-      if (json?.baserow_offline) {
-        try {
-          json = await fetchCampos(true);
-        } catch {
-          // ignore and keep original offline payload
-        }
+      if (!res.ok) {
+        // If no cache and API fails, return empty
+        return [];
       }
 
-      if (json?.baserow_offline) {
-        const cached = queryClient.getQueryData<BaserowField[]>(['consulta-numeros-campos']);
-        setBaserowOfflineFromFields(true);
-        if (Array.isArray(cached) && cached.length > 0) return cached;
-        return json.data || [];
-      }
-
-      setBaserowOfflineFromFields(false);
-      if (!json.success) throw new Error(json.error || 'Erro ao carregar campos');
+      const json = await res.json();
       return json.data || [];
     },
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    // Avoid retry-loops that feel like "carregando infinito".
-    retry: 0,
+    retry: 1,
   });
 
   // Determine visible columns from fields (exclude internal fields)
@@ -282,8 +278,8 @@ export default function ConsultaNumeros() {
       .filter((f) => !['id', 'order'].includes(f.name.toLowerCase()))
       .sort((a, b) => a.order - b.order);
 
-    return fromBaserow.length > 0 ? fromBaserow : fallbackFields;
-  }, [baserowFields, fallbackFields]);
+    return fromBaserow;
+  }, [baserowFields]);
 
   // Find Status field (prefer exact name match)
   const statusField = useMemo(() => {
@@ -304,186 +300,90 @@ export default function ConsultaNumeros() {
     setCurrentPage(1);
   }, [statusFilters]);
 
-  // Query numbers
+  // Query numbers from local cache (fast!)
   const { data: queryResult, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery, useDirectBaserow],
+    queryKey: ['consulta-numeros', appliedSearchQuery, statusFilters, currentPage, pageSize, canQuery],
     queryFn: async () => {
-      // Always return a stable shape so the UI never renders a "tabela vazia" by accident.
       if (!canQuery) {
         return { success: true, data: [], pagination: { count: 0, page: 1, pageSize, totalPages: 0 } };
       }
 
-      // Admin-only: direct browser fallback mode
-      if (useDirectBaserow && isAdmin) {
-        const { data: cfgRows, error: cfgErr } = await supabase
-          .from('consulta_numeros_config')
-          .select('config_key, config_value');
-        if (cfgErr) throw cfgErr;
+      // Build query on local cache
+      let query = supabase
+        .from('consulta_numeros_cache')
+        .select('*', { count: 'exact' });
 
-        const cfg: Record<string, string> = {};
-        (cfgRows || []).forEach((r: any) => (cfg[r.config_key] = r.config_value));
+      // Status filter - search in JSONB
+      if (statusFilters.length > 0) {
+        // We need to filter by status in the row_data JSONB
+        // For now, fetch all and filter client-side for complex JSONB filtering
+      }
 
-        const apiUrl = (cfg.baserow_api_url || '').replace(/\/+$/, '');
-        const token = cfg.baserow_api_token || '';
-        const tableId = cfg.baserow_table_id || '';
+      // Pagination
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
 
-        if (!apiUrl || !token || !tableId) {
-          throw new Error('Configuração do Baserow incompleta. Vá em Configurações e revise URL/Token/Tabela.');
-        }
+      const { data: cacheData, error: cacheError, count } = await query;
 
-        if (statusFilters.length > 0) {
-          // Mantemos simples no fallback: filtros avançados dependem do endpoint de campos.
-          toast({
-            title: 'Filtro de status indisponível no modo navegador',
-            description: 'Remova o filtro de status ou use o modo padrão quando o backend voltar.',
-            variant: 'destructive',
+      if (cacheError) {
+        console.error('Cache query error:', cacheError);
+        throw cacheError;
+      }
+
+      // Transform cache data to expected format
+      let results = (cacheData || []).map((row: any) => ({
+        id: row.baserow_row_id,
+        ...row.row_data,
+      }));
+
+      // Client-side search filter
+      if (appliedSearchQuery) {
+        const searchLower = appliedSearchQuery.toLowerCase();
+        results = results.filter((row: any) => {
+          return Object.values(row).some((val) => {
+            if (!val) return false;
+            if (typeof val === 'object' && 'value' in val) {
+              return String(val.value).toLowerCase().includes(searchLower);
+            }
+            return String(val).toLowerCase().includes(searchLower);
           });
-        }
-
-        const url = new URL(`${apiUrl}/api/database/rows/table/${tableId}/`);
-        url.searchParams.set('user_field_names', 'true');
-        url.searchParams.set('page', String(currentPage));
-        url.searchParams.set('size', String(pageSize));
-        if (appliedSearchQuery) url.searchParams.set('search', appliedSearchQuery);
-
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
-
-        try {
-          const res = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-              Authorization: `Token ${token}`,
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-
-          if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(`Baserow: ${txt || res.statusText}`);
-          }
-
-          const json = await res.json();
-          const results = Array.isArray(json?.results) ? json.results : [];
-          const count = Number(json?.count || results.length || 0);
-          const totalPages = pageSize > 0 ? Math.ceil(count / pageSize) : 0;
-
-          return {
-            success: true,
-            data: results,
-            pagination: { count, page: currentPage, pageSize, totalPages },
-          };
-        } catch (e: any) {
-          const msg = String(e?.message || '').toLowerCase();
-          const isAbort = e?.name === 'AbortError' || msg.includes('aborted');
-          if (isAbort) {
-            return {
-              success: true,
-              baserow_offline: true,
-              data: [],
-              pagination: { count: 0, page: currentPage, pageSize, totalPages: 0 },
-            };
-          }
-          throw e;
-        } finally {
-          clearTimeout(timeoutId);
-        }
+        });
       }
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.access_token) {
-        throw new Error('Sessão inválida. Faça login novamente.');
+      // Client-side status filter
+      if (statusFilters.length > 0) {
+        results = results.filter((row: any) => {
+          const statusVal =
+            row['excluido_da_base']?.value ||
+            row['excluido_da_base'] ||
+            row['status']?.value ||
+            row['status'] ||
+            '';
+          const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+          return statusFilters.some((f) => f.toLowerCase() === normalizedStatus.toLowerCase());
+        });
       }
 
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        size: pageSize.toString(),
-      });
+      const totalCount = count || results.length;
+      const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
-      if (appliedSearchQuery) params.append('q', appliedSearchQuery);
-      if (statusFilters.length > 0) params.append('status', statusFilters.join(','));
-
-      // IMPORTANT: without a timeout the UI can get stuck in "Carregando dados..." forever.
-       const controller = new AbortController();
-       const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
-
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
-          {
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            signal: controller.signal,
-          }
-        );
-
-        if (res.status === 401) {
-          await supabase.auth.signOut();
-          throw new Error('Sessão expirada. Faça login novamente.');
-        }
-
-        const json = await res.json();
-        if (!json?.success) throw new Error(json?.error || 'Erro ao consultar números');
-        return json;
-      } catch (e: any) {
-        const msg = String(e?.message || '').toLowerCase();
-        const isAbort = e?.name === 'AbortError' || msg.includes('aborted');
-        if (isAbort) {
-          return { success: true, baserow_offline: true, data: [], pagination: { count: 0, page: currentPage, pageSize, totalPages: 0 } };
-        }
-        throw e;
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      return {
+        success: true,
+        data: results,
+        pagination: { count: totalCount, page: currentPage, pageSize, totalPages },
+      };
     },
     enabled: true,
-    retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    retry: 1,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
-
-
-  // Se os campos não carregarem, inferimos as colunas a partir do primeiro resultado da consulta.
-  useEffect(() => {
-    if (baserowFields.length > 0) return; // já temos definição oficial
-    if (fallbackFields.length > 0) return;
-
-    const first = (queryResult as any)?.data?.[0];
-    if (!first || typeof first !== 'object') return;
-
-    const keys = Object.keys(first).filter((k) => !['id', 'order'].includes(k.toLowerCase()));
-    if (keys.length === 0) return;
-
-    const inferred: BaserowField[] = keys.map((name, idx) => ({
-      id: 990000 + idx,
-      name,
-      type: 'unknown',
-      order: idx,
-      primary: idx === 0,
-      select_options: null,
-    }));
-
-    setFallbackFields(inferred);
-  }, [baserowFields.length, fallbackFields.length, queryResult]);
-
-  const baserowErrorMessage = `${(fieldsError as any)?.message || ''} ${(queryError as any)?.message || ''}`.toLowerCase();
-  const baserowOfflineFromResponse = Boolean((queryResult as any)?.baserow_offline);
-  const hasResults = Boolean((queryResult as any)?.data?.length);
-
-  // We treat "fields" failures as non-blocking when we already have rows to show.
-  const isFieldsOffline =
-    baserowOfflineFromFields ||
-    baserowErrorMessage.includes('timeout') ||
-    baserowErrorMessage.includes('conectar ao baserow');
-
-  // Only block the screen when we have no rows AND the backend is effectively offline.
-  const isBaserowOffline = !hasResults && (isFieldsOffline || baserowOfflineFromResponse);
-
-  const isConfigError = !isBaserowOffline && (baserowErrorMessage.includes('configuração') || baserowErrorMessage.includes('baserow'));
-  const isFieldsLoading = (loadingFields && !fieldsError) || retryingBaserow;
+  // Check if cache is empty (needs sync)
+  const needsSync = syncStatus?.last_sync_status === 'pending' || !syncStatus?.last_sync_at;
+  
+  const isConfigError = Boolean((fieldsError as any)?.message?.includes('configuração'));
+  const isFieldsLoading = loadingFields && !fieldsError;
 
   // Fetch last active status for each number from history (optimized single query)
   useEffect(() => {
@@ -1213,30 +1113,39 @@ export default function ConsultaNumeros() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {useDirectBaserow && isAdmin && (
+            {/* Sync status banner */}
+            {syncStatus && (
               <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <span className="font-medium">Modo navegador (fallback) ativo.</span>{' '}
-                    <span className="text-muted-foreground">Os dados estão sendo buscados direto do Baserow porque o backend está com timeout.</span>
+                    {syncStatus.last_sync_at ? (
+                      <>
+                        <span className="text-muted-foreground">Última sincronização: </span>
+                        <span className="font-medium">
+                          {new Date(syncStatus.last_sync_at).toLocaleString('pt-BR')}
+                        </span>
+                        <span className="text-muted-foreground"> ({syncStatus.rows_synced} números)</span>
+                      </>
+                    ) : (
+                      <span className="text-amber-500 font-medium">Nenhuma sincronização realizada ainda</span>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setUseDirectBaserow(false);
-                      void refetch();
-                    }}
-                  >
-                    Voltar ao modo padrão
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSyncFromBaserow}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      {isSyncing ? 'Sincronizando...' : 'Sincronizar com Baserow'}
+                    </Button>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {isFieldsOffline && visibleFields.length > 0 && (
-              <div className="mb-4 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                Conexão com o Baserow instável no momento. Exibindo colunas já carregadas; tente novamente para atualizar.
               </div>
             )}
 
@@ -1248,31 +1157,23 @@ export default function ConsultaNumeros() {
                   Seu usuário não tem permissão para visualizar os resultados da Consulta de Números.
                 </p>
               </div>
-            ) : isBaserowOffline ? (
+            ) : needsSync ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Sem conexão com o Baserow</h3>
+                <h3 className="text-lg font-semibold mb-2">Sincronização Necessária</h3>
                 <p className="text-muted-foreground mb-4 max-w-md">
-                  O backend não está conseguindo acessar o Baserow agora (timeout). Isso normalmente acontece quando o Baserow está
-                  fora do ar, bloqueando conexões externas, ou com instabilidade.
+                  Os dados do Baserow ainda não foram sincronizados. Clique no botão acima para sincronizar.
                 </p>
-                <div className="flex flex-col items-center gap-3">
-                  <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${retryingBaserow ? 'animate-spin' : ''}`} />
-                    Tentar novamente
+                {isAdmin && (
+                  <Button onClick={handleSyncFromBaserow} disabled={isSyncing}>
+                    {isSyncing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
                   </Button>
-
-                  {isAdmin && (
-                    <Button
-                      onClick={() => {
-                        setUseDirectBaserow(true);
-                        void refetch();
-                      }}
-                    >
-                      Usar modo navegador (fallback)
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             ) : isConfigError ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1289,7 +1190,6 @@ export default function ConsultaNumeros() {
                 )}
               </div>
             ) : isFieldsLoading || isLoading ? (
-
               <div className="flex flex-col items-center justify-center py-8">
                 <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mt-2">
@@ -1301,16 +1201,18 @@ export default function ConsultaNumeros() {
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhum campo disponível</h3>
                 <p className="text-muted-foreground mb-4 max-w-md">
-                  Não foi possível carregar os campos do Baserow. Verifique a configuração.
+                  Sincronize os dados do Baserow primeiro.
                 </p>
-                <Button variant="outline" onClick={handleRetryBaserow} disabled={retryingBaserow}>
-                  {retryingBaserow ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  {retryingBaserow ? 'Tentando...' : 'Tentar novamente'}
-                </Button>
+                {isAdmin && (
+                  <Button onClick={handleSyncFromBaserow} disabled={isSyncing}>
+                    {isSyncing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                  </Button>
+                )}
               </div>
             ) : queryResult?.data?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

@@ -47,48 +47,45 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
   const monitoredStatuses = reminderConfig?.status_to_monitor || [];
   const isReminderActive = reminderConfig?.is_active || false;
 
-  // Fetch numbers with monitored statuses
+  // Fetch numbers with monitored statuses from local cache
   const { data: monitoredNumbers = [], isLoading, refetch } = useQuery({
     queryKey: ['monitored-numbers', monitoredStatuses],
     queryFn: async () => {
       if (!monitoredStatuses.length) return [];
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return [];
+      // Query from local cache
+      const { data: cacheData, error } = await supabase
+        .from('consulta_numeros_cache')
+        .select('baserow_row_id, row_data');
 
-      // Fetch all numbers with any of the monitored statuses
-      const allNumbers: any[] = [];
-      
-      for (const status of monitoredStatuses) {
-        const params = new URLSearchParams({
-          status: status,
-          size: '100',
-        });
-
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-consulta-numeros/consultar?${params}`,
-          {
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            allNumbers.push(...json.data.map((row: any) => ({ ...row, _monitoredStatus: status })));
-          }
-        }
+      if (error) {
+        console.error('Error fetching cached numbers:', error);
+        return [];
       }
 
-      // Remove duplicates by ID
-      const uniqueNumbers = allNumbers.filter((num, index, self) => 
-        index === self.findIndex(n => n.id === num.id)
-      );
+      // Filter by monitored statuses
+      const allNumbers = (cacheData || [])
+        .map((row: any) => ({
+          id: row.baserow_row_id,
+          ...row.row_data,
+        }))
+        .filter((row: any) => {
+          const statusVal =
+            row['excluido_da_base']?.value ||
+            row['excluido_da_base'] ||
+            row['Excluido_Da_Base']?.value ||
+            row['Excluido_Da_Base'] ||
+            row['status']?.value ||
+            row['status'] ||
+            row['Status']?.value ||
+            row['Status'] ||
+            '';
+          const normalizedStatus = typeof statusVal === 'string' ? statusVal.trim() : '';
+          return monitoredStatuses.some((s: string) => s.toLowerCase() === normalizedStatus.toLowerCase());
+        })
+        .map((row: any) => ({ ...row, _monitoredStatus: getStatusValue(row) }));
 
-      return uniqueNumbers;
+      return allNumbers;
     },
     enabled: isOpen && monitoredStatuses.length > 0,
     staleTime: 2 * 60 * 1000,
