@@ -261,13 +261,20 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
   const normalizeStatus = (s: unknown): string => {
     if (!s) return '';
     if (typeof s === 'string') return s.trim();
-    if (typeof s === 'number') return excluidoOptionsById[String(s)] || '';
+
+    // Some Baserow exports may represent single_select as a number (option id).
+    // In the cache flow we don't have the option-id->label map, so we can't resolve it.
+    // Returning empty avoids false matches against configured status strings.
+    if (typeof s === 'number') return '';
+
     if (typeof s === 'object') {
       const obj: any = s;
       if (obj.value && typeof obj.value === 'string') return obj.value.trim();
       if (obj.name && typeof obj.name === 'string') return obj.name.trim();
-      if (obj.id != null) return excluidoOptionsById[String(obj.id)] || '';
+      // If it only has an id, we cannot resolve it to a label here.
+      if (obj.id != null) return '';
     }
+
     return '';
   };
 
