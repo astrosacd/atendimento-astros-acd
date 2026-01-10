@@ -120,24 +120,15 @@ export default function ConsultaNumeros() {
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleRetryBaserow = async () => {
-    // Guard: never let the UI spin forever.
-    const withTimeout = <T,>(p: Promise<T>, ms: number) =>
-      Promise.race([
-        p,
-        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-      ]);
-
     setRetryingBaserow(true);
     try {
-      await withTimeout(
-        (async () => {
-          await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
-          await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
-          await queryClient.refetchQueries({ queryKey: ['consulta-numeros-campos'] });
-          await queryClient.refetchQueries({ queryKey: ['consulta-numeros'] });
-        })(),
-        12_000
-      );
+      // Refetch fields first (this unlocks the rest of the screen)
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
+      await refetchFields();
+
+      // Then refresh the main query (if it's enabled)
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
+      await queryClient.refetchQueries({ queryKey: ['consulta-numeros'], type: 'active' });
     } catch (e) {
       console.error('Retry Baserow failed:', e);
       toast({

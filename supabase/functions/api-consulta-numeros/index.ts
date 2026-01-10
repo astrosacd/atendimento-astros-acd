@@ -16,25 +16,41 @@ class ExternalServiceError extends Error {
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 25_000) {
-  // Use native AbortSignal.timeout() which is more reliable in Deno edge runtime
-  try {
-    const response = await fetch(input, { 
-      ...init, 
-      signal: AbortSignal.timeout(timeoutMs) 
-    });
-    return response;
-  } catch (e: any) {
-    // Handle timeout/abort errors
-    if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
-      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
+  // Use native AbortSignal.timeout() + small retries to handle transient network hiccups.
+  const maxAttempts = 3;
+  const backoffMs = 250;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fetch(input, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (e: any) {
+      const msg = String(e?.message || '').toLowerCase();
+      const isTimeout =
+        e?.name === 'TimeoutError' ||
+        e?.name === 'AbortError' ||
+        msg.includes('timed out') ||
+        msg.includes('timeout') ||
+        String(e?.code || '').toUpperCase() === 'ETIMEDOUT';
+
+      if (isTimeout && attempt < maxAttempts) {
+        // brief backoff then retry
+        await new Promise((r) => setTimeout(r, backoffMs * attempt));
+        continue;
+      }
+
+      if (isTimeout) {
+        throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
+      }
+
+      throw e;
     }
-    // Handle network errors that look like timeouts
-    const msg = String(e?.message || '').toLowerCase();
-    if (msg.includes('timed out') || msg.includes('timeout') || String(e?.code || '').toUpperCase() === 'ETIMEDOUT') {
-      throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
-    }
-    throw e;
   }
+
+  // Should never reach here
+  throw new ExternalServiceError('Não foi possível conectar ao Baserow (timeout).', 502);
 }
 
 
