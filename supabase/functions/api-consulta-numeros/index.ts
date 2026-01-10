@@ -669,6 +669,94 @@ Deno.serve(async (req) => {
 
     // Route handling
     if (req.method === 'GET') {
+      // GET /diagnostico - Network diagnostics endpoint
+      if (endpoint === 'diagnostico') {
+        const startTime = Date.now();
+        const diagnostics: any = {
+          timestamp: new Date().toISOString(),
+          baserow_url: config.api_url,
+          table_id: config.table_id,
+          tests: [],
+        };
+
+        // Test 1: DNS resolution (implicit via fetch)
+        // Test 2: Health endpoint
+        try {
+          const healthUrl = `${config.api_url}/api/_health/`;
+          const healthStart = Date.now();
+          const healthRes = await fetch(healthUrl, { signal: AbortSignal.timeout(10_000) });
+          diagnostics.tests.push({
+            name: 'health_check',
+            url: healthUrl,
+            status: healthRes.status,
+            ok: healthRes.ok,
+            time_ms: Date.now() - healthStart,
+          });
+        } catch (e: any) {
+          diagnostics.tests.push({
+            name: 'health_check',
+            error: e?.message || String(e),
+            error_name: e?.name,
+          });
+        }
+
+        // Test 3: Fields endpoint (the one that's failing)
+        try {
+          const fieldsUrl = `${config.api_url}/api/database/fields/table/${config.table_id}/`;
+          const fieldsStart = Date.now();
+          const fieldsRes = await fetch(fieldsUrl, {
+            headers: { Authorization: `Token ${config.api_token}` },
+            signal: AbortSignal.timeout(15_000),
+          });
+          const fieldsBody = await fieldsRes.text();
+          diagnostics.tests.push({
+            name: 'fields_endpoint',
+            url: fieldsUrl,
+            status: fieldsRes.status,
+            ok: fieldsRes.ok,
+            time_ms: Date.now() - fieldsStart,
+            body_preview: fieldsBody.slice(0, 200),
+          });
+        } catch (e: any) {
+          diagnostics.tests.push({
+            name: 'fields_endpoint',
+            error: e?.message || String(e),
+            error_name: e?.name,
+          });
+        }
+
+        // Test 4: Rows endpoint (minimal)
+        try {
+          const rowsUrl = `${config.api_url}/api/database/rows/table/${config.table_id}/?user_field_names=true&size=1`;
+          const rowsStart = Date.now();
+          const rowsRes = await fetch(rowsUrl, {
+            headers: { Authorization: `Token ${config.api_token}` },
+            signal: AbortSignal.timeout(15_000),
+          });
+          const rowsBody = await rowsRes.text();
+          diagnostics.tests.push({
+            name: 'rows_endpoint',
+            url: rowsUrl,
+            status: rowsRes.status,
+            ok: rowsRes.ok,
+            time_ms: Date.now() - rowsStart,
+            body_preview: rowsBody.slice(0, 200),
+          });
+        } catch (e: any) {
+          diagnostics.tests.push({
+            name: 'rows_endpoint',
+            error: e?.message || String(e),
+            error_name: e?.name,
+          });
+        }
+
+        diagnostics.total_time_ms = Date.now() - startTime;
+
+        return new Response(JSON.stringify(diagnostics, null, 2), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // GET /campos - Get available fields from Baserow
       if (endpoint === 'campos') {
         try {
