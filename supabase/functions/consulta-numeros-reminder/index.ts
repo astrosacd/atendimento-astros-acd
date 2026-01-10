@@ -38,8 +38,20 @@ interface BaserowConfig {
 }
 
 // Utility fetch with timeout to prevent hanging when Baserow is slow/down
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
-  return fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+// NOTE: We use AbortController instead of AbortSignal.timeout() for better compatibility
+// and to reliably abort even during TCP connect.
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 15000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
 }
 
 // Sanitize PII from log messages
@@ -703,9 +715,26 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('[consulta-numeros-reminder] Unexpected error:', error);
-    return new Response(JSON.stringify({ success: false, error: String(error) }), {
+  } catch (error: any) {
+    const msg = String(error?.message || error);
+    console.error('[consulta-numeros-reminder] Unexpected error:', msg);
+
+    // If this is a network/connect timeout to Baserow, surface as 503 (not 500)
+    const isTimeoutLike = /timeout|timed out|tcp connect|connection timed out|connect/i.test(msg);
+    if (isTimeoutLike) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Baserow connection timeout - server may be slow or unreachable. Try again later.',
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify({ success: false, error: msg }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
