@@ -169,6 +169,11 @@ Deno.serve(async (req) => {
 
       // Upsert rows and collect IDs
       if (results.length > 0) {
+        const getStatusValue = (row: any): string | null => {
+          const val = row?.excluido_da_base?.value ?? row?.excluido_da_base ?? row?.status?.value ?? row?.status ?? null;
+          return typeof val === 'string' && val.trim() ? val.trim() : null;
+        };
+
         const upsertData = results.map((row: any) => {
           allBaserowIds.push(row.id);
           return {
@@ -176,6 +181,51 @@ Deno.serve(async (req) => {
             row_data: row,
           };
         });
+
+        // Diff against existing cache to record status changes caused externally
+        const idsThisPage = upsertData.map((r: any) => r.baserow_row_id);
+        const { data: existingRows, error: existingError } = await supabase
+          .from('consulta_numeros_cache')
+          .select('baserow_row_id, row_data')
+          .in('baserow_row_id', idsThisPage);
+
+        if (existingError) {
+          console.warn('[auto-sync] Could not fetch existing cache rows for diff:', existingError);
+        }
+
+        const existingMap = new Map<number, any>();
+        (existingRows || []).forEach((r: any) => existingMap.set(r.baserow_row_id, r.row_data));
+
+        const historyInserts: any[] = [];
+        for (const row of results) {
+          const previous = existingMap.get(row.id);
+          if (!previous) continue;
+
+          const prevStatus = getStatusValue(previous);
+          const nextStatus = getStatusValue(row);
+          if (!prevStatus || !nextStatus) continue;
+          if (prevStatus === nextStatus) continue;
+
+          historyInserts.push({
+            acao: 'atualizacao_status',
+            numero: String(row.numero ?? previous?.numero ?? ''),
+            origem: 'auto_sync',
+            baserow_row_id: String(row.id),
+            dados_anteriores: previous,
+            dados_novos: row,
+          });
+        }
+
+        if (historyInserts.length > 0) {
+          const { error: historyError } = await supabase
+            .from('consulta_numeros_history')
+            .insert(historyInserts);
+          if (historyError) {
+            console.warn('[auto-sync] Could not insert history entries:', historyError);
+          } else {
+            console.log(`[auto-sync] Logged ${historyInserts.length} status change(s) into history`);
+          }
+        }
 
         const { error: upsertError } = await supabase
           .from('consulta_numeros_cache')

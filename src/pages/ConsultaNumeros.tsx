@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -303,6 +303,58 @@ export default function ConsultaNumeros() {
       ) || baserowFields.find((f) => f.type === 'single_select' && f.select_options?.length)
     );
   }, [baserowFields]);
+
+  const statusOptionLabels = useMemo(() => {
+    const labels = (statusField?.select_options || [])
+      .map((o: any) => o?.value)
+      .filter((v: any): v is string => typeof v === 'string' && Boolean(v.trim()));
+
+    // Prefer longer labels first to avoid partial matches
+    labels.sort((a, b) => b.length - a.length);
+    return labels;
+  }, [statusField]);
+
+  const getCurrentStatusValue = useCallback((row: any): string | null => {
+    const val =
+      row?.excluido_da_base?.value ||
+      row?.excluido_da_base ||
+      row?.Excluido_Da_Base?.value ||
+      row?.Excluido_Da_Base ||
+      row?.status?.value ||
+      row?.status ||
+      null;
+
+    return typeof val === 'string' && val.trim() ? val.trim() : null;
+  }, []);
+
+  const getLastStatusFromObservacoes = useCallback(
+    (row: any): string | null => {
+      const obs = row?.observacoes ?? row?.observacao ?? null;
+      if (typeof obs !== 'string' || !obs.trim()) return null;
+
+      const current = getCurrentStatusValue(row);
+      const obsLower = obs.toLowerCase();
+
+      for (const label of statusOptionLabels) {
+        const labelLower = label.toLowerCase();
+        if (current && labelLower === current.toLowerCase()) continue;
+        if (obsLower.includes(labelLower)) return label;
+      }
+
+      return null;
+    },
+    [getCurrentStatusValue, statusOptionLabels]
+  );
+
+  const resolveLastStatus = useCallback(
+    (row: NumeroResult): string | null | undefined => {
+      const cached = lastStatusCache[row.id];
+      if (cached === undefined) return undefined; // still loading
+      if (cached) return cached;
+      return getLastStatusFromObservacoes(row);
+    },
+    [getLastStatusFromObservacoes, lastStatusCache]
+  );
 
   // When changing status filters, reset pagination (query reruns automatically)
   useEffect(() => {
@@ -1402,17 +1454,20 @@ export default function ConsultaNumeros() {
 
                               {/* Coluna Último Status Ativo */}
                               <TableCell className="min-w-[140px]">
-                                {lastStatusCache[row.id] !== undefined ? (
-                                  lastStatusCache[row.id] ? (
-                                    <Badge variant="outline" className="text-xs">
-                                      {lastStatusCache[row.id]}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted-foreground text-xs">-</span>
-                                  )
-                                ) : (
-                                  <span className="text-muted-foreground text-xs animate-pulse">...</span>
-                                )}
+                                {(() => {
+                                  const resolved = resolveLastStatus(row);
+                                  if (resolved === undefined) {
+                                    return <span className="text-muted-foreground text-xs animate-pulse">...</span>;
+                                  }
+                                  if (resolved) {
+                                    return (
+                                      <Badge variant="outline" className="text-xs">
+                                        {resolved}
+                                      </Badge>
+                                    );
+                                  }
+                                  return <span className="text-muted-foreground text-xs">-</span>;
+                                })()}
                               </TableCell>
 
                               {/* Coluna fixa à direita - Ações */}
@@ -1479,15 +1534,16 @@ export default function ConsultaNumeros() {
                                         Último Status
                                       </p>
                                       <p className="text-sm">
-                                        {lastStatusCache[row.id] !== undefined ? (
-                                          lastStatusCache[row.id] ? (
-                                            <Badge variant="outline">{lastStatusCache[row.id]}</Badge>
-                                          ) : (
-                                            <span className="text-muted-foreground">Sem histórico</span>
-                                          )
-                                        ) : (
-                                          <span className="text-muted-foreground animate-pulse">Carregando...</span>
-                                        )}
+                                        {(() => {
+                                          const resolved = resolveLastStatus(row);
+                                          if (resolved === undefined) {
+                                            return <span className="text-muted-foreground animate-pulse">Carregando...</span>;
+                                          }
+                                          if (resolved) {
+                                            return <Badge variant="outline">{resolved}</Badge>;
+                                          }
+                                          return <span className="text-muted-foreground">Sem histórico</span>;
+                                        })()}
                                       </p>
                                     </div>
                                   </div>
@@ -1636,15 +1692,20 @@ export default function ConsultaNumeros() {
                   Último Status Ativo
                 </p>
                 <p className="text-sm">
-                  {lastStatusCache[quickViewRow.id] !== undefined ? (
-                    lastStatusCache[quickViewRow.id] ? (
-                      <Badge variant="outline" className="border-primary/50">{lastStatusCache[quickViewRow.id]}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">Sem histórico de alterações</span>
-                    )
-                  ) : (
-                    <span className="text-muted-foreground animate-pulse">Carregando...</span>
-                  )}
+                  {(() => {
+                    const resolved = resolveLastStatus(quickViewRow);
+                    if (resolved === undefined) {
+                      return <span className="text-muted-foreground animate-pulse">Carregando...</span>;
+                    }
+                    if (resolved) {
+                      return (
+                        <Badge variant="outline" className="border-primary/50">
+                          {resolved}
+                        </Badge>
+                      );
+                    }
+                    return <span className="text-muted-foreground">Sem histórico de alterações</span>;
+                  })()}
                 </p>
               </div>
             </div>
