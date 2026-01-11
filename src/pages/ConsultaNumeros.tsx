@@ -1309,10 +1309,7 @@ export default function ConsultaNumeros() {
                           <span className="sr-only">Ações rápidas</span>
                         </TableHead>
                         <TableHead className="w-[70px]">Linha</TableHead>
-                        {visibleFields.map((field) => (
-                          <TableHead key={field.id}>{field.name}</TableHead>
-                        ))}
-                        {/* Coluna Tipo (IN/EX) */}
+                        {/* Coluna Tipo (IN/EX) - logo após Linha */}
                         <TableHead className="w-[60px]">
                           <TooltipProvider>
                             <Tooltip>
@@ -1326,6 +1323,9 @@ export default function ConsultaNumeros() {
                             </Tooltip>
                           </TooltipProvider>
                         </TableHead>
+                        {visibleFields.map((field) => (
+                          <TableHead key={field.id}>{field.name}</TableHead>
+                        ))}
                         {/* Coluna Último Status Ativo */}
                         <TableHead className="min-w-[140px]">
                           <TooltipProvider>
@@ -1403,6 +1403,22 @@ export default function ConsultaNumeros() {
                               </TableCell>
 
                               <TableCell className="font-mono text-muted-foreground">{row.id}</TableCell>
+                              
+                              {/* Coluna Tipo (IN/EX) - logo após Linha */}
+                              <TableCell className="w-[60px]">
+                                {(() => {
+                                  const tipo = getNumeroTipo(row);
+                                  return (
+                                    <Badge 
+                                      variant={tipo === 'IN' ? 'default' : 'secondary'}
+                                      className={tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                                    >
+                                      {tipo}
+                                    </Badge>
+                                  );
+                                })()}
+                              </TableCell>
+
                               {visibleFields.map((field) => {
                                 const cellValue = row[field.name];
                                 const rawValue =
@@ -1458,21 +1474,6 @@ export default function ConsultaNumeros() {
                                   </TableCell>
                                 );
                               })}
-
-                              {/* Coluna Tipo (IN/EX) */}
-                              <TableCell className="w-[60px]">
-                                {(() => {
-                                  const tipo = getNumeroTipo(row);
-                                  return (
-                                    <Badge 
-                                      variant={tipo === 'IN' ? 'default' : 'secondary'}
-                                      className={tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}
-                                    >
-                                      {tipo}
-                                    </Badge>
-                                  );
-                                })()}
-                              </TableCell>
 
                               {/* Coluna Último Status Ativo */}
                               <TableCell className="min-w-[140px]">
