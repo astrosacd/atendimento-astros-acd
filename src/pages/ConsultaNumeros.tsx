@@ -411,70 +411,45 @@ export default function ConsultaNumeros() {
     void handleSyncFromBaserow();
   }, [isAdmin, canQuery, hasCachedRows, syncStatus]);
 
-  // Fetch last active status for each number from history (optimized single query)
+  // Fetch last active status for each row from history (by Baserow row id)
   useEffect(() => {
     const fetchLastStatuses = async () => {
       if (!queryResult?.data?.length) return;
-      
-      // Get rows that are not yet in cache
-      const rowsToFetch = queryResult.data
-        .filter((row: NumeroResult) => !(row.id in lastStatusCache));
-      
+
+      const rowsToFetch = queryResult.data.filter((row: NumeroResult) => !(row.id in lastStatusCache));
       if (rowsToFetch.length === 0) return;
-      
+
       try {
-        // Build a map of numero -> rowId and get all unique numeros
-        const numeroToRowId = new Map<string, number>();
-        const rowIdToNumero = new Map<number, string>();
-        const rowIdToCurrentStatus = new Map<number, string | null>();
-        
-        rowsToFetch.forEach((row: NumeroResult) => {
-          const numero = row.numero?.toString() || '';
-          if (numero) {
-            numeroToRowId.set(numero, row.id);
-            rowIdToNumero.set(row.id, numero);
-          }
-          rowIdToCurrentStatus.set(row.id, row.excluido_da_base?.value || null);
-        });
+        const rowIds = rowsToFetch.map((row: NumeroResult) => row.id.toString());
 
-        const numeros = Array.from(numeroToRowId.keys());
-        
-        if (numeros.length === 0) {
-          // No valid numeros, initialize all with null
-          const newCache: LastStatusInfo = {};
-          rowsToFetch.forEach((row: NumeroResult) => {
-            newCache[row.id] = null;
-          });
-          setLastStatusCache(prev => ({ ...prev, ...newCache }));
-          return;
-        }
-
-        // Query history by NUMERO (not baserow_row_id) to capture all historical changes
+        // Query history by baserow_row_id (unique per row)
         const { data: historyData } = await supabase
           .from('consulta_numeros_history')
-          .select('numero, dados_anteriores, created_at')
-          .in('numero', numeros)
+          .select('baserow_row_id, dados_anteriores, created_at')
+          .in('baserow_row_id', rowIds)
           .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
           .order('created_at', { ascending: false });
 
         const newCache: LastStatusInfo = {};
-
-        // Initialize all IDs with null
         rowsToFetch.forEach((row: NumeroResult) => {
           newCache[row.id] = null;
         });
 
+        const rowIdToCurrentStatus = new Map<number, string | null>();
+        rowsToFetch.forEach((row: NumeroResult) => {
+          rowIdToCurrentStatus.set(row.id, row.excluido_da_base?.value || null);
+        });
+
         if (historyData && historyData.length > 0) {
-          const processedNumeros = new Set<string>();
+          const processedRowIds = new Set<number>();
 
           for (const entry of historyData) {
-            const numero = entry.numero;
-            if (!numero || processedNumeros.has(numero)) continue;
-            
-            const rowId = numeroToRowId.get(numero);
-            if (rowId === undefined) continue;
+            const rowId = entry.baserow_row_id ? parseInt(entry.baserow_row_id) : NaN;
+            if (!Number.isFinite(rowId)) continue;
+            if (!(rowId in newCache)) continue;
+            if (processedRowIds.has(rowId)) continue;
 
-            // Use dados_anteriores - this is the status BEFORE the most recent change
+            // "Último status" = status ANTERIOR à última alteração
             const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
             if (!dadosAnteriores) continue;
 
@@ -491,20 +466,19 @@ export default function ConsultaNumeros() {
             if (!previousStatus || typeof previousStatus !== 'string' || !previousStatus.trim()) continue;
 
             const currentStatus = rowIdToCurrentStatus.get(rowId) ?? null;
-            // Only show as "último status" if it's DIFFERENT from the current status
             if (currentStatus && previousStatus === currentStatus) continue;
 
             newCache[rowId] = previousStatus;
-            processedNumeros.add(numero);
+            processedRowIds.add(rowId);
           }
         }
 
-        setLastStatusCache(prev => ({ ...prev, ...newCache }));
+        setLastStatusCache((prev) => ({ ...prev, ...newCache }));
       } catch (error) {
         console.error('Error fetching history for rows:', error);
       }
     };
-    
+
     fetchLastStatuses();
   }, [queryResult?.data]);
 
