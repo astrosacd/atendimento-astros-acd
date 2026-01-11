@@ -91,6 +91,7 @@ export default function ConsultaNumeros() {
   // Sync status
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastStatusCache, setLastStatusCache] = useState<LastStatusInfo>({});
+  const [lastStatusRefreshKey, setLastStatusRefreshKey] = useState(0);
   const autoSyncTriggeredRef = useRef(false);
 
   const nonEditableFields = useMemo(() => {
@@ -157,6 +158,10 @@ export default function ConsultaNumeros() {
       await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-campos'] });
       await queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
       await queryClient.invalidateQueries({ queryKey: ['sync-status'] });
+
+      // Recarrega “Último Status” baseado no histórico após sincronizar
+      setLastStatusCache({});
+      setLastStatusRefreshKey((k) => k + 1);
     } catch (e: any) {
       console.error('Sync failed:', e);
       toast({
@@ -304,56 +309,14 @@ export default function ConsultaNumeros() {
     );
   }, [baserowFields]);
 
-  const statusOptionLabels = useMemo(() => {
-    const labels = (statusField?.select_options || [])
-      .map((o: any) => o?.value)
-      .filter((v: any): v is string => typeof v === 'string' && Boolean(v.trim()));
-
-    // Prefer longer labels first to avoid partial matches
-    labels.sort((a, b) => b.length - a.length);
-    return labels;
-  }, [statusField]);
-
-  const getCurrentStatusValue = useCallback((row: any): string | null => {
-    const val =
-      row?.excluido_da_base?.value ||
-      row?.excluido_da_base ||
-      row?.Excluido_Da_Base?.value ||
-      row?.Excluido_Da_Base ||
-      row?.status?.value ||
-      row?.status ||
-      null;
-
-    return typeof val === 'string' && val.trim() ? val.trim() : null;
-  }, []);
-
-  const getLastStatusFromObservacoes = useCallback(
-    (row: any): string | null => {
-      const obs = row?.observacoes ?? row?.observacao ?? null;
-      if (typeof obs !== 'string' || !obs.trim()) return null;
-
-      const current = getCurrentStatusValue(row);
-      const obsLower = obs.toLowerCase();
-
-      for (const label of statusOptionLabels) {
-        const labelLower = label.toLowerCase();
-        if (current && labelLower === current.toLowerCase()) continue;
-        if (obsLower.includes(labelLower)) return label;
-      }
-
-      return null;
-    },
-    [getCurrentStatusValue, statusOptionLabels]
-  );
 
   const resolveLastStatus = useCallback(
     (row: NumeroResult): string | null | undefined => {
-      const cached = lastStatusCache[row.id];
-      if (cached === undefined) return undefined; // still loading
-      if (cached) return cached;
-      return getLastStatusFromObservacoes(row);
+      // Sem fallback: “Último Status” vem exclusivamente do histórico.
+      // undefined = ainda carregando; null = não existe histórico.
+      return lastStatusCache[row.id];
     },
-    [getLastStatusFromObservacoes, lastStatusCache]
+    [lastStatusCache]
   );
 
   // When changing status filters, reset pagination (query reruns automatically)
@@ -468,7 +431,10 @@ export default function ConsultaNumeros() {
     const fetchLastStatuses = async () => {
       if (!queryResult?.data?.length) return;
 
-      const rowsToFetch = queryResult.data.filter((row: NumeroResult) => !(row.id in lastStatusCache));
+      const rowsToFetch = queryResult.data.filter((row: NumeroResult) => {
+        const cached = lastStatusCache[row.id];
+        return cached === undefined || cached === null;
+      });
       if (rowsToFetch.length === 0) return;
 
       try {
@@ -532,7 +498,7 @@ export default function ConsultaNumeros() {
     };
 
     fetchLastStatuses();
-  }, [queryResult?.data]);
+  }, [queryResult?.data, lastStatusRefreshKey]);
 
 
   // Update mutation
@@ -719,6 +685,9 @@ export default function ConsultaNumeros() {
 
     // If already on page 1 and query didn't change, force a refetch.
     if (currentPage === 1 && nextQuery === appliedSearchQuery) {
+      // Também força reconsulta do “Último Status” (histórico), sem fallback.
+      setLastStatusCache({});
+      setLastStatusRefreshKey((k) => k + 1);
       refetch();
       return;
     }
