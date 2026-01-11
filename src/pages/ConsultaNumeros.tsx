@@ -343,11 +343,13 @@ export default function ConsultaNumeros() {
         throw cacheError;
       }
 
-      // Transform cache data to expected format
-      let results = (cacheData || []).map((row: any) => ({
-        id: row.baserow_row_id,
-        ...row.row_data,
-      }));
+      // Transform cache data to expected format and sort by baserow_row_id (numeric order)
+      let results = (cacheData || [])
+        .map((row: any) => ({
+          id: row.baserow_row_id,
+          ...row.row_data,
+        }))
+        .sort((a: any, b: any) => a.id - b.id);
 
       // Client-side search filter
       if (appliedSearchQuery) {
