@@ -430,9 +430,10 @@ export default function ConsultaNumeros() {
         const rowIds = rowsToFetch.map((row: NumeroResult) => row.id.toString());
         
         // Query history by both baserow_row_id AND numero to find all relevant history
+        // We need dados_novos to get the LAST SAVED status (not dados_anteriores which is before the change)
         const { data: historyData } = await supabase
           .from('consulta_numeros_history')
-          .select('baserow_row_id, numero, dados_anteriores, created_at')
+          .select('baserow_row_id, numero, dados_novos, created_at')
           .or(`baserow_row_id.in.(${rowIds.join(',')}),numero.in.(${numeros.join(',')})`)
           .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
           .order('created_at', { ascending: false });
@@ -444,52 +445,50 @@ export default function ConsultaNumeros() {
           newCache[row.id] = null;
         });
         
+        // Create a map from numero to current row data
+        const numeroToRowData: Record<string, { id: number; currentStatus: string | null }> = {};
+        rowsToFetch.forEach((row: NumeroResult) => {
+          if (row.numero) {
+            const currentStatus = row.excluido_da_base?.value || null;
+            numeroToRowData[row.numero] = { id: row.id, currentStatus };
+          }
+        });
+        
         if (historyData && historyData.length > 0) {
-          // Create a map from numero to row id for the current rows
-          const numeroToRowId: Record<string, number> = {};
-          rowsToFetch.forEach((row: NumeroResult) => {
-            if (row.numero) {
-              numeroToRowId[row.numero] = row.id;
-            }
-          });
-          
           // Track which row IDs we've already found a status for
           const processedRowIds = new Set<number>();
           
           for (const entry of historyData) {
-            const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
-            if (!dadosAnteriores) continue;
+            const dadosNovos = entry.dados_novos as Record<string, any> | null;
+            if (!dadosNovos) continue;
             
-            const prevStatus = 
-              dadosAnteriores['excluido_da_base']?.value || 
-              dadosAnteriores['excluido_da_base'] ||
-              dadosAnteriores['Excluido_Da_Base']?.value ||
-              dadosAnteriores['Excluido_Da_Base'] ||
-              dadosAnteriores['status']?.value ||
-              dadosAnteriores['status'] ||
-              dadosAnteriores['Status']?.value ||
-              dadosAnteriores['Status'];
+            // Get the status that was SAVED in this history entry
+            const savedStatus = 
+              dadosNovos['excluido_da_base']?.value || 
+              dadosNovos['excluido_da_base'] ||
+              dadosNovos['Excluido_Da_Base']?.value ||
+              dadosNovos['Excluido_Da_Base'] ||
+              dadosNovos['status']?.value ||
+              dadosNovos['status'] ||
+              dadosNovos['Status']?.value ||
+              dadosNovos['Status'];
             
-            if (!prevStatus || typeof prevStatus !== 'string' || !prevStatus.trim()) continue;
+            if (!savedStatus || typeof savedStatus !== 'string' || !savedStatus.trim()) continue;
             
-            // Try to match by baserow_row_id first
-            if (entry.baserow_row_id) {
-              const rowId = parseInt(entry.baserow_row_id);
-              if (rowId in newCache && !processedRowIds.has(rowId)) {
-                newCache[rowId] = prevStatus;
-                processedRowIds.add(rowId);
-                continue;
-              }
-            }
+            // Get the numero from this history entry to find the current row
+            const entryNumero = entry.numero;
+            if (!entryNumero || !numeroToRowData[entryNumero]) continue;
             
-            // Try to match by numero (for cases where baserow_row_id changed)
-            if (entry.numero && numeroToRowId[entry.numero] !== undefined) {
-              const rowId = numeroToRowId[entry.numero];
-              if (!processedRowIds.has(rowId)) {
-                newCache[rowId] = prevStatus;
-                processedRowIds.add(rowId);
-              }
-            }
+            const { id: rowId, currentStatus } = numeroToRowData[entryNumero];
+            
+            // Skip if already processed
+            if (processedRowIds.has(rowId)) continue;
+            
+            // Only show as "último status" if it's DIFFERENT from the current status
+            if (currentStatus && savedStatus === currentStatus) continue;
+            
+            newCache[rowId] = savedStatus;
+            processedRowIds.add(rowId);
           }
         }
         
