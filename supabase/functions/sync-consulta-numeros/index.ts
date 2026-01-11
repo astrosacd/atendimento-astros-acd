@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
       hasMore = !!json?.next;
       pagesProcessed += 1;
 
-      // Budget guard: bail out if we’re close to platform timeout
+      // Budget guard: bail out if we're close to platform timeout
       if (Date.now() - startedAt > 22000) {
         console.warn('[sync-consulta-numeros] Approaching runtime limit, stopping early');
         break;
@@ -217,19 +217,32 @@ Deno.serve(async (req) => {
     const done = !hasMore;
     const nextPageToReturn = done ? null : page;
 
-    // Update sync status (only mark success when we’re done with all pages)
+    // Update sync status (only mark success when we're done with all pages)
     const { data: statusRow } = await supabase
       .from('consulta_numeros_sync_status')
-      .select('id')
+      .select('id, rows_synced')
       .single();
 
     if (statusRow?.id) {
+      // When done, get the actual total count from the cache to show accurate number
+      let finalRowCount = rowsSyncedThisCall;
+      if (done) {
+        const { count } = await supabase
+          .from('consulta_numeros_cache')
+          .select('*', { count: 'exact', head: true });
+        finalRowCount = count || rowsSyncedThisCall;
+      } else {
+        // Accumulate rows_synced across invocations during sync
+        const previousRowsSynced = (requestedPage === 1) ? 0 : (statusRow.rows_synced || 0);
+        finalRowCount = previousRowsSynced + rowsSyncedThisCall;
+      }
+      
       await supabase
         .from('consulta_numeros_sync_status')
         .update({
           last_sync_at: done ? new Date().toISOString() : null,
           last_sync_status: done ? 'success' : 'syncing',
-          rows_synced: rowsSyncedThisCall,
+          rows_synced: finalRowCount,
           error_message: null,
           updated_at: new Date().toISOString(),
         })

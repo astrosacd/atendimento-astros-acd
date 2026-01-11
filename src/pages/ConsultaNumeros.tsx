@@ -1166,7 +1166,6 @@ export default function ConsultaNumeros() {
                         <span className="font-medium">
                           {new Date(syncStatus.last_sync_at).toLocaleString('pt-BR')}
                         </span>
-                        <span className="text-muted-foreground"> ({syncStatus.rows_synced} números)</span>
                       </>
                     ) : hasCachedRows ? (
                       <span className="text-muted-foreground">
