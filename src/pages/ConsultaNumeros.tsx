@@ -423,79 +423,70 @@ export default function ConsultaNumeros() {
       
       if (rowsToFetch.length === 0) return;
       
-      try {
-        // Extract phone numbers from rows to search history by numero (not just baserow_row_id)
-        // This handles cases where the same phone number has multiple baserow entries
-        const numeros = rowsToFetch.map((row: NumeroResult) => row.numero).filter(Boolean);
-        const rowIds = rowsToFetch.map((row: NumeroResult) => row.id.toString());
-        
-        // Query history by both baserow_row_id AND numero to find all relevant history
-        // We need dados_novos to get the LAST SAVED status (not dados_anteriores which is before the change)
-        const { data: historyData } = await supabase
-          .from('consulta_numeros_history')
-          .select('baserow_row_id, numero, dados_novos, created_at')
-          .or(`baserow_row_id.in.(${rowIds.join(',')}),numero.in.(${numeros.join(',')})`)
-          .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
-          .order('created_at', { ascending: false });
-        
-        const newCache: LastStatusInfo = {};
-        
-        // Initialize all IDs with null
-        rowsToFetch.forEach((row: NumeroResult) => {
-          newCache[row.id] = null;
-        });
-        
-        // Create a map from numero to current row data
-        const numeroToRowData: Record<string, { id: number; currentStatus: string | null }> = {};
-        rowsToFetch.forEach((row: NumeroResult) => {
-          if (row.numero) {
-            const currentStatus = row.excluido_da_base?.value || null;
-            numeroToRowData[row.numero] = { id: row.id, currentStatus };
+        try {
+          const rowIds = rowsToFetch.map((row: NumeroResult) => row.id.toString());
+
+          // IMPORTANT:
+          // We only trust history for the SAME baserow_row_id.
+          // When the same numero appears under a different baserow_row_id (e.g. duplicated/recreated rows),
+          // using numero-based history can show an old status from another record (like EXCLUIDO).
+          const { data: historyData } = await supabase
+            .from('consulta_numeros_history')
+            .select('baserow_row_id, dados_novos, created_at')
+            .in('baserow_row_id', rowIds)
+            .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+            .order('created_at', { ascending: false });
+
+          const newCache: LastStatusInfo = {};
+
+          // Initialize all IDs with null
+          rowsToFetch.forEach((row: NumeroResult) => {
+            newCache[row.id] = null;
+          });
+
+          // Map current rowId -> current status
+          const rowIdToCurrentStatus = new Map<number, string | null>();
+          rowsToFetch.forEach((row: NumeroResult) => {
+            rowIdToCurrentStatus.set(row.id, row.excluido_da_base?.value || null);
+          });
+
+          if (historyData && historyData.length > 0) {
+            const processedRowIds = new Set<number>();
+
+            for (const entry of historyData) {
+              const rowId = entry.baserow_row_id ? parseInt(entry.baserow_row_id) : NaN;
+              if (!Number.isFinite(rowId)) continue;
+              if (!(rowId in newCache)) continue;
+              if (processedRowIds.has(rowId)) continue;
+
+              const dadosNovos = entry.dados_novos as Record<string, any> | null;
+              if (!dadosNovos) continue;
+
+              const savedStatus =
+                dadosNovos['excluido_da_base']?.value ||
+                dadosNovos['excluido_da_base'] ||
+                dadosNovos['Excluido_Da_Base']?.value ||
+                dadosNovos['Excluido_Da_Base'] ||
+                dadosNovos['status']?.value ||
+                dadosNovos['status'] ||
+                dadosNovos['Status']?.value ||
+                dadosNovos['Status'];
+
+              if (!savedStatus || typeof savedStatus !== 'string' || !savedStatus.trim()) continue;
+
+              const currentStatus = rowIdToCurrentStatus.get(rowId) ?? null;
+              // Only show as "último status" if it's DIFFERENT from the current status
+              if (currentStatus && savedStatus === currentStatus) continue;
+
+              newCache[rowId] = savedStatus;
+              processedRowIds.add(rowId);
+            }
           }
-        });
-        
-        if (historyData && historyData.length > 0) {
-          // Track which row IDs we've already found a status for
-          const processedRowIds = new Set<number>();
-          
-          for (const entry of historyData) {
-            const dadosNovos = entry.dados_novos as Record<string, any> | null;
-            if (!dadosNovos) continue;
-            
-            // Get the status that was SAVED in this history entry
-            const savedStatus = 
-              dadosNovos['excluido_da_base']?.value || 
-              dadosNovos['excluido_da_base'] ||
-              dadosNovos['Excluido_Da_Base']?.value ||
-              dadosNovos['Excluido_Da_Base'] ||
-              dadosNovos['status']?.value ||
-              dadosNovos['status'] ||
-              dadosNovos['Status']?.value ||
-              dadosNovos['Status'];
-            
-            if (!savedStatus || typeof savedStatus !== 'string' || !savedStatus.trim()) continue;
-            
-            // Get the numero from this history entry to find the current row
-            const entryNumero = entry.numero;
-            if (!entryNumero || !numeroToRowData[entryNumero]) continue;
-            
-            const { id: rowId, currentStatus } = numeroToRowData[entryNumero];
-            
-            // Skip if already processed
-            if (processedRowIds.has(rowId)) continue;
-            
-            // Only show as "último status" if it's DIFFERENT from the current status
-            if (currentStatus && savedStatus === currentStatus) continue;
-            
-            newCache[rowId] = savedStatus;
-            processedRowIds.add(rowId);
-          }
+
+          setLastStatusCache(prev => ({ ...prev, ...newCache }));
+        } catch (error) {
+          console.error('Error fetching history for rows:', error);
         }
-        
-        setLastStatusCache(prev => ({ ...prev, ...newCache }));
-      } catch (error) {
-        console.error('Error fetching history for rows:', error);
-      }
     };
     
     fetchLastStatuses();
