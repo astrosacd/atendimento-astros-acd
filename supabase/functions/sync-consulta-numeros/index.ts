@@ -144,17 +144,15 @@ Deno.serve(async (req) => {
       console.warn('[sync-consulta-numeros] Could not fetch fields:', e?.message || String(e));
     }
 
-    // Incremental sync: fetch multiple pages per invocation for faster sync.
-    // Increased from 1 to 10 pages per call to reduce round-trips.
+    // Full sync: fetch ALL pages to properly detect deletions
     const pageSize = 50;
-    const maxPagesPerInvocation = 10;
 
-    let page = requestedPage ?? 1;
-    let pagesProcessed = 0;
+    let page = 1;
     let rowsSyncedThisCall = 0;
     let hasMore = true;
+    const allBaserowIds: number[] = []; // Collect all IDs from Baserow
 
-    while (hasMore && pagesProcessed < maxPagesPerInvocation) {
+    while (hasMore) {
       const url = new URL(`${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/`);
       url.searchParams.set('user_field_names', 'true');
       url.searchParams.set('page', String(page));
@@ -182,7 +180,12 @@ Deno.serve(async (req) => {
       const json = await res.json();
       const results = Array.isArray(json?.results) ? json.results : [];
 
-      // Upsert this page immediately (don’t keep everything in memory)
+      // Collect all Baserow IDs for deletion check later
+      for (const row of results) {
+        allBaserowIds.push(row.id);
+      }
+
+      // Upsert this page immediately (don't keep everything in memory)
       if (results.length > 0) {
         const upsertData = results.map((row: any) => ({
           baserow_row_id: row.id,
@@ -203,46 +206,71 @@ Deno.serve(async (req) => {
       rowsSyncedThisCall += results.length;
 
       hasMore = !!json?.next;
-      pagesProcessed += 1;
+      if (hasMore) page += 1;
 
-      // Budget guard: bail out if we're close to platform timeout
-      if (Date.now() - startedAt > 22000) {
+      // Budget guard: bail out if we're taking too long (50 seconds)
+      if (Date.now() - startedAt > 50000) {
         console.warn('[sync-consulta-numeros] Approaching runtime limit, stopping early');
         break;
       }
-
-      if (hasMore) page += 1;
     }
 
     const done = !hasMore;
-    const nextPageToReturn = done ? null : page;
 
-    // Update sync status (only mark success when we're done with all pages)
+    // Delete rows that no longer exist in Baserow
+    let rowsDeleted = 0;
+    if (done && allBaserowIds.length > 0) {
+      console.log(`[sync-consulta-numeros] Checking for deleted rows. Total Baserow IDs: ${allBaserowIds.length}`);
+      
+      // Get all local IDs
+      const { data: localRows } = await supabase
+        .from('consulta_numeros_cache')
+        .select('baserow_row_id');
+      
+      if (localRows && localRows.length > 0) {
+        const baserowIdSet = new Set(allBaserowIds);
+        const idsToDelete = localRows
+          .filter(row => !baserowIdSet.has(row.baserow_row_id))
+          .map(row => row.baserow_row_id);
+        
+        if (idsToDelete.length > 0) {
+          console.log(`[sync-consulta-numeros] Deleting ${idsToDelete.length} rows no longer in Baserow`);
+          
+          // Delete in chunks
+          const chunkSize = 100;
+          for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+            const chunk = idsToDelete.slice(i, i + chunkSize);
+            const { error: deleteError } = await supabase
+              .from('consulta_numeros_cache')
+              .delete()
+              .in('baserow_row_id', chunk);
+            if (deleteError) {
+              console.error('[sync-consulta-numeros] Delete error:', deleteError);
+            }
+          }
+          rowsDeleted = idsToDelete.length;
+        }
+      }
+    }
+
+    // Update sync status
     const { data: statusRow } = await supabase
       .from('consulta_numeros_sync_status')
-      .select('id, rows_synced')
+      .select('id')
       .single();
 
+    // Get actual total count from the cache
+    const { count: finalRowCount } = await supabase
+      .from('consulta_numeros_cache')
+      .select('*', { count: 'exact', head: true });
+
     if (statusRow?.id) {
-      // When done, get the actual total count from the cache to show accurate number
-      let finalRowCount = rowsSyncedThisCall;
-      if (done) {
-        const { count } = await supabase
-          .from('consulta_numeros_cache')
-          .select('*', { count: 'exact', head: true });
-        finalRowCount = count || rowsSyncedThisCall;
-      } else {
-        // Accumulate rows_synced across invocations during sync
-        const previousRowsSynced = (requestedPage === 1) ? 0 : (statusRow.rows_synced || 0);
-        finalRowCount = previousRowsSynced + rowsSyncedThisCall;
-      }
-      
       await supabase
         .from('consulta_numeros_sync_status')
         .update({
           last_sync_at: done ? new Date().toISOString() : null,
           last_sync_status: done ? 'success' : 'syncing',
-          rows_synced: finalRowCount,
+          rows_synced: finalRowCount || rowsSyncedThisCall,
           error_message: null,
           updated_at: new Date().toISOString(),
         })
@@ -250,16 +278,16 @@ Deno.serve(async (req) => {
     }
 
     console.log(
-      `[sync-consulta-numeros] Completed invocation. done=${done} page=${page} rowsSyncedThisCall=${rowsSyncedThisCall}`
+      `[sync-consulta-numeros] Completed. done=${done} rows_synced=${rowsSyncedThisCall} rows_deleted=${rowsDeleted} total_in_cache=${finalRowCount}`
     );
 
     return new Response(
       JSON.stringify({
         success: true,
         done,
-        next_page: nextPageToReturn,
-        page_synced: requestedPage ?? 1,
         rows_synced: rowsSyncedThisCall,
+        rows_deleted: rowsDeleted,
+        total_in_cache: finalRowCount,
         fields_synced: fields.length,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

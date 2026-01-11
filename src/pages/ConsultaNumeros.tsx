@@ -117,7 +117,7 @@ export default function ConsultaNumeros() {
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  // Trigger sync from Baserow to local cache (incremental to avoid backend timeouts)
+  // Trigger sync from Baserow to local cache (full sync including deletions)
   const handleSyncFromBaserow = async () => {
     setIsSyncing(true);
     try {
@@ -126,47 +126,31 @@ export default function ConsultaNumeros() {
         throw new Error('Sessão inválida');
       }
 
-      let nextPage: number | null = 1;
-      let totalSynced = 0;
-      let loops = 0;
-
-      while (nextPage && loops < 400) {
-        loops += 1;
-
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-consulta-numeros`,
-          {
-            method: 'POST',
-            headers: {
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              Authorization: `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ page: nextPage }),
-          }
-        );
-
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || !json?.success) {
-          throw new Error(json?.error || 'Erro ao sincronizar');
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-consulta-numeros`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
         }
+      );
 
-        totalSynced += Number(json.rows_synced || 0);
-        nextPage = json.done ? null : json.next_page;
-
-        // Small delay to avoid hammering the backend
-        if (nextPage) {
-          await new Promise((r) => setTimeout(r, 250));
-        }
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'Erro ao sincronizar');
       }
 
-      if (nextPage) {
-        throw new Error('Sincronização demorou demais. Tente novamente.');
-      }
-
+      const deletedCount = json.rows_deleted || 0;
+      const syncedCount = json.total_in_cache || json.rows_synced || 0;
+      
       toast({
         title: 'Sincronização concluída!',
-        description: `${totalSynced} registros sincronizados.`,
+        description: deletedCount > 0 
+          ? `${syncedCount} registros sincronizados, ${deletedCount} removidos.`
+          : `${syncedCount} registros sincronizados.`,
       });
 
       // Refresh queries after sync
