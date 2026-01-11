@@ -425,11 +425,12 @@ export default function ConsultaNumeros() {
       
       try {
         // Single query to fetch history for all rows at once
+        // Include all action types that may contain status changes
         const { data: historyData } = await supabase
           .from('consulta_numeros_history')
           .select('baserow_row_id, dados_anteriores, created_at')
           .in('baserow_row_id', rowIds)
-          .in('acao', ['atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+          .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
           .order('created_at', { ascending: false });
         
         const newCache: LastStatusInfo = {};
