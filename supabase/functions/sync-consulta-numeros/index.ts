@@ -144,10 +144,10 @@ Deno.serve(async (req) => {
       console.warn('[sync-consulta-numeros] Could not fetch fields:', e?.message || String(e));
     }
 
-    // Incremental sync: fetch only a small number of pages per invocation.
-    // This avoids hard execution time limits (which were causing 500 timeout + UI stuck on "syncing").
-    const pageSize = 10;
-    const maxPagesPerInvocation = 1;
+    // Incremental sync: fetch multiple pages per invocation for faster sync.
+    // Increased from 1 to 10 pages per call to reduce round-trips.
+    const pageSize = 50;
+    const maxPagesPerInvocation = 10;
 
     let page = requestedPage ?? 1;
     let pagesProcessed = 0;
