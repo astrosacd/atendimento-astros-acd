@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
     let page = 1;
     let hasMore = true;
     let totalRowsSynced = 0;
+    let totalRowsDeleted = 0;
+    const allBaserowIds: number[] = [];
     const startedAt = Date.now();
     const maxRuntimeMs = 25000; // 25 seconds max
 
@@ -165,12 +167,15 @@ Deno.serve(async (req) => {
       const json = await res.json();
       const results = Array.isArray(json?.results) ? json.results : [];
 
-      // Upsert rows
+      // Upsert rows and collect IDs
       if (results.length > 0) {
-        const upsertData = results.map((row: any) => ({
-          baserow_row_id: row.id,
-          row_data: row,
-        }));
+        const upsertData = results.map((row: any) => {
+          allBaserowIds.push(row.id);
+          return {
+            baserow_row_id: row.id,
+            row_data: row,
+          };
+        });
 
         const { error: upsertError } = await supabase
           .from('consulta_numeros_cache')
@@ -182,6 +187,40 @@ Deno.serve(async (req) => {
 
       hasMore = !!json?.next;
       page++;
+    }
+
+    // Delete rows that no longer exist in Baserow
+    if (allBaserowIds.length > 0) {
+      console.log(`[auto-sync] Checking for deleted rows (total Baserow IDs: ${allBaserowIds.length})...`);
+      
+      const { data: localRows, error: fetchError } = await supabase
+        .from('consulta_numeros_cache')
+        .select('baserow_row_id');
+      
+      if (fetchError) {
+        console.error('[auto-sync] Error fetching local rows:', fetchError);
+      } else if (localRows) {
+        const baserowIdSet = new Set(allBaserowIds);
+        const idsToDelete = localRows
+          .map(row => row.baserow_row_id)
+          .filter(id => !baserowIdSet.has(id));
+        
+        if (idsToDelete.length > 0) {
+          console.log(`[auto-sync] Deleting ${idsToDelete.length} rows that no longer exist in Baserow...`);
+          
+          const { error: deleteError } = await supabase
+            .from('consulta_numeros_cache')
+            .delete()
+            .in('baserow_row_id', idsToDelete);
+          
+          if (deleteError) {
+            console.error('[auto-sync] Error deleting rows:', deleteError);
+          } else {
+            totalRowsDeleted = idsToDelete.length;
+            console.log(`[auto-sync] Deleted ${totalRowsDeleted} rows`);
+          }
+        }
+      }
     }
 
     // Update auto-sync config with last sync time and next scheduled
@@ -214,13 +253,14 @@ Deno.serve(async (req) => {
         .eq('id', statusRow.id);
     }
 
-    console.log(`[auto-sync] Completed! Synced ${totalRowsSynced} rows`);
+    console.log(`[auto-sync] Completed! Synced ${totalRowsSynced} rows, deleted ${totalRowsDeleted} rows`);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Auto-sync completed',
         rows_synced: totalRowsSynced,
+        rows_deleted: totalRowsDeleted,
         next_sync_at: nextScheduledAt.toISOString(),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
