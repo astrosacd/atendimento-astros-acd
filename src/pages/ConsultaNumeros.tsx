@@ -309,6 +309,30 @@ export default function ConsultaNumeros() {
     );
   }, [baserowFields]);
 
+  // Determina se o número é Interno (IN) ou Externo (EX) baseado nas observações
+  const getNumeroTipo = useCallback((row: NumeroResult): 'IN' | 'EX' => {
+    const obs = row?.observacoes ?? row?.observacao ?? '';
+    if (typeof obs !== 'string') return 'EX';
+    
+    const obsLower = obs.toLowerCase();
+    
+    // Critérios para INTERNO:
+    // - "SIM não aprovisionado"
+    // - "✅ COM SEGURO" ou "com seguro"
+    // - "🚫 SEM SEGURO" ou "sem seguro"
+    if (
+      obsLower.includes('sim não aprovisionado') ||
+      obsLower.includes('sim nao aprovisionado') ||
+      obs.includes('✅ COM SEGURO') ||
+      obsLower.includes('com seguro') ||
+      obs.includes('🚫 SEM SEGURO') ||
+      obsLower.includes('sem seguro')
+    ) {
+      return 'IN';
+    }
+    
+    return 'EX';
+  }, []);
 
   const resolveLastStatus = useCallback(
     (row: NumeroResult): string | null | undefined => {
@@ -1288,6 +1312,20 @@ export default function ConsultaNumeros() {
                         {visibleFields.map((field) => (
                           <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
+                        {/* Coluna Tipo (IN/EX) */}
+                        <TableHead className="w-[60px]">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                                Tipo
+                              </TooltipTrigger>
+                              <TooltipContent className="z-50 max-w-[200px]">
+                                IN = Interno (com/sem seguro, SIM não aprovisionado)<br/>
+                                EX = Externo
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableHead>
                         {/* Coluna Último Status Ativo */}
                         <TableHead className="min-w-[140px]">
                           <TooltipProvider>
@@ -1421,6 +1459,21 @@ export default function ConsultaNumeros() {
                                 );
                               })}
 
+                              {/* Coluna Tipo (IN/EX) */}
+                              <TableCell className="w-[60px]">
+                                {(() => {
+                                  const tipo = getNumeroTipo(row);
+                                  return (
+                                    <Badge 
+                                      variant={tipo === 'IN' ? 'default' : 'secondary'}
+                                      className={tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                                    >
+                                      {tipo}
+                                    </Badge>
+                                  );
+                                })()}
+                              </TableCell>
+
                               {/* Coluna Último Status Ativo */}
                               <TableCell className="min-w-[140px]">
                                 {(() => {
@@ -1459,7 +1512,7 @@ export default function ConsultaNumeros() {
                             {/* Linha expandida com todos os detalhes */}
                             {isExpanded && (
                               <TableRow key={`${row.id}-expanded`} className="bg-muted/30">
-                                <TableCell colSpan={visibleFields.length + 4} className="p-4">
+                                <TableCell colSpan={visibleFields.length + 5} className="p-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {visibleFields.map((field) => {
                                       const cellValue = row[field.name];
@@ -1495,6 +1548,26 @@ export default function ConsultaNumeros() {
                                         </div>
                                       );
                                     })}
+                                    
+                                    {/* Tipo (IN/EX) na seção expandida */}
+                                    <div className="space-y-1">
+                                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        Tipo
+                                      </p>
+                                      <p className="text-sm">
+                                        {(() => {
+                                          const tipo = getNumeroTipo(row);
+                                          return (
+                                            <Badge 
+                                              variant={tipo === 'IN' ? 'default' : 'secondary'}
+                                              className={tipo === 'IN' ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                                            >
+                                              {tipo === 'IN' ? 'Interno' : 'Externo'}
+                                            </Badge>
+                                          );
+                                        })()}
+                                      </p>
+                                    </div>
                                     
                                     {/* Último Status Ativo na seção expandida */}
                                     <div className="space-y-1">
