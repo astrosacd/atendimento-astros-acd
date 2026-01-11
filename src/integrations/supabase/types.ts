@@ -3287,6 +3287,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
         Returns: boolean
