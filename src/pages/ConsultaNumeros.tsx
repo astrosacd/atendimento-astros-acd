@@ -417,52 +417,77 @@ export default function ConsultaNumeros() {
       if (!queryResult?.data?.length) return;
       
       // Get all unique baserow row IDs that we don't already have in cache
-      const rowIds = queryResult.data
-        .map((row: NumeroResult) => row.id.toString())
-        .filter((id: string) => !(parseInt(id) in lastStatusCache));
+      // Get rows that are not yet in cache
+      const rowsToFetch = queryResult.data
+        .filter((row: NumeroResult) => !(row.id in lastStatusCache));
       
-      if (rowIds.length === 0) return;
+      if (rowsToFetch.length === 0) return;
       
       try {
-        // Single query to fetch history for all rows at once
-        // Include all action types that may contain status changes
+        // Extract phone numbers from rows to search history by numero (not just baserow_row_id)
+        // This handles cases where the same phone number has multiple baserow entries
+        const numeros = rowsToFetch.map((row: NumeroResult) => row.numero).filter(Boolean);
+        const rowIds = rowsToFetch.map((row: NumeroResult) => row.id.toString());
+        
+        // Query history by both baserow_row_id AND numero to find all relevant history
         const { data: historyData } = await supabase
           .from('consulta_numeros_history')
-          .select('baserow_row_id, dados_anteriores, created_at')
-          .in('baserow_row_id', rowIds)
+          .select('baserow_row_id, numero, dados_anteriores, created_at')
+          .or(`baserow_row_id.in.(${rowIds.join(',')}),numero.in.(${numeros.join(',')})`)
           .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
           .order('created_at', { ascending: false });
         
         const newCache: LastStatusInfo = {};
         
         // Initialize all IDs with null
-        rowIds.forEach((id: string) => {
-          newCache[parseInt(id)] = null;
+        rowsToFetch.forEach((row: NumeroResult) => {
+          newCache[row.id] = null;
         });
         
         if (historyData && historyData.length > 0) {
-          // Group by baserow_row_id and get the most recent previous status for each
-          const processedIds = new Set<string>();
+          // Create a map from numero to row id for the current rows
+          const numeroToRowId: Record<string, number> = {};
+          rowsToFetch.forEach((row: NumeroResult) => {
+            if (row.numero) {
+              numeroToRowId[row.numero] = row.id;
+            }
+          });
+          
+          // Track which row IDs we've already found a status for
+          const processedRowIds = new Set<number>();
           
           for (const entry of historyData) {
-            const rowId = entry.baserow_row_id;
-            if (!rowId || processedIds.has(rowId)) continue;
-            
             const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
-            if (dadosAnteriores) {
-              const prevStatus = 
-                dadosAnteriores['excluido_da_base']?.value || 
-                dadosAnteriores['excluido_da_base'] ||
-                dadosAnteriores['Excluido_Da_Base']?.value ||
-                dadosAnteriores['Excluido_Da_Base'] ||
-                dadosAnteriores['status']?.value ||
-                dadosAnteriores['status'] ||
-                dadosAnteriores['Status']?.value ||
-                dadosAnteriores['Status'];
-              
-              if (prevStatus && typeof prevStatus === 'string' && prevStatus.trim()) {
-                newCache[parseInt(rowId)] = prevStatus;
-                processedIds.add(rowId);
+            if (!dadosAnteriores) continue;
+            
+            const prevStatus = 
+              dadosAnteriores['excluido_da_base']?.value || 
+              dadosAnteriores['excluido_da_base'] ||
+              dadosAnteriores['Excluido_Da_Base']?.value ||
+              dadosAnteriores['Excluido_Da_Base'] ||
+              dadosAnteriores['status']?.value ||
+              dadosAnteriores['status'] ||
+              dadosAnteriores['Status']?.value ||
+              dadosAnteriores['Status'];
+            
+            if (!prevStatus || typeof prevStatus !== 'string' || !prevStatus.trim()) continue;
+            
+            // Try to match by baserow_row_id first
+            if (entry.baserow_row_id) {
+              const rowId = parseInt(entry.baserow_row_id);
+              if (rowId in newCache && !processedRowIds.has(rowId)) {
+                newCache[rowId] = prevStatus;
+                processedRowIds.add(rowId);
+                continue;
+              }
+            }
+            
+            // Try to match by numero (for cases where baserow_row_id changed)
+            if (entry.numero && numeroToRowId[entry.numero] !== undefined) {
+              const rowId = numeroToRowId[entry.numero];
+              if (!processedRowIds.has(rowId)) {
+                newCache[rowId] = prevStatus;
+                processedRowIds.add(rowId);
               }
             }
           }
