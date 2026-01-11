@@ -1107,6 +1107,36 @@ export type Database = {
         }
         Relationships: []
       }
+      consulta_numeros_auto_sync_config: {
+        Row: {
+          created_at: string
+          id: string
+          interval_minutes: number
+          is_active: boolean
+          last_auto_sync_at: string | null
+          next_scheduled_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interval_minutes?: number
+          is_active?: boolean
+          last_auto_sync_at?: string | null
+          next_scheduled_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interval_minutes?: number
+          is_active?: boolean
+          last_auto_sync_at?: string | null
+          next_scheduled_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulta_numeros_cache: {
         Row: {
           baserow_row_id: number
