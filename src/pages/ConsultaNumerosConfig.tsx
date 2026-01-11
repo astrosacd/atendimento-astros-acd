@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Database, EyeOff, Loader2, Plus, Trash2, Tag, Mail, Bell, Clock } from 'lucide-react';
+import { AutoSyncConfigCard } from '@/components/consulta-numeros/AutoSyncConfigCard';
 import { ReminderConfigTab } from '@/components/consulta-numeros/ReminderConfigTab';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -397,6 +398,10 @@ export default function ConsultaNumerosConfig() {
                 <Bell className="h-4 w-4" />
                 Lembretes
               </TabsTrigger>
+              <TabsTrigger value="auto-sync" className="gap-2">
+                <Clock className="h-4 w-4" />
+                Sincronização Automática
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="connection">
@@ -780,6 +785,10 @@ export default function ConsultaNumerosConfig() {
 
             <TabsContent value="reminders">
               <ReminderConfigTab />
+            </TabsContent>
+
+            <TabsContent value="auto-sync">
+              <AutoSyncConfigCard />
             </TabsContent>
           </Tabs>
         )}
