@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,10 +29,12 @@ import {
   Trash2,
   DollarSign,
   Settings,
+  BarChart3,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { statusConfig, type Proposal, type ProposalStatus } from '@/types/proposals';
@@ -51,6 +54,7 @@ export default function Propostas() {
   const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
 
   const handleCreate = async () => {
     const result = await createProposal.mutateAsync('Nova Proposta');
@@ -205,11 +209,25 @@ export default function Propostas() {
                 proposal={proposal}
                 onClick={() => navigate(`/propostas/${proposal.id}`)}
                 onDelete={canDeleteProposals() ? () => setDeleteId(proposal.id) : undefined}
+                onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
               />
             ))}
           </div>
         )}
+
+        {/* Dialog de Histórico de Visualizações */}
+        <Dialog open={!!viewHistoryProposalId} onOpenChange={() => setViewHistoryProposalId(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Histórico de Interações
+              </DialogTitle>
+            </DialogHeader>
+            <ProposalViewsHistory proposalId={viewHistoryProposalId || undefined} />
+          </DialogContent>
+        </Dialog>
 
         {/* Dialog de confirmação de exclusão */}
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -242,11 +260,13 @@ function ProposalCard({
   proposal,
   onClick,
   onDelete,
+  onViewHistory,
   formatCurrency,
 }: {
   proposal: Proposal;
   onClick: () => void;
   onDelete?: () => void;
+  onViewHistory: () => void;
   formatCurrency: (value: number) => string;
 }) {
   const config = statusConfig[proposal.status];
@@ -281,13 +301,25 @@ function ProposalCard({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {proposal.total_value > 0 && (
               <div className="flex items-center gap-1 text-green-600 font-medium">
                 <DollarSign className="h-4 w-4" />
                 {formatCurrency(proposal.total_value)}
               </div>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewHistory();
+              }}
+              title="Ver histórico de visualizações"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </Button>
             {onDelete && (
               <Button
                 variant="ghost"

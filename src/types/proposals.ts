@@ -27,7 +27,12 @@ export interface Proposal {
   total_value: number;
   notes: string | null;
   client_signature: string | null;
-  signed_at: string | null;
+  signed_at?: string | null;
+  signed_status?: 'accepted' | 'rejected' | null;
+  signed_name?: string | null;
+  signed_ip?: string | null;
+  signature_image?: string | null;
+  rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
   // Relacionamentos

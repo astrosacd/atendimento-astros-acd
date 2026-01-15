@@ -3294,6 +3294,7 @@ export type Database = {
           manual_client_name: string | null
           manual_client_phone: string | null
           notes: string | null
+          rejection_reason: string | null
           share_token: string
           signature_image: string | null
           signed_at: string | null
@@ -3318,6 +3319,7 @@ export type Database = {
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          rejection_reason?: string | null
           share_token?: string
           signature_image?: string | null
           signed_at?: string | null
@@ -3342,6 +3344,7 @@ export type Database = {
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          rejection_reason?: string | null
           share_token?: string
           signature_image?: string | null
           signed_at?: string | null

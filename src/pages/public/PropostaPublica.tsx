@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SignatureCanvas } from '@/components/proposals/SignatureCanvas';
+import { RejectProposalDialog } from '@/components/proposals/RejectProposalDialog';
 import type { Proposal, ProposalSection, ProposalStatus } from '@/types/proposals';
 
 export default function PropostaPublica() {
@@ -28,6 +29,7 @@ export default function PropostaPublica() {
   const [clientName, setClientName] = useState('');
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   
   // Tracking refs
   const hasTrackedOpen = useRef(false);
@@ -117,7 +119,7 @@ export default function PropostaPublica() {
         return;
       }
 
-      setProposal(proposalData as Proposal);
+      setProposal(proposalData as unknown as Proposal);
       
       // Set client name from proposal
       if (proposalData.client?.nome) {
@@ -218,13 +220,16 @@ export default function PropostaPublica() {
     }
   };
 
-  const handleReject = async () => {
-    if (!proposal) return;
-
+  const handleOpenRejectDialog = () => {
     if (!clientName.trim()) {
-      toast.error('Por favor, informe seu nome');
+      toast.error('Por favor, informe seu nome antes de recusar');
       return;
     }
+    setShowRejectDialog(true);
+  };
+
+  const handleReject = async (reason: string) => {
+    if (!proposal) return;
 
     setIsRejecting(true);
     try {
@@ -237,6 +242,7 @@ export default function PropostaPublica() {
           signed_at: signedAt,
           signed_status: 'rejected',
           signed_name: clientName.trim(),
+          rejection_reason: reason || null,
         })
         .eq('id', proposal.id);
 
@@ -246,14 +252,17 @@ export default function PropostaPublica() {
       await trackEvent('signed_rejected', { 
         signed_name: clientName.trim(),
         signed_at: signedAt,
+        rejection_reason: reason || null,
       });
 
       setProposal((prev) => (prev ? { 
         ...prev, 
         status: 'rejected' as ProposalStatus,
         signed_at: signedAt,
+        rejection_reason: reason || null,
       } : null));
       
+      setShowRejectDialog(false);
       toast.success('Proposta recusada');
     } catch (err) {
       console.error('Erro ao recusar proposta:', err);
@@ -371,13 +380,13 @@ export default function PropostaPublica() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleReject}
-                    disabled={isRejecting || !clientName.trim()}
+                    onClick={handleOpenRejectDialog}
+                    disabled={isRejecting}
                     className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     size="lg"
                   >
                     <XCircle className="h-5 w-5 mr-2" />
-                    {isRejecting ? 'Recusando...' : 'Recusar Proposta'}
+                    Recusar Proposta
                   </Button>
                 </div>
 
@@ -388,6 +397,15 @@ export default function PropostaPublica() {
             </CardContent>
           </Card>
         )}
+
+        {/* Modal de Recusa */}
+        <RejectProposalDialog
+          open={showRejectDialog}
+          onOpenChange={setShowRejectDialog}
+          onConfirm={handleReject}
+          clientName={clientName}
+          isLoading={isRejecting}
+        />
 
         {/* Mensagem de proposta finalizada */}
         {isFinalized && (
