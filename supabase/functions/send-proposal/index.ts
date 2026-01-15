@@ -15,7 +15,7 @@ interface SendProposalRequest {
   recipientName?: string;
 }
 
-// Professional HTML email template
+// Professional HTML email template - minified to avoid encoding issues
 function generateEmailHtml(
   clientName: string,
   proposalTitle: string,
@@ -23,105 +23,9 @@ function generateEmailHtml(
   senderName: string,
   companyName?: string
 ): string {
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proposta Comercial</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          
-          <!-- Header -->
-          <tr>
-            <td style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
-                📄 Proposta Comercial
-              </h1>
-            </td>
-          </tr>
-          
-          <!-- Content -->
-          <tr>
-            <td style="padding: 40px;">
-              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                Olá <strong>${clientName}</strong>,
-              </p>
-              
-              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                É com grande satisfação que enviamos sua proposta comercial personalizada:
-              </p>
-              
-              <!-- Proposal Card -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
-                <tr>
-                  <td style="background-color: #f8fafc; border-radius: 8px; padding: 24px; border-left: 4px solid #3b82f6;">
-                    <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">
-                      Proposta
-                    </p>
-                    <p style="color: #1e293b; font-size: 20px; font-weight: 600; margin: 0;">
-                      ${proposalTitle}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                Clique no botão abaixo para visualizar todos os detalhes, valores e condições da proposta:
-              </p>
-              
-              <!-- CTA Button -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td align="center">
-                    <a href="${proposalLink}" 
-                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);">
-                      📋 Visualizar Proposta
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 40px 0 0 0; text-align: center;">
-                Caso o botão não funcione, copie e cole o link abaixo no seu navegador:
-              </p>
-              <p style="color: #3b82f6; font-size: 12px; word-break: break-all; text-align: center; margin: 10px 0 0 0;">
-                ${proposalLink}
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f8fafc; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
-              <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
-                Atenciosamente,
-              </p>
-              <p style="color: #374151; font-size: 16px; font-weight: 600; margin: 0;">
-                ${senderName}
-              </p>
-              ${companyName ? `<p style="color: #6b7280; font-size: 14px; margin: 5px 0 0 0;">${companyName}</p>` : ''}
-              
-              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-              
-              <p style="color: #9ca3af; font-size: 12px; margin: 0; text-align: center;">
-                Este email foi enviado automaticamente. Por favor, não responda diretamente.
-              </p>
-            </td>
-          </tr>
-          
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`;
+  const companyHtml = companyName ? `<p style="color:#6b7280;font-size:14px;margin:5px 0 0 0;">${companyName}</p>` : '';
+  
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Proposta Comercial</title></head><body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);padding:40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:600;">📄 Proposta Comercial</h1></td></tr><tr><td style="padding:40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">É com grande satisfação que enviamos sua proposta comercial personalizada:</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:24px;border-left:4px solid #3b82f6;"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px 0;">PROPOSTA</p><p style="color:#1e293b;font-size:20px;font-weight:600;margin:0;">${proposalTitle}</p></td></tr></table><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 30px 0;">Clique no botão abaixo para visualizar todos os detalhes, valores e condições da proposta:</p><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center"><a href="${proposalLink}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);color:#ffffff;text-decoration:none;padding:16px 48px;border-radius:8px;font-size:16px;font-weight:600;box-shadow:0 4px 14px rgba(59,130,246,0.4);">📋 Visualizar Proposta</a></td></tr></table><p style="color:#6b7280;font-size:14px;line-height:1.6;margin:40px 0 0 0;text-align:center;">Caso o botão não funcione, copie e cole o link abaixo no seu navegador:</p><p style="color:#3b82f6;font-size:12px;word-break:break-all;text-align:center;margin:10px 0 0 0;">${proposalLink}</p></td></tr><tr><td style="background-color:#f8fafc;padding:30px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Atenciosamente,</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p>${companyHtml}<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"><p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">Este email foi enviado automaticamente. Por favor, não responda diretamente.</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 // Professional WhatsApp message template
