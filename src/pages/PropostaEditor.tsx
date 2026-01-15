@@ -29,13 +29,26 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useProposals } from '@/hooks/useProposals';
-import { useProposalSections } from '@/hooks/useProposalSections';
+import { useProposalSections, type SectionType, type ProposalSection } from '@/hooks/useProposalSections';
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { SectionEditor } from '@/components/proposals/SectionEditor';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
-import { statusConfig, sectionTypeConfig, type SectionType, type ProposalStatus, type SignatureContent } from '@/types/proposals';
+import { statusConfig } from '@/types/proposals';
+import type { ProposalStatus, SignatureContent } from '@/types/proposals';
+
+const sectionTypeConfig: Record<SectionType, { label: string; icon: string }> = {
+  cover: { label: 'Capa', icon: 'Layout' },
+  text: { label: 'Texto', icon: 'Type' },
+  pricing: { label: 'Preços', icon: 'DollarSign' },
+  timeline: { label: 'Cronograma', icon: 'Calendar' },
+  team: { label: 'Equipe', icon: 'Users' },
+  testimonials: { label: 'Depoimentos', icon: 'MessageSquare' },
+  gallery: { label: 'Galeria', icon: 'Image' },
+  terms: { label: 'Termos', icon: 'FileText' },
+  signature: { label: 'Assinatura', icon: 'PenTool' },
+};
 
 const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
   { type: 'cover', icon: <Layout className="h-5 w-5" /> },
@@ -55,7 +68,7 @@ export default function PropostaEditor() {
   const { useProposal, updateProposal } = useProposals();
   const { data: proposal, isLoading: isLoadingProposal } = useProposal(id);
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
-  const { clientes } = useClientes();
+  const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
 
   const [title, setTitle] = useState('');
@@ -65,6 +78,14 @@ export default function PropostaEditor() {
   const [activeTab, setActiveTab] = useState('edit');
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [clientes, setClientes] = useState<{ id: string; nome: string; email: string; numero: string }[]>([]);
+
+  // Carregar clientes
+  useEffect(() => {
+    fetchClientes().then((data) => {
+      setClientes(data.map(c => ({ id: c.id, nome: c.nome, email: c.email, numero: c.numero })));
+    });
+  }, []);
 
   // Sincroniza estado local com dados do banco
   useEffect(() => {

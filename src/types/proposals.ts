@@ -1,5 +1,5 @@
 // =============================================
-// TIPOS DO SISTEMA DE PROPOSTAS COMERCIAIS
+// TIPOS DO SISTEMA DE PROPOSTAS COMERCIAIS v1
 // =============================================
 
 export type ProposalStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected';

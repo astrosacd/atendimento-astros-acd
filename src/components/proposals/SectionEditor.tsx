@@ -24,9 +24,8 @@ import {
   PenTool,
 } from 'lucide-react';
 import { SignatureCanvas } from './SignatureCanvas';
+import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
-  ProposalSection, 
-  SectionType,
   CoverContent,
   TextContent,
   PricingContent,
@@ -88,17 +87,17 @@ export function SectionEditor({
   const renderContent = () => {
     switch (sectionType) {
       case 'cover':
-        return <CoverEditor content={section.content as CoverContent} onChange={updateContent} disabled={!canEdit} />;
+        return <CoverEditor content={section.content as unknown as CoverContent} onChange={updateContent} disabled={!canEdit} />;
       case 'text':
-        return <TextEditor content={section.content as TextContent} onChange={updateContent} disabled={!canEdit} />;
+        return <TextEditor content={section.content as unknown as TextContent} onChange={updateContent} disabled={!canEdit} />;
       case 'pricing':
-        return <PricingEditor content={section.content as PricingContent} onChange={updateContent} disabled={!canEdit} />;
+        return <PricingEditor content={section.content as unknown as PricingContent} onChange={updateContent} disabled={!canEdit} />;
       case 'timeline':
-        return <TimelineEditor content={section.content as TimelineContent} onChange={updateContent} disabled={!canEdit} />;
+        return <TimelineEditor content={section.content as unknown as TimelineContent} onChange={updateContent} disabled={!canEdit} />;
       case 'terms':
-        return <TermsEditor content={section.content as TermsContent} onChange={updateContent} disabled={!canEdit} />;
+        return <TermsEditor content={section.content as unknown as TermsContent} onChange={updateContent} disabled={!canEdit} />;
       case 'signature':
-        return <SignatureEditor content={section.content as SignatureContent} onChange={updateContent} disabled={!canEdit} />;
+        return <SignatureEditor content={section.content as unknown as SignatureContent} onChange={updateContent} disabled={!canEdit} />;
       default:
         return (
           <div className="text-center py-4 text-muted-foreground">

@@ -1,8 +1,33 @@
+// Hook for managing proposal sections
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { ProposalSection, SectionType } from '@/types/proposals';
 import type { Json } from '@/integrations/supabase/types';
+
+// Section types
+export type SectionType = 
+  | 'cover' 
+  | 'text' 
+  | 'pricing' 
+  | 'timeline' 
+  | 'team' 
+  | 'testimonials' 
+  | 'gallery' 
+  | 'terms' 
+  | 'signature';
+
+// Local interface to avoid circular dependencies
+export interface ProposalSection {
+  id: string;
+  proposal_id: string;
+  section_type: SectionType | string;
+  title: string | null;
+  content: Record<string, unknown>;
+  order_index: number;
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useProposalSections(proposalId: string | undefined) {
   const queryClient = useQueryClient();
