@@ -43,6 +43,7 @@ import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
 import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
+import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
 import { statusConfig } from '@/types/proposals';
 import type { ProposalStatus, SignatureContent } from '@/types/proposals';
 
@@ -612,11 +613,18 @@ export default function PropostaEditor() {
           </TabsContent>
 
           <TabsContent value="preview" className="mt-6">
-            <ProposalPreview
-              proposal={proposal}
-              sections={sections}
-              client={clientes.find((c) => c.id === clientId)}
-            />
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <ProposalPreview
+                  proposal={proposal}
+                  sections={sections}
+                  client={clientes.find((c) => c.id === clientId)}
+                />
+              </div>
+              <div className="lg:col-span-1">
+                <ProposalViewsHistory proposalId={id} />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

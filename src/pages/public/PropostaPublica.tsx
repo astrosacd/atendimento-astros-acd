@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, FileText, Calendar, User } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Calendar, User, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
@@ -23,12 +25,74 @@ export default function PropostaPublica() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState('');
+  const [clientName, setClientName] = useState('');
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  
+  // Tracking refs
+  const hasTrackedOpen = useRef(false);
+  const trackedSections = useRef<Set<string>>(new Set());
+  const maxScrollPercent = useRef(0);
+  const signatureSectionRef = useRef<HTMLDivElement>(null);
+  const hasTrackedSignatureView = useRef(false);
+
+  // Track event helper
+  const trackEvent = useCallback(async (eventType: string, eventData: object = {}) => {
+    if (!id) return;
+    
+    try {
+      await supabase.from('proposal_views').insert([{
+        proposal_id: id,
+        event_type: eventType,
+        event_data: eventData as any,
+        user_agent: navigator.userAgent,
+      }]);
+    } catch (err) {
+      console.error('Erro ao registrar evento:', err);
+    }
+  }, [id]);
+
+  // Track scroll
+  useEffect(() => {
+    if (!proposal || proposal.status === 'accepted' || proposal.status === 'rejected') return;
+
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.round((window.scrollY / scrollHeight) * 100);
+      
+      // Track significant scroll milestones (25%, 50%, 75%, 100%)
+      const milestones = [25, 50, 75, 100];
+      for (const milestone of milestones) {
+        if (scrollPercent >= milestone && maxScrollPercent.current < milestone) {
+          maxScrollPercent.current = milestone;
+          trackEvent('scroll', { percent: milestone });
+        }
+      }
+
+      // Track signature section view
+      if (signatureSectionRef.current && !hasTrackedSignatureView.current) {
+        const rect = signatureSectionRef.current.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          hasTrackedSignatureView.current = true;
+          trackEvent('signature_viewed');
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [proposal, trackEvent]);
+
+  // Track gallery views
+  const handleGalleryView = useCallback((sectionId: string) => {
+    if (!trackedSections.current.has(`gallery_${sectionId}`)) {
+      trackedSections.current.add(`gallery_${sectionId}`);
+      trackEvent('gallery_viewed', { section_id: sectionId });
+    }
+  }, [trackEvent]);
 
   useEffect(() => {
     loadProposal();
-    logView();
   }, [id, token]);
 
   const loadProposal = async () => {
@@ -54,6 +118,13 @@ export default function PropostaPublica() {
       }
 
       setProposal(proposalData as Proposal);
+      
+      // Set client name from proposal
+      if (proposalData.client?.nome) {
+        setClientName(proposalData.client.nome);
+      } else if (proposalData.manual_client_name) {
+        setClientName(proposalData.manual_client_name);
+      }
 
       // Buscar seções
       const { data: sectionsData, error: sectionsError } = await supabase
@@ -66,13 +137,28 @@ export default function PropostaPublica() {
         setSections(sectionsData as ProposalSection[]);
       }
 
-      // Atualizar status para "viewed" se ainda estiver como "sent"
-      if (proposalData.status === 'sent') {
-        await supabase
-          .from('proposals')
-          .update({ status: 'viewed' as ProposalStatus })
-          .eq('id', id);
-        setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+      // Track opened event (only once)
+      if (!hasTrackedOpen.current) {
+        hasTrackedOpen.current = true;
+        await supabase.from('proposal_views').insert({
+          proposal_id: id,
+          event_type: 'opened',
+          event_data: { 
+            referrer: document.referrer,
+            screen_width: window.innerWidth,
+            screen_height: window.innerHeight,
+          },
+          user_agent: navigator.userAgent,
+        });
+
+        // Atualizar status para "viewed" se ainda estiver como "sent"
+        if (proposalData.status === 'sent') {
+          await supabase
+            .from('proposals')
+            .update({ status: 'viewed' as ProposalStatus })
+            .eq('id', id);
+          setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar proposta:', err);
@@ -82,39 +168,47 @@ export default function PropostaPublica() {
     }
   };
 
-  const logView = async () => {
-    if (!id) return;
-
-    try {
-      await supabase.from('proposal_view_logs').insert({
-        proposal_id: id,
-        user_agent: navigator.userAgent,
-      });
-    } catch (err) {
-      console.error('Erro ao registrar visualização:', err);
-    }
-  };
-
   const handleAccept = async () => {
     if (!proposal || !clientSignature) {
       toast.error('Por favor, assine a proposta antes de aceitar');
       return;
     }
 
+    if (!clientName.trim()) {
+      toast.error('Por favor, informe seu nome');
+      return;
+    }
+
     setIsAccepting(true);
     try {
+      const signedAt = new Date().toISOString();
+      
       const { error } = await supabase
         .from('proposals')
         .update({
           status: 'accepted' as ProposalStatus,
           client_signature: clientSignature,
-          signed_at: new Date().toISOString(),
+          signed_at: signedAt,
+          signed_status: 'accepted',
+          signed_name: clientName.trim(),
+          signature_image: clientSignature,
         })
         .eq('id', proposal.id);
 
       if (error) throw error;
 
-      setProposal((prev) => (prev ? { ...prev, status: 'accepted' as ProposalStatus } : null));
+      // Track signing
+      await trackEvent('signed_accepted', { 
+        signed_name: clientName.trim(),
+        signed_at: signedAt,
+      });
+
+      setProposal((prev) => (prev ? { 
+        ...prev, 
+        status: 'accepted' as ProposalStatus,
+        signed_at: signedAt,
+      } : null));
+      
       toast.success('Proposta aceita com sucesso!');
     } catch (err) {
       console.error('Erro ao aceitar proposta:', err);
@@ -127,16 +221,39 @@ export default function PropostaPublica() {
   const handleReject = async () => {
     if (!proposal) return;
 
+    if (!clientName.trim()) {
+      toast.error('Por favor, informe seu nome');
+      return;
+    }
+
     setIsRejecting(true);
     try {
+      const signedAt = new Date().toISOString();
+      
       const { error } = await supabase
         .from('proposals')
-        .update({ status: 'rejected' as ProposalStatus })
+        .update({ 
+          status: 'rejected' as ProposalStatus,
+          signed_at: signedAt,
+          signed_status: 'rejected',
+          signed_name: clientName.trim(),
+        })
         .eq('id', proposal.id);
 
       if (error) throw error;
 
-      setProposal((prev) => (prev ? { ...prev, status: 'rejected' as ProposalStatus } : null));
+      // Track rejection
+      await trackEvent('signed_rejected', { 
+        signed_name: clientName.trim(),
+        signed_at: signedAt,
+      });
+
+      setProposal((prev) => (prev ? { 
+        ...prev, 
+        status: 'rejected' as ProposalStatus,
+        signed_at: signedAt,
+      } : null));
+      
       toast.success('Proposta recusada');
     } catch (err) {
       console.error('Erro ao recusar proposta:', err);
@@ -205,42 +322,68 @@ export default function PropostaPublica() {
           proposal={proposal}
           sections={sections}
           client={proposal.client}
+          onGalleryView={handleGalleryView}
         />
 
         {/* Ações (apenas se não finalizada) */}
         {!isFinalized && (
-          <Card>
+          <Card ref={signatureSectionRef}>
             <CardContent className="p-6">
-              <h3 className="font-semibold text-lg mb-4">Sua Decisão</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Para aceitar esta proposta, por favor assine abaixo:
+              <div className="flex items-center gap-2 mb-4">
+                <PenLine className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-lg">Sua Decisão</h3>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Nome do Cliente */}
+                <div className="space-y-2">
+                  <Label htmlFor="client-name">Seu Nome Completo *</Label>
+                  <Input
+                    id="client-name"
+                    placeholder="Digite seu nome completo"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                  />
+                </div>
+
+                {/* Assinatura */}
+                <div className="space-y-2">
+                  <Label>Assinatura *</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Desenhe sua assinatura no campo abaixo para aceitar esta proposta:
                   </p>
                   <SignatureCanvas
                     signature={clientSignature}
                     onChange={setClientSignature}
                   />
                 </div>
-                <div className="flex gap-4">
+
+                {/* Botões de Ação */}
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     onClick={handleAccept}
-                    disabled={isAccepting || !clientSignature}
-                    className="flex-1"
+                    disabled={isAccepting || !clientSignature || !clientName.trim()}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    size="lg"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-5 w-5 mr-2" />
                     {isAccepting ? 'Aceitando...' : 'Aceitar Proposta'}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={handleReject}
-                    disabled={isRejecting}
-                    className="flex-1"
+                    disabled={isRejecting || !clientName.trim()}
+                    className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    size="lg"
                   >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    {isRejecting ? 'Recusando...' : 'Recusar'}
+                    <XCircle className="h-5 w-5 mr-2" />
+                    {isRejecting ? 'Recusando...' : 'Recusar Proposta'}
                   </Button>
                 </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  ⚠️ Esta ação é permanente e não poderá ser desfeita.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -248,23 +391,37 @@ export default function PropostaPublica() {
 
         {/* Mensagem de proposta finalizada */}
         {isFinalized && (
-          <Card>
+          <Card className={proposal.status === 'accepted' ? 'border-green-500/50' : 'border-destructive/50'}>
             <CardContent className="py-8 text-center">
               {proposal.status === 'accepted' ? (
                 <>
-                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Proposta Aceita</h3>
-                  <p className="text-muted-foreground">
+                  <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
+                  <h3 className="text-2xl font-bold mb-2 text-green-600">Proposta Aceita!</h3>
+                  <p className="text-muted-foreground mb-4">
                     Esta proposta foi aceita em{' '}
                     {proposal.signed_at &&
                       format(new Date(proposal.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
+                  {proposal.client_signature && (
+                    <div className="mt-6 p-4 bg-muted/50 rounded-lg inline-block">
+                      <p className="text-sm text-muted-foreground mb-2">Assinatura:</p>
+                      <img 
+                        src={proposal.client_signature} 
+                        alt="Assinatura do cliente" 
+                        className="max-h-24 mx-auto"
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
-                  <XCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Proposta Recusada</h3>
-                  <p className="text-muted-foreground">Esta proposta foi recusada.</p>
+                  <XCircle className="h-16 w-16 mx-auto text-destructive mb-4" />
+                  <h3 className="text-2xl font-bold mb-2 text-destructive">Proposta Recusada</h3>
+                  <p className="text-muted-foreground">
+                    Esta proposta foi recusada em{' '}
+                    {proposal.signed_at &&
+                      format(new Date(proposal.signed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
                 </>
               )}
             </CardContent>
