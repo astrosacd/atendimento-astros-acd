@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,6 @@ import { useProposalSections, type SectionType, type ProposalSection } from '@/h
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
-import { SectionEditor } from '@/components/proposals/SectionEditor';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
@@ -68,12 +68,40 @@ const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
 export default function PropostaEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const { useProposal, updateProposal } = useProposals();
   const { data: proposal, isLoading: isLoadingProposal } = useProposal(id);
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
   const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
   const { isAdmin } = useAuth();
+
+  const updateTimersRef = useRef<Record<string, number>>({});
+
+  const applyLocalSectionUpdate = useCallback(
+    (sectionId: string, updates: Partial<ProposalSection>) => {
+      if (!id) return;
+      queryClient.setQueryData<ProposalSection[]>(['proposal-sections', id], (current) => {
+        if (!current) return current;
+        return current.map((s) => (s.id === sectionId ? { ...s, ...updates } : s));
+      });
+    },
+    [id, queryClient]
+  );
+
+  const schedulePersistSectionUpdate = useCallback(
+    (sectionId: string, updates: Partial<ProposalSection>) => {
+      // Debounce DB writes so typing stays instant
+      const existing = updateTimersRef.current[sectionId];
+      if (existing) window.clearTimeout(existing);
+
+      updateTimersRef.current[sectionId] = window.setTimeout(() => {
+        updateSection.mutate({ id: sectionId, ...updates });
+      }, 400);
+    },
+    [updateSection]
+  );
 
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
@@ -495,8 +523,11 @@ export default function PropostaEditor() {
                   <SortableSectionList
                     sections={sections}
                     onReorder={(reordered) => reorderSections.mutateAsync(reordered)}
-                    onUpdate={(id, updates) => updateSection.mutateAsync({ id, ...updates })}
-                    onDelete={(id) => deleteSection.mutateAsync(id)}
+                    onUpdate={(sectionId, updates) => {
+                      applyLocalSectionUpdate(sectionId, updates);
+                      schedulePersistSectionUpdate(sectionId, updates);
+                    }}
+                    onDelete={(sectionId) => deleteSection.mutateAsync(sectionId)}
                     canEdit={canEditProposals()}
                   />
                 )}

@@ -109,14 +109,49 @@ export function useProposalSections(proposalId: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as ProposalSection;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
+    onMutate: async (variables) => {
+      // Optimistic update to prevent UI lag while typing
+      await queryClient.cancelQueries({ queryKey: ['proposal-sections', proposalId] });
+
+      const previous = queryClient.getQueryData<ProposalSection[]>([
+        'proposal-sections',
+        proposalId,
+      ]);
+
+      if (previous) {
+        queryClient.setQueryData<ProposalSection[]>(['proposal-sections', proposalId],
+          previous.map((s) => {
+            if (s.id !== variables.id) return s;
+            return {
+              ...s,
+              ...(variables.title !== undefined ? { title: variables.title ?? s.title } : {}),
+              ...(variables.content !== undefined ? { content: (variables.content ?? s.content) as any } : {}),
+              ...(variables.is_visible !== undefined ? { is_visible: variables.is_visible ?? s.is_visible } : {}),
+              ...(variables.order_index !== undefined ? { order_index: variables.order_index ?? s.order_index } : {}),
+              // keep updated_at optimistic to avoid flicker
+              updated_at: new Date().toISOString(),
+            };
+          })
+        );
+      }
+
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
       console.error('Erro ao atualizar seção:', error);
+      if (context?.previous) {
+        queryClient.setQueryData(['proposal-sections', proposalId], context.previous);
+      }
       toast.error('Erro ao atualizar seção');
+    },
+    onSuccess: (data) => {
+      // Replace optimistic section with the server version without refetching everything
+      queryClient.setQueryData<ProposalSection[]>(['proposal-sections', proposalId], (current) => {
+        if (!current) return [data];
+        return current.map((s) => (s.id === data.id ? (data as ProposalSection) : s));
+      });
     },
   });
 
