@@ -38,6 +38,7 @@ import { useProposalSections, type SectionType, type ProposalSection } from '@/h
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
@@ -79,7 +80,7 @@ export default function PropostaEditor() {
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
   const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   const updateTimersRef = useRef<Record<string, number>>({});
 
@@ -113,6 +114,7 @@ export default function PropostaEditor() {
   const [clientMode, setClientMode] = useState<'registered' | 'manual'>('registered');
   const [manualClientName, setManualClientName] = useState('');
   const [status, setStatus] = useState<ProposalStatus>('draft');
+  const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const [validUntil, setValidUntil] = useState('');
   const [activeTab, setActiveTab] = useState('edit');
   const [isSaving, setIsSaving] = useState(false);
@@ -142,6 +144,7 @@ export default function PropostaEditor() {
       setTitle(proposal.title);
       setClientId(proposal.client_id);
       setStatus(proposal.status);
+      setCurrency((proposal as any).currency || 'BRL');
       setValidUntil(proposal.valid_until || '');
     }
   }, [proposal]);
@@ -165,9 +168,21 @@ export default function PropostaEditor() {
         title,
         client_id: clientId,
         status,
+        currency,
         valid_until: validUntil || null,
         total_value: totalValue,
+      } as any);
+
+      // Registrar no histórico
+      await supabase.from('proposal_history').insert({
+        proposal_id: id,
+        action: 'updated',
+        user_id: user?.id || null,
+        user_email: user?.email || null,
+        user_name: user?.email?.split('@')[0] || 'Usuário',
+        changes: { title, status, currency },
       });
+
       toast.success('Proposta salva!');
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -218,9 +233,18 @@ export default function PropostaEditor() {
   };
 
   const handleExportPdf = async () => {
+    // Mudar para aba preview se não estiver nela
+    const wasInEditTab = activeTab === 'edit';
+    if (wasInEditTab) {
+      setActiveTab('preview');
+      // Aguardar a renderização
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
     const element = document.getElementById('proposal-preview');
     if (!element) {
-      toast.error('Erro ao gerar PDF');
+      toast.error('Erro ao gerar PDF - elemento não encontrado. Tente na aba Visualizar.');
+      if (wasInEditTab) setActiveTab('edit');
       return;
     }
 
@@ -230,6 +254,7 @@ export default function PropostaEditor() {
         scale: 2,
         useCORS: true,
         logging: false,
+        allowTaint: true,
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -247,6 +272,7 @@ export default function PropostaEditor() {
       toast.error('Erro ao gerar PDF');
     } finally {
       setIsGeneratingPdf(false);
+      if (wasInEditTab) setActiveTab('edit');
     }
   };
 
@@ -482,6 +508,23 @@ export default function PropostaEditor() {
                     </div>
 
                     <div className="space-y-2">
+                      <Label>Moeda</Label>
+                      <Select
+                        value={currency}
+                        onValueChange={(value) => setCurrency(value as 'BRL' | 'USD')}
+                        disabled={!canEditProposals()}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BRL">R$ (Real)</SelectItem>
+                          <SelectItem value="USD">U$ (Dólar)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label>Válida até</Label>
                       <Input
                         type="date"
@@ -496,9 +539,9 @@ export default function PropostaEditor() {
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Valor total:</span>
                           <span className="font-semibold text-green-600">
-                            {new Intl.NumberFormat('pt-BR', {
+                            {new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'en-US', {
                               style: 'currency',
-                              currency: 'BRL',
+                              currency: currency,
                             }).format(totalValue)}
                           </span>
                         </div>
