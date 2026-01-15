@@ -22,6 +22,7 @@ import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecim
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
 import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
 import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
+import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -77,7 +78,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
-  const { canManageTasks, canViewChamados, hasPermission } = usePermissions();
+  const { canManageTasks, canViewChamados, canViewProposalsDashboard, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
@@ -743,6 +744,9 @@ export default function Dashboard() {
             <MonthlyPurchasesCard />
           </>
         )}
+
+        {/* Section: Propostas Comerciais - Permission based */}
+        {canViewProposalsDashboard() && <ProposalsStatsCard />}
 
         {/* Section: Status de Números - Permission based */}
         <NumerosAquecimentoSection />
