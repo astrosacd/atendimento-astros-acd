@@ -1,6 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Quote, Users } from 'lucide-react';
 import type { ProposalSection } from '@/hooks/useProposalSections';
 import type { 
   Proposal, 
@@ -10,6 +18,9 @@ import type {
   TimelineContent,
   TermsContent,
   SignatureContent,
+  GalleryContent,
+  TeamContent,
+  TestimonialsContent,
 } from '@/types/proposals';
 
 interface ProposalPreviewProps {
@@ -67,6 +78,12 @@ function renderSection(
       return <PricingPreview content={section.content as unknown as PricingContent} title={section.title} formatCurrency={formatCurrency} />;
     case 'timeline':
       return <TimelinePreview content={section.content as unknown as TimelineContent} title={section.title} />;
+    case 'team':
+      return <TeamPreview content={section.content as unknown as TeamContent} title={section.title} />;
+    case 'testimonials':
+      return <TestimonialsPreview content={section.content as unknown as TestimonialsContent} title={section.title} />;
+    case 'gallery':
+      return <GalleryPreview content={section.content as unknown as GalleryContent} title={section.title} />;
     case 'terms':
       return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} />;
     case 'signature':
@@ -204,6 +221,115 @@ function TermsPreview({ content, title }: { content: TermsContent; title: string
       <div className="prose prose-neutral prose-sm max-w-none">
         {content.content?.split('\n').map((paragraph, i) => (
           <p key={i}>{paragraph}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GalleryPreview({ content, title }: { content: GalleryContent; title: string | null }) {
+  const images = content.images || [];
+
+  if (images.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhuma imagem na galeria
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      <Carousel className="w-full">
+        <CarouselContent>
+          {images.map((image) => (
+            <CarouselItem key={image.id} className="md:basis-1/2 lg:basis-1/3">
+              <div className="p-1">
+                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={image.url}
+                    alt={image.caption || 'Imagem da galeria'}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {image.caption && (
+                  <p className="text-sm text-muted-foreground text-center mt-2">{image.caption}</p>
+                )}
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="-left-4" />
+        <CarouselNext className="-right-4" />
+      </Carousel>
+    </div>
+  );
+}
+
+function TeamPreview({ content, title }: { content: TeamContent; title: string | null }) {
+  const members = content.members || [];
+
+  if (members.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhum membro da equipe
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {members.map((member) => (
+          <div key={member.id} className="text-center">
+            <div className="w-24 h-24 mx-auto rounded-full overflow-hidden bg-muted mb-3">
+              {member.photo ? (
+                <img
+                  src={member.photo}
+                  alt={member.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Users className="h-10 w-10 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <h4 className="font-medium">{member.name || 'Nome'}</h4>
+            <p className="text-sm text-muted-foreground">{member.role || 'Cargo'}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsPreview({ content, title }: { content: TestimonialsContent; title: string | null }) {
+  const items = content.items || [];
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhum depoimento
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      <div className="grid md:grid-cols-2 gap-6">
+        {items.map((item) => (
+          <div key={item.id} className="bg-muted/30 rounded-lg p-6 relative">
+            <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+            <p className="text-muted-foreground mb-4 italic">"{item.content}"</p>
+            <div>
+              <p className="font-medium">{item.author}</p>
+              {item.company && <p className="text-sm text-muted-foreground">{item.company}</p>}
+            </div>
+          </div>
         ))}
       </div>
     </div>

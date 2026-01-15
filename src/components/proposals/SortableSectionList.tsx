@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -6,6 +7,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -33,6 +36,9 @@ export function SortableSectionList({
   onDelete,
   canEdit,
 }: SortableSectionListProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeSection = activeId ? sections.find((s) => s.id === activeId) : null;
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -44,8 +50,13 @@ export function SortableSectionList({
     })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over && active.id !== over.id) {
       const oldIndex = sections.findIndex((s) => s.id === active.id);
@@ -59,6 +70,7 @@ export function SortableSectionList({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext
@@ -73,10 +85,23 @@ export function SortableSectionList({
               onUpdate={(updates) => onUpdate(section.id, updates)}
               onDelete={() => onDelete(section.id)}
               canEdit={canEdit}
+              isDraggingThis={activeId === section.id}
             />
           ))}
         </div>
       </SortableContext>
+      <DragOverlay>
+        {activeSection ? (
+          <div className="opacity-90 shadow-2xl ring-2 ring-primary rounded-lg">
+            <SectionEditor
+              section={activeSection}
+              onUpdate={() => {}}
+              onDelete={() => {}}
+              canEdit={false}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -86,9 +111,10 @@ interface SortableSectionProps {
   onUpdate: (updates: Partial<ProposalSection>) => void;
   onDelete: () => void;
   canEdit: boolean;
+  isDraggingThis: boolean;
 }
 
-function SortableSection({ section, onUpdate, onDelete, canEdit }: SortableSectionProps) {
+function SortableSection({ section, onUpdate, onDelete, canEdit, isDraggingThis }: SortableSectionProps) {
   const {
     attributes,
     listeners,
@@ -101,11 +127,14 @@ function SortableSection({ section, onUpdate, onDelete, canEdit }: SortableSecti
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDraggingThis ? 'opacity-40 ring-2 ring-dashed ring-primary rounded-lg' : ''}
+    >
       <SectionEditor
         section={section}
         onUpdate={onUpdate}

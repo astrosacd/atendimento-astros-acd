@@ -97,7 +97,8 @@ export default function PropostaEditor() {
       if (existing) window.clearTimeout(existing);
 
       updateTimersRef.current[sectionId] = window.setTimeout(() => {
-        updateSection.mutate({ id: sectionId, ...updates });
+        // skipOptimistic: we already applied optimistic state via applyLocalSectionUpdate
+        updateSection.mutate({ id: sectionId, skipOptimistic: true, ...updates });
       }, 400);
     },
     [updateSection]
