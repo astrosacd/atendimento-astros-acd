@@ -24,6 +24,7 @@ import {
   PenTool,
 } from 'lucide-react';
 import { SignatureCanvas } from './SignatureCanvas';
+import { ImageUploadInput } from './ImageUploadInput';
 import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
   CoverContent,
@@ -202,15 +203,12 @@ function CoverEditor({
           disabled={disabled}
         />
       </div>
-      <div className="space-y-2">
-        <Label>URL da Imagem de Fundo</Label>
-        <Input
-          value={content.backgroundImage || ''}
-          onChange={(e) => onChange({ backgroundImage: e.target.value })}
-          placeholder="https://..."
-          disabled={disabled}
-        />
-      </div>
+      <ImageUploadInput
+        value={content.backgroundImage || ''}
+        onChange={(url) => onChange({ backgroundImage: url })}
+        disabled={disabled}
+        label="Imagem de Fundo"
+      />
     </div>
   );
 }
