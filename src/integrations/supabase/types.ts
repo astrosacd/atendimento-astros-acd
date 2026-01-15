@@ -3245,6 +3245,44 @@ export type Database = {
           },
         ]
       }
+      proposal_views: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          proposal_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          proposal_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          proposal_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_views_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           client_id: string | null
@@ -3257,7 +3295,11 @@ export type Database = {
           manual_client_phone: string | null
           notes: string | null
           share_token: string
+          signature_image: string | null
           signed_at: string | null
+          signed_ip: string | null
+          signed_name: string | null
+          signed_status: string | null
           status: Database["public"]["Enums"]["proposal_status"]
           template_id: string | null
           title: string
@@ -3277,7 +3319,11 @@ export type Database = {
           manual_client_phone?: string | null
           notes?: string | null
           share_token?: string
+          signature_image?: string | null
           signed_at?: string | null
+          signed_ip?: string | null
+          signed_name?: string | null
+          signed_status?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           template_id?: string | null
           title?: string
@@ -3297,7 +3343,11 @@ export type Database = {
           manual_client_phone?: string | null
           notes?: string | null
           share_token?: string
+          signature_image?: string | null
           signed_at?: string | null
+          signed_ip?: string | null
+          signed_name?: string | null
+          signed_status?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           template_id?: string | null
           title?: string

@@ -27,9 +27,10 @@ interface ProposalPreviewProps {
   proposal: Proposal;
   sections: ProposalSection[];
   client?: { id: string; nome: string; email: string; numero: string } | null;
+  onGalleryView?: (sectionId: string) => void;
 }
 
-export function ProposalPreview({ proposal, sections, client }: ProposalPreviewProps) {
+export function ProposalPreview({ proposal, sections, client, onGalleryView }: ProposalPreviewProps) {
   const visibleSections = sections.filter((s) => s.is_visible);
 
   const currency = ((proposal as any).currency as 'BRL' | 'USD' | undefined) || 'BRL';
@@ -54,7 +55,7 @@ export function ProposalPreview({ proposal, sections, client }: ProposalPreviewP
             <div className="divide-y">
               {visibleSections.map((section) => (
                 <div key={section.id} className="p-8">
-                  {renderSection(section, formatCurrency, client)}
+                  {renderSection(section, formatCurrency, client, onGalleryView)}
                 </div>
               ))}
             </div>
@@ -68,7 +69,8 @@ export function ProposalPreview({ proposal, sections, client }: ProposalPreviewP
 function renderSection(
   section: ProposalSection,
   formatCurrency: (value: number) => string,
-  client?: { id: string; nome: string; email: string; numero: string } | null
+  client?: { id: string; nome: string; email: string; numero: string } | null,
+  onGalleryView?: (sectionId: string) => void
 ) {
   const type = section.section_type;
 
@@ -86,7 +88,7 @@ function renderSection(
     case 'testimonials':
       return <TestimonialsPreview content={section.content as unknown as TestimonialsContent} title={section.title} />;
     case 'gallery':
-      return <GalleryPreview content={section.content as unknown as GalleryContent} title={section.title} />;
+      return <GalleryPreview content={section.content as unknown as GalleryContent} title={section.title} sectionId={section.id} onView={onGalleryView} />;
     case 'terms':
       return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} />;
     case 'signature':
@@ -230,8 +232,25 @@ function TermsPreview({ content, title }: { content: TermsContent; title: string
   );
 }
 
-function GalleryPreview({ content, title }: { content: GalleryContent; title: string | null }) {
+function GalleryPreview({ 
+  content, 
+  title, 
+  sectionId,
+  onView 
+}: { 
+  content: GalleryContent; 
+  title: string | null;
+  sectionId?: string;
+  onView?: (sectionId: string) => void;
+}) {
   const images = content.images || [];
+
+  // Track gallery view when user interacts with carousel
+  const handleInteraction = () => {
+    if (sectionId && onView) {
+      onView(sectionId);
+    }
+  };
 
   if (images.length === 0) {
     return (
@@ -242,7 +261,7 @@ function GalleryPreview({ content, title }: { content: GalleryContent; title: st
   }
 
   return (
-    <div>
+    <div onMouseEnter={handleInteraction} onTouchStart={handleInteraction}>
       {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
       <Carousel className="w-full">
         <CarouselContent>
