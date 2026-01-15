@@ -25,6 +25,7 @@ import {
   FileText,
   PenTool,
   Loader2,
+  History,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -32,9 +33,11 @@ import { useProposals } from '@/hooks/useProposals';
 import { useProposalSections, type SectionType, type ProposalSection } from '@/hooks/useProposalSections';
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import { SectionEditor } from '@/components/proposals/SectionEditor';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
+import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
 import { statusConfig } from '@/types/proposals';
 import type { ProposalStatus, SignatureContent } from '@/types/proposals';
 
@@ -70,6 +73,7 @@ export default function PropostaEditor() {
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
   const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
+  const { isAdmin } = useAuth();
 
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
@@ -80,14 +84,26 @@ export default function PropostaEditor() {
   const [activeTab, setActiveTab] = useState('edit');
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [clientes, setClientes] = useState<{ id: string; nome: string; email: string; numero: string }[]>([]);
+  const [clientes, setClientes] = useState<{ id: string; nome: string; email: string; numero: string; cobranca_ativa: boolean }[]>([]);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
     fetchClientes().then((data) => {
-      setClientes(data.map(c => ({ id: c.id, nome: c.nome, email: c.email, numero: c.numero })));
+      setClientes(data.map(c => ({ id: c.id, nome: c.nome, email: c.email, numero: c.numero, cobranca_ativa: c.cobranca_ativa })));
     });
   }, []);
+
+  // Filtrar clientes pela busca
+  const filteredClientes = useMemo(() => {
+    if (!clientSearchQuery.trim()) return clientes;
+    const query = clientSearchQuery.toLowerCase();
+    return clientes.filter(c => 
+      c.nome.toLowerCase().includes(query) || 
+      c.email.toLowerCase().includes(query)
+    );
+  }, [clientes, clientSearchQuery]);
 
   // Sincroniza estado local com dados do banco
   useEffect(() => {
@@ -244,6 +260,12 @@ export default function PropostaEditor() {
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 mr-2" />
+                Histórico
+              </Button>
+            )}
             {canShareProposals() && (
               <>
                 <Button variant="outline" size="sm" onClick={handleCopyLink}>
@@ -334,23 +356,41 @@ export default function PropostaEditor() {
                         </Button>
                       </div>
                       {clientMode === 'registered' ? (
-                        <Select
-                          value={clientId || 'none'}
-                          onValueChange={(value) => setClientId(value === 'none' ? null : value)}
-                          disabled={!canEditProposals()}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um cliente" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {clientes.filter(c => c.id).map((cliente) => (
-                              <SelectItem key={cliente.id} value={cliente.id}>
-                                {cliente.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Input
+                            placeholder="Pesquisar cliente..."
+                            value={clientSearchQuery}
+                            onChange={(e) => setClientSearchQuery(e.target.value)}
+                            className="mb-2"
+                            disabled={!canEditProposals()}
+                          />
+                          <Select
+                            value={clientId || 'none'}
+                            onValueChange={(value) => setClientId(value === 'none' ? null : value)}
+                            disabled={!canEditProposals()}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um cliente" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Nenhum</SelectItem>
+                              {filteredClientes.filter(c => c.id).map((cliente) => (
+                                <SelectItem key={cliente.id} value={cliente.id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{cliente.nome}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                      cliente.cobranca_ativa 
+                                        ? 'bg-blue-500/20 text-blue-500' 
+                                        : 'bg-amber-500/20 text-amber-500'
+                                    }`}>
+                                      {cliente.cobranca_ativa ? 'Mensal' : 'Registro'}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       ) : (
                         <Input
                           placeholder="Nome do cliente"
@@ -472,6 +512,15 @@ export default function PropostaEditor() {
             />
           </TabsContent>
         </Tabs>
+
+        {/* Dialog de Histórico - apenas para admin */}
+        {isAdmin && id && (
+          <ProposalHistoryDialog
+            open={showHistory}
+            onOpenChange={setShowHistory}
+            proposalId={id}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
