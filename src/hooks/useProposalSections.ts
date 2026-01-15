@@ -93,8 +93,9 @@ export function useProposalSections(proposalId: string | undefined) {
   });
 
   // Atualizar seção
+  // skipOptimistic: when caller already applied optimistic state (e.g. debounced typing)
   const updateSection = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ProposalSection> & { id: string }) => {
+    mutationFn: async ({ id, skipOptimistic: _, ...updates }: Partial<ProposalSection> & { id: string; skipOptimistic?: boolean }) => {
       const updateData: Record<string, Json | string | number | boolean | null> = {};
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.content !== undefined) updateData.content = updates.content as Json;
@@ -112,6 +113,11 @@ export function useProposalSections(proposalId: string | undefined) {
       return data as ProposalSection;
     },
     onMutate: async (variables) => {
+      // Skip optimistic update if caller already applied it
+      if (variables.skipOptimistic) {
+        return { previous: null };
+      }
+
       // Optimistic update to prevent UI lag while typing
       await queryClient.cancelQueries({ queryKey: ['proposal-sections', proposalId] });
 
@@ -127,7 +133,7 @@ export function useProposalSections(proposalId: string | undefined) {
             return {
               ...s,
               ...(variables.title !== undefined ? { title: variables.title ?? s.title } : {}),
-              ...(variables.content !== undefined ? { content: (variables.content ?? s.content) as any } : {}),
+              ...(variables.content !== undefined ? { content: (variables.content ?? s.content) as Record<string, unknown> } : {}),
               ...(variables.is_visible !== undefined ? { is_visible: variables.is_visible ?? s.is_visible } : {}),
               ...(variables.order_index !== undefined ? { order_index: variables.order_index ?? s.order_index } : {}),
               // keep updated_at optimistic to avoid flicker

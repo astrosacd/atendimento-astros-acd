@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 import { SignatureCanvas } from './SignatureCanvas';
 import { ImageUploadInput } from './ImageUploadInput';
+import { GalleryEditor } from './GalleryEditor';
+import { TeamEditor } from './TeamEditor';
+import { TestimonialsEditor } from './TestimonialsEditor';
 import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
   CoverContent,
@@ -35,6 +38,9 @@ import type {
   TimelinePhase,
   TermsContent,
   SignatureContent,
+  TeamContent,
+  TestimonialsContent,
+  GalleryContent,
 } from '@/types/proposals';
 
 const sectionIcons: Record<SectionType, React.ReactNode> = {
@@ -95,6 +101,12 @@ export function SectionEditor({
         return <PricingEditor content={section.content as unknown as PricingContent} onChange={updateContent} disabled={!canEdit} />;
       case 'timeline':
         return <TimelineEditor content={section.content as unknown as TimelineContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'team':
+        return <TeamEditor content={section.content as unknown as TeamContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'testimonials':
+        return <TestimonialsEditor content={section.content as unknown as TestimonialsContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'gallery':
+        return <GalleryEditor content={section.content as unknown as GalleryContent} onChange={updateContent} disabled={!canEdit} />;
       case 'terms':
         return <TermsEditor content={section.content as unknown as TermsContent} onChange={updateContent} disabled={!canEdit} />;
       case 'signature':
