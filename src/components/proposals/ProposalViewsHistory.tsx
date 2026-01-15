@@ -195,9 +195,16 @@ export function ProposalViewsHistory({ proposalId }: ProposalViewsHistoryProps) 
                                 </span>
                               )}
                               {(view.event_type === 'signed_accepted' || view.event_type === 'signed_rejected') && (
-                                <span>
-                                  Nome: {(view.event_data as any).signed_name}
-                                </span>
+                                <div>
+                                  <span>
+                                    Nome: {(view.event_data as any).signed_name}
+                                  </span>
+                                  {view.event_type === 'signed_rejected' && (view.event_data as any).rejection_reason && (
+                                    <p className="mt-1 text-destructive">
+                                      Motivo: {(view.event_data as any).rejection_reason}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
