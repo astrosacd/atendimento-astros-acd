@@ -47,6 +47,7 @@ import AdminRelatorios from "./pages/AdminRelatorios";
 import Tarefas from "./pages/Tarefas";
 import Propostas from "./pages/Propostas";
 import PropostaEditor from "./pages/PropostaEditor";
+import PropostasConfig from "./pages/PropostasConfig";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
@@ -132,6 +133,7 @@ function AppRoutes() {
       
       {/* Propostas Routes */}
       <Route path="/propostas" element={<ProtectedRoute permission="view_proposals"><Propostas /></ProtectedRoute>} />
+      <Route path="/propostas/config" element={<ProtectedRoute permission="configure_proposal_sending"><PropostasConfig /></ProtectedRoute>} />
       <Route path="/propostas/:id" element={<ProtectedRoute permission="view_proposals"><PropostaEditor /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}

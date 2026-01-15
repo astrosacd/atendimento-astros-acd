@@ -27,9 +27,11 @@ import {
   Search,
   Trash2,
   DollarSign,
+  Settings,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { statusConfig, type Proposal, type ProposalStatus } from '@/types/proposals';
@@ -46,6 +48,7 @@ export default function Propostas() {
   const navigate = useNavigate();
   const { proposals, isLoading, stats, createProposal, deleteProposal } = useProposals();
   const { canCreateProposals, canDeleteProposals } = usePermissions();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -77,7 +80,7 @@ export default function Propostas() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -86,12 +89,20 @@ export default function Propostas() {
               Gerencie suas propostas e acompanhe o status
             </p>
           </div>
-          {canCreateProposals() && (
-            <Button onClick={handleCreate} disabled={createProposal.isPending}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Proposta
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={() => navigate('/propostas/config')}>
+                <Settings className="h-4 w-4 mr-2" />
+                Configurações
+              </Button>
+            )}
+            {canCreateProposals() && (
+              <Button onClick={handleCreate} disabled={createProposal.isPending}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Proposta
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Estatísticas */}

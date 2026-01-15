@@ -3027,6 +3027,47 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_history: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          id: string
+          proposal_id: string
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          proposal_id: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_history_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_sections: {
         Row: {
           content: Json | null
@@ -3064,6 +3105,101 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "proposal_sections_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_send_config: {
+        Row: {
+          created_at: string
+          email_body_template: string | null
+          email_enabled: boolean | null
+          email_subject_template: string | null
+          evolution_api_key: string | null
+          evolution_api_url: string | null
+          evolution_instance_name: string | null
+          gmail_app_password: string | null
+          gmail_sender_name: string | null
+          gmail_user: string | null
+          id: string
+          updated_at: string
+          whatsapp_enabled: boolean | null
+          whatsapp_message_template: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_body_template?: string | null
+          email_enabled?: boolean | null
+          email_subject_template?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
+          id?: string
+          updated_at?: string
+          whatsapp_enabled?: boolean | null
+          whatsapp_message_template?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_body_template?: string | null
+          email_enabled?: boolean | null
+          email_subject_template?: string | null
+          evolution_api_key?: string | null
+          evolution_api_url?: string | null
+          evolution_instance_name?: string | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
+          id?: string
+          updated_at?: string
+          whatsapp_enabled?: boolean | null
+          whatsapp_message_template?: string | null
+        }
+        Relationships: []
+      }
+      proposal_send_logs: {
+        Row: {
+          channel: string
+          error_message: string | null
+          id: string
+          proposal_id: string
+          recipient: string
+          sent_at: string
+          sent_by: string | null
+          sent_by_email: string | null
+          status: string
+        }
+        Insert: {
+          channel: string
+          error_message?: string | null
+          id?: string
+          proposal_id: string
+          recipient: string
+          sent_at?: string
+          sent_by?: string | null
+          sent_by_email?: string | null
+          status?: string
+        }
+        Update: {
+          channel?: string
+          error_message?: string | null
+          id?: string
+          proposal_id?: string
+          recipient?: string
+          sent_at?: string
+          sent_by?: string | null
+          sent_by_email?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_send_logs_proposal_id_fkey"
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "proposals"
@@ -3115,6 +3251,9 @@ export type Database = {
           client_signature: string | null
           created_at: string
           id: string
+          manual_client_email: string | null
+          manual_client_name: string | null
+          manual_client_phone: string | null
           notes: string | null
           share_token: string
           signed_at: string | null
@@ -3131,6 +3270,9 @@ export type Database = {
           client_signature?: string | null
           created_at?: string
           id?: string
+          manual_client_email?: string | null
+          manual_client_name?: string | null
+          manual_client_phone?: string | null
           notes?: string | null
           share_token?: string
           signed_at?: string | null
@@ -3147,6 +3289,9 @@ export type Database = {
           client_signature?: string | null
           created_at?: string
           id?: string
+          manual_client_email?: string | null
+          manual_client_name?: string | null
+          manual_client_phone?: string | null
           notes?: string | null
           share_token?: string
           signed_at?: string | null
