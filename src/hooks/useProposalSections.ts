@@ -95,7 +95,7 @@ export function useProposalSections(proposalId: string | undefined) {
   // Atualizar seção
   // skipOptimistic: when caller already applied optimistic state (e.g. debounced typing)
   const updateSection = useMutation({
-    mutationFn: async ({ id, skipOptimistic: _, ...updates }: Partial<ProposalSection> & { id: string; skipOptimistic?: boolean }) => {
+    mutationFn: async ({ id, skipOptimistic, ...updates }: Partial<ProposalSection> & { id: string; skipOptimistic?: boolean }) => {
       const updateData: Record<string, Json | string | number | boolean | null> = {};
       if (updates.title !== undefined) updateData.title = updates.title;
       if (updates.content !== undefined) updateData.content = updates.content as Json;
@@ -110,7 +110,8 @@ export function useProposalSections(proposalId: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data as ProposalSection;
+      // Return skipOptimistic flag along with data so onSuccess knows whether to update cache
+      return { section: data as ProposalSection, skipOptimistic };
     },
     onMutate: async (variables) => {
       // Skip optimistic update if caller already applied it
@@ -152,11 +153,16 @@ export function useProposalSections(proposalId: string | undefined) {
       }
       toast.error('Erro ao atualizar seção');
     },
-    onSuccess: (data) => {
+    onSuccess: (result) => {
+      // If skipOptimistic was used, the caller already updated the cache optimistically
+      // Don't overwrite it with stale server data that could undo typing in progress
+      if (result.skipOptimistic) {
+        return;
+      }
       // Replace optimistic section with the server version without refetching everything
       queryClient.setQueryData<ProposalSection[]>(['proposal-sections', proposalId], (current) => {
-        if (!current) return [data];
-        return current.map((s) => (s.id === data.id ? (data as ProposalSection) : s));
+        if (!current) return [result.section];
+        return current.map((s) => (s.id === result.section.id ? result.section : s));
       });
     },
   });
