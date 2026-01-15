@@ -87,29 +87,15 @@ export function usePermissions() {
   const canViewGuiaNumeros = () => hasPermission('view_guia_numeros');
   const canViewGuiaAvancado = () => hasPermission('view_guia_avancado');
   const canViewGuiaChamados = () => hasPermission('view_guia_chamados');
+
   // Gateway permissions
   const canViewGateway = () => hasPermission('view_gateway');
   const canManageGatewayProducts = () => hasPermission('manage_gateway_products');
-  const canManageGatewayCategories = () => hasPermission('manage_gateway_categories');
-  const canManageGatewayOrderBumps = () => hasPermission('manage_gateway_order_bumps');
-  const canManageGatewayCoupons = () => hasPermission('manage_gateway_coupons');
-  const canViewGatewayOrders = () => hasPermission('view_gateway_orders');
   const canManageGatewayOrders = () => hasPermission('manage_gateway_orders');
   const canManageGatewaySettings = () => hasPermission('manage_gateway_settings');
   const canViewGatewayReports = () => hasPermission('view_gateway_reports');
 
-  // Relatórios Avançados permissions
-  const canViewReports = () => hasPermission('view_reports');
-
-  // Revendedor permissions
-  const canViewRevendedor = () => hasPermission('view_revendedor');
-  const canManageRevendedorPlanos = () => hasPermission('manage_revendedor_planos');
-  const canManageRevendedorLicencas = () => hasPermission('manage_revendedor_licencas');
-
-  // Tarefas permissions
-  const canManageTasks = () => hasPermission('manage_tasks');
-
-  // Cobrança tab permissions
+  // Cobrança permissions
   const canViewCobrancaMetricas = () => hasPermission('view_cobranca_metricas');
   const canViewCobrancaRecuperacao = () => hasPermission('view_cobranca_recuperacao');
   const canViewCobrancaConfig = () => hasPermission('view_cobranca_config');
@@ -120,6 +106,25 @@ export function usePermissions() {
   const canViewCobrancaRecibo = () => hasPermission('view_cobranca_recibo');
   const canViewCobrancaRelatorios = () => hasPermission('view_cobranca_relatorios');
   const canViewCobrancaLogs = () => hasPermission('view_cobranca_logs');
+
+  // Revendedor permissions
+  const canViewRevendedor = () => hasPermission('view_revendedor');
+  const canManageRevendedorPlanos = () => hasPermission('manage_revendedor_planos');
+  const canManageRevendedorConfig = () => hasPermission('manage_revendedor_config');
+
+  // Tasks permission
+  const canManageTasks = () => hasPermission('manage_tasks');
+
+  // Reports permission
+  const canViewReports = () => hasPermission('view_reports');
+
+  // Propostas permissions
+  const canViewProposals = () => hasPermission('view_proposals');
+  const canCreateProposals = () => hasPermission('create_proposals');
+  const canEditProposals = () => hasPermission('edit_proposals');
+  const canDeleteProposals = () => hasPermission('delete_proposals');
+  const canShareProposals = () => hasPermission('share_proposals');
+  const canManageProposalTemplates = () => hasPermission('manage_proposal_templates');
 
   return {
     permissions,
@@ -155,13 +160,11 @@ export function usePermissions() {
     canManageNumerosWebhooks,
     canManageNumerosApi,
     canViewConsultaNumeros,
-    // Chamados
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
     canManageChamadosWebhooks,
     canManageChamadosApi,
-    // Guia
     canViewGuia,
     canViewGuiaComunicacao,
     canViewGuiaIntegracoes,
@@ -172,25 +175,12 @@ export function usePermissions() {
     canViewGuiaNumeros,
     canViewGuiaAvancado,
     canViewGuiaChamados,
-    // Gateway
     canViewGateway,
     canManageGatewayProducts,
-    canManageGatewayCategories,
-    canManageGatewayOrderBumps,
-    canManageGatewayCoupons,
-    canViewGatewayOrders,
     canManageGatewayOrders,
     canManageGatewaySettings,
     canViewGatewayReports,
-    // Relatórios Avançados
-    canViewReports,
-    // Revendedor
-    canViewRevendedor,
-    canManageRevendedorPlanos,
-    canManageRevendedorLicencas,
-    // Tarefas
-    canManageTasks,
-    // Cobrança tabs
+    // Cobrança
     canViewCobrancaMetricas,
     canViewCobrancaRecuperacao,
     canViewCobrancaConfig,
@@ -201,5 +191,17 @@ export function usePermissions() {
     canViewCobrancaRecibo,
     canViewCobrancaRelatorios,
     canViewCobrancaLogs,
+    canViewRevendedor,
+    canManageRevendedorPlanos,
+    canManageRevendedorConfig,
+    canManageTasks,
+    canViewReports,
+    // Propostas
+    canViewProposals,
+    canCreateProposals,
+    canEditProposals,
+    canDeleteProposals,
+    canShareProposals,
+    canManageProposalTemplates,
   };
 }
