@@ -604,6 +604,7 @@ export default function PropostaEditor() {
                     }}
                     onDelete={(sectionId) => deleteSection.mutateAsync(sectionId)}
                     canEdit={canEditProposals()}
+                    proposalCurrency={currency}
                   />
                 )}
               </div>

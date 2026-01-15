@@ -72,6 +72,7 @@ interface SectionEditorProps {
   onUpdate: (updates: Partial<ProposalSection>) => void;
   onDelete: () => void;
   canEdit: boolean;
+  currency?: 'BRL' | 'USD';
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
@@ -80,6 +81,7 @@ export function SectionEditor({
   onUpdate,
   onDelete,
   canEdit,
+  currency = 'BRL',
   dragHandleProps,
 }: SectionEditorProps) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -98,7 +100,14 @@ export function SectionEditor({
       case 'text':
         return <TextEditor content={section.content as unknown as TextContent} onChange={updateContent} disabled={!canEdit} />;
       case 'pricing':
-        return <PricingEditor content={section.content as unknown as PricingContent} onChange={updateContent} disabled={!canEdit} />;
+        return (
+          <PricingEditor
+            content={section.content as unknown as PricingContent}
+            onChange={updateContent}
+            disabled={!canEdit}
+            currency={currency}
+          />
+        );
       case 'timeline':
         return <TimelineEditor content={section.content as unknown as TimelineContent} onChange={updateContent} disabled={!canEdit} />;
       case 'team':
@@ -252,10 +261,12 @@ function PricingEditor({
   content,
   onChange,
   disabled,
+  currency,
 }: {
   content: PricingContent;
   onChange: (updates: Record<string, unknown>) => void;
   disabled: boolean;
+  currency: 'BRL' | 'USD';
 }) {
   const items = content.items || [];
 
@@ -341,7 +352,7 @@ function PricingEditor({
           <div className="text-right">
             <span className="text-sm text-muted-foreground">Total: </span>
             <span className="font-bold text-lg">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(total)}
             </span>
           </div>
         </div>

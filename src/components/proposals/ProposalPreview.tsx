@@ -32,10 +32,13 @@ interface ProposalPreviewProps {
 export function ProposalPreview({ proposal, sections, client }: ProposalPreviewProps) {
   const visibleSections = sections.filter((s) => s.is_visible);
 
+  const currency = ((proposal as any).currency as 'BRL' | 'USD' | undefined) || 'BRL';
+
   const formatCurrency = (value: number) => {
+    // pt-BR shows BRL as "R$" and USD as "US$" (more familiar for BR audience)
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
+      currency,
     }).format(value);
   };
 
