@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
-  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight
+  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight,
+  Wallet, Phone, Headphones
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -23,6 +24,8 @@ import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSe
 import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
 import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
 import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
+import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection';
+import { Badge } from '@/components/ui/badge';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -587,143 +590,127 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Section: Financeiro */}
-        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-          <span className="h-5 w-1 bg-info rounded-full"></span>
-          {t('sidebar.billing')}
-        </h3>
-        {/* Primary Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('dashboard.totalClients')}
-                    <span className="text-primary ml-1">({stats.clientesRecorrentes} ativos)</span>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20 hover:border-info/40 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-info/20 flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-info" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (BRL)</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.mrrUsd)}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (USD)</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card 
-            className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/consultar?filter=renovacao-proxima')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Clock className="h-6 w-6 text-update" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-update opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card 
-            className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
-            onClick={() => navigate('/consultar?filter=inadimplente')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
-                  <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Alert Banner for Numeros Aquecimento */}
-        <NumerosAquecimentoAlertBanner />
-
-        {/* Section: Vendas Únicas (Clientes Registro) */}
-        {canViewClients && (stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
-          <>
-            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-              <span className="h-5 w-1 bg-purple-500 rounded-full"></span>
-              Vendas Únicas (Vitalícios)
-              {stats.clientesRegistroSemValor > 0 && (
-                <span 
-                  className="text-xs font-normal text-muted-foreground ml-2 cursor-pointer hover:text-purple-500 hover:underline transition-colors"
-                  onClick={() => navigate('/consultar?filter=registro-sem-valor')}
-                >
-                  * {stats.clientesRegistroSemValor} cliente(s) não contabilizado(s) por não ter valor
-                </span>
-              )}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                      <Users className="h-6 w-6 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-foreground font-display">{stats.clientesRegistro}</p>
-                      <p className="text-xs text-muted-foreground">Clientes Registro</p>
-                    </div>
+        {/* ===================== ÁREA FINANCEIRA ===================== */}
+        <CollapsibleSection 
+          title="Financeiro" 
+          icon={Wallet} 
+          iconColor="bg-gradient-to-br from-info to-info/80"
+          defaultOpen={true}
+        >
+          {/* Primary Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                      <DollarSign className="h-6 w-6 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.vendasUnicasBrl)}</p>
-                      <p className="text-xs text-muted-foreground">Vendas Únicas (BRL)</p>
-                    </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('dashboard.totalClients')}
+                      <span className="text-primary ml-1">({stats.clientesRecorrentes} ativos)</span>
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20 hover:border-info/40 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-info/20 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-info" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (BRL)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              {stats.vendasUnicasUsd > 0 && (
+            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.mrrUsd)}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (USD)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card 
+              className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=renovacao-proxima')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Clock className="h-6 w-6 text-update" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-update opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=inadimplente')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Vendas Únicas (Clientes Registro) */}
+          {canViewClients && (stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
+            <>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <span className="h-4 w-0.5 bg-purple-500 rounded-full"></span>
+                Vendas Únicas (Vitalícios)
+                {stats.clientesRegistroSemValor > 0 && (
+                  <span 
+                    className="text-xs font-normal text-muted-foreground ml-2 cursor-pointer hover:text-purple-500 hover:underline transition-colors"
+                    onClick={() => navigate('/consultar?filter=registro-sem-valor')}
+                  >
+                    * {stats.clientesRegistroSemValor} não contabilizado(s)
+                  </span>
+                )}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                        <Users className="h-6 w-6 text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold text-foreground font-display">{stats.clientesRegistro}</p>
+                        <p className="text-xs text-muted-foreground">Clientes Registro</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -731,255 +718,297 @@ export default function Dashboard() {
                         <DollarSign className="h-6 w-6 text-purple-500" />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.vendasUnicasUsd)}</p>
-                        <p className="text-xs text-muted-foreground">Vendas Únicas (USD)</p>
+                        <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.vendasUnicasBrl)}</p>
+                        <p className="text-xs text-muted-foreground">Vendas Únicas (BRL)</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
 
-            {/* Card de Vendas Únicas por Mês */}
-            <MonthlyPurchasesCard />
-          </>
-        )}
+                {stats.vendasUnicasUsd > 0 && (
+                  <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                          <DollarSign className="h-6 w-6 text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.vendasUnicasUsd)}</p>
+                          <p className="text-xs text-muted-foreground">Vendas Únicas (USD)</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              <MonthlyPurchasesCard />
+            </>
+          )}
 
-        {/* Section: Propostas Comerciais - Permission based */}
-        {canViewProposalsDashboard() && <ProposalsStatsCard />}
+          {/* Propostas Comerciais */}
+          {canViewProposalsDashboard() && <ProposalsStatsCard />}
+        </CollapsibleSection>
 
-        {/* Section: Status de Números - Permission based */}
-        <NumerosAquecimentoSection />
+        {/* Alert Banner for Numeros Aquecimento */}
+        <NumerosAquecimentoAlertBanner />
 
-        {/* Section: Consulta Números - Permission based */}
-        <ConsultaNumerosSection />
+        {/* ===================== ÁREA OPERACIONAL ===================== */}
+        <CollapsibleSection 
+          title="Operacional" 
+          icon={Phone} 
+          iconColor="bg-gradient-to-br from-cyan-500 to-cyan-500/80"
+          defaultOpen={true}
+        >
+          {/* Status de Números */}
+          <NumerosAquecimentoSection />
 
-        {/* Section: Chamados - Admin Only */}
-        {canViewChamados() && (
-          <>
-            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-              <span className="h-5 w-1 bg-amber-500 rounded-full"></span>
-              {t('sidebar.tickets')}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <Card 
-              className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
-              onClick={() => navigate('/admin/chamados')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                      <MessageSquare className="h-6 w-6 text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAbertos}</p>
-                      <p className="text-xs text-muted-foreground">{t('dashboard.openTickets')}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+          {/* Consulta Números */}
+          <ConsultaNumerosSection />
+        </CollapsibleSection>
+
+        {/* ===================== ÁREA SUPORTE E GESTÃO ===================== */}
+        {(canViewChamados() || canManageTasks()) && (
+          <CollapsibleSection 
+            title="Suporte e Gestão" 
+            icon={Headphones} 
+            iconColor="bg-gradient-to-br from-amber-500 to-amber-500/80"
+            defaultOpen={true}
+            badge={
+              (stats.chamadosAbertos + stats.tarefasAtrasadas > 0) ? (
+                <Badge variant="destructive" className="ml-2">
+                  {stats.chamadosAbertos + stats.tarefasAtrasadas} pendente(s)
+                </Badge>
+              ) : null
+            }
+          >
+            {/* Chamados */}
+            {canViewChamados() && (
+              <>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                  <span className="h-4 w-0.5 bg-amber-500 rounded-full"></span>
+                  {t('sidebar.tickets')}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <Card 
+                    className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/admin/chamados')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                            <MessageSquare className="h-6 w-6 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAbertos}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.openTickets')}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/admin/chamados')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 text-cyan-500" />
+                          </div>
+                          <div>
+                            <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosEmAndamento}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.ticketsInProgress')}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+              </>
+            )}
 
-            <Card 
-              className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
-              onClick={() => navigate('/admin/chamados')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 text-cyan-500" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosEmAndamento}</p>
-                      <p className="text-xs text-muted-foreground">{t('dashboard.ticketsInProgress')}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          </>
-        )}
-
-        {/* Section: Tarefas - Only for users with task permission */}
-        {canManageTasks() && (
-          <>
-            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-              <span className="h-5 w-1 bg-primary rounded-full"></span>
-              {t('sidebar.tasks')}
-            </h3>
-            {/* Task Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card 
-                className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
-                onClick={() => navigate('/tarefas')}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                        <ListTodo className="h-5 w-5 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
-                        <p className="text-xs text-muted-foreground">{t('dashboard.pendingTasks')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
-                onClick={() => navigate('/tarefas')}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 text-cyan-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
-                        <p className="text-xs text-muted-foreground">{t('dashboard.tasksInProgress')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
-                onClick={() => navigate('/tarefas')}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
-                        <p className="text-xs text-muted-foreground">{t('dashboard.overdueTasks')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
-                onClick={() => navigate('/tarefas')}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
-                        <p className="text-xs text-muted-foreground">{t('dashboard.completedTasks')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* Urgent Tasks Alert - Only for users with task permission */}
-        {canManageTasks() && (urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
-          <Card className="bg-gradient-to-br from-destructive/5 to-amber-500/5 border-destructive/30 mb-6">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground mb-2">{t('dashboard.tasksNeedAttention')}</h4>
-                  <div className="space-y-2">
-                    {urgentTasks.overdue.slice(0, 3).map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full bg-destructive"></span>
-                        <span className="text-destructive font-medium">{t('dashboard.overdueLabel')}:</span>
-                        <span className="text-muted-foreground">{task.title}</span>
-                        {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
-                      </div>
-                    ))}
-                    {urgentTasks.dueSoon.slice(0, 3).map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                        <span className="text-amber-500 font-medium">{t('dashboard.dueTodayLabel')}:</span>
-                        <span className="text-muted-foreground">{task.title}</span>
-                        {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
-                      </div>
-                    ))}
-                  </div>
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto mt-2 text-primary"
+            {/* Tarefas */}
+            {canManageTasks() && (
+              <>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                  <span className="h-4 w-0.5 bg-primary rounded-full"></span>
+                  {t('sidebar.tasks')}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <Card 
+                    className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/tarefas')}
                   >
-                    {t('dashboard.viewAllTasks')} <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                            <ListTodo className="h-5 w-5 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasPendentes}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.pendingTasks')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/tarefas')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                            <Loader2 className="h-5 w-5 text-cyan-500" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasEmAndamento}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.tasksInProgress')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className={`bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group ${stats.tarefasAtrasadas > 0 ? 'animate-pulse' : ''}`}
+                    onClick={() => navigate('/tarefas')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center">
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasAtrasadas}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.overdueTasks')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/tarefas')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-foreground font-display">{stats.tarefasConcluidas}</p>
+                            <p className="text-xs text-muted-foreground">{t('dashboard.completedTasks')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                {/* Urgent Tasks Alert */}
+                {(urgentTasks.overdue.length > 0 || urgentTasks.dueSoon.length > 0) && (
+                  <Card className="bg-gradient-to-br from-destructive/5 to-amber-500/5 border-destructive/30 mb-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-foreground mb-2">{t('dashboard.tasksNeedAttention')}</h4>
+                          <div className="space-y-2">
+                            {urgentTasks.overdue.slice(0, 3).map((task) => (
+                              <div key={task.id} className="flex items-center gap-2 text-sm">
+                                <span className="h-2 w-2 rounded-full bg-destructive"></span>
+                                <span className="text-destructive font-medium">{t('dashboard.overdueLabel')}:</span>
+                                <span className="text-muted-foreground">{task.title}</span>
+                                {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
+                              </div>
+                            ))}
+                            {urgentTasks.dueSoon.slice(0, 3).map((task) => (
+                              <div key={task.id} className="flex items-center gap-2 text-sm">
+                                <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                                <span className="text-amber-500 font-medium">{t('dashboard.dueTodayLabel')}:</span>
+                                <span className="text-muted-foreground">{task.title}</span>
+                                {task.cliente_nome && <span className="text-muted-foreground/70">• {task.cliente_nome}</span>}
+                              </div>
+                            ))}
+                          </div>
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto mt-2 text-primary"
+                            onClick={() => navigate('/tarefas')}
+                          >
+                            {t('dashboard.viewAllTasks')} <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </CollapsibleSection>
         )}
 
-        {/* Section: Métricas Adicionais - Admin Only */}
+        {/* ===================== ÁREA MÉTRICAS ADMIN ===================== */}
         {isAdmin && (
-          <>
-            <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2 font-display">
-              <span className="h-5 w-1 bg-update rounded-full"></span>
-              {t('dashboard.additionalMetricsTitle')}
-            </h3>
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.delinquencyRate')}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysBrl')}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.previsaoFaturamentoUsd)}</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysUsd')}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{stats.clientesNovos30d}</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.newClientsLast30Days')}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.pendingApprovals')}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold text-foreground font-display">{stats.activeWebhooks}</p>
-                <p className="text-xs text-muted-foreground">{t('dashboard.activeWebhooks')}</p>
-              </CardContent>
-            </Card>
-          </div>
-          </>
+          <CollapsibleSection 
+            title="Métricas Detalhadas" 
+            icon={TrendingUp} 
+            iconColor="bg-gradient-to-br from-update to-update/80"
+            defaultOpen={false}
+          >
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{stats.taxaInadimplencia.toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.delinquencyRate')}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.previsaoFaturamento)}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysBrl')}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.previsaoFaturamentoUsd)}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.forecast30DaysUsd')}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{stats.clientesNovos30d}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.newClientsLast30Days')}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{stats.pendingUsers}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.pendingApprovals')}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground font-display">{stats.activeWebhooks}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.activeWebhooks')}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </CollapsibleSection>
         )}
 
         {/* Charts Row - Admin Only */}
