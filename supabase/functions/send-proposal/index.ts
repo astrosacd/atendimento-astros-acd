@@ -15,6 +15,139 @@ interface SendProposalRequest {
   recipientName?: string;
 }
 
+// Professional HTML email template
+function generateEmailHtml(
+  clientName: string,
+  proposalTitle: string,
+  proposalLink: string,
+  senderName: string,
+  companyName?: string
+): string {
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposta Comercial</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 40px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">
+                📄 Proposta Comercial
+              </h1>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Olá <strong>${clientName}</strong>,
+              </p>
+              
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                É com grande satisfação que enviamos sua proposta comercial personalizada:
+              </p>
+              
+              <!-- Proposal Card -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                <tr>
+                  <td style="background-color: #f8fafc; border-radius: 8px; padding: 24px; border-left: 4px solid #3b82f6;">
+                    <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">
+                      Proposta
+                    </p>
+                    <p style="color: #1e293b; font-size: 20px; font-weight: 600; margin: 0;">
+                      ${proposalTitle}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                Clique no botão abaixo para visualizar todos os detalhes, valores e condições da proposta:
+              </p>
+              
+              <!-- CTA Button -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td align="center">
+                    <a href="${proposalLink}" 
+                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 16px 48px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);">
+                      📋 Visualizar Proposta
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 40px 0 0 0; text-align: center;">
+                Caso o botão não funcione, copie e cole o link abaixo no seu navegador:
+              </p>
+              <p style="color: #3b82f6; font-size: 12px; word-break: break-all; text-align: center; margin: 10px 0 0 0;">
+                ${proposalLink}
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+                Atenciosamente,
+              </p>
+              <p style="color: #374151; font-size: 16px; font-weight: 600; margin: 0;">
+                ${senderName}
+              </p>
+              ${companyName ? `<p style="color: #6b7280; font-size: 14px; margin: 5px 0 0 0;">${companyName}</p>` : ''}
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              
+              <p style="color: #9ca3af; font-size: 12px; margin: 0; text-align: center;">
+                Este email foi enviado automaticamente. Por favor, não responda diretamente.
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+// Professional WhatsApp message template
+function generateWhatsAppMessage(
+  clientName: string,
+  proposalTitle: string,
+  proposalLink: string,
+  senderName: string
+): string {
+  return `🎉 *Olá, ${clientName}!*
+
+Sua proposta comercial está pronta!
+
+📄 *Proposta:* ${proposalTitle}
+
+Preparamos uma proposta especialmente para você com todos os detalhes, valores e condições.
+
+👇 *Clique no link abaixo para visualizar:*
+${proposalLink}
+
+Estou à disposição para esclarecer qualquer dúvida!
+
+_Atenciosamente,_
+*${senderName}*`;
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -98,9 +231,11 @@ serve(async (req: Request) => {
     const clientEmail = recipientEmail || proposal.manual_client_email || proposal.clientes?.email;
     const clientPhone = recipientPhone || proposal.manual_client_phone || proposal.clientes?.numero;
 
-    // Generate proposal link
-    const baseUrl = Deno.env.get("SITE_URL") || supabaseUrl.replace('.supabase.co', '.lovable.app');
-    const proposalLink = `${baseUrl}/proposta/${proposalId}?token=${proposal.share_token}`;
+    // Generate proposal link - USE PUBLISHED URL
+    const publishedUrl = "https://atendimento-astros-acd.lovable.app";
+    const proposalLink = `${publishedUrl}/proposta/${proposalId}?token=${proposal.share_token}`;
+
+    console.log(`📍 Generated proposal link: ${proposalLink}`);
 
     const results = {
       email: { sent: false, error: null as string | null },
@@ -113,15 +248,16 @@ serve(async (req: Request) => {
         if (!config.gmail_user || !config.gmail_app_password) {
           results.email.error = 'Gmail não configurado';
         } else {
-          // Replace template variables
-          const subject = (config.email_subject_template || 'Proposta Comercial - {{titulo}}')
-            .replace('{{titulo}}', proposal.title)
-            .replace('{{cliente_nome}}', clientName);
+          // Generate professional email HTML
+          const htmlBody = generateEmailHtml(
+            clientName,
+            proposal.title,
+            proposalLink,
+            config.gmail_sender_name || senderName,
+            undefined // company name optional
+          );
 
-          const htmlBody = (config.email_body_template || '')
-            .replace(/\{\{titulo\}\}/g, proposal.title)
-            .replace(/\{\{cliente_nome\}\}/g, clientName)
-            .replace(/\{\{link\}\}/g, proposalLink);
+          const subject = `📄 Proposta Comercial: ${proposal.title}`;
 
           const client = new SMTPClient({
             connection: {
@@ -193,11 +329,13 @@ serve(async (req: Request) => {
             cleanNumber = '55' + cleanNumber;
           }
 
-          // Replace template variables
-          const message = (config.whatsapp_message_template || 'Sua proposta: {{link}}')
-            .replace(/\{\{titulo\}\}/g, proposal.title)
-            .replace(/\{\{cliente_nome\}\}/g, clientName)
-            .replace(/\{\{link\}\}/g, proposalLink);
+          // Generate professional WhatsApp message
+          const message = generateWhatsAppMessage(
+            clientName,
+            proposal.title,
+            proposalLink,
+            config.gmail_sender_name || senderName
+          );
 
           const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
           
