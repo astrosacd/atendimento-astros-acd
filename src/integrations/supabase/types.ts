@@ -3027,6 +3027,147 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_sections: {
+        Row: {
+          content: Json | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          order_index: number
+          proposal_id: string
+          section_type: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          proposal_id: string
+          section_type: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          order_index?: number
+          proposal_id?: string
+          section_type?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_sections_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_view_logs: {
+        Row: {
+          city: string | null
+          country: string | null
+          id: string
+          ip_address: string | null
+          proposal_id: string
+          user_agent: string | null
+          viewed_at: string
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address?: string | null
+          proposal_id: string
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address?: string | null
+          proposal_id?: string
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_view_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          client_id: string | null
+          client_signature: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          share_token: string
+          signed_at: string | null
+          status: Database["public"]["Enums"]["proposal_status"]
+          template_id: string | null
+          title: string
+          total_value: number | null
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_signature?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          share_token?: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          template_id?: string | null
+          title?: string
+          total_value?: number | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_signature?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          share_token?: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          template_id?: string | null
+          title?: string
+          total_value?: number | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recovery_config: {
         Row: {
           config_key: string
@@ -3323,6 +3464,7 @@ export type Database = {
         | "aguardando_cliente"
         | "resolvido"
         | "fechado"
+      proposal_status: "draft" | "sent" | "viewed" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3459,6 +3601,7 @@ export const Constants = {
         "resolvido",
         "fechado",
       ],
+      proposal_status: ["draft", "sent", "viewed", "accepted", "rejected"],
     },
   },
 } as const

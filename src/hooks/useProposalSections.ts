@@ -1,0 +1,182 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import type { ProposalSection, SectionType } from '@/types/proposals';
+import type { Json } from '@/integrations/supabase/types';
+
+export function useProposalSections(proposalId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  // Buscar seções da proposta
+  const { data: sections = [], isLoading, refetch } = useQuery({
+    queryKey: ['proposal-sections', proposalId],
+    queryFn: async () => {
+      if (!proposalId) return [];
+      
+      const { data, error } = await supabase
+        .from('proposal_sections')
+        .select('*')
+        .eq('proposal_id', proposalId)
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+      return data as ProposalSection[];
+    },
+    enabled: !!proposalId,
+  });
+
+  // Criar seção
+  const createSection = useMutation({
+    mutationFn: async ({ 
+      type, 
+      title 
+    }: { 
+      type: SectionType; 
+      title?: string;
+    }) => {
+      if (!proposalId) throw new Error('ID da proposta não fornecido');
+
+      const maxOrder = sections.length > 0 
+        ? Math.max(...sections.map(s => s.order_index)) 
+        : -1;
+
+      const insertData = {
+        proposal_id: proposalId,
+        section_type: type as string,
+        title: title || null,
+        order_index: maxOrder + 1,
+        content: getDefaultContent(type) as Json,
+      };
+
+      const { data, error } = await supabase
+        .from('proposal_sections')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
+      toast.success('Seção adicionada');
+    },
+    onError: (error) => {
+      console.error('Erro ao criar seção:', error);
+      toast.error('Erro ao adicionar seção');
+    },
+  });
+
+  // Atualizar seção
+  const updateSection = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ProposalSection> & { id: string }) => {
+      const updateData: Record<string, Json | string | number | boolean | null> = {};
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.content !== undefined) updateData.content = updates.content as Json;
+      if (updates.is_visible !== undefined) updateData.is_visible = updates.is_visible;
+      if (updates.order_index !== undefined) updateData.order_index = updates.order_index;
+
+      const { data, error } = await supabase
+        .from('proposal_sections')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
+    },
+    onError: (error) => {
+      console.error('Erro ao atualizar seção:', error);
+      toast.error('Erro ao atualizar seção');
+    },
+  });
+
+  // Deletar seção
+  const deleteSection = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('proposal_sections')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
+      toast.success('Seção removida');
+    },
+    onError: (error) => {
+      console.error('Erro ao excluir seção:', error);
+      toast.error('Erro ao remover seção');
+    },
+  });
+
+  // Reordenar seções
+  const reorderSections = useMutation({
+    mutationFn: async (reorderedSections: ProposalSection[]) => {
+      const updates = reorderedSections.map((section, index) => ({
+        id: section.id,
+        order_index: index,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('proposal_sections')
+          .update({ order_index: update.order_index })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      return updates;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
+    },
+    onError: (error) => {
+      console.error('Erro ao reordenar seções:', error);
+      toast.error('Erro ao reordenar seções');
+    },
+  });
+
+  return {
+    sections,
+    isLoading,
+    refetch,
+    createSection,
+    updateSection,
+    deleteSection,
+    reorderSections,
+  };
+}
+
+// Conteúdo padrão por tipo de seção
+function getDefaultContent(type: SectionType): Record<string, unknown> {
+  switch (type) {
+    case 'cover':
+      return { title: '', subtitle: '', backgroundImage: '' };
+    case 'text':
+      return { content: '' };
+    case 'pricing':
+      return { items: [] };
+    case 'timeline':
+      return { items: [] };
+    case 'team':
+      return { members: [] };
+    case 'testimonials':
+      return { items: [] };
+    case 'gallery':
+      return { images: [] };
+    case 'terms':
+      return { content: '' };
+    case 'signature':
+      return { signerName: '', signerRole: '', signerSignature: '' };
+    default:
+      return {};
+  }
+}

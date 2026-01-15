@@ -44,7 +44,10 @@ import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import Tarefas from "./pages/Tarefas";
+import Propostas from "./pages/Propostas";
+import PropostaEditor from "./pages/PropostaEditor";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
+import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
 import Checkout from "./pages/public/Checkout";
 import Sucesso from "./pages/public/Sucesso";
@@ -126,9 +129,14 @@ function AppRoutes() {
       {/* Tarefas Route */}
       <Route path="/tarefas" element={<ProtectedRoute permission="manage_tasks"><Tarefas /></ProtectedRoute>} />
       
+      {/* Propostas Routes */}
+      <Route path="/propostas" element={<ProtectedRoute permission="view_proposals"><Propostas /></ProtectedRoute>} />
+      <Route path="/propostas/:id" element={<ProtectedRoute permission="view_proposals"><PropostaEditor /></ProtectedRoute>} />
+      
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
       <Route path="/chamados/*" element={<ChamadosPublico />} />
+      <Route path="/proposta/:id" element={<PropostaPublica />} />
       <Route path="/catalogo" element={<Catalogo />} />
       <Route path="/loja/:customSlug" element={<Catalogo />} />
       <Route path="/p/:slug" element={<Checkout />} />
