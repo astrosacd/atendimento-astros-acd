@@ -3250,6 +3250,7 @@ export type Database = {
           client_id: string | null
           client_signature: string | null
           created_at: string
+          currency: string
           id: string
           manual_client_email: string | null
           manual_client_name: string | null
@@ -3269,6 +3270,7 @@ export type Database = {
           client_id?: string | null
           client_signature?: string | null
           created_at?: string
+          currency?: string
           id?: string
           manual_client_email?: string | null
           manual_client_name?: string | null
@@ -3288,6 +3290,7 @@ export type Database = {
           client_id?: string | null
           client_signature?: string | null
           created_at?: string
+          currency?: string
           id?: string
           manual_client_email?: string | null
           manual_client_name?: string | null
