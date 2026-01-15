@@ -73,6 +73,8 @@ export default function PropostaEditor() {
 
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
+  const [clientMode, setClientMode] = useState<'registered' | 'manual'>('registered');
+  const [manualClientName, setManualClientName] = useState('');
   const [status, setStatus] = useState<ProposalStatus>('draft');
   const [validUntil, setValidUntil] = useState('');
   const [activeTab, setActiveTab] = useState('edit');
@@ -226,9 +228,9 @@ export default function PropostaEditor() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-10 bg-background py-4 -mt-4 border-b">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-10 bg-background py-4 border-b -mx-6 px-6">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/propostas')}>
               <ArrowLeft className="h-5 w-5" />
@@ -303,23 +305,60 @@ export default function PropostaEditor() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>Cliente</Label>
-                      <Select
-                        value={clientId || ''}
-                        onValueChange={(value) => setClientId(value || null)}
-                        disabled={!canEditProposals()}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cliente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Nenhum</SelectItem>
-                          {clientes.map((cliente) => (
-                            <SelectItem key={cliente.id} value={cliente.id}>
-                              {cliente.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          type="button"
+                          variant={clientMode === 'registered' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setClientMode('registered');
+                            setManualClientName('');
+                          }}
+                          disabled={!canEditProposals()}
+                          className="flex-1"
+                        >
+                          Cadastrado
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={clientMode === 'manual' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => {
+                            setClientMode('manual');
+                            setClientId(null);
+                          }}
+                          disabled={!canEditProposals()}
+                          className="flex-1"
+                        >
+                          Manual
+                        </Button>
+                      </div>
+                      {clientMode === 'registered' ? (
+                        <Select
+                          value={clientId || ''}
+                          onValueChange={(value) => setClientId(value || null)}
+                          disabled={!canEditProposals()}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um cliente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {clientes.map((cliente) => (
+                              <SelectItem key={cliente.id} value={cliente.id}>
+                                {cliente.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          placeholder="Nome do cliente"
+                          value={manualClientName}
+                          onChange={(e) => setManualClientName(e.target.value)}
+                          disabled={!canEditProposals()}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">
