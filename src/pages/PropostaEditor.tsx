@@ -335,16 +335,16 @@ export default function PropostaEditor() {
                       </div>
                       {clientMode === 'registered' ? (
                         <Select
-                          value={clientId || ''}
-                          onValueChange={(value) => setClientId(value || null)}
+                          value={clientId || 'none'}
+                          onValueChange={(value) => setClientId(value === 'none' ? null : value)}
                           disabled={!canEditProposals()}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione um cliente" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
-                            {clientes.map((cliente) => (
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {clientes.filter(c => c.id).map((cliente) => (
                               <SelectItem key={cliente.id} value={cliente.id}>
                                 {cliente.nome}
                               </SelectItem>
