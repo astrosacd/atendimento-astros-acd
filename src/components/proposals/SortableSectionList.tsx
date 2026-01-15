@@ -1,7 +1,8 @@
 import { useState } from 'react';
-// Sortable list for proposal sections (supports currency formatting in child editors)
 import {
   DndContext,
+  closestCenter,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
