@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
+import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
 import { statusConfig } from '@/types/proposals';
 import type { ProposalStatus, SignatureContent } from '@/types/proposals';
 
@@ -116,6 +117,7 @@ export default function PropostaEditor() {
   const [clientes, setClientes] = useState<{ id: string; nome: string; email: string; numero: string; cobranca_ativa: boolean }[]>([]);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function PropostaEditor() {
     }
   };
 
-  const handleSend = async () => {
+  const handleOpenSendDialog = () => {
     // Validar se tem seção de assinatura com assinatura do responsável
     const signatureSection = sections.find((s) => s.section_type === 'signature');
     if (signatureSection) {
@@ -185,25 +187,28 @@ export default function PropostaEditor() {
       }
     }
 
-    if (!id) return;
-    setIsSaving(true);
-    try {
-      await updateProposal.mutateAsync({
+    // Salvar antes de abrir o diálogo para garantir dados atualizados
+    if (id) {
+      updateProposal.mutate({
         id,
         title,
         client_id: clientId,
-        status: 'sent' as ProposalStatus,
+        status,
         valid_until: validUntil || null,
         total_value: totalValue,
       });
-      setStatus('sent');
-      toast.success('Proposta enviada!');
-    } catch (error) {
-      console.error('Erro ao enviar:', error);
-    } finally {
-      setIsSaving(false);
     }
+
+    setShowSendDialog(true);
   };
+
+  // Obter dados do cliente selecionado
+  const selectedClient = useMemo(() => {
+    if (clientMode === 'registered' && clientId) {
+      return clientes.find((c) => c.id === clientId);
+    }
+    return null;
+  }, [clientMode, clientId, clientes]);
 
   const handleCopyLink = () => {
     if (!proposal) return;
@@ -326,8 +331,8 @@ export default function PropostaEditor() {
                   )}
                   Salvar
                 </Button>
-                {status === 'draft' && (
-                  <Button size="sm" onClick={handleSend} disabled={isSaving}>
+                {(status === 'draft' || status === 'sent') && (
+                  <Button size="sm" onClick={handleOpenSendDialog} disabled={isSaving}>
                     <Send className="h-4 w-4 mr-2" />
                     Enviar
                   </Button>
@@ -551,6 +556,18 @@ export default function PropostaEditor() {
             open={showHistory}
             onOpenChange={setShowHistory}
             proposalId={id}
+          />
+        )}
+
+        {/* Dialog de Envio */}
+        {id && (
+          <SendProposalDialog
+            open={showSendDialog}
+            onOpenChange={setShowSendDialog}
+            proposalId={id}
+            clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
+            clientEmail={selectedClient?.email}
+            clientPhone={selectedClient?.numero}
           />
         )}
       </div>

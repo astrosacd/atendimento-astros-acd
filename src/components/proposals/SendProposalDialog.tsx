@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Mail, MessageSquare, Loader2 } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
 import { useSendProposal, useProposalSendConfig } from '@/hooks/useProposalSending';
+import { toast } from 'sonner';
 
 interface SendProposalDialogProps {
   open: boolean;
@@ -31,26 +32,77 @@ export function SendProposalDialog({
   clientEmail,
   clientPhone,
 }: SendProposalDialogProps) {
-  const { config } = useProposalSendConfig();
+  const { config, isLoading: isLoadingConfig } = useProposalSendConfig();
   const sendProposal = useSendProposal();
 
   const [channel, setChannel] = useState<'email' | 'whatsapp' | 'both'>('both');
-  const [recipientName, setRecipientName] = useState(clientName || '');
-  const [recipientEmail, setRecipientEmail] = useState(clientEmail || '');
-  const [recipientPhone, setRecipientPhone] = useState(clientPhone || '');
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
 
-  const emailAvailable = config?.email_enabled && (recipientEmail || clientEmail);
-  const whatsappAvailable = config?.whatsapp_enabled && (recipientPhone || clientPhone);
+  // Sincronizar campos quando o diálogo abre ou quando os dados do cliente mudam
+  useEffect(() => {
+    if (open) {
+      setRecipientName(clientName || '');
+      setRecipientEmail(clientEmail || '');
+      setRecipientPhone(clientPhone || '');
+      
+      // Auto-selecionar canal baseado nos dados disponíveis
+      if (clientEmail && clientPhone && config?.email_enabled && config?.whatsapp_enabled) {
+        setChannel('both');
+      } else if (clientEmail && config?.email_enabled) {
+        setChannel('email');
+      } else if (clientPhone && config?.whatsapp_enabled) {
+        setChannel('whatsapp');
+      } else if (config?.email_enabled) {
+        setChannel('email');
+      } else if (config?.whatsapp_enabled) {
+        setChannel('whatsapp');
+      }
+    }
+  }, [open, clientName, clientEmail, clientPhone, config]);
+
+  // Verificar se pode enviar
+  const canSendEmail = config?.email_enabled && recipientEmail.trim();
+  const canSendWhatsapp = config?.whatsapp_enabled && recipientPhone.trim();
+  
+  const canSend = (channel === 'email' && canSendEmail) ||
+                  (channel === 'whatsapp' && canSendWhatsapp) ||
+                  (channel === 'both' && (canSendEmail || canSendWhatsapp));
+
+  const getValidationMessage = () => {
+    if (channel === 'email' && !recipientEmail.trim()) {
+      return 'Informe o email do destinatário';
+    }
+    if (channel === 'whatsapp' && !recipientPhone.trim()) {
+      return 'Informe o WhatsApp do destinatário';
+    }
+    if (channel === 'both' && !recipientEmail.trim() && !recipientPhone.trim()) {
+      return 'Informe pelo menos um email ou WhatsApp';
+    }
+    return null;
+  };
+
+  const validationMessage = getValidationMessage();
 
   const handleSend = async () => {
-    await sendProposal.mutateAsync({
-      proposalId,
-      channel,
-      recipientEmail: recipientEmail || clientEmail,
-      recipientPhone: recipientPhone || clientPhone,
-      recipientName: recipientName || clientName,
-    });
-    onOpenChange(false);
+    if (!canSend) {
+      toast.error(validationMessage || 'Preencha os dados de contato');
+      return;
+    }
+
+    try {
+      await sendProposal.mutateAsync({
+        proposalId,
+        channel,
+        recipientEmail: recipientEmail.trim() || undefined,
+        recipientPhone: recipientPhone.trim() || undefined,
+        recipientName: recipientName.trim() || undefined,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
   return (
@@ -59,7 +111,11 @@ export function SendProposalDialog({
         <DialogHeader>
           <DialogTitle>Enviar Proposta</DialogTitle>
           <DialogDescription>
-            Escolha como enviar a proposta para o cliente
+            {clientName ? (
+              <>Enviar proposta para <strong>{clientName}</strong></>
+            ) : (
+              'Preencha os dados do destinatário'
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -75,21 +131,32 @@ export function SendProposalDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>
+                Email
+                {channel === 'email' && <span className="text-destructive ml-1">*</span>}
+              </Label>
               <Input
                 type="email"
                 placeholder="email@exemplo.com"
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
+                className={channel === 'email' && !recipientEmail.trim() ? 'border-destructive' : ''}
               />
             </div>
             <div className="space-y-2">
-              <Label>WhatsApp</Label>
+              <Label>
+                WhatsApp
+                {channel === 'whatsapp' && <span className="text-destructive ml-1">*</span>}
+              </Label>
               <Input
-                placeholder="(11) 99999-9999"
+                placeholder="5511999999999"
                 value={recipientPhone}
                 onChange={(e) => setRecipientPhone(e.target.value)}
+                className={channel === 'whatsapp' && !recipientPhone.trim() ? 'border-destructive' : ''}
               />
+              <p className="text-xs text-muted-foreground">
+                Formato: código do país + DDD + número (ex: 5511999999999)
+              </p>
             </div>
           </div>
 
@@ -138,10 +205,19 @@ export function SendProposalDialog({
             </RadioGroup>
           </div>
 
+          {/* Mensagens de aviso */}
           {!config?.email_enabled && !config?.whatsapp_enabled && (
-            <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md">
-              Nenhum canal de envio está configurado. Configure em Propostas → Configuração de Envio.
-            </p>
+            <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>Nenhum canal de envio está configurado. Configure em Propostas → Configuração de Envio.</p>
+            </div>
+          )}
+
+          {validationMessage && (config?.email_enabled || config?.whatsapp_enabled) && (
+            <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>{validationMessage}</p>
+            </div>
           )}
         </div>
 
@@ -151,7 +227,7 @@ export function SendProposalDialog({
           </Button>
           <Button 
             onClick={handleSend} 
-            disabled={sendProposal.isPending || (!emailAvailable && !whatsappAvailable)}
+            disabled={sendProposal.isPending || !canSend || isLoadingConfig}
           >
             {sendProposal.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
