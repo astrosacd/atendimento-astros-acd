@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SectionEditor } from './SectionEditor';
-import type { ProposalSection } from '@/types/proposals';
+import type { ProposalSection } from '@/hooks/useProposalSections';
 
 interface SortableSectionListProps {
   sections: ProposalSection[];

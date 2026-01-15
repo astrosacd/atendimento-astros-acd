@@ -1,9 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { ProposalSection } from '@/hooks/useProposalSections';
 import type { 
   Proposal, 
-  ProposalSection, 
   CoverContent, 
   TextContent, 
   PricingContent, 
@@ -60,17 +60,17 @@ function renderSection(
 
   switch (type) {
     case 'cover':
-      return <CoverPreview content={section.content as CoverContent} />;
+      return <CoverPreview content={section.content as unknown as CoverContent} />;
     case 'text':
-      return <TextPreview content={section.content as TextContent} title={section.title} />;
+      return <TextPreview content={section.content as unknown as TextContent} title={section.title} />;
     case 'pricing':
-      return <PricingPreview content={section.content as PricingContent} title={section.title} formatCurrency={formatCurrency} />;
+      return <PricingPreview content={section.content as unknown as PricingContent} title={section.title} formatCurrency={formatCurrency} />;
     case 'timeline':
-      return <TimelinePreview content={section.content as TimelineContent} title={section.title} />;
+      return <TimelinePreview content={section.content as unknown as TimelineContent} title={section.title} />;
     case 'terms':
-      return <TermsPreview content={section.content as TermsContent} title={section.title} />;
+      return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} />;
     case 'signature':
-      return <SignaturePreview content={section.content as SignatureContent} client={client} />;
+      return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} />;
     default:
       return (
         <div className="text-center text-muted-foreground">

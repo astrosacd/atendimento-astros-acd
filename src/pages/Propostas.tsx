@@ -50,7 +50,7 @@ export default function Propostas() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    const result = await createProposal.mutateAsync();
+    const result = await createProposal.mutateAsync('Nova Proposta');
     if (result?.id) {
       navigate(`/propostas/${result.id}`);
     }
