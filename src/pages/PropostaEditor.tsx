@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { CommandDialog, Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -391,27 +390,20 @@ export default function PropostaEditor() {
                         </Button>
                       </div>
                       {clientMode === 'registered' ? (
-                        <Popover open={clientComboboxOpen} onOpenChange={setClientComboboxOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={clientComboboxOpen}
-                              className="w-full justify-between"
-                              disabled={!canEditProposals()}
-                            >
-                              {selectedClientName || "Selecione um cliente..."}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className="w-[320px] p-0 z-[9999]"
-                            align="start"
-                            side="bottom"
-                            sideOffset={8}
-                            collisionPadding={24}
-                            sticky="always"
+                        <>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={clientComboboxOpen}
+                            className="w-full justify-between"
+                            disabled={!canEditProposals()}
+                            onClick={() => setClientComboboxOpen(true)}
                           >
+                            {selectedClientName || 'Pesquisar cliente...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+
+                          <CommandDialog open={clientComboboxOpen} onOpenChange={setClientComboboxOpen}>
                             <Command>
                               <CommandInput placeholder="Pesquisar cliente..." />
                               <CommandList>
@@ -424,12 +416,11 @@ export default function PropostaEditor() {
                                       setClientComboboxOpen(false);
                                     }}
                                   >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${!clientId ? 'opacity-100' : 'opacity-0'}`}
-                                    />
+                                    <Check className={`mr-2 h-4 w-4 ${!clientId ? 'opacity-100' : 'opacity-0'}`} />
                                     Nenhum
                                   </CommandItem>
-                                  {clientes.filter(c => c.id).map((cliente) => (
+
+                                  {clientes.filter((c) => c.id).map((cliente) => (
                                     <CommandItem
                                       key={cliente.id}
                                       value={`${cliente.nome} ${cliente.email}`}
@@ -443,11 +434,13 @@ export default function PropostaEditor() {
                                       />
                                       <div className="flex items-center gap-2 flex-1">
                                         <span className="truncate">{cliente.nome}</span>
-                                        <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                                          cliente.cobranca_ativa 
-                                            ? 'bg-blue-500/20 text-blue-500' 
-                                            : 'bg-amber-500/20 text-amber-500'
-                                        }`}>
+                                        <span
+                                          className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                                            cliente.cobranca_ativa
+                                              ? 'bg-blue-500/20 text-blue-500'
+                                              : 'bg-amber-500/20 text-amber-500'
+                                          }`}
+                                        >
                                           {cliente.cobranca_ativa ? 'Mensal' : 'Registro'}
                                         </span>
                                       </div>
@@ -456,8 +449,8 @@ export default function PropostaEditor() {
                                 </CommandGroup>
                               </CommandList>
                             </Command>
-                          </PopoverContent>
-                        </Popover>
+                          </CommandDialog>
+                        </>
                       ) : (
                         <Input
                           placeholder="Nome do cliente"
