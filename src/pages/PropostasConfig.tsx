@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -23,9 +22,6 @@ export default function PropostasConfig() {
   const [evolutionInstanceName, setEvolutionInstanceName] = useState('');
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
-  const [emailSubjectTemplate, setEmailSubjectTemplate] = useState('');
-  const [emailBodyTemplate, setEmailBodyTemplate] = useState('');
-  const [whatsappMessageTemplate, setWhatsappMessageTemplate] = useState('');
   
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -40,9 +36,6 @@ export default function PropostasConfig() {
       setEvolutionInstanceName(config.evolution_instance_name || '');
       setEmailEnabled(config.email_enabled);
       setWhatsappEnabled(config.whatsapp_enabled);
-      setEmailSubjectTemplate(config.email_subject_template || 'Proposta Comercial - {{titulo}}');
-      setEmailBodyTemplate(config.email_body_template || '<h1>Olá {{cliente_nome}},</h1><p>Segue sua proposta comercial.</p><p><a href="{{link}}">Clique aqui para visualizar</a></p>');
-      setWhatsappMessageTemplate(config.whatsapp_message_template || 'Olá {{cliente_nome}}! 📋 Sua proposta comercial está pronta. Acesse aqui: {{link}}');
     }
   }, [config]);
 
@@ -56,9 +49,6 @@ export default function PropostasConfig() {
       evolution_instance_name: evolutionInstanceName || null,
       email_enabled: emailEnabled,
       whatsapp_enabled: whatsappEnabled,
-      email_subject_template: emailSubjectTemplate || null,
-      email_body_template: emailBodyTemplate || null,
-      whatsapp_message_template: whatsappMessageTemplate || null,
     });
   };
 
@@ -178,28 +168,44 @@ export default function PropostasConfig() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Template de Email</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <span>✨</span> Template de Email Profissional
+                </CardTitle>
                 <CardDescription>
-                  Use variáveis: {'{{titulo}}'}, {'{{cliente_nome}}'}, {'{{link}}'}
+                  O email é enviado com um design moderno e profissional
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Assunto</Label>
-                  <Input
-                    placeholder="Proposta Comercial - {{titulo}}"
-                    value={emailSubjectTemplate}
-                    onChange={(e) => setEmailSubjectTemplate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Corpo (HTML)</Label>
-                  <Textarea
-                    rows={6}
-                    placeholder="<h1>Olá {{cliente_nome}}</h1>..."
-                    value={emailBodyTemplate}
-                    onChange={(e) => setEmailBodyTemplate(e.target.value)}
-                  />
+                <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    O template de email inclui automaticamente:
+                  </p>
+                  <ul className="text-sm space-y-2">
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Cabeçalho com gradiente azul profissional</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Saudação personalizada com nome do cliente</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Card destacado com título da proposta</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Botão CTA grande para visualizar a proposta</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Link alternativo caso o botão não funcione</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Rodapé com nome do remetente configurado acima</span>
+                    </li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
@@ -269,20 +275,53 @@ export default function PropostasConfig() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Template de Mensagem</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <span>✨</span> Template de WhatsApp Profissional
+                </CardTitle>
                 <CardDescription>
-                  Use variáveis: {'{{titulo}}'}, {'{{cliente_nome}}'}, {'{{link}}'}
+                  A mensagem é enviada com formatação profissional
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label>Mensagem</Label>
-                  <Textarea
-                    rows={4}
-                    placeholder="Olá {{cliente_nome}}! 📋 Sua proposta está pronta..."
-                    value={whatsappMessageTemplate}
-                    onChange={(e) => setWhatsappMessageTemplate(e.target.value)}
-                  />
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    O template de WhatsApp inclui automaticamente:
+                  </p>
+                  <ul className="text-sm space-y-2">
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Saudação animada com emoji e nome do cliente</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Título da proposta em destaque</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Descrição convidativa</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Link direto para visualização</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Assinatura com nome do remetente</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-background border border-border rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground mb-2">Prévia da mensagem:</p>
+                  <div className="font-mono text-sm whitespace-pre-line text-foreground">
+                    🎉 *Olá, [Nome do Cliente]!*{'\n\n'}
+                    Sua proposta comercial está pronta!{'\n\n'}
+                    📄 *Proposta:* [Título da Proposta]{'\n\n'}
+                    Preparamos uma proposta especialmente para você...{'\n\n'}
+                    👇 *Clique no link abaixo para visualizar:*{'\n'}
+                    [Link da proposta]{'\n\n'}
+                    _Atenciosamente,_{'\n'}
+                    *{gmailSenderName || 'Seu Nome'}*
+                  </div>
                 </div>
               </CardContent>
             </Card>
