@@ -1,8 +1,7 @@
 import { useState } from 'react';
+// Sortable list for proposal sections (supports currency formatting in child editors)
 import {
   DndContext,
-  closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -27,6 +26,7 @@ interface SortableSectionListProps {
   onUpdate: (id: string, updates: Partial<ProposalSection>) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
+  proposalCurrency?: 'BRL' | 'USD';
 }
 
 export function SortableSectionList({
@@ -35,6 +35,7 @@ export function SortableSectionList({
   onUpdate,
   onDelete,
   canEdit,
+  proposalCurrency = 'BRL',
 }: SortableSectionListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeSection = activeId ? sections.find((s) => s.id === activeId) : null;
@@ -42,7 +43,7 @@ export function SortableSectionList({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px of movement before activating drag
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -73,10 +74,7 @@ export function SortableSectionList({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext
-        items={sections.map((s) => s.id)}
-        strategy={verticalListSortingStrategy}
-      >
+      <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-4">
           {sections.map((section) => (
             <SortableSection
@@ -85,11 +83,13 @@ export function SortableSectionList({
               onUpdate={(updates) => onUpdate(section.id, updates)}
               onDelete={() => onDelete(section.id)}
               canEdit={canEdit}
+              proposalCurrency={proposalCurrency}
               isDraggingThis={activeId === section.id}
             />
           ))}
         </div>
       </SortableContext>
+
       <DragOverlay>
         {activeSection ? (
           <div className="opacity-90 shadow-2xl ring-2 ring-primary rounded-lg">
@@ -98,6 +98,7 @@ export function SortableSectionList({
               onUpdate={() => {}}
               onDelete={() => {}}
               canEdit={false}
+              currency={proposalCurrency}
             />
           </div>
         ) : null}
@@ -111,18 +112,19 @@ interface SortableSectionProps {
   onUpdate: (updates: Partial<ProposalSection>) => void;
   onDelete: () => void;
   canEdit: boolean;
+  proposalCurrency: 'BRL' | 'USD';
   isDraggingThis: boolean;
 }
 
-function SortableSection({ section, onUpdate, onDelete, canEdit, isDraggingThis }: SortableSectionProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: section.id });
+function SortableSection({
+  section,
+  onUpdate,
+  onDelete,
+  canEdit,
+  proposalCurrency,
+  isDraggingThis,
+}: SortableSectionProps) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: section.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -140,6 +142,7 @@ function SortableSection({ section, onUpdate, onDelete, canEdit, isDraggingThis 
         onUpdate={onUpdate}
         onDelete={onDelete}
         canEdit={canEdit}
+        currency={proposalCurrency}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
