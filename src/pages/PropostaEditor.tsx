@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -27,6 +29,8 @@ import {
   PenTool,
   Loader2,
   History,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -115,9 +119,9 @@ export default function PropostaEditor() {
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [clientes, setClientes] = useState<{ id: string; nome: string; email: string; numero: string; cobranca_ativa: boolean }[]>([]);
-  const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
+  const [clientComboboxOpen, setClientComboboxOpen] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
@@ -126,15 +130,12 @@ export default function PropostaEditor() {
     });
   }, []);
 
-  // Filtrar clientes pela busca
-  const filteredClientes = useMemo(() => {
-    if (!clientSearchQuery.trim()) return clientes;
-    const query = clientSearchQuery.toLowerCase();
-    return clientes.filter(c => 
-      c.nome.toLowerCase().includes(query) || 
-      c.email.toLowerCase().includes(query)
-    );
-  }, [clientes, clientSearchQuery]);
+  // Obter nome do cliente selecionado para exibir no combobox
+  const selectedClientName = useMemo(() => {
+    if (!clientId) return '';
+    const client = clientes.find((c) => c.id === clientId);
+    return client?.nome || '';
+  }, [clientId, clientes]);
 
   // Sincroniza estado local com dados do banco
   useEffect(() => {
@@ -390,41 +391,66 @@ export default function PropostaEditor() {
                         </Button>
                       </div>
                       {clientMode === 'registered' ? (
-                        <div className="space-y-2">
-                          <Input
-                            placeholder="Pesquisar cliente..."
-                            value={clientSearchQuery}
-                            onChange={(e) => setClientSearchQuery(e.target.value)}
-                            className="mb-2"
-                            disabled={!canEditProposals()}
-                          />
-                          <Select
-                            value={clientId || 'none'}
-                            onValueChange={(value) => setClientId(value === 'none' ? null : value)}
-                            disabled={!canEditProposals()}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um cliente" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Nenhum</SelectItem>
-                              {filteredClientes.filter(c => c.id).map((cliente) => (
-                                <SelectItem key={cliente.id} value={cliente.id}>
-                                  <div className="flex items-center gap-2">
-                                    <span>{cliente.nome}</span>
-                                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                      cliente.cobranca_ativa 
-                                        ? 'bg-blue-500/20 text-blue-500' 
-                                        : 'bg-amber-500/20 text-amber-500'
-                                    }`}>
-                                      {cliente.cobranca_ativa ? 'Mensal' : 'Registro'}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <Popover open={clientComboboxOpen} onOpenChange={setClientComboboxOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={clientComboboxOpen}
+                              className="w-full justify-between"
+                              disabled={!canEditProposals()}
+                            >
+                              {selectedClientName || "Selecione um cliente..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Pesquisar cliente..." />
+                              <CommandList>
+                                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem
+                                    value="none"
+                                    onSelect={() => {
+                                      setClientId(null);
+                                      setClientComboboxOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${!clientId ? 'opacity-100' : 'opacity-0'}`}
+                                    />
+                                    Nenhum
+                                  </CommandItem>
+                                  {clientes.filter(c => c.id).map((cliente) => (
+                                    <CommandItem
+                                      key={cliente.id}
+                                      value={`${cliente.nome} ${cliente.email}`}
+                                      onSelect={() => {
+                                        setClientId(cliente.id);
+                                        setClientComboboxOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${clientId === cliente.id ? 'opacity-100' : 'opacity-0'}`}
+                                      />
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <span className="truncate">{cliente.nome}</span>
+                                        <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                                          cliente.cobranca_ativa 
+                                            ? 'bg-blue-500/20 text-blue-500' 
+                                            : 'bg-amber-500/20 text-amber-500'
+                                        }`}>
+                                          {cliente.cobranca_ativa ? 'Mensal' : 'Registro'}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       ) : (
                         <Input
                           placeholder="Nome do cliente"
