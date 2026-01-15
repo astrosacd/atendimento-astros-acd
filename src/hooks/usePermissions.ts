@@ -126,6 +126,7 @@ export function usePermissions() {
   const canShareProposals = () => hasPermission('share_proposals');
   const canManageProposalTemplates = () => hasPermission('manage_proposal_templates');
   const canViewProposalHistory = () => hasPermission('view_proposal_history');
+  const canViewProposalsDashboard = () => hasPermission('view_proposals_dashboard');
 
   return {
     permissions,
@@ -205,5 +206,6 @@ export function usePermissions() {
     canShareProposals,
     canManageProposalTemplates,
     canViewProposalHistory,
+    canViewProposalsDashboard,
   };
 }
