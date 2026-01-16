@@ -35,6 +35,10 @@ export interface Proposal {
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
+  // Campos de cliente manual
+  manual_client_name?: string | null;
+  manual_client_email?: string | null;
+  manual_client_phone?: string | null;
   // Relacionamentos
   client?: {
     id: string;
