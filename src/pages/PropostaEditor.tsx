@@ -199,6 +199,23 @@ export default function PropostaEditor() {
   };
 
   const handleOpenSendDialog = () => {
+    // Validar se tem seção de assinatura
+    const signatureSections = sections.filter((s) => s.section_type === 'signature' && s.is_visible);
+    
+    if (signatureSections.length === 0) {
+      toast.error('A proposta precisa ter uma seção de Assinatura para ser enviada');
+      return;
+    }
+
+    // Validar se a assinatura está no final
+    const visibleSections = sections.filter((s) => s.is_visible);
+    const lastSection = visibleSections[visibleSections.length - 1];
+    
+    if (lastSection?.section_type !== 'signature') {
+      toast.error('A seção de Assinatura deve estar no final da proposta');
+      return;
+    }
+
     // Salvar antes de abrir o diálogo para garantir dados atualizados
     if (id) {
       updateProposal.mutate({
