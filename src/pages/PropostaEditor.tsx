@@ -119,6 +119,8 @@ export default function PropostaEditor() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientMode, setClientMode] = useState<'registered' | 'manual'>('registered');
   const [manualClientName, setManualClientName] = useState('');
+  const [manualClientEmail, setManualClientEmail] = useState('');
+  const [manualClientPhone, setManualClientPhone] = useState('');
   const [status, setStatus] = useState<ProposalStatus>('draft');
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const [validUntil, setValidUntil] = useState('');
@@ -153,6 +155,15 @@ export default function PropostaEditor() {
       setStatus(proposal.status);
       setCurrency((proposal as any).currency || 'BRL');
       setValidUntil(proposal.valid_until || '');
+
+      // Cliente manual
+      setManualClientName((proposal as any).manual_client_name || '');
+      setManualClientEmail((proposal as any).manual_client_email || '');
+      setManualClientPhone((proposal as any).manual_client_phone || '');
+
+      const hasRegisteredClient = !!proposal.client_id;
+      const hasManualClient = !!((proposal as any).manual_client_name || (proposal as any).manual_client_email || (proposal as any).manual_client_phone);
+      setClientMode(hasRegisteredClient ? 'registered' : hasManualClient ? 'manual' : 'registered');
     }
   }, [proposal]);
 
@@ -170,10 +181,15 @@ export default function PropostaEditor() {
     if (!id) return;
     setIsSaving(true);
     try {
+      const isManual = clientMode === 'manual';
+
       await updateProposal.mutateAsync({
         id,
         title,
-        client_id: clientId,
+        client_id: isManual ? null : clientId,
+        manual_client_name: isManual ? (manualClientName || null) : null,
+        manual_client_email: isManual ? (manualClientEmail || null) : null,
+        manual_client_phone: isManual ? (manualClientPhone || null) : null,
         status,
         currency,
         valid_until: validUntil || null,
@@ -260,16 +276,19 @@ export default function PropostaEditor() {
     }
 
     // Salvar antes de abrir o diálogo para garantir dados atualizados
-    if (id) {
+      const isManual = clientMode === 'manual';
+
       updateProposal.mutate({
         id,
         title,
-        client_id: clientId,
+        client_id: isManual ? null : clientId,
+        manual_client_name: isManual ? (manualClientName || null) : null,
+        manual_client_email: isManual ? (manualClientEmail || null) : null,
+        manual_client_phone: isManual ? (manualClientPhone || null) : null,
         status,
         valid_until: validUntil || null,
         total_value: totalValue,
-      });
-    }
+      } as any);
 
     setShowSendDialog(true);
   };
@@ -458,6 +477,8 @@ export default function PropostaEditor() {
                           onClick={() => {
                             setClientMode('registered');
                             setManualClientName('');
+                            setManualClientEmail('');
+                            setManualClientPhone('');
                           }}
                           disabled={!canEditProposals()}
                           className="flex-1"
@@ -541,12 +562,27 @@ export default function PropostaEditor() {
                           </CommandDialog>
                         </>
                       ) : (
-                        <Input
-                          placeholder="Nome do cliente"
-                          value={manualClientName}
-                          onChange={(e) => setManualClientName(e.target.value)}
-                          disabled={!canEditProposals()}
-                        />
+                        <div className="space-y-2">
+                          <Input
+                            placeholder="Nome do cliente"
+                            value={manualClientName}
+                            onChange={(e) => setManualClientName(e.target.value)}
+                            disabled={!canEditProposals()}
+                          />
+                          <Input
+                            placeholder="E-mail do cliente"
+                            type="email"
+                            value={manualClientEmail}
+                            onChange={(e) => setManualClientEmail(e.target.value)}
+                            disabled={!canEditProposals()}
+                          />
+                          <Input
+                            placeholder="WhatsApp / Telefone"
+                            value={manualClientPhone}
+                            onChange={(e) => setManualClientPhone(e.target.value)}
+                            disabled={!canEditProposals()}
+                          />
+                        </div>
                       )}
                     </div>
 
