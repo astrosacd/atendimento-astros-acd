@@ -362,11 +362,12 @@ export default function PropostaPublica() {
                 <div className="space-y-2">
                   <Label>Assinatura *</Label>
                   <p className="text-sm text-muted-foreground">
-                    Desenhe sua assinatura no campo abaixo para aceitar esta proposta:
+                    Desenhe ou digite sua assinatura no campo abaixo para aceitar esta proposta:
                   </p>
                   <SignatureCanvas
                     signature={clientSignature}
                     onChange={setClientSignature}
+                    clientName={clientName}
                   />
                 </div>
 
