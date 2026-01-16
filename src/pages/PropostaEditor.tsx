@@ -205,6 +205,12 @@ export default function PropostaEditor() {
       return;
     }
 
+    // Validar cliente (obrigatório - cadastrado ou manual)
+    if (!clientId && !manualClientName?.trim()) {
+      toast.error('É obrigatório selecionar um cliente cadastrado ou informar o nome do cliente manual.');
+      return;
+    }
+
     // Validar data de validade (obrigatória)
     if (!validUntil) {
       toast.error('A data de validade é obrigatória.');
