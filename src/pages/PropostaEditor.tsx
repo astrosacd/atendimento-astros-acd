@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CommandDialog, Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -20,7 +22,7 @@ import {
   Layout,
   Type,
   DollarSign,
-  Calendar,
+  Calendar as CalendarIcon,
   Users,
   MessageSquare,
   Image,
@@ -45,6 +47,9 @@ import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDia
 import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
 import { statusConfig } from '@/types/proposals';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { ProposalStatus, SignatureContent } from '@/types/proposals';
 
 const sectionTypeConfig: Record<SectionType, { label: string; icon: string }> = {
@@ -527,16 +532,36 @@ export default function PropostaEditor() {
 
                     <div className="space-y-2">
                       <Label>Válida até</Label>
-                      <div className="relative">
-                        <Input
-                          type="date"
-                          value={validUntil}
-                          onChange={(e) => setValidUntil(e.target.value)}
-                          disabled={!canEditProposals()}
-                          className="cursor-pointer"
-                        />
-                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !validUntil && "text-muted-foreground"
+                            )}
+                            disabled={!canEditProposals()}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {validUntil ? format(new Date(validUntil + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione uma data'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 z-50" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={validUntil ? new Date(validUntil + 'T12:00:00') : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setValidUntil(format(date, 'yyyy-MM-dd'));
+                              } else {
+                                setValidUntil('');
+                              }
+                            }}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     {totalValue > 0 && (
