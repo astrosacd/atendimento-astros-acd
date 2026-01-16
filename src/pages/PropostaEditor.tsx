@@ -469,36 +469,45 @@ export default function PropostaEditor() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>Cliente</Label>
-                      <div className="flex gap-2 mb-2">
-                        <Button
-                          type="button"
-                          variant={clientMode === 'registered' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setClientMode('registered');
-                            setManualClientName('');
-                            setManualClientEmail('');
-                            setManualClientPhone('');
-                          }}
-                          disabled={!canEditProposals()}
-                          className="flex-1"
-                        >
-                          Cadastrado
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={clientMode === 'manual' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => {
-                            setClientMode('manual');
-                            setClientId(null);
-                          }}
-                          disabled={!canEditProposals()}
-                          className="flex-1"
-                        >
-                          Manual
-                        </Button>
-                      </div>
+                      {/* Só permite trocar modo do cliente se a proposta ainda for rascunho */}
+                      {status === 'draft' ? (
+                        <div className="flex gap-2 mb-2">
+                          <Button
+                            type="button"
+                            variant={clientMode === 'registered' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setClientMode('registered');
+                              setManualClientName('');
+                              setManualClientEmail('');
+                              setManualClientPhone('');
+                            }}
+                            disabled={!canEditProposals()}
+                            className="flex-1"
+                          >
+                            Cadastrado
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={clientMode === 'manual' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setClientMode('manual');
+                              setClientId(null);
+                            }}
+                            disabled={!canEditProposals()}
+                            className="flex-1"
+                          >
+                            Manual
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 mb-2">
+                          <div className="w-full text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2 text-center">
+                            {clientMode === 'registered' ? 'Cliente Cadastrado' : 'Cliente Manual'}
+                          </div>
+                        </div>
+                      )}
                       {clientMode === 'registered' ? (
                         <>
                           <Button
