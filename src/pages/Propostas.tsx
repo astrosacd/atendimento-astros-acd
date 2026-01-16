@@ -75,7 +75,9 @@ export default function Propostas() {
 
   const filteredProposals = proposals.filter((p) =>
     p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.client?.nome?.toLowerCase().includes(search.toLowerCase())
+    p.client?.nome?.toLowerCase().includes(search.toLowerCase()) ||
+    p.manual_client_name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.manual_client_email?.toLowerCase().includes(search.toLowerCase())
   );
 
   const formatCurrency = (value: number) => {
@@ -332,6 +334,15 @@ function ProposalCard({
                       {clientType}
                     </Badge>
                   )}
+                </div>
+              )}
+
+              {/* Dados extras quando cliente for manual */}
+              {isManualClient && (proposal.manual_client_email || proposal.manual_client_phone) && (
+                <div className="text-xs text-muted-foreground">
+                  {proposal.manual_client_email && <span>{proposal.manual_client_email}</span>}
+                  {proposal.manual_client_email && proposal.manual_client_phone && <span> • </span>}
+                  {proposal.manual_client_phone && <span>{proposal.manual_client_phone}</span>}
                 </div>
               )}
               <div className="flex items-center gap-4">
