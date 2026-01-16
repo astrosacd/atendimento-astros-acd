@@ -211,14 +211,14 @@ export default function PropostaEditor() {
       return;
     }
 
-    // Validar se a data é futura
+    // Validar se a data é igual ou maior que hoje
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const validDate = new Date(validUntil);
     validDate.setHours(0, 0, 0, 0);
     
-    if (validDate <= today) {
-      toast.error('A data de validade deve ser uma data futura.');
+    if (validDate < today) {
+      toast.error('A data de validade deve ser igual ou maior que a data de hoje.');
       return;
     }
 
