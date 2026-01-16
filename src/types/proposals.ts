@@ -42,6 +42,11 @@ export interface Proposal {
     email: string;
     numero: string;
   } | null;
+  creator?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
 }
 
 export interface ProposalSection {

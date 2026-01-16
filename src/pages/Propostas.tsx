@@ -30,6 +30,9 @@ import {
   DollarSign,
   Settings,
   BarChart3,
+  Mail,
+  MessageSquare,
+  User,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -49,8 +52,8 @@ const statusIcons: Record<ProposalStatus, React.ReactNode> = {
 
 export default function Propostas() {
   const navigate = useNavigate();
-  const { proposals, isLoading, stats, createProposal, deleteProposal } = useProposals();
-  const { canCreateProposals, canDeleteProposals } = usePermissions();
+  const { proposals, isLoading, stats, createProposal, deleteProposal, proposalSendChannels } = useProposals();
+  const { canCreateProposals } = usePermissions();
   const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -208,9 +211,10 @@ export default function Propostas() {
                 key={proposal.id}
                 proposal={proposal}
                 onClick={() => navigate(`/propostas/${proposal.id}`)}
-                onDelete={canDeleteProposals() ? () => setDeleteId(proposal.id) : undefined}
+                onDelete={isAdmin ? () => setDeleteId(proposal.id) : undefined}
                 onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
+                sendChannels={proposalSendChannels[proposal.id] || []}
               />
             ))}
           </div>
@@ -262,14 +266,38 @@ function ProposalCard({
   onDelete,
   onViewHistory,
   formatCurrency,
+  sendChannels,
 }: {
   proposal: Proposal;
   onClick: () => void;
   onDelete?: () => void;
   onViewHistory: () => void;
   formatCurrency: (value: number) => string;
+  sendChannels: string[];
 }) {
   const config = statusConfig[proposal.status];
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email':
+        return <Mail className="h-3 w-3" />;
+      case 'whatsapp':
+        return <MessageSquare className="h-3 w-3" />;
+      default:
+        return null;
+    }
+  };
+
+  const getChannelLabel = (channel: string) => {
+    switch (channel) {
+      case 'email':
+        return 'E-mail';
+      case 'whatsapp':
+        return 'WhatsApp';
+      default:
+        return channel;
+    }
+  };
 
   return (
     <Card
@@ -289,16 +317,38 @@ function ProposalCard({
                 {config.label}
               </Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {proposal.client && (
-                <span className="truncate">{proposal.client.nome}</span>
-              )}
-              <span>
-                Atualizada em{' '}
-                {format(new Date(proposal.updated_at), "dd/MM/yyyy 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </span>
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+              <div className="flex items-center gap-4">
+                {proposal.client && (
+                  <span className="truncate">{proposal.client.nome}</span>
+                )}
+                <span>
+                  Atualizada em{' '}
+                  {format(new Date(proposal.updated_at), "dd/MM/yyyy 'às' HH:mm", {
+                    locale: ptBR,
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                {proposal.creator && (
+                  <span className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    {proposal.creator.name || proposal.creator.email || 'Usuário'}
+                  </span>
+                )}
+                {sendChannels.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Send className="h-3 w-3" />
+                    {sendChannels.map((channel, idx) => (
+                      <span key={channel} className="flex items-center gap-0.5">
+                        {idx > 0 && ', '}
+                        {getChannelIcon(channel)}
+                        {getChannelLabel(channel)}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
