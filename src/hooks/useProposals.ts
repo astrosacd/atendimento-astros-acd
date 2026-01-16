@@ -9,7 +9,7 @@ export function useProposals() {
   const queryClient = useQueryClient();
 
   // Buscar todas as propostas
-  const { data: proposals = [], isLoading, refetch } = useQuery({
+  const { data: rawProposals = [], isLoading, refetch } = useQuery({
     queryKey: ['proposals', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -21,9 +21,67 @@ export function useProposals() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return data as Proposal[];
+      return data;
     },
     enabled: !!user,
+  });
+
+  // Buscar informações dos criadores
+  const userIds = [...new Set(rawProposals.map(p => p.user_id))];
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['proposal-creators', userIds],
+    queryFn: async () => {
+      if (userIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .in('user_id', userIds);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: userIds.length > 0,
+  });
+
+  // Buscar canais de envio de todas as propostas
+  const proposalIds = rawProposals.map(p => p.id);
+  const { data: sendLogs = [] } = useQuery({
+    queryKey: ['proposal-send-channels', proposalIds],
+    queryFn: async () => {
+      if (proposalIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('proposal_send_logs')
+        .select('proposal_id, channel, sent_at')
+        .in('proposal_id', proposalIds)
+        .eq('status', 'success')
+        .order('sent_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: proposalIds.length > 0,
+  });
+
+  // Combinar propostas com criadores
+  const proposals: Proposal[] = rawProposals.map(proposal => {
+    const creator = profiles.find(p => p.user_id === proposal.user_id);
+    return {
+      ...proposal,
+      creator: creator ? { id: creator.user_id, name: creator.name, email: creator.email } : null,
+    } as Proposal;
+  });
+
+  // Agrupar canais por proposta (canais únicos)
+  const proposalSendChannels: Record<string, string[]> = {};
+  sendLogs.forEach(log => {
+    if (!proposalSendChannels[log.proposal_id]) {
+      proposalSendChannels[log.proposal_id] = [];
+    }
+    if (!proposalSendChannels[log.proposal_id].includes(log.channel)) {
+      proposalSendChannels[log.proposal_id].push(log.channel);
+    }
   });
 
   // Buscar proposta por ID
@@ -139,5 +197,6 @@ export function useProposals() {
     createProposal,
     updateProposal,
     deleteProposal,
+    proposalSendChannels,
   };
 }
