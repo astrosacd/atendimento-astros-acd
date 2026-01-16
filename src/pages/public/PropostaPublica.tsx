@@ -301,8 +301,16 @@ export default function PropostaPublica() {
 
   const isFinalized = proposal.status === 'accepted' || proposal.status === 'rejected';
 
-  // Check if proposal is expired
-  const isExpired = proposal.valid_until && new Date(proposal.valid_until) < new Date();
+  // Check if proposal is expired (usando comparação de data apenas, sem timezone issues)
+  const isExpired = (() => {
+    if (!proposal.valid_until) return false;
+    
+    // Criar data de validade ao meio-dia para evitar problemas de timezone
+    const validDate = new Date(proposal.valid_until + 'T23:59:59');
+    const now = new Date();
+    
+    return validDate < now;
+  })();
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

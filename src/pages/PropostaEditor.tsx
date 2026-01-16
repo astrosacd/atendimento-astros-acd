@@ -767,8 +767,8 @@ export default function PropostaEditor() {
             onOpenChange={setShowSendDialog}
             proposalId={id}
             clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
-            clientEmail={selectedClient?.email}
-            clientPhone={selectedClient?.numero}
+            clientEmail={clientMode === 'manual' ? manualClientEmail : selectedClient?.email}
+            clientPhone={clientMode === 'manual' ? manualClientPhone : selectedClient?.numero}
           />
         )}
       </div>
