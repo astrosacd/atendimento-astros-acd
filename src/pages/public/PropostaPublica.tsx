@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, FileText, Calendar, User, PenLine } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SignatureCanvas } from '@/components/proposals/SignatureCanvas';
@@ -301,14 +301,15 @@ export default function PropostaPublica() {
 
   const isFinalized = proposal.status === 'accepted' || proposal.status === 'rejected';
 
-  // Check if proposal is expired (usando comparação de data apenas, sem timezone issues)
+  // Check if proposal is expired (data do tipo DATE, sem shift de timezone)
   const isExpired = (() => {
     if (!proposal.valid_until) return false;
-    
-    // Criar data de validade ao meio-dia para evitar problemas de timezone
-    const validDate = new Date(proposal.valid_until + 'T23:59:59');
+
+    // proposal.valid_until vem como "YYYY-MM-DD". Não use new Date("YYYY-MM-DD")
+    // porque isso assume UTC e pode "voltar" um dia em fusos -03.
+    const validDate = endOfDay(parseDateOnly(proposal.valid_until));
     const now = new Date();
-    
+
     return validDate < now;
   })();
 
@@ -329,7 +330,7 @@ export default function PropostaPublica() {
               {proposal.valid_until && (
                 <span className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  Válida até {format(new Date(proposal.valid_until), 'dd/MM/yyyy', { locale: ptBR })}
+                  Válida até {format(parseDateOnly(proposal.valid_until), 'dd/MM/yyyy', { locale: ptBR })}
                 </span>
               )}
             </div>
@@ -428,7 +429,7 @@ export default function PropostaPublica() {
               <p className="text-muted-foreground">
                 Esta proposta expirou em{' '}
                 {proposal.valid_until &&
-                  format(new Date(proposal.valid_until), "dd/MM/yyyy", { locale: ptBR })}
+                  format(parseDateOnly(proposal.valid_until), "dd/MM/yyyy", { locale: ptBR })}
               </p>
               <p className="text-muted-foreground mt-2">
                 Entre em contato conosco para mais informações.
@@ -478,6 +479,13 @@ export default function PropostaPublica() {
       </div>
     </div>
   );
+}
+
+function parseDateOnly(value: string): Date {
+  // Esperado: YYYY-MM-DD
+  const [y, m, d] = value.split('-').map((n) => Number(n));
+  if (!y || !m || !d) return new Date(value);
+  return new Date(y, m - 1, d);
 }
 
 function StatusBadge({ status }: { status: ProposalStatus }) {
