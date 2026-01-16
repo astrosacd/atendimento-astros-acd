@@ -394,10 +394,16 @@ export default function PropostaEditor() {
                   )}
                   Salvar
                 </Button>
-                {(status === 'draft' || status === 'sent') && (
+                {status === 'draft' && (
                   <Button size="sm" onClick={handleOpenSendDialog} disabled={isSaving}>
                     <Send className="h-4 w-4 mr-2" />
                     Enviar
+                  </Button>
+                )}
+                {(status === 'sent' || status === 'viewed') && (
+                  <Button size="sm" variant="outline" onClick={handleOpenSendDialog} disabled={isSaving}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Reenviar
                   </Button>
                 )}
               </>

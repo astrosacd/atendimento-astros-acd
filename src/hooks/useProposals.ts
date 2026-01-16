@@ -64,7 +64,7 @@ export function useProposals() {
         .from('proposal_send_logs')
         .select('proposal_id, channel, sent_at')
         .in('proposal_id', proposalIds)
-        .eq('status', 'success')
+        .in('status', ['success', 'sent'])
         .order('sent_at', { ascending: false });
 
       if (error) throw error;
