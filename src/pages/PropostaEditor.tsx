@@ -129,6 +129,7 @@ export default function PropostaEditor() {
   const [showHistory, setShowHistory] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [clientComboboxOpen, setClientComboboxOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
@@ -522,15 +523,37 @@ export default function PropostaEditor() {
 
                     <div className="space-y-2">
                       <Label>Válida até</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="date"
-                          value={validUntil}
-                          onChange={(e) => setValidUntil(e.target.value)}
-                          className="flex-1"
-                          disabled={!canEditProposals()}
-                        />
-                      </div>
+                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !validUntil && "text-muted-foreground"
+                            )}
+                            disabled={!canEditProposals()}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {validUntil ? format(new Date(validUntil + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione uma data'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 z-50" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={validUntil ? new Date(validUntil + 'T12:00:00') : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                setValidUntil(format(date, 'yyyy-MM-dd'));
+                              } else {
+                                setValidUntil('');
+                              }
+                              setCalendarOpen(false);
+                            }}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     {totalValue > 0 && (
