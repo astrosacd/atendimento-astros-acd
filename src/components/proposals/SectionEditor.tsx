@@ -23,7 +23,7 @@ import {
   FileText,
   PenTool,
 } from 'lucide-react';
-import { SignatureCanvas } from './SignatureCanvas';
+// SignatureCanvas is only used in the public proposal page for client signatures
 import { ImageUploadInput } from './ImageUploadInput';
 import { GalleryEditor } from './GalleryEditor';
 import { TeamEditor } from './TeamEditor';
@@ -483,11 +483,11 @@ function SignatureEditor({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Nome do Responsável</Label>
+          <Label>Nome do Responsável (Empresa)</Label>
           <Input
             value={content.signerName || ''}
             onChange={(e) => onChange({ signerName: e.target.value })}
-            placeholder="Nome completo"
+            placeholder="Nome de quem envia a proposta"
             disabled={disabled}
           />
         </div>
@@ -501,14 +501,9 @@ function SignatureEditor({
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Assinatura do Responsável</Label>
-        <SignatureCanvas
-          signature={content.signerSignature || ''}
-          onChange={(signature) => onChange({ signerSignature: signature })}
-          disabled={disabled}
-        />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        💡 A assinatura será feita pelo cliente quando ele aceitar a proposta.
+      </p>
     </div>
   );
 }
