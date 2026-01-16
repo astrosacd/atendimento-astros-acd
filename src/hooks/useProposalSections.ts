@@ -196,23 +196,45 @@ export function useProposalSections(proposalId: string | undefined) {
         order_index: index,
       }));
 
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('proposal_sections')
-          .update({ order_index: update.order_index })
-          .eq('id', update.id);
+      // Atualiza em paralelo (mais rápido) — update permite payload parcial.
+      const results = await Promise.all(
+        updates.map(async (u) => {
+          const { error } = await supabase
+            .from('proposal_sections')
+            .update({ order_index: u.order_index })
+            .eq('id', u.id);
+          if (error) throw error;
+          return u;
+        })
+      );
 
-        if (error) throw error;
+      return results;
+    },
+    onMutate: async (reorderedSections) => {
+      await queryClient.cancelQueries({ queryKey: ['proposal-sections', proposalId] });
+
+      const previous = queryClient.getQueryData<ProposalSection[]>(['proposal-sections', proposalId]);
+
+      // Otimista: aplica a nova ordem imediatamente (evita "voltar" e depois ajustar)
+      queryClient.setQueryData<ProposalSection[]>(['proposal-sections', proposalId], () =>
+        reorderedSections.map((s, index) => ({
+          ...s,
+          order_index: index,
+          updated_at: new Date().toISOString(),
+        }))
+      );
+
+      return { previous };
+    },
+    onError: (error, _vars, context) => {
+      console.error('Erro ao reordenar seções:', error);
+      if (context?.previous) {
+        queryClient.setQueryData(['proposal-sections', proposalId], context.previous);
       }
-
-      return updates;
+      toast.error('Erro ao reordenar seções');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposal-sections', proposalId] });
-    },
-    onError: (error) => {
-      console.error('Erro ao reordenar seções:', error);
-      toast.error('Erro ao reordenar seções');
     },
   });
 

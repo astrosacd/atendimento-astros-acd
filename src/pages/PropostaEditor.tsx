@@ -218,9 +218,12 @@ export default function PropostaEditor() {
     }
 
     // Validar se a data é igual ou maior que hoje
+    // OBS: `validUntil` é salvo como "yyyy-MM-dd" (date-only). Evitamos bug de fuso
+    // adicionando horário fixo ao parse (mesma estratégia usada no Calendar).
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const validDate = new Date(validUntil);
+
+    const validDate = new Date(validUntil + 'T12:00:00');
     validDate.setHours(0, 0, 0, 0);
     
     if (validDate < today) {
