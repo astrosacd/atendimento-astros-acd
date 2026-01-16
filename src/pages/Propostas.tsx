@@ -277,6 +277,11 @@ function ProposalCard({
 }) {
   const config = statusConfig[proposal.status];
 
+  // Determinar se é cliente manual ou cadastrado
+  const isManualClient = !proposal.client_id && proposal.manual_client_name;
+  const clientName = proposal.client?.nome || proposal.manual_client_name || null;
+  const clientType = isManualClient ? 'Manual' : proposal.client ? 'Cadastrado' : null;
+
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'email':
@@ -318,10 +323,18 @@ function ProposalCard({
               </Badge>
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+              {/* Nome do cliente com tipo */}
+              {clientName && (
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium">{clientName}</span>
+                  {clientType && (
+                    <Badge variant="outline" className="text-xs">
+                      {clientType}
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-4">
-                {proposal.client && (
-                  <span className="truncate">{proposal.client.nome}</span>
-                )}
                 <span>
                   Atualizada em{' '}
                   {format(new Date(proposal.updated_at), "dd/MM/yyyy 'às' HH:mm", {

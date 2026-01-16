@@ -199,6 +199,29 @@ export default function PropostaEditor() {
   };
 
   const handleOpenSendDialog = () => {
+    // Validar nome da proposta (obrigatório)
+    if (!title || title.trim() === '' || title.trim() === 'Nova Proposta') {
+      toast.error('O nome da proposta é obrigatório. Por favor, dê um nome à proposta.');
+      return;
+    }
+
+    // Validar data de validade (obrigatória)
+    if (!validUntil) {
+      toast.error('A data de validade é obrigatória.');
+      return;
+    }
+
+    // Validar se a data é futura
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const validDate = new Date(validUntil);
+    validDate.setHours(0, 0, 0, 0);
+    
+    if (validDate <= today) {
+      toast.error('A data de validade deve ser uma data futura.');
+      return;
+    }
+
     // Validar se tem seção de assinatura
     const signatureSections = sections.filter((s) => s.section_type === 'signature' && s.is_visible);
     

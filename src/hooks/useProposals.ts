@@ -21,7 +21,16 @@ export function useProposals() {
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Array<{
+        id: string;
+        user_id: string;
+        client_id: string | null;
+        manual_client_name: string | null;
+        manual_client_email: string | null;
+        manual_client_phone: string | null;
+        client: { id: string; nome: string; email: string; numero: string } | null;
+        [key: string]: unknown;
+      }>;
     },
     enabled: !!user,
   });
