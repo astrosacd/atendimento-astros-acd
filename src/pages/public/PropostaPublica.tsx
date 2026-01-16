@@ -301,6 +301,9 @@ export default function PropostaPublica() {
 
   const isFinalized = proposal.status === 'accepted' || proposal.status === 'rejected';
 
+  // Check if proposal is expired
+  const isExpired = proposal.valid_until && new Date(proposal.valid_until) < new Date();
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -334,8 +337,8 @@ export default function PropostaPublica() {
           onGalleryView={handleGalleryView}
         />
 
-        {/* Ações (apenas se não finalizada) */}
-        {!isFinalized && (
+        {/* Ações (apenas se não finalizada e não expirada) */}
+        {!isFinalized && !isExpired && (
           <Card ref={signatureSectionRef}>
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -406,6 +409,24 @@ export default function PropostaPublica() {
           clientName={clientName}
           isLoading={isRejecting}
         />
+
+        {/* Mensagem de proposta expirada */}
+        {isExpired && !isFinalized && (
+          <Card className="border-amber-500/50">
+            <CardContent className="py-8 text-center">
+              <Calendar className="h-16 w-16 mx-auto text-amber-500 mb-4" />
+              <h3 className="text-2xl font-bold mb-2 text-amber-600">Proposta Expirada</h3>
+              <p className="text-muted-foreground">
+                Esta proposta expirou em{' '}
+                {proposal.valid_until &&
+                  format(new Date(proposal.valid_until), "dd/MM/yyyy", { locale: ptBR })}
+              </p>
+              <p className="text-muted-foreground mt-2">
+                Entre em contato conosco para mais informações.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Mensagem de proposta finalizada */}
         {isFinalized && (
