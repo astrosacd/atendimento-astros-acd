@@ -198,16 +198,6 @@ export default function PropostaEditor() {
   };
 
   const handleOpenSendDialog = () => {
-    // Validar se tem seção de assinatura com assinatura do responsável
-    const signatureSection = sections.find((s) => s.section_type === 'signature');
-    if (signatureSection) {
-      const content = signatureSection.content as SignatureContent;
-      if (!content?.signerSignature) {
-        toast.error('A proposta precisa ter a assinatura do responsável antes de ser enviada.');
-        return;
-      }
-    }
-
     // Salvar antes de abrir o diálogo para garantir dados atualizados
     if (id) {
       updateProposal.mutate({
