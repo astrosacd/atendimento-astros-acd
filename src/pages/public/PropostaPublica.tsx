@@ -112,6 +112,15 @@ export default function PropostaPublica() {
       return;
     }
 
+    // Reset (evita ficar "desbloqueado" quando a proposta vira protegida depois)
+    setIsPasswordProtected(false);
+    setIsUnlocked(false);
+    setPasswordInput('');
+    setPasswordError('');
+    setShowPassword(false);
+    setStoredPassword('');
+    setPasswordChannel(null);
+
     try {
       // Buscar proposta
       const { data: proposalData, error: proposalError } = await supabase
@@ -132,9 +141,11 @@ export default function PropostaPublica() {
       // Check password protection
       if ((proposalData as any).is_password_protected) {
         setIsPasswordProtected(true);
-        setStoredPassword((proposalData as any).password_hash || '');
+        setStoredPassword(((proposalData as any).password_hash || '').toString());
         setPasswordChannel((proposalData as any).password_channel || 'whatsapp');
+        setIsUnlocked(false);
       } else {
+        setIsPasswordProtected(false);
         setIsUnlocked(true);
       }
       
