@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
+import { BrandingConfig } from '@/components/proposals/BrandingConfig';
 
 export default function PropostasConfig() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export default function PropostasConfig() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
+<div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -72,9 +73,9 @@ export default function PropostasConfig() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Configuração de Envio</h1>
+              <h1 className="text-2xl font-bold">Configurações de Propostas</h1>
               <p className="text-muted-foreground">
-                Configure o envio de propostas por Email e WhatsApp
+                Configure identidade visual, envio por Email e WhatsApp
               </p>
             </div>
           </div>
@@ -88,8 +89,12 @@ export default function PropostasConfig() {
           </Button>
         </div>
 
-        <Tabs defaultValue="email">
+        <Tabs defaultValue="branding">
           <TabsList>
+            <TabsTrigger value="branding" className="gap-2">
+              <Palette className="h-4 w-4" />
+              Identidade Visual
+            </TabsTrigger>
             <TabsTrigger value="email" className="gap-2">
               <Mail className="h-4 w-4" />
               Email (Gmail)
@@ -99,6 +104,10 @@ export default function PropostasConfig() {
               WhatsApp (Evolution)
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="branding" className="space-y-6 mt-6">
+            <BrandingConfig />
+          </TabsContent>
 
           <TabsContent value="email" className="space-y-6 mt-6">
             <Card>
