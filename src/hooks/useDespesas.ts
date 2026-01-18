@@ -308,9 +308,13 @@ export function useDespesas() {
   };
 
   // Generate recurring expenses for a month
+  // Rules:
+  // - Use only ONE template per recurring "group" (e.g., "Água") to avoid duplicates
+  // - Skip generation when an expense with the same group key already exists in target month
+  // - Keep day-of-month from the chosen template (clamped to last day of month)
   const generateRecurringExpenses = async (targetMonth: Date): Promise<boolean> => {
-    const fixedExpenses = despesas.filter(d => d.tipo === 'fixa' && d.status !== 'cancelado');
-    
+    const fixedExpenses = despesas.filter((d) => d.tipo === 'fixa' && d.status !== 'cancelado');
+
     if (fixedExpenses.length === 0) {
       toast({
         title: 'Aviso',
@@ -322,41 +326,67 @@ export function useDespesas() {
     const targetYear = targetMonth.getFullYear();
     const targetMonthNum = targetMonth.getMonth();
 
-    // Check if expenses already exist for this month
-    const existingForMonth = despesas.filter(d => {
-      const venc = new Date(d.data_vencimento);
-      return venc.getMonth() === targetMonthNum && venc.getFullYear() === targetYear;
-    });
+    const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
-    if (existingForMonth.length > 0) {
-      toast({
-        title: 'Aviso',
-        description: `Já existem ${existingForMonth.length} despesas para este mês.`,
-      });
+    const getRecurringKey = (d: Despesa) =>
+      [normalize(d.descricao), d.categoria_id ?? 'no-category', d.moeda ?? 'BRL', d.recorrencia ?? 'mensal'].join('::');
+
+    // Build one template per key (pick the most recent by due date)
+    const templatesByKey = new Map<string, Despesa>();
+    for (const d of fixedExpenses) {
+      const key = getRecurringKey(d);
+      const existing = templatesByKey.get(key);
+      if (!existing) {
+        templatesByKey.set(key, d);
+        continue;
+      }
+      const existingDate = new Date(existing.data_vencimento).getTime();
+      const currentDate = new Date(d.data_vencimento).getTime();
+      if (currentDate > existingDate) templatesByKey.set(key, d);
     }
 
-    // Create new expenses for the target month
-    const newExpenses = fixedExpenses.map(d => {
-      const originalDate = new Date(d.data_vencimento);
-      const newDate = new Date(targetYear, targetMonthNum, originalDate.getDate());
-      
-      return {
-        descricao: d.descricao,
-        valor: d.valor,
-        moeda: d.moeda,
-        categoria_id: d.categoria_id,
-        data_vencimento: newDate.toISOString().split('T')[0],
-        status: 'pendente',
-        tipo: 'fixa' as const,
-        recorrencia: d.recorrencia,
-        observacao: d.observacao,
-        created_by: user?.id,
-      };
-    });
+    // Existing expenses in the target month (used to prevent duplicates)
+    const existingKeysInTargetMonth = new Set<string>();
+    for (const d of despesas) {
+      const venc = new Date(d.data_vencimento);
+      if (venc.getMonth() === targetMonthNum && venc.getFullYear() === targetYear && d.status !== 'cancelado') {
+        existingKeysInTargetMonth.add(getRecurringKey(d));
+      }
+    }
 
-    const { error } = await supabase
-      .from('despesas')
-      .insert(newExpenses);
+    const lastDayOfTargetMonth = new Date(targetYear, targetMonthNum + 1, 0).getDate();
+
+    const templates = Array.from(templatesByKey.values());
+    const toCreate = templates
+      .filter((tpl) => !existingKeysInTargetMonth.has(getRecurringKey(tpl)))
+      .map((tpl) => {
+        const originalDate = new Date(tpl.data_vencimento);
+        const day = Math.min(originalDate.getDate(), lastDayOfTargetMonth);
+        const newDate = new Date(targetYear, targetMonthNum, day);
+
+        return {
+          descricao: tpl.descricao,
+          valor: tpl.valor,
+          moeda: tpl.moeda,
+          categoria_id: tpl.categoria_id,
+          data_vencimento: newDate.toISOString().split('T')[0],
+          status: 'pendente',
+          tipo: 'fixa' as const,
+          recorrencia: tpl.recorrencia,
+          observacao: tpl.observacao,
+          created_by: user?.id,
+        };
+      });
+
+    if (toCreate.length === 0) {
+      toast({
+        title: 'Aviso',
+        description: 'Nada para gerar: as recorrentes deste mês já existem.',
+      });
+      return false;
+    }
+
+    const { error } = await supabase.from('despesas').insert(toCreate);
 
     if (error) {
       console.error('Error generating recurring expenses:', error);
@@ -368,9 +398,14 @@ export function useDespesas() {
       return false;
     }
 
+    const skipped = templates.length - toCreate.length;
+
     toast({
       title: 'Sucesso',
-      description: `${newExpenses.length} despesas geradas para o mês selecionado.`,
+      description:
+        skipped > 0
+          ? `${toCreate.length} despesas geradas (e ${skipped} já existiam no mês).`
+          : `${toCreate.length} despesas geradas para o mês selecionado.`,
     });
 
     await fetchDespesas();
