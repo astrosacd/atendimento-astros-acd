@@ -3030,41 +3030,62 @@ export type Database = {
       proposal_branding: {
         Row: {
           accent_color: string | null
+          certifications: Json | null
+          client_logos: Json | null
           company_name: string | null
+          cover_background_url: string | null
           created_at: string
           font_family: string | null
+          footer_contact: string | null
+          footer_social: Json | null
+          footer_website: string | null
           id: string
           logo_url: string | null
           primary_color: string | null
           secondary_color: string | null
           show_logo_on_cover: boolean | null
           show_logo_on_pages: boolean | null
+          tagline: string | null
           updated_at: string
         }
         Insert: {
           accent_color?: string | null
+          certifications?: Json | null
+          client_logos?: Json | null
           company_name?: string | null
+          cover_background_url?: string | null
           created_at?: string
           font_family?: string | null
+          footer_contact?: string | null
+          footer_social?: Json | null
+          footer_website?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           show_logo_on_cover?: boolean | null
           show_logo_on_pages?: boolean | null
+          tagline?: string | null
           updated_at?: string
         }
         Update: {
           accent_color?: string | null
+          certifications?: Json | null
+          client_logos?: Json | null
           company_name?: string | null
+          cover_background_url?: string | null
           created_at?: string
           font_family?: string | null
+          footer_contact?: string | null
+          footer_social?: Json | null
+          footer_website?: string | null
           id?: string
           logo_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           show_logo_on_cover?: boolean | null
           show_logo_on_pages?: boolean | null
+          tagline?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3331,11 +3352,14 @@ export type Database = {
           client_signature: string | null
           created_at: string
           currency: string
+          expires_at: string | null
           id: string
+          is_password_protected: boolean | null
           manual_client_email: string | null
           manual_client_name: string | null
           manual_client_phone: string | null
           notes: string | null
+          password_hash: string | null
           rejection_reason: string | null
           share_token: string
           signature_image: string | null
@@ -3356,11 +3380,14 @@ export type Database = {
           client_signature?: string | null
           created_at?: string
           currency?: string
+          expires_at?: string | null
           id?: string
+          is_password_protected?: boolean | null
           manual_client_email?: string | null
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          password_hash?: string | null
           rejection_reason?: string | null
           share_token?: string
           signature_image?: string | null
@@ -3381,11 +3408,14 @@ export type Database = {
           client_signature?: string | null
           created_at?: string
           currency?: string
+          expires_at?: string | null
           id?: string
+          is_password_protected?: boolean | null
           manual_client_email?: string | null
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          password_hash?: string | null
           rejection_reason?: string | null
           share_token?: string
           signature_image?: string | null

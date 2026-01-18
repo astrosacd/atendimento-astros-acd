@@ -23,7 +23,8 @@ import type {
   TestimonialsContent,
   VideoContent,
 } from '@/types/proposals';
-import { useProposalBranding, type ProposalBranding } from '@/hooks/useProposalBranding';
+import { useProposalBranding, type ProposalBranding, type SocialLinks, type ClientLogo, type Certification } from '@/hooks/useProposalBranding';
+import { Instagram, Facebook, Linkedin, Twitter, Youtube, Globe, Phone, Mail } from 'lucide-react';
 
 interface ProposalPreviewProps {
   proposal: Proposal;
@@ -39,8 +40,15 @@ interface BrandingStyles {
   fontFamily: string;
   logoUrl: string | null;
   companyName: string | null;
+  tagline: string | null;
   showLogoOnCover: boolean;
   showLogoOnPages: boolean;
+  coverBackgroundUrl: string | null;
+  footerContact: string | null;
+  footerWebsite: string | null;
+  footerSocial: SocialLinks;
+  clientLogos: ClientLogo[];
+  certifications: Certification[];
 }
 
 export function ProposalPreview({ proposal, sections, client, onGalleryView }: ProposalPreviewProps) {
@@ -64,9 +72,21 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView }: P
     fontFamily: branding?.font_family || 'Inter',
     logoUrl: branding?.logo_url || null,
     companyName: branding?.company_name || null,
+    tagline: branding?.tagline || null,
     showLogoOnCover: branding?.show_logo_on_cover ?? true,
     showLogoOnPages: branding?.show_logo_on_pages ?? false,
+    coverBackgroundUrl: branding?.cover_background_url || null,
+    footerContact: branding?.footer_contact || null,
+    footerWebsite: branding?.footer_website || null,
+    footerSocial: branding?.footer_social || {},
+    clientLogos: branding?.client_logos || [],
+    certifications: branding?.certifications || [],
   };
+
+  const hasFooter = brandingStyles.footerContact || brandingStyles.footerWebsite || 
+    Object.values(brandingStyles.footerSocial).some(v => v);
+  const hasClientLogos = brandingStyles.clientLogos.length > 0;
+  const hasCertifications = brandingStyles.certifications.length > 0;
 
   return (
     <div id="proposal-preview" className="max-w-4xl mx-auto" style={{ fontFamily: brandingStyles.fontFamily }}>
@@ -96,6 +116,27 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView }: P
                   {renderSection(section, formatCurrency, client, onGalleryView, brandingStyles)}
                 </div>
               ))}
+              
+              {/* Client Logos Section */}
+              {hasClientLogos && (
+                <div className="p-8 border-t">
+                  <ClientLogosSection logos={brandingStyles.clientLogos} branding={brandingStyles} />
+                </div>
+              )}
+              
+              {/* Certifications Section */}
+              {hasCertifications && (
+                <div className="p-8 border-t">
+                  <CertificationsSection certifications={brandingStyles.certifications} branding={brandingStyles} />
+                </div>
+              )}
+              
+              {/* Footer */}
+              {hasFooter && (
+                <div className="p-8 border-t bg-muted/30">
+                  <FooterSection branding={brandingStyles} />
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -583,6 +624,143 @@ function VideoPreview({ content, title, branding }: { content: VideoContent; tit
       </div>
       {content.caption && (
         <p className="text-sm text-muted-foreground text-center mt-3">{content.caption}</p>
+      )}
+    </div>
+  );
+}
+
+// Client Logos Section
+function ClientLogosSection({ logos, branding }: { logos: ClientLogo[]; branding: BrandingStyles }) {
+  if (logos.length === 0) return null;
+
+  return (
+    <div className="text-center">
+      <h3 
+        className="text-lg font-semibold mb-6"
+        style={{ color: branding.primaryColor }}
+      >
+        Empresas que Confiam em Nós
+      </h3>
+      <div className="flex flex-wrap items-center justify-center gap-8">
+        {logos.map((logo) => (
+          <div key={logo.id} className="flex flex-col items-center">
+            {logo.url && (
+              <img
+                src={logo.url}
+                alt={logo.name || 'Cliente'}
+                className="h-12 max-w-32 object-contain grayscale hover:grayscale-0 transition-all"
+              />
+            )}
+            {logo.name && (
+              <span className="text-xs text-muted-foreground mt-2">{logo.name}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Certifications Section
+function CertificationsSection({ certifications, branding }: { certifications: Certification[]; branding: BrandingStyles }) {
+  if (certifications.length === 0) return null;
+
+  return (
+    <div className="text-center">
+      <h3 
+        className="text-lg font-semibold mb-6"
+        style={{ color: branding.primaryColor }}
+      >
+        Certificações e Reconhecimentos
+      </h3>
+      <div className="flex flex-wrap items-center justify-center gap-6">
+        {certifications.map((cert) => (
+          <div key={cert.id} className="flex flex-col items-center">
+            {cert.url && (
+              <img
+                src={cert.url}
+                alt={cert.name || 'Certificação'}
+                className="h-16 w-16 object-contain"
+              />
+            )}
+            {cert.name && (
+              <span className="text-xs text-muted-foreground mt-2 max-w-24 text-center">{cert.name}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Footer Section
+function FooterSection({ branding }: { branding: BrandingStyles }) {
+  const { footerContact, footerWebsite, footerSocial, companyName, logoUrl, primaryColor } = branding;
+  
+  const socialIcons: { key: keyof SocialLinks; Icon: any; color: string }[] = [
+    { key: 'instagram', Icon: Instagram, color: '#E4405F' },
+    { key: 'facebook', Icon: Facebook, color: '#1877F2' },
+    { key: 'linkedin', Icon: Linkedin, color: '#0A66C2' },
+    { key: 'twitter', Icon: Twitter, color: '#1DA1F2' },
+    { key: 'youtube', Icon: Youtube, color: '#FF0000' },
+  ];
+
+  return (
+    <div className="text-center space-y-4">
+      {/* Logo and Company Name */}
+      {(logoUrl || companyName) && (
+        <div className="flex items-center justify-center gap-3 mb-4">
+          {logoUrl && (
+            <img src={logoUrl} alt={companyName || 'Logo'} className="h-8 object-contain" />
+          )}
+          {companyName && (
+            <span className="font-semibold" style={{ color: primaryColor }}>{companyName}</span>
+          )}
+        </div>
+      )}
+      
+      {/* Contact Info */}
+      {footerContact && (
+        <div className="text-sm text-muted-foreground whitespace-pre-line">
+          {footerContact}
+        </div>
+      )}
+      
+      {/* Website */}
+      {footerWebsite && (
+        <div className="flex items-center justify-center gap-2 text-sm">
+          <Globe className="h-4 w-4" style={{ color: primaryColor }} />
+          <a 
+            href={footerWebsite.startsWith('http') ? footerWebsite : `https://${footerWebsite}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+            style={{ color: primaryColor }}
+          >
+            {footerWebsite}
+          </a>
+        </div>
+      )}
+      
+      {/* Social Links */}
+      {Object.values(footerSocial).some(v => v) && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          {socialIcons.map(({ key, Icon, color }) => {
+            const value = footerSocial[key];
+            if (!value) return null;
+            return (
+              <a
+                key={key}
+                href={value.startsWith('http') ? value : `https://${key}.com/${value.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <Icon className="h-5 w-5" style={{ color }} />
+              </a>
+            );
+          })}
+        </div>
       )}
     </div>
   );
