@@ -15,6 +15,7 @@ import { DespesasTable } from '@/components/despesas/DespesasTable';
 import { DespesaFormDialog } from '@/components/despesas/DespesaFormDialog';
 import { CategoriasManager } from '@/components/despesas/CategoriasManager';
 import { FinancialSummaryCard } from '@/components/despesas/FinancialSummaryCard';
+import { DespesasCronStatus } from '@/components/despesas/DespesasCronStatus';
 
 export default function Despesas() {
   const navigate = useNavigate();
@@ -110,6 +111,9 @@ export default function Despesas() {
             </Button>
           </div>
         </div>
+
+        {/* Cron Status */}
+        <DespesasCronStatus />
 
         {/* Resumo Financeiro */}
         <FinancialSummaryCard stats={stats} />

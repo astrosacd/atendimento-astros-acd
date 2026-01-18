@@ -1664,6 +1664,75 @@ export type Database = {
           },
         ]
       }
+      despesas_cron_config: {
+        Row: {
+          created_at: string
+          day_of_month: number
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          last_run_message: string | null
+          last_run_status: string | null
+          next_run_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_month?: number
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_message?: string | null
+          last_run_status?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_month?: number
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          last_run_message?: string | null
+          last_run_status?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      despesas_cron_logs: {
+        Row: {
+          despesas_created: number | null
+          despesas_skipped: number | null
+          error_details: string | null
+          executed_at: string
+          id: string
+          message: string | null
+          status: string
+          target_month: string | null
+        }
+        Insert: {
+          despesas_created?: number | null
+          despesas_skipped?: number | null
+          error_details?: string | null
+          executed_at?: string
+          id?: string
+          message?: string | null
+          status: string
+          target_month?: string | null
+        }
+        Update: {
+          despesas_created?: number | null
+          despesas_skipped?: number | null
+          error_details?: string | null
+          executed_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          target_month?: string | null
+        }
+        Relationships: []
+      }
       divulgador_campaigns: {
         Row: {
           auto_create_groups: boolean | null

@@ -123,3 +123,6 @@ verify_jwt = true
 
 [functions.client-recovery]
 verify_jwt = true
+
+[functions.despesas-cron]
+verify_jwt = false
