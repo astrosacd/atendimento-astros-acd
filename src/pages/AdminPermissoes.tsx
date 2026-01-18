@@ -89,6 +89,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Números Aquecimento': <Settings className="h-4 w-4" />,
   'Relatórios': <BarChart3 className="h-4 w-4" />,
   'Chamados': <MessageSquare className="h-4 w-4" />,
+  'Despesas': <CreditCard className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -114,6 +115,9 @@ const permissionIcons: Record<string, React.ReactNode> = {
   view_divulgador_reports: <BarChart3 className="h-4 w-4" />,
   view_reports: <BarChart3 className="h-4 w-4" />,
   view_guia_relatorios: <BarChart3 className="h-4 w-4" />,
+  view_despesas: <Eye className="h-4 w-4" />,
+  manage_despesas: <Edit className="h-4 w-4" />,
+  manage_despesas_cron: <Settings className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {
