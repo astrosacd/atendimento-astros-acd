@@ -38,7 +38,7 @@ export default function PropostaPublica() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [storedPassword, setStoredPassword] = useState('');
-  
+  const [passwordChannel, setPasswordChannel] = useState<'whatsapp' | 'email' | null>(null);
   // Tracking refs
   const hasTrackedOpen = useRef(false);
   const trackedSections = useRef<Set<string>>(new Set());
@@ -133,6 +133,7 @@ export default function PropostaPublica() {
       if ((proposalData as any).is_password_protected) {
         setIsPasswordProtected(true);
         setStoredPassword((proposalData as any).password_hash || '');
+        setPasswordChannel((proposalData as any).password_channel || 'whatsapp');
       } else {
         setIsUnlocked(true);
       }
@@ -383,6 +384,16 @@ export default function PropostaPublica() {
             <CardTitle className="text-xl">Proposta Protegida</CardTitle>
             <CardDescription>
               Esta proposta requer uma senha para ser visualizada.
+              {passwordChannel === 'whatsapp' && (
+                <span className="block mt-2 text-sm font-medium text-primary">
+                  💡 Dica: A senha são os últimos 4 dígitos do seu número de telefone.
+                </span>
+              )}
+              {passwordChannel === 'email' && (
+                <span className="block mt-2 text-sm font-medium text-primary">
+                  💡 Dica: A senha é a parte do seu email antes do @.
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -419,10 +430,6 @@ export default function PropostaPublica() {
               <Button type="submit" className="w-full">
                 Desbloquear Proposta
               </Button>
-              
-              <p className="text-xs text-muted-foreground text-center">
-                A senha foi enviada junto com o link da proposta por outro canal.
-              </p>
             </form>
           </CardContent>
         </Card>

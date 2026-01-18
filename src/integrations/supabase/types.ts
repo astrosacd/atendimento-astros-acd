@@ -3359,6 +3359,7 @@ export type Database = {
           manual_client_name: string | null
           manual_client_phone: string | null
           notes: string | null
+          password_channel: string | null
           password_hash: string | null
           rejection_reason: string | null
           share_token: string
@@ -3387,6 +3388,7 @@ export type Database = {
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          password_channel?: string | null
           password_hash?: string | null
           rejection_reason?: string | null
           share_token?: string
@@ -3415,6 +3417,7 @@ export type Database = {
           manual_client_name?: string | null
           manual_client_phone?: string | null
           notes?: string | null
+          password_channel?: string | null
           password_hash?: string | null
           rejection_reason?: string | null
           share_token?: string
