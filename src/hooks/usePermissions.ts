@@ -118,6 +118,11 @@ export function usePermissions() {
   // Reports permission
   const canViewReports = () => hasPermission('view_reports');
 
+  // Despesas permissions
+  const canViewDespesas = () => hasPermission('view_despesas');
+  const canManageDespesas = () => hasPermission('manage_despesas');
+  const canManageDespesasCron = () => hasPermission('manage_despesas_cron');
+
   // Propostas permissions
   const canViewProposals = () => hasPermission('view_proposals');
   const canCreateProposals = () => hasPermission('create_proposals');
@@ -207,5 +212,9 @@ export function usePermissions() {
     canManageProposalTemplates,
     canViewProposalHistory,
     canViewProposalsDashboard,
+    // Despesas
+    canViewDespesas,
+    canManageDespesas,
+    canManageDespesasCron,
   };
 }

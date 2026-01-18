@@ -37,7 +37,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -125,7 +125,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
     { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
     { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Despesas', icon: Receipt, path: '/despesas', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
+    { title: 'Despesas', icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
   ];
 
   const adminItems: NavItem[] = [
