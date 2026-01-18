@@ -1575,6 +1575,95 @@ export type Database = {
         }
         Relationships: []
       }
+      despesa_categorias: {
+        Row: {
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      despesas: {
+        Row: {
+          categoria_id: string | null
+          comprovante_url: string | null
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          descricao: string
+          id: string
+          moeda: string
+          observacao: string | null
+          recorrencia: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          descricao: string
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          recorrencia?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          categoria_id?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          descricao?: string
+          id?: string
+          moeda?: string
+          observacao?: string | null
+          recorrencia?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "despesa_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       divulgador_campaigns: {
         Row: {
           auto_create_groups: boolean | null
