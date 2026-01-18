@@ -91,6 +91,16 @@ serve(async (req: Request) => {
     const body: SendProposalRequest = await req.json();
     const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword, passwordChannel } = body;
 
+    console.log('📨 send-proposal request', {
+      proposalId,
+      channel,
+      recipientEmail: recipientEmail ? '[provided]' : null,
+      recipientPhone: recipientPhone ? '[provided]' : null,
+      enablePasswordProtection,
+      autoPasswordPreview: autoPassword ? `${autoPassword}` : null,
+      passwordChannel,
+    });
+
     if (!proposalId || !channel) {
       return new Response(JSON.stringify({ error: "proposalId e channel são obrigatórios" }), {
         status: 400,
@@ -110,6 +120,29 @@ serve(async (req: Request) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // IMPORTANT: aplica proteção por senha independentemente do resultado do envio
+    // (o usuário quer que o link já passe a exigir senha ao marcar a opção)
+    if (enablePasswordProtection && autoPassword) {
+      await supabase
+        .from('proposals')
+        .update({
+          is_password_protected: true,
+          password_hash: autoPassword, // TODO: hash em produção
+          password_channel: passwordChannel || 'whatsapp',
+        })
+        .eq('id', proposalId);
+    } else {
+      // Se desmarcou, remove proteção
+      await supabase
+        .from('proposals')
+        .update({
+          is_password_protected: false,
+          password_hash: null,
+          password_channel: null,
+        })
+        .eq('id', proposalId);
     }
 
     // Fetch send config
@@ -305,9 +338,11 @@ serve(async (req: Request) => {
       const updateData: Record<string, any> = { status: 'sent' };
       
       // Set password protection if enabled
+      // (já foi aplicado acima para garantir que o link exija senha)
+      // Mantém aqui apenas por compatibilidade, mas sem sobrescrever.
       if (enablePasswordProtection && autoPassword) {
         updateData.is_password_protected = true;
-        updateData.password_hash = autoPassword; // In production, you'd hash this
+        updateData.password_hash = autoPassword;
         updateData.password_channel = passwordChannel || 'whatsapp';
       }
 
