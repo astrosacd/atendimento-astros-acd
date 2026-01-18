@@ -215,7 +215,7 @@ serve(async (req: Request) => {
           });
 
           const fromAddress = config.gmail_sender_name 
-            ? `"${config.gmail_sender_name}" <${config.gmail_user}>` 
+            ? `${config.gmail_sender_name} <${config.gmail_user}>` 
             : config.gmail_user;
 
           await client.send({
