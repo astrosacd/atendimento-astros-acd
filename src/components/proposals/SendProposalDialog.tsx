@@ -144,7 +144,7 @@ export function SendProposalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md h-[85vh] overflow-y-scroll overscroll-contain">
         <DialogHeader>
           <DialogTitle>Enviar Proposta</DialogTitle>
           <DialogDescription>
