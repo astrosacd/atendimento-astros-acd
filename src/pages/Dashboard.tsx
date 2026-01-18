@@ -25,6 +25,7 @@ import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAqu
 import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCard';
 import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection';
+import { DespesasSummaryCard } from '@/components/dashboard/DespesasSummaryCard';
 import { Badge } from '@/components/ui/badge';
 
 // Mapping of billing cycles to months
@@ -81,7 +82,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
-  const { canManageTasks, canViewChamados, canViewProposalsDashboard, hasPermission } = usePermissions();
+  const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
@@ -1008,6 +1009,18 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+          </CollapsibleSection>
+        )}
+
+        {/* ===================== ÁREA DESPESAS ===================== */}
+        {canViewDespesas() && (
+          <CollapsibleSection 
+            title="Despesas" 
+            icon={Wallet} 
+            iconColor="bg-gradient-to-br from-orange-500 to-orange-500/80"
+            defaultOpen={true}
+          >
+            <DespesasSummaryCard />
           </CollapsibleSection>
         )}
 
