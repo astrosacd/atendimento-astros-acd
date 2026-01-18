@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Loader2, Receipt, RefreshCw } from 'lucide-react';
 import { DespesaCategoria, DespesaFormData, Despesa } from '@/hooks/useDespesas';
 
@@ -77,15 +77,15 @@ export function DespesaFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 gap-0">
+      <DialogContent className="max-w-md p-0 gap-0 flex flex-col max-h-[85vh]">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>
             {editingDespesa ? 'Editar Despesa' : 'Nova Despesa'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <ScrollArea className="h-[60vh] px-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6">
             <div className="space-y-4 py-4">
               {/* Descrição */}
               <div className="space-y-2">
@@ -225,9 +225,9 @@ export function DespesaFormDialog({
                 />
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
-          <div className="flex justify-end gap-2 p-6 pt-4 border-t">
+          <div className="flex justify-end gap-2 p-6 pt-4 border-t shrink-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
