@@ -125,12 +125,16 @@ export function useSendProposal() {
       recipientEmail,
       recipientPhone,
       recipientName,
+      enablePasswordProtection,
+      autoPassword,
     }: {
       proposalId: string;
       channel: 'email' | 'whatsapp' | 'both';
       recipientEmail?: string;
       recipientPhone?: string;
       recipientName?: string;
+      enablePasswordProtection?: boolean;
+      autoPassword?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('send-proposal', {
         body: {
@@ -139,6 +143,8 @@ export function useSendProposal() {
           recipientEmail,
           recipientPhone,
           recipientName,
+          enablePasswordProtection,
+          autoPassword,
         },
       });
 
