@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Loader2, Palette, Type, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Palette, Type, Image as ImageIcon } from 'lucide-react';
+import { ImageUploadInput } from './ImageUploadInput';
 import { useProposalBranding } from '@/hooks/useProposalBranding';
 
 const FONT_OPTIONS = [
@@ -80,17 +81,15 @@ export function BrandingConfig() {
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>URL do Logo</Label>
-                <Input
-                  placeholder="https://exemplo.com/logo.png"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Recomendado: PNG transparente, máximo 500x200px
-                </p>
-              </div>
+              <ImageUploadInput
+                label="Logo da Empresa"
+                value={logoUrl}
+                onChange={setLogoUrl}
+                placeholder="https://exemplo.com/logo.png"
+              />
+              <p className="text-xs text-muted-foreground">
+                Recomendado: PNG transparente, máximo 500x200px
+              </p>
               <div className="space-y-2">
                 <Label>Nome da Empresa</Label>
                 <Input
@@ -115,7 +114,7 @@ export function BrandingConfig() {
                 />
               ) : (
                 <div className="flex flex-col items-center text-muted-foreground">
-                  <Upload className="h-12 w-12 mb-2" />
+                  <ImageIcon className="h-12 w-12 mb-2" />
                   <span className="text-sm">Preview do Logo</span>
                 </div>
               )}
