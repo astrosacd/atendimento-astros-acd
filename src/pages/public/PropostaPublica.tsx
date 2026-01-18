@@ -167,18 +167,23 @@ export default function PropostaPublica() {
   // Handle password unlock
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (passwordInput === storedPassword) {
+
+    const normalize = (value: string) => {
+      const v = (value || '').trim();
+      return passwordChannel === 'email' ? v.toLowerCase() : v;
+    };
+
+    if (normalize(passwordInput) === normalize(storedPassword)) {
       setIsUnlocked(true);
       setPasswordError('');
-      
+
       // Track opened event after unlock
       if (!hasTrackedOpen.current && proposal) {
         hasTrackedOpen.current = true;
         await supabase.from('proposal_views').insert({
           proposal_id: id,
           event_type: 'opened',
-          event_data: { 
+          event_data: {
             referrer: document.referrer,
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
@@ -196,7 +201,7 @@ export default function PropostaPublica() {
           setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
         }
       }
-      
+
       toast.success('Proposta desbloqueada!');
     } else {
       setPasswordError('Senha incorreta');
