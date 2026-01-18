@@ -35,12 +35,17 @@ import {
   User,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
+import { useProposalSections } from '@/hooks/useProposalSections';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
+import { TemplateSelectionDialog } from '@/components/proposals/TemplateSelectionDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { statusConfig, type Proposal, type ProposalStatus } from '@/types/proposals';
+import type { ProposalTemplate } from '@/data/proposalTemplates';
+import { supabase } from '@/integrations/supabase/client';
 
 const statusIcons: Record<ProposalStatus, React.ReactNode> = {
   draft: <Clock className="h-3 w-3" />,
@@ -58,11 +63,44 @@ export default function Propostas() {
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreate = async () => {
-    const result = await createProposal.mutateAsync('Nova Proposta');
-    if (result?.id) {
-      navigate(`/propostas/${result.id}`);
+  const handleCreateWithTemplate = async (template: ProposalTemplate) => {
+    setIsCreating(true);
+    try {
+      const result = await createProposal.mutateAsync(
+        template.id === 'blank' ? 'Nova Proposta' : `Nova Proposta - ${template.name}`
+      );
+      
+      if (result?.id && template.sections.length > 0) {
+        // Criar seções do template
+        for (let i = 0; i < template.sections.length; i++) {
+          const section = template.sections[i];
+          const insertData = {
+            proposal_id: result.id,
+            section_type: section.type as string,
+            title: section.title,
+            content: section.content,
+            order_index: i,
+            is_visible: true,
+          };
+          const { error } = await supabase
+            .from('proposal_sections')
+            .insert(insertData as any);
+          if (error) console.error('Error creating section:', error);
+        }
+      }
+
+      setShowTemplateDialog(false);
+      if (result?.id) {
+        navigate(`/propostas/${result.id}`);
+      }
+    } catch (error) {
+      console.error('Erro ao criar proposta:', error);
+      toast.error('Erro ao criar proposta');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -106,7 +144,7 @@ export default function Propostas() {
               </Button>
             )}
             {canCreateProposals() && (
-              <Button onClick={handleCreate} disabled={createProposal.isPending}>
+              <Button onClick={() => setShowTemplateDialog(true)} disabled={isCreating}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Proposta
               </Button>
@@ -199,7 +237,7 @@ export default function Propostas() {
                   : 'Crie sua primeira proposta comercial'}
               </p>
               {!search && canCreateProposals() && (
-                <Button onClick={handleCreate} disabled={createProposal.isPending}>
+                <Button onClick={() => setShowTemplateDialog(true)} disabled={isCreating}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Proposta
                 </Button>
@@ -256,6 +294,14 @@ export default function Propostas() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Dialog de Seleção de Template */}
+        <TemplateSelectionDialog
+          open={showTemplateDialog}
+          onOpenChange={setShowTemplateDialog}
+          onSelect={handleCreateWithTemplate}
+          isLoading={isCreating}
+        />
       </div>
     </DashboardLayout>
   );
