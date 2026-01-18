@@ -87,16 +87,18 @@ export function SendProposalDialog({
 
   const validationMessage = getValidationMessage();
 
-  // Gera a senha automática e determina o canal baseado no canal de envio
+  // Gera a senha automática (prioriza SEMPRE o telefone quando existir)
   const getPasswordInfo = () => {
-    if (channel === 'whatsapp' || (channel === 'both' && recipientPhone.trim())) {
-      // Últimos 4 dígitos do telefone
-      const phone = recipientPhone.replace(/\D/g, '');
+    const phone = recipientPhone.replace(/\D/g, '');
+
+    if (phone.length >= 4) {
       return { password: phone.slice(-4), channel: 'whatsapp' as const };
-    } else if (recipientEmail.trim()) {
-      // Parte antes do @
+    }
+
+    if (recipientEmail.trim()) {
       return { password: recipientEmail.split('@')[0].toLowerCase(), channel: 'email' as const };
     }
+
     return { password: '', channel: undefined };
   };
 
@@ -119,6 +121,10 @@ export function SendProposalDialog({
         autoPassword: enablePasswordProtection ? passwordInfo.password : undefined,
         passwordChannel: enablePasswordProtection ? passwordInfo.channel : undefined,
       });
+
+      // Garante que o usuário “volta pro topo” após enviar/reenviar
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       onOpenChange(false);
     } catch (error) {
       // Erro já tratado no hook
