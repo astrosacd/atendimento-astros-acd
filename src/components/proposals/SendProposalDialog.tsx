@@ -87,18 +87,20 @@ export function SendProposalDialog({
 
   const validationMessage = getValidationMessage();
 
-  // Gera a senha automática baseada no canal
-  const getAutoPassword = () => {
+  // Gera a senha automática e determina o canal baseado no canal de envio
+  const getPasswordInfo = () => {
     if (channel === 'whatsapp' || (channel === 'both' && recipientPhone.trim())) {
       // Últimos 4 dígitos do telefone
       const phone = recipientPhone.replace(/\D/g, '');
-      return phone.slice(-4);
+      return { password: phone.slice(-4), channel: 'whatsapp' as const };
     } else if (recipientEmail.trim()) {
       // Parte antes do @
-      return recipientEmail.split('@')[0].toLowerCase();
+      return { password: recipientEmail.split('@')[0].toLowerCase(), channel: 'email' as const };
     }
-    return '';
+    return { password: '', channel: undefined };
   };
+
+  const passwordInfo = getPasswordInfo();
 
   const handleSend = async () => {
     if (!canSend) {
@@ -114,7 +116,8 @@ export function SendProposalDialog({
         recipientPhone: recipientPhone.trim() || undefined,
         recipientName: recipientName.trim() || undefined,
         enablePasswordProtection,
-        autoPassword: enablePasswordProtection ? getAutoPassword() : undefined,
+        autoPassword: enablePasswordProtection ? passwordInfo.password : undefined,
+        passwordChannel: enablePasswordProtection ? passwordInfo.channel : undefined,
       });
       onOpenChange(false);
     } catch (error) {

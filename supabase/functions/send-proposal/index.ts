@@ -1,15 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Helper to encode to base64 properly
-function toBase64(str: string): string {
-  return btoa(unescape(encodeURIComponent(str)));
-}
 
 interface SendProposalRequest {
   proposalId: string;
@@ -19,6 +15,7 @@ interface SendProposalRequest {
   recipientName?: string;
   enablePasswordProtection?: boolean;
   autoPassword?: string;
+  passwordChannel?: 'whatsapp' | 'email';
 }
 
 // Professional HTML email template - minified to avoid encoding issues
@@ -89,7 +86,7 @@ serve(async (req: Request) => {
     }
 
     const body: SendProposalRequest = await req.json();
-    const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword } = body;
+    const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword, passwordChannel } = body;
 
     if (!proposalId || !channel) {
       return new Response(JSON.stringify({ error: "proposalId e channel são obrigatórios" }), {
@@ -152,7 +149,7 @@ serve(async (req: Request) => {
       whatsapp: { sent: false, error: null as string | null },
     };
 
-    // Send Email using raw SMTP with proper encoding
+    // Send Email using denomailer
     if ((channel === 'email' || channel === 'both') && config.email_enabled && clientEmail) {
       try {
         if (!config.gmail_user || !config.gmail_app_password) {
@@ -164,74 +161,36 @@ serve(async (req: Request) => {
             proposal.title,
             proposalLink,
             config.gmail_sender_name || senderName,
-            undefined // company name optional
+            undefined
           );
 
           const subject = `📄 Proposta Comercial: ${proposal.title}`;
           
-          const fromAddress = config.gmail_sender_name 
-            ? `${config.gmail_sender_name} <${config.gmail_user}>` 
-            : config.gmail_user;
-
-          // Build raw email message with proper MIME structure
-          const boundary = `boundary_${Date.now()}`;
-          const rawEmail = [
-            `From: ${fromAddress}`,
-            `To: ${clientEmail}`,
-            `Subject: =?UTF-8?B?${toBase64(subject)}?=`,
-            `MIME-Version: 1.0`,
-            `Content-Type: multipart/alternative; boundary="${boundary}"`,
-            ``,
-            `--${boundary}`,
-            `Content-Type: text/plain; charset="UTF-8"`,
-            `Content-Transfer-Encoding: base64`,
-            ``,
-            toBase64("Este email requer um cliente com suporte a HTML."),
-            ``,
-            `--${boundary}`,
-            `Content-Type: text/html; charset="UTF-8"`,
-            `Content-Transfer-Encoding: base64`,
-            ``,
-            toBase64(htmlBody),
-            ``,
-            `--${boundary}--`,
-          ].join('\r\n');
-
-          // Connect to Gmail SMTP
-          const conn = await Deno.connectTls({
-            hostname: "smtp.gmail.com",
-            port: 465,
+          const client = new SMTPClient({
+            connection: {
+              hostname: "smtp.gmail.com",
+              port: 465,
+              tls: true,
+              auth: {
+                username: config.gmail_user,
+                password: config.gmail_app_password,
+              },
+            },
           });
 
-          const encoder = new TextEncoder();
-          const decoder = new TextDecoder();
+          const fromAddress = config.gmail_sender_name 
+            ? `"${config.gmail_sender_name}" <${config.gmail_user}>` 
+            : config.gmail_user;
 
-          const readResponse = async (): Promise<string> => {
-            const buffer = new Uint8Array(1024);
-            const n = await conn.read(buffer);
-            if (n === null) return '';
-            return decoder.decode(buffer.subarray(0, n));
-          };
+          await client.send({
+            from: fromAddress,
+            to: clientEmail,
+            subject: subject,
+            content: "Este email requer um cliente com suporte a HTML.",
+            html: htmlBody,
+          });
 
-          const sendCommand = async (command: string): Promise<string> => {
-            await conn.write(encoder.encode(command + '\r\n'));
-            return await readResponse();
-          };
-
-          // SMTP handshake
-          await readResponse(); // Initial greeting
-          await sendCommand('EHLO localhost');
-          await sendCommand(`AUTH LOGIN`);
-          await sendCommand(btoa(config.gmail_user));
-          await sendCommand(btoa(config.gmail_app_password));
-          await sendCommand(`MAIL FROM:<${config.gmail_user}>`);
-          await sendCommand(`RCPT TO:<${clientEmail}>`);
-          await sendCommand('DATA');
-          await conn.write(encoder.encode(rawEmail + '\r\n.\r\n'));
-          await readResponse();
-          await sendCommand('QUIT');
-          
-          conn.close();
+          await client.close();
 
           results.email.sent = true;
           console.log(`✅ Email enviado para: ${clientEmail}`);
@@ -346,6 +305,7 @@ serve(async (req: Request) => {
       if (enablePasswordProtection && autoPassword) {
         updateData.is_password_protected = true;
         updateData.password_hash = autoPassword; // In production, you'd hash this
+        updateData.password_channel = passwordChannel || 'whatsapp';
       }
 
       await supabase
