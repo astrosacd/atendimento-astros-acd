@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   GripVertical,
   Eye,
@@ -23,6 +25,8 @@ import {
   FileText,
   PenTool,
   Video,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 // SignatureCanvas is only used in the public proposal page for client signatures
 import { ImageUploadInput } from './ImageUploadInput';
@@ -249,15 +253,80 @@ function TextEditor({
   onChange: (updates: Record<string, unknown>) => void;
   disabled: boolean;
 }) {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAIGenerate = async (action: 'generate' | 'improve') => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action,
+          sectionType: 'text',
+          currentContent: content.content || '',
+          context: '',
+        },
+      });
+
+      if (error) throw error;
+      if (data?.text) {
+        onChange({ content: data.text });
+        toast.success(action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!');
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+      toast.error('Erro ao gerar texto. Tente novamente.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <Label>Conteúdo</Label>
+      <div className="flex items-center justify-between">
+        <Label>Conteúdo</Label>
+        {!disabled && (
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAIGenerate('generate')}
+              disabled={isGenerating}
+              className="text-xs h-7"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              Gerar com IA
+            </Button>
+            {content.content && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAIGenerate('improve')}
+                disabled={isGenerating}
+                className="text-xs h-7"
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3 mr-1" />
+                )}
+                Melhorar
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
       <Textarea
         value={content.content || ''}
         onChange={(e) => onChange({ content: e.target.value })}
-        placeholder="Digite o conteúdo..."
+        placeholder="Digite o conteúdo ou use a IA para gerar..."
         rows={6}
-        disabled={disabled}
+        disabled={disabled || isGenerating}
       />
     </div>
   );
