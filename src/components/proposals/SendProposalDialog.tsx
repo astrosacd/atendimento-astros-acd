@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Mail, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Mail, MessageSquare, Loader2, AlertCircle, Lock, Info } from 'lucide-react';
 import { useSendProposal, useProposalSendConfig } from '@/hooks/useProposalSending';
 import { toast } from 'sonner';
 
@@ -39,6 +40,7 @@ export function SendProposalDialog({
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
+  const [enablePasswordProtection, setEnablePasswordProtection] = useState(false);
 
   // Sincronizar campos quando o diálogo abre ou quando os dados do cliente mudam
   useEffect(() => {
@@ -85,6 +87,19 @@ export function SendProposalDialog({
 
   const validationMessage = getValidationMessage();
 
+  // Gera a senha automática baseada no canal
+  const getAutoPassword = () => {
+    if (channel === 'whatsapp' || (channel === 'both' && recipientPhone.trim())) {
+      // Últimos 4 dígitos do telefone
+      const phone = recipientPhone.replace(/\D/g, '');
+      return phone.slice(-4);
+    } else if (recipientEmail.trim()) {
+      // Parte antes do @
+      return recipientEmail.split('@')[0].toLowerCase();
+    }
+    return '';
+  };
+
   const handleSend = async () => {
     if (!canSend) {
       toast.error(validationMessage || 'Preencha os dados de contato');
@@ -98,6 +113,8 @@ export function SendProposalDialog({
         recipientEmail: recipientEmail.trim() || undefined,
         recipientPhone: recipientPhone.trim() || undefined,
         recipientName: recipientName.trim() || undefined,
+        enablePasswordProtection,
+        autoPassword: enablePasswordProtection ? getAutoPassword() : undefined,
       });
       onOpenChange(false);
     } catch (error) {
@@ -203,6 +220,37 @@ export function SendProposalDialog({
                 </Label>
               </div>
             </RadioGroup>
+          </div>
+
+          {/* Proteção por Senha */}
+          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="password-protection">Proteção por Senha</Label>
+              </div>
+              <Switch
+                id="password-protection"
+                checked={enablePasswordProtection}
+                onCheckedChange={setEnablePasswordProtection}
+              />
+            </div>
+            
+            {enablePasswordProtection && (
+              <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Senha automática:</p>
+                  {channel === 'whatsapp' || (channel === 'both' && recipientPhone.trim()) ? (
+                    <p>Últimos 4 dígitos do telefone: <strong>{recipientPhone.replace(/\D/g, '').slice(-4) || '----'}</strong></p>
+                  ) : recipientEmail.trim() ? (
+                    <p>Usuário do email: <strong>{recipientEmail.split('@')[0].toLowerCase() || '----'}</strong></p>
+                  ) : (
+                    <p className="text-muted-foreground">Preencha email ou telefone</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mensagens de aviso */}

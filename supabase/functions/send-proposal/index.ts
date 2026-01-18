@@ -13,6 +13,8 @@ interface SendProposalRequest {
   recipientEmail?: string;
   recipientPhone?: string;
   recipientName?: string;
+  enablePasswordProtection?: boolean;
+  autoPassword?: string;
 }
 
 // Professional HTML email template - minified to avoid encoding issues
@@ -83,7 +85,7 @@ serve(async (req: Request) => {
     }
 
     const body: SendProposalRequest = await req.json();
-    const { proposalId, channel, recipientEmail, recipientPhone, recipientName } = body;
+    const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword } = body;
 
     if (!proposalId || !channel) {
       return new Response(JSON.stringify({ error: "proposalId e channel são obrigatórios" }), {
@@ -295,9 +297,17 @@ serve(async (req: Request) => {
 
     // Update proposal status to sent if at least one channel succeeded
     if (results.email.sent || results.whatsapp.sent) {
+      const updateData: Record<string, any> = { status: 'sent' };
+      
+      // Set password protection if enabled
+      if (enablePasswordProtection && autoPassword) {
+        updateData.is_password_protected = true;
+        updateData.password_hash = autoPassword; // In production, you'd hash this
+      }
+
       await supabase
         .from('proposals')
-        .update({ status: 'sent' })
+        .update(updateData)
         .eq('id', proposalId);
 
       // Log history

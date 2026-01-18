@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, FileText, Calendar, User, PenLine } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Calendar, User, PenLine, Lock, Eye, EyeOff } from 'lucide-react';
 import { format, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
@@ -30,6 +30,14 @@ export default function PropostaPublica() {
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  
+  // Password protection state
+  const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [storedPassword, setStoredPassword] = useState('');
   
   // Tracking refs
   const hasTrackedOpen = useRef(false);
@@ -121,6 +129,14 @@ export default function PropostaPublica() {
 
       setProposal(proposalData as unknown as Proposal);
       
+      // Check password protection
+      if ((proposalData as any).is_password_protected) {
+        setIsPasswordProtected(true);
+        setStoredPassword((proposalData as any).password_hash || '');
+      } else {
+        setIsUnlocked(true);
+      }
+      
       // Set client name from proposal
       if (proposalData.client?.nome) {
         setClientName(proposalData.client.nome);
@@ -128,7 +144,7 @@ export default function PropostaPublica() {
         setClientName(proposalData.manual_client_name);
       }
 
-      // Buscar seções
+      // Buscar seções (only track open if unlocked or no password)
       const { data: sectionsData, error: sectionsError } = await supabase
         .from('proposal_sections')
         .select('*')
@@ -139,8 +155,24 @@ export default function PropostaPublica() {
         setSections(sectionsData as ProposalSection[]);
       }
 
-      // Track opened event (only once)
-      if (!hasTrackedOpen.current) {
+    } catch (err) {
+      console.error('Erro ao carregar proposta:', err);
+      setError('Erro ao carregar proposta');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle password unlock
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordInput === storedPassword) {
+      setIsUnlocked(true);
+      setPasswordError('');
+      
+      // Track opened event after unlock
+      if (!hasTrackedOpen.current && proposal) {
         hasTrackedOpen.current = true;
         await supabase.from('proposal_views').insert({
           proposal_id: id,
@@ -149,12 +181,13 @@ export default function PropostaPublica() {
             referrer: document.referrer,
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
+            password_protected: true,
           },
           user_agent: navigator.userAgent,
         });
 
         // Atualizar status para "viewed" se ainda estiver como "sent"
-        if (proposalData.status === 'sent') {
+        if (proposal.status === 'sent') {
           await supabase
             .from('proposals')
             .update({ status: 'viewed' as ProposalStatus })
@@ -162,13 +195,38 @@ export default function PropostaPublica() {
           setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
         }
       }
-    } catch (err) {
-      console.error('Erro ao carregar proposta:', err);
-      setError('Erro ao carregar proposta');
-    } finally {
-      setIsLoading(false);
+      
+      toast.success('Proposta desbloqueada!');
+    } else {
+      setPasswordError('Senha incorreta');
     }
   };
+
+  // Track open for non-password proposals
+  useEffect(() => {
+    if (isUnlocked && !isPasswordProtected && proposal && !hasTrackedOpen.current) {
+      hasTrackedOpen.current = true;
+      supabase.from('proposal_views').insert({
+        proposal_id: id,
+        event_type: 'opened',
+        event_data: { 
+          referrer: document.referrer,
+          screen_width: window.innerWidth,
+          screen_height: window.innerHeight,
+        },
+        user_agent: navigator.userAgent,
+      });
+
+      // Atualizar status para "viewed" se ainda estiver como "sent"
+      if (proposal.status === 'sent') {
+        supabase
+          .from('proposals')
+          .update({ status: 'viewed' as ProposalStatus })
+          .eq('id', id);
+        setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+      }
+    }
+  }, [isUnlocked, isPasswordProtected, proposal, id]);
 
   const handleAccept = async () => {
     if (!proposal || !clientSignature) {
@@ -312,6 +370,65 @@ export default function PropostaPublica() {
 
     return validDate < now;
   })();
+
+  // Password protection screen
+  if (isPasswordProtected && !isUnlocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Lock className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-xl">Proposta Protegida</CardTitle>
+            <CardDescription>
+              Esta proposta requer uma senha para ser visualizada.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha de Acesso</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwordInput}
+                    onChange={(e) => {
+                      setPasswordInput(e.target.value);
+                      setPasswordError('');
+                    }}
+                    placeholder="Digite a senha"
+                    className={passwordError ? 'border-destructive' : ''}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {passwordError && (
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                )}
+              </div>
+              
+              <Button type="submit" className="w-full">
+                Desbloquear Proposta
+              </Button>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                A senha foi enviada junto com o link da proposta por outro canal.
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
