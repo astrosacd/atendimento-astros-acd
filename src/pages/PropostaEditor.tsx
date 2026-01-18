@@ -293,8 +293,10 @@ export default function PropostaEditor() {
         total_value: totalValue,
       } as any);
 
+    // Garante que o modal aparece visível (principalmente no mobile)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowSendDialog(true);
-  };
+  }; 
 
   // Obter dados do cliente selecionado
   const selectedClient = useMemo(() => {
