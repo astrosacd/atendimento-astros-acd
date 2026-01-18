@@ -188,6 +188,11 @@ serve(async (req: Request) => {
             subject: subject,
             content: "Este email requer um cliente com suporte a HTML.",
             html: htmlBody,
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8",
+              "Content-Transfer-Encoding": "8bit",
+              "MIME-Version": "1.0",
+            },
           });
 
           await client.close();
