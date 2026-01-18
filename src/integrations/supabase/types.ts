@@ -3027,6 +3027,48 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_branding: {
+        Row: {
+          accent_color: string | null
+          company_name: string | null
+          created_at: string
+          font_family: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          show_logo_on_cover: boolean | null
+          show_logo_on_pages: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          company_name?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_logo_on_cover?: boolean | null
+          show_logo_on_pages?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          company_name?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_logo_on_cover?: boolean | null
+          show_logo_on_pages?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       proposal_history: {
         Row: {
           action: string

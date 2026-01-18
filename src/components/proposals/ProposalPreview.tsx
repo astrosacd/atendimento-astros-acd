@@ -23,6 +23,7 @@ import type {
   TestimonialsContent,
   VideoContent,
 } from '@/types/proposals';
+import { useProposalBranding, type ProposalBranding } from '@/hooks/useProposalBranding';
 
 interface ProposalPreviewProps {
   proposal: Proposal;
@@ -31,21 +32,44 @@ interface ProposalPreviewProps {
   onGalleryView?: (sectionId: string) => void;
 }
 
+interface BrandingStyles {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  fontFamily: string;
+  logoUrl: string | null;
+  companyName: string | null;
+  showLogoOnCover: boolean;
+  showLogoOnPages: boolean;
+}
+
 export function ProposalPreview({ proposal, sections, client, onGalleryView }: ProposalPreviewProps) {
   const visibleSections = sections.filter((s) => s.is_visible);
+  const { branding } = useProposalBranding();
 
   const currency = ((proposal as any).currency as 'BRL' | 'USD' | undefined) || 'BRL';
 
   const formatCurrency = (value: number) => {
-    // pt-BR shows BRL as "R$" and USD as "US$" (more familiar for BR audience)
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency,
     }).format(value);
   };
 
+  // Build branding styles from config
+  const brandingStyles: BrandingStyles = {
+    primaryColor: branding?.primary_color || '#3B82F6',
+    secondaryColor: branding?.secondary_color || '#1E40AF',
+    accentColor: branding?.accent_color || '#F59E0B',
+    fontFamily: branding?.font_family || 'Inter',
+    logoUrl: branding?.logo_url || null,
+    companyName: branding?.company_name || null,
+    showLogoOnCover: branding?.show_logo_on_cover ?? true,
+    showLogoOnPages: branding?.show_logo_on_pages ?? false,
+  };
+
   return (
-    <div id="proposal-preview" className="max-w-4xl mx-auto">
+    <div id="proposal-preview" className="max-w-4xl mx-auto" style={{ fontFamily: brandingStyles.fontFamily }}>
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           {visibleSections.length === 0 ? (
@@ -54,9 +78,22 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView }: P
             </div>
           ) : (
             <div className="divide-y">
-              {visibleSections.map((section) => (
-                <div key={section.id} className="p-8">
-                  {renderSection(section, formatCurrency, client, onGalleryView)}
+              {visibleSections.map((section, index) => (
+                <div key={section.id} className="p-8 relative">
+                  {/* Show logo on pages if enabled (except cover which has its own) */}
+                  {brandingStyles.showLogoOnPages && 
+                   brandingStyles.logoUrl && 
+                   section.section_type !== 'cover' && 
+                   index === 0 && (
+                    <div className="absolute top-4 right-4">
+                      <img 
+                        src={brandingStyles.logoUrl} 
+                        alt={brandingStyles.companyName || 'Logo'} 
+                        className="h-8 object-contain"
+                      />
+                    </div>
+                  )}
+                  {renderSection(section, formatCurrency, client, onGalleryView, brandingStyles)}
                 </div>
               ))}
             </div>
@@ -71,31 +108,32 @@ function renderSection(
   section: ProposalSection,
   formatCurrency: (value: number) => string,
   client?: { id: string; nome: string; email: string; numero: string } | null,
-  onGalleryView?: (sectionId: string) => void
+  onGalleryView?: (sectionId: string) => void,
+  branding?: BrandingStyles
 ) {
   const type = section.section_type;
 
   switch (type) {
     case 'cover':
-      return <CoverPreview content={section.content as unknown as CoverContent} />;
+      return <CoverPreview content={section.content as unknown as CoverContent} branding={branding} />;
     case 'text':
-      return <TextPreview content={section.content as unknown as TextContent} title={section.title} />;
+      return <TextPreview content={section.content as unknown as TextContent} title={section.title} branding={branding} />;
     case 'pricing':
-      return <PricingPreview content={section.content as unknown as PricingContent} title={section.title} formatCurrency={formatCurrency} />;
+      return <PricingPreview content={section.content as unknown as PricingContent} title={section.title} formatCurrency={formatCurrency} branding={branding} />;
     case 'timeline':
-      return <TimelinePreview content={section.content as unknown as TimelineContent} title={section.title} />;
+      return <TimelinePreview content={section.content as unknown as TimelineContent} title={section.title} branding={branding} />;
     case 'team':
       return <TeamPreview content={section.content as unknown as TeamContent} title={section.title} />;
     case 'testimonials':
-      return <TestimonialsPreview content={section.content as unknown as TestimonialsContent} title={section.title} />;
+      return <TestimonialsPreview content={section.content as unknown as TestimonialsContent} title={section.title} branding={branding} />;
     case 'gallery':
-      return <GalleryPreview content={section.content as unknown as GalleryContent} title={section.title} sectionId={section.id} onView={onGalleryView} />;
+      return <GalleryPreview content={section.content as unknown as GalleryContent} title={section.title} sectionId={section.id} onView={onGalleryView} branding={branding} />;
     case 'terms':
-      return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} />;
+      return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} branding={branding} />;
     case 'signature':
-      return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} />;
+      return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} branding={branding} />;
     case 'video':
-      return <VideoPreview content={section.content as unknown as VideoContent} title={section.title} />;
+      return <VideoPreview content={section.content as unknown as VideoContent} title={section.title} branding={branding} />;
     default:
       return (
         <div className="text-center text-muted-foreground">
@@ -105,30 +143,59 @@ function renderSection(
   }
 }
 
-function CoverPreview({ content }: { content: CoverContent }) {
+function CoverPreview({ content, branding }: { content: CoverContent; branding?: BrandingStyles }) {
   return (
     <div
-      className="min-h-[300px] flex flex-col justify-center items-center text-center p-8 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5"
-      style={
-        content.backgroundImage
-          ? {
-              backgroundImage: `url(${content.backgroundImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }
-          : undefined
-      }
+      className="min-h-[300px] flex flex-col justify-center items-center text-center p-8 rounded-lg"
+      style={{
+        background: content.backgroundImage 
+          ? undefined 
+          : `linear-gradient(135deg, ${branding?.primaryColor || '#3B82F6'}15, ${branding?.secondaryColor || '#1E40AF'}10)`,
+        backgroundImage: content.backgroundImage ? `url(${content.backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
     >
-      <h1 className="text-4xl font-bold mb-4">{content.title || 'Proposta Comercial'}</h1>
-      {content.subtitle && <p className="text-xl text-muted-foreground">{content.subtitle}</p>}
+      {/* Logo on cover */}
+      {branding?.showLogoOnCover && branding?.logoUrl && (
+        <img 
+          src={branding.logoUrl} 
+          alt={branding.companyName || 'Logo'} 
+          className="h-16 object-contain mb-6"
+        />
+      )}
+      <h1 
+        className="text-4xl font-bold mb-4"
+        style={{ color: branding?.primaryColor }}
+      >
+        {content.title || 'Proposta Comercial'}
+      </h1>
+      {content.subtitle && (
+        <p 
+          className="text-xl"
+          style={{ color: branding?.secondaryColor }}
+        >
+          {content.subtitle}
+        </p>
+      )}
+      {branding?.companyName && !branding?.logoUrl && (
+        <p className="mt-6 text-sm text-muted-foreground">{branding.companyName}</p>
+      )}
     </div>
   );
 }
 
-function TextPreview({ content, title }: { content: TextContent; title: string | null }) {
+function TextPreview({ content, title, branding }: { content: TextContent; title: string | null; branding?: BrandingStyles }) {
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-4">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-4"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="prose prose-neutral max-w-none">
         {content.content?.split('\n').map((paragraph, i) => (
           <p key={i}>{paragraph}</p>
@@ -142,20 +209,29 @@ function PricingPreview({
   content,
   title,
   formatCurrency,
+  branding,
 }: {
   content: PricingContent;
   title: string | null;
   formatCurrency: (value: number) => string;
+  branding?: BrandingStyles;
 }) {
   const items = content.items || [];
   const total = items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unitPrice || 0), 0);
 
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-6"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="border rounded-lg overflow-hidden">
         <table className="w-full">
-          <thead className="bg-muted/50">
+          <thead style={{ backgroundColor: `${branding?.primaryColor || '#3B82F6'}10` }}>
             <tr>
               <th className="text-left py-3 px-4 font-medium">Descrição</th>
               <th className="text-center py-3 px-4 font-medium w-20">Qtd</th>
@@ -175,12 +251,15 @@ function PricingPreview({
               </tr>
             ))}
           </tbody>
-          <tfoot className="bg-primary/5">
+          <tfoot style={{ backgroundColor: `${branding?.accentColor || '#F59E0B'}10` }}>
             <tr>
               <td colSpan={3} className="py-4 px-4 text-right font-semibold">
                 Total:
               </td>
-              <td className="py-4 px-4 text-right font-bold text-lg text-primary">
+              <td 
+                className="py-4 px-4 text-right font-bold text-lg"
+                style={{ color: branding?.accentColor }}
+              >
                 {formatCurrency(total)}
               </td>
             </tr>
@@ -191,17 +270,27 @@ function PricingPreview({
   );
 }
 
-function TimelinePreview({ content, title }: { content: TimelineContent; title: string | null }) {
+function TimelinePreview({ content, title, branding }: { content: TimelineContent; title: string | null; branding?: BrandingStyles }) {
   const items = content.items || [];
 
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-6"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="space-y-4">
         {items.map((item, index) => (
           <div key={item.id} className="flex gap-4">
             <div className="flex flex-col items-center">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+              <div 
+                className="w-8 h-8 rounded-full text-white flex items-center justify-center font-semibold"
+                style={{ backgroundColor: branding?.primaryColor || '#3B82F6' }}
+              >
                 {index + 1}
               </div>
               {index < items.length - 1 && <div className="w-0.5 flex-1 bg-border my-1" />}
@@ -222,10 +311,17 @@ function TimelinePreview({ content, title }: { content: TimelineContent; title: 
   );
 }
 
-function TermsPreview({ content, title }: { content: TermsContent; title: string | null }) {
+function TermsPreview({ content, title, branding }: { content: TermsContent; title: string | null; branding?: BrandingStyles }) {
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-4">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-4"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="prose prose-neutral prose-sm max-w-none">
         {content.content?.split('\n').map((paragraph, i) => (
           <p key={i}>{paragraph}</p>
@@ -239,16 +335,17 @@ function GalleryPreview({
   content, 
   title, 
   sectionId,
-  onView 
+  onView,
+  branding,
 }: { 
   content: GalleryContent; 
   title: string | null;
   sectionId?: string;
   onView?: (sectionId: string) => void;
+  branding?: BrandingStyles;
 }) {
   const images = content.images || [];
 
-  // Track gallery view when user interacts with carousel
   const handleInteraction = () => {
     if (sectionId && onView) {
       onView(sectionId);
@@ -265,7 +362,14 @@ function GalleryPreview({
 
   return (
     <div onMouseEnter={handleInteraction} onTouchStart={handleInteraction}>
-      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-6"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <Carousel className="w-full">
         <CarouselContent>
           {images.map((image) => (
@@ -331,7 +435,7 @@ function TeamPreview({ content, title }: { content: TeamContent; title: string |
   );
 }
 
-function TestimonialsPreview({ content, title }: { content: TestimonialsContent; title: string | null }) {
+function TestimonialsPreview({ content, title, branding }: { content: TestimonialsContent; title: string | null; branding?: BrandingStyles }) {
   const items = content.items || [];
 
   if (items.length === 0) {
@@ -344,11 +448,21 @@ function TestimonialsPreview({ content, title }: { content: TestimonialsContent;
 
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-6"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="grid md:grid-cols-2 gap-6">
         {items.map((item) => (
           <div key={item.id} className="bg-muted/30 rounded-lg p-6 relative">
-            <Quote className="h-8 w-8 text-primary/20 absolute top-4 right-4" />
+            <Quote 
+              className="h-8 w-8 absolute top-4 right-4" 
+              style={{ color: `${branding?.primaryColor || '#3B82F6'}30` }}
+            />
             <p className="text-muted-foreground mb-4 italic">"{item.content}"</p>
             <div>
               <p className="font-medium">{item.author}</p>
@@ -364,15 +478,22 @@ function TestimonialsPreview({ content, title }: { content: TestimonialsContent;
 function SignaturePreview({
   content,
   client,
+  branding,
 }: {
   content: SignatureContent;
   client?: { id: string; nome: string; email: string; numero: string } | null;
+  branding?: BrandingStyles;
 }) {
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* Assinatura do Responsável */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Responsável</h3>
+        <h3 
+          className="font-semibold text-lg"
+          style={{ color: branding?.primaryColor }}
+        >
+          Responsável
+        </h3>
         <div className="border rounded-lg p-4 bg-muted/20">
           {content.signerSignature ? (
             <img
@@ -394,7 +515,12 @@ function SignaturePreview({
 
       {/* Assinatura do Cliente */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Cliente</h3>
+        <h3 
+          className="font-semibold text-lg"
+          style={{ color: branding?.primaryColor }}
+        >
+          Cliente
+        </h3>
         <div className="border rounded-lg p-4 bg-muted/20">
           <div className="h-24 flex items-center justify-center text-muted-foreground border-b border-dashed">
             Aguardando assinatura
@@ -409,18 +535,15 @@ function SignaturePreview({
   );
 }
 
-function VideoPreview({ content, title }: { content: VideoContent; title: string | null }) {
-  // Helper to extract video ID and generate embed URL
+function VideoPreview({ content, title, branding }: { content: VideoContent; title: string | null; branding?: BrandingStyles }) {
   const getEmbedUrl = (url: string): string | null => {
     if (!url) return null;
     
-    // YouTube
     const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (youtubeMatch) {
       return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
     }
     
-    // Vimeo
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vimeoMatch) {
       return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
@@ -441,7 +564,14 @@ function VideoPreview({ content, title }: { content: VideoContent; title: string
 
   return (
     <div>
-      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      {title && (
+        <h2 
+          className="text-2xl font-semibold mb-6"
+          style={{ color: branding?.primaryColor }}
+        >
+          {title}
+        </h2>
+      )}
       <div className="aspect-video rounded-lg overflow-hidden bg-muted">
         <iframe
           src={embedUrl}
