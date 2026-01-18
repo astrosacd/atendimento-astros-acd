@@ -32,6 +32,7 @@ import {
   History,
   Check,
   ChevronsUpDown,
+  Video,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -62,6 +63,7 @@ const sectionTypeConfig: Record<SectionType, { label: string; icon: string }> = 
   gallery: { label: 'Galeria', icon: 'Image' },
   terms: { label: 'Termos', icon: 'FileText' },
   signature: { label: 'Assinatura', icon: 'PenTool' },
+  video: { label: 'Vídeo', icon: 'Video' },
 };
 
 const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
@@ -74,6 +76,7 @@ const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
   { type: 'gallery', icon: <Image className="h-5 w-5" /> },
   { type: 'terms', icon: <FileText className="h-5 w-5" /> },
   { type: 'signature', icon: <PenTool className="h-5 w-5" /> },
+  { type: 'video', icon: <Video className="h-5 w-5" /> },
 ];
 
 export default function PropostaEditor() {

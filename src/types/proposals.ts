@@ -13,7 +13,8 @@ export type SectionType =
   | 'testimonials' 
   | 'gallery' 
   | 'terms' 
-  | 'signature';
+  | 'signature'
+  | 'video';
 
 export interface Proposal {
   id: string;
@@ -150,6 +151,11 @@ export interface SignatureContent {
   signerSignature?: string; // base64
 }
 
+export interface VideoContent {
+  url?: string; // YouTube or Vimeo URL
+  caption?: string;
+}
+
 // Status helpers
 export const statusConfig: Record<ProposalStatus, { label: string; color: string; bgColor: string }> = {
   draft: { label: 'Rascunho', color: 'text-muted-foreground', bgColor: 'bg-muted' },
@@ -169,4 +175,5 @@ export const sectionTypeConfig: Record<SectionType, { label: string; icon: strin
   gallery: { label: 'Galeria', icon: 'Image' },
   terms: { label: 'Termos', icon: 'FileText' },
   signature: { label: 'Assinatura', icon: 'PenTool' },
+  video: { label: 'Vídeo', icon: 'Video' },
 };

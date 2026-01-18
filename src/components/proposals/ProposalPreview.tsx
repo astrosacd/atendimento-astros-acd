@@ -21,6 +21,7 @@ import type {
   GalleryContent,
   TeamContent,
   TestimonialsContent,
+  VideoContent,
 } from '@/types/proposals';
 
 interface ProposalPreviewProps {
@@ -93,6 +94,8 @@ function renderSection(
       return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} />;
     case 'signature':
       return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} />;
+    case 'video':
+      return <VideoPreview content={section.content as unknown as VideoContent} title={section.title} />;
     default:
       return (
         <div className="text-center text-muted-foreground">
@@ -402,6 +405,55 @@ function SignaturePreview({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VideoPreview({ content, title }: { content: VideoContent; title: string | null }) {
+  // Helper to extract video ID and generate embed URL
+  const getEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    
+    // YouTube
+    const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+    }
+    
+    // Vimeo
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+    
+    return null;
+  };
+
+  const embedUrl = getEmbedUrl(content.url || '');
+
+  if (!embedUrl) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Nenhum vídeo configurado
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {title && <h2 className="text-2xl font-semibold mb-6">{title}</h2>}
+      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+        <iframe
+          src={embedUrl}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title={title || 'Video'}
+        />
+      </div>
+      {content.caption && (
+        <p className="text-sm text-muted-foreground text-center mt-3">{content.caption}</p>
+      )}
     </div>
   );
 }

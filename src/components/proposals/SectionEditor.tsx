@@ -22,6 +22,7 @@ import {
   Image,
   FileText,
   PenTool,
+  Video,
 } from 'lucide-react';
 // SignatureCanvas is only used in the public proposal page for client signatures
 import { ImageUploadInput } from './ImageUploadInput';
@@ -41,6 +42,7 @@ import type {
   TeamContent,
   TestimonialsContent,
   GalleryContent,
+  VideoContent,
 } from '@/types/proposals';
 
 const sectionIcons: Record<SectionType, React.ReactNode> = {
@@ -53,6 +55,7 @@ const sectionIcons: Record<SectionType, React.ReactNode> = {
   gallery: <Image className="h-4 w-4" />,
   terms: <FileText className="h-4 w-4" />,
   signature: <PenTool className="h-4 w-4" />,
+  video: <Video className="h-4 w-4" />,
 };
 
 const sectionLabels: Record<SectionType, string> = {
@@ -65,6 +68,7 @@ const sectionLabels: Record<SectionType, string> = {
   gallery: 'Galeria',
   terms: 'Termos',
   signature: 'Assinatura',
+  video: 'Vídeo',
 };
 
 interface SectionEditorProps {
@@ -120,6 +124,8 @@ export function SectionEditor({
         return <TermsEditor content={section.content as unknown as TermsContent} onChange={updateContent} disabled={!canEdit} />;
       case 'signature':
         return <SignatureEditor content={section.content as unknown as SignatureContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'video':
+        return <VideoEditor content={section.content as unknown as VideoContent} onChange={updateContent} disabled={!canEdit} />;
       default:
         return (
           <div className="text-center py-4 text-muted-foreground">
@@ -502,8 +508,79 @@ function SignatureEditor({
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        💡 A assinatura será feita pelo cliente quando ele aceitar a proposta.
+      💡 A assinatura será feita pelo cliente quando ele aceitar a proposta.
       </p>
+    </div>
+  );
+}
+
+function VideoEditor({
+  content,
+  onChange,
+  disabled,
+}: {
+  content: VideoContent;
+  onChange: (updates: Record<string, unknown>) => void;
+  disabled: boolean;
+}) {
+  // Helper to extract video ID for preview
+  const getEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    
+    // YouTube
+    const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (youtubeMatch) {
+      return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+    }
+    
+    // Vimeo
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+    
+    return null;
+  };
+
+  const embedUrl = getEmbedUrl(content.url || '');
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>URL do Vídeo (YouTube ou Vimeo)</Label>
+        <Input
+          value={content.url || ''}
+          onChange={(e) => onChange({ url: e.target.value })}
+          placeholder="https://www.youtube.com/watch?v=... ou https://vimeo.com/..."
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted-foreground">
+          Cole o link do YouTube ou Vimeo
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label>Legenda (opcional)</Label>
+        <Input
+          value={content.caption || ''}
+          onChange={(e) => onChange({ caption: e.target.value })}
+          placeholder="Descrição do vídeo..."
+          disabled={disabled}
+        />
+      </div>
+      {embedUrl && (
+        <div className="space-y-2">
+          <Label>Pré-visualização</Label>
+          <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="Video preview"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
