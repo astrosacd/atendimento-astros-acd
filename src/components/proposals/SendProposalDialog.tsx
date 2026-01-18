@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -36,13 +36,24 @@ export function SendProposalDialog({
   const { config, isLoading: isLoadingConfig } = useProposalSendConfig();
   const sendProposal = useSendProposal();
 
+  const footerRef = useRef<HTMLDivElement>(null);
+
   const [channel, setChannel] = useState<'email' | 'whatsapp' | 'both'>('both');
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [enablePasswordProtection, setEnablePasswordProtection] = useState(false);
 
-  // Sincronizar campos quando o diálogo abre ou quando os dados do cliente mudam
+  // Garante que o botão "Enviar" fica visível no mobile (scroll dentro do modal)
+  useEffect(() => {
+    if (!open) return;
+
+    const t = window.setTimeout(() => {
+      footerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 80);
+
+    return () => window.clearTimeout(t);
+  }, [open, channel, enablePasswordProtection]);
   useEffect(() => {
     if (open) {
       setRecipientName(clientName || '');
@@ -133,7 +144,7 @@ export function SendProposalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Enviar Proposta</DialogTitle>
           <DialogDescription>
@@ -279,18 +290,20 @@ export function SendProposalDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSend} 
-            disabled={sendProposal.isPending || !canSend || isLoadingConfig}
-          >
-            {sendProposal.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : null}
-            Enviar
-          </Button>
+          <div ref={footerRef} className="w-full flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={sendProposal.isPending || !canSend || isLoadingConfig}
+            >
+              {sendProposal.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Enviar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
