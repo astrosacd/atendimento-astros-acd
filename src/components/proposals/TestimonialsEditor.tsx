@@ -1,8 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, X, Quote } from 'lucide-react';
+import { DebouncedInput, DebouncedTextarea } from './DebouncedInput';
 import type { TestimonialsContent, Testimonial } from '@/types/proposals';
 
 interface TestimonialsEditorProps {
@@ -42,9 +41,9 @@ export function TestimonialsEditor({ content, onChange, disabled }: Testimonials
           <div className="flex items-start gap-3">
             <Quote className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
             <div className="flex-1 space-y-3">
-              <Textarea
+              <DebouncedTextarea
                 value={item.content}
-                onChange={(e) => updateItem(item.id, { content: e.target.value })}
+                onChange={(value) => updateItem(item.id, { content: value })}
                 placeholder="O que o cliente disse..."
                 rows={3}
                 disabled={disabled}
@@ -52,18 +51,18 @@ export function TestimonialsEditor({ content, onChange, disabled }: Testimonials
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   {index === 0 && <Label className="text-xs mb-1 block">Nome do Autor</Label>}
-                  <Input
+                  <DebouncedInput
                     value={item.author}
-                    onChange={(e) => updateItem(item.id, { author: e.target.value })}
+                    onChange={(value) => updateItem(item.id, { author: value })}
                     placeholder="Nome do cliente"
                     disabled={disabled}
                   />
                 </div>
                 <div>
                   {index === 0 && <Label className="text-xs mb-1 block">Empresa (opcional)</Label>}
-                  <Input
+                  <DebouncedInput
                     value={item.company || ''}
-                    onChange={(e) => updateItem(item.id, { company: e.target.value })}
+                    onChange={(value) => updateItem(item.id, { company: value })}
                     placeholder="Empresa do cliente"
                     disabled={disabled}
                   />

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { DebouncedInput, DebouncedTextarea } from './DebouncedInput';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -218,18 +219,18 @@ function CoverEditor({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Título da Proposta</Label>
-        <Input
+        <DebouncedInput
           value={content.title || ''}
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(value) => onChange({ title: value })}
           placeholder="Digite o título..."
           disabled={disabled}
         />
       </div>
       <div className="space-y-2">
         <Label>Subtítulo</Label>
-        <Input
+        <DebouncedInput
           value={content.subtitle || ''}
-          onChange={(e) => onChange({ subtitle: e.target.value })}
+          onChange={(value) => onChange({ subtitle: value })}
           placeholder="Digite o subtítulo..."
           disabled={disabled}
         />
@@ -321,9 +322,9 @@ function TextEditor({
           </div>
         )}
       </div>
-      <Textarea
+      <DebouncedTextarea
         value={content.content || ''}
-        onChange={(e) => onChange({ content: e.target.value })}
+        onChange={(value) => onChange({ content: value })}
         placeholder="Digite o conteúdo ou use a IA para gerar..."
         rows={6}
         disabled={disabled || isGenerating}
@@ -372,9 +373,9 @@ function PricingEditor({
         <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-5">
             {index === 0 && <Label className="mb-2 block">Descrição</Label>}
-            <Input
+            <DebouncedInput
               value={item.description}
-              onChange={(e) => updateItem(item.id, { description: e.target.value })}
+              onChange={(value) => updateItem(item.id, { description: value })}
               placeholder="Descrição do item"
               disabled={disabled}
             />
@@ -472,27 +473,27 @@ function TimelineEditor({
         <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-3">
             {index === 0 && <Label className="mb-2 block">Fase</Label>}
-            <Input
+            <DebouncedInput
               value={item.phase}
-              onChange={(e) => updateItem(item.id, { phase: e.target.value })}
+              onChange={(value) => updateItem(item.id, { phase: value })}
               placeholder="Nome da fase"
               disabled={disabled}
             />
           </div>
           <div className="col-span-2">
             {index === 0 && <Label className="mb-2 block">Duração</Label>}
-            <Input
+            <DebouncedInput
               value={item.duration}
-              onChange={(e) => updateItem(item.id, { duration: e.target.value })}
+              onChange={(value) => updateItem(item.id, { duration: value })}
               placeholder="Ex: 2 semanas"
               disabled={disabled}
             />
           </div>
           <div className="col-span-5">
             {index === 0 && <Label className="mb-2 block">Descrição</Label>}
-            <Input
+            <DebouncedInput
               value={item.description}
-              onChange={(e) => updateItem(item.id, { description: e.target.value })}
+              onChange={(value) => updateItem(item.id, { description: value })}
               placeholder="Descrição da fase"
               disabled={disabled}
             />
@@ -534,9 +535,9 @@ function TermsEditor({
   return (
     <div className="space-y-2">
       <Label>Termos e Condições</Label>
-      <Textarea
+      <DebouncedTextarea
         value={content.content || ''}
-        onChange={(e) => onChange({ content: e.target.value })}
+        onChange={(value) => onChange({ content: value })}
         placeholder="Digite os termos e condições..."
         rows={8}
         disabled={disabled}
@@ -559,18 +560,18 @@ function SignatureEditor({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nome do Responsável (Empresa)</Label>
-          <Input
+          <DebouncedInput
             value={content.signerName || ''}
-            onChange={(e) => onChange({ signerName: e.target.value })}
+            onChange={(value) => onChange({ signerName: value })}
             placeholder="Nome de quem envia a proposta"
             disabled={disabled}
           />
         </div>
         <div className="space-y-2">
           <Label>Cargo</Label>
-          <Input
+          <DebouncedInput
             value={content.signerRole || ''}
-            onChange={(e) => onChange({ signerRole: e.target.value })}
+            onChange={(value) => onChange({ signerRole: value })}
             placeholder="Cargo ou função"
             disabled={disabled}
           />
@@ -617,9 +618,9 @@ function VideoEditor({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>URL do Vídeo (YouTube ou Vimeo)</Label>
-        <Input
+        <DebouncedInput
           value={content.url || ''}
-          onChange={(e) => onChange({ url: e.target.value })}
+          onChange={(value) => onChange({ url: value })}
           placeholder="https://www.youtube.com/watch?v=... ou https://vimeo.com/..."
           disabled={disabled}
         />
@@ -629,9 +630,9 @@ function VideoEditor({
       </div>
       <div className="space-y-2">
         <Label>Legenda (opcional)</Label>
-        <Input
+        <DebouncedInput
           value={content.caption || ''}
-          onChange={(e) => onChange({ caption: e.target.value })}
+          onChange={(value) => onChange({ caption: value })}
           placeholder="Descrição do vídeo..."
           disabled={disabled}
         />

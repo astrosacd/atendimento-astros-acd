@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DebouncedInput } from './DebouncedInput';
 import type { GalleryContent, GalleryImage } from '@/types/proposals';
 
 interface GalleryEditorProps {
@@ -113,9 +113,9 @@ export function GalleryEditor({ content, onChange, disabled }: GalleryEditorProp
                   <X className="h-3 w-3" />
                 </Button>
               )}
-              <Input
+              <DebouncedInput
                 value={image.caption || ''}
-                onChange={(e) => updateCaption(image.id, e.target.value)}
+                onChange={(value) => updateCaption(image.id, value)}
                 placeholder="Legenda (opcional)"
                 className="mt-2 text-xs"
                 disabled={disabled}
