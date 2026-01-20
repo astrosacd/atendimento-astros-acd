@@ -46,21 +46,22 @@ export default function PropostaPublica() {
   const signatureSectionRef = useRef<HTMLDivElement>(null);
   const hasTrackedSignatureView = useRef(false);
 
-  // Track event helper
+  // Track event helper using secure RPC function
   const trackEvent = useCallback(async (eventType: string, eventData: object = {}) => {
-    if (!id) return;
+    if (!id || !token) return;
     
     try {
-      await supabase.from('proposal_views').insert([{
-        proposal_id: id,
-        event_type: eventType,
-        event_data: eventData as any,
-        user_agent: navigator.userAgent,
-      }]);
+      await supabase.rpc('record_proposal_view', {
+        p_proposal_id: id,
+        p_share_token: token,
+        p_event_type: eventType,
+        p_event_data: eventData as any,
+        p_user_agent: navigator.userAgent,
+      });
     } catch (err) {
       console.error('Erro ao registrar evento:', err);
     }
-  }, [id]);
+  }, [id, token]);
 
   // Track scroll
   useEffect(() => {
@@ -188,27 +189,29 @@ export default function PropostaPublica() {
       setIsUnlocked(true);
       setPasswordError('');
 
-      // Track opened event after unlock
-      if (!hasTrackedOpen.current && proposal) {
+      // Track opened event after unlock using secure RPC
+      if (!hasTrackedOpen.current && proposal && token) {
         hasTrackedOpen.current = true;
-        await supabase.from('proposal_views').insert({
-          proposal_id: id,
-          event_type: 'opened',
-          event_data: {
+        await supabase.rpc('record_proposal_view', {
+          p_proposal_id: id,
+          p_share_token: token,
+          p_event_type: 'opened',
+          p_event_data: {
             referrer: document.referrer,
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
             password_protected: true,
           },
-          user_agent: navigator.userAgent,
+          p_user_agent: navigator.userAgent,
         });
 
-        // Atualizar status para "viewed" se ainda estiver como "sent"
+        // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
         if (proposal.status === 'sent') {
-          await supabase
-            .from('proposals')
-            .update({ status: 'viewed' as ProposalStatus })
-            .eq('id', id);
+          await supabase.rpc('sign_proposal', {
+            p_proposal_id: id,
+            p_share_token: token,
+            p_status: 'viewed',
+          });
           setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
         }
       }
@@ -219,31 +222,33 @@ export default function PropostaPublica() {
     }
   };
 
-  // Track open for non-password proposals
+  // Track open for non-password proposals using secure RPC
   useEffect(() => {
-    if (isUnlocked && !isPasswordProtected && proposal && !hasTrackedOpen.current) {
+    if (isUnlocked && !isPasswordProtected && proposal && !hasTrackedOpen.current && token) {
       hasTrackedOpen.current = true;
-      supabase.from('proposal_views').insert({
-        proposal_id: id,
-        event_type: 'opened',
-        event_data: { 
+      supabase.rpc('record_proposal_view', {
+        p_proposal_id: id,
+        p_share_token: token,
+        p_event_type: 'opened',
+        p_event_data: { 
           referrer: document.referrer,
           screen_width: window.innerWidth,
           screen_height: window.innerHeight,
         },
-        user_agent: navigator.userAgent,
+        p_user_agent: navigator.userAgent,
       });
 
-      // Atualizar status para "viewed" se ainda estiver como "sent"
+      // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
       if (proposal.status === 'sent') {
-        supabase
-          .from('proposals')
-          .update({ status: 'viewed' as ProposalStatus })
-          .eq('id', id);
+        supabase.rpc('sign_proposal', {
+          p_proposal_id: id,
+          p_share_token: token,
+          p_status: 'viewed',
+        });
         setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
       }
     }
-  }, [isUnlocked, isPasswordProtected, proposal, id]);
+  }, [isUnlocked, isPasswordProtected, proposal, id, token]);
 
   const handleAccept = async () => {
     if (!proposal || !clientSignature) {
@@ -256,21 +261,23 @@ export default function PropostaPublica() {
       return;
     }
 
+    if (!token) {
+      toast.error('Token de proposta inválido');
+      return;
+    }
+
     setIsAccepting(true);
     try {
       const signedAt = new Date().toISOString();
       
-      const { error } = await supabase
-        .from('proposals')
-        .update({
-          status: 'accepted' as ProposalStatus,
-          client_signature: clientSignature,
-          signed_at: signedAt,
-          signed_status: 'accepted',
-          signed_name: clientName.trim(),
-          signature_image: clientSignature,
-        })
-        .eq('id', proposal.id);
+      // Use secure RPC function instead of direct table update
+      const { error } = await supabase.rpc('sign_proposal', {
+        p_proposal_id: proposal.id,
+        p_share_token: token,
+        p_status: 'accepted',
+        p_client_signature: clientSignature,
+        p_signed_name: clientName.trim(),
+      });
 
       if (error) throw error;
 
@@ -304,22 +311,20 @@ export default function PropostaPublica() {
   };
 
   const handleReject = async (reason: string) => {
-    if (!proposal) return;
+    if (!proposal || !token) return;
 
     setIsRejecting(true);
     try {
       const signedAt = new Date().toISOString();
       
-      const { error } = await supabase
-        .from('proposals')
-        .update({ 
-          status: 'rejected' as ProposalStatus,
-          signed_at: signedAt,
-          signed_status: 'rejected',
-          signed_name: clientName.trim(),
-          rejection_reason: reason || null,
-        })
-        .eq('id', proposal.id);
+      // Use secure RPC function instead of direct table update
+      const { error } = await supabase.rpc('sign_proposal', {
+        p_proposal_id: proposal.id,
+        p_share_token: token,
+        p_status: 'rejected',
+        p_signed_name: clientName.trim(),
+        p_rejection_reason: reason || null,
+      });
 
       if (error) throw error;
 
