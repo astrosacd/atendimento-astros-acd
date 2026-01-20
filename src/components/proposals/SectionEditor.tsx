@@ -153,9 +153,23 @@ export function SectionEditor({
               <GripVertical className="h-4 w-4" />
             </div>
           )}
-          <div className="flex items-center gap-2 flex-1">
-            {sectionIcons[sectionType]}
-            <span className="font-medium text-sm">{sectionLabels[sectionType]}</span>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="shrink-0 flex items-center gap-2">
+              {sectionIcons[sectionType]}
+              <span className="font-medium text-sm">{sectionLabels[sectionType]}</span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <DebouncedInput
+                value={section.title ?? ''}
+                onChange={(value) => {
+                  const cleaned = value.trim();
+                  onUpdate({ title: cleaned.length ? value : null });
+                }}
+                placeholder="Digite o título da seção (ex: Sobre nós, O que inclui...)"
+                disabled={!canEdit}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Button
