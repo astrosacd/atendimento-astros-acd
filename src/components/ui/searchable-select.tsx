@@ -64,10 +64,21 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
+      <PopoverContent 
+        className="w-[--radix-popover-trigger-width] p-0 z-50" 
+        align="start"
+        onWheel={(e) => e.stopPropagation()}
+      >
+        <Command shouldFilter={true}>
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandList 
+            className="max-h-[200px] overflow-y-auto"
+            onWheel={(e) => {
+              e.stopPropagation();
+              const target = e.currentTarget;
+              target.scrollTop += e.deltaY;
+            }}
+          >
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
