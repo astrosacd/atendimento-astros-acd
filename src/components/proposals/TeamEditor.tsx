@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DebouncedInput } from './DebouncedInput';
 import type { TeamContent, TeamMember } from '@/types/proposals';
 
 interface TeamEditorProps {
@@ -109,9 +109,9 @@ export function TeamEditor({ content, onChange, disabled }: TeamEditorProps) {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 {index === 0 && <Label className="text-xs mb-1 block">Nome</Label>}
-                <Input
+                <DebouncedInput
                   value={member.name}
-                  onChange={(e) => updateMember(member.id, { name: e.target.value })}
+                  onChange={(value) => updateMember(member.id, { name: value })}
                   placeholder="Nome do membro"
                   disabled={disabled}
                   className="h-9"
@@ -119,9 +119,9 @@ export function TeamEditor({ content, onChange, disabled }: TeamEditorProps) {
               </div>
               <div>
                 {index === 0 && <Label className="text-xs mb-1 block">Cargo</Label>}
-                <Input
+                <DebouncedInput
                   value={member.role}
-                  onChange={(e) => updateMember(member.id, { role: e.target.value })}
+                  onChange={(value) => updateMember(member.id, { role: value })}
                   placeholder="Cargo ou função"
                   disabled={disabled}
                   className="h-9"
