@@ -237,10 +237,8 @@ function TextPreview({ content, title, branding }: { content: TextContent; title
           {title}
         </h2>
       )}
-      <div className="prose prose-neutral max-w-none">
-        {content.content?.split('\n').map((paragraph, i) => (
-          <p key={i}>{paragraph}</p>
-        ))}
+      <div className="prose prose-neutral max-w-none whitespace-pre-wrap">
+        {content.content || ''}
       </div>
     </div>
   );
@@ -363,10 +361,8 @@ function TermsPreview({ content, title, branding }: { content: TermsContent; tit
           {title}
         </h2>
       )}
-      <div className="prose prose-neutral prose-sm max-w-none">
-        {content.content?.split('\n').map((paragraph, i) => (
-          <p key={i}>{paragraph}</p>
-        ))}
+      <div className="prose prose-neutral prose-sm max-w-none whitespace-pre-wrap">
+        {content.content || ''}
       </div>
     </div>
   );
