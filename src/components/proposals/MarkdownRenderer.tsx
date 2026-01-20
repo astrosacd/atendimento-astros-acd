@@ -17,9 +17,12 @@ marked.setOptions({
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   const html = useMemo(() => {
     if (!content) return '';
+
+    // Normalize newlines (Windows -> Unix) so spacing behaves consistently
+    const normalized = content.replace(/\r\n/g, '\n');
     
     // Parse markdown to HTML
-    const rawHtml = marked.parse(content, { async: false }) as string;
+    const rawHtml = marked.parse(normalized, { async: false }) as string;
     
     // Sanitize HTML to prevent XSS
     return DOMPurify.sanitize(rawHtml, {
