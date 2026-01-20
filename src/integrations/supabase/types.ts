@@ -3862,6 +3862,27 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      record_proposal_view: {
+        Args: {
+          p_event_data?: Json
+          p_event_type: string
+          p_proposal_id: string
+          p_share_token: string
+          p_user_agent?: string
+        }
+        Returns: boolean
+      }
+      sign_proposal: {
+        Args: {
+          p_client_signature?: string
+          p_proposal_id: string
+          p_rejection_reason?: string
+          p_share_token: string
+          p_signed_name?: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
