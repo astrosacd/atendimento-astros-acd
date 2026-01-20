@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Quote, Users } from 'lucide-react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import type { ProposalSection } from '@/hooks/useProposalSections';
 import type { 
   Proposal, 
@@ -237,9 +238,7 @@ function TextPreview({ content, title, branding }: { content: TextContent; title
           {title}
         </h2>
       )}
-      <div className="prose prose-neutral max-w-none whitespace-pre-wrap">
-        {content.content || ''}
-      </div>
+      <MarkdownRenderer content={content.content || ''} />
     </div>
   );
 }
@@ -361,9 +360,7 @@ function TermsPreview({ content, title, branding }: { content: TermsContent; tit
           {title}
         </h2>
       )}
-      <div className="prose prose-neutral prose-sm max-w-none whitespace-pre-wrap">
-        {content.content || ''}
-      </div>
+      <MarkdownRenderer content={content.content || ''} className="prose-sm" />
     </div>
   );
 }

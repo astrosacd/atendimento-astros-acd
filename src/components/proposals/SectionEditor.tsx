@@ -34,6 +34,7 @@ import { ImageUploadInput } from './ImageUploadInput';
 import { GalleryEditor } from './GalleryEditor';
 import { TeamEditor } from './TeamEditor';
 import { TestimonialsEditor } from './TestimonialsEditor';
+import { markdownHint } from './MarkdownRenderer';
 import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
   CoverContent,
@@ -329,6 +330,7 @@ function TextEditor({
         rows={6}
         disabled={disabled || isGenerating}
       />
+      <p className="text-xs text-muted-foreground">{markdownHint}</p>
     </div>
   );
 }
@@ -542,6 +544,7 @@ function TermsEditor({
         rows={8}
         disabled={disabled}
       />
+      <p className="text-xs text-muted-foreground">{markdownHint}</p>
     </div>
   );
 }
