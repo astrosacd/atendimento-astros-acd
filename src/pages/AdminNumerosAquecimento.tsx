@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuTrigger 
@@ -788,18 +789,17 @@ function CreateNumeroDialog({
           </div>
           <div>
             <Label>Modelo</Label>
-            <Select value={modeloId} onValueChange={setModeloId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                {modelosList.map((modelo) => (
-                  <SelectItem key={modelo.id} value={modelo.id}>
-                    {modelo.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={modelosList.map((modelo) => ({
+                value: modelo.id,
+                label: modelo.nome,
+              }))}
+              value={modeloId}
+              onValueChange={setModeloId}
+              placeholder="Selecione o modelo"
+              searchPlaceholder="Buscar modelo..."
+              emptyMessage="Nenhum modelo encontrado."
+            />
           </div>
           <div>
             <Label>Status</Label>
@@ -959,18 +959,17 @@ function NumeroActionsMenu({
             {canEdit && (
               <div>
                 <Label>Modelo</Label>
-                <Select value={modeloId} onValueChange={setModeloId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o modelo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modelosList.map((modelo) => (
-                      <SelectItem key={modelo.id} value={modelo.id}>
-                        {modelo.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={modelosList.map((modelo) => ({
+                    value: modelo.id,
+                    label: modelo.nome,
+                  }))}
+                  value={modeloId}
+                  onValueChange={setModeloId}
+                  placeholder="Selecione o modelo"
+                  searchPlaceholder="Buscar modelo..."
+                  emptyMessage="Nenhum modelo encontrado."
+                />
               </div>
             )}
             {canChangeStatus && (
