@@ -227,10 +227,20 @@ function CoverPreview({ content, branding }: { content: CoverContent; branding?:
   );
 }
 
+// Títulos genéricos que não devem ser exibidos na preview
+const GENERIC_TITLES = ['texto', 'termos', 'preços', 'cronograma', 'equipe', 'depoimentos', 'galeria', 'assinatura', 'vídeo', 'capa'];
+
+function isGenericTitle(title: string | null): boolean {
+  if (!title) return true;
+  return GENERIC_TITLES.includes(title.toLowerCase().trim());
+}
+
 function TextPreview({ content, title, branding }: { content: TextContent; title: string | null; branding?: BrandingStyles }) {
+  const showTitle = title && !isGenericTitle(title);
+  
   return (
     <div>
-      {title && (
+      {showTitle && (
         <h2 
           className="text-2xl font-semibold mb-4"
           style={{ color: branding?.primaryColor }}
@@ -350,9 +360,11 @@ function TimelinePreview({ content, title, branding }: { content: TimelineConten
 }
 
 function TermsPreview({ content, title, branding }: { content: TermsContent; title: string | null; branding?: BrandingStyles }) {
+  const showTitle = title && !isGenericTitle(title);
+  
   return (
     <div>
-      {title && (
+      {showTitle && (
         <h2 
           className="text-2xl font-semibold mb-4"
           style={{ color: branding?.primaryColor }}

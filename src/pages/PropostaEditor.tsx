@@ -358,7 +358,8 @@ export default function PropostaEditor() {
   };
 
   const handleAddSection = async (type: SectionType) => {
-    await createSection.mutateAsync({ type, title: sectionTypeConfig[type].label });
+    // Don't set a title - user should provide a meaningful one
+    await createSection.mutateAsync({ type });
   };
 
   if (isLoadingProposal) {
