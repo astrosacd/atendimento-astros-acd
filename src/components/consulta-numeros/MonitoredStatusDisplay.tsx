@@ -1,18 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertTriangle, ChevronDown, ChevronUp, Edit, Eye, RefreshCw, Loader2, Bell } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+
+interface LastStatusCache {
+  [rowId: number]: string | null;
+}
 
 interface MonitoredStatusDisplayProps {
   baserowFields: Array<{
@@ -29,6 +29,7 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastStatusCache, setLastStatusCache] = useState<LastStatusCache>({});
 
   // Fetch reminder config to get monitored statuses
   const { data: reminderConfig } = useQuery({
@@ -90,6 +91,106 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
     enabled: isOpen && monitoredStatuses.length > 0,
     staleTime: 2 * 60 * 1000,
   });
+
+  // Pre-fetch last status for monitored numbers when they're loaded
+  useEffect(() => {
+    const fetchLastStatuses = async () => {
+      if (!monitoredNumbers.length) return;
+
+      const rowsToFetch = monitoredNumbers.filter((row: any) => {
+        return lastStatusCache[row.id] === undefined;
+      });
+      
+      if (rowsToFetch.length === 0) return;
+
+      try {
+        const rowIds = rowsToFetch.map((row: any) => row.id.toString());
+
+        // Query history by baserow_row_id
+        const { data: historyData } = await supabase
+          .from('consulta_numeros_history')
+          .select('baserow_row_id, dados_anteriores, created_at')
+          .in('baserow_row_id', rowIds)
+          .in('acao', ['atualizacao_obs', 'atualizacao_status', 'atualizacao_status_obs', 'atualizacao'])
+          .order('created_at', { ascending: false });
+
+        const newCache: LastStatusCache = {};
+        rowsToFetch.forEach((row: any) => {
+          newCache[row.id] = null;
+        });
+
+        const rowIdToCurrentStatus = new Map<number, string | null>();
+        rowsToFetch.forEach((row: any) => {
+          const statusVal =
+            row['excluido_da_base']?.value ||
+            row['excluido_da_base'] ||
+            row['Excluido_Da_Base']?.value ||
+            row['Excluido_Da_Base'] ||
+            row['status']?.value ||
+            row['status'] ||
+            null;
+          rowIdToCurrentStatus.set(row.id, statusVal);
+        });
+
+        if (historyData && historyData.length > 0) {
+          const processedRowIds = new Set<number>();
+
+          for (const entry of historyData) {
+            const rowId = entry.baserow_row_id ? parseInt(entry.baserow_row_id) : NaN;
+            if (!Number.isFinite(rowId)) continue;
+            if (!(rowId in newCache)) continue;
+            if (processedRowIds.has(rowId)) continue;
+
+            const dadosAnteriores = entry.dados_anteriores as Record<string, any> | null;
+            if (!dadosAnteriores) continue;
+
+            const previousStatus =
+              dadosAnteriores['excluido_da_base']?.value ||
+              dadosAnteriores['excluido_da_base'] ||
+              dadosAnteriores['Excluido_Da_Base']?.value ||
+              dadosAnteriores['Excluido_Da_Base'] ||
+              dadosAnteriores['status']?.value ||
+              dadosAnteriores['status'] ||
+              dadosAnteriores['Status']?.value ||
+              dadosAnteriores['Status'];
+
+            if (!previousStatus || typeof previousStatus !== 'string' || !previousStatus.trim()) continue;
+
+            const currentStatus = rowIdToCurrentStatus.get(rowId) ?? null;
+            if (currentStatus && previousStatus === currentStatus) continue;
+
+            newCache[rowId] = previousStatus;
+            processedRowIds.add(rowId);
+          }
+        }
+
+        setLastStatusCache((prev) => ({ ...prev, ...newCache }));
+      } catch (error) {
+        console.error('Error fetching history for monitored rows:', error);
+      }
+    };
+
+    fetchLastStatuses();
+  }, [monitoredNumbers]);
+
+  // Enhanced handlers that include pre-loaded last status
+  const handleViewRow = (row: any) => {
+    // Inject the pre-loaded last status into the row
+    const enrichedRow = {
+      ...row,
+      _preloadedLastStatus: lastStatusCache[row.id],
+    };
+    onViewRow(enrichedRow);
+  };
+
+  const handleEditRow = (row: any) => {
+    // Inject the pre-loaded last status into the row
+    const enrichedRow = {
+      ...row,
+      _preloadedLastStatus: lastStatusCache[row.id],
+    };
+    onEditRow(enrichedRow);
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -248,7 +349,7 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onViewRow(row)}
+                                onClick={() => handleViewRow(row)}
                                 title="Visualizar"
                               >
                                 <Eye className="h-4 w-4" />
@@ -256,7 +357,7 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onEditRow(row)}
+                                onClick={() => handleEditRow(row)}
                                 title="Editar"
                               >
                                 <Edit className="h-4 w-4" />
