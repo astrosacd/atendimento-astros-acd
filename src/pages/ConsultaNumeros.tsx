@@ -336,7 +336,12 @@ export default function ConsultaNumeros() {
 
   const resolveLastStatus = useCallback(
     (row: NumeroResult): string | null | undefined => {
-      // Sem fallback: “Último Status” vem exclusivamente do histórico.
+      // Check for pre-loaded status from MonitoredStatusDisplay first
+      const preloaded = (row as any)._preloadedLastStatus;
+      if (preloaded !== undefined) {
+        return preloaded;
+      }
+      // Sem fallback: "Último Status" vem exclusivamente do histórico.
       // undefined = ainda carregando; null = não existe histórico.
       return lastStatusCache[row.id];
     },
