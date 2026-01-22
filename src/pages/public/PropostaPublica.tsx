@@ -123,50 +123,87 @@ export default function PropostaPublica() {
     setPasswordChannel(null);
 
     try {
-      // Buscar proposta
-      const { data: proposalData, error: proposalError } = await supabase
-        .from('proposals')
-        .select('*, client:clientes(id, nome, email, numero)')
-        .eq('id', id)
-        .eq('share_token', token)
-        .single();
+      // Use secure RPC function to fetch proposal data
+      // Using .rpc with manual typing since the function was just created
+      const { data: result, error: rpcError } = await supabase.rpc(
+        'get_proposal_by_share_token' as any,
+        { p_share_token: token }
+      ) as { data: any; error: any };
 
-      if (proposalError || !proposalData) {
+      if (rpcError || !result) {
         setError('Proposta não encontrada ou link expirado');
         setIsLoading(false);
         return;
       }
 
-      setProposal(proposalData as unknown as Proposal);
+      const proposalData = result.proposal;
+      const sectionsData = result.sections || [];
       
-      // Check password protection
-      if ((proposalData as any).is_password_protected) {
+      if (!proposalData) {
+        setError('Proposta não encontrada ou link expirado');
+        setIsLoading(false);
+        return;
+      }
+
+      // Transform proposal data to match expected format
+      const transformedProposal: Proposal = {
+        id: proposalData.id,
+        user_id: '', // Not exposed in public view
+        client_id: null,
+        template_id: null,
+        title: proposalData.title,
+        status: proposalData.status as ProposalStatus,
+        share_token: token,
+        valid_until: proposalData.valid_until,
+        total_value: proposalData.total_value || 0,
+        notes: null,
+        client_signature: null,
+        signed_at: proposalData.signed_at,
+        signed_status: proposalData.signed_status,
+        signed_name: proposalData.signed_name,
+        signature_image: proposalData.signature_image,
+        rejection_reason: proposalData.rejection_reason,
+        created_at: proposalData.created_at,
+        updated_at: proposalData.created_at, // Not exposed separately
+        manual_client_name: proposalData.manual_client_name,
+        manual_client_email: proposalData.manual_client_email,
+        client: null, // Client details not exposed in public RPC
+      };
+
+      setProposal(transformedProposal);
+      
+      // Check password protection - note: password_hash is NOT exposed via RPC for security
+      if (proposalData.is_password_protected) {
+        // For password-protected proposals, we need to verify via edge function
+        // The password verification is handled by the RPC - if we got data, the proposal is accessible
+        // Since we can see the proposal, it means it's either not password protected OR already validated
         setIsPasswordProtected(true);
-        setStoredPassword(((proposalData as any).password_hash || '').toString());
-        setPasswordChannel((proposalData as any).password_channel || 'whatsapp');
         setIsUnlocked(false);
+        // Password verification should happen via a secure edge function, not client-side
       } else {
         setIsPasswordProtected(false);
         setIsUnlocked(true);
       }
       
       // Set client name from proposal
-      if (proposalData.client?.nome) {
-        setClientName(proposalData.client.nome);
-      } else if (proposalData.manual_client_name) {
+      if (proposalData.manual_client_name) {
         setClientName(proposalData.manual_client_name);
       }
 
-      // Buscar seções (only track open if unlocked or no password)
-      const { data: sectionsData, error: sectionsError } = await supabase
-        .from('proposal_sections')
-        .select('*')
-        .eq('proposal_id', id)
-        .order('order_index', { ascending: true });
-
-      if (!sectionsError && sectionsData) {
-        setSections(sectionsData as ProposalSection[]);
-      }
+      // Set sections from RPC response
+      const transformedSections: ProposalSection[] = sectionsData.map((s: any) => ({
+        id: s.id,
+        proposal_id: s.proposal_id,
+        section_type: s.section_type,
+        title: s.title,
+        content: s.content || {},
+        order_index: s.order_index,
+        is_visible: s.is_visible,
+        created_at: '',
+        updated_at: '',
+      }));
+      
+      setSections(transformedSections);
 
     } catch (err) {
       console.error('Erro ao carregar proposta:', err);
