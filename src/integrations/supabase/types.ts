@@ -3823,6 +3823,10 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_proposal_by_share_token: {
+        Args: { p_share_token: string }
+        Returns: Json
+      }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role:
         | {
