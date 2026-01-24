@@ -65,8 +65,9 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[--radix-popover-trigger-width] p-0 z-50" 
+        className="w-[--radix-popover-trigger-width] p-0 z-[9999] bg-popover border shadow-md" 
         align="start"
+        sideOffset={4}
         onWheel={(e) => e.stopPropagation()}
       >
         <Command shouldFilter={true}>
