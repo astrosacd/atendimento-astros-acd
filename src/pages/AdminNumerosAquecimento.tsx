@@ -250,19 +250,20 @@ export default function AdminNumerosAquecimento() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={modeloFilter || '__all__'} onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('numberStatus.filterByModel')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">{t('numberStatus.allModels')}</SelectItem>
-                      {modelosList.map((modelo) => (
-                        <SelectItem key={modelo.id} value={modelo.id}>
-                          {modelo.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={[
+                      { value: '__all__', label: t('numberStatus.allModels') },
+                      ...modelosList.map((modelo) => ({
+                        value: modelo.id,
+                        label: modelo.nome,
+                      }))
+                    ]}
+                    value={modeloFilter || '__all__'}
+                    onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}
+                    placeholder={t('numberStatus.filterByModel')}
+                    searchPlaceholder="Buscar modelo..."
+                    emptyMessage="Nenhum modelo encontrado."
+                  />
                 </div>
               </CardContent>
             </Card>
