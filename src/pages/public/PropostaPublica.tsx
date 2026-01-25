@@ -172,14 +172,20 @@ export default function PropostaPublica() {
 
       setProposal(transformedProposal);
       
-      // Check password protection - note: password_hash is NOT exposed via RPC for security
+      // Check password protection using secure RPC
       if (proposalData.is_password_protected) {
-        // For password-protected proposals, we need to verify via edge function
-        // The password verification is handled by the RPC - if we got data, the proposal is accessible
-        // Since we can see the proposal, it means it's either not password protected OR already validated
         setIsPasswordProtected(true);
         setIsUnlocked(false);
-        // Password verification should happen via a secure edge function, not client-side
+        
+        // Get password channel from secure RPC (without providing password)
+        const { data: pwdCheck } = await supabase.rpc(
+          'verify_proposal_password' as any,
+          { p_share_token: token, p_password: null }
+        ) as { data: any; error: any };
+        
+        if (pwdCheck?.password_channel) {
+          setPasswordChannel(pwdCheck.password_channel);
+        }
       } else {
         setIsPasswordProtected(false);
         setIsUnlocked(true);
@@ -213,49 +219,69 @@ export default function PropostaPublica() {
     }
   };
 
-  // Handle password unlock
+  // Handle password unlock - SERVER-SIDE VERIFICATION
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const normalize = (value: string) => {
-      const v = (value || '').trim();
-      return passwordChannel === 'email' ? v.toLowerCase() : v;
-    };
+    if (!token || !passwordInput.trim()) {
+      setPasswordError('Digite a senha');
+      return;
+    }
 
-    if (normalize(passwordInput) === normalize(storedPassword)) {
-      setIsUnlocked(true);
-      setPasswordError('');
-
-      // Track opened event after unlock using secure RPC
-      if (!hasTrackedOpen.current && proposal && token) {
-        hasTrackedOpen.current = true;
-        await supabase.rpc('record_proposal_view', {
-          p_proposal_id: id,
-          p_share_token: token,
-          p_event_type: 'opened',
-          p_event_data: {
-            referrer: document.referrer,
-            screen_width: window.innerWidth,
-            screen_height: window.innerHeight,
-            password_protected: true,
-          },
-          p_user_agent: navigator.userAgent,
-        });
-
-        // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
-        if (proposal.status === 'sent') {
-          await supabase.rpc('sign_proposal', {
-            p_proposal_id: id,
-            p_share_token: token,
-            p_status: 'viewed',
-          });
-          setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+    try {
+      // Use secure server-side password verification RPC
+      const { data: result, error: verifyError } = await supabase.rpc(
+        'verify_proposal_password' as any,
+        { 
+          p_share_token: token, 
+          p_password: passwordInput.trim() 
         }
+      ) as { data: any; error: any };
+
+      if (verifyError) {
+        console.error('Erro ao verificar senha:', verifyError);
+        setPasswordError('Erro ao verificar senha. Tente novamente.');
+        return;
       }
 
-      toast.success('Proposta desbloqueada!');
-    } else {
-      setPasswordError('Senha incorreta');
+      if (result?.valid) {
+        setIsUnlocked(true);
+        setPasswordError('');
+
+        // Track opened event after unlock using secure RPC
+        if (!hasTrackedOpen.current && proposal && token) {
+          hasTrackedOpen.current = true;
+          await supabase.rpc('record_proposal_view', {
+            p_proposal_id: id,
+            p_share_token: token,
+            p_event_type: 'opened',
+            p_event_data: {
+              referrer: document.referrer,
+              screen_width: window.innerWidth,
+              screen_height: window.innerHeight,
+              password_protected: true,
+            },
+            p_user_agent: navigator.userAgent,
+          });
+
+          // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
+          if (proposal.status === 'sent') {
+            await supabase.rpc('sign_proposal', {
+              p_proposal_id: id,
+              p_share_token: token,
+              p_status: 'viewed',
+            });
+            setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+          }
+        }
+
+        toast.success('Proposta desbloqueada!');
+      } else {
+        setPasswordError(result?.error || 'Senha incorreta');
+      }
+    } catch (err) {
+      console.error('Erro ao verificar senha:', err);
+      setPasswordError('Erro ao verificar senha. Tente novamente.');
     }
   };
 
