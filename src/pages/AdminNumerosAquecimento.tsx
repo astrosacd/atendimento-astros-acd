@@ -74,10 +74,12 @@ const statusColorMap: Record<string, string> = {
 export default function AdminNumerosAquecimento() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('numeros');
+  const [numerosSubTab, setNumerosSubTab] = useState<'estoque' | 'vendidos'>('estoque');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [modeloFilter, setModeloFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageVendidos, setCurrentPageVendidos] = useState(1);
   const pageSize = 15;
 
   // Permissions
@@ -126,9 +128,18 @@ export default function AdminNumerosAquecimento() {
   const updateApiKey = useUpdateApiKey();
   const deleteApiKey = useDeleteApiKey();
 
-  // Pagination
-  const totalPages = Math.ceil(numeros.length / pageSize);
-  const paginatedNumeros = numeros.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // Separate numbers by sold status
+  const vendidoStatusId = statusList.find(s => s.nome === 'Vendido')?.id;
+  const numerosEmEstoque = numeros.filter(n => n.status_id !== vendidoStatusId);
+  const numerosVendidos = numeros.filter(n => n.status_id === vendidoStatusId);
+
+  // Pagination for "Em Estoque"
+  const totalPagesEstoque = Math.ceil(numerosEmEstoque.length / pageSize);
+  const paginatedNumerosEstoque = numerosEmEstoque.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Pagination for "Vendidos"
+  const totalPagesVendidos = Math.ceil(numerosVendidos.length / pageSize);
+  const paginatedNumerosVendidos = numerosVendidos.slice((currentPageVendidos - 1) * pageSize, currentPageVendidos * pageSize);
 
   // Stats
   const stats = {
@@ -136,7 +147,7 @@ export default function AdminNumerosAquecimento() {
     ativos: numeros.filter(n => statusList.find(s => s.id === n.status_id)?.nome === 'Ativo').length,
     aquecimento: numeros.filter(n => statusList.find(s => s.id === n.status_id)?.nome === 'Em Aquecimento').length,
     bloqueados: numeros.filter(n => statusList.find(s => s.id === n.status_id)?.nome === 'Bloqueado').length,
-    vendidos: numeros.filter(n => statusList.find(s => s.id === n.status_id)?.nome === 'Vendido').length,
+    vendidos: numerosVendidos.length,
   };
 
   // Export CSV
@@ -222,11 +233,83 @@ export default function AdminNumerosAquecimento() {
 
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
-            {/* Filters */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
+            {/* Sub-tabs for Em Estoque / Vendidos */}
+            <div className="flex items-center gap-2 border-b pb-2">
+              <Button
+                variant={numerosSubTab === 'estoque' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => { setNumerosSubTab('estoque'); setCurrentPage(1); }}
+                className="gap-2"
+              >
+                <Smartphone className="h-4 w-4" />
+                Em Estoque
+                <Badge variant="secondary" className="ml-1">{numerosEmEstoque.length}</Badge>
+              </Button>
+              <Button
+                variant={numerosSubTab === 'vendidos' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => { setNumerosSubTab('vendidos'); setCurrentPageVendidos(1); }}
+                className="gap-2"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Vendidos
+                <Badge variant="secondary" className="ml-1">{numerosVendidos.length}</Badge>
+              </Button>
+            </div>
+
+            {/* Filters - only show for Em Estoque tab */}
+            {numerosSubTab === 'estoque' && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder={t('numberStatus.searchPlaceholder')}
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('numberStatus.filterByStatus')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">{t('numberStatus.allStatuses')}</SelectItem>
+                        {statusList.filter(s => s.nome !== 'Vendido').map((status) => (
+                          <SelectItem key={status.id} value={status.id}>
+                            {status.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <SearchableSelect
+                      options={[
+                        { value: '__all__', label: t('numberStatus.allModels') },
+                        ...modelosList.map((modelo) => ({
+                          value: modelo.id,
+                          label: modelo.nome,
+                        }))
+                      ]}
+                      value={modeloFilter || '__all__'}
+                      onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}
+                      placeholder={t('numberStatus.filterByModel')}
+                      searchPlaceholder="Buscar modelo..."
+                      emptyMessage="Nenhum modelo encontrado."
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Filters - for Vendidos tab */}
+            {numerosSubTab === 'vendidos' && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -236,145 +319,222 @@ export default function AdminNumerosAquecimento() {
                         className="pl-10"
                       />
                     </div>
+                    <SearchableSelect
+                      options={[
+                        { value: '__all__', label: t('numberStatus.allModels') },
+                        ...modelosList.map((modelo) => ({
+                          value: modelo.id,
+                          label: modelo.nome,
+                        }))
+                      ]}
+                      value={modeloFilter || '__all__'}
+                      onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}
+                      placeholder={t('numberStatus.filterByModel')}
+                      searchPlaceholder="Buscar modelo..."
+                      emptyMessage="Nenhum modelo encontrado."
+                    />
                   </div>
-                  <Select value={statusFilter || '__all__'} onValueChange={(v) => setStatusFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('numberStatus.filterByStatus')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">{t('numberStatus.allStatuses')}</SelectItem>
-                      {statusList.map((status) => (
-                        <SelectItem key={status.id} value={status.id}>
-                          {status.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <SearchableSelect
-                    options={[
-                      { value: '__all__', label: t('numberStatus.allModels') },
-                      ...modelosList.map((modelo) => ({
-                        value: modelo.id,
-                        label: modelo.nome,
-                      }))
-                    ]}
-                    value={modeloFilter || '__all__'}
-                    onValueChange={(v) => setModeloFilter(v === '__all__' ? '' : v)}
-                    placeholder={t('numberStatus.filterByModel')}
-                    searchPlaceholder="Buscar modelo..."
-                    emptyMessage="Nenhum modelo encontrado."
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Table */}
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('numberStatus.number')}</TableHead>
-                        <TableHead>{t('numberStatus.model')}</TableHead>
-                        <TableHead>{t('numberStatus.status')}</TableHead>
-                        <TableHead>{t('numberStatus.lastActivity')}</TableHead>
-                        <TableHead>{t('numberStatus.observations')}</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isLoading ? (
+            {/* Table - Em Estoque */}
+            {numerosSubTab === 'estoque' && (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            {t('numberStatus.loading')}
-                          </TableCell>
+                          <TableHead>{t('numberStatus.number')}</TableHead>
+                          <TableHead>{t('numberStatus.model')}</TableHead>
+                          <TableHead>{t('numberStatus.status')}</TableHead>
+                          <TableHead>{t('numberStatus.lastActivity')}</TableHead>
+                          <TableHead>{t('numberStatus.observations')}</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
-                      ) : paginatedNumeros.length === 0 ? (
+                      </TableHeader>
+                      <TableBody>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                              {t('numberStatus.loading')}
+                            </TableCell>
+                          </TableRow>
+                        ) : paginatedNumerosEstoque.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                              {t('numberStatus.noNumbers')}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedNumerosEstoque.map((numero) => {
+                            const status = statusList.find(s => s.id === numero.status_id);
+                            return (
+                              <TableRow key={numero.id}>
+                                <TableCell className="font-medium">{numero.numero}</TableCell>
+                                <TableCell>{numero.modelo?.nome || '-'}</TableCell>
+                                <TableCell>
+                                  {status ? (
+                                    <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
+                                      {status.nome}
+                                    </Badge>
+                                  ) : '-'}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {numero.ultima_atividade}
+                                </TableCell>
+                                <TableCell className="max-w-[200px] truncate">
+                                  {numero.observacoes || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <NumeroActionsMenu
+                                    numero={numero}
+                                    statusList={statusList}
+                                    modelosList={modelosList}
+                                    canEdit={canEdit}
+                                    canChangeStatus={canChangeStatus}
+                                    canChangeObs={canChangeObs}
+                                    canDelete={canDelete}
+                                    canDeleteSold={canDeleteSold}
+                                    canViewHistory={canViewHistory}
+                                    isVendido={false}
+                                    onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
+                                    onDelete={(motivo) => deleteNumero.mutate({ numero, motivo })}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {t('numberStatus.page')} {currentPage} {t('numberStatus.of')} {totalPagesEstoque || 1}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        {t('numberStatus.previous')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPagesEstoque, p + 1))}
+                        disabled={currentPage >= totalPagesEstoque}
+                      >
+                        {t('numberStatus.next')}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Table - Vendidos */}
+            {numerosSubTab === 'vendidos' && (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            {t('numberStatus.noNumbers')}
-                          </TableCell>
+                          <TableHead>{t('numberStatus.number')}</TableHead>
+                          <TableHead>{t('numberStatus.model')}</TableHead>
+                          <TableHead>{t('numberStatus.lastActivity')}</TableHead>
+                          <TableHead>{t('numberStatus.observations')}</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
-                      ) : (
-                        paginatedNumeros.map((numero) => {
-                          const status = statusList.find(s => s.id === numero.status_id);
-                          const isVendido = status?.nome === 'Vendido';
-                          return (
-                            <TableRow key={numero.id} className={isVendido ? 'bg-muted/30' : ''}>
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  {numero.numero}
-                                  {isVendido && (
+                      </TableHeader>
+                      <TableBody>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              {t('numberStatus.loading')}
+                            </TableCell>
+                          </TableRow>
+                        ) : paginatedNumerosVendidos.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              Nenhum número vendido encontrado.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedNumerosVendidos.map((numero) => {
+                            return (
+                              <TableRow key={numero.id} className="bg-muted/30">
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {numero.numero}
                                     <span title="Número vendido - bloqueado para edição">
                                       <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                                     </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>{numero.modelo?.nome || '-'}</TableCell>
-                              <TableCell>
-                                {status ? (
-                                  <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
-                                    {status.nome}
-                                  </Badge>
-                                ) : '-'}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {numero.ultima_atividade}
-                              </TableCell>
-                              <TableCell className="max-w-[200px] truncate">
-                                {numero.observacoes || '-'}
-                              </TableCell>
-                              <TableCell>
-                                <NumeroActionsMenu
-                                  numero={numero}
-                                  statusList={statusList}
-                                  modelosList={modelosList}
-                                  canEdit={canEdit}
-                                  canChangeStatus={canChangeStatus}
-                                  canChangeObs={canChangeObs}
-                                  canDelete={canDelete}
-                                  canDeleteSold={canDeleteSold}
-                                  canViewHistory={canViewHistory}
-                                  isVendido={isVendido}
-                                  onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
-                                  onDelete={(motivo) => deleteNumero.mutate({ numero, motivo })}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                {/* Pagination */}
-                <div className="flex items-center justify-between p-4 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    {t('numberStatus.page')} {currentPage} {t('numberStatus.of')} {totalPages || 1}
+                                  </div>
+                                </TableCell>
+                                <TableCell>{numero.modelo?.nome || '-'}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {numero.ultima_atividade}
+                                </TableCell>
+                                <TableCell className="max-w-[200px] truncate">
+                                  {numero.observacoes || '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <NumeroActionsMenu
+                                    numero={numero}
+                                    statusList={statusList}
+                                    modelosList={modelosList}
+                                    canEdit={canEdit}
+                                    canChangeStatus={canChangeStatus}
+                                    canChangeObs={canChangeObs}
+                                    canDelete={canDelete}
+                                    canDeleteSold={canDeleteSold}
+                                    canViewHistory={canViewHistory}
+                                    isVendido={true}
+                                    onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
+                                    onDelete={(motivo) => deleteNumero.mutate({ numero, motivo })}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      {t('numberStatus.previous')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage >= totalPages}
-                    >
-                      {t('numberStatus.next')}
-                    </Button>
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between p-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {t('numberStatus.page')} {currentPageVendidos} {t('numberStatus.of')} {totalPagesVendidos || 1}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPageVendidos(p => Math.max(1, p - 1))}
+                        disabled={currentPageVendidos === 1}
+                      >
+                        {t('numberStatus.previous')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPageVendidos(p => Math.min(totalPagesVendidos, p + 1))}
+                        disabled={currentPageVendidos >= totalPagesVendidos}
+                      >
+                        {t('numberStatus.next')}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Config Tab */}
