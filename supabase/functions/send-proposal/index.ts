@@ -236,8 +236,12 @@ serve(async (req: Request) => {
             from: fromAddress,
             to: clientEmail,
             subject: subject,
-            content: "Abra esta proposta no navegador caso seu email não suporte HTML.",
+            content: "Abra esta proposta no navegador caso seu email nao suporte HTML.",
             html: htmlBody,
+            headers: {
+              "Content-Type": "text/html; charset=UTF-8",
+              "MIME-Version": "1.0",
+            },
           });
 
           await client.close();
