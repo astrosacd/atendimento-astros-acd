@@ -33,7 +33,8 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
   return (
     <div
-      className={cn('prose prose-neutral max-w-none dark:prose-invert', className)}
+      className={cn('prose prose-neutral max-w-none dark:prose-invert whitespace-pre-wrap', className)}
+      style={{ whiteSpace: 'pre-wrap' }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
