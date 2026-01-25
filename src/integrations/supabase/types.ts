@@ -3913,6 +3913,10 @@ export type Database = {
         }[]
       }
       verify_email_exists: { Args: { p_email: string }; Returns: boolean }
+      verify_proposal_password: {
+        Args: { p_password: string; p_share_token: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "operador" | "gerente"
