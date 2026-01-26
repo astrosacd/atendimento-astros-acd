@@ -251,27 +251,38 @@ export default function PropostaPublica() {
         // Track opened event after unlock using secure RPC
         if (!hasTrackedOpen.current && proposal && token) {
           hasTrackedOpen.current = true;
-          await supabase.rpc('record_proposal_view', {
-            p_proposal_id: id,
-            p_share_token: token,
-            p_event_type: 'opened',
-            p_event_data: {
-              referrer: document.referrer,
-              screen_width: window.innerWidth,
-              screen_height: window.innerHeight,
-              password_protected: true,
-            },
-            p_user_agent: navigator.userAgent,
-          });
-
-          // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
-          if (proposal.status === 'sent') {
-            await supabase.rpc('sign_proposal', {
+          
+          try {
+            await supabase.rpc('record_proposal_view', {
               p_proposal_id: id,
               p_share_token: token,
-              p_status: 'viewed',
+              p_event_type: 'opened',
+              p_event_data: {
+                referrer: document.referrer,
+                screen_width: window.innerWidth,
+                screen_height: window.innerHeight,
+                password_protected: true,
+              },
+              p_user_agent: navigator.userAgent,
             });
-            setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+
+            // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
+            if (proposal.status === 'sent') {
+              const { error } = await supabase.rpc('sign_proposal', {
+                p_proposal_id: id,
+                p_share_token: token,
+                p_status: 'viewed',
+              });
+              
+              if (!error) {
+                setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+              } else {
+                console.error('Erro ao atualizar status para viewed:', error);
+              }
+            }
+          } catch (err) {
+            console.error('Erro ao registrar abertura:', err);
+            hasTrackedOpen.current = false;
           }
         }
 
@@ -287,30 +298,49 @@ export default function PropostaPublica() {
 
   // Track open for non-password proposals using secure RPC
   useEffect(() => {
-    if (isUnlocked && !isPasswordProtected && proposal && !hasTrackedOpen.current && token) {
+    const trackOpenAndUpdateStatus = async () => {
+      if (!isUnlocked || isPasswordProtected || !proposal || hasTrackedOpen.current || !token || !id) {
+        return;
+      }
+      
       hasTrackedOpen.current = true;
-      supabase.rpc('record_proposal_view', {
-        p_proposal_id: id,
-        p_share_token: token,
-        p_event_type: 'opened',
-        p_event_data: { 
-          referrer: document.referrer,
-          screen_width: window.innerWidth,
-          screen_height: window.innerHeight,
-        },
-        p_user_agent: navigator.userAgent,
-      });
-
-      // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
-      if (proposal.status === 'sent') {
-        supabase.rpc('sign_proposal', {
+      
+      try {
+        // Registrar evento de abertura
+        await supabase.rpc('record_proposal_view', {
           p_proposal_id: id,
           p_share_token: token,
-          p_status: 'viewed',
+          p_event_type: 'opened',
+          p_event_data: { 
+            referrer: document.referrer,
+            screen_width: window.innerWidth,
+            screen_height: window.innerHeight,
+          },
+          p_user_agent: navigator.userAgent,
         });
-        setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+
+        // Atualizar status para "viewed" se ainda estiver como "sent" (using secure RPC)
+        if (proposal.status === 'sent') {
+          const { error } = await supabase.rpc('sign_proposal', {
+            p_proposal_id: id,
+            p_share_token: token,
+            p_status: 'viewed',
+          });
+          
+          if (!error) {
+            setProposal((prev) => (prev ? { ...prev, status: 'viewed' as ProposalStatus } : null));
+          } else {
+            console.error('Erro ao atualizar status para viewed:', error);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao registrar abertura:', err);
+        // Reset para tentar novamente se houver erro
+        hasTrackedOpen.current = false;
       }
-    }
+    };
+    
+    trackOpenAndUpdateStatus();
   }, [isUnlocked, isPasswordProtected, proposal, id, token]);
 
   const handleAccept = async () => {
