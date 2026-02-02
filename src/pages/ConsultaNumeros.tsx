@@ -1788,15 +1788,16 @@ export default function ConsultaNumeros() {
                   Último Status Ativo
                 </p>
                 <p className="text-sm">
-                  {lastStatusCache[selectedRow.id] !== undefined ? (
-                    lastStatusCache[selectedRow.id] ? (
-                      <Badge variant="outline" className="border-primary/50">{lastStatusCache[selectedRow.id]}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">Sem histórico de alterações anteriores</span>
-                    )
-                  ) : (
-                    <span className="text-muted-foreground animate-pulse">Carregando...</span>
-                  )}
+                  {(() => {
+                    const resolved = resolveLastStatus(selectedRow);
+                    if (resolved === undefined) {
+                      return <span className="text-muted-foreground animate-pulse">Carregando...</span>;
+                    }
+                    if (resolved) {
+                      return <Badge variant="outline" className="border-primary/50">{resolved}</Badge>;
+                    }
+                    return <span className="text-muted-foreground">Sem histórico de alterações anteriores</span>;
+                  })()}
                 </p>
               </div>
             )}
