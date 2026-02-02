@@ -1009,7 +1009,7 @@
     },
     "tagAccess": "Acesso a clientes com esta tag"
   },
-  "tickets": {
+  "ticketsAdmin": {
     "system": "Sistema de Chamados",
     "systemDesc": "Gerencie os chamados dos clientes",
     "config": "Configurações",
