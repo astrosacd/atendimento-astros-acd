@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,28 +126,25 @@ serve(async (req: Request) => {
     // IMPORTANT: aplica proteção por senha independentemente do resultado do envio
     // (o usuário quer que o link já passe a exigir senha ao marcar a opção)
     if (enablePasswordProtection && autoPassword) {
-      // Hash the password using bcrypt via pgcrypto
-      // Use the database to hash the password securely
-      const { data: hashResult, error: hashError } = await supabase
-        .rpc('crypt', { password: autoPassword, salt: 'gen_salt' })
-        .single();
+      // Hash the password using bcrypt before storing
+      // This ensures passwords are never stored in plain text
+      const hashedPassword = await bcrypt.hash(autoPassword);
+      console.log('🔐 Password hashed with bcrypt for secure storage');
       
-      // Alternative: Use SQL directly for hashing since rpc may not work directly
-      // Hash password server-side using raw SQL query
-      const { data: hashedData, error: hashErr } = await supabase
+      const { error: updateErr } = await supabase
         .from('proposals')
         .update({
           is_password_protected: true,
-          password_hash: autoPassword, // Will be hashed by a trigger or we accept plain for now with server-side verification
+          password_hash: hashedPassword,
           password_channel: passwordChannel || 'whatsapp',
         })
-        .eq('id', proposalId)
-        .select('id')
-        .single();
+        .eq('id', proposalId);
 
-      // Note: The verify_proposal_password RPC function handles both hashed and plain text passwords
-      // For new passwords, ideally hash before storing, but the RPC verification handles legacy plain text
-      console.log('📝 Password protection enabled for proposal:', proposalId);
+      if (updateErr) {
+        console.error('❌ Error updating password protection:', updateErr);
+      } else {
+        console.log('📝 Password protection enabled for proposal:', proposalId);
+      }
     } else {
       // Se desmarcou, remove proteção
       await supabase
@@ -348,20 +346,11 @@ serve(async (req: Request) => {
 
     // Update proposal status to sent if at least one channel succeeded
     if (results.email.sent || results.whatsapp.sent) {
-      const updateData: Record<string, any> = { status: 'sent' };
-      
-      // Set password protection if enabled
-      // (já foi aplicado acima para garantir que o link exija senha)
-      // Mantém aqui apenas por compatibilidade, mas sem sobrescrever.
-      if (enablePasswordProtection && autoPassword) {
-        updateData.is_password_protected = true;
-        updateData.password_hash = autoPassword;
-        updateData.password_channel = passwordChannel || 'whatsapp';
-      }
-
+      // Only update status - password protection was already set above with proper hashing
+      // We don't re-set password_hash here to avoid overwriting the hashed password
       await supabase
         .from('proposals')
-        .update(updateData)
+        .update({ status: 'sent' })
         .eq('id', proposalId);
 
       // Log history
