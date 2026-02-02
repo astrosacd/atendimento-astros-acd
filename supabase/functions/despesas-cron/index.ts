@@ -53,11 +53,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get target month (next month from today)
+    // Get target month (current month - we generate expenses for the current month)
+    // The cron runs on day 1, so we generate for THIS month, not next month
     const now = new Date();
-    const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const targetYear = targetMonth.getFullYear();
-    const targetMonthNum = targetMonth.getMonth();
+    const targetYear = now.getFullYear();
+    const targetMonthNum = now.getMonth(); // 0-indexed (0 = January)
     const targetMonthStr = `${targetYear}-${String(targetMonthNum + 1).padStart(2, "0")}`;
 
     console.log(`[despesas-cron] Generating for target month: ${targetMonthStr}`);
