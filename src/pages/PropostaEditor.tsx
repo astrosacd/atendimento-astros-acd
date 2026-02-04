@@ -314,7 +314,7 @@ export default function PropostaEditor() {
       return;
     }
     
-    const url = `${window.location.origin}/p/${proposal.id}?token=${proposal.share_token}`;
+    const url = `${window.location.origin}/proposta/${proposal.id}?token=${proposal.share_token}`;
     
     try {
       await navigator.clipboard.writeText(url);
