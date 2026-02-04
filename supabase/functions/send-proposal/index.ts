@@ -59,6 +59,19 @@ _Atenciosamente,_
 *${senderName}*`;
 }
 
+// Keep email headers ASCII-friendly to avoid clients showing raw encoded headers.
+// Body can remain UTF-8 (HTML meta charset already set).
+function toAsciiHeader(input: string): string {
+  try {
+    return input
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\x20-\x7E]/g, '');
+  } catch {
+    return input.replace(/[^\x20-\x7E]/g, '');
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -212,7 +225,7 @@ serve(async (req: Request) => {
             undefined
           );
 
-           const subject = `Proposta Comercial: ${proposal.title}`;
+           const subject = toAsciiHeader(`Proposta Comercial: ${proposal.title}`) || 'Proposta Comercial';
           
           const client = new SMTPClient({
             connection: {
@@ -227,21 +240,17 @@ serve(async (req: Request) => {
           });
 
           const fromAddress = config.gmail_sender_name 
-            ? `${config.gmail_sender_name} <${config.gmail_user}>` 
+            ? `${toAsciiHeader(config.gmail_sender_name)} <${config.gmail_user}>` 
             : config.gmail_user;
 
-          // Use mimeContent to ensure proper HTML encoding without raw MIME headers
+          // Use denomailer's high-level fields (html + plain text fallback)
+          // to let it build correct MIME boundaries.
           await client.send({
             from: fromAddress,
             to: clientEmail,
-            subject: subject,
-            mimeContent: [
-              {
-                mimeType: "text/html; charset=UTF-8",
-                content: htmlBody,
-                transferEncoding: "base64",
-              },
-            ],
+            subject,
+            content: `Olá ${clientName},\n\nSua proposta "${proposal.title}" está pronta.\n\nVisualizar: ${proposalLink}`,
+            html: htmlBody,
           });
 
           await client.close();
