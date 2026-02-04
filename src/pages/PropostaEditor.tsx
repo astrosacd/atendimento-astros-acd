@@ -306,11 +306,38 @@ export default function PropostaEditor() {
     return null;
   }, [clientMode, clientId, clientes]);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!proposal) return;
+    
+    if (!proposal.share_token) {
+      toast.error('Token de compartilhamento não encontrado');
+      return;
+    }
+    
     const url = `${window.location.origin}/p/${proposal.id}?token=${proposal.share_token}`;
-    navigator.clipboard.writeText(url);
-    toast.success('Link copiado!');
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copiado!');
+    } catch (error) {
+      // Fallback para navegadores que não suportam clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success('Link copiado!');
+      } catch (err) {
+        toast.error('Não foi possível copiar o link');
+        console.error('Erro ao copiar:', err);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleExportPdf = async () => {
