@@ -230,11 +230,18 @@ serve(async (req: Request) => {
             ? `${config.gmail_sender_name} <${config.gmail_user}>` 
             : config.gmail_user;
 
+          // Use mimeContent to ensure proper HTML encoding without raw MIME headers
           await client.send({
             from: fromAddress,
             to: clientEmail,
             subject: subject,
-            html: htmlBody,
+            mimeContent: [
+              {
+                mimeType: "text/html; charset=UTF-8",
+                content: htmlBody,
+                transferEncoding: "base64",
+              },
+            ],
           });
 
           await client.close();
