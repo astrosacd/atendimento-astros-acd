@@ -2532,8 +2532,8 @@ export default function AdminDivulgador() {
               <DialogTitle>Agendar Mensagem</DialogTitle>
               <DialogDescription>Agende uma mensagem para envio aos grupos selecionados</DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4 py-4">
+            <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 py-4 px-1">
               <div className="space-y-2">
                 <Label>Grupo de destino</Label>
                 <Select value={messageForm.campaign_id || "_all"} onValueChange={(v) => setMessageForm({ ...messageForm, campaign_id: v === "_all" ? "" : v })}>
