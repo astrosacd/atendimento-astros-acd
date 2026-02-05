@@ -17,6 +17,8 @@ interface SendProposalRequest {
   enablePasswordProtection?: boolean;
   autoPassword?: string;
   passwordChannel?: 'whatsapp' | 'email';
+  isRemarketing?: boolean;
+  remarketingMessage?: string;
 }
 
 // Professional HTML email template
@@ -25,14 +27,33 @@ function generateEmailHtml(
   proposalTitle: string,
   proposalLink: string,
   senderName: string,
-  companyName?: string
+  companyName?: string,
+  isRemarketing?: boolean,
+  remarketingMessage?: string
 ): string {
   const companyHtml = companyName
     ? `<p style="color:#6b7280;font-size:14px;margin:5px 0 0 0;">${companyName}</p>`
     : '';
 
+  // Remarketing has different intro text
+  const introText = isRemarketing 
+    ? `<p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">${remarketingMessage || 'Percebi que você visualizou a proposta, mas ainda não deu seu retorno. Posso ajudar com alguma dúvida?'}</p>`
+    : `<p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">É com grande satisfação que enviamos sua proposta comercial personalizada:</p>`;
+
+  const headerColor = isRemarketing ? '#f97316' : '#3b82f6'; // orange for remarketing
+  const headerGradient = isRemarketing 
+    ? 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)' 
+    : 'linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%)';
+  const buttonGradient = isRemarketing 
+    ? 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)' 
+    : 'linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%)';
+  const buttonShadow = isRemarketing 
+    ? 'rgba(249,115,22,0.4)' 
+    : 'rgba(59,130,246,0.4)';
+  const headerTitle = isRemarketing ? 'Lembrete: Sua Proposta' : 'Proposta Comercial';
+
   // IMPORTANT: keep template ASCII-friendly to reduce encoding issues
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Proposta Comercial</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);padding:40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:600;">Proposta Comercial</h1></td></tr><tr><td style="padding:40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">É com grande satisfação que enviamos sua proposta comercial personalizada:</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:24px;border-left:4px solid #3b82f6;"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px 0;">PROPOSTA</p><p style="color:#1e293b;font-size:20px;font-weight:600;margin:0;">${proposalTitle}</p></td></tr></table><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 30px 0;">Clique no botão abaixo para visualizar todos os detalhes, valores e condições da proposta:</p><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center"><a href="${proposalLink}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);color:#ffffff;text-decoration:none;padding:16px 48px;border-radius:8px;font-size:16px;font-weight:600;box-shadow:0 4px 14px rgba(59,130,246,0.4);">Visualizar Proposta</a></td></tr></table><p style="color:#6b7280;font-size:14px;line-height:1.6;margin:40px 0 0 0;text-align:center;">Caso o botão não funcione, copie e cole o link abaixo no seu navegador:</p><p style="color:#3b82f6;font-size:12px;word-break:break-all;text-align:center;margin:10px 0 0 0;">${proposalLink}</p></td></tr><tr><td style="background-color:#f8fafc;padding:30px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Atenciosamente,</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p>${companyHtml}<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"><p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">Conectando Visões, Ampliando Resultados.</p></td></tr></table></td></tr></table></body></html>`;
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${headerTitle}</title></head><body style="margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;"><table role="presentation" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);"><tr><td style="background:${headerGradient};padding:40px;text-align:center;"><h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:600;">${headerTitle}</h1></td></tr><tr><td style="padding:40px;"><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 20px 0;">Olá <strong>${clientName}</strong>,</p>${introText}<table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="background-color:#f8fafc;border-radius:8px;padding:24px;border-left:4px solid ${headerColor};"><p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px 0;">PROPOSTA</p><p style="color:#1e293b;font-size:20px;font-weight:600;margin:0;">${proposalTitle}</p></td></tr></table><p style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 30px 0;">Clique no botão abaixo para visualizar todos os detalhes, valores e condições da proposta:</p><table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center"><a href="${proposalLink}" style="display:inline-block;background:${buttonGradient};color:#ffffff;text-decoration:none;padding:16px 48px;border-radius:8px;font-size:16px;font-weight:600;box-shadow:0 4px 14px ${buttonShadow};">Visualizar Proposta</a></td></tr></table><p style="color:#6b7280;font-size:14px;line-height:1.6;margin:40px 0 0 0;text-align:center;">Caso o botão não funcione, copie e cole o link abaixo no seu navegador:</p><p style="color:${headerColor};font-size:12px;word-break:break-all;text-align:center;margin:10px 0 0 0;">${proposalLink}</p></td></tr><tr><td style="background-color:#f8fafc;padding:30px 40px;border-top:1px solid #e5e7eb;"><p style="color:#6b7280;font-size:14px;margin:0 0 10px 0;">Atenciosamente,</p><p style="color:#374151;font-size:16px;font-weight:600;margin:0;">${senderName}</p>${companyHtml}<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;"><p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">Conectando Visões, Ampliando Resultados.</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 // Professional WhatsApp message template
@@ -40,8 +61,34 @@ function generateWhatsAppMessage(
   clientName: string,
   proposalTitle: string,
   proposalLink: string,
-  senderName: string
+  senderName: string,
+  isRemarketing?: boolean,
+  remarketingMessage?: string
 ): string {
+  if (isRemarketing && remarketingMessage) {
+    return `${remarketingMessage}
+
+👇 *Acesse sua proposta:*
+${proposalLink}
+
+_Atenciosamente,_
+*${senderName}*`;
+  }
+
+  if (isRemarketing) {
+    return `👋 *Olá, ${clientName}!*
+
+Percebi que você visualizou a proposta "${proposalTitle}" mas ainda não deu seu retorno.
+
+Posso ajudar com alguma dúvida? Estou à disposição!
+
+👇 *Acesse a proposta novamente:*
+${proposalLink}
+
+_Atenciosamente,_
+*${senderName}*`;
+  }
+
   return `🎉 *Olá, ${clientName}!*
 
 Sua proposta comercial está pronta!
@@ -103,7 +150,7 @@ serve(async (req: Request) => {
     }
 
     const body: SendProposalRequest = await req.json();
-    const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword, passwordChannel } = body;
+    const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword, passwordChannel, isRemarketing, remarketingMessage } = body;
 
     console.log('📨 send-proposal request', {
       proposalId,
@@ -113,6 +160,8 @@ serve(async (req: Request) => {
       enablePasswordProtection,
       autoPasswordPreview: autoPassword ? `${autoPassword}` : null,
       passwordChannel,
+      isRemarketing,
+      remarketingMessage: remarketingMessage ? '[provided]' : null,
     });
 
     if (!proposalId || !channel) {
@@ -222,10 +271,13 @@ serve(async (req: Request) => {
             proposal.title,
             proposalLink,
             config.gmail_sender_name || senderName,
-            undefined
+            undefined,
+            isRemarketing,
+            remarketingMessage
           );
 
-           const subject = toAsciiHeader(`Proposta Comercial: ${proposal.title}`) || 'Proposta Comercial';
+          const subjectPrefix = isRemarketing ? 'Lembrete - ' : '';
+          const subject = toAsciiHeader(`${subjectPrefix}Proposta Comercial: ${proposal.title}`) || 'Proposta Comercial';
           
           const client = new SMTPClient({
             connection: {
@@ -305,7 +357,9 @@ serve(async (req: Request) => {
             clientName,
             proposal.title,
             proposalLink,
-            config.gmail_sender_name || senderName
+            config.gmail_sender_name || senderName,
+            isRemarketing,
+            remarketingMessage
           );
 
           const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
@@ -372,7 +426,7 @@ serve(async (req: Request) => {
       // Log history
       await supabase.from('proposal_history').insert({
         proposal_id: proposalId,
-        action: 'sent',
+        action: isRemarketing ? 'remarketing' : 'sent',
         user_id: user.id,
         user_email: senderEmail,
         user_name: senderName,
@@ -381,6 +435,8 @@ serve(async (req: Request) => {
           whatsapp_sent: results.whatsapp.sent,
           recipient_email: clientEmail,
           recipient_phone: clientPhone,
+          is_remarketing: isRemarketing || false,
+          remarketing_message: isRemarketing ? remarketingMessage : undefined,
         },
       });
     }

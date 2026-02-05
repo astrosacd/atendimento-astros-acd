@@ -32,6 +32,7 @@ import {
   History,
   Check,
   ChevronsUpDown,
+  RefreshCcw,
   Video,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
@@ -46,6 +47,7 @@ import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
 import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
+import { RemarketingProposalDialog } from '@/components/proposals/RemarketingProposalDialog';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
 import { statusConfig } from '@/types/proposals';
 import { format } from 'date-fns';
@@ -135,6 +137,7 @@ export default function PropostaEditor() {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [clientComboboxOpen, setClientComboboxOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [showRemarketingDialog, setShowRemarketingDialog] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
@@ -478,6 +481,18 @@ export default function PropostaEditor() {
                     Reenviar
                   </Button>
                 )}
+                {status === 'viewed' && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setShowRemarketingDialog(true)} 
+                    disabled={isSaving}
+                    className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                  >
+                    <RefreshCcw className="h-4 w-4 mr-2" />
+                    Remarketing
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -808,6 +823,19 @@ export default function PropostaEditor() {
             open={showSendDialog}
             onOpenChange={setShowSendDialog}
             proposalId={id}
+            clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
+            clientEmail={clientMode === 'manual' ? manualClientEmail : selectedClient?.email}
+            clientPhone={clientMode === 'manual' ? manualClientPhone : selectedClient?.numero}
+          />
+        )}
+
+        {/* Dialog de Remarketing */}
+        {id && (
+          <RemarketingProposalDialog
+            open={showRemarketingDialog}
+            onOpenChange={setShowRemarketingDialog}
+            proposalId={id}
+            proposalTitle={title}
             clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
             clientEmail={clientMode === 'manual' ? manualClientEmail : selectedClient?.email}
             clientPhone={clientMode === 'manual' ? manualClientPhone : selectedClient?.numero}
