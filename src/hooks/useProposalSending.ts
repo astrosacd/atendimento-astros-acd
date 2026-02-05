@@ -128,6 +128,8 @@ export function useSendProposal() {
       enablePasswordProtection,
       autoPassword,
       passwordChannel,
+      isRemarketing,
+      remarketingMessage,
     }: {
       proposalId: string;
       channel: 'email' | 'whatsapp' | 'both';
@@ -137,6 +139,8 @@ export function useSendProposal() {
       enablePasswordProtection?: boolean;
       autoPassword?: string;
       passwordChannel?: 'whatsapp' | 'email';
+      isRemarketing?: boolean;
+      remarketingMessage?: string;
     }) => {
       const { data, error } = await supabase.functions.invoke('send-proposal', {
         body: {
@@ -148,6 +152,8 @@ export function useSendProposal() {
           enablePasswordProtection,
           autoPassword,
           passwordChannel,
+          isRemarketing,
+          remarketingMessage,
         },
       });
 
@@ -163,7 +169,8 @@ export function useSendProposal() {
         const channels: string[] = [];
         if (data.results?.email?.sent) channels.push('Email');
         if (data.results?.whatsapp?.sent) channels.push('WhatsApp');
-        toast.success(`Proposta enviada via ${channels.join(' e ')}!`);
+        const action = variables.isRemarketing ? 'Remarketing enviado' : 'Proposta enviada';
+        toast.success(`${action} via ${channels.join(' e ')}!`);
       } else {
         const errors: string[] = [];
         if (data.results?.email?.error) errors.push(`Email: ${data.results.email.error}`);

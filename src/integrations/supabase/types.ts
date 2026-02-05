@@ -3338,6 +3338,8 @@ export type Database = {
           created_at: string
           email_body_template: string | null
           email_enabled: boolean | null
+          email_remarketing_body_template: string | null
+          email_remarketing_subject_template: string | null
           email_subject_template: string | null
           evolution_api_key: string | null
           evolution_api_url: string | null
@@ -3349,11 +3351,14 @@ export type Database = {
           updated_at: string
           whatsapp_enabled: boolean | null
           whatsapp_message_template: string | null
+          whatsapp_remarketing_template: string | null
         }
         Insert: {
           created_at?: string
           email_body_template?: string | null
           email_enabled?: boolean | null
+          email_remarketing_body_template?: string | null
+          email_remarketing_subject_template?: string | null
           email_subject_template?: string | null
           evolution_api_key?: string | null
           evolution_api_url?: string | null
@@ -3365,11 +3370,14 @@ export type Database = {
           updated_at?: string
           whatsapp_enabled?: boolean | null
           whatsapp_message_template?: string | null
+          whatsapp_remarketing_template?: string | null
         }
         Update: {
           created_at?: string
           email_body_template?: string | null
           email_enabled?: boolean | null
+          email_remarketing_body_template?: string | null
+          email_remarketing_subject_template?: string | null
           email_subject_template?: string | null
           evolution_api_key?: string | null
           evolution_api_url?: string | null
@@ -3381,6 +3389,7 @@ export type Database = {
           updated_at?: string
           whatsapp_enabled?: boolean | null
           whatsapp_message_template?: string | null
+          whatsapp_remarketing_template?: string | null
         }
         Relationships: []
       }
