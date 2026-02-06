@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
 import { BrandingConfig } from '@/components/proposals/BrandingConfig';
@@ -23,6 +24,9 @@ export default function PropostasConfig() {
   const [evolutionInstanceName, setEvolutionInstanceName] = useState('');
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [autoRemarketingEnabled, setAutoRemarketingEnabled] = useState(false);
+  const [autoRemarketingMaxDays, setAutoRemarketingMaxDays] = useState(3);
+  const [autoRemarketingChannel, setAutoRemarketingChannel] = useState('email');
   
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -37,6 +41,9 @@ export default function PropostasConfig() {
       setEvolutionInstanceName(config.evolution_instance_name || '');
       setEmailEnabled(config.email_enabled);
       setWhatsappEnabled(config.whatsapp_enabled);
+      setAutoRemarketingEnabled(config.auto_remarketing_enabled ?? false);
+      setAutoRemarketingMaxDays(config.auto_remarketing_max_days ?? 3);
+      setAutoRemarketingChannel(config.auto_remarketing_channel ?? 'email');
     }
   }, [config]);
 
@@ -50,7 +57,10 @@ export default function PropostasConfig() {
       evolution_instance_name: evolutionInstanceName || null,
       email_enabled: emailEnabled,
       whatsapp_enabled: whatsappEnabled,
-    });
+      auto_remarketing_enabled: autoRemarketingEnabled,
+      auto_remarketing_max_days: autoRemarketingMaxDays,
+      auto_remarketing_channel: autoRemarketingChannel,
+    } as any);
   };
 
   if (isLoading) {
@@ -90,7 +100,7 @@ export default function PropostasConfig() {
         </div>
 
         <Tabs defaultValue="branding">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="branding" className="gap-2">
               <Palette className="h-4 w-4" />
               Identidade Visual
@@ -102,6 +112,10 @@ export default function PropostasConfig() {
             <TabsTrigger value="whatsapp" className="gap-2">
               <MessageSquare className="h-4 w-4" />
               WhatsApp (Evolution)
+            </TabsTrigger>
+            <TabsTrigger value="auto-remarketing" className="gap-2">
+              <RefreshCcw className="h-4 w-4" />
+              Remarketing Auto
             </TabsTrigger>
           </TabsList>
 
@@ -330,6 +344,104 @@ export default function PropostasConfig() {
                     [Link da proposta]{'\n\n'}
                     _Atenciosamente,_{'\n'}
                     *{gmailSenderName || 'Seu Nome'}*
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="auto-remarketing" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <RefreshCcw className="h-5 w-5 text-orange-500" />
+                      Remarketing Automático
+                    </CardTitle>
+                    <CardDescription>
+                      Envie follow-ups automáticos para clientes que visualizaram mas não assinaram
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="auto-remarketing-enabled">Ativado</Label>
+                    <Switch
+                      id="auto-remarketing-enabled"
+                      checked={autoRemarketingEnabled}
+                      onCheckedChange={setAutoRemarketingEnabled}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Como funciona?</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Quando ativado, o sistema envia automaticamente uma mensagem de follow-up por dia para propostas 
+                      com status "Visualizada". O envio para quando o cliente assinar, recusar, ou atingir o limite de dias configurado.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label>Quantidade de dias</Label>
+                    <Select
+                      value={String(autoRemarketingMaxDays)}
+                      onValueChange={(v) => setAutoRemarketingMaxDays(Number(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 5, 7, 10, 14].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} {n === 1 ? 'dia' : 'dias'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Quantos dias seguidos enviar remarketing após a visualização
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Canal de envio</Label>
+                    <Select
+                      value={autoRemarketingChannel}
+                      onValueChange={setAutoRemarketingChannel}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="both">Ambos (Email + WhatsApp)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      O canal precisa estar configurado e habilitado nas abas de Email/WhatsApp
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
+                  <p className="text-sm font-medium">Exemplo de fluxo:</p>
+                  <div className="text-sm space-y-1 text-muted-foreground">
+                    <p>📤 <strong>Dia 0:</strong> Proposta enviada manualmente</p>
+                    <p>👁️ <strong>Cliente visualiza:</strong> Status muda para "Visualizada"</p>
+                    {Array.from({ length: Math.min(autoRemarketingMaxDays, 5) }, (_, i) => (
+                      <p key={i}>🔄 <strong>Dia {i + 1}:</strong> Remarketing automático enviado</p>
+                    ))}
+                    {autoRemarketingMaxDays > 5 && (
+                      <p>🔄 <strong>...</strong> até o dia {autoRemarketingMaxDays}</p>
+                    )}
+                    <p>✅ <strong>Se assinar:</strong> Remarketing para automaticamente</p>
+                    <p>❌ <strong>Se recusar:</strong> Remarketing para automaticamente</p>
                   </div>
                 </div>
               </CardContent>

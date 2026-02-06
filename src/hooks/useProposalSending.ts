@@ -15,6 +15,9 @@ export interface ProposalSendConfig {
   email_subject_template: string | null;
   email_body_template: string | null;
   whatsapp_message_template: string | null;
+  auto_remarketing_enabled: boolean;
+  auto_remarketing_max_days: number;
+  auto_remarketing_channel: string;
 }
 
 export interface ProposalSendLog {
