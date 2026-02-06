@@ -6,7 +6,7 @@ import type { Json } from '@/integrations/supabase/types';
 export interface ProposalHistoryEntry {
   id: string;
   proposal_id: string;
-  action: 'created' | 'updated' | 'sent' | 'viewed' | 'accepted' | 'rejected';
+  action: 'created' | 'updated' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'remarketing';
   user_id: string | null;
   user_email: string | null;
   user_name: string | null;
