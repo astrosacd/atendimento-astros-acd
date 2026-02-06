@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CommandDialog, Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
@@ -418,9 +419,10 @@ export default function PropostaEditor() {
     <DashboardLayout>
       <div className="space-y-6 p-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-10 bg-background py-4 border-b -mx-6 px-6">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/propostas')}>
+        <div className="flex flex-col gap-3 sticky top-0 z-10 bg-background py-4 border-b -mx-6 px-6">
+          {/* Row 1: Back + Title + Status badge */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/propostas')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Input
@@ -430,8 +432,21 @@ export default function PropostaEditor() {
               placeholder="Título da proposta"
               disabled={!canEditProposals()}
             />
+            {proposal && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  'shrink-0 text-xs',
+                  statusConfig[status]?.color || ''
+                )}
+              >
+                {statusConfig[status]?.label || status}
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+
+          {/* Row 2: Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap pl-12">
             {isAdmin && (
               <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
                 <History className="h-4 w-4 mr-2" />
@@ -481,7 +496,7 @@ export default function PropostaEditor() {
                     Reenviar
                   </Button>
                 )}
-                {status === 'viewed' && (
+                {(status === 'sent' || status === 'viewed') && (
                   <Button 
                     size="sm" 
                     variant="outline" 
