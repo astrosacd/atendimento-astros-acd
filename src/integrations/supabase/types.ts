@@ -3185,6 +3185,50 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_auto_remarketing_logs: {
+        Row: {
+          channel: string
+          day_number: number
+          email_sent: boolean | null
+          error_message: string | null
+          id: string
+          proposal_id: string
+          sent_at: string
+          status: string
+          whatsapp_sent: boolean | null
+        }
+        Insert: {
+          channel: string
+          day_number: number
+          email_sent?: boolean | null
+          error_message?: string | null
+          id?: string
+          proposal_id: string
+          sent_at?: string
+          status?: string
+          whatsapp_sent?: boolean | null
+        }
+        Update: {
+          channel?: string
+          day_number?: number
+          email_sent?: boolean | null
+          error_message?: string | null
+          id?: string
+          proposal_id?: string
+          sent_at?: string
+          status?: string
+          whatsapp_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_auto_remarketing_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_branding: {
         Row: {
           accent_color: string | null
@@ -3335,6 +3379,9 @@ export type Database = {
       }
       proposal_send_config: {
         Row: {
+          auto_remarketing_channel: string
+          auto_remarketing_enabled: boolean
+          auto_remarketing_max_days: number
           created_at: string
           email_body_template: string | null
           email_enabled: boolean | null
@@ -3354,6 +3401,9 @@ export type Database = {
           whatsapp_remarketing_template: string | null
         }
         Insert: {
+          auto_remarketing_channel?: string
+          auto_remarketing_enabled?: boolean
+          auto_remarketing_max_days?: number
           created_at?: string
           email_body_template?: string | null
           email_enabled?: boolean | null
@@ -3373,6 +3423,9 @@ export type Database = {
           whatsapp_remarketing_template?: string | null
         }
         Update: {
+          auto_remarketing_channel?: string
+          auto_remarketing_enabled?: boolean
+          auto_remarketing_max_days?: number
           created_at?: string
           email_body_template?: string | null
           email_enabled?: boolean | null
