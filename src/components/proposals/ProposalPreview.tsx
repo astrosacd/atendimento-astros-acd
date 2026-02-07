@@ -32,6 +32,7 @@ interface ProposalPreviewProps {
   sections: ProposalSection[];
   client?: { id: string; nome: string; email: string; numero: string } | null;
   onGalleryView?: (sectionId: string) => void;
+  brandingOverride?: ProposalBranding | null;
 }
 
 interface BrandingStyles {
@@ -52,9 +53,12 @@ interface BrandingStyles {
   certifications: Certification[];
 }
 
-export function ProposalPreview({ proposal, sections, client, onGalleryView }: ProposalPreviewProps) {
+export function ProposalPreview({ proposal, sections, client, onGalleryView, brandingOverride }: ProposalPreviewProps) {
   const visibleSections = sections.filter((s) => s.is_visible);
-  const { branding } = useProposalBranding();
+  const { branding: hookBranding } = useProposalBranding();
+
+  // Use override branding (from RPC in public view) or hook branding (for editor)
+  const branding = brandingOverride !== undefined ? brandingOverride : hookBranding;
 
   const currency = ((proposal as any).currency as 'BRL' | 'USD' | undefined) || 'BRL';
 
@@ -114,7 +118,7 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView }: P
                       />
                     </div>
                   )}
-                  {renderSection(section, formatCurrency, client, onGalleryView, brandingStyles)}
+                  {renderSection(section, formatCurrency, client, onGalleryView, brandingStyles, proposal)}
                 </div>
               ))}
               
@@ -151,7 +155,8 @@ function renderSection(
   formatCurrency: (value: number) => string,
   client?: { id: string; nome: string; email: string; numero: string } | null,
   onGalleryView?: (sectionId: string) => void,
-  branding?: BrandingStyles
+  branding?: BrandingStyles,
+  proposal?: Proposal
 ) {
   const type = section.section_type;
 
@@ -173,7 +178,7 @@ function renderSection(
     case 'terms':
       return <TermsPreview content={section.content as unknown as TermsContent} title={section.title} branding={branding} />;
     case 'signature':
-      return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} branding={branding} />;
+      return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} branding={branding} proposal={proposal} />;
     case 'video':
       return <VideoPreview content={section.content as unknown as VideoContent} title={section.title} branding={branding} />;
     default:
@@ -525,11 +530,17 @@ function SignaturePreview({
   content,
   client,
   branding,
+  proposal,
 }: {
   content: SignatureContent;
   client?: { id: string; nome: string; email: string; numero: string } | null;
   branding?: BrandingStyles;
+  proposal?: Proposal;
 }) {
+  const isAccepted = proposal?.status === 'accepted';
+  const clientSignatureImage = proposal?.client_signature || proposal?.signature_image || null;
+  const clientSignedName = proposal?.signed_name || null;
+
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* Assinatura do Responsável */}
@@ -568,12 +579,28 @@ function SignaturePreview({
           Cliente
         </h3>
         <div className="border rounded-lg p-4 bg-muted/20">
-          <div className="h-24 flex items-center justify-center text-muted-foreground border-b border-dashed">
-            Aguardando assinatura
-          </div>
+          {isAccepted && clientSignatureImage ? (
+            <img
+              src={clientSignatureImage}
+              alt="Assinatura do cliente"
+              className="h-24 object-contain"
+            />
+          ) : (
+            <div className="h-24 flex items-center justify-center text-muted-foreground border-b border-dashed">
+              {isAccepted ? 'Assinatura registrada' : 'Aguardando assinatura'}
+            </div>
+          )}
           <div className="mt-4 pt-2 border-t">
-            <p className="font-medium">{client?.nome || 'Cliente não selecionado'}</p>
-            <p className="text-sm text-muted-foreground">{client?.email || ''}</p>
+            <p className="font-medium">
+              {isAccepted && clientSignedName 
+                ? clientSignedName 
+                : (client?.nome || proposal?.manual_client_name || 'Cliente não selecionado')}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {isAccepted && proposal?.signed_at 
+                ? `Assinado em ${new Date(proposal.signed_at).toLocaleDateString('pt-BR')}`
+                : (client?.email || '')}
+            </p>
           </div>
         </div>
       </div>

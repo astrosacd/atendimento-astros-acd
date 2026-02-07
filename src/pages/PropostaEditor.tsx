@@ -429,16 +429,17 @@ export default function PropostaEditor() {
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className={cn(
+              className={cn(
                   "text-xl font-bold h-12 border-2",
-                  (!title.trim() || title.trim() === 'Nova Proposta')
+                  // Only show red validation after proposal has loaded (avoids flash on open)
+                  proposal && (!title.trim() || title.trim() === 'Nova Proposta')
                     ? 'border-destructive/50 bg-destructive/5 placeholder:text-destructive/60'
                     : 'border-transparent hover:border-border focus:border-primary'
                 )}
                 placeholder="⚠️ Dê um nome à proposta..."
                 disabled={!canEditProposals()}
               />
-              {(!title.trim() || title.trim() === 'Nova Proposta') && (
+              {proposal && (!title.trim() || title.trim() === 'Nova Proposta') && (
                 <p className="text-xs text-destructive mt-1 pl-1">
                   O título é obrigatório para enviar a proposta
                 </p>

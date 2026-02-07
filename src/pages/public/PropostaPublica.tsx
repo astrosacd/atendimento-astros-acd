@@ -15,6 +15,7 @@ import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SignatureCanvas } from '@/components/proposals/SignatureCanvas';
 import { RejectProposalDialog } from '@/components/proposals/RejectProposalDialog';
 import type { Proposal, ProposalSection, ProposalStatus } from '@/types/proposals';
+import type { ProposalBranding, SocialLinks, ClientLogo, Certification } from '@/hooks/useProposalBranding';
 
 export default function PropostaPublica() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ export default function PropostaPublica() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState('');
+  const [publicBranding, setPublicBranding] = useState<ProposalBranding | null>(null);
   const [clientName, setClientName] = useState('');
   const [isAccepting, setIsAccepting] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -157,7 +159,7 @@ export default function PropostaPublica() {
         valid_until: proposalData.valid_until,
         total_value: proposalData.total_value || 0,
         notes: null,
-        client_signature: null,
+        client_signature: proposalData.signature_image || null,
         signed_at: proposalData.signed_at,
         signed_status: proposalData.signed_status,
         signed_name: proposalData.signed_name,
@@ -171,6 +173,31 @@ export default function PropostaPublica() {
       };
 
       setProposal(transformedProposal);
+
+      // Parse branding from RPC response
+      const brandingData = result.branding;
+      if (brandingData) {
+        setPublicBranding({
+          id: brandingData.id || '',
+          logo_url: brandingData.logo_url || null,
+          company_name: brandingData.company_name || null,
+          primary_color: brandingData.primary_color || '#3B82F6',
+          secondary_color: brandingData.secondary_color || '#1E40AF',
+          accent_color: brandingData.accent_color || '#F59E0B',
+          font_family: brandingData.font_family || 'Inter',
+          show_logo_on_cover: brandingData.show_logo_on_cover ?? true,
+          show_logo_on_pages: brandingData.show_logo_on_pages ?? false,
+          cover_background_url: brandingData.cover_background_url || null,
+          tagline: brandingData.tagline || null,
+          footer_contact: brandingData.footer_contact || null,
+          footer_website: brandingData.footer_website || null,
+          footer_social: (brandingData.footer_social || {}) as SocialLinks,
+          client_logos: (brandingData.client_logos || []) as ClientLogo[],
+          certifications: (brandingData.certifications || []) as Certification[],
+          created_at: '',
+          updated_at: '',
+        });
+      }
       
       // Check password protection using secure RPC
       if (proposalData.is_password_protected) {
@@ -384,6 +411,9 @@ export default function PropostaPublica() {
         ...prev, 
         status: 'accepted' as ProposalStatus,
         signed_at: signedAt,
+        client_signature: clientSignature,
+        signature_image: clientSignature,
+        signed_name: clientName.trim(),
       } : null));
       
       toast.success('Proposta aceita com sucesso!');
@@ -582,6 +612,7 @@ export default function PropostaPublica() {
           sections={sections}
           client={proposal.client}
           onGalleryView={handleGalleryView}
+          brandingOverride={publicBranding}
         />
 
         {/* Ações (apenas se não finalizada e não expirada) */}
