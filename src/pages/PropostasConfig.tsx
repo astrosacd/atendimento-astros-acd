@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info, Bell } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
 import { BrandingConfig } from '@/components/proposals/BrandingConfig';
-
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 export default function PropostasConfig() {
   const navigate = useNavigate();
   const { config, isLoading, updateConfig } = useProposalSendConfig();
@@ -27,6 +29,17 @@ export default function PropostasConfig() {
   const [autoRemarketingEnabled, setAutoRemarketingEnabled] = useState(false);
   const [autoRemarketingMaxDays, setAutoRemarketingMaxDays] = useState(3);
   const [autoRemarketingChannel, setAutoRemarketingChannel] = useState('email');
+
+  // Status notifications (accept/reject)
+  const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
+  const [acceptEnabled, setAcceptEnabled] = useState(true);
+  const [acceptChannel, setAcceptChannel] = useState('whatsapp');
+  const [acceptMessageTemplate, setAcceptMessageTemplate] = useState('');
+  const [rejectEnabled, setRejectEnabled] = useState(true);
+  const [rejectChannel, setRejectChannel] = useState('whatsapp');
+  const [rejectMessageTemplate, setRejectMessageTemplate] = useState('');
+  const [statusNotifId, setStatusNotifId] = useState<string | null>(null);
+  const [isSavingStatusNotif, setIsSavingStatusNotif] = useState(false);
   
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -46,6 +59,66 @@ export default function PropostasConfig() {
       setAutoRemarketingChannel(config.auto_remarketing_channel ?? 'email');
     }
   }, [config]);
+
+  // Fetch status notification config
+  useEffect(() => {
+    async function fetchStatusNotifConfig() {
+      const { data } = await supabase
+        .from('proposal_status_notifications')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setStatusNotifId(data.id);
+        setStatusNotifEnabled(data.enabled ?? false);
+        setAcceptEnabled(data.accept_enabled ?? true);
+        setAcceptChannel(data.accept_channel || 'whatsapp');
+        setAcceptMessageTemplate(data.accept_message_template || '');
+        setRejectEnabled(data.reject_enabled ?? true);
+        setRejectChannel(data.reject_channel || 'whatsapp');
+        setRejectMessageTemplate(data.reject_message_template || '');
+      }
+    }
+    fetchStatusNotifConfig();
+  }, []);
+
+  const handleSaveStatusNotif = async () => {
+    setIsSavingStatusNotif(true);
+    try {
+      const payload = {
+        enabled: statusNotifEnabled,
+        accept_enabled: acceptEnabled,
+        accept_channel: acceptChannel,
+        accept_message_template: acceptMessageTemplate,
+        reject_enabled: rejectEnabled,
+        reject_channel: rejectChannel,
+        reject_message_template: rejectMessageTemplate,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (statusNotifId) {
+        const { error } = await supabase
+          .from('proposal_status_notifications')
+          .update(payload)
+          .eq('id', statusNotifId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('proposal_status_notifications')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setStatusNotifId(data.id);
+      }
+      toast.success('Configurações de confirmação salvas!');
+    } catch (err: any) {
+      console.error('Error saving status notif config:', err);
+      toast.error('Erro ao salvar configurações');
+    } finally {
+      setIsSavingStatusNotif(false);
+    }
+  };
 
   const handleSave = () => {
     updateConfig.mutate({
@@ -116,6 +189,10 @@ export default function PropostasConfig() {
             <TabsTrigger value="auto-remarketing" className="gap-2">
               <RefreshCcw className="h-4 w-4" />
               Remarketing Auto
+            </TabsTrigger>
+            <TabsTrigger value="confirmacoes" className="gap-2">
+              <Bell className="h-4 w-4" />
+              Confirmações
             </TabsTrigger>
           </TabsList>
 
@@ -444,6 +521,135 @@ export default function PropostasConfig() {
                     <p>❌ <strong>Se recusar:</strong> Remarketing para automaticamente</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="confirmacoes" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-primary" />
+                      Notificações de Status
+                    </CardTitle>
+                    <CardDescription>
+                      Envie mensagens automáticas quando o cliente aceitar ou recusar uma proposta
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="status-notif-enabled">Ativado</Label>
+                    <Switch
+                      id="status-notif-enabled"
+                      checked={statusNotifEnabled}
+                      onCheckedChange={setStatusNotifEnabled}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Como funciona?</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Quando o cliente aceita ou recusa uma proposta, o sistema envia automaticamente uma mensagem personalizada 
+                      via WhatsApp ou Email. Use as variáveis <code className="bg-muted px-1 rounded">{'{nome}'}</code>, <code className="bg-muted px-1 rounded">{'{titulo}'}</code> e <code className="bg-muted px-1 rounded">{'{motivo}'}</code> nos templates.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Proposta Aceita */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      ✅ Proposta Aceita
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="accept-enabled" className="text-sm">Ativado</Label>
+                      <Switch
+                        id="accept-enabled"
+                        checked={acceptEnabled}
+                        onCheckedChange={setAcceptEnabled}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Canal de envio</Label>
+                      <Select value={acceptChannel} onValueChange={setAcceptChannel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="both">Ambos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mensagem</Label>
+                    <Textarea
+                      rows={4}
+                      value={acceptMessageTemplate}
+                      onChange={(e) => setAcceptMessageTemplate(e.target.value)}
+                      placeholder='Olá {nome}! 🎉 Sua proposta "{titulo}" foi aceita com sucesso! O próximo passo é formalizar o contrato.'
+                    />
+                  </div>
+                </div>
+
+                {/* Proposta Recusada */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      ❌ Proposta Recusada
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="reject-enabled" className="text-sm">Ativado</Label>
+                      <Switch
+                        id="reject-enabled"
+                        checked={rejectEnabled}
+                        onCheckedChange={setRejectEnabled}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Canal de envio</Label>
+                      <Select value={rejectChannel} onValueChange={setRejectChannel}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="both">Ambos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mensagem</Label>
+                    <Textarea
+                      rows={4}
+                      value={rejectMessageTemplate}
+                      onChange={(e) => setRejectMessageTemplate(e.target.value)}
+                      placeholder='Olá {nome}, vi que a proposta "{titulo}" foi recusada. Posso ajudar com alguma dúvida?'
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveStatusNotif} disabled={isSavingStatusNotif}>
+                  {isSavingStatusNotif ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Salvar Confirmações
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

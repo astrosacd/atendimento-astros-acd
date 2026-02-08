@@ -3490,6 +3490,89 @@ export type Database = {
           },
         ]
       }
+      proposal_status_notification_logs: {
+        Row: {
+          channel: string
+          error_message: string | null
+          id: string
+          message_sent: string | null
+          proposal_id: string | null
+          recipient: string | null
+          sent_at: string
+          status: string | null
+          status_change: string
+        }
+        Insert: {
+          channel: string
+          error_message?: string | null
+          id?: string
+          message_sent?: string | null
+          proposal_id?: string | null
+          recipient?: string | null
+          sent_at?: string
+          status?: string | null
+          status_change: string
+        }
+        Update: {
+          channel?: string
+          error_message?: string | null
+          id?: string
+          message_sent?: string | null
+          proposal_id?: string | null
+          recipient?: string | null
+          sent_at?: string
+          status?: string | null
+          status_change?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_status_notification_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_status_notifications: {
+        Row: {
+          accept_channel: string | null
+          accept_enabled: boolean | null
+          accept_message_template: string | null
+          created_at: string
+          enabled: boolean | null
+          id: string
+          reject_channel: string | null
+          reject_enabled: boolean | null
+          reject_message_template: string | null
+          updated_at: string
+        }
+        Insert: {
+          accept_channel?: string | null
+          accept_enabled?: boolean | null
+          accept_message_template?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          reject_channel?: string | null
+          reject_enabled?: boolean | null
+          reject_message_template?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accept_channel?: string | null
+          accept_enabled?: boolean | null
+          accept_message_template?: string | null
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          reject_channel?: string | null
+          reject_enabled?: boolean | null
+          reject_message_template?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       proposal_view_logs: {
         Row: {
           city: string | null
