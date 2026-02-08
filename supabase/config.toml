@@ -132,3 +132,6 @@ verify_jwt = false
 
 [functions.auto-remarketing]
 verify_jwt = false
+
+[functions.proposal-status-notify]
+verify_jwt = false
