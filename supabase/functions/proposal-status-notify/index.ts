@@ -184,7 +184,7 @@ serve(async (req: Request) => {
               <h2 style="color:${isAccept ? '#16a34a' : '#dc2626'}">${subjectPrefix}</h2>
               <p style="font-size:16px;line-height:1.6;white-space:pre-line;">${message}</p>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
-              <p style="color:#9ca3af;font-size:12px;">Mensagem automática</p>
+              <p style="color:#9ca3af;font-size:12px;">Conectando Visões, Ampliando Resultados.</p>
             </div>`,
           });
 

@@ -173,7 +173,7 @@ export default function PropostasConfig() {
         </div>
 
         <Tabs defaultValue="branding">
-          <TabsList className="flex-wrap">
+          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start">
             <TabsTrigger value="branding" className="gap-2">
               <Palette className="h-4 w-4" />
               Identidade Visual
