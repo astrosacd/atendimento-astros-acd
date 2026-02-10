@@ -3542,6 +3542,10 @@ export type Database = {
           created_at: string
           enabled: boolean | null
           id: string
+          manager_accept_message: string | null
+          manager_notify_enabled: boolean | null
+          manager_numbers: string[] | null
+          manager_reject_message: string | null
           reject_channel: string | null
           reject_enabled: boolean | null
           reject_message_template: string | null
@@ -3554,6 +3558,10 @@ export type Database = {
           created_at?: string
           enabled?: boolean | null
           id?: string
+          manager_accept_message?: string | null
+          manager_notify_enabled?: boolean | null
+          manager_numbers?: string[] | null
+          manager_reject_message?: string | null
           reject_channel?: string | null
           reject_enabled?: boolean | null
           reject_message_template?: string | null
@@ -3566,6 +3574,10 @@ export type Database = {
           created_at?: string
           enabled?: boolean | null
           id?: string
+          manager_accept_message?: string | null
+          manager_notify_enabled?: boolean | null
+          manager_numbers?: string[] | null
+          manager_reject_message?: string | null
           reject_channel?: string | null
           reject_enabled?: boolean | null
           reject_message_template?: string | null
@@ -3648,6 +3660,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      proposal_webhook_logs: {
+        Row: {
+          created_at: string
+          evento: string
+          id: string
+          payload: Json
+          proposal_id: string | null
+          response_body: string | null
+          response_status: number | null
+          success: boolean | null
+          webhook_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          evento: string
+          id?: string
+          payload: Json
+          proposal_id?: string | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean | null
+          webhook_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          evento?: string
+          id?: string
+          payload?: Json
+          proposal_id?: string | null
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean | null
+          webhook_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_webhook_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_webhooks: {
+        Row: {
+          created_at: string
+          eventos: string[] | null
+          id: string
+          is_active: boolean | null
+          last_triggered_at: string | null
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          eventos?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          eventos?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered_at?: string | null
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
       }
       proposals: {
         Row: {
