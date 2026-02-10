@@ -29,7 +29,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-// SignatureCanvas is only used in the public proposal page for client signatures
+import { SignatureCanvas } from './SignatureCanvas';
 import { ImageUploadInput } from './ImageUploadInput';
 import { GalleryEditor } from './GalleryEditor';
 import { TeamEditor } from './TeamEditor';
@@ -594,8 +594,20 @@ function SignatureEditor({
           />
         </div>
       </div>
+      <div className="space-y-2">
+        <Label>Assinatura do Responsável</Label>
+        <SignatureCanvas
+          signature={content.signerSignature || ''}
+          onChange={(sig) => onChange({ signerSignature: sig })}
+          disabled={disabled}
+          clientName={content.signerName || ''}
+        />
+        <p className="text-xs text-muted-foreground">
+          Desenhe ou digite a assinatura do responsável. O cliente já receberá a proposta com esta assinatura preenchida.
+        </p>
+      </div>
       <p className="text-sm text-muted-foreground">
-      💡 A assinatura será feita pelo cliente quando ele aceitar a proposta.
+      💡 A assinatura do cliente será feita quando ele aceitar a proposta.
       </p>
     </div>
   );
