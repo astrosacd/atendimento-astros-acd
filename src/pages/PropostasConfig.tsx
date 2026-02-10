@@ -284,14 +284,6 @@ export default function PropostasConfig() {
               </p>
             </div>
           </div>
-          <Button onClick={handleSave} disabled={updateConfig.isPending}>
-            {updateConfig.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Salvar
-          </Button>
         </div>
 
         {/* Sidebar + Content layout */}
@@ -359,6 +351,12 @@ export default function PropostasConfig() {
                     <Label>Nome do Remetente</Label>
                     <Input placeholder="Nome da Empresa" value={gmailSenderName} onChange={(e) => setGmailSenderName(e.target.value)} />
                   </div>
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={updateConfig.isPending}>
+                      {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Salvar Email
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -396,6 +394,12 @@ export default function PropostasConfig() {
                       <Label>Nome da Instância</Label>
                       <Input placeholder="instancia01" value={evolutionInstanceName} onChange={(e) => setEvolutionInstanceName(e.target.value)} />
                     </div>
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={updateConfig.isPending}>
+                      {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Salvar WhatsApp
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -486,6 +490,12 @@ export default function PropostasConfig() {
                       <p>✅ <strong>Se assinar:</strong> Remarketing para automaticamente</p>
                       <p>❌ <strong>Se recusar:</strong> Remarketing para automaticamente</p>
                     </div>
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={updateConfig.isPending}>
+                      {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Salvar Remarketing
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
