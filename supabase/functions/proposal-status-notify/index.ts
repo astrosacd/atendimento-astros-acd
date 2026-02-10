@@ -135,15 +135,25 @@ serve(async (req: Request) => {
       }
     }
 
-    // Send to MANAGERS
+    // Send to MANAGERS (with configurable delay between sends)
     if (config.manager_notify_enabled && config.manager_numbers?.length > 0) {
       const managerMsg = replaceTemplatePlaceholders(
         isAccept ? (config.manager_accept_message || '') : (config.manager_reject_message || ''),
         clientName, proposal.title, rejection_reason
       );
 
-      for (const number of config.manager_numbers) {
+      const delaySeconds = config.manager_delay_seconds ?? 5;
+
+      for (let i = 0; i < config.manager_numbers.length; i++) {
+        const number = config.manager_numbers[i];
         if (!number.trim()) continue;
+
+        // Apply delay between managers (not before the first one)
+        if (i > 0 && delaySeconds > 0) {
+          console.log(`⏳ Waiting ${delaySeconds}s before next manager...`);
+          await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+        }
+
         const ok = await sendWhatsApp(sendConfig, number.trim(), managerMsg);
         if (ok) {
           results.manager_whatsapp = true;

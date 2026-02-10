@@ -3380,6 +3380,7 @@ export type Database = {
       proposal_send_config: {
         Row: {
           auto_remarketing_channel: string
+          auto_remarketing_cron_hour: number
           auto_remarketing_enabled: boolean
           auto_remarketing_max_days: number
           created_at: string
@@ -3402,6 +3403,7 @@ export type Database = {
         }
         Insert: {
           auto_remarketing_channel?: string
+          auto_remarketing_cron_hour?: number
           auto_remarketing_enabled?: boolean
           auto_remarketing_max_days?: number
           created_at?: string
@@ -3424,6 +3426,7 @@ export type Database = {
         }
         Update: {
           auto_remarketing_channel?: string
+          auto_remarketing_cron_hour?: number
           auto_remarketing_enabled?: boolean
           auto_remarketing_max_days?: number
           created_at?: string
@@ -3543,6 +3546,7 @@ export type Database = {
           enabled: boolean | null
           id: string
           manager_accept_message: string | null
+          manager_delay_seconds: number
           manager_notify_enabled: boolean | null
           manager_numbers: string[] | null
           manager_reject_message: string | null
@@ -3559,6 +3563,7 @@ export type Database = {
           enabled?: boolean | null
           id?: string
           manager_accept_message?: string | null
+          manager_delay_seconds?: number
           manager_notify_enabled?: boolean | null
           manager_numbers?: string[] | null
           manager_reject_message?: string | null
@@ -3575,6 +3580,7 @@ export type Database = {
           enabled?: boolean | null
           id?: string
           manager_accept_message?: string | null
+          manager_delay_seconds?: number
           manager_notify_enabled?: boolean | null
           manager_numbers?: string[] | null
           manager_reject_message?: string | null
