@@ -587,8 +587,8 @@ export default function PropostaPublica() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{proposal.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-bold">{proposal.title}</h1>
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-muted-foreground">
               {proposal.client && (
                 <span className="flex items-center gap-1">
                   <User className="h-4 w-4" />
