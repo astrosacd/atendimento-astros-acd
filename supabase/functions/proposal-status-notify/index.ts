@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface NotifyRequest {
   proposal_id: string;
-  new_status: 'accepted' | 'rejected';
+  new_status: 'accepted' | 'rejected' | 'viewed';
   old_status: string;
   signed_name?: string;
   rejection_reason?: string;
@@ -36,30 +36,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Fetch notification config
-    const { data: config } = await supabase
-      .from('proposal_status_notifications')
-      .select('*')
-      .limit(1)
-      .single();
-
-    if (!config || !config.enabled) {
-      console.log('⏭️ Status notifications disabled');
-      return new Response(JSON.stringify({ skipped: true, reason: 'disabled' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check if this specific status type is enabled
-    const isAccept = new_status === 'accepted';
-    const typeEnabled = isAccept ? config.accept_enabled : config.reject_enabled;
-    if (!typeEnabled) {
-      console.log(`⏭️ ${new_status} notifications disabled`);
-      return new Response(JSON.stringify({ skipped: true, reason: `${new_status} disabled` }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Fetch proposal details
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
@@ -75,23 +51,48 @@ serve(async (req: Request) => {
       });
     }
 
-    // Determine recipient info
     const clientName = signed_name || proposal.manual_client_name || proposal.clientes?.nome || 'Cliente';
     const clientPhone = proposal.manual_client_phone || proposal.clientes?.numero;
     const clientEmail = proposal.manual_client_email || proposal.clientes?.email;
 
+    // === WEBHOOKS: Fire for all status changes (viewed, accepted, rejected) ===
+    await fireProposalWebhooks(supabase, proposal, new_status, clientName, clientPhone, clientEmail, rejection_reason);
+
+    // === NOTIFICATIONS: Only for accepted/rejected ===
+    if (new_status !== 'accepted' && new_status !== 'rejected') {
+      return new Response(JSON.stringify({ success: true, webhooks_only: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch notification config
+    const { data: config } = await supabase
+      .from('proposal_status_notifications')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (!config || !config.enabled) {
+      console.log('⏭️ Status notifications disabled');
+      return new Response(JSON.stringify({ skipped: true, reason: 'disabled' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const isAccept = new_status === 'accepted';
+    const typeEnabled = isAccept ? config.accept_enabled : config.reject_enabled;
+    if (!typeEnabled) {
+      console.log(`⏭️ ${new_status} notifications disabled`);
+      return new Response(JSON.stringify({ skipped: true, reason: `${new_status} disabled` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get message template and channel
     const channel = isAccept ? config.accept_channel : config.reject_channel;
-    let messageTemplate = isAccept ? config.accept_message_template : config.reject_message_template;
+    const messageTemplate = isAccept ? config.accept_message_template : config.reject_message_template;
 
-    // Replace placeholders
-    const message = (messageTemplate || '')
-      .replace(/\{nome\}/g, clientName)
-      .replace(/\{titulo\}/g, proposal.title || 'Proposta')
-      .replace(/\{motivo\}/g, rejection_reason || 'Não informado');
-
-    console.log(`📝 Message: ${message.substring(0, 100)}...`);
-    console.log(`📡 Channel: ${channel}`);
+    const message = replaceTemplatePlaceholders(messageTemplate || '', clientName, proposal.title, rejection_reason);
 
     // Fetch send config for SMTP/WhatsApp credentials
     const { data: sendConfig } = await supabase
@@ -109,100 +110,52 @@ serve(async (req: Request) => {
       });
     }
 
-    const results = { whatsapp: false, email: false, errors: [] as string[] };
+    const results = { whatsapp: false, email: false, manager_whatsapp: false, errors: [] as string[] };
 
-    // Send WhatsApp
+    // Send to CLIENT
     if ((channel === 'whatsapp' || channel === 'both') && clientPhone) {
-      try {
-        if (!sendConfig.evolution_api_url || !sendConfig.evolution_api_key || !sendConfig.evolution_instance_name) {
-          results.errors.push('WhatsApp: Evolution API não configurada');
-        } else {
-          let cleanNumber = clientPhone.replace(/\D/g, '');
-          if (!cleanNumber.startsWith('55') && cleanNumber.length <= 11) {
-            cleanNumber = '55' + cleanNumber;
-          }
-
-          const url = `${sendConfig.evolution_api_url}/message/sendText/${sendConfig.evolution_instance_name}`;
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': sendConfig.evolution_api_key,
-            },
-            body: JSON.stringify({ number: cleanNumber, text: message }),
-          });
-
-          if (!response.ok) {
-            const responseText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${responseText}`);
-          }
-
-          results.whatsapp = true;
-          console.log(`✅ WhatsApp sent to: ${cleanNumber}`);
-          await logNotification(supabase, proposal_id, new_status, 'sent', cleanNumber, message);
-        }
-      } catch (error: any) {
-        console.error('❌ WhatsApp error:', error);
-        results.errors.push(`WhatsApp: ${error?.message || 'Unknown error'}`);
-        await logNotification(supabase, proposal_id, new_status, 'error', clientPhone || '', message, error?.message);
+      const ok = await sendWhatsApp(sendConfig, clientPhone, message);
+      if (ok) {
+        results.whatsapp = true;
+        await logNotification(supabase, proposal_id, new_status, 'sent', clientPhone, message);
+      } else {
+        results.errors.push('WhatsApp: falha ao enviar para cliente');
+        await logNotification(supabase, proposal_id, new_status, 'error', clientPhone, message, 'Send failed');
       }
     }
 
-    // Send Email
     if ((channel === 'email' || channel === 'both') && clientEmail) {
-      try {
-        if (!sendConfig.gmail_user || !sendConfig.gmail_app_password) {
-          results.errors.push('Email: Gmail não configurado');
+      const ok = await sendEmail(sendConfig, clientEmail, isAccept, proposal.title, message);
+      if (ok) {
+        results.email = true;
+        await logNotification(supabase, proposal_id, new_status, 'sent', clientEmail, message);
+      } else {
+        results.errors.push('Email: falha ao enviar para cliente');
+        await logNotification(supabase, proposal_id, new_status, 'error', clientEmail, message, 'Send failed');
+      }
+    }
+
+    // Send to MANAGERS
+    if (config.manager_notify_enabled && config.manager_numbers?.length > 0) {
+      const managerMsg = replaceTemplatePlaceholders(
+        isAccept ? (config.manager_accept_message || '') : (config.manager_reject_message || ''),
+        clientName, proposal.title, rejection_reason
+      );
+
+      for (const number of config.manager_numbers) {
+        if (!number.trim()) continue;
+        const ok = await sendWhatsApp(sendConfig, number.trim(), managerMsg);
+        if (ok) {
+          results.manager_whatsapp = true;
+          console.log(`✅ Manager notified: ${number}`);
         } else {
-          // Dynamic import for denomailer
-          const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
-          
-          const client = new SMTPClient({
-            connection: {
-              hostname: "smtp.gmail.com",
-              port: 465,
-              tls: true,
-              auth: {
-                username: sendConfig.gmail_user,
-                password: sendConfig.gmail_app_password,
-              },
-            },
-          });
-
-          const subjectPrefix = isAccept ? '✅ Proposta Aceita' : '❌ Proposta Recusada';
-          const subject = `${subjectPrefix}: ${proposal.title}`;
-          const fromAddress = sendConfig.gmail_sender_name
-            ? `${sendConfig.gmail_sender_name} <${sendConfig.gmail_user}>`
-            : sendConfig.gmail_user;
-
-          await client.send({
-            from: fromAddress,
-            to: clientEmail,
-            subject,
-            content: message,
-            html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-              <h2 style="color:${isAccept ? '#16a34a' : '#dc2626'}">${subjectPrefix}</h2>
-              <p style="font-size:16px;line-height:1.6;white-space:pre-line;">${message}</p>
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
-              <p style="color:#9ca3af;font-size:12px;">Conectando Visões, Ampliando Resultados.</p>
-            </div>`,
-          });
-
-          await client.close();
-
-          results.email = true;
-          console.log(`✅ Email sent to: ${clientEmail}`);
-          await logNotification(supabase, proposal_id, new_status, 'sent', clientEmail, message);
+          results.errors.push(`Manager WhatsApp falhou: ${number}`);
         }
-      } catch (error: any) {
-        console.error('❌ Email error:', error);
-        results.errors.push(`Email: ${error?.message || 'Unknown error'}`);
-        await logNotification(supabase, proposal_id, new_status, 'error', clientEmail || '', message, error?.message);
       }
     }
 
     return new Response(JSON.stringify({
-      success: results.whatsapp || results.email,
+      success: results.whatsapp || results.email || results.manager_whatsapp,
       results,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -216,6 +169,179 @@ serve(async (req: Request) => {
     });
   }
 });
+
+function replaceTemplatePlaceholders(template: string, name: string, title: string, reason?: string): string {
+  return template
+    .replace(/\{nome\}/g, name)
+    .replace(/\{titulo\}/g, title || 'Proposta')
+    .replace(/\{motivo\}/g, reason || 'Não informado');
+}
+
+async function sendWhatsApp(sendConfig: any, phone: string, message: string): Promise<boolean> {
+  try {
+    if (!sendConfig.evolution_api_url || !sendConfig.evolution_api_key || !sendConfig.evolution_instance_name) {
+      console.error('WhatsApp: Evolution API não configurada');
+      return false;
+    }
+
+    let cleanNumber = phone.replace(/\D/g, '');
+    if (!cleanNumber.startsWith('55') && cleanNumber.length <= 11) {
+      cleanNumber = '55' + cleanNumber;
+    }
+
+    const url = `${sendConfig.evolution_api_url}/message/sendText/${sendConfig.evolution_instance_name}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': sendConfig.evolution_api_key },
+      body: JSON.stringify({ number: cleanNumber, text: message }),
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error(`WhatsApp HTTP ${response.status}: ${responseText}`);
+      return false;
+    }
+
+    console.log(`✅ WhatsApp sent to: ${cleanNumber}`);
+    return true;
+  } catch (error: any) {
+    console.error('❌ WhatsApp error:', error);
+    return false;
+  }
+}
+
+async function sendEmail(sendConfig: any, email: string, isAccept: boolean, title: string, message: string): Promise<boolean> {
+  try {
+    if (!sendConfig.gmail_user || !sendConfig.gmail_app_password) {
+      console.error('Email: Gmail não configurado');
+      return false;
+    }
+
+    const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: { username: sendConfig.gmail_user, password: sendConfig.gmail_app_password },
+      },
+    });
+
+    const subjectPrefix = isAccept ? '✅ Proposta Aceita' : '❌ Proposta Recusada';
+    const subject = `${subjectPrefix}: ${title}`;
+    const fromAddress = sendConfig.gmail_sender_name
+      ? `${sendConfig.gmail_sender_name} <${sendConfig.gmail_user}>`
+      : sendConfig.gmail_user;
+
+    await client.send({
+      from: fromAddress,
+      to: email,
+      subject,
+      content: message,
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <h2 style="color:${isAccept ? '#16a34a' : '#dc2626'}">${subjectPrefix}</h2>
+        <p style="font-size:16px;line-height:1.6;white-space:pre-line;">${message}</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+        <p style="color:#9ca3af;font-size:12px;">Conectando Visões, Ampliando Resultados.</p>
+      </div>`,
+    });
+
+    await client.close();
+    console.log(`✅ Email sent to: ${email}`);
+    return true;
+  } catch (error: any) {
+    console.error('❌ Email error:', error);
+    return false;
+  }
+}
+
+async function fireProposalWebhooks(
+  supabase: any,
+  proposal: any,
+  status: string,
+  clientName: string,
+  clientPhone: string | null,
+  clientEmail: string | null,
+  rejectionReason?: string,
+) {
+  try {
+    const eventMap: Record<string, string> = {
+      'viewed': 'proposta.visualizada',
+      'accepted': 'proposta.aceita',
+      'rejected': 'proposta.recusada',
+    };
+    const evento = eventMap[status];
+    if (!evento) return;
+
+    const { data: webhooks } = await supabase
+      .from('proposal_webhooks')
+      .select('*')
+      .eq('is_active', true)
+      .contains('eventos', [evento]);
+
+    if (!webhooks?.length) return;
+
+    const payload = {
+      evento,
+      timestamp: new Date().toISOString(),
+      proposta: {
+        id: proposal.id,
+        titulo: proposal.title,
+        status,
+        valor_total: proposal.total_value,
+      },
+      cliente: {
+        nome: clientName,
+        telefone: clientPhone || null,
+        email: clientEmail || null,
+      },
+      ...(rejectionReason ? { motivo_recusa: rejectionReason } : {}),
+    };
+
+    for (const webhook of webhooks) {
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (webhook.secret_key) headers['X-Webhook-Secret'] = webhook.secret_key;
+
+        const response = await fetch(webhook.url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        const responseText = await response.text();
+
+        await supabase.from('proposal_webhook_logs').insert({
+          webhook_id: webhook.id,
+          proposal_id: proposal.id,
+          evento,
+          payload,
+          response_status: response.status,
+          response_body: responseText.substring(0, 1000),
+          success: response.ok,
+        });
+
+        await supabase.from('proposal_webhooks').update({ last_triggered_at: new Date().toISOString() }).eq('id', webhook.id);
+
+        console.log(`🔗 Webhook ${webhook.nome}: ${response.status}`);
+      } catch (err: any) {
+        console.error(`❌ Webhook ${webhook.nome} error:`, err);
+        await supabase.from('proposal_webhook_logs').insert({
+          webhook_id: webhook.id,
+          proposal_id: proposal.id,
+          evento,
+          payload,
+          response_status: 0,
+          response_body: err?.message || 'Unknown error',
+          success: false,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('❌ Webhook system error:', err);
+  }
+}
 
 async function logNotification(
   supabase: any,

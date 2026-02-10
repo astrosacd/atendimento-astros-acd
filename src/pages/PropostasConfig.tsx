@@ -7,13 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info, Bell } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare, Save, Loader2, Eye, EyeOff, Palette, RefreshCcw, Info, Bell, Webhook, Plus, Trash2, Clock } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { useProposalSendConfig } from '@/hooks/useProposalSending';
 import { BrandingConfig } from '@/components/proposals/BrandingConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+
 export default function PropostasConfig() {
   const navigate = useNavigate();
   const { config, isLoading, updateConfig } = useProposalSendConfig();
@@ -30,7 +32,7 @@ export default function PropostasConfig() {
   const [autoRemarketingMaxDays, setAutoRemarketingMaxDays] = useState(3);
   const [autoRemarketingChannel, setAutoRemarketingChannel] = useState('email');
 
-  // Status notifications (accept/reject)
+  // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
   const [acceptEnabled, setAcceptEnabled] = useState(true);
   const [acceptChannel, setAcceptChannel] = useState('whatsapp');
@@ -40,9 +42,25 @@ export default function PropostasConfig() {
   const [rejectMessageTemplate, setRejectMessageTemplate] = useState('');
   const [statusNotifId, setStatusNotifId] = useState<string | null>(null);
   const [isSavingStatusNotif, setIsSavingStatusNotif] = useState(false);
-  
+  const [managerNotifyEnabled, setManagerNotifyEnabled] = useState(false);
+  const [managerNumbers, setManagerNumbers] = useState<string[]>([]);
+  const [managerAcceptMessage, setManagerAcceptMessage] = useState('');
+  const [managerRejectMessage, setManagerRejectMessage] = useState('');
+  const [newManagerNumber, setNewManagerNumber] = useState('');
+
+  // Webhooks
+  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
+  const [newWebhookName, setNewWebhookName] = useState('');
+  const [newWebhookUrl, setNewWebhookUrl] = useState('');
+  const [newWebhookSecret, setNewWebhookSecret] = useState('');
+  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(['proposta.visualizada', 'proposta.aceita', 'proposta.recusada']);
+
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // Cron schedule
+  const [cronSchedule, setCronSchedule] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) {
@@ -77,9 +95,52 @@ export default function PropostasConfig() {
         setRejectEnabled(data.reject_enabled ?? true);
         setRejectChannel(data.reject_channel || 'whatsapp');
         setRejectMessageTemplate(data.reject_message_template || '');
+        setManagerNotifyEnabled(data.manager_notify_enabled ?? false);
+        setManagerNumbers(data.manager_numbers || []);
+        setManagerAcceptMessage(data.manager_accept_message || '');
+        setManagerRejectMessage(data.manager_reject_message || '');
       }
     }
     fetchStatusNotifConfig();
+  }, []);
+
+  // Fetch webhooks
+  useEffect(() => {
+    async function fetchWebhooks() {
+      const { data } = await supabase
+        .from('proposal_webhooks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) setWebhooks(data);
+    }
+    fetchWebhooks();
+  }, []);
+
+  // Fetch webhook logs
+  useEffect(() => {
+    async function fetchLogs() {
+      const { data } = await supabase
+        .from('proposal_webhook_logs')
+        .select('*, proposal_webhooks(nome)')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (data) setWebhookLogs(data);
+    }
+    fetchLogs();
+  }, []);
+
+  // Fetch cron schedule for remarketing
+  useEffect(() => {
+    async function fetchCron() {
+      try {
+        const { data } = await supabase.rpc('get_billing_cron_schedule');
+        // We'll show a static message since the remarketing cron is set at 12:00 UTC = 09:00 BRT
+        setCronSchedule('Todos os dias às 09:00 (horário de Brasília)');
+      } catch {
+        setCronSchedule('Todos os dias às 09:00 (horário de Brasília)');
+      }
+    }
+    fetchCron();
   }, []);
 
   const handleSaveStatusNotif = async () => {
@@ -93,6 +154,10 @@ export default function PropostasConfig() {
         reject_enabled: rejectEnabled,
         reject_channel: rejectChannel,
         reject_message_template: rejectMessageTemplate,
+        manager_notify_enabled: managerNotifyEnabled,
+        manager_numbers: managerNumbers.filter(n => n.trim()),
+        manager_accept_message: managerAcceptMessage,
+        manager_reject_message: managerRejectMessage,
         updated_at: new Date().toISOString(),
       };
 
@@ -118,6 +183,51 @@ export default function PropostasConfig() {
     } finally {
       setIsSavingStatusNotif(false);
     }
+  };
+
+  const handleAddManagerNumber = () => {
+    if (newManagerNumber.trim()) {
+      setManagerNumbers(prev => [...prev, newManagerNumber.trim()]);
+      setNewManagerNumber('');
+    }
+  };
+
+  const handleRemoveManagerNumber = (index: number) => {
+    setManagerNumbers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddWebhook = async () => {
+    if (!newWebhookName.trim() || !newWebhookUrl.trim()) {
+      toast.error('Preencha nome e URL do webhook');
+      return;
+    }
+    const { data, error } = await supabase.from('proposal_webhooks').insert({
+      nome: newWebhookName,
+      url: newWebhookUrl,
+      secret_key: newWebhookSecret || null,
+      eventos: newWebhookEvents,
+    }).select().single();
+
+    if (error) {
+      toast.error('Erro ao criar webhook');
+      return;
+    }
+    setWebhooks(prev => [data, ...prev]);
+    setNewWebhookName('');
+    setNewWebhookUrl('');
+    setNewWebhookSecret('');
+    toast.success('Webhook criado!');
+  };
+
+  const handleToggleWebhook = async (id: string, active: boolean) => {
+    await supabase.from('proposal_webhooks').update({ is_active: active }).eq('id', id);
+    setWebhooks(prev => prev.map(w => w.id === id ? { ...w, is_active: active } : w));
+  };
+
+  const handleDeleteWebhook = async (id: string) => {
+    await supabase.from('proposal_webhooks').delete().eq('id', id);
+    setWebhooks(prev => prev.filter(w => w.id !== id));
+    toast.success('Webhook removido');
   };
 
   const handleSave = () => {
@@ -148,7 +258,7 @@ export default function PropostasConfig() {
 
   return (
     <DashboardLayout>
-<div className="space-y-6 p-6">
+      <div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -173,28 +283,34 @@ export default function PropostasConfig() {
         </div>
 
         <Tabs defaultValue="branding">
-          <TabsList className="w-full overflow-x-auto flex-nowrap justify-start">
-            <TabsTrigger value="branding" className="gap-2">
-              <Palette className="h-4 w-4" />
-              Identidade Visual
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2">
-              <Mail className="h-4 w-4" />
-              Email (Gmail)
-            </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              WhatsApp (Evolution)
-            </TabsTrigger>
-            <TabsTrigger value="auto-remarketing" className="gap-2">
-              <RefreshCcw className="h-4 w-4" />
-              Remarketing Auto
-            </TabsTrigger>
-            <TabsTrigger value="confirmacoes" className="gap-2">
-              <Bell className="h-4 w-4" />
-              Confirmações
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex w-auto min-w-full">
+              <TabsTrigger value="branding" className="gap-2 whitespace-nowrap">
+                <Palette className="h-4 w-4" />
+                Identidade Visual
+              </TabsTrigger>
+              <TabsTrigger value="email" className="gap-2 whitespace-nowrap">
+                <Mail className="h-4 w-4" />
+                Email (Gmail)
+              </TabsTrigger>
+              <TabsTrigger value="whatsapp" className="gap-2 whitespace-nowrap">
+                <MessageSquare className="h-4 w-4" />
+                WhatsApp (Evolution)
+              </TabsTrigger>
+              <TabsTrigger value="auto-remarketing" className="gap-2 whitespace-nowrap">
+                <RefreshCcw className="h-4 w-4" />
+                Remarketing Auto
+              </TabsTrigger>
+              <TabsTrigger value="confirmacoes" className="gap-2 whitespace-nowrap">
+                <Bell className="h-4 w-4" />
+                Confirmações
+              </TabsTrigger>
+              <TabsTrigger value="webhooks" className="gap-2 whitespace-nowrap">
+                <Webhook className="h-4 w-4" />
+                Webhooks
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="branding" className="space-y-6 mt-6">
             <BrandingConfig />
@@ -206,17 +322,11 @@ export default function PropostasConfig() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Configuração Gmail</CardTitle>
-                    <CardDescription>
-                      Configure as credenciais do Gmail para envio de propostas
-                    </CardDescription>
+                    <CardDescription>Configure as credenciais do Gmail para envio de propostas</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="email-enabled">Habilitado</Label>
-                    <Switch
-                      id="email-enabled"
-                      checked={emailEnabled}
-                      onCheckedChange={setEmailEnabled}
-                    />
+                    <Switch id="email-enabled" checked={emailEnabled} onCheckedChange={setEmailEnabled} />
                   </div>
                 </div>
               </CardHeader>
@@ -224,88 +334,22 @@ export default function PropostasConfig() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Email do Gmail</Label>
-                    <Input
-                      type="email"
-                      placeholder="seu@gmail.com"
-                      value={gmailUser}
-                      onChange={(e) => setGmailUser(e.target.value)}
-                    />
+                    <Input type="email" placeholder="seu@gmail.com" value={gmailUser} onChange={(e) => setGmailUser(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label>Senha de App</Label>
                     <div className="relative">
-                      <Input
-                        type={showGmailPassword ? 'text' : 'password'}
-                        placeholder="Senha de app do Google"
-                        value={gmailAppPassword}
-                        onChange={(e) => setGmailAppPassword(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0"
-                        onClick={() => setShowGmailPassword(!showGmailPassword)}
-                      >
+                      <Input type={showGmailPassword ? 'text' : 'password'} placeholder="Senha de app do Google" value={gmailAppPassword} onChange={(e) => setGmailAppPassword(e.target.value)} />
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowGmailPassword(!showGmailPassword)}>
                         {showGmailPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Use uma senha de app, não a senha normal do Gmail
-                    </p>
+                    <p className="text-xs text-muted-foreground">Use uma senha de app, não a senha normal do Gmail</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Nome do Remetente</Label>
-                  <Input
-                    placeholder="Nome da Empresa"
-                    value={gmailSenderName}
-                    onChange={(e) => setGmailSenderName(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>✨</span> Template de Email Profissional
-                </CardTitle>
-                <CardDescription>
-                  O email é enviado com um design moderno e profissional
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    O template de email inclui automaticamente:
-                  </p>
-                  <ul className="text-sm space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Cabeçalho com gradiente azul profissional</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Saudação personalizada com nome do cliente</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Card destacado com título da proposta</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Botão CTA grande para visualizar a proposta</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Link alternativo caso o botão não funcione</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Rodapé com nome do remetente configurado acima</span>
-                    </li>
-                  </ul>
+                  <Input placeholder="Nome da Empresa" value={gmailSenderName} onChange={(e) => setGmailSenderName(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -317,110 +361,32 @@ export default function PropostasConfig() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Configuração Evolution API</CardTitle>
-                    <CardDescription>
-                      Configure a API Evolution para envio via WhatsApp
-                    </CardDescription>
+                    <CardDescription>Configure a API Evolution para envio via WhatsApp</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="whatsapp-enabled">Habilitado</Label>
-                    <Switch
-                      id="whatsapp-enabled"
-                      checked={whatsappEnabled}
-                      onCheckedChange={setWhatsappEnabled}
-                    />
+                    <Switch id="whatsapp-enabled" checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>URL da API</Label>
-                  <Input
-                    placeholder="https://api.evolution.com"
-                    value={evolutionApiUrl}
-                    onChange={(e) => setEvolutionApiUrl(e.target.value)}
-                  />
+                  <Input placeholder="https://api.evolution.com" value={evolutionApiUrl} onChange={(e) => setEvolutionApiUrl(e.target.value)} />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>API Key</Label>
                     <div className="relative">
-                      <Input
-                        type={showApiKey ? 'text' : 'password'}
-                        placeholder="Sua API Key"
-                        value={evolutionApiKey}
-                        onChange={(e) => setEvolutionApiKey(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                      >
+                      <Input type={showApiKey ? 'text' : 'password'} placeholder="Sua API Key" value={evolutionApiKey} onChange={(e) => setEvolutionApiKey(e.target.value)} />
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowApiKey(!showApiKey)}>
                         {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Nome da Instância</Label>
-                    <Input
-                      placeholder="instancia01"
-                      value={evolutionInstanceName}
-                      onChange={(e) => setEvolutionInstanceName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span>✨</span> Template de WhatsApp Profissional
-                </CardTitle>
-                <CardDescription>
-                  A mensagem é enviada com formatação profissional
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    O template de WhatsApp inclui automaticamente:
-                  </p>
-                  <ul className="text-sm space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Saudação animada com emoji e nome do cliente</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Título da proposta em destaque</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Descrição convidativa</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Link direto para visualização</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-500">✓</span>
-                      <span>Assinatura com nome do remetente</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="bg-background border border-border rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground mb-2">Prévia da mensagem:</p>
-                  <div className="font-mono text-sm whitespace-pre-line text-foreground">
-                    🎉 *Olá, [Nome do Cliente]!*{'\n\n'}
-                    Sua proposta comercial está pronta!{'\n\n'}
-                    📄 *Proposta:* [Título da Proposta]{'\n\n'}
-                    Preparamos uma proposta especialmente para você...{'\n\n'}
-                    👇 *Clique no link abaixo para visualizar:*{'\n'}
-                    [Link da proposta]{'\n\n'}
-                    _Atenciosamente,_{'\n'}
-                    *{gmailSenderName || 'Seu Nome'}*
+                    <Input placeholder="instancia01" value={evolutionInstanceName} onChange={(e) => setEvolutionInstanceName(e.target.value)} />
                   </div>
                 </div>
               </CardContent>
@@ -436,17 +402,11 @@ export default function PropostasConfig() {
                       <RefreshCcw className="h-5 w-5 text-orange-500" />
                       Remarketing Automático
                     </CardTitle>
-                    <CardDescription>
-                      Envie follow-ups automáticos para clientes que visualizaram mas não assinaram
-                    </CardDescription>
+                    <CardDescription>Envie follow-ups automáticos para clientes que visualizaram mas não assinaram</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="auto-remarketing-enabled">Ativado</Label>
-                    <Switch
-                      id="auto-remarketing-enabled"
-                      checked={autoRemarketingEnabled}
-                      onCheckedChange={setAutoRemarketingEnabled}
-                    />
+                    <Switch id="auto-remarketing-enabled" checked={autoRemarketingEnabled} onCheckedChange={setAutoRemarketingEnabled} />
                   </div>
                 </div>
               </CardHeader>
@@ -456,53 +416,44 @@ export default function PropostasConfig() {
                   <div>
                     <p className="font-medium">Como funciona?</p>
                     <p className="mt-1 text-muted-foreground">
-                      Quando ativado, o sistema envia automaticamente uma mensagem de follow-up por dia para propostas 
+                      Quando ativado, o sistema envia automaticamente uma mensagem de follow-up por dia para propostas
                       com status "Visualizada". O envio para quando o cliente assinar, recusar, ou atingir o limite de dias configurado.
                     </p>
                   </div>
                 </div>
 
+                {/* Cron schedule info */}
+                <div className="flex items-center gap-2 text-sm bg-muted/50 border border-border p-3 rounded-md">
+                  <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">
+                    <strong>Horário do envio:</strong> {cronSchedule || 'Carregando...'}
+                  </span>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label>Quantidade de dias</Label>
-                    <Select
-                      value={String(autoRemarketingMaxDays)}
-                      onValueChange={(v) => setAutoRemarketingMaxDays(Number(v))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={String(autoRemarketingMaxDays)} onValueChange={(v) => setAutoRemarketingMaxDays(Number(v))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 5, 7, 10, 14].map((n) => (
-                          <SelectItem key={n} value={String(n)}>
-                            {n} {n === 1 ? 'dia' : 'dias'}
-                          </SelectItem>
+                          <SelectItem key={n} value={String(n)}>{n} {n === 1 ? 'dia' : 'dias'}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Quantos dias seguidos enviar remarketing após a visualização
-                    </p>
+                    <p className="text-xs text-muted-foreground">Quantos dias seguidos enviar remarketing após a visualização</p>
                   </div>
-
                   <div className="space-y-2">
                     <Label>Canal de envio</Label>
-                    <Select
-                      value={autoRemarketingChannel}
-                      onValueChange={setAutoRemarketingChannel}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={autoRemarketingChannel} onValueChange={setAutoRemarketingChannel}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
                         <SelectItem value="both">Ambos (Email + WhatsApp)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      O canal precisa estar configurado e habilitado nas abas de Email/WhatsApp
-                    </p>
+                    <p className="text-xs text-muted-foreground">O canal precisa estar configurado nas abas de Email/WhatsApp</p>
                   </div>
                 </div>
 
@@ -514,9 +465,7 @@ export default function PropostasConfig() {
                     {Array.from({ length: Math.min(autoRemarketingMaxDays, 5) }, (_, i) => (
                       <p key={i}>🔄 <strong>Dia {i + 1}:</strong> Remarketing automático enviado</p>
                     ))}
-                    {autoRemarketingMaxDays > 5 && (
-                      <p>🔄 <strong>...</strong> até o dia {autoRemarketingMaxDays}</p>
-                    )}
+                    {autoRemarketingMaxDays > 5 && <p>🔄 <strong>...</strong> até o dia {autoRemarketingMaxDays}</p>}
                     <p>✅ <strong>Se assinar:</strong> Remarketing para automaticamente</p>
                     <p>❌ <strong>Se recusar:</strong> Remarketing para automaticamente</p>
                   </div>
@@ -534,17 +483,11 @@ export default function PropostasConfig() {
                       <Bell className="h-5 w-5 text-primary" />
                       Notificações de Status
                     </CardTitle>
-                    <CardDescription>
-                      Envie mensagens automáticas quando o cliente aceitar ou recusar uma proposta
-                    </CardDescription>
+                    <CardDescription>Envie mensagens automáticas quando o cliente aceitar ou recusar uma proposta</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor="status-notif-enabled">Ativado</Label>
-                    <Switch
-                      id="status-notif-enabled"
-                      checked={statusNotifEnabled}
-                      onCheckedChange={setStatusNotifEnabled}
-                    />
+                    <Switch id="status-notif-enabled" checked={statusNotifEnabled} onCheckedChange={setStatusNotifEnabled} />
                   </div>
                 </div>
               </CardHeader>
@@ -554,7 +497,7 @@ export default function PropostasConfig() {
                   <div>
                     <p className="font-medium">Como funciona?</p>
                     <p className="mt-1 text-muted-foreground">
-                      Quando o cliente aceita ou recusa uma proposta, o sistema envia automaticamente uma mensagem personalizada 
+                      Quando o cliente aceita ou recusa uma proposta, o sistema envia automaticamente uma mensagem personalizada
                       via WhatsApp ou Email. Use as variáveis <code className="bg-muted px-1 rounded">{'{nome}'}</code>, <code className="bg-muted px-1 rounded">{'{titulo}'}</code> e <code className="bg-muted px-1 rounded">{'{motivo}'}</code> nos templates.
                     </p>
                   </div>
@@ -563,25 +506,17 @@ export default function PropostasConfig() {
                 {/* Proposta Aceita */}
                 <div className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      ✅ Proposta Aceita
-                    </h4>
+                    <h4 className="font-semibold flex items-center gap-2">✅ Proposta Aceita</h4>
                     <div className="flex items-center gap-2">
                       <Label htmlFor="accept-enabled" className="text-sm">Ativado</Label>
-                      <Switch
-                        id="accept-enabled"
-                        checked={acceptEnabled}
-                        onCheckedChange={setAcceptEnabled}
-                      />
+                      <Switch id="accept-enabled" checked={acceptEnabled} onCheckedChange={setAcceptEnabled} />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Canal de envio</Label>
                       <Select value={acceptChannel} onValueChange={setAcceptChannel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="whatsapp">WhatsApp</SelectItem>
                           <SelectItem value="email">Email</SelectItem>
@@ -592,37 +527,25 @@ export default function PropostasConfig() {
                   </div>
                   <div className="space-y-2">
                     <Label>Mensagem</Label>
-                    <Textarea
-                      rows={4}
-                      value={acceptMessageTemplate}
-                      onChange={(e) => setAcceptMessageTemplate(e.target.value)}
-                      placeholder='Olá {nome}! 🎉 Sua proposta "{titulo}" foi aceita com sucesso! O próximo passo é formalizar o contrato.'
-                    />
+                    <Textarea rows={4} value={acceptMessageTemplate} onChange={(e) => setAcceptMessageTemplate(e.target.value)}
+                      placeholder='Olá {nome}! 🎉 Sua proposta "{titulo}" foi aceita com sucesso! O próximo passo é formalizar o contrato.' />
                   </div>
                 </div>
 
                 {/* Proposta Recusada */}
                 <div className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      ❌ Proposta Recusada
-                    </h4>
+                    <h4 className="font-semibold flex items-center gap-2">❌ Proposta Recusada</h4>
                     <div className="flex items-center gap-2">
                       <Label htmlFor="reject-enabled" className="text-sm">Ativado</Label>
-                      <Switch
-                        id="reject-enabled"
-                        checked={rejectEnabled}
-                        onCheckedChange={setRejectEnabled}
-                      />
+                      <Switch id="reject-enabled" checked={rejectEnabled} onCheckedChange={setRejectEnabled} />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Canal de envio</Label>
                       <Select value={rejectChannel} onValueChange={setRejectChannel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="whatsapp">WhatsApp</SelectItem>
                           <SelectItem value="email">Email</SelectItem>
@@ -633,23 +556,204 @@ export default function PropostasConfig() {
                   </div>
                   <div className="space-y-2">
                     <Label>Mensagem</Label>
-                    <Textarea
-                      rows={4}
-                      value={rejectMessageTemplate}
-                      onChange={(e) => setRejectMessageTemplate(e.target.value)}
-                      placeholder='Olá {nome}, vi que a proposta "{titulo}" foi recusada. Posso ajudar com alguma dúvida?'
-                    />
+                    <Textarea rows={4} value={rejectMessageTemplate} onChange={(e) => setRejectMessageTemplate(e.target.value)}
+                      placeholder='Olá {nome}, vi que a proposta "{titulo}" foi recusada. Posso ajudar com alguma dúvida?' />
+                  </div>
+                </div>
+
+                {/* Manager Notifications */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      📱 Notificar Gestores/Coordenadores
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="manager-notify" className="text-sm">Ativado</Label>
+                      <Switch id="manager-notify" checked={managerNotifyEnabled} onCheckedChange={setManagerNotifyEnabled} />
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Envie uma notificação via WhatsApp para gerentes e coordenadores quando uma proposta for aceita ou recusada.
+                  </p>
+
+                  <div className="space-y-3">
+                    <Label>Números dos gestores</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="5511999999999"
+                        value={newManagerNumber}
+                        onChange={(e) => setNewManagerNumber(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddManagerNumber()}
+                      />
+                      <Button variant="outline" size="icon" onClick={handleAddManagerNumber}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {managerNumbers.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {managerNumbers.map((num, idx) => (
+                          <Badge key={idx} variant="secondary" className="gap-1">
+                            {num}
+                            <button onClick={() => handleRemoveManagerNumber(idx)} className="ml-1 hover:text-destructive">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Mensagem (Aceita)</Label>
+                      <Textarea rows={3} value={managerAcceptMessage} onChange={(e) => setManagerAcceptMessage(e.target.value)}
+                        placeholder='A proposta "{titulo}" foi ACEITA pelo cliente {nome}. Entre em contato imediatamente!' />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mensagem (Recusada)</Label>
+                      <Textarea rows={3} value={managerRejectMessage} onChange={(e) => setManagerRejectMessage(e.target.value)}
+                        placeholder='A proposta "{titulo}" foi RECUSADA pelo cliente {nome}. Motivo: {motivo}. Faça o follow-up!' />
+                    </div>
                   </div>
                 </div>
 
                 <Button onClick={handleSaveStatusNotif} disabled={isSavingStatusNotif}>
-                  {isSavingStatusNotif ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
+                  {isSavingStatusNotif ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Salvar Confirmações
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="webhooks" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Webhook className="h-5 w-5 text-primary" />
+                  Webhooks de Propostas
+                </CardTitle>
+                <CardDescription>
+                  Configure webhooks para receber notificações em tempo real (ex: n8n) quando propostas forem visualizadas, aceitas ou recusadas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Payload enviado</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Cada webhook recebe: <code className="bg-muted px-1 rounded">evento</code>, <code className="bg-muted px-1 rounded">proposta</code> (id, titulo, status, valor),
+                      <code className="bg-muted px-1 rounded"> cliente</code> (nome, telefone, email) e <code className="bg-muted px-1 rounded">motivo_recusa</code> (quando aplicável).
+                    </p>
+                  </div>
+                </div>
+
+                {/* Add webhook form */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold">Adicionar Webhook</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nome</Label>
+                      <Input placeholder="n8n Notificações" value={newWebhookName} onChange={(e) => setNewWebhookName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Secret Key (opcional)</Label>
+                      <Input placeholder="chave-secreta" value={newWebhookSecret} onChange={(e) => setNewWebhookSecret(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>URL do Webhook</Label>
+                    <Input placeholder="https://seu-n8n.com/webhook/..." value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Eventos</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
+                        <Badge
+                          key={evt}
+                          variant={newWebhookEvents.includes(evt) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setNewWebhookEvents(prev =>
+                              prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                            );
+                          }}
+                        >
+                          {evt}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={handleAddWebhook}>
+                    <Plus className="h-4 w-4 mr-2" /> Adicionar Webhook
+                  </Button>
+                </div>
+
+                {/* Webhook list */}
+                {webhooks.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Webhooks Configurados</h4>
+                    {webhooks.map(wh => (
+                      <div key={wh.id} className="border rounded-lg p-4 flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{wh.nome}</span>
+                            <Badge variant={wh.is_active ? 'default' : 'secondary'} className="text-xs">
+                              {wh.is_active ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{wh.url}</p>
+                          <div className="flex gap-1 mt-1">
+                            {wh.eventos?.map((e: string) => (
+                              <Badge key={e} variant="outline" className="text-xs">{e}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Switch checked={wh.is_active} onCheckedChange={(v) => handleToggleWebhook(wh.id, v)} />
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteWebhook(wh.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent logs */}
+                {webhookLogs.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Últimos Disparos</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left p-2">Webhook</th>
+                              <th className="text-left p-2">Evento</th>
+                              <th className="text-left p-2">Status</th>
+                              <th className="text-left p-2">Data</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {webhookLogs.map(log => (
+                              <tr key={log.id} className="border-t">
+                                <td className="p-2">{log.proposal_webhooks?.nome || '—'}</td>
+                                <td className="p-2"><Badge variant="outline" className="text-xs">{log.evento}</Badge></td>
+                                <td className="p-2">
+                                  <Badge variant={log.success ? 'default' : 'destructive'} className="text-xs">
+                                    {log.success ? `✅ ${log.response_status}` : `❌ ${log.response_status || 'erro'}`}
+                                  </Badge>
+                                </td>
+                                <td className="p-2 text-muted-foreground">{new Date(log.created_at).toLocaleString('pt-BR')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
