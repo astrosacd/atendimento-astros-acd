@@ -104,7 +104,7 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView, bra
           ) : (
             <div className="divide-y">
               {visibleSections.map((section, index) => (
-                <div key={section.id} className="p-8 relative">
+                <div key={section.id} className="p-4 md:p-8 relative">
                   {/* Show logo on pages if enabled (except cover which has its own) */}
                   {brandingStyles.showLogoOnPages && 
                    brandingStyles.logoUrl && 
@@ -124,21 +124,21 @@ export function ProposalPreview({ proposal, sections, client, onGalleryView, bra
               
               {/* Client Logos Section */}
               {hasClientLogos && (
-                <div className="p-8 border-t">
+                <div className="p-4 md:p-8 border-t">
                   <ClientLogosSection logos={brandingStyles.clientLogos} branding={brandingStyles} />
                 </div>
               )}
               
               {/* Certifications Section */}
               {hasCertifications && (
-                <div className="p-8 border-t">
+                <div className="p-4 md:p-8 border-t">
                   <CertificationsSection certifications={brandingStyles.certifications} branding={brandingStyles} />
                 </div>
               )}
               
               {/* Footer */}
               {hasFooter && (
-                <div className="p-8 border-t bg-muted/30">
+                <div className="p-4 md:p-8 border-t bg-muted/30">
                   <FooterSection branding={brandingStyles} />
                 </div>
               )}
@@ -193,7 +193,7 @@ function renderSection(
 function CoverPreview({ content, branding }: { content: CoverContent; branding?: BrandingStyles }) {
   return (
     <div
-      className="min-h-[300px] flex flex-col justify-center items-center text-center p-8 rounded-lg"
+      className="min-h-[200px] md:min-h-[300px] flex flex-col justify-center items-center text-center p-4 md:p-8 rounded-lg"
       style={{
         background: content.backgroundImage 
           ? undefined 
@@ -203,30 +203,29 @@ function CoverPreview({ content, branding }: { content: CoverContent; branding?:
         backgroundPosition: 'center',
       }}
     >
-      {/* Logo on cover */}
       {branding?.showLogoOnCover && branding?.logoUrl && (
         <img 
           src={branding.logoUrl} 
           alt={branding.companyName || 'Logo'} 
-          className="h-16 object-contain mb-6"
+          className="h-10 md:h-16 object-contain mb-4 md:mb-6"
         />
       )}
       <h1 
-        className="text-4xl font-bold mb-4"
+        className="text-2xl md:text-4xl font-bold mb-2 md:mb-4"
         style={{ color: branding?.primaryColor }}
       >
         {content.title || 'Proposta Comercial'}
       </h1>
       {content.subtitle && (
         <p 
-          className="text-xl"
+          className="text-base md:text-xl"
           style={{ color: branding?.secondaryColor }}
         >
           {content.subtitle}
         </p>
       )}
       {branding?.companyName && !branding?.logoUrl && (
-        <p className="mt-6 text-sm text-muted-foreground">{branding.companyName}</p>
+        <p className="mt-4 md:mt-6 text-sm text-muted-foreground">{branding.companyName}</p>
       )}
     </div>
   );
@@ -276,13 +275,14 @@ function PricingPreview({
     <div>
       {title && (
         <h2 
-          className="text-2xl font-semibold mb-6"
+          className="text-xl md:text-2xl font-semibold mb-4 md:mb-6"
           style={{ color: branding?.primaryColor }}
         >
           {title}
         </h2>
       )}
-      <div className="border rounded-lg overflow-hidden">
+      {/* Desktop table */}
+      <div className="hidden md:block border rounded-lg overflow-hidden">
         <table className="w-full">
           <thead style={{ backgroundColor: `${branding?.primaryColor || '#3B82F6'}10` }}>
             <tr>
@@ -306,18 +306,34 @@ function PricingPreview({
           </tbody>
           <tfoot style={{ backgroundColor: `${branding?.accentColor || '#F59E0B'}10` }}>
             <tr>
-              <td colSpan={3} className="py-4 px-4 text-right font-semibold">
-                Total:
-              </td>
-              <td 
-                className="py-4 px-4 text-right font-bold text-lg"
-                style={{ color: branding?.accentColor }}
-              >
+              <td colSpan={3} className="py-4 px-4 text-right font-semibold">Total:</td>
+              <td className="py-4 px-4 text-right font-bold text-lg" style={{ color: branding?.accentColor }}>
                 {formatCurrency(total)}
               </td>
             </tr>
           </tfoot>
         </table>
+      </div>
+      {/* Mobile card layout */}
+      <div className="md:hidden space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="border rounded-lg p-3 space-y-1">
+            <p className="font-medium text-sm">{item.description}</p>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{item.quantity}x {formatCurrency(item.unitPrice)}</span>
+              <span className="font-medium text-foreground">{formatCurrency(item.quantity * item.unitPrice)}</span>
+            </div>
+          </div>
+        ))}
+        <div 
+          className="rounded-lg p-3 flex justify-between items-center"
+          style={{ backgroundColor: `${branding?.accentColor || '#F59E0B'}10` }}
+        >
+          <span className="font-semibold">Total:</span>
+          <span className="font-bold text-lg" style={{ color: branding?.accentColor }}>
+            {formatCurrency(total)}
+          </span>
+        </div>
       </div>
     </div>
   );
