@@ -569,11 +569,13 @@ function SignaturePreview({
         </h3>
         <div className="border rounded-lg p-4 bg-muted/20">
           {content.signerSignature ? (
-            <img
-              src={content.signerSignature}
-              alt="Assinatura"
-              className="h-24 object-contain"
-            />
+            <div className="bg-white rounded p-2">
+              <img
+                src={content.signerSignature}
+                alt="Assinatura"
+                className="h-24 object-contain"
+              />
+            </div>
           ) : (
             <div className="h-24 flex items-center justify-center text-muted-foreground border-b border-dashed">
               Assinatura pendente
@@ -596,11 +598,13 @@ function SignaturePreview({
         </h3>
         <div className="border rounded-lg p-4 bg-muted/20">
           {isAccepted && clientSignatureImage ? (
-            <img
-              src={clientSignatureImage}
-              alt="Assinatura do cliente"
-              className="h-24 object-contain"
-            />
+            <div className="bg-white rounded p-2">
+              <img
+                src={clientSignatureImage}
+                alt="Assinatura do cliente"
+                className="h-24 object-contain"
+              />
+            </div>
           ) : (
             <div className="h-24 flex items-center justify-center text-muted-foreground border-b border-dashed">
               {isAccepted ? 'Assinatura registrada' : 'Aguardando assinatura'}
