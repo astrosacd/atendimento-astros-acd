@@ -3333,6 +3333,65 @@ export type Database = {
           },
         ]
       }
+      proposal_scheduled_sends: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          enable_password_protection: boolean | null
+          error_message: string | null
+          id: string
+          proposal_id: string
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          enable_password_protection?: boolean | null
+          error_message?: string | null
+          id?: string
+          proposal_id: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          enable_password_protection?: boolean | null
+          error_message?: string | null
+          id?: string
+          proposal_id?: string
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_scheduled_sends_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_sections: {
         Row: {
           content: Json | null

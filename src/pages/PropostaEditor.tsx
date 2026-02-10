@@ -35,6 +35,7 @@ import {
   ChevronsUpDown,
   RefreshCcw,
   Video,
+  CalendarClock,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -48,6 +49,7 @@ import { ProposalPreview } from '@/components/proposals/ProposalPreview';
 import { SortableSectionList } from '@/components/proposals/SortableSectionList';
 import { ProposalHistoryDialog } from '@/components/proposals/ProposalHistoryDialog';
 import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
+import { ScheduleProposalDialog } from '@/components/proposals/ScheduleProposalDialog';
 import { RemarketingProposalDialog } from '@/components/proposals/RemarketingProposalDialog';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
 import { statusConfig } from '@/types/proposals';
@@ -139,6 +141,7 @@ export default function PropostaEditor() {
   const [clientComboboxOpen, setClientComboboxOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showRemarketingDialog, setShowRemarketingDialog] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
   // Carregar clientes
   useEffect(() => {
@@ -502,10 +505,16 @@ export default function PropostaEditor() {
                   Salvar
                 </Button>
                 {status === 'draft' && (
-                  <Button size="sm" onClick={handleOpenSendDialog} disabled={isSaving}>
-                    <Send className="h-4 w-4 mr-2" />
-                    Enviar
-                  </Button>
+                  <>
+                    <Button size="sm" onClick={handleOpenSendDialog} disabled={isSaving}>
+                      <Send className="h-4 w-4 mr-2" />
+                      Enviar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowScheduleDialog(true)} disabled={isSaving}>
+                      <CalendarClock className="h-4 w-4 mr-2" />
+                      Agendar
+                    </Button>
+                  </>
                 )}
                 {(status === 'sent' || status === 'viewed') && (
                   <Button size="sm" variant="outline" onClick={handleOpenSendDialog} disabled={isSaving}>
@@ -868,6 +877,18 @@ export default function PropostaEditor() {
             onOpenChange={setShowRemarketingDialog}
             proposalId={id}
             proposalTitle={title}
+            clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
+            clientEmail={clientMode === 'manual' ? manualClientEmail : selectedClient?.email}
+            clientPhone={clientMode === 'manual' ? manualClientPhone : selectedClient?.numero}
+          />
+        )}
+
+        {/* Dialog de Agendamento */}
+        {id && (
+          <ScheduleProposalDialog
+            open={showScheduleDialog}
+            onOpenChange={setShowScheduleDialog}
+            proposalId={id}
             clientName={clientMode === 'manual' ? manualClientName : selectedClient?.nome}
             clientEmail={clientMode === 'manual' ? manualClientEmail : selectedClient?.email}
             clientPhone={clientMode === 'manual' ? manualClientPhone : selectedClient?.numero}
