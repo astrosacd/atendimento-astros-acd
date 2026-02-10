@@ -271,14 +271,18 @@ export default function PropostaEditor() {
       return;
     }
 
-    // Validar campos obrigatórios da assinatura (nome do responsável e cargo)
-    const signatureContent = signatureSections[0]?.content as { signerName?: string; signerRole?: string } | undefined;
+    // Validar campos obrigatórios da assinatura (nome do responsável, cargo e assinatura)
+    const signatureContent = signatureSections[0]?.content as { signerName?: string; signerRole?: string; signerSignature?: string } | undefined;
     if (!signatureContent?.signerName?.trim()) {
       toast.error('O nome do responsável na seção de Assinatura é obrigatório.');
       return;
     }
     if (!signatureContent?.signerRole?.trim()) {
       toast.error('O cargo do responsável na seção de Assinatura é obrigatório.');
+      return;
+    }
+    if (!signatureContent?.signerSignature) {
+      toast.error('A assinatura do responsável é obrigatória. Desenhe ou digite a assinatura na seção de Assinatura.');
       return;
     }
 
