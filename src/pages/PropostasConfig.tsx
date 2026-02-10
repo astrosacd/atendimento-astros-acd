@@ -228,7 +228,7 @@ export default function PropostasConfig() {
     toast.success('Webhook removido');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateConfig.mutate({
       gmail_user: gmailUser || null,
       gmail_app_password: gmailAppPassword || null,
@@ -243,6 +243,16 @@ export default function PropostasConfig() {
       auto_remarketing_channel: autoRemarketingChannel,
       auto_remarketing_cron_hour: autoRemarketingCronHour,
     } as any);
+
+    // Update cron schedule
+    try {
+      const { error } = await supabase.functions.invoke('update-remarketing-cron', {
+        body: { cron_hour_brt: autoRemarketingCronHour },
+      });
+      if (error) console.error('Error updating cron:', error);
+    } catch (err) {
+      console.error('Error updating cron schedule:', err);
+    }
   };
 
   const cronHourUTC = ((autoRemarketingCronHour + 3) % 24);

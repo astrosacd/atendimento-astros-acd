@@ -4154,6 +4154,10 @@ export type Database = {
         Args: { p_interval_minutes: number }
         Returns: boolean
       }
+      update_remarketing_cron_schedule: {
+        Args: { new_schedule: string }
+        Returns: undefined
+      }
       validate_password_reset_token: {
         Args: { p_token: string }
         Returns: {
