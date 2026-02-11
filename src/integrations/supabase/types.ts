@@ -4098,6 +4098,7 @@ export type Database = {
       }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
+      execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
