@@ -224,90 +224,90 @@ export default function PropostaEditor() {
     }
   };
 
-  const handleOpenSendDialog = () => {
-    // Validar nome da proposta (obrigatório)
+  // Validação compartilhada entre Enviar e Agendar
+  const validateProposalForSending = (): boolean => {
     if (!title || title.trim() === '' || title.trim() === 'Nova Proposta') {
       toast.error('O nome da proposta é obrigatório. Por favor, dê um nome à proposta.');
-      return;
+      return false;
     }
 
-    // Validar cliente (obrigatório - cadastrado ou manual)
     if (!clientId && !manualClientName?.trim()) {
       toast.error('É obrigatório selecionar um cliente cadastrado ou informar o nome do cliente manual.');
-      return;
+      return false;
     }
 
-    // Validar data de validade (obrigatória)
     if (!validUntil) {
       toast.error('A data de validade é obrigatória.');
-      return;
+      return false;
     }
 
-    // Validar se a data é igual ou maior que hoje
-    // OBS: `validUntil` é salvo como "yyyy-MM-dd" (date-only). Evitamos bug de fuso
-    // adicionando horário fixo ao parse (mesma estratégia usada no Calendar).
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const validDate = new Date(validUntil + 'T12:00:00');
     validDate.setHours(0, 0, 0, 0);
-    
     if (validDate < today) {
       toast.error('A data de validade deve ser igual ou maior que a data de hoje.');
-      return;
+      return false;
     }
 
-    // Validar se tem seção de assinatura
     const signatureSections = sections.filter((s) => s.section_type === 'signature' && s.is_visible);
-    
     if (signatureSections.length === 0) {
       toast.error('A proposta precisa ter uma seção de Assinatura para ser enviada');
-      return;
+      return false;
     }
 
-    // Validar se a assinatura está no final
     const visibleSections = sections.filter((s) => s.is_visible);
     const lastSection = visibleSections[visibleSections.length - 1];
-    
     if (lastSection?.section_type !== 'signature') {
       toast.error('A seção de Assinatura deve estar no final da proposta');
-      return;
+      return false;
     }
 
-    // Validar campos obrigatórios da assinatura (nome do responsável, cargo e assinatura)
     const signatureContent = signatureSections[0]?.content as { signerName?: string; signerRole?: string; signerSignature?: string } | undefined;
     if (!signatureContent?.signerName?.trim()) {
       toast.error('O nome do responsável na seção de Assinatura é obrigatório.');
-      return;
+      return false;
     }
     if (!signatureContent?.signerRole?.trim()) {
       toast.error('O cargo do responsável na seção de Assinatura é obrigatório.');
-      return;
+      return false;
     }
     if (!signatureContent?.signerSignature) {
       toast.error('A assinatura do responsável é obrigatória. Desenhe ou digite a assinatura na seção de Assinatura.');
-      return;
+      return false;
     }
 
-    // Salvar antes de abrir o diálogo para garantir dados atualizados
-      const isManual = clientMode === 'manual';
+    return true;
+  };
 
-      updateProposal.mutate({
-        id,
-        title,
-        client_id: isManual ? null : clientId,
-        manual_client_name: isManual ? (manualClientName || null) : null,
-        manual_client_email: isManual ? (manualClientEmail || null) : null,
-        manual_client_phone: isManual ? (manualClientPhone || null) : null,
-        status,
-        valid_until: validUntil || null,
-        total_value: totalValue,
-      } as any);
+  const saveProposalBeforeDialog = () => {
+    const isManual = clientMode === 'manual';
+    updateProposal.mutate({
+      id,
+      title,
+      client_id: isManual ? null : clientId,
+      manual_client_name: isManual ? (manualClientName || null) : null,
+      manual_client_email: isManual ? (manualClientEmail || null) : null,
+      manual_client_phone: isManual ? (manualClientPhone || null) : null,
+      status,
+      valid_until: validUntil || null,
+      total_value: totalValue,
+    } as any);
+  };
 
-    // Garante que o modal aparece visível (principalmente no mobile)
+  const handleOpenSendDialog = () => {
+    if (!validateProposalForSending()) return;
+    saveProposalBeforeDialog();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowSendDialog(true);
-  }; 
+  };
+
+  const handleOpenScheduleDialog = () => {
+    if (!validateProposalForSending()) return;
+    saveProposalBeforeDialog();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowScheduleDialog(true);
+  };
 
   // Obter dados do cliente selecionado
   const selectedClient = useMemo(() => {
@@ -510,7 +510,7 @@ export default function PropostaEditor() {
                       <Send className="h-4 w-4 mr-2" />
                       Enviar
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowScheduleDialog(true)} disabled={isSaving}>
+                    <Button size="sm" variant="outline" onClick={handleOpenScheduleDialog} disabled={isSaving}>
                       <CalendarClock className="h-4 w-4 mr-2" />
                       Agendar
                     </Button>
