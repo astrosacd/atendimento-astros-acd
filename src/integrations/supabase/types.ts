@@ -4102,6 +4102,7 @@ export type Database = {
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
+      execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
       get_billing_cron_schedule: {
         Args: never
