@@ -1,0 +1,283 @@
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Mail, MessageSquare, Loader2, UserPlus, Users } from 'lucide-react';
+import { useFollowups, type CreateFollowupData } from '@/hooks/useFollowups';
+import { supabase } from '@/integrations/supabase/client';
+
+interface ClientOption {
+  id: string;
+  nome: string;
+  email: string;
+  numero: string;
+}
+
+interface FollowupFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogProps) {
+  const { createFollowup } = useFollowups();
+
+  const [clientSource, setClientSource] = useState<'manual' | 'existing'>('manual');
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [manualName, setManualName] = useState('');
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [produto, setProduto] = useState('');
+  const [customMessage, setCustomMessage] = useState('');
+  const [channel, setChannel] = useState<'whatsapp' | 'email' | 'both'>('whatsapp');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('09:00');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [intervalDays, setIntervalDays] = useState(3);
+  const [maxAttempts, setMaxAttempts] = useState(3);
+
+  useEffect(() => {
+    if (open) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setScheduledDate(tomorrow.toISOString().split('T')[0]);
+      setClientSource('manual');
+      setSelectedClientId('');
+      setManualName('');
+      setManualEmail('');
+      setManualPhone('');
+      setProduto('');
+      setCustomMessage('');
+      setChannel('whatsapp');
+      setScheduledTime('09:00');
+      setIsRecurring(false);
+      setIntervalDays(3);
+      setMaxAttempts(3);
+
+      // Load clients
+      supabase
+        .from('clientes')
+        .select('id, nome, email, numero')
+        .order('nome')
+        .then(({ data }) => {
+          if (data) setClients(data as ClientOption[]);
+        });
+    }
+  }, [open]);
+
+  // Auto-fill message template
+  useEffect(() => {
+    const name = clientSource === 'existing'
+      ? clients.find(c => c.id === selectedClientId)?.nome || 'Cliente'
+      : manualName || 'Cliente';
+
+    if (produto) {
+      setCustomMessage(`Olá ${name}! 👋\n\nNotei seu interesse em *${produto}*. Gostaria de conversar mais sobre como podemos te ajudar?\n\nEstou à disposição para tirar suas dúvidas!`);
+    }
+  }, [produto, manualName, selectedClientId, clientSource, clients]);
+
+  const clientOptions = clients.map(c => ({
+    value: c.id,
+    label: `${c.nome} - ${c.numero || c.email}`,
+  }));
+
+  const handleSubmit = () => {
+    if (!produto.trim()) return;
+    if (!scheduledDate) return;
+
+    const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`).toISOString();
+
+    const data: CreateFollowupData = {
+      produto: produto.trim(),
+      custom_message: customMessage.trim() || undefined,
+      channel,
+      scheduled_at: scheduledAt,
+      is_recurring: isRecurring,
+      recurrence_interval_days: isRecurring ? intervalDays : undefined,
+      max_attempts: isRecurring ? maxAttempts : undefined,
+    };
+
+    if (clientSource === 'existing' && selectedClientId) {
+      data.cliente_id = selectedClientId;
+    } else {
+      data.manual_name = manualName.trim() || undefined;
+      data.manual_email = manualEmail.trim() || undefined;
+      data.manual_phone = manualPhone.trim() || undefined;
+    }
+
+    createFollowup.mutate(data, {
+      onSuccess: () => onOpenChange(false),
+    });
+  };
+
+  const canSubmit = produto.trim() && scheduledDate && (
+    (clientSource === 'existing' && selectedClientId) ||
+    (clientSource === 'manual' && (manualName.trim() || manualEmail.trim() || manualPhone.trim()))
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo Follow-up</DialogTitle>
+          <DialogDescription>
+            Agende uma mensagem de follow-up para um cliente interessado
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Client source toggle */}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={clientSource === 'manual' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setClientSource('manual')}
+              className="flex-1"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Digitar dados
+            </Button>
+            <Button
+              type="button"
+              variant={clientSource === 'existing' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setClientSource('existing')}
+              className="flex-1"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Cliente cadastrado
+            </Button>
+          </div>
+
+          {clientSource === 'existing' ? (
+            <div className="space-y-2">
+              <Label>Selecionar Cliente</Label>
+              <SearchableSelect
+                options={clientOptions}
+                value={selectedClientId}
+                onValueChange={setSelectedClientId}
+                placeholder="Buscar cliente..."
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input placeholder="Nome do cliente" value={manualName} onChange={e => setManualName(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="email@exemplo.com" value={manualEmail} onChange={e => setManualEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>WhatsApp</Label>
+                  <Input placeholder="5511999999999" value={manualPhone} onChange={e => setManualPhone(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Produto */}
+          <div className="space-y-2">
+            <Label>Produto / Interesse <span className="text-destructive">*</span></Label>
+            <Input placeholder="Ex: Plano Premium, Consultoria..." value={produto} onChange={e => setProduto(e.target.value)} />
+          </div>
+
+          {/* Channel */}
+          <div className="space-y-2">
+            <Label>Enviar via</Label>
+            <RadioGroup value={channel} onValueChange={v => setChannel(v as typeof channel)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="whatsapp" id="fu-whatsapp" />
+                <Label htmlFor="fu-whatsapp" className="flex items-center gap-2 cursor-pointer">
+                  <MessageSquare className="h-4 w-4" /> WhatsApp
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="email" id="fu-email" />
+                <Label htmlFor="fu-email" className="flex items-center gap-2 cursor-pointer">
+                  <Mail className="h-4 w-4" /> Email
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="both" id="fu-both" />
+                <Label htmlFor="fu-both" className="cursor-pointer">Ambos</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Schedule */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Data do envio <span className="text-destructive">*</span></Label>
+              <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Horário (BRT)</Label>
+              <Input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Recurrence */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label>Recorrente</Label>
+              <p className="text-xs text-muted-foreground">Reenviar automaticamente a cada X dias</p>
+            </div>
+            <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+          </div>
+
+          {isRecurring && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Intervalo (dias)</Label>
+                <Input type="number" min={1} max={30} value={intervalDays} onChange={e => setIntervalDays(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Máximo de envios</Label>
+                <Input type="number" min={1} max={10} value={maxAttempts} onChange={e => setMaxAttempts(Number(e.target.value))} />
+              </div>
+            </div>
+          )}
+
+          {/* Message */}
+          <div className="space-y-2">
+            <Label>Mensagem</Label>
+            <Textarea
+              placeholder="Escreva sua mensagem de follow-up..."
+              value={customMessage}
+              onChange={e => setCustomMessage(e.target.value)}
+              rows={5}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Personalize a mensagem que será enviada ao cliente
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit || createFollowup.isPending}>
+            {createFollowup.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Agendar Follow-up
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
