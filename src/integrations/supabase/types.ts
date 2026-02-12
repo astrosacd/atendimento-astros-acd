@@ -690,6 +690,115 @@ export type Database = {
           },
         ]
       }
+      client_followup_logs: {
+        Row: {
+          channel: string
+          error_message: string | null
+          followup_id: string
+          id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          error_message?: string | null
+          followup_id: string
+          id?: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          error_message?: string | null
+          followup_id?: string
+          id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_followup_logs_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "client_followups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_followups: {
+        Row: {
+          channel: string
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          current_attempt: number
+          custom_message: string | null
+          id: string
+          is_recurring: boolean
+          manual_email: string | null
+          manual_name: string | null
+          manual_phone: string | null
+          max_attempts: number | null
+          message_template: string | null
+          next_dispatch_at: string | null
+          produto: string
+          recurrence_interval_days: number | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_attempt?: number
+          custom_message?: string | null
+          id?: string
+          is_recurring?: boolean
+          manual_email?: string | null
+          manual_name?: string | null
+          manual_phone?: string | null
+          max_attempts?: number | null
+          message_template?: string | null
+          next_dispatch_at?: string | null
+          produto: string
+          recurrence_interval_days?: number | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_attempt?: number
+          custom_message?: string | null
+          id?: string
+          is_recurring?: boolean
+          manual_email?: string | null
+          manual_name?: string | null
+          manual_phone?: string | null
+          max_attempts?: number | null
+          message_template?: string | null
+          next_dispatch_at?: string | null
+          produto?: string
+          recurrence_interval_days?: number | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_followups_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_history: {
         Row: {
           action: string
@@ -4102,6 +4211,7 @@ export type Database = {
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
+      execute_followups_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
