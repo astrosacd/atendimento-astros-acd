@@ -90,6 +90,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Relatórios': <BarChart3 className="h-4 w-4" />,
   'Chamados': <MessageSquare className="h-4 w-4" />,
   'Despesas': <CreditCard className="h-4 w-4" />,
+  'Follow-ups': <Send className="h-4 w-4" />,
+  'Propostas': <FileText className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -342,6 +344,8 @@ export default function AdminPermissoes() {
     'Números Aquecimento': t('permissions.categories.numberStatus'),
     'Relatórios': t('permissions.categories.reports'),
     'Chamados': t('permissions.categories.tickets'),
+    'Follow-ups': 'Follow-ups',
+    'Propostas': 'Propostas',
   });
 
   const colorOptions = getColorOptions(t);

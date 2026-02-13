@@ -37,7 +37,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -124,8 +124,8 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
     { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
     { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
-    { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Follow-ups', icon: CalendarClock, path: '/followups', color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
+    { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+    { title: 'Follow-ups', icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
     { title: 'Despesas', icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
   ];
 

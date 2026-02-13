@@ -17,10 +17,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
-  Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock
+  Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
+import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
+import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -34,7 +36,9 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
 
 export default function Followups() {
   const { followups, isLoading, cancelFollowup, deleteFollowup } = useFollowups();
+  const { canManageFollowupConfig } = usePermissions();
   const [showForm, setShowForm] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -72,10 +76,18 @@ export default function Followups() {
               Agende mensagens de follow-up para clientes interessados
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Follow-up
-          </Button>
+          <div className="flex gap-2">
+            {canManageFollowupConfig() && (
+              <Button variant="outline" onClick={() => setShowConfig(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Configurações
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Follow-up
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -166,6 +178,7 @@ export default function Followups() {
 
         {/* Form Dialog */}
         <FollowupFormDialog open={showForm} onOpenChange={setShowForm} />
+        <FollowupConfigPanel open={showConfig} onOpenChange={setShowConfig} />
 
         {/* Delete confirmation */}
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

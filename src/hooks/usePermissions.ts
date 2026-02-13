@@ -133,6 +133,14 @@ export function usePermissions() {
   const canViewProposalHistory = () => hasPermission('view_proposal_history');
   const canViewProposalsDashboard = () => hasPermission('view_proposals_dashboard');
 
+  // Follow-ups permissions
+  const canViewFollowups = () => hasPermission('view_followups');
+  const canCreateFollowups = () => hasPermission('create_followups');
+  const canEditFollowups = () => hasPermission('edit_followups');
+  const canDeleteFollowups = () => hasPermission('delete_followups');
+  const canManageFollowupConfig = () => hasPermission('manage_followup_config');
+  const canManageFollowupWebhooks = () => hasPermission('manage_followup_webhooks');
+
   return {
     permissions,
     hasPermission,
@@ -216,5 +224,12 @@ export function usePermissions() {
     canViewDespesas,
     canManageDespesas,
     canManageDespesasCron,
+    // Follow-ups
+    canViewFollowups,
+    canCreateFollowups,
+    canEditFollowups,
+    canDeleteFollowups,
+    canManageFollowupConfig,
+    canManageFollowupWebhooks,
   };
 }
