@@ -7,6 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +22,21 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const now = new Date().toISOString();
+
+    // Fetch delay config
+    const { data: delayConfig } = await supabase
+      .from("followup_config")
+      .select("config_value")
+      .eq("config_key", "delay_seconds")
+      .single();
+
+    const delaySeconds = parseInt(delayConfig?.config_value || "10", 10);
+
+    // Fetch active webhooks
+    const { data: webhooks } = await supabase
+      .from("followup_webhooks")
+      .select("*")
+      .eq("is_active", true);
 
     // Fetch pending followups that are due
     const { data: followups, error: fetchError } = await supabase
@@ -43,7 +62,7 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`📋 Processing ${followups.length} followups`);
+    console.log(`📋 Processing ${followups.length} followups with ${delaySeconds}s delay`);
 
     // Fetch send config for email/whatsapp credentials
     const { data: config } = await supabase
@@ -55,7 +74,15 @@ serve(async (req: Request) => {
     let processed = 0;
     let errors = 0;
 
-    for (const followup of followups) {
+    for (let i = 0; i < followups.length; i++) {
+      const followup = followups[i];
+
+      // Apply delay between dispatches (except first one)
+      if (i > 0 && delaySeconds > 0) {
+        console.log(`⏳ Waiting ${delaySeconds}s before next dispatch...`);
+        await sleep(delaySeconds * 1000);
+      }
+
       try {
         const clientName =
           followup.manual_name ||
@@ -189,24 +216,20 @@ serve(async (req: Request) => {
         const anySent = emailSent || whatsappSent;
 
         if (!anySent) {
-          // Nothing sent - mark as failed
           await supabase
             .from("client_followups")
-            .update({
-              status: "failed",
-              current_attempt: newAttempt,
-            })
+            .update({ status: "failed", current_attempt: newAttempt })
             .eq("id", followup.id);
           errors++;
+
+          // Fire webhook for failure
+          await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
         } else if (
           followup.is_recurring &&
           newAttempt < followup.max_attempts
         ) {
-          // Recurring and still has attempts - schedule next
           const nextDate = new Date();
-          nextDate.setDate(
-            nextDate.getDate() + (followup.recurrence_interval_days || 3)
-          );
+          nextDate.setDate(nextDate.getDate() + (followup.recurrence_interval_days || 3));
 
           await supabase
             .from("client_followups")
@@ -217,8 +240,10 @@ serve(async (req: Request) => {
             })
             .eq("id", followup.id);
           processed++;
+
+          // Fire webhook for sent
+          await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
         } else {
-          // Single dispatch or max attempts reached - mark as completed
           await supabase
             .from("client_followups")
             .update({
@@ -227,6 +252,9 @@ serve(async (req: Request) => {
             })
             .eq("id", followup.id);
           processed++;
+
+          // Fire webhook for sent/completed
+          await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
         }
       } catch (err: any) {
         console.error(`❌ Error processing followup ${followup.id}:`, err.message);
@@ -247,6 +275,85 @@ serve(async (req: Request) => {
     });
   }
 });
+
+async function fireWebhooks(
+  supabase: any,
+  webhooks: any[],
+  evento: string,
+  followup: any,
+  clientName: string
+) {
+  if (!webhooks || webhooks.length === 0) return;
+
+  const relevantWebhooks = webhooks.filter(
+    (w: any) => w.eventos && w.eventos.includes(evento)
+  );
+
+  for (const webhook of relevantWebhooks) {
+    const payload = {
+      event: evento,
+      timestamp: new Date().toISOString(),
+      data: {
+        followup_id: followup.id,
+        cliente_name: clientName,
+        cliente_email: followup.manual_email || followup.clientes?.email || null,
+        cliente_phone: followup.manual_phone || followup.clientes?.numero || null,
+        produto: followup.produto,
+        channel: followup.channel,
+        current_attempt: followup.current_attempt + 1,
+        max_attempts: followup.max_attempts,
+        is_recurring: followup.is_recurring,
+        status: evento === "followup.sent" ? "sent" : "failed",
+      },
+    };
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (webhook.secret_key) {
+        headers["X-Webhook-Secret"] = webhook.secret_key;
+      }
+
+      const response = await fetch(webhook.url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const responseBody = await response.text().catch(() => "");
+
+      await supabase.from("followup_webhook_logs").insert({
+        webhook_id: webhook.id,
+        followup_id: followup.id,
+        evento,
+        payload,
+        response_status: response.status,
+        response_body: responseBody.substring(0, 1000),
+        success: response.ok,
+      });
+
+      // Update last_triggered_at
+      await supabase
+        .from("followup_webhooks")
+        .update({ last_triggered_at: new Date().toISOString() })
+        .eq("id", webhook.id);
+
+      console.log(`🔔 Webhook ${webhook.nome} fired for ${evento}`);
+    } catch (err: any) {
+      console.error(`❌ Webhook ${webhook.nome} error:`, err.message);
+      await supabase.from("followup_webhook_logs").insert({
+        webhook_id: webhook.id,
+        followup_id: followup.id,
+        evento,
+        payload,
+        response_status: null,
+        response_body: err.message,
+        success: false,
+      });
+    }
+  }
+}
 
 function generateEmailHtml(
   clientName: string,

@@ -2347,6 +2347,120 @@ export type Database = {
         }
         Relationships: []
       }
+      followup_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      followup_webhook_logs: {
+        Row: {
+          created_at: string
+          evento: string
+          followup_id: string | null
+          id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          evento: string
+          followup_id?: string | null
+          id?: string
+          payload: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          evento?: string
+          followup_id?: string | null
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_webhook_logs_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "client_followups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "followup_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          eventos: string[]
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       gateway_categories: {
         Row: {
           created_at: string
@@ -4237,6 +4351,13 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_followup_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
       get_gateway_abandoned_cart_cron_schedule: {
         Args: never
         Returns: {
@@ -4319,6 +4440,10 @@ export type Database = {
       }
       update_divulgador_cron_schedule: {
         Args: { p_interval_minutes: number }
+        Returns: boolean
+      }
+      update_followup_cron_schedule: {
+        Args: { p_hour: number; p_minute: number }
         Returns: boolean
       }
       update_gateway_abandoned_cart_cron: {
