@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -17,7 +23,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
-  Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings
+  Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
+  Eye, Edit, Copy
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
@@ -35,12 +42,14 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
 };
 
 export default function Followups() {
-  const { followups, isLoading, cancelFollowup, deleteFollowup } = useFollowups();
+  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup } = useFollowups();
   const { canManageFollowupConfig } = usePermissions();
   const [showForm, setShowForm] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [previewFollowup, setPreviewFollowup] = useState<Followup | null>(null);
+  const [editFollowup, setEditFollowup] = useState<Followup | null>(null);
 
   const filtered = followups.filter(f => {
     const term = search.toLowerCase();
@@ -83,7 +92,7 @@ export default function Followups() {
                 Configurações
               </Button>
             )}
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditFollowup(null); setShowForm(true); }}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Follow-up
             </Button>
@@ -171,14 +180,51 @@ export default function Followups() {
                 followup={f}
                 onCancel={() => cancelFollowup.mutate(f.id)}
                 onDelete={() => setDeleteId(f.id)}
+                onPreview={() => setPreviewFollowup(f)}
+                onEdit={() => { setEditFollowup(f); setShowForm(true); }}
+                onClone={() => cloneFollowup.mutate(f)}
               />
             ))}
           </div>
         )}
 
         {/* Form Dialog */}
-        <FollowupFormDialog open={showForm} onOpenChange={setShowForm} />
+        <FollowupFormDialog open={showForm} onOpenChange={setShowForm} editData={editFollowup} />
         <FollowupConfigPanel open={showConfig} onOpenChange={setShowConfig} />
+
+        {/* Preview Dialog */}
+        <Dialog open={!!previewFollowup} onOpenChange={() => setPreviewFollowup(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Mensagem do Follow-up
+              </DialogTitle>
+            </DialogHeader>
+            {previewFollowup && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Destinatário</p>
+                  <p className="font-semibold">{previewFollowup.manual_name || previewFollowup.clientes?.nome || 'Sem nome'}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Produto</p>
+                  <p>{previewFollowup.produto}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Mensagem</p>
+                  <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap">
+                    {previewFollowup.custom_message || previewFollowup.message_template || 'Mensagem padrão será utilizada'}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Agendado para</p>
+                  <p>{format(new Date(previewFollowup.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Delete confirmation */}
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -200,7 +246,14 @@ export default function Followups() {
   );
 }
 
-function FollowupCard({ followup, onCancel, onDelete }: { followup: Followup; onCancel: () => void; onDelete: () => void }) {
+function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone }: {
+  followup: Followup;
+  onCancel: () => void;
+  onDelete: () => void;
+  onPreview: () => void;
+  onEdit: () => void;
+  onClone: () => void;
+}) {
   const status = statusMap[followup.status] || statusMap.pending;
   const clientName = followup.manual_name || followup.clientes?.nome || 'Sem nome';
 
@@ -212,12 +265,15 @@ function FollowupCard({ followup, onCancel, onDelete }: { followup: Followup; on
 
   const channelLabel = followup.channel === 'email' ? 'Email' : followup.channel === 'whatsapp' ? 'WhatsApp' : 'Ambos';
 
+  const canEdit = followup.status === 'pending';
+  const canClone = followup.status === 'sent' || followup.status === 'completed' || followup.status === 'failed';
+
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
               <h3 className="font-semibold truncate">{clientName}</h3>
               <Badge variant="secondary" className={`${status.color} gap-1`}>
                 {status.icon}
@@ -232,7 +288,7 @@ function FollowupCard({ followup, onCancel, onDelete }: { followup: Followup; on
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{followup.produto}</span>
-              <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-4 text-xs flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {format(new Date(followup.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -251,6 +307,19 @@ function FollowupCard({ followup, onCancel, onDelete }: { followup: Followup; on
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={onPreview} title="Ver mensagem" className="text-muted-foreground hover:text-foreground">
+              <Eye className="h-4 w-4" />
+            </Button>
+            {canEdit && (
+              <Button variant="ghost" size="icon" onClick={onEdit} title="Editar" className="text-muted-foreground hover:text-foreground">
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {canClone && (
+              <Button variant="ghost" size="icon" onClick={onClone} title="Reaproveitar" className="text-muted-foreground hover:text-foreground">
+                <Copy className="h-4 w-4" />
+              </Button>
+            )}
             {followup.status === 'pending' && (
               <Button variant="ghost" size="icon" onClick={onCancel} title="Cancelar" className="text-amber-500 hover:text-amber-600 hover:bg-amber-50">
                 <XCircle className="h-4 w-4" />

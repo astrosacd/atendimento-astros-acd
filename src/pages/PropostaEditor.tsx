@@ -528,7 +528,7 @@ export default function PropostaEditor() {
                     variant="outline" 
                     onClick={() => setShowRemarketingDialog(true)} 
                     disabled={isSaving}
-                    className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                    className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-950 dark:hover:text-orange-400"
                   >
                     <RefreshCcw className="h-4 w-4 mr-2" />
                     Remarketing

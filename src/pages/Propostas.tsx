@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,13 +47,15 @@ import { toast } from 'sonner';
 import { statusConfig, type Proposal, type ProposalStatus } from '@/types/proposals';
 import type { ProposalTemplate } from '@/data/proposalTemplates';
 import { supabase } from '@/integrations/supabase/client';
+import { useScheduledSends } from '@/hooks/useScheduledProposals';
 
-const statusIcons: Record<ProposalStatus, React.ReactNode> = {
+const statusIcons: Record<string, React.ReactNode> = {
   draft: <Clock className="h-3 w-3" />,
   sent: <Send className="h-3 w-3" />,
   viewed: <Eye className="h-3 w-3" />,
   accepted: <CheckCircle className="h-3 w-3" />,
   rejected: <XCircle className="h-3 w-3" />,
+  scheduled: <Clock className="h-3 w-3" />,
 };
 
 export default function Propostas() {
@@ -65,6 +68,25 @@ export default function Propostas() {
   const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Fetch all pending scheduled sends
+  const proposalIds = proposals.map(p => p.id);
+  const { data: allScheduledSends = [] } = useQuery({
+    queryKey: ['all-scheduled-sends', proposalIds],
+    queryFn: async () => {
+      if (proposalIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('proposal_scheduled_sends')
+        .select('proposal_id, status')
+        .in('proposal_id', proposalIds)
+        .eq('status', 'pending');
+      if (error) return [];
+      return data;
+    },
+    enabled: proposalIds.length > 0,
+  });
+
+  const proposalsWithPendingSchedule = new Set(allScheduledSends.map(s => s.proposal_id));
 
   const handleCreateWithTemplate = async (template: ProposalTemplate) => {
     setIsCreating(true);
@@ -255,6 +277,7 @@ export default function Propostas() {
                 onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
+                hasScheduledSend={proposalsWithPendingSchedule.has(proposal.id)}
               />
             ))}
           </div>
@@ -315,6 +338,7 @@ function ProposalCard({
   onViewHistory,
   formatCurrency,
   sendChannels,
+  hasScheduledSend,
 }: {
   proposal: Proposal;
   onClick: () => void;
@@ -322,8 +346,12 @@ function ProposalCard({
   onViewHistory: () => void;
   formatCurrency: (value: number) => string;
   sendChannels: string[];
+  hasScheduledSend?: boolean;
 }) {
-  const config = statusConfig[proposal.status];
+  const displayStatus = hasScheduledSend && proposal.status === 'draft' ? 'scheduled' : proposal.status;
+  const config = displayStatus === 'scheduled'
+    ? { label: 'Agendada', color: 'text-purple-600', bgColor: 'bg-purple-100' }
+    : statusConfig[proposal.status];
 
   // Determinar se é cliente manual ou cadastrado
   const isManualClient = !proposal.client_id && proposal.manual_client_name;
@@ -366,7 +394,7 @@ function ProposalCard({
                 variant="secondary"
                 className={`${config.bgColor} ${config.color} gap-1`}
               >
-                {statusIcons[proposal.status]}
+                {statusIcons[displayStatus] || statusIcons[proposal.status]}
                 {config.label}
               </Badge>
             </div>

@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Mail, MessageSquare, Loader2, UserPlus, Users } from 'lucide-react';
-import { useFollowups, type CreateFollowupData } from '@/hooks/useFollowups';
+import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ClientOption {
@@ -28,10 +28,12 @@ interface ClientOption {
 interface FollowupFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editData?: Followup | null;
 }
 
-export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogProps) {
-  const { createFollowup } = useFollowups();
+export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFormDialogProps) {
+  const { createFollowup, updateFollowup } = useFollowups();
+  const isEditing = !!editData;
 
   const [clientSource, setClientSource] = useState<'manual' | 'existing'>('manual');
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -50,21 +52,39 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
 
   useEffect(() => {
     if (open) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      setScheduledDate(tomorrow.toISOString().split('T')[0]);
-      setClientSource('manual');
-      setSelectedClientId('');
-      setManualName('');
-      setManualEmail('');
-      setManualPhone('');
-      setProduto('');
-      setCustomMessage('');
-      setChannel('whatsapp');
-      setScheduledTime('09:00');
-      setIsRecurring(false);
-      setIntervalDays(3);
-      setMaxAttempts(3);
+      if (editData) {
+        // Populate from edit data
+        setClientSource(editData.cliente_id ? 'existing' : 'manual');
+        setSelectedClientId(editData.cliente_id || '');
+        setManualName(editData.manual_name || '');
+        setManualEmail(editData.manual_email || '');
+        setManualPhone(editData.manual_phone || '');
+        setProduto(editData.produto);
+        setCustomMessage(editData.custom_message || '');
+        setChannel(editData.channel);
+        const date = new Date(editData.scheduled_at);
+        setScheduledDate(date.toISOString().split('T')[0]);
+        setScheduledTime(date.toTimeString().slice(0, 5));
+        setIsRecurring(editData.is_recurring);
+        setIntervalDays(editData.recurrence_interval_days || 3);
+        setMaxAttempts(editData.max_attempts || 3);
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        setScheduledDate(tomorrow.toISOString().split('T')[0]);
+        setClientSource('manual');
+        setSelectedClientId('');
+        setManualName('');
+        setManualEmail('');
+        setManualPhone('');
+        setProduto('');
+        setCustomMessage('');
+        setChannel('whatsapp');
+        setScheduledTime('09:00');
+        setIsRecurring(false);
+        setIntervalDays(3);
+        setMaxAttempts(3);
+      }
 
       // Load clients
       supabase
@@ -75,10 +95,11 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
           if (data) setClients(data as ClientOption[]);
         });
     }
-  }, [open]);
+  }, [open, editData]);
 
-  // Auto-fill message template
+  // Auto-fill message template (only for new)
   useEffect(() => {
+    if (isEditing) return;
     const name = clientSource === 'existing'
       ? clients.find(c => c.id === selectedClientId)?.nome || 'Cliente'
       : manualName || 'Cliente';
@@ -86,7 +107,7 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
     if (produto) {
       setCustomMessage(`Olá ${name}! 👋\n\nNotei seu interesse em *${produto}*. Gostaria de conversar mais sobre como podemos te ajudar?\n\nEstou à disposição para tirar suas dúvidas!`);
     }
-  }, [produto, manualName, selectedClientId, clientSource, clients]);
+  }, [produto, manualName, selectedClientId, clientSource, clients, isEditing]);
 
   const clientOptions = clients.map(c => ({
     value: c.id,
@@ -98,6 +119,26 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
     if (!scheduledDate) return;
 
     const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}:00-03:00`).toISOString();
+
+    if (isEditing && editData) {
+      updateFollowup.mutate({
+        id: editData.id,
+        produto: produto.trim(),
+        custom_message: customMessage.trim() || undefined,
+        channel,
+        scheduled_at: scheduledAt,
+        is_recurring: isRecurring,
+        recurrence_interval_days: isRecurring ? intervalDays : undefined,
+        max_attempts: isRecurring ? maxAttempts : undefined,
+        cliente_id: clientSource === 'existing' ? selectedClientId : null,
+        manual_name: clientSource === 'manual' ? manualName.trim() : undefined,
+        manual_email: clientSource === 'manual' ? manualEmail.trim() : undefined,
+        manual_phone: clientSource === 'manual' ? manualPhone.trim() : undefined,
+      }, {
+        onSuccess: () => onOpenChange(false),
+      });
+      return;
+    }
 
     const data: CreateFollowupData = {
       produto: produto.trim(),
@@ -127,13 +168,15 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
     (clientSource === 'manual' && (manualName.trim() || manualEmail.trim() || manualPhone.trim()))
   );
 
+  const isPending = isEditing ? updateFollowup.isPending : createFollowup.isPending;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Follow-up</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Follow-up' : 'Novo Follow-up'}</DialogTitle>
           <DialogDescription>
-            Agende uma mensagem de follow-up para um cliente interessado
+            {isEditing ? 'Atualize os dados do follow-up agendado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
           </DialogDescription>
         </DialogHeader>
 
@@ -272,9 +315,9 @@ export function FollowupFormDialog({ open, onOpenChange }: FollowupFormDialogPro
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit || createFollowup.isPending}>
-            {createFollowup.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Agendar Follow-up
+          <Button onClick={handleSubmit} disabled={!canSubmit || isPending}>
+            {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {isEditing ? 'Salvar Alterações' : 'Agendar Follow-up'}
           </Button>
         </DialogFooter>
       </DialogContent>

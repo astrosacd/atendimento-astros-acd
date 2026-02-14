@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, CalendarIcon,
-  Plus, Filter, RefreshCw, ListTodo, User, Search, History
+  Plus, Filter, RefreshCw, ListTodo, User, Search, History, Eye
 } from 'lucide-react';
 import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -510,22 +510,46 @@ export default function Tarefas() {
                     </div>
                     
                     <div className="flex gap-1">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleOpenDialog(task)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleteTaskId(task.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {task.status === 'concluida' ? (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEditingTask(task);
+                            setFormData({
+                              cliente_id: task.cliente_id,
+                              title: task.title,
+                              description: task.description || '',
+                              due_date: task.due_date?.split('T')[0] || null,
+                              priority: task.priority,
+                            });
+                            setIsDialogOpen(true);
+                          }}
+                          title="Visualizar tarefa"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => handleOpenDialog(task)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleteTaskId(task.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -540,13 +564,14 @@ export default function Tarefas() {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}
+              {editingTask?.status === 'concluida' ? 'Visualizar Tarefa' : editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {editingTask ? 'Atualize os detalhes da tarefa.' : 'Crie uma nova tarefa.'}
+              {editingTask?.status === 'concluida' ? 'Detalhes da tarefa concluída.' : editingTask ? 'Atualize os detalhes da tarefa.' : 'Crie uma nova tarefa.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <fieldset disabled={editingTask?.status === 'concluida'}>
             <div className="space-y-2">
               <Label className="text-foreground">Cliente (opcional)</Label>
               <Select
@@ -666,6 +691,7 @@ export default function Tarefas() {
                 )}
               </div>
             </div>
+            </fieldset>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button 
@@ -674,11 +700,13 @@ export default function Tarefas() {
                 onClick={() => setIsDialogOpen(false)}
                 className="border-border"
               >
-                Cancelar
+                {editingTask?.status === 'concluida' ? 'Fechar' : 'Cancelar'}
               </Button>
-              <Button type="submit" className="bg-primary text-primary-foreground" disabled={isLoading}>
-                {editingTask ? 'Salvar' : 'Criar Tarefa'}
-              </Button>
+              {editingTask?.status !== 'concluida' && (
+                <Button type="submit" className="bg-primary text-primary-foreground" disabled={isLoading}>
+                  {editingTask ? 'Salvar' : 'Criar Tarefa'}
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>
