@@ -116,6 +116,80 @@ export function useFollowups() {
     },
   });
 
+  const updateFollowup = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<CreateFollowupData> & { id: string }) => {
+      const updateData: any = {};
+      if (updates.produto !== undefined) updateData.produto = updates.produto;
+      if (updates.custom_message !== undefined) updateData.custom_message = updates.custom_message || null;
+      if (updates.channel !== undefined) updateData.channel = updates.channel;
+      if (updates.scheduled_at !== undefined) {
+        updateData.scheduled_at = updates.scheduled_at;
+        updateData.next_dispatch_at = updates.scheduled_at;
+      }
+      if (updates.is_recurring !== undefined) {
+        updateData.is_recurring = updates.is_recurring;
+        updateData.recurrence_interval_days = updates.is_recurring ? (updates.recurrence_interval_days || 3) : null;
+        updateData.max_attempts = updates.is_recurring ? (updates.max_attempts || 3) : 1;
+      }
+      if (updates.manual_name !== undefined) updateData.manual_name = updates.manual_name || null;
+      if (updates.manual_email !== undefined) updateData.manual_email = updates.manual_email || null;
+      if (updates.manual_phone !== undefined) updateData.manual_phone = updates.manual_phone || null;
+      if (updates.cliente_id !== undefined) updateData.cliente_id = updates.cliente_id || null;
+
+      const { error } = await supabase
+        .from('client_followups')
+        .update(updateData)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
+      toast.success('Follow-up atualizado!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao atualizar: ' + err.message);
+    },
+  });
+
+  const cloneFollowup = useMutation({
+    mutationFn: async (followup: Followup) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('client_followups')
+        .insert({
+          cliente_id: followup.cliente_id,
+          manual_name: followup.manual_name,
+          manual_email: followup.manual_email,
+          manual_phone: followup.manual_phone,
+          produto: followup.produto,
+          custom_message: followup.custom_message,
+          channel: followup.channel,
+          scheduled_at: tomorrow.toISOString(),
+          is_recurring: followup.is_recurring,
+          recurrence_interval_days: followup.recurrence_interval_days,
+          max_attempts: followup.max_attempts,
+          current_attempt: 0,
+          next_dispatch_at: tomorrow.toISOString(),
+          status: 'pending',
+          created_by: user?.id,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
+      toast.success('Follow-up clonado! Edite a data e mensagem conforme necessário.');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao clonar: ' + err.message);
+    },
+  });
+
   const deleteFollowup = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -137,6 +211,8 @@ export function useFollowups() {
     followups,
     isLoading,
     createFollowup,
+    updateFollowup,
+    cloneFollowup,
     cancelFollowup,
     deleteFollowup,
   };
