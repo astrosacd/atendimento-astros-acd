@@ -205,7 +205,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -313,11 +313,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
 
           {/* Webhooks Tab */}
           <TabsContent value="webhooks" className="space-y-4 mt-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 Webhooks disparam a cada envio de follow-up
               </p>
-              <Button size="sm" onClick={() => setShowWebhookForm(true)}>
+              <Button size="sm" onClick={() => setShowWebhookForm(true)} className="shrink-0">
                 <Plus className="h-4 w-4 mr-1" /> Novo Webhook
               </Button>
             </div>
@@ -336,15 +336,15 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                 {webhooks.map(wh => (
                   <Card key={wh.id}>
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold truncate">{wh.nome}</span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0 w-full">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="font-semibold truncate max-w-[200px]">{wh.nome}</span>
                             <Badge variant={wh.is_active ? 'default' : 'secondary'} className="text-xs">
                               {wh.is_active ? 'Ativo' : 'Inativo'}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{wh.url}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-full break-all">{wh.url}</p>
                           <div className="flex gap-1 mt-1">
                             {wh.eventos.map(e => (
                               <Badge key={e} variant="outline" className="text-[10px]">{e}</Badge>
