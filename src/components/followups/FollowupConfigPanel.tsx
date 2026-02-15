@@ -205,7 +205,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
@@ -334,18 +334,18 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
             ) : (
               <div className="space-y-3">
                 {webhooks.map(wh => (
-                  <Card key={wh.id}>
+                  <Card key={wh.id} className="overflow-hidden">
                     <CardContent className="p-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0 w-full">
+                      <div className="flex flex-col gap-3">
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="font-semibold truncate max-w-[200px]">{wh.nome}</span>
+                            <span className="font-semibold">{wh.nome}</span>
                             <Badge variant={wh.is_active ? 'default' : 'secondary'} className="text-xs">
                               {wh.is_active ? 'Ativo' : 'Inativo'}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate max-w-full break-all">{wh.url}</p>
-                          <div className="flex gap-1 mt-1">
+                          <p className="text-xs text-muted-foreground break-all">{wh.url}</p>
+                          <div className="flex gap-1 mt-1 flex-wrap">
                             {wh.eventos.map(e => (
                               <Badge key={e} variant="outline" className="text-[10px]">{e}</Badge>
                             ))}
