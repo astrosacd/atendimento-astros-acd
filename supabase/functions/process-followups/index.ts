@@ -11,10 +11,15 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Max execution time safety margin (120s to be safe within 150s limit)
+const MAX_EXECUTION_MS = 120_000;
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const startTime = Date.now();
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -23,14 +28,15 @@ serve(async (req: Request) => {
 
     const now = new Date().toISOString();
 
-    // Fetch delay config
+    // Fetch delay config - cap at 15s max to avoid timeouts
     const { data: delayConfig } = await supabase
       .from("followup_config")
       .select("config_value")
       .eq("config_key", "delay_seconds")
       .single();
 
-    const delaySeconds = parseInt(delayConfig?.config_value || "10", 10);
+    const rawDelay = parseInt(delayConfig?.config_value || "10", 10);
+    const delaySeconds = Math.min(rawDelay, 15); // Cap at 15s to prevent timeouts
 
     // Fetch active webhooks
     const { data: webhooks } = await supabase
@@ -73,8 +79,17 @@ serve(async (req: Request) => {
 
     let processed = 0;
     let errors = 0;
+    let skipped = 0;
 
     for (let i = 0; i < followups.length; i++) {
+      // Check if we're running out of time
+      const elapsed = Date.now() - startTime;
+      if (elapsed > MAX_EXECUTION_MS) {
+        console.log(`⏰ Time limit reached after ${i} items. Remaining ${followups.length - i} will be processed in next run.`);
+        skipped = followups.length - i;
+        break;
+      }
+
       const followup = followups[i];
 
       // Apply delay between dispatches (except first one)
@@ -212,6 +227,7 @@ serve(async (req: Request) => {
           }
         }
 
+        // IMMEDIATELY update status after each followup (incremental saving)
         const newAttempt = followup.current_attempt + 1;
         const anySent = emailSent || whatsappSent;
 
@@ -222,7 +238,6 @@ serve(async (req: Request) => {
             .eq("id", followup.id);
           errors++;
 
-          // Fire webhook for failure
           await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
         } else if (
           followup.is_recurring &&
@@ -241,7 +256,6 @@ serve(async (req: Request) => {
             .eq("id", followup.id);
           processed++;
 
-          // Fire webhook for sent
           await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
         } else {
           await supabase
@@ -253,18 +267,26 @@ serve(async (req: Request) => {
             .eq("id", followup.id);
           processed++;
 
-          // Fire webhook for sent/completed
           await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
         }
+
+        console.log(`📨 Followup ${i + 1}/${followups.length} processed (${followup.id})`);
       } catch (err: any) {
         console.error(`❌ Error processing followup ${followup.id}:`, err.message);
+        // Mark as failed immediately so it doesn't retry endlessly
+        await supabase
+          .from("client_followups")
+          .update({ status: "failed" })
+          .eq("id", followup.id);
         errors++;
       }
     }
 
-    console.log(`✅ Processed: ${processed}, Errors: ${errors}`);
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`✅ Done in ${totalTime}s — Processed: ${processed}, Errors: ${errors}, Skipped: ${skipped}`);
+    
     return new Response(
-      JSON.stringify({ processed, errors, total: followups.length }),
+      JSON.stringify({ processed, errors, skipped, total: followups.length, executionTimeSeconds: totalTime }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
@@ -333,7 +355,6 @@ async function fireWebhooks(
         success: response.ok,
       });
 
-      // Update last_triggered_at
       await supabase
         .from("followup_webhooks")
         .update({ last_triggered_at: new Date().toISOString() })
