@@ -45,9 +45,27 @@ serve(async (req) => {
     const body = await req.json();
     const { webhookId, payload } = body;
 
-    if (!webhookId || !payload) {
+    // --- Input validation ---
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!webhookId || typeof webhookId !== 'string' || !uuidRegex.test(webhookId)) {
       return new Response(
-        JSON.stringify({ error: 'Missing webhookId or payload' }),
+        JSON.stringify({ error: 'webhookId inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!payload || typeof payload !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'payload inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Limit payload size (prevent abuse)
+    const payloadStr = JSON.stringify(payload);
+    if (payloadStr.length > 100000) {
+      return new Response(
+        JSON.stringify({ error: 'Payload muito grande (máx 100KB)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

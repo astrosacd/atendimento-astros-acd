@@ -152,24 +152,71 @@ serve(async (req: Request) => {
     const body: SendProposalRequest = await req.json();
     const { proposalId, channel, recipientEmail, recipientPhone, recipientName, enablePasswordProtection, autoPassword, passwordChannel, isRemarketing, remarketingMessage } = body;
 
+    // --- Input validation ---
+    // Validate proposalId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!proposalId || typeof proposalId !== 'string' || !uuidRegex.test(proposalId)) {
+      return new Response(JSON.stringify({ error: "proposalId inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!channel || !['email', 'whatsapp', 'both'].includes(channel)) {
+      return new Response(JSON.stringify({ error: "channel deve ser 'email', 'whatsapp' ou 'both'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate email format if provided
+    if (recipientEmail && (typeof recipientEmail !== 'string' || recipientEmail.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail))) {
+      return new Response(JSON.stringify({ error: "Formato de email inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate phone format if provided (digits only after cleanup, reasonable length)
+    if (recipientPhone && (typeof recipientPhone !== 'string' || recipientPhone.length > 30)) {
+      return new Response(JSON.stringify({ error: "Formato de telefone inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate string lengths
+    if (recipientName && (typeof recipientName !== 'string' || recipientName.length > 200)) {
+      return new Response(JSON.stringify({ error: "Nome do destinatário muito longo (máx 200)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (remarketingMessage && (typeof remarketingMessage !== 'string' || remarketingMessage.length > 2000)) {
+      return new Response(JSON.stringify({ error: "Mensagem de remarketing muito longa (máx 2000)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (passwordChannel && !['whatsapp', 'email'].includes(passwordChannel)) {
+      return new Response(JSON.stringify({ error: "passwordChannel deve ser 'whatsapp' ou 'email'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log('📨 send-proposal request', {
       proposalId,
       channel,
       recipientEmail: recipientEmail ? '[provided]' : null,
       recipientPhone: recipientPhone ? '[provided]' : null,
       enablePasswordProtection,
-      autoPasswordPreview: autoPassword ? `${autoPassword}` : null,
       passwordChannel,
       isRemarketing,
       remarketingMessage: remarketingMessage ? '[provided]' : null,
     });
-
-    if (!proposalId || !channel) {
-      return new Response(JSON.stringify({ error: "proposalId e channel são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // Fetch proposal
     const { data: proposal, error: proposalError } = await supabase
