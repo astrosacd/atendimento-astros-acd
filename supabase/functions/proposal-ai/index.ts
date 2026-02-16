@@ -38,6 +38,35 @@ serve(async (req) => {
 
     const { action, context, currentContent, sectionType } = await req.json();
 
+    // --- Input validation ---
+    if (!action || typeof action !== 'string' || !['generate', 'improve'].includes(action)) {
+      return new Response(
+        JSON.stringify({ error: "action deve ser 'generate' ou 'improve'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (context && (typeof context !== 'string' || context.length > 5000)) {
+      return new Response(
+        JSON.stringify({ error: "context muito longo (máx 5000 caracteres)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (currentContent && (typeof currentContent !== 'string' || currentContent.length > 10000)) {
+      return new Response(
+        JSON.stringify({ error: "currentContent muito longo (máx 10000 caracteres)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (sectionType && (typeof sectionType !== 'string' || sectionType.length > 50)) {
+      return new Response(
+        JSON.stringify({ error: "sectionType inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");
