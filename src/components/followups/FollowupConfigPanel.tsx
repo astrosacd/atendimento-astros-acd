@@ -99,8 +99,6 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
     mutationFn: async () => {
       const updates = [
         { key: 'delay_seconds', value: delaySeconds },
-        { key: 'cron_hour', value: cronHour },
-        { key: 'cron_minute', value: cronMinute },
       ];
       for (const u of updates) {
         await supabase
@@ -108,16 +106,9 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
           .update({ config_value: u.value } as any)
           .eq('config_key', u.key);
       }
-      // Update cron schedule in DB
-      const { error } = await supabase.rpc('update_followup_cron_schedule', {
-        p_hour: parseInt(cronHour),
-        p_minute: parseInt(cronMinute),
-      });
-      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followup-config'] });
-      queryClient.invalidateQueries({ queryKey: ['followup-cron-schedule'] });
       toast.success('Configurações salvas!');
     },
     onError: (err: any) => toast.error('Erro: ' + err.message),
@@ -237,69 +228,47 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Timer className="h-4 w-4 text-primary" />
-                      Delay entre Disparos
+                      Intervalo entre Disparos
                     </CardTitle>
                     <CardDescription>
-                      Tempo de espera entre cada envio para evitar sobrecarga
+                      Tempo mínimo entre cada envio na fila. O sistema processa 1 follow-up por vez, respeitando esse intervalo.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-3">
                       <Input
                         type="number"
-                        min="1"
-                        max="120"
+                        min="60"
+                        max="600"
                         value={delaySeconds}
                         onChange={e => setDelaySeconds(e.target.value)}
                         className="w-24"
                       />
-                      <span className="text-sm text-muted-foreground">segundos</span>
+                      <span className="text-sm text-muted-foreground">segundos (mín. 60)</span>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Cron Config */}
+                {/* Queue Info */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
-                      Horário do Cron
+                      Sistema de Fila
                     </CardTitle>
                     <CardDescription>
-                      Horário diário para processar follow-ups pendentes (Horário de Brasília)
+                      O cron roda automaticamente a cada minuto verificando a fila de pendentes. Cada execução processa 1 follow-up, garantindo que todos sejam enviados sem timeout.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <Label className="text-xs">Hora</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="23"
-                          value={cronHour}
-                          onChange={e => setCronHour(e.target.value)}
-                          className="w-20"
-                        />
-                      </div>
-                      <span className="mt-5 text-lg font-bold">:</span>
-                      <div>
-                        <Label className="text-xs">Minuto</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="59"
-                          value={cronMinute}
-                          onChange={e => setCronMinute(e.target.value)}
-                          className="w-20"
-                        />
-                      </div>
-                    </div>
                     {cronSchedule && (
                       <p className="text-xs text-muted-foreground">
-                        Cron ativo: <code className="bg-muted px-1 rounded">{cronSchedule.schedule}</code>
+                        Cron ativo: <code className="bg-muted px-1 rounded">{cronSchedule.schedule}</code> (a cada minuto)
                       </p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      💡 Os follow-ups são agendados pela data/hora que você define ao criar. O sistema verifica a cada minuto se há pendências e envia 1 por vez.
+                    </p>
                   </CardContent>
                 </Card>
 
