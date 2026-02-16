@@ -7,19 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// Max execution time safety margin (120s to be safe within 150s limit)
-const MAX_EXECUTION_MS = 120_000;
-
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
-  const startTime = Date.now();
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -28,30 +19,20 @@ serve(async (req: Request) => {
 
     const now = new Date().toISOString();
 
-    // Fetch delay config - cap at 15s max to avoid timeouts
-    const { data: delayConfig } = await supabase
-      .from("followup_config")
-      .select("config_value")
-      .eq("config_key", "delay_seconds")
-      .single();
-
-    const rawDelay = parseInt(delayConfig?.config_value || "10", 10);
-    const delaySeconds = Math.min(rawDelay, 15); // Cap at 15s to prevent timeouts
-
     // Fetch active webhooks
     const { data: webhooks } = await supabase
       .from("followup_webhooks")
       .select("*")
       .eq("is_active", true);
 
-    // Fetch pending followups that are due
+    // Pick only the FIRST pending followup that is due (queue mode: 1 per execution)
     const { data: followups, error: fetchError } = await supabase
       .from("client_followups")
       .select("*, clientes(*)")
       .eq("status", "pending")
       .lte("next_dispatch_at", now)
       .order("next_dispatch_at", { ascending: true })
-      .limit(50);
+      .limit(1);
 
     if (fetchError) {
       console.error("❌ Error fetching followups:", fetchError);
@@ -62,13 +43,13 @@ serve(async (req: Request) => {
     }
 
     if (!followups || followups.length === 0) {
-      console.log("ℹ️ No pending followups to process");
-      return new Response(JSON.stringify({ processed: 0 }), {
+      return new Response(JSON.stringify({ processed: 0, message: "Nenhum followup pendente na fila" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`📋 Processing ${followups.length} followups with ${delaySeconds}s delay`);
+    const followup = followups[0];
+    console.log(`📨 Processando followup da fila: ${followup.id}`);
 
     // Fetch send config for email/whatsapp credentials
     const { data: config } = await supabase
@@ -77,216 +58,191 @@ serve(async (req: Request) => {
       .limit(1)
       .single();
 
-    let processed = 0;
-    let errors = 0;
-    let skipped = 0;
+    const clientName =
+      followup.manual_name ||
+      (followup.clientes as any)?.nome ||
+      "Cliente";
+    const clientEmail =
+      followup.manual_email ||
+      (followup.clientes as any)?.email;
+    const clientPhone =
+      followup.manual_phone ||
+      (followup.clientes as any)?.numero;
 
-    for (let i = 0; i < followups.length; i++) {
-      // Check if we're running out of time
-      const elapsed = Date.now() - startTime;
-      if (elapsed > MAX_EXECUTION_MS) {
-        console.log(`⏰ Time limit reached after ${i} items. Remaining ${followups.length - i} will be processed in next run.`);
-        skipped = followups.length - i;
-        break;
-      }
+    const message =
+      followup.custom_message ||
+      followup.message_template ||
+      `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
 
-      const followup = followups[i];
+    const channel = followup.channel;
+    let emailSent = false;
+    let whatsappSent = false;
 
-      // Apply delay between dispatches (except first one)
-      if (i > 0 && delaySeconds > 0) {
-        console.log(`⏳ Waiting ${delaySeconds}s before next dispatch...`);
-        await sleep(delaySeconds * 1000);
-      }
-
+    // Send Email
+    if (
+      (channel === "email" || channel === "both") &&
+      clientEmail &&
+      config?.email_enabled &&
+      config?.gmail_user &&
+      config?.gmail_app_password
+    ) {
       try {
-        const clientName =
-          followup.manual_name ||
-          (followup.clientes as any)?.nome ||
-          "Cliente";
-        const clientEmail =
-          followup.manual_email ||
-          (followup.clientes as any)?.email;
-        const clientPhone =
-          followup.manual_phone ||
-          (followup.clientes as any)?.numero;
+        const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
 
-        const message =
-          followup.custom_message ||
-          followup.message_template ||
-          `Olá ${clientName}, temos uma oferta especial para você sobre ${followup.produto}. Entre em contato conosco!`;
+        const client = new SMTPClient({
+          connection: {
+            hostname: "smtp.gmail.com",
+            port: 465,
+            tls: true,
+            auth: {
+              username: config.gmail_user,
+              password: config.gmail_app_password,
+            },
+          },
+        });
 
-        const channel = followup.channel;
-        let emailSent = false;
-        let whatsappSent = false;
+        const fromAddress = config.gmail_sender_name
+          ? `${config.gmail_sender_name} <${config.gmail_user}>`
+          : config.gmail_user;
 
-        // Send Email
-        if (
-          (channel === "email" || channel === "both") &&
-          clientEmail &&
-          config?.email_enabled &&
-          config?.gmail_user &&
-          config?.gmail_app_password
-        ) {
-          try {
-            const htmlBody = generateEmailHtml(clientName, followup.produto, message, config.gmail_sender_name || "Equipe Comercial");
+        await client.send({
+          from: fromAddress,
+          to: clientEmail,
+          subject: `${clientName}, temos uma novidade para você! 🚀`,
+          content: message,
+          html: htmlBody,
+        });
 
-            const client = new SMTPClient({
-              connection: {
-                hostname: "smtp.gmail.com",
-                port: 465,
-                tls: true,
-                auth: {
-                  username: config.gmail_user,
-                  password: config.gmail_app_password,
-                },
-              },
-            });
+        await client.close();
+        emailSent = true;
+        console.log(`✅ Email enviado para ${clientEmail}`);
 
-            const fromAddress = config.gmail_sender_name
-              ? `${config.gmail_sender_name} <${config.gmail_user}>`
-              : config.gmail_user;
-
-            await client.send({
-              from: fromAddress,
-              to: clientEmail,
-              subject: `${clientName}, temos uma novidade para você! 🚀`,
-              content: message,
-              html: htmlBody,
-            });
-
-            await client.close();
-            emailSent = true;
-            console.log(`✅ Email sent to ${clientEmail} for followup ${followup.id}`);
-
-            await supabase.from("client_followup_logs").insert({
-              followup_id: followup.id,
-              channel: "email",
-              status: "sent",
-            });
-          } catch (err: any) {
-            console.error(`❌ Email error for followup ${followup.id}:`, err.message);
-            await supabase.from("client_followup_logs").insert({
-              followup_id: followup.id,
-              channel: "email",
-              status: "error",
-              error_message: err.message,
-            });
-          }
-        }
-
-        // Send WhatsApp
-        if (
-          (channel === "whatsapp" || channel === "both") &&
-          clientPhone &&
-          config?.whatsapp_enabled &&
-          config?.evolution_api_url &&
-          config?.evolution_api_key &&
-          config?.evolution_instance_name
-        ) {
-          try {
-            let cleanNumber = clientPhone.replace(/\D/g, "");
-            if (!cleanNumber.startsWith("55") && cleanNumber.length <= 11) {
-              cleanNumber = "55" + cleanNumber;
-            }
-
-            const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
-
-            const response = await fetch(url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: config.evolution_api_key,
-              },
-              body: JSON.stringify({
-                number: cleanNumber,
-                text: message,
-              }),
-            });
-
-            if (!response.ok) {
-              const text = await response.text();
-              throw new Error(`HTTP ${response.status}: ${text}`);
-            }
-
-            whatsappSent = true;
-            console.log(`✅ WhatsApp sent to ${cleanNumber} for followup ${followup.id}`);
-
-            await supabase.from("client_followup_logs").insert({
-              followup_id: followup.id,
-              channel: "whatsapp",
-              status: "sent",
-            });
-          } catch (err: any) {
-            console.error(`❌ WhatsApp error for followup ${followup.id}:`, err.message);
-            await supabase.from("client_followup_logs").insert({
-              followup_id: followup.id,
-              channel: "whatsapp",
-              status: "error",
-              error_message: err.message,
-            });
-          }
-        }
-
-        // IMMEDIATELY update status after each followup (incremental saving)
-        const newAttempt = followup.current_attempt + 1;
-        const anySent = emailSent || whatsappSent;
-
-        if (!anySent) {
-          await supabase
-            .from("client_followups")
-            .update({ status: "failed", current_attempt: newAttempt })
-            .eq("id", followup.id);
-          errors++;
-
-          await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
-        } else if (
-          followup.is_recurring &&
-          newAttempt < followup.max_attempts
-        ) {
-          const nextDate = new Date();
-          nextDate.setDate(nextDate.getDate() + (followup.recurrence_interval_days || 3));
-
-          await supabase
-            .from("client_followups")
-            .update({
-              current_attempt: newAttempt,
-              next_dispatch_at: nextDate.toISOString(),
-              status: "pending",
-            })
-            .eq("id", followup.id);
-          processed++;
-
-          await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
-        } else {
-          await supabase
-            .from("client_followups")
-            .update({
-              current_attempt: newAttempt,
-              status: followup.is_recurring ? "completed" : "sent",
-            })
-            .eq("id", followup.id);
-          processed++;
-
-          await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
-        }
-
-        console.log(`📨 Followup ${i + 1}/${followups.length} processed (${followup.id})`);
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "email",
+          status: "sent",
+        });
       } catch (err: any) {
-        console.error(`❌ Error processing followup ${followup.id}:`, err.message);
-        // Mark as failed immediately so it doesn't retry endlessly
-        await supabase
-          .from("client_followups")
-          .update({ status: "failed" })
-          .eq("id", followup.id);
-        errors++;
+        console.error(`❌ Erro email:`, err.message);
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "email",
+          status: "error",
+          error_message: err.message,
+        });
       }
     }
 
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ Done in ${totalTime}s — Processed: ${processed}, Errors: ${errors}, Skipped: ${skipped}`);
-    
+    // Send WhatsApp
+    if (
+      (channel === "whatsapp" || channel === "both") &&
+      clientPhone &&
+      config?.whatsapp_enabled &&
+      config?.evolution_api_url &&
+      config?.evolution_api_key &&
+      config?.evolution_instance_name
+    ) {
+      try {
+        let cleanNumber = clientPhone.replace(/\D/g, "");
+        if (!cleanNumber.startsWith("55") && cleanNumber.length <= 11) {
+          cleanNumber = "55" + cleanNumber;
+        }
+
+        const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: config.evolution_api_key,
+          },
+          body: JSON.stringify({
+            number: cleanNumber,
+            text: message,
+          }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+
+        whatsappSent = true;
+        console.log(`✅ WhatsApp enviado para ${cleanNumber}`);
+
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "whatsapp",
+          status: "sent",
+        });
+      } catch (err: any) {
+        console.error(`❌ Erro WhatsApp:`, err.message);
+        await supabase.from("client_followup_logs").insert({
+          followup_id: followup.id,
+          channel: "whatsapp",
+          status: "error",
+          error_message: err.message,
+        });
+      }
+    }
+
+    // Update followup status
+    const newAttempt = followup.current_attempt + 1;
+    const anySent = emailSent || whatsappSent;
+
+    if (!anySent) {
+      await supabase
+        .from("client_followups")
+        .update({ status: "failed", current_attempt: newAttempt })
+        .eq("id", followup.id);
+
+      await fireWebhooks(supabase, webhooks || [], "followup.failed", followup, clientName);
+    } else if (
+      followup.is_recurring &&
+      newAttempt < followup.max_attempts
+    ) {
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + (followup.recurrence_interval_days || 3));
+
+      await supabase
+        .from("client_followups")
+        .update({
+          current_attempt: newAttempt,
+          next_dispatch_at: nextDate.toISOString(),
+          status: "pending",
+        })
+        .eq("id", followup.id);
+
+      await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
+    } else {
+      await supabase
+        .from("client_followups")
+        .update({
+          current_attempt: newAttempt,
+          status: followup.is_recurring ? "completed" : "sent",
+        })
+        .eq("id", followup.id);
+
+      await fireWebhooks(supabase, webhooks || [], "followup.sent", followup, clientName);
+    }
+
+    // Count remaining pending for this run
+    const { count } = await supabase
+      .from("client_followups")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending")
+      .lte("next_dispatch_at", now);
+
+    console.log(`✅ Followup ${followup.id} processado. Restantes na fila: ${count || 0}`);
+
     return new Response(
-      JSON.stringify({ processed, errors, skipped, total: followups.length, executionTimeSeconds: totalTime }),
+      JSON.stringify({ 
+        processed: 1, 
+        followup_id: followup.id,
+        remaining: count || 0,
+        email_sent: emailSent,
+        whatsapp_sent: whatsappSent,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
