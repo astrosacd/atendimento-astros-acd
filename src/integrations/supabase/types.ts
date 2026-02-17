@@ -729,6 +729,9 @@ export type Database = {
         Row: {
           channel: string
           cliente_id: string | null
+          conversion_note: string | null
+          conversion_status: string | null
+          converted_at: string | null
           created_at: string
           created_by: string | null
           current_attempt: number
@@ -750,6 +753,9 @@ export type Database = {
         Insert: {
           channel?: string
           cliente_id?: string | null
+          conversion_note?: string | null
+          conversion_status?: string | null
+          converted_at?: string | null
           created_at?: string
           created_by?: string | null
           current_attempt?: number
@@ -771,6 +777,9 @@ export type Database = {
         Update: {
           channel?: string
           cliente_id?: string | null
+          conversion_note?: string | null
+          conversion_status?: string | null
+          converted_at?: string | null
           created_at?: string
           created_by?: string | null
           current_attempt?: number

@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -22,9 +24,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
@@ -41,30 +50,42 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
   failed: { label: 'Falhou', color: 'bg-red-100 text-red-700', icon: <AlertCircle className="h-3 w-3" /> },
 };
 
+const conversionMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  converted: { label: 'Convertido', color: 'bg-emerald-100 text-emerald-700', icon: <ThumbsUp className="h-3 w-3" /> },
+  not_converted: { label: 'Não convertido', color: 'bg-rose-100 text-rose-700', icon: <ThumbsDown className="h-3 w-3" /> },
+};
+
 export default function Followups() {
-  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup } = useFollowups();
+  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion } = useFollowups();
   const { canManageFollowupConfig } = usePermissions();
   const [showForm, setShowForm] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [conversionFilter, setConversionFilter] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [previewFollowup, setPreviewFollowup] = useState<Followup | null>(null);
   const [editFollowup, setEditFollowup] = useState<Followup | null>(null);
+  const [conversionDialog, setConversionDialog] = useState<{ followup: Followup; status: 'converted' | 'not_converted' } | null>(null);
+  const [conversionNote, setConversionNote] = useState('');
 
   const filtered = followups.filter(f => {
     const term = search.toLowerCase();
     const name = f.manual_name || f.clientes?.nome || '';
-    return (
-      name.toLowerCase().includes(term) ||
-      f.produto.toLowerCase().includes(term)
-    );
+    const matchSearch = name.toLowerCase().includes(term) || f.produto.toLowerCase().includes(term);
+    const matchStatus = statusFilter === 'all' || f.status === statusFilter;
+    const matchConversion = conversionFilter === 'all'
+      || (conversionFilter === 'converted' && f.conversion_status === 'converted')
+      || (conversionFilter === 'not_converted' && f.conversion_status === 'not_converted')
+      || (conversionFilter === 'pending_conversion' && !f.conversion_status && (f.status === 'sent' || f.status === 'completed'));
+    return matchSearch && matchStatus && matchConversion;
   });
 
   const stats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
     sent: followups.filter(f => f.status === 'sent' || f.status === 'completed').length,
-    failed: followups.filter(f => f.status === 'failed').length,
+    converted: followups.filter(f => f.conversion_status === 'converted').length,
   };
 
   const handleDelete = async () => {
@@ -72,6 +93,17 @@ export default function Followups() {
       await deleteFollowup.mutateAsync(deleteId);
       setDeleteId(null);
     }
+  };
+
+  const handleConversionConfirm = async () => {
+    if (!conversionDialog) return;
+    await markConversion.mutateAsync({
+      id: conversionDialog.followup.id,
+      conversion_status: conversionDialog.status,
+      conversion_note: conversionNote,
+    });
+    setConversionDialog(null);
+    setConversionNote('');
   };
 
   return (
@@ -136,21 +168,47 @@ export default function Followups() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Falharam</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Convertidos</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-                <span className="text-2xl font-bold">{stats.failed}</span>
+                <Star className="h-5 w-5 text-emerald-500" />
+                <span className="text-2xl font-bold">{stats.converted}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar follow-ups..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar follow-ups..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="pending">Agendado</SelectItem>
+              <SelectItem value="sent">Enviado</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="cancelled">Cancelado</SelectItem>
+              <SelectItem value="failed">Falhou</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={conversionFilter} onValueChange={setConversionFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Conversão" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas conversões</SelectItem>
+              <SelectItem value="converted">Convertidos</SelectItem>
+              <SelectItem value="not_converted">Não convertidos</SelectItem>
+              <SelectItem value="pending_conversion">Sem marcação</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* List */}
@@ -162,9 +220,9 @@ export default function Followups() {
               <CalendarClock className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">Nenhum follow-up encontrado</h3>
               <p className="text-muted-foreground mb-4">
-                {search ? 'Tente ajustar sua busca' : 'Crie seu primeiro follow-up'}
+                {search || statusFilter !== 'all' || conversionFilter !== 'all' ? 'Tente ajustar seus filtros' : 'Crie seu primeiro follow-up'}
               </p>
-              {!search && (
+              {!search && statusFilter === 'all' && conversionFilter === 'all' && (
                 <Button onClick={() => setShowForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Follow-up
@@ -183,6 +241,8 @@ export default function Followups() {
                 onPreview={() => setPreviewFollowup(f)}
                 onEdit={() => { setEditFollowup(f); setShowForm(true); }}
                 onClone={() => cloneFollowup.mutate(f)}
+                onMarkConverted={() => { setConversionDialog({ followup: f, status: 'converted' }); setConversionNote(''); }}
+                onMarkNotConverted={() => { setConversionDialog({ followup: f, status: 'not_converted' }); setConversionNote(''); }}
               />
             ))}
           </div>
@@ -221,8 +281,60 @@ export default function Followups() {
                   <p className="text-sm font-medium text-muted-foreground">Agendado para</p>
                   <p>{format(new Date(previewFollowup.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
                 </div>
+                {previewFollowup.conversion_status && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Conversão</p>
+                    <Badge className={conversionMap[previewFollowup.conversion_status]?.color + ' gap-1'}>
+                      {conversionMap[previewFollowup.conversion_status]?.icon}
+                      {conversionMap[previewFollowup.conversion_status]?.label}
+                    </Badge>
+                    {previewFollowup.conversion_note && (
+                      <p className="text-sm text-muted-foreground mt-1">{previewFollowup.conversion_note}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Conversion Dialog */}
+        <Dialog open={!!conversionDialog} onOpenChange={() => setConversionDialog(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {conversionDialog?.status === 'converted' ? (
+                  <><ThumbsUp className="h-5 w-5 text-emerald-500" /> Marcar como Convertido</>
+                ) : (
+                  <><ThumbsDown className="h-5 w-5 text-rose-500" /> Marcar como Não Convertido</>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Cliente</p>
+                <p className="font-medium">{conversionDialog?.followup.manual_name || conversionDialog?.followup.clientes?.nome || 'Sem nome'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Observação (opcional)</p>
+                <Textarea
+                  placeholder={conversionDialog?.status === 'converted' ? 'Ex: Comprou o produto X, fechou o plano mensal...' : 'Ex: Não respondeu, disse que não tem interesse...'}
+                  value={conversionNote}
+                  onChange={e => setConversionNote(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConversionDialog(null)}>Cancelar</Button>
+              <Button
+                onClick={handleConversionConfirm}
+                disabled={markConversion.isPending}
+                className={conversionDialog?.status === 'converted' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}
+              >
+                {markConversion.isPending ? 'Salvando...' : 'Confirmar'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -246,16 +358,19 @@ export default function Followups() {
   );
 }
 
-function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone }: {
+function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone, onMarkConverted, onMarkNotConverted }: {
   followup: Followup;
   onCancel: () => void;
   onDelete: () => void;
   onPreview: () => void;
   onEdit: () => void;
   onClone: () => void;
+  onMarkConverted: () => void;
+  onMarkNotConverted: () => void;
 }) {
   const status = statusMap[followup.status] || statusMap.pending;
   const clientName = followup.manual_name || followup.clientes?.nome || 'Sem nome';
+  const conversion = followup.conversion_status ? conversionMap[followup.conversion_status] : null;
 
   const channelIcon = followup.channel === 'email'
     ? <Mail className="h-3 w-3" />
@@ -267,6 +382,7 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
 
   const canEdit = followup.status === 'pending';
   const canClone = followup.status === 'sent' || followup.status === 'completed' || followup.status === 'failed';
+  const canMarkConversion = (followup.status === 'sent' || followup.status === 'completed') && !followup.conversion_status;
 
   return (
     <Card>
@@ -279,6 +395,12 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
                 {status.icon}
                 {status.label}
               </Badge>
+              {conversion && (
+                <Badge variant="secondary" className={`${conversion.color} gap-1`}>
+                  {conversion.icon}
+                  {conversion.label}
+                </Badge>
+              )}
               {followup.is_recurring && (
                 <Badge variant="outline" className="gap-1">
                   <RefreshCcw className="h-3 w-3" />
@@ -303,10 +425,23 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
                     Próximo: {format(new Date(followup.next_dispatch_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                   </span>
                 )}
+                {followup.conversion_note && (
+                  <span className="text-muted-foreground italic">"{followup.conversion_note}"</span>
+                )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {canMarkConversion && (
+              <>
+                <Button variant="ghost" size="icon" onClick={onMarkConverted} title="Marcar como convertido" className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50">
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={onMarkNotConverted} title="Marcar como não convertido" className="text-rose-400 hover:text-rose-500 hover:bg-rose-50">
+                  <ThumbsDown className="h-4 w-4" />
+                </Button>
+              </>
+            )}
             <Button variant="ghost" size="icon" onClick={onPreview} title="Ver mensagem" className="text-muted-foreground hover:text-foreground">
               <Eye className="h-4 w-4" />
             </Button>

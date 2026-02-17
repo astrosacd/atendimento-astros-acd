@@ -24,6 +24,9 @@ export interface Followup {
   created_at: string;
   updated_at: string;
   clientes?: { nome: string; email: string; numero: string } | null;
+  conversion_status: 'converted' | 'not_converted' | null;
+  conversion_note: string | null;
+  converted_at: string | null;
 }
 
 export interface FollowupLog {
@@ -207,6 +210,27 @@ export function useFollowups() {
     },
   });
 
+  const markConversion = useMutation({
+    mutationFn: async ({ id, conversion_status, conversion_note }: { id: string; conversion_status: 'converted' | 'not_converted'; conversion_note?: string }) => {
+      const { error } = await supabase
+        .from('client_followups')
+        .update({
+          conversion_status,
+          conversion_note: conversion_note || null,
+          converted_at: new Date().toISOString(),
+        } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
+      toast.success(variables.conversion_status === 'converted' ? 'Marcado como convertido!' : 'Marcado como não convertido');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao marcar conversão: ' + err.message);
+    },
+  });
+
   return {
     followups,
     isLoading,
@@ -215,6 +239,7 @@ export function useFollowups() {
     cloneFollowup,
     cancelFollowup,
     deleteFollowup,
+    markConversion,
   };
 }
 
