@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { FollowupsChart } from '@/components/followups/FollowupsChart';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,14 +89,6 @@ export default function Followups() {
     converted: followups.filter(f => f.conversion_status === 'converted').length,
     not_converted: followups.filter(f => f.conversion_status === 'not_converted').length,
   };
-
-  const chartData = [
-    { name: 'Total', value: stats.total, fill: 'hsl(var(--primary))' },
-    { name: 'Agendados', value: stats.pending, fill: '#f59e0b' },
-    { name: 'Enviados', value: stats.sent, fill: '#3b82f6' },
-    { name: 'Convertidos', value: stats.converted, fill: '#10b981' },
-    { name: 'Não Conv.', value: stats.not_converted, fill: '#f43f5e' },
-  ];
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -191,30 +183,7 @@ export default function Followups() {
 
         {/* Chart */}
         {followups.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Visão Geral</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData} barSize={40} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    cursor={{ fill: 'hsl(var(--muted))' }}
-                    contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))', fontSize: 12 }}
-                    formatter={(value: number, _name: string, props: any) => [value, props.payload.name]}
-                    labelFormatter={() => ''}
-                  />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <FollowupsChart stats={stats} />
         )}
 
         {/* Filters */}

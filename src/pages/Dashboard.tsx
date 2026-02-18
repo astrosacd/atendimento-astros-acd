@@ -26,6 +26,8 @@ import { MonthlyPurchasesCard } from '@/components/dashboard/MonthlyPurchasesCar
 import { ProposalsStatsCard } from '@/components/dashboard/ProposalsStatsCard';
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection';
 import { DespesasSummaryCard } from '@/components/dashboard/DespesasSummaryCard';
+import { FollowupsChart } from '@/components/followups/FollowupsChart';
+import { useFollowups } from '@/hooks/useFollowups';
 import { Badge } from '@/components/ui/badge';
 
 // Mapping of billing cycles to months
@@ -85,6 +87,7 @@ export default function Dashboard() {
   const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
+  const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [urgentTasks, setUrgentTasks] = useState<{ overdue: ClientTask[]; dueSoon: ClientTask[] }>({ overdue: [], dueSoon: [] });
@@ -561,6 +564,14 @@ export default function Dashboard() {
     { name: t('common.error'), value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
   ];
 
+  const followupStats = {
+    total: followups.length,
+    pending: followups.filter(f => f.status === 'pending').length,
+    sent: followups.filter(f => f.status === 'sent' || f.status === 'completed').length,
+    converted: followups.filter(f => f.conversion_status === 'converted').length,
+    not_converted: followups.filter(f => f.conversion_status === 'not_converted').length,
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
@@ -748,6 +759,11 @@ export default function Dashboard() {
 
           {/* Propostas Comerciais */}
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
+
+          {/* Follow-ups resumo */}
+          {followups.length > 0 && (
+            <FollowupsChart stats={followupStats} compact />
+          )}
         </CollapsibleSection>
 
         {/* Alert Banner for Numeros Aquecimento */}
