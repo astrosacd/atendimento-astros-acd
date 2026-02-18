@@ -240,7 +240,13 @@ export default function Followups() {
                 onDelete={() => setDeleteId(f.id)}
                 onPreview={() => setPreviewFollowup(f)}
                 onEdit={() => { setEditFollowup(f); setShowForm(true); }}
-                onClone={() => cloneFollowup.mutate(f)}
+                onClone={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  tomorrow.setHours(9, 0, 0, 0);
+                  setEditFollowup({ ...f, id: '__clone__', scheduled_at: tomorrow.toISOString(), status: 'pending', current_attempt: 0, conversion_status: null, conversion_note: null, converted_at: null } as Followup);
+                  setShowForm(true);
+                }}
                 onMarkConverted={() => { setConversionDialog({ followup: f, status: 'converted' }); setConversionNote(''); }}
                 onMarkNotConverted={() => { setConversionDialog({ followup: f, status: 'not_converted' }); setConversionNote(''); }}
               />
@@ -415,9 +421,19 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
                   <Clock className="h-3 w-3" />
                   {format(new Date(followup.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 flex-wrap gap-y-0.5">
                   {channelIcon}
                   {channelLabel}
+                  {(followup.channel === 'whatsapp' || followup.channel === 'both') && (
+                    <span className="text-muted-foreground/70">
+                      {followup.manual_phone || followup.clientes?.numero || ''}
+                    </span>
+                  )}
+                  {(followup.channel === 'email' || followup.channel === 'both') && (
+                    <span className="text-muted-foreground/70">
+                      {followup.manual_email || followup.clientes?.email || ''}
+                    </span>
+                  )}
                 </span>
                 {followup.is_recurring && followup.next_dispatch_at && followup.status === 'pending' && (
                   <span className="flex items-center gap-1">
