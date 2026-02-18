@@ -33,7 +33,7 @@ interface FollowupFormDialogProps {
 
 export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFormDialogProps) {
   const { createFollowup, updateFollowup } = useFollowups();
-  const isEditing = !!editData;
+  const isEditing = !!editData && editData.id !== '__clone__';
 
   const [clientSource, setClientSource] = useState<'manual' | 'existing'>('manual');
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -174,9 +174,9 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Follow-up' : 'Novo Follow-up'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Atualize os dados do follow-up agendado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
+            {isEditing ? 'Atualize os dados do follow-up agendado' : editData?.id === '__clone__' ? 'Revise e ajuste os dados antes de salvar o follow-up duplicado' : 'Agende uma mensagem de follow-up para um cliente interessado'}
           </DialogDescription>
         </DialogHeader>
 
