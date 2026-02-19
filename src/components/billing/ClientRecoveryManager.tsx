@@ -808,7 +808,7 @@ export const ClientRecoveryManager = () => {
 
       {/* Generate & Send Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {isNewSaleMode ? (
@@ -832,7 +832,7 @@ export const ClientRecoveryManager = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             {isGenerating ? (
               <div className="flex flex-col items-center justify-center py-10">
                 <Sparkles className="w-8 h-8 text-purple-400 animate-pulse mb-3" />
