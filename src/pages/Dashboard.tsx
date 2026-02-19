@@ -759,17 +759,19 @@ export default function Dashboard() {
 
           {/* Propostas Comerciais */}
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
-
-          {/* Follow-ups resumo */}
-          {followups.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                Follow-ups
-              </p>
-              <FollowupsChart stats={followupStats} compact />
-            </div>
-          )}
         </CollapsibleSection>
+
+        {/* ===================== ÁREA FOLLOW-UPS ===================== */}
+        {followups.length > 0 && (
+          <CollapsibleSection
+            title="Follow-ups"
+            icon={MessageSquare}
+            iconColor="bg-gradient-to-br from-blue-500 to-blue-500/80"
+            defaultOpen={true}
+          >
+            <FollowupsChart stats={followupStats} />
+          </CollapsibleSection>
+        )}
 
         {/* Alert Banner for Numeros Aquecimento */}
         <NumerosAquecimentoAlertBanner />
