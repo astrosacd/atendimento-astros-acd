@@ -762,7 +762,12 @@ export default function Dashboard() {
 
           {/* Follow-ups resumo */}
           {followups.length > 0 && (
-            <FollowupsChart stats={followupStats} compact />
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                Follow-ups
+              </p>
+              <FollowupsChart stats={followupStats} compact />
+            </div>
           )}
         </CollapsibleSection>
 
