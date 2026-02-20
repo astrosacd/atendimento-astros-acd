@@ -395,7 +395,7 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
 
   const canEdit = followup.status === 'pending';
   const canClone = followup.status === 'sent' || followup.status === 'completed' || followup.status === 'failed';
-  const canMarkConversion = followup.status === 'sent' || followup.status === 'completed';
+  const canMarkConversion = (followup.status === 'sent' || followup.status === 'completed') && followup.conversion_status !== 'converted';
 
   return (
     <Card>
