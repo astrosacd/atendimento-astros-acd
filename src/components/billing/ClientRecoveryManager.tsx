@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { RecoveryWebhooksManager } from '@/components/billing/RecoveryWebhooksManager';
 import { 
   Sparkles, 
   Send, 
@@ -27,7 +28,8 @@ import {
   Clock,
   MessageSquare,
   ShoppingBag,
-  Users
+  Users,
+  Webhook
 } from 'lucide-react';
 
 interface Cliente {
@@ -375,6 +377,10 @@ export const ClientRecoveryManager = () => {
           <TabsTrigger value="history">
             <History className="w-4 h-4 mr-2" />
             Histórico
+          </TabsTrigger>
+          <TabsTrigger value="webhooks">
+            <Webhook className="w-4 h-4 mr-2" />
+            Webhooks
           </TabsTrigger>
         </TabsList>
 
@@ -803,6 +809,9 @@ export const ClientRecoveryManager = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="webhooks" className="space-y-4">
+          <RecoveryWebhooksManager />
         </TabsContent>
       </Tabs>
 

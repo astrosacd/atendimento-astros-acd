@@ -999,6 +999,93 @@ export type Database = {
           },
         ]
       }
+      client_recovery_webhook_logs: {
+        Row: {
+          attempt_id: string | null
+          created_at: string
+          evento: string
+          id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          attempt_id?: string | null
+          created_at?: string
+          evento: string
+          id?: string
+          payload: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          attempt_id?: string | null
+          created_at?: string
+          evento?: string
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_recovery_webhook_logs_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "client_recovery_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_recovery_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "client_recovery_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_recovery_webhooks: {
+        Row: {
+          created_at: string
+          eventos: string[]
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          nome: string
+          secret_key: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome: string
+          secret_key?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          eventos?: string[]
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          nome?: string
+          secret_key?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       client_tasks: {
         Row: {
           assigned_to: string | null

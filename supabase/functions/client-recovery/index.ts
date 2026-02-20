@@ -639,7 +639,7 @@ Aguardo seu retorno! 😊`;
       }
 
       // Log the recovery attempt with error details if any
-      const { error: logError } = await supabase
+      const { data: attemptData, error: logError } = await supabase
         .from('client_recovery_attempts')
         .insert({
           cliente_id: clienteId,
@@ -648,10 +648,82 @@ Aguardo seu retorno! 😊`;
           canal: channel,
           status: sendStatus,
           error_message: errorMessage,
-        });
+        })
+        .select('id')
+        .single();
       
       if (logError) {
         console.error('Error logging recovery attempt:', logError);
+      }
+
+      // Disparar webhooks se o envio foi bem-sucedido
+      if (sendStatus === 'sent') {
+        const evento = isNewSale ? 'recovery.registro' : 'recovery.inadimplente';
+        const contactInfo = channel === 'whatsapp' ? cliente.numero : cliente.email;
+
+        const payload = {
+          evento,
+          tipo: isNewSale ? 'Cliente Registro' : 'Inadimplente',
+          cliente: {
+            nome: cliente.nome,
+            produto: cliente.produto,
+          },
+          canal: channel === 'whatsapp' ? 'WhatsApp' : 'Email',
+          contato: contactInfo,
+          mensagem_enviada: message,
+          enviado_em: new Date().toISOString(),
+        };
+
+        try {
+          const { data: webhooks } = await supabase
+            .from('client_recovery_webhooks')
+            .select('*')
+            .eq('is_active', true)
+            .contains('eventos', [evento]);
+
+          for (const webhook of webhooks || []) {
+            let whStatus = 0;
+            let whBody = '';
+            let whSuccess = false;
+            try {
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              if (webhook.secret_key) {
+                headers['X-Webhook-Secret'] = webhook.secret_key;
+              }
+              const whResp = await fetch(webhook.url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+              });
+              whStatus = whResp.status;
+              whBody = await whResp.text().catch(() => '');
+              whSuccess = whResp.ok;
+            } catch (e: any) {
+              whBody = e.message;
+            }
+
+            // Log
+            await supabase.from('client_recovery_webhook_logs').insert({
+              webhook_id: webhook.id,
+              attempt_id: attemptData?.id || null,
+              evento,
+              payload,
+              response_status: whStatus || null,
+              response_body: whBody,
+              success: whSuccess,
+            });
+
+            // Update last_triggered_at
+            if (whSuccess) {
+              await supabase
+                .from('client_recovery_webhooks')
+                .update({ last_triggered_at: new Date().toISOString() })
+                .eq('id', webhook.id);
+            }
+          }
+        } catch (e: any) {
+          console.error('Webhook dispatch error:', e.message);
+        }
       }
       
       return new Response(
@@ -706,6 +778,59 @@ Aguardo seu retorno! 😊`;
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // ==================== WEBHOOK CRUD ====================
+    if (action === 'list-webhooks') {
+      const { data, error } = await supabase
+        .from('client_recovery_webhooks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ webhooks: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'create-webhook') {
+      const { nome, url: whUrl, secret_key, eventos } = body;
+      const { data, error } = await supabase
+        .from('client_recovery_webhooks')
+        .insert({ nome, url: whUrl, secret_key: secret_key || null, eventos: eventos || ['recovery.inadimplente', 'recovery.registro'] })
+        .select()
+        .single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ webhook: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'update-webhook') {
+      const { webhookId, nome, url: whUrl, secret_key, eventos, is_active } = body;
+      const { data, error } = await supabase
+        .from('client_recovery_webhooks')
+        .update({ nome, url: whUrl, secret_key: secret_key || null, eventos, is_active })
+        .eq('id', webhookId)
+        .select()
+        .single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ webhook: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'delete-webhook') {
+      const { webhookId } = body;
+      const { error } = await supabase.from('client_recovery_webhooks').delete().eq('id', webhookId);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'list-webhook-logs') {
+      const { webhookId } = body;
+      const query = supabase
+        .from('client_recovery_webhook_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (webhookId) query.eq('webhook_id', webhookId);
+      const { data, error } = await query;
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ logs: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
     return new Response(
