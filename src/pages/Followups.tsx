@@ -267,7 +267,7 @@ export default function Followups() {
 
         {/* Preview Dialog */}
         <Dialog open={!!previewFollowup} onOpenChange={() => setPreviewFollowup(null)}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
@@ -275,7 +275,7 @@ export default function Followups() {
               </DialogTitle>
             </DialogHeader>
             {previewFollowup && (
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto flex-1 pr-1">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Destinatário</p>
                   <p className="font-semibold">{previewFollowup.manual_name || previewFollowup.clientes?.nome || 'Sem nome'}</p>
