@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { Mail, MessageSquare, Loader2, UserPlus, Users } from 'lucide-react';
 import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
@@ -228,7 +229,10 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp</Label>
-                  <Input placeholder="5511999999999" value={manualPhone} onChange={e => setManualPhone(e.target.value)} />
+                  <PhoneInputWithCountry
+                    value={manualPhone}
+                    onChange={(phoneWithDDI) => setManualPhone(phoneWithDDI)}
+                  />
                 </div>
               </div>
             </div>
