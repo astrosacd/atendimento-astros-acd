@@ -222,18 +222,17 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
                 <Label>Nome</Label>
                 <Input placeholder="Nome do cliente" value={manualName} onChange={e => setManualName(e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" placeholder="email@exemplo.com" value={manualEmail} onChange={e => setManualEmail(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>WhatsApp</Label>
-                  <PhoneInputWithCountry
-                    value={manualPhone}
-                    onChange={(phoneWithDDI) => setManualPhone(phoneWithDDI)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" placeholder="email@exemplo.com" value={manualEmail} onChange={e => setManualEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp</Label>
+                <PhoneInputWithCountry
+                  value={manualPhone}
+                  onChange={(phoneWithDDI) => setManualPhone(phoneWithDDI)}
+                  required
+                />
               </div>
             </div>
           )}
