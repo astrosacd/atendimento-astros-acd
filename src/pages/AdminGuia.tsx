@@ -54,7 +54,9 @@ import {
   Timer,
   BarChart,
   Ticket,
-  ClipboardList
+  ClipboardList,
+  FileSignature,
+  CalendarClock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -129,6 +131,15 @@ const categoryToPermission: Record<string, string> = {
   'relatorios-visao-geral': 'view_guia_relatorios',
   'relatorios-metricas': 'view_guia_relatorios',
   'tarefas': 'view_guia_tarefas',
+  'propostas-visao-geral': 'view_guia_propostas',
+  'propostas-editor': 'view_guia_propostas',
+  'propostas-envio': 'view_guia_propostas',
+  'propostas-config': 'view_guia_propostas',
+  'followups-visao-geral': 'view_guia_followups',
+  'followups-config': 'view_guia_followups',
+  'despesas-visao-geral': 'view_guia_despesas',
+  'despesas-recorrencia': 'view_guia_despesas',
+  'revendedor-visao-geral': 'view_guia_revendedor',
 };
 
 const AdminGuia = () => {
@@ -236,6 +247,30 @@ const AdminGuia = () => {
       permissionKey: "view_guia_clientes"
     },
     {
+      id: "propostas",
+      title: "Propostas",
+      icon: FileSignature,
+      color: "text-emerald-400",
+      categories: ["propostas-visao-geral", "propostas-editor", "propostas-envio", "propostas-config"],
+      permissionKey: "view_guia_propostas"
+    },
+    {
+      id: "followups",
+      title: "Follow-ups",
+      icon: CalendarClock,
+      color: "text-violet-400",
+      categories: ["followups-visao-geral", "followups-config"],
+      permissionKey: "view_guia_followups"
+    },
+    {
+      id: "despesas-grupo",
+      title: "Despesas",
+      icon: Receipt,
+      color: "text-orange-400",
+      categories: ["despesas-visao-geral", "despesas-recorrencia"],
+      permissionKey: "view_guia_despesas"
+    },
+    {
       id: "divulgacao",
       title: "Divulgação",
       icon: Megaphone,
@@ -258,6 +293,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["gateway-visao-geral", "gateway-produtos", "gateway-order-bumps", "gateway-cupons", "gateway-checkout", "gateway-pedidos", "gateway-config"],
       permissionKey: "view_guia_gateway"
+    },
+    {
+      id: "revendedor",
+      title: "Revendedor",
+      icon: Store,
+      color: "text-sky-400",
+      categories: ["revendedor-visao-geral"],
+      permissionKey: "view_guia_revendedor"
     },
     {
       id: "relatorios",
@@ -3538,6 +3581,551 @@ Isso evita confusão ao somar moedas diferentes.
         "LTV deve ser pelo menos 3x o custo de aquisição",
         "Acompanhe o MRR semanalmente para detectar tendências",
         "Compare com meses anteriores para ver evolução"
+      ]
+    },
+    {
+      id: "propostas-visao-geral",
+      title: "Sistema de Propostas",
+      icon: FileSignature,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Crie, personalize e envie propostas comerciais profissionais",
+      steps: [
+        {
+          title: "O que é o Sistema de Propostas?",
+          content: `O **Sistema de Propostas** permite criar documentos comerciais profissionais para enviar a clientes:
+
+- **Editor visual**: Crie propostas com seções personalizáveis (texto, imagens, galeria, equipe, depoimentos)
+- **Templates**: Use modelos prontos como ponto de partida
+- **Branding**: Configure logotipo, cores e identidade visual
+- **Envio automatizado**: Envie por WhatsApp e/ou Email
+- **Acompanhamento**: Veja quando o cliente visualizou a proposta
+- **Aceite/Recusa**: O cliente pode aceitar ou recusar diretamente pela URL pública
+- **Assinatura digital**: Captura de assinatura no aceite
+- **Remarketing**: Reenvie propostas não respondidas automaticamente
+
+**Acessar:**
+Menu lateral → **Propostas**`
+        },
+        {
+          title: "Criar nova proposta",
+          content: `1. Acesse **Propostas** → clique em **"Nova Proposta"**
+2. Escolha um **template** ou comece do zero
+3. Preencha os dados básicos:
+   - **Título**: Nome da proposta
+   - **Cliente**: Vincule a um cliente existente ou preencha manualmente
+   - **Valor**: Valor da proposta
+   - **Validade**: Data de expiração
+4. Edite as **seções** no editor visual
+5. Clique em **"Salvar"**
+
+**Templates disponíveis:**
+O sistema oferece templates pré-configurados para diferentes tipos de negócio (serviços, produtos digitais, consultoria, etc.).`
+        },
+        {
+          title: "Status das propostas",
+          content: `As propostas podem ter os seguintes status:
+
+- 🟡 **Rascunho**: Em edição, não enviada
+- 🔵 **Enviada**: Enviada ao cliente
+- 🟣 **Agendada**: Envio programado para data futura
+- 👁️ **Visualizada**: Cliente abriu o link da proposta
+- 🟢 **Aceita**: Cliente aceitou a proposta
+- 🔴 **Recusada**: Cliente recusou (com motivo opcional)
+- ⚫ **Expirada**: Passou da data de validade
+
+**Filtros:**
+Na listagem, filtre por status, cliente ou período para encontrar propostas específicas.`
+        }
+      ],
+      tips: [
+        "Use templates para criar propostas mais rapidamente",
+        "Configure o branding antes de enviar a primeira proposta",
+        "Propostas expiradas podem ser reenviadas com nova data",
+        "Acompanhe visualizações para saber o interesse do cliente"
+      ]
+    },
+    {
+      id: "propostas-editor",
+      title: "Editor de Propostas",
+      icon: FileText,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Personalize o conteúdo e layout das suas propostas",
+      steps: [
+        {
+          title: "Seções disponíveis",
+          content: `O editor permite adicionar diferentes tipos de seções:
+
+- **Texto**: Conteúdo em Markdown (negrito, itálico, listas, links)
+- **Imagem**: Upload de imagens com legenda
+- **Galeria**: Carrossel de imagens para portfólio
+- **Equipe**: Apresente membros da equipe com foto e cargo
+- **Depoimentos**: Adicione testemunhos de clientes satisfeitos
+- **Preços/Planos**: Tabela comparativa de planos
+
+**Reorganizar seções:**
+Arraste e solte as seções para alterar a ordem de exibição.`
+        },
+        {
+          title: "Markdown no editor",
+          content: `Use formatação Markdown nos campos de texto:
+
+- **Negrito**: \`**texto**\`
+- *Itálico*: \`*texto*\`
+- Listas: \`- item\`
+- Links: \`[texto](url)\`
+- Títulos: \`## Título\`
+
+O preview mostra exatamente como o cliente verá a proposta.`
+        },
+        {
+          title: "IA para propostas",
+          content: `O editor integra **IA generativa** para auxiliar na criação de conteúdo:
+
+1. Clique no ícone de **IA** em qualquer seção de texto
+2. Descreva o que deseja (ex: "Crie uma introdução para proposta de marketing digital")
+3. A IA gera o conteúdo automaticamente
+4. Edite conforme necessário
+
+**Modelos disponíveis:**
+O sistema usa modelos de IA integrados (Gemini, GPT) sem necessidade de API key externa.`
+        }
+      ],
+      tips: [
+        "Use o preview para ver como a proposta ficará para o cliente",
+        "Seções podem ser duplicadas para agilizar a criação",
+        "A IA ajuda a criar conteúdo mais profissional rapidamente",
+        "Imagens de alta qualidade fazem diferença na apresentação"
+      ]
+    },
+    {
+      id: "propostas-envio",
+      title: "Envio e Acompanhamento",
+      icon: Send,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Envie propostas e acompanhe visualizações e respostas",
+      steps: [
+        {
+          title: "Enviar proposta",
+          content: `**Envio direto:**
+
+1. Na listagem de propostas, clique no ícone de **enviar**
+2. Selecione os canais:
+   - ✉️ **Email**: Envia link da proposta por email
+   - 📱 **WhatsApp**: Envia link via Evolution API
+3. Personalize a mensagem (opcional)
+4. Clique em **"Enviar"**
+
+**Agendamento:**
+- Clique em **"Agendar Envio"** para definir data/hora futura
+- A proposta ficará com status **"Agendada"** até o momento do envio
+- O sistema processa envios agendados automaticamente`
+        },
+        {
+          title: "Remarketing automático",
+          content: `O remarketing reenvia propostas não respondidas:
+
+**Remarketing Manual:**
+1. Na proposta, clique em **"Remarketing"**
+2. Configure os canais (WhatsApp/Email)
+3. Defina o delay entre envios
+4. Envie imediatamente
+
+**Remarketing Automático:**
+1. Na listagem, configure **automação de remarketing**
+2. Defina o **intervalo** (ex: reenviar após 3 dias)
+3. Defina o **número máximo de tentativas**
+4. O sistema reenvia automaticamente propostas sem resposta
+
+**Horários configuráveis:**
+Os envios de remarketing respeitam horários comerciais configuráveis.`
+        },
+        {
+          title: "Acompanhamento de visualizações",
+          content: `Monitore quando e quantas vezes o cliente acessou a proposta:
+
+**Na listagem:**
+- Ícone de **olho** mostra contagem de visualizações
+- Clique para ver o **histórico detalhado**
+
+**Histórico inclui:**
+- Data e hora de cada visualização
+- IP do visitante
+- Dispositivo utilizado
+- Tempo na página
+
+**Notificações de gestores:**
+Configure para notificar gestores (WhatsApp/Email) quando:
+- Cliente aceitar a proposta
+- Cliente recusar a proposta
+- Suporta múltiplos números de gestores com delay entre mensagens`
+        }
+      ],
+      tips: [
+        "Envie por WhatsApp e Email para maximizar visualizações",
+        "Remarketing após 3-5 dias é ideal para propostas",
+        "Monitore visualizações para fazer follow-up no momento certo",
+        "Configure notificações de aceite/recusa para gestores"
+      ]
+    },
+    {
+      id: "propostas-config",
+      title: "Configurações de Propostas",
+      icon: Settings,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Configure branding, templates e notificações",
+      steps: [
+        {
+          title: "Branding",
+          content: `**Personalizar identidade visual:**
+
+1. Acesse **Propostas** → **Configurações** (ícone de engrenagem)
+2. Na aba **Branding**, configure:
+   - **Logotipo**: Upload da logo da empresa
+   - **Cor primária**: Cor principal do tema
+   - **Cor secundária**: Cor de apoio
+   - **Nome da empresa**: Aparece no rodapé
+
+Essas configurações são aplicadas a **todas** as propostas.`
+        },
+        {
+          title: "Notificações de aceite/recusa",
+          content: `**Configurar notificações para gestores:**
+
+1. Acesse **Propostas** → **Configurações**
+2. Na seção de **Notificações**:
+   - Ative notificação por **WhatsApp** e/ou **Email**
+   - Configure instância Evolution (nome, URL, API key)
+   - Adicione **números de gestores** para receber alertas
+   - Defina **delay entre mensagens** para múltiplos gestores
+   - Configure Gmail para notificação por email
+
+**Eventos notificados:**
+- ✅ Proposta **aceita** pelo cliente
+- ❌ Proposta **recusada** pelo cliente (inclui motivo)`
+        },
+        {
+          title: "Permissões de Propostas",
+          content: `**Configurar em Permissões do Sistema:**
+
+Acesse **Painel Administrativo** → **Permissões**
+
+**Permissões disponíveis:**
+- **view_proposals**: Visualizar propostas
+- **manage_proposals**: Criar, editar e enviar propostas
+- **manage_proposals_config**: Alterar configurações e branding
+
+**Recomendações:**
+- **Vendedor**: view_proposals + manage_proposals
+- **Admin**: Todas as permissões
+- **Visualizador**: Apenas view_proposals`
+        }
+      ],
+      tips: [
+        "Configure o branding antes de criar a primeira proposta",
+        "Use cores consistentes com a identidade da sua marca",
+        "Notificações ajudam a agir rapidamente em aceites e recusas",
+        "Configure múltiplos gestores para cobrir diferentes horários"
+      ]
+    },
+    {
+      id: "followups-visao-geral",
+      title: "Sistema de Follow-ups",
+      icon: CalendarClock,
+      color: "text-violet-400",
+      bgColor: "bg-violet-500/10",
+      description: "Agende lembretes e acompanhamentos automáticos para clientes",
+      steps: [
+        {
+          title: "O que são Follow-ups?",
+          content: `O **Sistema de Follow-ups** permite agendar acompanhamentos automáticos para clientes:
+
+- **Agendamento**: Defina data e hora para envio de lembretes
+- **Múltiplos canais**: Envie por WhatsApp ou Email
+- **Recorrência**: Configure envios recorrentes (a cada X dias)
+- **Múltiplas tentativas**: Defina quantas vezes reenviar
+- **Conversão**: Marque quando o cliente respondeu/converteu
+- **Vinculação**: Vincule a um cliente existente ou use dados manuais
+
+**Acessar:**
+Menu lateral → **Follow-ups**`
+        },
+        {
+          title: "Criar novo follow-up",
+          content: `1. Acesse **Follow-ups** → clique em **"Novo Follow-up"**
+2. Preencha os dados:
+   - **Cliente**: Selecione um cliente existente ou preencha manualmente
+   - **Nome, Email, WhatsApp**: Dados de contato (preenchidos automaticamente se vinculado)
+   - **Produto**: Sobre qual produto/serviço é o follow-up
+   - **Canal**: WhatsApp ou Email
+   - **Mensagem personalizada**: Texto do lembrete
+   - **Data/Hora de envio**: Quando enviar
+3. Opções avançadas:
+   - **Recorrente**: Ativar envios periódicos
+   - **Intervalo**: A cada quantos dias reenviar
+   - **Máx tentativas**: Limite de reenvios
+4. Clique em **"Salvar"**
+
+**Seletor de país (DDI):**
+O campo WhatsApp usa seletor de país com bandeira, suportando 80+ países. Busque por nome do país ou DDI.`
+        },
+        {
+          title: "Status dos follow-ups",
+          content: `Os follow-ups podem ter os seguintes status:
+
+- 🟡 **Pendente**: Aguardando data de envio
+- 🟢 **Enviado**: Mensagem entregue com sucesso
+- 🔴 **Erro**: Falha no envio
+- ✅ **Convertido**: Cliente respondeu/comprou
+- ⏸️ **Pausado**: Temporariamente pausado
+- ⚫ **Cancelado**: Follow-up cancelado
+
+**Conversão:**
+Quando o cliente responde ou compra, marque como **"Convertido"** com nota explicativa para registrar o resultado.`
+        },
+        {
+          title: "Gráficos e métricas",
+          content: `O painel de follow-ups inclui gráficos interativos:
+
+- **Por status**: Distribuição dos follow-ups (pendente, enviado, convertido, etc.)
+- **Por canal**: WhatsApp vs Email
+- **Taxa de conversão**: % de follow-ups que resultaram em conversão
+- **Timeline**: Histórico de envios ao longo do tempo
+
+Use essas métricas para ajustar sua estratégia de acompanhamento.`
+        }
+      ],
+      tips: [
+        "Follow-ups recorrentes são ideais para nutrição de leads",
+        "Use mensagens personalizadas para cada etapa do funil",
+        "Acompanhe a taxa de conversão para medir eficácia",
+        "Configure follow-ups logo após o primeiro contato com o cliente",
+        "O seletor de país suporta busca por DDI (ex: 351 para Portugal)"
+      ]
+    },
+    {
+      id: "followups-config",
+      title: "Configurações de Follow-ups",
+      icon: Settings,
+      color: "text-violet-400",
+      bgColor: "bg-violet-500/10",
+      description: "Configure canais de envio e automações de follow-up",
+      steps: [
+        {
+          title: "Pré-requisitos",
+          content: `**Para envio por WhatsApp:**
+- Configure uma instância Evolution API
+- A mesma instância configurada em outros módulos pode ser usada
+
+**Para envio por Email:**
+- Configure Gmail com Senha de App
+- A mesma configuração de outros módulos pode ser usada
+
+**Processamento automático:**
+O sistema processa follow-ups pendentes automaticamente via cron, verificando mensagens com data de envio passada e enviando-as.`
+        },
+        {
+          title: "Permissões de Follow-ups",
+          content: `**Configurar em Permissões do Sistema:**
+
+Acesse **Painel Administrativo** → **Permissões**
+
+**Permissões disponíveis:**
+- **view_followups**: Visualizar follow-ups
+- **manage_followups**: Criar, editar e gerenciar follow-ups
+
+**Recomendações:**
+- **Vendedor**: view_followups + manage_followups
+- **Admin**: Todas as permissões
+- **Visualizador**: Apenas view_followups`
+        }
+      ],
+      tips: [
+        "Configure WhatsApp e Email para ter múltiplos canais de follow-up",
+        "O cron processa automaticamente - não precisa enviar manualmente",
+        "Follow-ups com falha podem ser reenviados individualmente"
+      ]
+    },
+    {
+      id: "despesas-visao-geral",
+      title: "Controle de Despesas",
+      icon: Receipt,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Registre e controle gastos financeiros do negócio",
+      steps: [
+        {
+          title: "O que é o módulo de Despesas?",
+          content: `O **módulo de Despesas** permite o controle financeiro completo:
+
+- **Registro de gastos**: Valor, categoria, descrição e vencimento
+- **Categorias personalizadas**: Crie categorias como "Marketing", "Infraestrutura", "Pessoal", etc.
+- **Status automáticos**: Pendente, Atrasada ou Paga
+- **Recorrência**: Marque despesas como fixas para geração automática mensal
+- **Resumo financeiro**: Cards com totais (pago, pendente, atrasado)
+- **Dashboard integrado**: Resumo de despesas aparece no Dashboard principal
+
+**Acessar:**
+Menu lateral → **Despesas**`
+        },
+        {
+          title: "Cadastrar despesa",
+          content: `1. Acesse **Despesas** → clique em **"Nova Despesa"**
+2. Preencha:
+   - **Descrição**: O que é a despesa
+   - **Valor**: Montante
+   - **Categoria**: Selecione ou crie nova categoria
+   - **Data de Vencimento**: Quando vence
+   - **Despesa Fixa (modelo)**: Marque se é recorrente
+3. Clique em **"Salvar"**
+
+**Status automáticos:**
+- 🟡 **Pendente**: Vencimento no futuro
+- 🔴 **Atrasada**: Vencimento já passou e não foi paga
+- 🟢 **Paga**: Marcada como paga manualmente`
+        },
+        {
+          title: "Marcar como paga",
+          content: `Para registrar o pagamento de uma despesa:
+
+1. Na lista de despesas, encontre a despesa
+2. Clique no botão **"Pagar"** (ícone de check)
+3. Confirme o pagamento
+
+O status muda para **"Paga"** e a data de pagamento é registrada.
+
+**Resumo financeiro (cards no topo):**
+- **Total Pago**: Soma de todas as despesas pagas
+- **Total Pendente**: Despesas que ainda não venceram
+- **Total Atrasado**: Despesas com vencimento passado e não pagas
+- **Lucro/Prejuízo**: Comparação com receitas (MRR)`
+        }
+      ],
+      tips: [
+        "Use categorias para organizar despesas por tipo",
+        "Marque despesas fixas como modelo para automação mensal",
+        "Acompanhe o resumo financeiro no Dashboard",
+        "Despesas atrasadas são destacadas em vermelho para fácil identificação"
+      ]
+    },
+    {
+      id: "despesas-recorrencia",
+      title: "Despesas Recorrentes (CRON)",
+      icon: Clock,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Automatize a geração mensal de despesas fixas",
+      steps: [
+        {
+          title: "Como funciona a recorrência?",
+          content: `Despesas marcadas como **"Despesa Fixa (modelo)"** são usadas para gerar faturas automaticamente:
+
+**Funcionamento:**
+- Todo dia **1º do mês às 08:00 UTC**, o cron executa
+- Busca todas as despesas marcadas como fixas/modelo
+- Gera uma nova fatura para o mês atual com status "Pendente"
+- A despesa original (modelo) permanece inalterada
+
+**Exemplo:**
+- Despesa modelo: "Aluguel" - R$ 2.000
+- No dia 1º de cada mês, gera automaticamente uma despesa "Aluguel" de R$ 2.000 com vencimento no mês atual`
+        },
+        {
+          title: "Configurar recorrência",
+          content: `**Ao criar ou editar uma despesa:**
+
+1. Marque o checkbox **"Despesa Fixa (modelo)"**
+2. Salve a despesa
+
+**Essa despesa servirá como template mensal.**
+
+**Monitoramento do CRON:**
+No painel de Despesas, você pode ver:
+- Status do cron (ativo/inativo)
+- Data da última execução
+- Próxima execução prevista
+- Quantidade de faturas geradas`
+        },
+        {
+          title: "Permissões de Despesas",
+          content: `**Configurar em Permissões do Sistema:**
+
+Acesse **Painel Administrativo** → **Permissões**
+
+**Permissões disponíveis:**
+- **view_despesas**: Visualizar despesas e resumo financeiro
+- **manage_despesas**: Criar, editar, pagar e excluir despesas
+- **manage_despesas_cron**: Configurar e gerenciar o cron de recorrência
+
+**Recomendações:**
+- **Financeiro**: Todas as permissões de despesas
+- **Gerente**: view_despesas + manage_despesas
+- **Visualizador**: Apenas view_despesas`
+        }
+      ],
+      tips: [
+        "Use modelos de despesa fixa para automatizar gastos mensais",
+        "O cron roda no dia 1º de cada mês automaticamente",
+        "Verifique o status do cron periodicamente para garantir que está funcionando",
+        "Despesas geradas pelo cron podem ser editadas individualmente"
+      ]
+    },
+    {
+      id: "revendedor-visao-geral",
+      title: "Planos Revendedor",
+      icon: Store,
+      color: "text-sky-400",
+      bgColor: "bg-sky-500/10",
+      description: "Gerencie planos e configurações de revendedor",
+      steps: [
+        {
+          title: "O que são Planos Revendedor?",
+          content: `O módulo de **Planos Revendedor** permite gerenciar planos de revenda:
+
+- **Cadastro de planos**: Nome, descrição, preço e recursos incluídos
+- **Gerenciamento**: Ative, desative ou edite planos existentes
+- **Vinculação**: Associe planos a clientes ou revendedores
+
+**Acessar:**
+Menu lateral → **Revendedor** (ícone de loja)`
+        },
+        {
+          title: "Gerenciar planos",
+          content: `**Criar novo plano:**
+
+1. Acesse **Revendedor** no menu lateral
+2. Clique em **"Novo Plano"**
+3. Preencha os dados do plano:
+   - **Nome**: Identificação do plano
+   - **Descrição**: Detalhes dos recursos
+   - **Preço**: Valor do plano
+   - **Status**: Ativo ou Inativo
+4. Salve o plano
+
+**Editar/Excluir:**
+- Clique nos botões de ação ao lado de cada plano para editar ou excluir`
+        },
+        {
+          title: "Permissões",
+          content: `**Configurar em Permissões do Sistema:**
+
+Acesse **Painel Administrativo** → **Permissões**
+
+**Permissão necessária:**
+- **view_revendedor**: Acesso ao módulo de Revendedor
+
+**Recomendações:**
+- **Admin**: Acesso total
+- **Gerente comercial**: view_revendedor para gerenciar planos`
+        }
+      ],
+      tips: [
+        "Organize planos por nível de recursos para facilitar upsell",
+        "Mantenha planos inativos para referência histórica",
+        "Descreva claramente os recursos de cada plano para evitar dúvidas"
       ]
     }
   ];
