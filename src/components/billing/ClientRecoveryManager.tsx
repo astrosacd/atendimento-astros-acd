@@ -81,6 +81,8 @@ export const ClientRecoveryManager = () => {
   const [searchQueryHistory, setSearchQueryHistory] = useState('');
   const [activeTab, setActiveTab] = useState('clients');
   const [isNewSaleMode, setIsNewSaleMode] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ attemptId: string; converted: boolean } | null>(null);
+  const [confirmReason, setConfirmReason] = useState('');
 
   useEffect(() => {
     loadOverdueClients();
@@ -226,21 +228,25 @@ export const ClientRecoveryManager = () => {
     }
   };
 
-  const markAsConverted = async (attemptId: string, converted: boolean) => {
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
     try {
       const { error } = await supabase.functions.invoke('client-recovery', {
         body: { 
           action: 'mark-converted',
-          attemptId,
-          converted,
+          attemptId: confirmAction.attemptId,
+          converted: confirmAction.converted,
         },
       });
 
       if (error) throw error;
       
       toast({
-        title: converted ? 'Marcado como convertido!' : 'Marcado como não convertido',
+        title: confirmAction.converted ? 'Marcado como convertido!' : 'Marcado como não convertido',
+        description: confirmReason || undefined,
       });
+      setConfirmAction(null);
+      setConfirmReason('');
       loadRecoveryHistory();
     } catch (error: any) {
       toast({
@@ -782,22 +788,36 @@ export const ClientRecoveryManager = () => {
                           <TableCell className="text-right">
                             {attempt.status === 'sent' && attempt.converteu === null && (
                               <div className="flex gap-1 justify-end">
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost"
-                                  className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                                  onClick={() => markAsConverted(attempt.id, true)}
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </Button>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost"
-                                  className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                  onClick={() => markAsConverted(attempt.id, false)}
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        size="icon" 
+                                        variant="ghost"
+                                        className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                        onClick={() => setConfirmAction({ attemptId: attempt.id, converted: true })}
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Marcar como convertido (cliente retornou)</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        size="icon" 
+                                        variant="ghost"
+                                        className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                        onClick={() => setConfirmAction({ attemptId: attempt.id, converted: false })}
+                                      >
+                                        <XCircle className="w-4 h-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Marcar como não convertido (cliente não retornou)</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             )}
                           </TableCell>
@@ -814,6 +834,59 @@ export const ClientRecoveryManager = () => {
           <RecoveryWebhooksManager />
         </TabsContent>
       </Tabs>
+
+      {/* Confirm Convert Dialog */}
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) { setConfirmAction(null); setConfirmReason(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {confirmAction?.converted ? (
+                <>
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  Confirmar Conversão
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-5 h-5 text-red-400" />
+                  Confirmar Não Conversão
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.converted
+                ? 'Informe o motivo pelo qual o cliente foi convertido.'
+                : 'Informe o motivo pelo qual o cliente não foi convertido.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Motivo (opcional)</label>
+              <Textarea
+                value={confirmReason}
+                onChange={(e) => setConfirmReason(e.target.value)}
+                rows={3}
+                placeholder={confirmAction?.converted 
+                  ? 'Ex: Cliente renovou o plano após contato...' 
+                  : 'Ex: Cliente informou que não tem interesse...'}
+                className="resize-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setConfirmAction(null); setConfirmReason(''); }}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleConfirmAction}
+                className={confirmAction?.converted 
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                  : "bg-red-600 hover:bg-red-700 text-white"}
+              >
+                {confirmAction?.converted ? 'Confirmar Conversão' : 'Confirmar Não Conversão'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Generate & Send Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
