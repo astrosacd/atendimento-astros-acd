@@ -144,19 +144,9 @@ serve(async (req: Request) => {
     ) {
       try {
         const rawPhone = clientPhone.trim();
-        let cleanNumber: string;
-        
-        if (rawPhone.startsWith("+")) {
-          // International format: strip "+" and use as-is
-          cleanNumber = rawPhone.replace(/\D/g, "");
-        } else {
-          cleanNumber = rawPhone.replace(/\D/g, "");
-          // Only prepend Brazil code for numbers that look like
-          // Brazilian format (10-11 digits without country code)
-          if (cleanNumber.length <= 11) {
-            cleanNumber = "55" + cleanNumber;
-          }
-        }
+        // Remove non-digit characters; the phone input component
+        // already stores the full number with DDI (e.g. 51944853866 for Peru)
+        const cleanNumber = rawPhone.replace(/\D/g, "");
 
         const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
 
