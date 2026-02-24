@@ -212,24 +212,27 @@ export function useFollowups() {
 
   const retryFollowup = useMutation({
     mutationFn: async (id: string) => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate());
-      tomorrow.setMinutes(tomorrow.getMinutes() + 5);
-
+      // First, reset status to pending so the edge function picks it up
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('client_followups')
         .update({
           status: 'pending',
-          next_dispatch_at: tomorrow.toISOString(),
+          next_dispatch_at: now,
         } as any)
         .eq('id', id);
       if (error) throw error;
+
+      // Immediately invoke the process-followups edge function
+      const { error: fnError } = await supabase.functions.invoke('process-followups');
+      if (fnError) throw fnError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
-      toast.success('Follow-up reagendado para reenvio!');
+      toast.success('Follow-up reenviado!');
     },
     onError: (err: any) => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.error('Erro ao reenviar: ' + err.message);
     },
   });
