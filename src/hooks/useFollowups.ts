@@ -210,6 +210,30 @@ export function useFollowups() {
     },
   });
 
+  const retryFollowup = useMutation({
+    mutationFn: async (id: string) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate());
+      tomorrow.setMinutes(tomorrow.getMinutes() + 5);
+
+      const { error } = await supabase
+        .from('client_followups')
+        .update({
+          status: 'pending',
+          next_dispatch_at: tomorrow.toISOString(),
+        } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
+      toast.success('Follow-up reagendado para reenvio!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao reenviar: ' + err.message);
+    },
+  });
+
   const markConversion = useMutation({
     mutationFn: async ({ id, conversion_status, conversion_note }: { id: string; conversion_status: 'converted' | 'not_converted'; conversion_note?: string }) => {
       const { error } = await supabase
@@ -239,6 +263,7 @@ export function useFollowups() {
     cloneFollowup,
     cancelFollowup,
     deleteFollowup,
+    retryFollowup,
     markConversion,
   };
 }
