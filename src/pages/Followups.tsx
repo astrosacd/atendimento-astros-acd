@@ -57,7 +57,7 @@ const conversionMap: Record<string, { label: string; color: string; icon: React.
 };
 
 export default function Followups() {
-  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion } = useFollowups();
+  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion, retryFollowup } = useFollowups();
   const { canManageFollowupConfig } = usePermissions();
   const [showForm, setShowForm] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -246,6 +246,7 @@ export default function Followups() {
                 onCancel={() => cancelFollowup.mutate(f.id)}
                 onDelete={() => setDeleteId(f.id)}
                 onPreview={() => setPreviewFollowup(f)}
+                onRetry={() => retryFollowup.mutate(f.id)}
                 onEdit={() => { setEditFollowup(f); setShowForm(true); }}
                 onClone={() => {
                   const tomorrow = new Date();
@@ -371,13 +372,14 @@ export default function Followups() {
   );
 }
 
-function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone, onMarkConverted, onMarkNotConverted }: {
+function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone, onRetry, onMarkConverted, onMarkNotConverted }: {
   followup: Followup;
   onCancel: () => void;
   onDelete: () => void;
   onPreview: () => void;
   onEdit: () => void;
   onClone: () => void;
+  onRetry: () => void;
   onMarkConverted: () => void;
   onMarkNotConverted: () => void;
 }) {
@@ -471,6 +473,11 @@ function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone
             {canEdit && (
               <Button variant="ghost" size="icon" onClick={onEdit} title="Editar" className="text-muted-foreground hover:text-foreground">
                 <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {followup.status === 'failed' && (
+              <Button variant="ghost" size="icon" onClick={onRetry} title="Reenviar follow-up" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
+                <RefreshCcw className="h-4 w-4" />
               </Button>
             )}
             {canClone && (
