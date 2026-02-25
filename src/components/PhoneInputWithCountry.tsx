@@ -119,19 +119,41 @@ export function PhoneInputWithCountry({
   className = '',
   required = false
 }: PhoneInputWithCountryProps) {
-  const [selectedCountry, setSelectedCountry] = useState(countryCode);
-  const [phoneOnly, setPhoneOnly] = useState(() => {
-    const currentDDI = countries.find(c => c.code === countryCode)?.ddi || '+55';
-    if (value.startsWith(currentDDI.replace('+', ''))) {
-      return value.slice(currentDDI.replace('+', '').length);
+  // Auto-detect country from value by matching DDI prefix (longest match first)
+  const detectCountryFromValue = (val: string): { country: string; phone: string } => {
+    if (!val) return { country: countryCode, phone: '' };
+    const digits = val.replace(/\D/g, '');
+    // Sort countries by DDI length descending to match longest prefix first
+    const sorted = [...countries].sort((a, b) => 
+      b.ddi.replace('+', '').length - a.ddi.replace('+', '').length
+    );
+    for (const c of sorted) {
+      const ddi = c.ddi.replace('+', '');
+      if (digits.startsWith(ddi)) {
+        return { country: c.code, phone: digits.slice(ddi.length) };
+      }
     }
-    return value;
-  });
+    return { country: countryCode, phone: digits };
+  };
+
+  const detected = detectCountryFromValue(value);
+  const [selectedCountry, setSelectedCountry] = useState(detected.country);
+  const [phoneOnly, setPhoneOnly] = useState(detected.phone);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   
   const currentCountry = countries.find(c => c.code === selectedCountry) || countries[0];
+
+  // Re-detect country when value changes externally (e.g., clone form)
+  useEffect(() => {
+    if (!value) return;
+    const newDetected = detectCountryFromValue(value);
+    if (newDetected.country !== selectedCountry || newDetected.phone !== phoneOnly) {
+      setSelectedCountry(newDetected.country);
+      setPhoneOnly(newDetected.phone);
+    }
+  }, [value]);
 
   useEffect(() => {
     if (open) {
