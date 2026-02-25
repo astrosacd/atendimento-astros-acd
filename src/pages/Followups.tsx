@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,9 +32,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
@@ -56,6 +70,8 @@ const conversionMap: Record<string, { label: string; color: string; icon: React.
   not_converted: { label: 'Não convertido', color: 'bg-rose-100 text-rose-700', icon: <ThumbsDown className="h-3 w-3" /> },
 };
 
+const PAGE_SIZE = 15;
+
 export default function Followups() {
   const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion, retryFollowup } = useFollowups();
   const { canManageFollowupConfig } = usePermissions();
@@ -69,11 +85,27 @@ export default function Followups() {
   const [editFollowup, setEditFollowup] = useState<Followup | null>(null);
   const [conversionDialog, setConversionDialog] = useState<{ followup: Followup; status: 'converted' | 'not_converted' } | null>(null);
   const [conversionNote, setConversionNote] = useState('');
+  const [page, setPage] = useState(0);
+
+  // Count sends per contact (phone or email)
+  const sendCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const f of followups) {
+      if (f.status === 'sent' || f.status === 'completed' || f.status === 'failed') {
+        const phone = f.manual_phone || f.clientes?.numero || '';
+        const email = f.manual_email || f.clientes?.email || '';
+        if (phone) map[phone] = (map[phone] || 0) + 1;
+        if (email) map[email] = (map[email] || 0) + 1;
+      }
+    }
+    return map;
+  }, [followups]);
 
   const filtered = followups.filter(f => {
     const term = search.toLowerCase();
     const name = f.manual_name || f.clientes?.nome || '';
-    const matchSearch = name.toLowerCase().includes(term) || f.produto.toLowerCase().includes(term);
+    const phone = f.manual_phone || f.clientes?.numero || '';
+    const matchSearch = name.toLowerCase().includes(term) || f.produto.toLowerCase().includes(term) || phone.includes(term);
     const matchStatus = statusFilter === 'all' || f.status === statusFilter;
     const matchConversion = conversionFilter === 'all'
       || (conversionFilter === 'converted' && f.conversion_status === 'converted')
@@ -81,6 +113,10 @@ export default function Followups() {
       || (conversionFilter === 'pending_conversion' && !f.conversion_status && (f.status === 'sent' || f.status === 'completed'));
     return matchSearch && matchStatus && matchConversion;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   const stats = {
     total: followups.length,
@@ -106,6 +142,32 @@ export default function Followups() {
     });
     setConversionDialog(null);
     setConversionNote('');
+  };
+
+  const getContactSendCount = (f: Followup) => {
+    const phone = f.manual_phone || f.clientes?.numero || '';
+    const email = f.manual_email || f.clientes?.email || '';
+    return Math.max(sendCountMap[phone] || 0, sendCountMap[email] || 0);
+  };
+
+  const handleClone = (f: Followup) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    setEditFollowup({
+      ...f,
+      id: '__clone__',
+      scheduled_at: tomorrow.toISOString(),
+      status: 'pending',
+      current_attempt: 0,
+      conversion_status: null,
+      conversion_note: null,
+      converted_at: null,
+      manual_name: f.manual_name || f.clientes?.nome || null,
+      manual_email: f.manual_email || f.clientes?.email || null,
+      manual_phone: f.manual_phone || f.clientes?.numero || null,
+    } as Followup);
+    setShowForm(true);
   };
 
   return (
@@ -190,9 +252,9 @@ export default function Followups() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar follow-ups..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Buscar por nome, produto ou número..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -205,7 +267,7 @@ export default function Followups() {
               <SelectItem value="failed">Falhou</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={conversionFilter} onValueChange={setConversionFilter}>
+          <Select value={conversionFilter} onValueChange={v => { setConversionFilter(v); setPage(0); }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Conversão" />
             </SelectTrigger>
@@ -218,9 +280,9 @@ export default function Followups() {
           </Select>
         </div>
 
-        {/* List */}
+        {/* Table */}
         {isLoading ? (
-          <div className="grid gap-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24" />)}</div>
+          <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12" />)}</div>
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -238,41 +300,212 @@ export default function Followups() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {filtered.map(f => (
-              <FollowupCard
-                key={f.id}
-                followup={f}
-                onCancel={() => cancelFollowup.mutate(f.id)}
-                onDelete={() => setDeleteId(f.id)}
-                onPreview={() => setPreviewFollowup(f)}
-                onRetry={() => retryFollowup.mutate(f.id)}
-                onEdit={() => { setEditFollowup(f); setShowForm(true); }}
-                onClone={() => {
-                  const tomorrow = new Date();
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  tomorrow.setHours(9, 0, 0, 0);
-                  setEditFollowup({
-                    ...f,
-                    id: '__clone__',
-                    scheduled_at: tomorrow.toISOString(),
-                    status: 'pending',
-                    current_attempt: 0,
-                    conversion_status: null,
-                    conversion_note: null,
-                    converted_at: null,
-                    // Always populate manual fields from client data as fallback
-                    manual_name: f.manual_name || f.clientes?.nome || null,
-                    manual_email: f.manual_email || f.clientes?.email || null,
-                    manual_phone: f.manual_phone || f.clientes?.numero || null,
-                  } as Followup);
-                  setShowForm(true);
-                }}
-                onMarkConverted={() => { setConversionDialog({ followup: f, status: 'converted' }); setConversionNote(''); }}
-                onMarkNotConverted={() => { setConversionDialog({ followup: f, status: 'not_converted' }); setConversionNote(''); }}
-              />
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <TooltipProvider delayDuration={200}>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[140px]">Contato</TableHead>
+                        <TableHead className="min-w-[100px]">Produto</TableHead>
+                        <TableHead className="min-w-[80px]">Canal</TableHead>
+                        <TableHead className="min-w-[130px]">Agendado</TableHead>
+                        <TableHead className="min-w-[80px]">Status</TableHead>
+                        <TableHead className="min-w-[60px] text-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center justify-center gap-1 cursor-help">
+                                <Hash className="h-3 w-3" /> Envios
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Total de follow-ups enviados para este contato</TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right min-w-[120px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paged.map(f => {
+                        const status = statusMap[f.status] || statusMap.pending;
+                        const clientName = f.manual_name || f.clientes?.nome || 'Sem nome';
+                        const phone = f.manual_phone || f.clientes?.numero || '';
+                        const email = f.manual_email || f.clientes?.email || '';
+                        const conversion = f.conversion_status ? conversionMap[f.conversion_status] : null;
+                        const sendCount = getContactSendCount(f);
+                        const canEdit = f.status === 'pending';
+                        const canClone = f.status === 'sent' || f.status === 'completed' || f.status === 'failed';
+                        const canMarkConversion = (f.status === 'sent' || f.status === 'completed') && f.conversion_status !== 'converted';
+
+                        return (
+                          <TableRow key={f.id} className="group">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-sm truncate max-w-[180px]">{clientName}</span>
+                                {phone && (
+                                  <span className="text-xs text-muted-foreground">{phone}</span>
+                                )}
+                                {email && !phone && (
+                                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">{email}</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm truncate max-w-[120px] block">{f.produto}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                {f.channel === 'email' ? <Mail className="h-3.5 w-3.5" /> : f.channel === 'whatsapp' ? <MessageSquare className="h-3.5 w-3.5" /> : <><Mail className="h-3.5 w-3.5" /><MessageSquare className="h-3.5 w-3.5" /></>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs whitespace-nowrap">
+                                {format(new Date(f.scheduled_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant="secondary" className={`${status.color} gap-1 text-[10px] px-1.5 py-0 w-fit`}>
+                                  {status.icon}
+                                  {status.label}
+                                </Badge>
+                                {conversion && (
+                                  <Badge variant="secondary" className={`${conversion.color} gap-1 text-[10px] px-1.5 py-0 w-fit`}>
+                                    {conversion.icon}
+                                    {conversion.label}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {sendCount > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 cursor-help ${
+                                        sendCount >= 5 ? 'border-red-300 text-red-600 bg-red-50' :
+                                        sendCount >= 3 ? 'border-amber-300 text-amber-600 bg-amber-50' :
+                                        'border-muted text-muted-foreground'
+                                      }`}
+                                    >
+                                      {sendCount}×
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {sendCount} follow-up(s) enviado(s) para este contato
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-0.5">
+                                {canMarkConversion && (
+                                  <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50" onClick={() => { setConversionDialog({ followup: f, status: 'converted' }); setConversionNote(''); }}>
+                                          <ThumbsUp className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Convertido</TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-400 hover:text-rose-500 hover:bg-rose-50" onClick={() => { setConversionDialog({ followup: f, status: 'not_converted' }); setConversionNote(''); }}>
+                                          <ThumbsDown className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Não convertido</TooltipContent>
+                                    </Tooltip>
+                                  </>
+                                )}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setPreviewFollowup(f)}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Ver mensagem</TooltipContent>
+                                </Tooltip>
+                                {canEdit && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => { setEditFollowup(f); setShowForm(true); }}>
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Editar</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {f.status === 'failed' && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:bg-orange-50" onClick={() => retryFollowup.mutate(f.id)}>
+                                        <RefreshCcw className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Reenviar</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {canClone && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleClone(f)}>
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Reaproveitar</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {f.status === 'pending' && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-500 hover:text-amber-600 hover:bg-amber-50" onClick={() => cancelFollowup.mutate(f.id)}>
+                                        <XCircle className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Cancelar</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(f.id)}>
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Excluir</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TooltipProvider>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    {filtered.length} registro(s) — Página {currentPage + 1} de {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === 0} onClick={() => setPage(p => p - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Form Dialog */}
@@ -382,133 +615,5 @@ export default function Followups() {
         </AlertDialog>
       </div>
     </DashboardLayout>
-  );
-}
-
-function FollowupCard({ followup, onCancel, onDelete, onPreview, onEdit, onClone, onRetry, onMarkConverted, onMarkNotConverted }: {
-  followup: Followup;
-  onCancel: () => void;
-  onDelete: () => void;
-  onPreview: () => void;
-  onEdit: () => void;
-  onClone: () => void;
-  onRetry: () => void;
-  onMarkConverted: () => void;
-  onMarkNotConverted: () => void;
-}) {
-  const status = statusMap[followup.status] || statusMap.pending;
-  const clientName = followup.manual_name || followup.clientes?.nome || 'Sem nome';
-  const conversion = followup.conversion_status ? conversionMap[followup.conversion_status] : null;
-
-  const channelIcon = followup.channel === 'email'
-    ? <Mail className="h-3 w-3" />
-    : followup.channel === 'whatsapp'
-      ? <MessageSquare className="h-3 w-3" />
-      : <><Mail className="h-3 w-3" /><MessageSquare className="h-3 w-3" /></>;
-
-  const channelLabel = followup.channel === 'email' ? 'Email' : followup.channel === 'whatsapp' ? 'WhatsApp' : 'Ambos';
-
-  const canEdit = followup.status === 'pending';
-  const canClone = followup.status === 'sent' || followup.status === 'completed' || followup.status === 'failed';
-  const canMarkConversion = (followup.status === 'sent' || followup.status === 'completed') && followup.conversion_status !== 'converted';
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h3 className="font-semibold truncate">{clientName}</h3>
-              <Badge variant="secondary" className={`${status.color} gap-1`}>
-                {status.icon}
-                {status.label}
-              </Badge>
-              {conversion && (
-                <Badge variant="secondary" className={`${conversion.color} gap-1`}>
-                  {conversion.icon}
-                  {conversion.label}
-                </Badge>
-              )}
-              {followup.is_recurring && (
-                <Badge variant="outline" className="gap-1">
-                  <RefreshCcw className="h-3 w-3" />
-                  {followup.current_attempt}/{followup.max_attempts}
-                </Badge>
-              )}
-            </div>
-            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{followup.produto}</span>
-              <div className="flex items-center gap-4 text-xs flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {format(new Date(followup.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </span>
-                <span className="flex items-center gap-1 flex-wrap gap-y-0.5">
-                  {channelIcon}
-                  {channelLabel}
-                  {(followup.channel === 'whatsapp' || followup.channel === 'both') && (
-                    <span className="text-muted-foreground/70">
-                      {followup.manual_phone || followup.clientes?.numero || ''}
-                    </span>
-                  )}
-                  {(followup.channel === 'email' || followup.channel === 'both') && (
-                    <span className="text-muted-foreground/70">
-                      {followup.manual_email || followup.clientes?.email || ''}
-                    </span>
-                  )}
-                </span>
-                {followup.is_recurring && followup.next_dispatch_at && followup.status === 'pending' && (
-                  <span className="flex items-center gap-1">
-                    <CalendarClock className="h-3 w-3" />
-                    Próximo: {format(new Date(followup.next_dispatch_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                  </span>
-                )}
-                {followup.conversion_note && (
-                  <span className="text-muted-foreground italic">"{followup.conversion_note}"</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {canMarkConversion && (
-              <>
-                <Button variant="ghost" size="icon" onClick={onMarkConverted} title="Marcar como convertido" className="text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50">
-                  <ThumbsUp className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={onMarkNotConverted} title="Marcar como não convertido" className="text-rose-400 hover:text-rose-500 hover:bg-rose-50">
-                  <ThumbsDown className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="icon" onClick={onPreview} title="Ver mensagem" className="text-muted-foreground hover:text-foreground">
-              <Eye className="h-4 w-4" />
-            </Button>
-            {canEdit && (
-              <Button variant="ghost" size="icon" onClick={onEdit} title="Editar" className="text-muted-foreground hover:text-foreground">
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            {followup.status === 'failed' && (
-              <Button variant="ghost" size="icon" onClick={onRetry} title="Reenviar follow-up" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-            )}
-            {canClone && (
-              <Button variant="ghost" size="icon" onClick={onClone} title="Reaproveitar" className="text-muted-foreground hover:text-foreground">
-                <Copy className="h-4 w-4" />
-              </Button>
-            )}
-            {followup.status === 'pending' && (
-              <Button variant="ghost" size="icon" onClick={onCancel} title="Cancelar" className="text-amber-500 hover:text-amber-600 hover:bg-amber-50">
-                <XCircle className="h-4 w-4" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
