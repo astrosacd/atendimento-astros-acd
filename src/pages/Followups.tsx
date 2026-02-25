@@ -252,7 +252,20 @@ export default function Followups() {
                   const tomorrow = new Date();
                   tomorrow.setDate(tomorrow.getDate() + 1);
                   tomorrow.setHours(9, 0, 0, 0);
-                  setEditFollowup({ ...f, id: '__clone__', scheduled_at: tomorrow.toISOString(), status: 'pending', current_attempt: 0, conversion_status: null, conversion_note: null, converted_at: null } as Followup);
+                  setEditFollowup({
+                    ...f,
+                    id: '__clone__',
+                    scheduled_at: tomorrow.toISOString(),
+                    status: 'pending',
+                    current_attempt: 0,
+                    conversion_status: null,
+                    conversion_note: null,
+                    converted_at: null,
+                    // Always populate manual fields from client data as fallback
+                    manual_name: f.manual_name || f.clientes?.nome || null,
+                    manual_email: f.manual_email || f.clientes?.email || null,
+                    manual_phone: f.manual_phone || f.clientes?.numero || null,
+                  } as Followup);
                   setShowForm(true);
                 }}
                 onMarkConverted={() => { setConversionDialog({ followup: f, status: 'converted' }); setConversionNote(''); }}
