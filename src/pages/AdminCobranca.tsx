@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -137,6 +138,7 @@ const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#e
 const AdminCobranca = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const {
     canViewCobrancaMetricas,
     canViewCobrancaRecuperacao,
@@ -1152,7 +1154,7 @@ const AdminCobranca = () => {
           ))}
         </div>
 
-        <Tabs defaultValue={canViewCobrancaMetricas() ? "metrics" : canViewCobrancaRecuperacao() ? "recovery" : canViewCobrancaConfig() ? "config" : "logs"} className="space-y-6">
+        <Tabs defaultValue={searchParams.get('tab') || (canViewCobrancaMetricas() ? "metrics" : canViewCobrancaRecuperacao() ? "recovery" : canViewCobrancaConfig() ? "config" : "logs")} className="space-y-6">
           <TabsList className="bg-card/50 border border-border/50 p-1 flex-wrap h-auto">
             {canViewCobrancaMetricas() && (
               <TabsTrigger value="metrics"><TrendingUp className="w-4 h-4 mr-2" />{t('billing.tabs.metrics')}</TabsTrigger>
