@@ -771,7 +771,7 @@ export default function Dashboard() {
           {/* Recuperação pendente */}
           {isAdmin && stats.recuperacaoPendentes > 0 && (
             <Card 
-              className="bg-gradient-to-br from-amber-500/10 to-destructive/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mb-4"
+              className="bg-gradient-to-br from-amber-500/10 to-destructive/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mt-6 mb-4"
               onClick={() => navigate('/admin/cobranca')}
             >
               <CardContent className="p-4">
