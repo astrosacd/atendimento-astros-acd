@@ -71,6 +71,7 @@ interface ClienteStats {
   vendasUnicasBrl: number;
   vendasUnicasUsd: number;
   clientesRegistroSemValor: number;
+  recuperacaoPendentes: number;
 }
 
 interface CustomRole {
@@ -120,6 +121,7 @@ export default function Dashboard() {
     vendasUnicasBrl: 0,
     vendasUnicasUsd: 0,
     clientesRegistroSemValor: 0,
+    recuperacaoPendentes: 0,
   });
 
   useEffect(() => {
@@ -282,6 +284,7 @@ export default function Dashboard() {
       let tarefasEmAndamento = 0;
       let tarefasAtrasadas = 0;
       let tarefasConcluidas = 0;
+      let recoveryPending = 0;
 
       if (isAdmin) {
         const { count: pending } = await supabase
@@ -304,6 +307,13 @@ export default function Dashboard() {
 
         billingSuccess = billingLogs?.filter(l => l.status === 'sent').length || 0;
         billingErrors = billingLogs?.filter(l => l.status === 'error').length || 0;
+
+        // Recovery attempts pending conversion marking
+        const { count: recPending } = await supabase
+          .from('client_recovery_attempts')
+          .select('*', { count: 'exact', head: true })
+          .is('converteu', null);
+        recoveryPending = recPending || 0;
 
         // Chamados stats
         const { count: abertos } = await supabase
@@ -359,6 +369,7 @@ export default function Dashboard() {
         vendasUnicasBrl,
         vendasUnicasUsd,
         clientesRegistroSemValor,
+        recuperacaoPendentes: recoveryPending || 0,
       });
     };
 
@@ -755,6 +766,32 @@ export default function Dashboard() {
               </div>
               <MonthlyPurchasesCard />
             </>
+          )}
+
+          {/* Recuperação pendente */}
+          {isAdmin && stats.recuperacaoPendentes > 0 && (
+            <Card 
+              className="bg-gradient-to-br from-amber-500/10 to-destructive/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mb-4"
+              onClick={() => navigate('/admin/cobranca')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-foreground text-sm">Recuperação: ações pendentes</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {stats.recuperacaoPendentes} tentativa(s) aguardando marcação de conversão
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-amber-500/50 text-amber-500 bg-amber-500/10">
+                    {stats.recuperacaoPendentes}
+                  </Badge>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Propostas Comerciais */}
