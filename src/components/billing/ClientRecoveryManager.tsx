@@ -277,7 +277,19 @@ export const ClientRecoveryManager = () => {
     c.produto.toLowerCase().includes(searchQueryRegistro.toLowerCase())
   );
 
-  // Verifica se cliente tem recuperação pendente (enviada com sucesso e aguardando resultado)
+  // Per-client recovery stats from history
+  const getClientRecoveryStats = (clienteId: string) => {
+    const clientAttempts = recoveryHistory.filter(r => r.cliente_id === clienteId && r.status === 'sent');
+    const count = clientAttempts.length;
+    const lastDate = clientAttempts.length > 0
+      ? clientAttempts.reduce((latest, r) => {
+          const d = new Date(r.data_envio);
+          return d > latest ? d : latest;
+        }, new Date(0))
+      : null;
+    return { count, lastDate };
+  };
+
   const hasPendingRecovery = (clienteId: string) => {
     return recoveryHistory.some(r => 
       r.cliente_id === clienteId && 
@@ -471,20 +483,22 @@ export const ClientRecoveryManager = () => {
                       <TableHead>Valor</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Dias Atraso</TableHead>
+                      <TableHead>Envios</TableHead>
+                      <TableHead>Último Contato</TableHead>
                       <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10">
+                        <TableCell colSpan={8} className="text-center py-10">
                           <RefreshCw className="w-6 h-6 mx-auto mb-2 animate-spin text-muted-foreground" />
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : filteredClients.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10">
+                        <TableCell colSpan={8} className="text-center py-10">
                           <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
                           <p className="text-muted-foreground">Nenhum cliente inadimplente há mais de 30 dias!</p>
                         </TableCell>
@@ -492,6 +506,7 @@ export const ClientRecoveryManager = () => {
                     ) : (
                       filteredClients.map((cliente) => {
                         const daysOverdue = getDaysOverdue(cliente.data_renovacao);
+                        const recoveryStats = getClientRecoveryStats(cliente.id);
                         return (
                           <TableRow key={cliente.id} className="hover:bg-muted/30">
                             <TableCell>
@@ -520,6 +535,16 @@ export const ClientRecoveryManager = () => {
                               <Badge variant="destructive" className="bg-red-500/20 text-red-400 border-red-500/30">
                                 {daysOverdue} dias
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm font-medium">{recoveryStats.count}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {recoveryStats.lastDate
+                                  ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
+                                  : '—'}
+                              </span>
                             </TableCell>
                             <TableCell className="text-right">
                               {hasPendingRecovery(cliente.id) ? (
@@ -604,20 +629,22 @@ export const ClientRecoveryManager = () => {
                       <TableHead>Valor</TableHead>
                       <TableHead>Última Compra</TableHead>
                       <TableHead>Dias Desde Compra</TableHead>
+                      <TableHead>Envios</TableHead>
+                      <TableHead>Último Contato</TableHead>
                       <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoadingRegistro ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10">
+                        <TableCell colSpan={8} className="text-center py-10">
                           <RefreshCw className="w-6 h-6 mx-auto mb-2 animate-spin text-muted-foreground" />
                           Carregando...
                         </TableCell>
                       </TableRow>
                     ) : filteredRegistroClients.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-10">
+                        <TableCell colSpan={8} className="text-center py-10">
                           <ShoppingBag className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
                           <p className="text-muted-foreground">Nenhum cliente registro encontrado</p>
                         </TableCell>
@@ -625,6 +652,7 @@ export const ClientRecoveryManager = () => {
                     ) : (
                       filteredRegistroClients.map((cliente) => {
                         const daysSincePurchase = getDaysOverdue(cliente.data_renovacao);
+                        const recoveryStats = getClientRecoveryStats(cliente.id);
                         return (
                           <TableRow key={cliente.id} className="hover:bg-muted/30">
                             <TableCell>
@@ -653,6 +681,16 @@ export const ClientRecoveryManager = () => {
                               <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/30">
                                 {daysSincePurchase} dias
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm font-medium">{recoveryStats.count}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {recoveryStats.lastDate
+                                  ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
+                                  : '—'}
+                              </span>
                             </TableCell>
                             <TableCell className="text-right">
                               {hasPendingRecovery(cliente.id) ? (
