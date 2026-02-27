@@ -286,19 +286,28 @@ export const ClientRecoveryManager = () => {
     );
   };
 
+  const sentMessages = recoveryHistory.filter(r => r.status === 'sent');
+  const lastSentDate = sentMessages.length > 0
+    ? sentMessages.reduce((latest, r) => {
+        const d = new Date(r.data_envio);
+        return d > latest ? d : latest;
+      }, new Date(0))
+    : null;
+
   const stats = {
     total: overdueClients.length,
     registro: registroClients.length,
     attempts: recoveryHistory.length,
     converted: recoveryHistory.filter(r => r.converteu === true).length,
-    // Só conta como "aguardando" se foi enviado com sucesso (status === 'sent') e ainda não tem resultado
     pending: recoveryHistory.filter(r => r.converteu === null && r.status === 'sent').length,
+    totalSent: sentMessages.length,
+    lastSentDate,
   };
 
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -364,6 +373,38 @@ export const ClientRecoveryManager = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Aguardando</p>
                 <p className="text-2xl font-bold text-amber-400">{stats.pending}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-500/20">
+                <MessageSquare className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Msgs Enviadas</p>
+                <p className="text-2xl font-bold text-indigo-400">{stats.totalSent}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/20">
+                <History className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Último Envio</p>
+                <p className="text-sm font-bold text-cyan-400">
+                  {stats.lastSentDate
+                    ? stats.lastSentDate.toLocaleDateString('pt-BR')
+                    : 'Nenhum'}
+                </p>
               </div>
             </div>
           </CardContent>
