@@ -48,7 +48,7 @@ import {
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
@@ -63,7 +63,17 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
   completed: { label: 'Concluído', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="h-3 w-3" /> },
   cancelled: { label: 'Cancelado', color: 'bg-gray-100 text-gray-500', icon: <XCircle className="h-3 w-3" /> },
   failed: { label: 'Falhou', color: 'bg-red-100 text-red-700', icon: <AlertCircle className="h-3 w-3" /> },
+  resolved: { label: 'Resolvido', color: 'bg-slate-100 text-slate-700', icon: <ShieldCheck className="h-3 w-3" /> },
 };
+
+const RESOLVE_REASONS = [
+  'Número inválido / não existe',
+  'Email inválido / não existe',
+  'Contato bloqueou',
+  'Cliente não encontrado',
+  'Erro de configuração',
+  'Outro',
+];
 
 const conversionMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   converted: { label: 'Convertido', color: 'bg-emerald-100 text-emerald-700', icon: <ThumbsUp className="h-3 w-3" /> },
@@ -73,7 +83,7 @@ const conversionMap: Record<string, { label: string; color: string; icon: React.
 const PAGE_SIZE = 15;
 
 export default function Followups() {
-  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion, retryFollowup } = useFollowups();
+  const { followups, isLoading, cancelFollowup, deleteFollowup, cloneFollowup, markConversion, retryFollowup, resolveFollowup } = useFollowups();
   const { canManageFollowupConfig } = usePermissions();
   const [showForm, setShowForm] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -86,6 +96,9 @@ export default function Followups() {
   const [conversionDialog, setConversionDialog] = useState<{ followup: Followup; status: 'converted' | 'not_converted' } | null>(null);
   const [conversionNote, setConversionNote] = useState('');
   const [page, setPage] = useState(0);
+  const [resolveDialog, setResolveDialog] = useState<Followup | null>(null);
+  const [resolveReason, setResolveReason] = useState('');
+  const [resolveNote, setResolveNote] = useState('');
 
   // Count sends per contact (phone or email)
   const sendCountMap = useMemo(() => {
@@ -142,6 +155,18 @@ export default function Followups() {
     });
     setConversionDialog(null);
     setConversionNote('');
+  };
+
+  const handleResolveConfirm = async () => {
+    if (!resolveDialog || !resolveReason) return;
+    await resolveFollowup.mutateAsync({
+      id: resolveDialog.id,
+      reason: resolveReason,
+      note: resolveNote,
+    });
+    setResolveDialog(null);
+    setResolveReason('');
+    setResolveNote('');
   };
 
   const getContactSendCount = (f: Followup) => {
@@ -265,6 +290,7 @@ export default function Followups() {
               <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="cancelled">Cancelado</SelectItem>
               <SelectItem value="failed">Falhou</SelectItem>
+              <SelectItem value="resolved">Resolvido</SelectItem>
             </SelectContent>
           </Select>
           <Select value={conversionFilter} onValueChange={v => { setConversionFilter(v); setPage(0); }}>
@@ -441,14 +467,24 @@ export default function Followups() {
                                   </Tooltip>
                                 )}
                                 {f.status === 'failed' && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:bg-orange-50" onClick={() => retryFollowup.mutate(f.id)}>
-                                        <RefreshCcw className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Reenviar</TooltipContent>
-                                  </Tooltip>
+                                  <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:bg-orange-50" onClick={() => retryFollowup.mutate(f.id)}>
+                                          <RefreshCcw className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Reenviar</TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-600 hover:bg-slate-100" onClick={() => { setResolveDialog(f); setResolveReason(''); setResolveNote(''); }}>
+                                          <ShieldCheck className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Resolver / Marcar motivo</TooltipContent>
+                                    </Tooltip>
+                                  </>
                                 )}
                                 {canClone && (
                                   <Tooltip>
@@ -593,6 +629,58 @@ export default function Followups() {
                 className={conversionDialog?.status === 'converted' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}
               >
                 {markConversion.isPending ? 'Salvando...' : 'Confirmar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Resolve failed follow-up dialog */}
+        <Dialog open={!!resolveDialog} onOpenChange={() => setResolveDialog(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-slate-500" />
+                Resolver Follow-up com Falha
+              </DialogTitle>
+            </DialogHeader>
+            {resolveDialog && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Contato</p>
+                  <p className="font-medium">{resolveDialog.manual_name || resolveDialog.clientes?.nome || 'Sem nome'}</p>
+                  <p className="text-xs text-muted-foreground">{resolveDialog.manual_phone || resolveDialog.clientes?.numero || resolveDialog.manual_email || ''}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Motivo da resolução</p>
+                  <Select value={resolveReason} onValueChange={setResolveReason}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o motivo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESOLVE_REASONS.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Observação (opcional)</p>
+                  <Textarea
+                    placeholder="Ex: Número não existe no WhatsApp, tentei ligar e não atende..."
+                    value={resolveNote}
+                    onChange={e => setResolveNote(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setResolveDialog(null)}>Cancelar</Button>
+              <Button
+                onClick={handleResolveConfirm}
+                disabled={!resolveReason || resolveFollowup.isPending}
+              >
+                {resolveFollowup.isPending ? 'Salvando...' : 'Resolver'}
               </Button>
             </DialogFooter>
           </DialogContent>
