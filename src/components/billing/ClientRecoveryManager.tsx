@@ -319,99 +319,99 @@ export const ClientRecoveryManager = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <AlertCircle className="w-5 h-5 text-red-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-red-500/20 shrink-0">
+                <AlertCircle className="w-4 h-4 text-red-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Mensais +30d</p>
-                <p className="text-2xl font-bold text-red-400">{stats.total}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Mensais +30d</p>
+                <p className="text-xl font-bold text-red-400">{stats.total}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <ShoppingBag className="w-5 h-5 text-purple-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-500/20 shrink-0">
+                <ShoppingBag className="w-4 h-4 text-purple-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Clientes Registro</p>
-                <p className="text-2xl font-bold text-purple-400">{stats.registro}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Clientes Registro</p>
+                <p className="text-xl font-bold text-purple-400">{stats.registro}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <Send className="w-5 h-5 text-blue-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-500/20 shrink-0">
+                <Send className="w-4 h-4 text-blue-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tentativas</p>
-                <p className="text-2xl font-bold text-blue-400">{stats.attempts}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Tentativas</p>
+                <p className="text-xl font-bold text-blue-400">{stats.attempts}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/20">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-500/20 shrink-0">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Convertidos</p>
-                <p className="text-2xl font-bold text-emerald-400">{stats.converted}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Convertidos</p>
+                <p className="text-xl font-bold text-emerald-400">{stats.converted}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/20">
-                <Clock className="w-5 h-5 text-amber-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-amber-500/20 shrink-0">
+                <Clock className="w-4 h-4 text-amber-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Aguardando</p>
-                <p className="text-2xl font-bold text-amber-400">{stats.pending}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Aguardando</p>
+                <p className="text-xl font-bold text-amber-400">{stats.pending}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-500/20">
-                <MessageSquare className="w-5 h-5 text-indigo-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-indigo-500/20 shrink-0">
+                <MessageSquare className="w-4 h-4 text-indigo-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Msgs Enviadas</p>
-                <p className="text-2xl font-bold text-indigo-400">{stats.totalSent}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Msgs Enviadas</p>
+                <p className="text-xl font-bold text-indigo-400">{stats.totalSent}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <History className="w-5 h-5 text-cyan-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-cyan-500/20 shrink-0">
+                <History className="w-4 h-4 text-cyan-400" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Último Envio</p>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">Último Envio</p>
                 <p className="text-sm font-bold text-cyan-400">
                   {stats.lastSentDate
                     ? stats.lastSentDate.toLocaleDateString('pt-BR')

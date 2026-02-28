@@ -308,10 +308,11 @@ export default function Dashboard() {
         billingSuccess = billingLogs?.filter(l => l.status === 'sent').length || 0;
         billingErrors = billingLogs?.filter(l => l.status === 'error').length || 0;
 
-        // Recovery attempts pending conversion marking
+        // Recovery attempts pending conversion marking (only sent ones, not errors)
         const { count: recPending } = await supabase
           .from('client_recovery_attempts')
           .select('*', { count: 'exact', head: true })
+          .eq('status', 'sent')
           .is('converteu', null);
         recoveryPending = recPending || 0;
 
@@ -575,6 +576,8 @@ export default function Dashboard() {
     { name: t('common.error'), value: stats.billingErrors, fill: 'hsl(0, 84%, 60%)' },
   ];
 
+  const failedFollowups = followups.filter(f => f.status === 'failed');
+
   const followupStats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
@@ -797,6 +800,32 @@ export default function Dashboard() {
           {/* Propostas Comerciais */}
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
         </CollapsibleSection>
+
+        {/* Follow-ups com falha alert */}
+        {failedFollowups.length > 0 && (
+          <Card 
+            className="bg-gradient-to-br from-destructive/10 to-amber-500/5 border-destructive/30 hover:border-destructive/50 transition-colors cursor-pointer group mb-4"
+            onClick={() => navigate('/followups')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0 animate-pulse">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-foreground text-sm">Follow-ups com falha no envio</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {failedFollowups.length} follow-up(s) falharam e precisam de atenção — verifique os dados de contato
+                  </p>
+                </div>
+                <Badge variant="destructive">
+                  {failedFollowups.length}
+                </Badge>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
         {followups.length > 0 && (
