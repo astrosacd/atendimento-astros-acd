@@ -258,6 +258,27 @@ export function useFollowups() {
     },
   });
 
+  const resolveFollowup = useMutation({
+    mutationFn: async ({ id, reason, note }: { id: string; reason: string; note?: string }) => {
+      const fullNote = note ? `${reason} — ${note}` : reason;
+      const { error } = await supabase
+        .from('client_followups')
+        .update({
+          status: 'resolved',
+          conversion_note: fullNote,
+        } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followups'] });
+      toast.success('Follow-up resolvido!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao resolver: ' + err.message);
+    },
+  });
+
   return {
     followups,
     isLoading,
@@ -268,6 +289,7 @@ export function useFollowups() {
     deleteFollowup,
     retryFollowup,
     markConversion,
+    resolveFollowup,
   };
 }
 
