@@ -281,13 +281,17 @@ export const ClientRecoveryManager = () => {
   const getClientRecoveryStats = (clienteId: string) => {
     const clientAttempts = recoveryHistory.filter(r => r.cliente_id === clienteId && r.status === 'sent');
     const count = clientAttempts.length;
-    const lastDate = clientAttempts.length > 0
-      ? clientAttempts.reduce((latest, r) => {
-          const d = new Date(r.data_envio);
-          return d > latest ? d : latest;
-        }, new Date(0))
-      : null;
-    return { count, lastDate };
+    let lastDate: Date | null = null;
+    let lastChannel: string | null = null;
+    if (clientAttempts.length > 0) {
+      const latest = clientAttempts.reduce((prev, r) => {
+        const d = new Date(r.data_envio);
+        return d > new Date(prev.data_envio) ? r : prev;
+      });
+      lastDate = new Date(latest.data_envio);
+      lastChannel = latest.canal;
+    }
+    return { count, lastDate, lastChannel };
   };
 
   const hasPendingRecovery = (clienteId: string) => {
@@ -540,11 +544,31 @@ export const ClientRecoveryManager = () => {
                               <span className="text-sm font-medium">{recoveryStats.count}</span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm text-muted-foreground">
-                                {recoveryStats.lastDate
-                                  ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
-                                  : '—'}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm text-muted-foreground">
+                                  {recoveryStats.lastDate
+                                    ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
+                                    : '—'}
+                                </span>
+                                {recoveryStats.lastChannel && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span>
+                                          {recoveryStats.lastChannel === 'whatsapp' ? (
+                                            <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                                          ) : (
+                                            <Mail className="w-3.5 h-3.5 text-blue-400" />
+                                          )}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{recoveryStats.lastChannel === 'whatsapp' ? 'WhatsApp' : 'E-mail'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               {hasPendingRecovery(cliente.id) ? (
@@ -686,11 +710,31 @@ export const ClientRecoveryManager = () => {
                               <span className="text-sm font-medium">{recoveryStats.count}</span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm text-muted-foreground">
-                                {recoveryStats.lastDate
-                                  ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
-                                  : '—'}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm text-muted-foreground">
+                                  {recoveryStats.lastDate
+                                    ? recoveryStats.lastDate.toLocaleDateString('pt-BR')
+                                    : '—'}
+                                </span>
+                                {recoveryStats.lastChannel && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span>
+                                          {recoveryStats.lastChannel === 'whatsapp' ? (
+                                            <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                                          ) : (
+                                            <Mail className="w-3.5 h-3.5 text-blue-400" />
+                                          )}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{recoveryStats.lastChannel === 'whatsapp' ? 'WhatsApp' : 'E-mail'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-right">
                               {hasPendingRecovery(cliente.id) ? (
