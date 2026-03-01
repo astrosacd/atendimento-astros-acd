@@ -173,7 +173,7 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent key={open ? (editData?.id || 'new') : 'closed'} className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Follow-up' : editData?.id === '__clone__' ? 'Duplicar Follow-up' : 'Novo Follow-up'}</DialogTitle>
           <DialogDescription>
