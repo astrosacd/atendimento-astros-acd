@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +33,7 @@ import { ClientPaymentHistory } from '@/components/ClientPaymentHistory';
 import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
+import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -54,6 +55,8 @@ export default function ConsultarCliente() {
   const [filesClienteName, setFilesClienteName] = useState<string>('');
   const [purchasesClienteId, setPurchasesClienteId] = useState<string | null>(null);
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
+  const [timelineClienteId, setTimelineClienteId] = useState<string | null>(null);
+  const [timelineClienteName, setTimelineClienteName] = useState<string>('');
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -634,6 +637,18 @@ export default function ConsultarCliente() {
                                 >
                                   <History className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  onClick={() => {
+                                    setTimelineClienteId(cliente.id);
+                                    setTimelineClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-violet-500"
+                                  title="Timeline completa"
+                                >
+                                  <ListTree className="h-4 w-4" />
+                                </Button>
                               </>
                             )}
                           </div>
@@ -797,6 +812,26 @@ export default function ConsultarCliente() {
             {purchasesClienteId && (
               <ClientPurchasesManager clienteId={purchasesClienteId} clienteNome={purchasesClienteName} />
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Unified Timeline Dialog */}
+        <Dialog open={!!timelineClienteId} onOpenChange={() => setTimelineClienteId(null)}>
+          <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <ListTree className="h-5 w-5 text-violet-500" />
+                Timeline Completa
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Todos os eventos de {timelineClienteName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto">
+              {timelineClienteId && (
+                <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
