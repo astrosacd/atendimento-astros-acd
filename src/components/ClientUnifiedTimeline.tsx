@@ -302,7 +302,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           <p className="text-sm">Este cliente ainda não possui registros na timeline.</p>
         </div>
       ) : (
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="max-h-[70vh]">
           <div className="space-y-6 pr-4">
             {Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
               <div key={dateKey}>
