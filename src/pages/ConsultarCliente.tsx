@@ -827,7 +827,7 @@ export default function ConsultarCliente() {
                 Todos os eventos de {timelineClienteName}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
               {timelineClienteId && (
                 <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
               )}

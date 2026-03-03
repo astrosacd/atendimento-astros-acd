@@ -249,11 +249,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-1">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+          <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm focus:ring-offset-0">
             <SelectValue placeholder="Filtrar por tipo" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border">
