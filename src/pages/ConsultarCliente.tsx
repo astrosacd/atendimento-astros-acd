@@ -817,7 +817,7 @@ export default function ConsultarCliente() {
 
         {/* Unified Timeline Dialog */}
         <Dialog open={!!timelineClienteId} onOpenChange={() => setTimelineClienteId(null)}>
-          <DialogContent className="bg-card border-border max-w-2xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogContent className="!bg-card border border-border max-w-2xl w-[95vw] max-h-[85vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
             <DialogHeader className="px-6 pt-6">
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <ListTree className="h-5 w-5 text-violet-500" />
