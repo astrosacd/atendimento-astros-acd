@@ -817,8 +817,8 @@ export default function ConsultarCliente() {
 
         {/* Unified Timeline Dialog */}
         <Dialog open={!!timelineClienteId} onOpenChange={() => setTimelineClienteId(null)}>
-          <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
+          <DialogContent className="bg-card border-border max-w-2xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6">
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <ListTree className="h-5 w-5 text-violet-500" />
                 Timeline Completa
@@ -827,7 +827,7 @@ export default function ConsultarCliente() {
                 Todos os eventos de {timelineClienteName}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
               {timelineClienteId && (
                 <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
               )}
