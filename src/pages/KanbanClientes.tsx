@@ -49,7 +49,7 @@ export default function KanbanClientes() {
       const [stagesRes, pipelineRes, clientsRes] = await Promise.all([
         supabase.from('pipeline_stages').select('*').order('order_index'),
         supabase.from('client_pipeline').select('*, cliente:clientes(id, nome, produto, valor, moeda, data_renovacao, email, numero, tags)'),
-        supabase.from('clientes').select('id, nome, produto, valor, moeda, data_renovacao, email, numero, tags'),
+        supabase.from('clientes').select('id, nome, produto, valor, moeda, data_renovacao, email, numero, tags, ciclo_cobranca'),
       ]);
 
       if (stagesRes.data) setStages(stagesRes.data as PipelineStage[]);
