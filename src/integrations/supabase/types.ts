@@ -146,6 +146,90 @@ export type Database = {
           },
         ]
       }
+      automation_logs: {
+        Row: {
+          action_taken: string
+          cliente_id: string | null
+          created_at: string
+          id: string
+          result: string | null
+          rule_id: string
+        }
+        Insert: {
+          action_taken: string
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          result?: string | null
+          rule_id: string
+        }
+        Update: {
+          action_taken?: string
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          result?: string | null
+          rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          action_config: Json | null
+          action_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          name: string
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          action_config?: Json | null
+          action_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name: string
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          action_config?: Json | null
+          action_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_config: {
         Row: {
           config_key: string
@@ -901,6 +985,48 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_pipeline: {
+        Row: {
+          cliente_id: string
+          id: string
+          moved_at: string
+          moved_by: string | null
+          notes: string | null
+          stage_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          id?: string
+          moved_at?: string
+          moved_by?: string | null
+          notes?: string | null
+          stage_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          id?: string
+          moved_at?: string
+          moved_by?: string | null
+          notes?: string | null
+          stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_pipeline_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_pipeline_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -3379,6 +3505,36 @@ export type Database = {
           token?: string
           used?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      pipeline_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          order_index?: number
+          updated_at?: string
         }
         Relationships: []
       }
