@@ -139,21 +139,46 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
               {/* Add client widget */}
               {addingToStage === stage.id && (
                 <div className="p-2 border-b border-border bg-card/50">
-                  <Select value={selectedClient} onValueChange={setSelectedClient}>
-                    <SelectTrigger className="h-8 text-xs bg-secondary border-border mb-1.5">
-                      <SelectValue placeholder="Selecionar cliente..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {availableClients.map(c => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">
-                          {c.nome} — {c.produto}
-                        </SelectItem>
-                      ))}
-                      {availableClients.length === 0 && (
-                        <div className="text-xs text-muted-foreground p-2">Todos os clientes já estão no pipeline</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={comboOpen} onOpenChange={setComboOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={comboOpen} className="w-full h-8 text-xs bg-secondary border-border mb-1.5 justify-between font-normal">
+                        {selectedClient
+                          ? availableClients.find(c => c.id === selectedClient)?.nome || 'Selecionar...'
+                          : 'Buscar cliente...'}
+                        <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0 bg-card border-border z-[9999]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Pesquisar por nome..." className="h-8 text-xs" />
+                        <CommandList>
+                          <CommandEmpty className="text-xs py-3 text-center text-muted-foreground">Nenhum cliente encontrado</CommandEmpty>
+                          <CommandGroup>
+                            {availableClients.map(c => {
+                              const tipo = c.ciclo_cobranca === 'registro' ? 'Registro' : 'Mensal';
+                              return (
+                                <CommandItem
+                                  key={c.id}
+                                  value={`${c.nome} ${c.produto} ${tipo}`}
+                                  onSelect={() => { setSelectedClient(c.id); setComboOpen(false); }}
+                                  className="text-xs gap-2"
+                                >
+                                  <Check className={cn("h-3 w-3 shrink-0", selectedClient === c.id ? "opacity-100" : "opacity-0")} />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="truncate">{c.nome}</span>
+                                    <span className="text-muted-foreground ml-1">— {c.produto}</span>
+                                  </div>
+                                  <Badge variant={tipo === 'Registro' ? 'secondary' : 'outline'} className="text-[9px] px-1 py-0 shrink-0">
+                                    {tipo}
+                                  </Badge>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex gap-1">
                     <Button size="sm" className="h-7 text-xs flex-1" onClick={() => handleAddClient(stage.id)} disabled={!selectedClient || movingClient === selectedClient}>
                       Adicionar
