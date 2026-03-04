@@ -50,6 +50,7 @@ import PropostaEditor from "./pages/PropostaEditor";
 import PropostasConfig from "./pages/PropostasConfig";
 import Followups from "./pages/Followups";
 import Despesas from "./pages/Despesas";
+import KanbanClientes from "./pages/KanbanClientes";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
@@ -143,6 +144,7 @@ function AppRoutes() {
       
       {/* Despesas Route */}
       <Route path="/despesas" element={<ProtectedRoute permission="view_dashboard"><Despesas /></ProtectedRoute>} />
+      <Route path="/kanban" element={<ProtectedRoute permission="view_clients"><KanbanClientes /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
