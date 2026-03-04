@@ -50,6 +50,7 @@ import PropostaEditor from "./pages/PropostaEditor";
 import PropostasConfig from "./pages/PropostasConfig";
 import Followups from "./pages/Followups";
 import Despesas from "./pages/Despesas";
+import KanbanClientes from "./pages/KanbanClientes";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
