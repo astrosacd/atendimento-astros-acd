@@ -35,6 +35,7 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [movingClient, setMovingClient] = useState<string | null>(null);
+  const [comboOpen, setComboOpen] = useState(false);
 
   const clientsInPipeline = useMemo(() => new Set(clients.map(c => c.cliente_id)), [clients]);
   
