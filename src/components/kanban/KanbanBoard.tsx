@@ -11,14 +11,16 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList
 } from '@/components/ui/command';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { 
   RefreshCw, Search, UserPlus, MoreVertical, ArrowRight, Trash2,
-  Package, Calendar, DollarSign, Check, ChevronsUpDown
+  Package, Calendar, DollarSign, Check, ChevronsUpDown, UserRoundPlus, ArrowRightCircle
 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { LeadFormDialog } from './LeadFormDialog';
+import { ConvertLeadDialog } from './ConvertLeadDialog';
 
 interface KanbanBoardProps {
   stages: PipelineStage[];
@@ -26,18 +28,23 @@ interface KanbanBoardProps {
   allClients: any[];
   loading: boolean;
   onMoveClient: (clienteId: string, stageId: string) => Promise<void>;
-  onRemoveClient: (clienteId: string) => Promise<void>;
+  onMovePipelineItem: (pipelineId: string, stageId: string) => Promise<void>;
+  onRemoveClient: (pipelineId: string) => Promise<void>;
+  onAddLead: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
+  onConvertLead: (data: any) => Promise<void>;
   onRefresh: () => void;
 }
 
-export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient, onRemoveClient, onRefresh }: KanbanBoardProps) {
+export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh }: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [movingClient, setMovingClient] = useState<string | null>(null);
   const [comboOpen, setComboOpen] = useState(false);
+  const [leadFormStage, setLeadFormStage] = useState<string | null>(null);
+  const [convertingLead, setConvertingLead] = useState<PipelineClient | null>(null);
 
-  const clientsInPipeline = useMemo(() => new Set(clients.map(c => c.cliente_id)), [clients]);
+  const clientsInPipeline = useMemo(() => new Set(clients.filter(c => c.cliente_id).map(c => c.cliente_id!)), [clients]);
   
   const availableClients = useMemo(
     () => allClients.filter(c => !clientsInPipeline.has(c.id)),
@@ -50,6 +57,9 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
       .filter(c => {
         if (!search) return true;
         const q = search.toLowerCase();
+        if (c.is_lead) {
+          return c.lead_name?.toLowerCase().includes(q) || c.lead_produto?.toLowerCase().includes(q) || c.lead_email?.toLowerCase().includes(q);
+        }
         return c.cliente?.nome?.toLowerCase().includes(q) || 
                c.cliente?.produto?.toLowerCase().includes(q) ||
                c.cliente?.email?.toLowerCase().includes(q);
@@ -63,6 +73,22 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
     setSelectedClient('');
     setAddingToStage(null);
     setMovingClient(null);
+  };
+
+  const handleMoveItem = async (pc: PipelineClient, newStageId: string, targetStageName: string) => {
+    // Check if lead is being moved to "Ativo" stage — prompt conversion
+    if (pc.is_lead && targetStageName.toLowerCase() === 'ativo') {
+      setConvertingLead(pc);
+      // Still move it
+      await onMovePipelineItem(pc.id, newStageId);
+      return;
+    }
+    
+    if (pc.is_lead || !pc.cliente_id) {
+      await onMovePipelineItem(pc.id, newStageId);
+    } else {
+      await onMoveClient(pc.cliente_id, newStageId);
+    }
   };
 
   const getRenewalStatus = (dataRenovacao: string) => {
@@ -87,6 +113,9 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
     );
   }
 
+  const leadsCount = clients.filter(c => c.is_lead).length;
+  const registeredCount = clients.filter(c => !c.is_lead).length;
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -94,7 +123,7 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar cliente..."
+            placeholder="Buscar cliente ou lead..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9 bg-secondary border-border"
@@ -104,7 +133,7 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
           <RefreshCw className="h-4 w-4" />
         </Button>
         <span className="text-xs text-muted-foreground">
-          {clients.length} no pipeline / {allClients.length} total
+          {registeredCount} clientes · {leadsCount} leads · {allClients.length} total
         </span>
       </div>
 
@@ -126,14 +155,26 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
                   <span className="font-semibold text-sm text-foreground">{stage.name}</span>
                   <Badge variant="secondary" className="text-xs px-1.5 py-0">{stageClients.length}</Badge>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setAddingToStage(addingToStage === stage.id ? null : stage.id)}
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    title="Adicionar lead"
+                    onClick={() => setLeadFormStage(stage.id)}
+                  >
+                    <UserRoundPlus className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    title="Adicionar cliente existente"
+                    onClick={() => setAddingToStage(addingToStage === stage.id ? null : stage.id)}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
 
               {/* Add client widget */}
@@ -194,22 +235,35 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
               <ScrollArea className="flex-1 p-2">
                 <div className="space-y-2">
                   {stageClients.map(pc => {
-                    const c = pc.cliente;
-                    if (!c) return null;
-                    const renewal = getRenewalStatus(c.data_renovacao);
+                    const isLead = pc.is_lead || !pc.cliente;
+                    const name = isLead ? pc.lead_name : pc.cliente?.nome;
+                    const product = isLead ? pc.lead_produto : pc.cliente?.produto;
                     
                     return (
                       <Card
                         key={pc.id}
-                        className="p-3 bg-card border-border hover:border-primary/30 transition-colors cursor-default group"
+                        className={cn(
+                          "p-3 bg-card border-border hover:border-primary/30 transition-colors cursor-default group",
+                          isLead && "border-l-2 border-l-amber-500/60"
+                        )}
                       >
                         <div className="flex items-start justify-between gap-1">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm text-foreground truncate">{c.nome}</p>
-                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                              <Package className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{c.produto}</span>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm text-foreground truncate">{name || 'Sem nome'}</p>
+                              {isLead && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-500/50 text-amber-600">Lead</Badge>
+                              )}
                             </div>
+                            {product && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <Package className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{product}</span>
+                              </div>
+                            )}
+                            {isLead && pc.lead_email && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{pc.lead_email}</p>
+                            )}
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -221,15 +275,28 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
                               {stages.filter(s => s.id !== stage.id).map(s => (
                                 <DropdownMenuItem
                                   key={s.id}
-                                  onClick={() => onMoveClient(c.id, s.id)}
+                                  onClick={() => handleMoveItem(pc, s.id, s.name)}
                                   className="text-xs gap-2"
                                 >
                                   <ArrowRight className="h-3 w-3" />
                                   Mover para {s.name}
                                 </DropdownMenuItem>
                               ))}
+                              {isLead && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => setConvertingLead(pc)}
+                                    className="text-xs gap-2 text-primary"
+                                  >
+                                    <ArrowRightCircle className="h-3 w-3" />
+                                    Cadastrar como cliente
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => onRemoveClient(c.id)}
+                                onClick={() => onRemoveClient(pc.id)}
                                 className="text-xs gap-2 text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -239,23 +306,27 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
                           </DropdownMenu>
                         </div>
 
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <Badge variant={renewal.variant} className="text-[10px] px-1.5 py-0">
-                            <Calendar className="h-2.5 w-2.5 mr-0.5" />
-                            {renewal.label}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                            <DollarSign className="h-2.5 w-2.5" />
-                            {c.moeda === 'USD' ? '$' : 'R$'} {Number(c.valor).toFixed(2)}
-                          </span>
-                        </div>
+                        {!isLead && pc.cliente && (
+                          <>
+                            <div className="mt-2 flex items-center gap-2 flex-wrap">
+                              <Badge variant={getRenewalStatus(pc.cliente.data_renovacao).variant} className="text-[10px] px-1.5 py-0">
+                                <Calendar className="h-2.5 w-2.5 mr-0.5" />
+                                {getRenewalStatus(pc.cliente.data_renovacao).label}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <DollarSign className="h-2.5 w-2.5" />
+                                {pc.cliente.moeda === 'USD' ? '$' : 'R$'} {Number(pc.cliente.valor).toFixed(2)}
+                              </span>
+                            </div>
 
-                        {c.tags && c.tags.length > 0 && (
-                          <div className="mt-1.5 flex gap-1 flex-wrap">
-                            {c.tags.slice(0, 3).map(tag => (
-                              <Badge key={tag} variant="outline" className="text-[9px] px-1 py-0">{tag}</Badge>
-                            ))}
-                          </div>
+                            {pc.cliente.tags && pc.cliente.tags.length > 0 && (
+                              <div className="mt-1.5 flex gap-1 flex-wrap">
+                                {pc.cliente.tags.slice(0, 3).map(tag => (
+                                  <Badge key={tag} variant="outline" className="text-[9px] px-1 py-0">{tag}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </>
                         )}
                       </Card>
                     );
@@ -272,6 +343,29 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
           );
         })}
       </div>
+
+      {/* Lead Form Dialog */}
+      <LeadFormDialog
+        open={!!leadFormStage}
+        onOpenChange={(open) => !open && setLeadFormStage(null)}
+        onSubmit={async (lead) => {
+          if (leadFormStage) await onAddLead(leadFormStage, lead);
+        }}
+      />
+
+      {/* Convert Lead Dialog */}
+      <ConvertLeadDialog
+        open={!!convertingLead}
+        onOpenChange={(open) => !open && setConvertingLead(null)}
+        lead={convertingLead ? {
+          id: convertingLead.id,
+          lead_name: convertingLead.lead_name || '',
+          lead_phone: convertingLead.lead_phone || '',
+          lead_email: convertingLead.lead_email || '',
+          lead_produto: convertingLead.lead_produto || '',
+        } : null}
+        onConvert={onConvertLead}
+      />
     </div>
   );
 }
