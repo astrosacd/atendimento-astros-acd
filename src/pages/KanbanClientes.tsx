@@ -19,10 +19,16 @@ export interface PipelineStage {
 
 export interface PipelineClient {
   id: string;
-  cliente_id: string;
+  cliente_id: string | null;
   stage_id: string | null;
   moved_at: string;
   notes: string | null;
+  is_lead: boolean;
+  lead_name: string | null;
+  lead_phone: string | null;
+  lead_email: string | null;
+  lead_produto: string | null;
+  converted_at: string | null;
   cliente: {
     id: string;
     nome: string;
@@ -33,7 +39,7 @@ export interface PipelineClient {
     email: string;
     numero: string;
     tags: string[] | null;
-  };
+  } | null;
 }
 
 export default function KanbanClientes() {
@@ -49,7 +55,7 @@ export default function KanbanClientes() {
       const [stagesRes, pipelineRes, clientsRes] = await Promise.all([
         supabase.from('pipeline_stages').select('*').order('order_index'),
         supabase.from('client_pipeline').select('*, cliente:clientes(id, nome, produto, valor, moeda, data_renovacao, email, numero, tags)'),
-        supabase.from('clientes').select('id, nome, produto, valor, moeda, data_renovacao, email, numero, tags, ciclo_cobranca'),
+        supabase.from('clientes').select('id, nome, produto, valor, moeda, data_renovacao, email, numero, tags, ciclo_cobranca, cobranca_ativa'),
       ]);
 
       if (stagesRes.data) setStages(stagesRes.data as PipelineStage[]);
@@ -84,8 +90,76 @@ export default function KanbanClientes() {
     await loadData();
   };
 
-  const removeFromPipeline = async (clienteId: string) => {
-    await supabase.from('client_pipeline').delete().eq('cliente_id', clienteId);
+  const movePipelineItem = async (pipelineId: string, newStageId: string) => {
+    const { error } = await supabase
+      .from('client_pipeline')
+      .update({ stage_id: newStageId, moved_at: new Date().toISOString() })
+      .eq('id', pipelineId);
+    if (error) { toast.error('Erro ao mover item'); return; }
+    await loadData();
+  };
+
+  const addLead = async (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => {
+    const { error } = await supabase
+      .from('client_pipeline')
+      .insert({
+        stage_id: stageId,
+        is_lead: true,
+        lead_name: lead.name,
+        lead_phone: lead.phone,
+        lead_email: lead.email,
+        lead_produto: lead.produto,
+      });
+    if (error) { toast.error('Erro ao adicionar lead'); return; }
+    toast.success('Lead adicionado ao pipeline');
+    await loadData();
+  };
+
+  const convertLead = async (data: {
+    pipelineId: string;
+    nome: string; email: string; numero: string; produto: string;
+    cpf: string; valor: number; moeda: string; data_renovacao: string;
+    cobranca_ativa: boolean; ciclo_cobranca: string; observacao: string;
+  }) => {
+    // Create the client
+    const { data: newClient, error: clientError } = await supabase
+      .from('clientes')
+      .insert({
+        nome: data.nome,
+        email: data.email,
+        numero: data.numero,
+        produto: data.produto,
+        cpf: data.cpf,
+        valor: data.valor,
+        moeda: data.moeda,
+        data_renovacao: data.data_renovacao,
+        cobranca_ativa: data.cobranca_ativa,
+        ciclo_cobranca: data.ciclo_cobranca,
+        observacao: data.observacao || null,
+      })
+      .select('id')
+      .single();
+
+    if (clientError) { toast.error('Erro ao cadastrar cliente: ' + clientError.message); return; }
+
+    // Update pipeline entry: link to client, mark as converted
+    const { error: pipelineError } = await supabase
+      .from('client_pipeline')
+      .update({
+        cliente_id: newClient.id,
+        is_lead: false,
+        converted_at: new Date().toISOString(),
+      })
+      .eq('id', data.pipelineId);
+
+    if (pipelineError) { toast.error('Erro ao converter lead'); return; }
+
+    toast.success('Lead convertido em cliente com sucesso!');
+    await loadData();
+  };
+
+  const removeFromPipeline = async (pipelineId: string) => {
+    await supabase.from('client_pipeline').delete().eq('id', pipelineId);
     await loadData();
   };
 
@@ -123,7 +197,10 @@ export default function KanbanClientes() {
               allClients={allClients}
               loading={loading}
               onMoveClient={moveClient}
+              onMovePipelineItem={movePipelineItem}
               onRemoveClient={removeFromPipeline}
+              onAddLead={addLead}
+              onConvertLead={convertLead}
               onRefresh={loadData}
             />
           </TabsContent>

@@ -991,24 +991,42 @@ export type Database = {
       }
       client_pipeline: {
         Row: {
-          cliente_id: string
+          cliente_id: string | null
+          converted_at: string | null
           id: string
+          is_lead: boolean | null
+          lead_email: string | null
+          lead_name: string | null
+          lead_phone: string | null
+          lead_produto: string | null
           moved_at: string
           moved_by: string | null
           notes: string | null
           stage_id: string | null
         }
         Insert: {
-          cliente_id: string
+          cliente_id?: string | null
+          converted_at?: string | null
           id?: string
+          is_lead?: boolean | null
+          lead_email?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          lead_produto?: string | null
           moved_at?: string
           moved_by?: string | null
           notes?: string | null
           stage_id?: string | null
         }
         Update: {
-          cliente_id?: string
+          cliente_id?: string | null
+          converted_at?: string | null
           id?: string
+          is_lead?: boolean | null
+          lead_email?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          lead_produto?: string | null
           moved_at?: string
           moved_by?: string | null
           notes?: string | null
