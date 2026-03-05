@@ -42,15 +42,14 @@ export function ConvertLeadDialog({ open, onOpenChange, lead, onConvert }: Conve
   const [observacao, setObservacao] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Pre-fill when lead changes
-  useState(() => {
+  useEffect(() => {
     if (lead) {
       setNome(lead.lead_name || '');
       setEmail(lead.lead_email || '');
       setNumero(lead.lead_phone || '');
       setProduto(lead.lead_produto || '');
     }
-  });
+  }, [lead]);
 
   const handleSubmit = async () => {
     if (!nome.trim() || !email.trim() || !numero.trim() || !produto.trim() || !cpf.trim()) return;
