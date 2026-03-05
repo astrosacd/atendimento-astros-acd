@@ -155,7 +155,7 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
                           <CommandEmpty className="text-xs py-3 text-center text-muted-foreground">Nenhum cliente encontrado</CommandEmpty>
                           <CommandGroup>
                             {availableClients.map(c => {
-                              const tipo = c.ciclo_cobranca === 'registro' ? 'Registro' : 'Mensal';
+                              const tipo = c.cobranca_ativa === false ? 'Registro' : 'Mensal';
                               return (
                                 <CommandItem
                                   key={c.id}
