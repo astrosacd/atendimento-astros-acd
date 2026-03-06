@@ -493,8 +493,8 @@ export default function AdminPermissoes() {
                           </div>
                         </TableCell>
                         {roles.map((role) => {
-                          const hasPerm = hasPermission(role.name, perm.key);
                           const isAdmin = role.name === 'admin';
+                          const hasPerm = isAdmin ? true : hasPermission(role.name, perm.key);
                           return (
                             <TableCell key={role.id} className="text-center">
                               <button
