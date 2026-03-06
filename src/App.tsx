@@ -144,7 +144,7 @@ function AppRoutes() {
       
       {/* Despesas Route */}
       <Route path="/despesas" element={<ProtectedRoute permission="view_dashboard"><Despesas /></ProtectedRoute>} />
-      <Route path="/kanban" element={<ProtectedRoute permission="view_clients"><KanbanClientes /></ProtectedRoute>} />
+      <Route path="/kanban" element={<ProtectedRoute permission="view_pipeline"><KanbanClientes /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />

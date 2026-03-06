@@ -8,6 +8,7 @@ import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Columns3, Settings2, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export interface PipelineStage {
   id: string;
@@ -44,6 +45,7 @@ export interface PipelineClient {
 
 export default function KanbanClientes() {
   const { isAdmin } = useAuth();
+  const { canManagePipelineStages, canManagePipelineAutomations } = usePermissions();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [clients, setClients] = useState<PipelineClient[]>([]);
   const [allClients, setAllClients] = useState<any[]>([]);
@@ -178,15 +180,15 @@ export default function KanbanClientes() {
             <TabsTrigger value="kanban" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Columns3 className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            {isAdmin && (
-              <>
-                <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Settings2 className="h-4 w-4" /> Etapas
-                </TabsTrigger>
-                <TabsTrigger value="automations" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Zap className="h-4 w-4" /> Automações
-                </TabsTrigger>
-              </>
+            {(isAdmin || canManagePipelineStages()) && (
+              <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Settings2 className="h-4 w-4" /> Etapas
+              </TabsTrigger>
+            )}
+            {(isAdmin || canManagePipelineAutomations()) && (
+              <TabsTrigger value="automations" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Zap className="h-4 w-4" /> Automações
+              </TabsTrigger>
             )}
           </TabsList>
 
@@ -205,15 +207,15 @@ export default function KanbanClientes() {
             />
           </TabsContent>
 
-          {isAdmin && (
-            <>
-              <TabsContent value="stages">
-                <KanbanStageManager stages={stages} onRefresh={loadData} />
-              </TabsContent>
-              <TabsContent value="automations">
-                <AutomationRulesPanel />
-              </TabsContent>
-            </>
+          {(isAdmin || canManagePipelineStages()) && (
+            <TabsContent value="stages">
+              <KanbanStageManager stages={stages} onRefresh={loadData} />
+            </TabsContent>
+          )}
+          {(isAdmin || canManagePipelineAutomations()) && (
+            <TabsContent value="automations">
+              <AutomationRulesPanel />
+            </TabsContent>
           )}
         </Tabs>
       </div>

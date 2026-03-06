@@ -37,7 +37,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewPipeline } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -127,7 +127,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
     { title: 'Follow-ups', icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
     { title: 'Despesas', icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
-    { title: 'Pipeline', icon: Columns3, path: '/kanban', color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+    { title: 'Pipeline', icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
   ];
 
   const adminItems: NavItem[] = [
