@@ -52,6 +52,10 @@ export function AutomationRulesPanel() {
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [duplicating, setDuplicating] = useState<AutomationRule | null>(null);
+  const [dupName, setDupName] = useState('');
+  const [dupDays, setDupDays] = useState('');
+  const [dupSaving, setDupSaving] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
