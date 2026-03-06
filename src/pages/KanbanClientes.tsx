@@ -207,15 +207,15 @@ export default function KanbanClientes() {
             />
           </TabsContent>
 
-          {isAdmin && (
-            <>
-              <TabsContent value="stages">
-                <KanbanStageManager stages={stages} onRefresh={loadData} />
-              </TabsContent>
-              <TabsContent value="automations">
-                <AutomationRulesPanel />
-              </TabsContent>
-            </>
+          {(isAdmin || canManagePipelineStages()) && (
+            <TabsContent value="stages">
+              <KanbanStageManager stages={stages} onRefresh={loadData} />
+            </TabsContent>
+          )}
+          {(isAdmin || canManagePipelineAutomations()) && (
+            <TabsContent value="automations">
+              <AutomationRulesPanel />
+            </TabsContent>
           )}
         </Tabs>
       </div>
