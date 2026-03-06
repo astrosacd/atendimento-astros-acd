@@ -91,6 +91,35 @@ export function AutomationRulesPanel() {
     }
   };
 
+  const openDuplicate = (rule: AutomationRule) => {
+    setDuplicating(rule);
+    setDupName(rule.name + ' (cópia)');
+    setDupDays(String(rule.trigger_config?.days || 30));
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicating) return;
+    setDupSaving(true);
+    const newTriggerConfig = { ...duplicating.trigger_config, days: parseInt(dupDays) || 30 };
+    const newActionConfig = { ...duplicating.action_config };
+
+    const { error } = await supabase.from('automation_rules').insert({
+      name: dupName,
+      description: duplicating.description,
+      trigger_type: duplicating.trigger_type,
+      trigger_config: newTriggerConfig,
+      action_type: duplicating.action_type,
+      action_config: newActionConfig,
+      is_active: false,
+    });
+
+    setDupSaving(false);
+    if (error) { toast.error('Erro ao duplicar regra'); return; }
+    toast.success('Regra duplicada com sucesso');
+    setDuplicating(null);
+    await loadData();
+  };
+
   if (loading) {
     return <div className="text-muted-foreground text-center py-8">Carregando automações...</div>;
   }
