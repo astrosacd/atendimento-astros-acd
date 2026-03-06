@@ -162,7 +162,12 @@ export function AutomationRulesPanel() {
                 )}
               </div>
             </div>
-            <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicar regra" onClick={() => openDuplicate(rule)}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
+            </div>
           </div>
         </Card>
       ))}
@@ -195,6 +200,34 @@ export function AutomationRulesPanel() {
           </ScrollArea>
         </div>
       )}
+
+      {/* Duplicate Dialog */}
+      <Dialog open={!!duplicating} onOpenChange={open => !open && setDuplicating(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Duplicar Regra de Automação</DialogTitle>
+            <DialogDescription>Altere o nome e os dias para a nova regra.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome da nova regra</Label>
+              <Input value={dupName} onChange={e => setDupName(e.target.value)} />
+            </div>
+            {duplicating?.trigger_type === 'renewal_delay' && (
+              <div className="space-y-2">
+                <Label>Dias de atraso (gatilho)</Label>
+                <Input type="number" min={1} value={dupDays} onChange={e => setDupDays(e.target.value)} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicating(null)}>Cancelar</Button>
+            <Button onClick={handleDuplicate} disabled={dupSaving || !dupName.trim()}>
+              {dupSaving ? 'Duplicando...' : 'Duplicar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
