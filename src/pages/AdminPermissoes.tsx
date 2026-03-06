@@ -347,6 +347,7 @@ export default function AdminPermissoes() {
     'Chamados': t('permissions.categories.tickets'),
     'Follow-ups': 'Follow-ups',
     'Propostas': 'Propostas',
+    'Pipeline': 'Pipeline',
   });
 
   const colorOptions = getColorOptions(t);

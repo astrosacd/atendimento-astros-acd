@@ -236,5 +236,9 @@ export function usePermissions() {
     canDeleteFollowups,
     canManageFollowupConfig,
     canManageFollowupWebhooks,
+    // Pipeline
+    canViewPipeline,
+    canManagePipelineStages,
+    canManagePipelineAutomations,
   };
 }
