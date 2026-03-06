@@ -8,6 +8,7 @@ import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Columns3, Settings2, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export interface PipelineStage {
   id: string;
