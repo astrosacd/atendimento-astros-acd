@@ -91,7 +91,8 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Chamados': <MessageSquare className="h-4 w-4" />,
   'Despesas': <CreditCard className="h-4 w-4" />,
   'Follow-ups': <Send className="h-4 w-4" />,
-  'Propostas': <FileText className="h-4 w-4" />,
+    'Propostas': <FileText className="h-4 w-4" />,
+    'Pipeline': <Users className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
