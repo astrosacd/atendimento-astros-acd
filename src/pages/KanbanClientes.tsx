@@ -180,15 +180,15 @@ export default function KanbanClientes() {
             <TabsTrigger value="kanban" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Columns3 className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            {isAdmin && (
-              <>
-                <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Settings2 className="h-4 w-4" /> Etapas
-                </TabsTrigger>
-                <TabsTrigger value="automations" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Zap className="h-4 w-4" /> Automações
-                </TabsTrigger>
-              </>
+            {(isAdmin || canManagePipelineStages()) && (
+              <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Settings2 className="h-4 w-4" /> Etapas
+              </TabsTrigger>
+            )}
+            {(isAdmin || canManagePipelineAutomations()) && (
+              <TabsTrigger value="automations" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Zap className="h-4 w-4" /> Automações
+              </TabsTrigger>
             )}
           </TabsList>
 
