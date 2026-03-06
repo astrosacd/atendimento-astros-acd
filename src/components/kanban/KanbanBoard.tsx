@@ -75,13 +75,14 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
     setMovingClient(null);
   };
 
+  const [convertTargetStageId, setConvertTargetStageId] = useState<string | null>(null);
+
   const handleMoveItem = async (pc: PipelineClient, newStageId: string, targetStageName: string) => {
-    // Check if lead is being moved to "Ativo" stage — prompt conversion
+    // Check if lead is being moved to "Ativo" stage — block move, prompt conversion first
     if (pc.is_lead && targetStageName.toLowerCase() === 'ativo') {
       setConvertingLead(pc);
-      // Still move it
-      await onMovePipelineItem(pc.id, newStageId);
-      return;
+      setConvertTargetStageId(newStageId);
+      return; // Do NOT move yet — only move after successful conversion
     }
     
     if (pc.is_lead || !pc.cliente_id) {
