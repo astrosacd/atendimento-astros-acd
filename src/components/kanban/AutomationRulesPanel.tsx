@@ -6,8 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Zap, Clock, Play, History, AlertTriangle } from 'lucide-react';
+import { Zap, Clock, Play, History, AlertTriangle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface AutomationRule {
   id: string;
@@ -49,6 +52,10 @@ export function AutomationRulesPanel() {
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [duplicating, setDuplicating] = useState<AutomationRule | null>(null);
+  const [dupName, setDupName] = useState('');
+  const [dupDays, setDupDays] = useState('');
+  const [dupSaving, setDupSaving] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -82,6 +89,35 @@ export function AutomationRulesPanel() {
     } finally {
       setRunning(false);
     }
+  };
+
+  const openDuplicate = (rule: AutomationRule) => {
+    setDuplicating(rule);
+    setDupName(rule.name + ' (cópia)');
+    setDupDays(String(rule.trigger_config?.days || 30));
+  };
+
+  const handleDuplicate = async () => {
+    if (!duplicating) return;
+    setDupSaving(true);
+    const newTriggerConfig = { ...duplicating.trigger_config, days: parseInt(dupDays) || 30 };
+    const newActionConfig = { ...duplicating.action_config };
+
+    const { error } = await supabase.from('automation_rules').insert({
+      name: dupName,
+      description: duplicating.description,
+      trigger_type: duplicating.trigger_type,
+      trigger_config: newTriggerConfig,
+      action_type: duplicating.action_type,
+      action_config: newActionConfig,
+      is_active: false,
+    });
+
+    setDupSaving(false);
+    if (error) { toast.error('Erro ao duplicar regra'); return; }
+    toast.success('Regra duplicada com sucesso');
+    setDuplicating(null);
+    await loadData();
   };
 
   if (loading) {
@@ -126,7 +162,12 @@ export function AutomationRulesPanel() {
                 )}
               </div>
             </div>
-            <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicar regra" onClick={() => openDuplicate(rule)}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
+            </div>
           </div>
         </Card>
       ))}
@@ -159,6 +200,34 @@ export function AutomationRulesPanel() {
           </ScrollArea>
         </div>
       )}
+
+      {/* Duplicate Dialog */}
+      <Dialog open={!!duplicating} onOpenChange={open => !open && setDuplicating(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Duplicar Regra de Automação</DialogTitle>
+            <DialogDescription>Altere o nome e os dias para a nova regra.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome da nova regra</Label>
+              <Input value={dupName} onChange={e => setDupName(e.target.value)} />
+            </div>
+            {duplicating?.trigger_type === 'renewal_delay' && (
+              <div className="space-y-2">
+                <Label>Dias de atraso (gatilho)</Label>
+                <Input type="number" min={1} value={dupDays} onChange={e => setDupDays(e.target.value)} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicating(null)}>Cancelar</Button>
+            <Button onClick={handleDuplicate} disabled={dupSaving || !dupName.trim()}>
+              {dupSaving ? 'Duplicando...' : 'Duplicar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
