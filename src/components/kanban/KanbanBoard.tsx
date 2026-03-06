@@ -357,7 +357,12 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
       {/* Convert Lead Dialog */}
       <ConvertLeadDialog
         open={!!convertingLead}
-        onOpenChange={(open) => !open && setConvertingLead(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConvertingLead(null);
+            setConvertTargetStageId(null);
+          }
+        }}
         lead={convertingLead ? {
           id: convertingLead.id,
           lead_name: convertingLead.lead_name || '',
@@ -365,7 +370,13 @@ export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient
           lead_email: convertingLead.lead_email || '',
           lead_produto: convertingLead.lead_produto || '',
         } : null}
-        onConvert={onConvertLead}
+        onConvert={async (data) => {
+          await onConvertLead(data);
+          // After successful conversion, move to Ativo stage
+          if (convertTargetStageId && convertingLead) {
+            await onMovePipelineItem(convertingLead.id, convertTargetStageId);
+          }
+        }}
       />
     </div>
   );
