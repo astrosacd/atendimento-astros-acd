@@ -45,6 +45,7 @@ export interface PipelineClient {
 
 export default function KanbanClientes() {
   const { isAdmin } = useAuth();
+  const { canManagePipelineStages, canManagePipelineAutomations } = usePermissions();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [clients, setClients] = useState<PipelineClient[]>([]);
   const [allClients, setAllClients] = useState<any[]>([]);
