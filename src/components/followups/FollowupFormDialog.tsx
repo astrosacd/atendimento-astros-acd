@@ -52,6 +52,47 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const [isRecurring, setIsRecurring] = useState(false);
   const [intervalDays, setIntervalDays] = useState(3);
   const [maxAttempts, setMaxAttempts] = useState(3);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  // Check if AI message generation is enabled
+  const { data: aiEnabled } = useQuery({
+    queryKey: ['followup-ai-config'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('followup_config')
+        .select('config_value')
+        .eq('config_key', 'ai_message_enabled')
+        .single();
+      return data?.config_value === 'true';
+    },
+  });
+
+  const handleGenerateAIMessage = async () => {
+    if (!produto.trim()) {
+      toast.error('Preencha o produto de interesse primeiro');
+      return;
+    }
+    const name = clientSource === 'existing'
+      ? clients.find(c => c.id === selectedClientId)?.nome || 'Cliente'
+      : manualName || 'Cliente';
+
+    setIsGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('followup-generate-message', {
+        body: { produto: produto.trim(), client_name: name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.message) {
+        setCustomMessage(data.message);
+        toast.success(`Mensagem gerada pela IA! (${data.matched_products || 0} produto(s) encontrado(s))`);
+      }
+    } catch (err: any) {
+      toast.error('Erro ao gerar mensagem: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
