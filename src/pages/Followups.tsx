@@ -53,6 +53,7 @@ import {
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
 import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
+import { ContactHistoryDialog } from '@/components/followups/ContactHistoryDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
