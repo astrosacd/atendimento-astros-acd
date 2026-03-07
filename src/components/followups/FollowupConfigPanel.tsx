@@ -286,6 +286,39 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                   </CardContent>
                 </Card>
 
+                {/* AI Message Generation */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Bot className="h-4 w-4 text-primary" />
+                      Mensagem com IA
+                    </CardTitle>
+                    <CardDescription>
+                      Quando habilitado, o formulário de follow-up terá um botão para gerar mensagens automaticamente com IA, consultando o catálogo de produtos cadastrados.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Habilitar geração por IA</Label>
+                        <p className="text-xs text-muted-foreground">
+                          A IA consulta o catálogo de produtos para criar mensagens personalizadas
+                        </p>
+                      </div>
+                      <Switch
+                        checked={aiMessageEnabled}
+                        onCheckedChange={setAiMessageEnabled}
+                      />
+                    </div>
+                    {aiMessageEnabled && (
+                      <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                        <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
+                        <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <Button onClick={() => saveConfig.mutate()} disabled={saveConfig.isPending} className="w-full">
                   <Save className="h-4 w-4 mr-2" />
                   {saveConfig.isPending ? 'Salvando...' : 'Salvar Configurações'}
