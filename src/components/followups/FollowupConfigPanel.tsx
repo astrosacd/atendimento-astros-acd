@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
-  Settings, Clock, Webhook, Plus, Trash2, Save, Timer, Eye,
+  Settings, Clock, Webhook, Plus, Trash2, Save, Timer, Eye, Sparkles, Bot,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -74,12 +74,14 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [delaySeconds, setDelaySeconds] = useState('10');
   const [cronHour, setCronHour] = useState('9');
   const [cronMinute, setCronMinute] = useState('0');
+  const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
 
   useEffect(() => {
     if (configs.length > 0) {
       setDelaySeconds(getConfigValue('delay_seconds', '10'));
       setCronHour(getConfigValue('cron_hour', '9'));
       setCronMinute(getConfigValue('cron_minute', '0'));
+      setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
     }
   }, [configs]);
 
@@ -99,12 +101,24 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
     mutationFn: async () => {
       const updates = [
         { key: 'delay_seconds', value: delaySeconds },
+        { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
       ];
       for (const u of updates) {
-        await supabase
+        const { data: existing } = await supabase
           .from('followup_config')
-          .update({ config_value: u.value } as any)
-          .eq('config_key', u.key);
+          .select('id')
+          .eq('config_key', u.key)
+          .single();
+        if (existing) {
+          await supabase
+            .from('followup_config')
+            .update({ config_value: u.value } as any)
+            .eq('config_key', u.key);
+        } else {
+          await supabase
+            .from('followup_config')
+            .insert({ config_key: u.key, config_value: u.value } as any);
+        }
       }
     },
     onSuccess: () => {
@@ -269,6 +283,39 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                     <p className="text-xs text-muted-foreground">
                       💡 Os follow-ups são agendados pela data/hora que você define ao criar. O sistema verifica a cada minuto se há pendências e envia 1 por vez.
                     </p>
+                  </CardContent>
+                </Card>
+
+                {/* AI Message Generation */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Bot className="h-4 w-4 text-primary" />
+                      Mensagem com IA
+                    </CardTitle>
+                    <CardDescription>
+                      Quando habilitado, o formulário de follow-up terá um botão para gerar mensagens automaticamente com IA, consultando o catálogo de produtos cadastrados.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Habilitar geração por IA</Label>
+                        <p className="text-xs text-muted-foreground">
+                          A IA consulta o catálogo de produtos para criar mensagens personalizadas
+                        </p>
+                      </div>
+                      <Switch
+                        checked={aiMessageEnabled}
+                        onCheckedChange={setAiMessageEnabled}
+                      />
+                    </div>
+                    {aiMessageEnabled && (
+                      <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                        <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
+                        <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

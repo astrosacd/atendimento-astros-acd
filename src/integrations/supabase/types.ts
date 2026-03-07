@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_products: {
+        Row: {
+          beneficios: string | null
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          detalhes_extras: string | null
+          id: string
+          is_active: boolean
+          nome: string
+          preco: string | null
+          updated_at: string
+        }
+        Insert: {
+          beneficios?: string | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          detalhes_extras?: string | null
+          id?: string
+          is_active?: boolean
+          nome: string
+          preco?: string | null
+          updated_at?: string
+        }
+        Update: {
+          beneficios?: string | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          detalhes_extras?: string | null
+          id?: string
+          is_active?: boolean
+          nome?: string
+          preco?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           api_key: string

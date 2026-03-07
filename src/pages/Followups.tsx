@@ -48,11 +48,12 @@ import {
 import {
   Plus, Search, Trash2, XCircle, Clock, CheckCircle, Send,
   Mail, MessageSquare, RefreshCcw, AlertCircle, CalendarClock, Settings,
-  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck
+  Eye, Edit, Copy, ThumbsUp, ThumbsDown, Star, Hash, ChevronLeft, ChevronRight, ShieldCheck, History
 } from 'lucide-react';
 import { useFollowups, type Followup } from '@/hooks/useFollowups';
 import { FollowupFormDialog } from '@/components/followups/FollowupFormDialog';
 import { FollowupConfigPanel } from '@/components/followups/FollowupConfigPanel';
+import { ContactHistoryDialog } from '@/components/followups/ContactHistoryDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -99,6 +100,7 @@ export default function Followups() {
   const [resolveDialog, setResolveDialog] = useState<Followup | null>(null);
   const [resolveReason, setResolveReason] = useState('');
   const [resolveNote, setResolveNote] = useState('');
+  const [historyContact, setHistoryContact] = useState<{ phone: string; email: string; name: string } | null>(null);
 
   // Count sends per contact (phone or email)
   const sendCountMap = useMemo(() => {
@@ -450,6 +452,14 @@ export default function Followups() {
                                 )}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setHistoryContact({ phone, email, name: clientName })}>
+                                      <History className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Histórico do contato</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setPreviewFollowup(f)}>
                                       <Eye className="h-3.5 w-3.5" />
                                     </Button>
@@ -701,6 +711,15 @@ export default function Followups() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Contact History Dialog */}
+        <ContactHistoryDialog
+          open={!!historyContact}
+          onOpenChange={() => setHistoryContact(null)}
+          contactPhone={historyContact?.phone || ''}
+          contactEmail={historyContact?.email || ''}
+          contactName={historyContact?.name || ''}
+        />
       </div>
     </DashboardLayout>
   );
