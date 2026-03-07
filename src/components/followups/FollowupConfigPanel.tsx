@@ -101,12 +101,24 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
     mutationFn: async () => {
       const updates = [
         { key: 'delay_seconds', value: delaySeconds },
+        { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
       ];
       for (const u of updates) {
-        await supabase
+        const { data: existing } = await supabase
           .from('followup_config')
-          .update({ config_value: u.value } as any)
-          .eq('config_key', u.key);
+          .select('id')
+          .eq('config_key', u.key)
+          .single();
+        if (existing) {
+          await supabase
+            .from('followup_config')
+            .update({ config_value: u.value } as any)
+            .eq('config_key', u.key);
+        } else {
+          await supabase
+            .from('followup_config')
+            .insert({ config_key: u.key, config_value: u.value } as any);
+        }
       }
     },
     onSuccess: () => {
