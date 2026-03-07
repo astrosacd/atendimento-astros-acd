@@ -345,7 +345,26 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
 
           {/* Message */}
           <div className="space-y-2">
-            <Label>Mensagem</Label>
+            <div className="flex items-center justify-between">
+              <Label>Mensagem</Label>
+              {aiEnabled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateAIMessage}
+                  disabled={isGeneratingAI || !produto.trim()}
+                  className="h-7 text-xs gap-1"
+                >
+                  {isGeneratingAI ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 text-primary" />
+                  )}
+                  Gerar com IA
+                </Button>
+              )}
+            </div>
             <Textarea
               placeholder="Escreva sua mensagem de follow-up..."
               value={customMessage}
@@ -354,7 +373,9 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Personalize a mensagem que será enviada ao cliente
+              {aiEnabled
+                ? 'Use o botão "Gerar com IA" para criar uma mensagem baseada no catálogo de produtos'
+                : 'Personalize a mensagem que será enviada ao cliente'}
             </p>
           </div>
         </div>
