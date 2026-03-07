@@ -711,6 +711,15 @@ export default function Followups() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Contact History Dialog */}
+        <ContactHistoryDialog
+          open={!!historyContact}
+          onOpenChange={() => setHistoryContact(null)}
+          contactPhone={historyContact?.phone || ''}
+          contactEmail={historyContact?.email || ''}
+          contactName={historyContact?.name || ''}
+        />
       </div>
     </DashboardLayout>
   );
