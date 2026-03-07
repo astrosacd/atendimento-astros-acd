@@ -100,6 +100,7 @@ export default function Followups() {
   const [resolveDialog, setResolveDialog] = useState<Followup | null>(null);
   const [resolveReason, setResolveReason] = useState('');
   const [resolveNote, setResolveNote] = useState('');
+  const [historyContact, setHistoryContact] = useState<{ phone: string; email: string; name: string } | null>(null);
 
   // Count sends per contact (phone or email)
   const sendCountMap = useMemo(() => {
