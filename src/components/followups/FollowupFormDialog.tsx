@@ -15,9 +15,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
-import { Mail, MessageSquare, Loader2, UserPlus, Users } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles } from 'lucide-react';
 import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface ClientOption {
   id: string;
