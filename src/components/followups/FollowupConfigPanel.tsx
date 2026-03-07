@@ -74,12 +74,14 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [delaySeconds, setDelaySeconds] = useState('10');
   const [cronHour, setCronHour] = useState('9');
   const [cronMinute, setCronMinute] = useState('0');
+  const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
 
   useEffect(() => {
     if (configs.length > 0) {
       setDelaySeconds(getConfigValue('delay_seconds', '10'));
       setCronHour(getConfigValue('cron_hour', '9'));
       setCronMinute(getConfigValue('cron_minute', '0'));
+      setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
     }
   }, [configs]);
 
