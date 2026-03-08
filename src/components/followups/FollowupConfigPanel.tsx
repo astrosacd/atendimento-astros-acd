@@ -262,6 +262,9 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
             <TabsTrigger value="general" className="flex-1 gap-1">
               <Timer className="h-4 w-4" /> Geral
             </TabsTrigger>
+            <TabsTrigger value="baserow" className="flex-1 gap-1">
+              <Database className="h-4 w-4" /> Baserow
+            </TabsTrigger>
             <TabsTrigger value="webhooks" className="flex-1 gap-1">
               <Webhook className="h-4 w-4" /> Webhooks
             </TabsTrigger>
