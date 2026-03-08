@@ -75,6 +75,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronHour, setCronHour] = useState('9');
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
+  const [externalAnonKey, setExternalAnonKey] = useState('');
 
   useEffect(() => {
     if (configs.length > 0) {
@@ -82,6 +83,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       setCronHour(getConfigValue('cron_hour', '9'));
       setCronMinute(getConfigValue('cron_minute', '0'));
       setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
+      setExternalAnonKey(getConfigValue('external_supabase_anon_key', ''));
     }
   }, [configs]);
 
@@ -102,6 +104,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       const updates = [
         { key: 'delay_seconds', value: delaySeconds },
         { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
+        { key: 'external_supabase_anon_key', value: externalAnonKey },
       ];
       for (const u of updates) {
         const { data: existing } = await supabase
@@ -311,9 +314,26 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                       />
                     </div>
                     {aiMessageEnabled && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                        <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
-                        <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                      <div className="space-y-4">
+                        <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                          <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
+                          <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            Anon Key do Projeto Externo
+                          </Label>
+                          <Input
+                            type="password"
+                            value={externalAnonKey}
+                            onChange={e => setExternalAnonKey(e.target.value)}
+                            placeholder="eyJhbGciOiJIUzI1NiIs..."
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Chave anônima do projeto externo que contém a base de produtos. Deixe vazio para usar apenas o catálogo interno.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </CardContent>

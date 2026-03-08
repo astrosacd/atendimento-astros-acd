@@ -47,11 +47,44 @@ serve(async (req: Request) => {
       );
     }
 
-    // Search for matching products in agency_products
+    // Get external Supabase anon key from config
+    const { data: externalKeyConfig } = await supabase
+      .from("followup_config")
+      .select("config_value")
+      .eq("config_key", "external_supabase_anon_key")
+      .single();
+
+    const externalAnonKey = externalKeyConfig?.config_value || "";
+
+    // Search for matching products in agency_products (internal)
     const { data: products } = await supabase
       .from("agency_products")
       .select("nome, descricao, beneficios, categoria, preco, detalhes_extras")
       .eq("is_active", true);
+
+    // Also fetch from external project if configured
+    let externalProducts: any[] = [];
+    if (externalAnonKey) {
+      try {
+        const externalUrl = "https://tevljvidqbvrcgzqypwf.supabase.co";
+        const extResponse = await fetch(
+          `${externalUrl}/rest/v1/base_produtos_acd?select=titulo_produto,content`,
+          {
+            headers: {
+              "apikey": externalAnonKey,
+              "Authorization": `Bearer ${externalAnonKey}`,
+            },
+          }
+        );
+        if (extResponse.ok) {
+          externalProducts = await extResponse.json();
+        } else {
+          console.warn("External project fetch failed:", extResponse.status);
+        }
+      } catch (err) {
+        console.warn("Error fetching external products:", err);
+      }
+    }
 
     // Find best match (case-insensitive partial match)
     const produtoLower = produto.toLowerCase();
@@ -61,7 +94,15 @@ serve(async (req: Request) => {
       (p.categoria && p.categoria.toLowerCase().includes(produtoLower))
     );
 
+    // Match external products
+    const matchedExternal = externalProducts.filter((p: any) =>
+      (p.titulo_produto && p.titulo_produto.toLowerCase().includes(produtoLower)) ||
+      (p.titulo_produto && produtoLower.includes(p.titulo_produto.toLowerCase()))
+    );
+
     let productContext = "";
+
+    // Build context from internal products
     if (matchedProducts.length > 0) {
       productContext = matchedProducts
         .map((p: any) => {
@@ -73,13 +114,31 @@ serve(async (req: Request) => {
           return parts.join("\n");
         })
         .join("\n---\n");
-    } else {
-      // If no exact match, send all products as context
+    } else if (products && products.length > 0) {
       productContext = (products || [])
         .slice(0, 10)
         .map((p: any) => `- ${p.nome}: ${p.descricao || "sem descrição"}`)
         .join("\n");
       productContext = `Produtos disponíveis na agência:\n${productContext}\n\nO cliente demonstrou interesse em: "${produto}"`;
+    }
+
+    // Append external product context
+    if (matchedExternal.length > 0) {
+      const extContext = matchedExternal
+        .slice(0, 5)
+        .map((p: any) => {
+          const parts = [`Produto Externo: ${p.titulo_produto}`];
+          if (p.content) parts.push(`Conteúdo: ${p.content.substring(0, 1000)}`);
+          return parts.join("\n");
+        })
+        .join("\n---\n");
+      productContext += (productContext ? "\n\n=== Base Externa ===\n" : "") + extContext;
+    } else if (externalProducts.length > 0 && !matchedProducts.length) {
+      const extContext = externalProducts
+        .slice(0, 10)
+        .map((p: any) => `- ${p.titulo_produto || "sem título"}`)
+        .join("\n");
+      productContext += (productContext ? "\n\n" : "") + `Produtos da base externa:\n${extContext}`;
     }
 
     const safeName = (client_name || "Cliente").substring(0, 100);
@@ -138,7 +197,7 @@ ${productContext}`;
     const message = result.choices?.[0]?.message?.content || "";
 
     return new Response(
-      JSON.stringify({ message, matched_products: matchedProducts.length }),
+      JSON.stringify({ message, matched_products: matchedProducts.length, matched_external: matchedExternal.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
