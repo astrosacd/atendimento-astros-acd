@@ -1269,6 +1269,53 @@ export type Database = {
         }
         Relationships: []
       }
+      client_social_credentials: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          encrypted_password: string
+          id: string
+          login: string
+          notes: string | null
+          platform: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          encrypted_password: string
+          id?: string
+          login: string
+          notes?: string | null
+          platform: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          encrypted_password?: string
+          id?: string
+          login?: string
+          notes?: string | null
+          platform?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_social_credentials_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_to: string | null

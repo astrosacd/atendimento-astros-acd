@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +34,8 @@ import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
+import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
@@ -57,6 +59,9 @@ export default function ConsultarCliente() {
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
   const [timelineClienteId, setTimelineClienteId] = useState<string | null>(null);
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
+  const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
+  const [socialClienteName, setSocialClienteName] = useState<string>('');
+  const { canViewSocialCredentials } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -651,6 +656,20 @@ export default function ConsultarCliente() {
                                 </Button>
                               </>
                             )}
+                            {canViewSocialCredentials() && (
+                              <Button
+                                onClick={() => {
+                                  setSocialClienteId(cliente.id);
+                                  setSocialClienteName(cliente.nome);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-pink-500"
+                                title="Credenciais Social Media"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -834,6 +853,14 @@ export default function ConsultarCliente() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Social Media Credentials */}
+        <ClientSocialCredentials
+          clienteId={socialClienteId || ''}
+          clienteName={socialClienteName}
+          open={!!socialClienteId}
+          onOpenChange={() => setSocialClienteId(null)}
+        />
       </div>
     </DashboardLayout>
   );

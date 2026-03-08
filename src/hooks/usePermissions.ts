@@ -115,6 +115,10 @@ export function usePermissions() {
   // Tasks permission
   const canManageTasks = () => hasPermission('manage_tasks');
 
+  // Social Media credentials
+  const canViewSocialCredentials = () => hasPermission('view_social_credentials');
+  const canManageSocialCredentials = () => hasPermission('manage_social_credentials');
+
   // Reports permission
   const canViewReports = () => hasPermission('view_reports');
 
@@ -240,5 +244,8 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    // Social Media
+    canViewSocialCredentials,
+    canManageSocialCredentials,
   };
 }
