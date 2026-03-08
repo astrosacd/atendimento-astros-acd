@@ -76,6 +76,10 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
   const [externalAnonKey, setExternalAnonKey] = useState('');
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
 
   useEffect(() => {
     if (configs.length > 0) {
