@@ -271,8 +271,8 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Credencial' : 'Nova Credencial'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label>Plataforma</Label>
               <Select value={form.platform} onValueChange={v => setForm(f => ({ ...f, platform: v }))}>
                 <SelectTrigger>
@@ -290,7 +290,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Login (e-mail ou usuário)</Label>
               <Input
                 value={form.login}
@@ -299,7 +299,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                 maxLength={200}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Senha</Label>
               <Input
                 type="text"
@@ -309,7 +309,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                 maxLength={200}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Observações (opcional)</Label>
               <Textarea
                 value={form.notes}
