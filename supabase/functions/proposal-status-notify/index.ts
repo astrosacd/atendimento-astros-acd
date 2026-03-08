@@ -58,6 +58,9 @@ serve(async (req: Request) => {
     // === WEBHOOKS: Fire for all status changes (sent, viewed, accepted, rejected) ===
     await fireProposalWebhooks(supabase, proposal, new_status, clientName, clientPhone, clientEmail, rejection_reason);
 
+    // === BASEROW: Create lead for relevant events ===
+    await createBaserowLead(supabaseUrl, 'proposals', new_status, clientName, clientPhone, proposal.title);
+
     // === NOTIFICATIONS: Only for accepted/rejected ===
     if (new_status !== 'accepted' && new_status !== 'rejected') {
       return new Response(JSON.stringify({ success: true, webhooks_only: true }), {
@@ -375,5 +378,46 @@ async function logNotification(
     });
   } catch (err) {
     console.error('Failed to log notification:', err);
+  }
+}
+
+async function createBaserowLead(
+  supabaseUrl: string,
+  module: string,
+  status: string,
+  clientName: string,
+  clientPhone: string | null,
+  proposalTitle?: string,
+) {
+  if (!clientPhone) return;
+
+  const eventMap: Record<string, string> = {
+    'sent': 'proposta.enviada',
+    'accepted': 'proposta.aceita',
+    'rejected': 'proposta.recusada',
+  };
+  const event = eventMap[status];
+  if (!event) return;
+
+  try {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || '';
+    const resp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        module,
+        event,
+        lead_name: clientName,
+        lead_phone: clientPhone,
+        lead_date: new Date().toLocaleDateString('pt-BR'),
+      }),
+    });
+    const result = await resp.text();
+    console.log(`📦 Baserow lead creation (${module}/${event}): ${resp.status} - ${result}`);
+  } catch (err: any) {
+    console.error(`❌ Baserow lead creation error:`, err.message);
   }
 }

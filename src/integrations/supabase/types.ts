@@ -269,6 +269,42 @@ export type Database = {
         }
         Relationships: []
       }
+      baserow_integrations: {
+        Row: {
+          api_token: string
+          api_url: string
+          created_at: string
+          events: string[]
+          id: string
+          is_enabled: boolean
+          module: string
+          table_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_token?: string
+          api_url?: string
+          created_at?: string
+          events?: string[]
+          id?: string
+          is_enabled?: boolean
+          module: string
+          table_id?: string
+          updated_at?: string
+        }
+        Update: {
+          api_token?: string
+          api_url?: string
+          created_at?: string
+          events?: string[]
+          id?: string
+          is_enabled?: boolean
+          module?: string
+          table_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_config: {
         Row: {
           config_key: string
