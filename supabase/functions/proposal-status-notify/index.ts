@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface NotifyRequest {
   proposal_id: string;
-  new_status: 'accepted' | 'rejected' | 'viewed';
+  new_status: 'sent' | 'accepted' | 'rejected' | 'viewed';
   old_status: string;
   signed_name?: string;
   rejection_reason?: string;
