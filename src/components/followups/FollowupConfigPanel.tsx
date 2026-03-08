@@ -75,6 +75,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronHour, setCronHour] = useState('9');
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
+  const [externalAnonKey, setExternalAnonKey] = useState('');
 
   useEffect(() => {
     if (configs.length > 0) {
@@ -82,6 +83,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       setCronHour(getConfigValue('cron_hour', '9'));
       setCronMinute(getConfigValue('cron_minute', '0'));
       setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
+      setExternalAnonKey(getConfigValue('external_supabase_anon_key', ''));
     }
   }, [configs]);
 
