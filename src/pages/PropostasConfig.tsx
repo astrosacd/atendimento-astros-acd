@@ -854,6 +854,102 @@ export default function PropostasConfig() {
                 </CardContent>
               </Card>
             )}
+
+            {activeTab === 'baserow' && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Database className="h-5 w-5 text-primary" />
+                        Integração Baserow
+                      </CardTitle>
+                      <CardDescription>
+                        Crie leads automaticamente no Baserow quando eventos de proposta ocorrerem
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="baserow-enabled">Ativado</Label>
+                      <Switch id="baserow-enabled" checked={baserowEnabled} onCheckedChange={setBaserowEnabled} />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-start gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Como funciona?</p>
+                      <p className="mt-1 text-muted-foreground">
+                        Quando um evento selecionado ocorrer, o sistema cria automaticamente 2 linhas no Baserow:
+                        uma com o número no formato <code className="bg-muted px-1 rounded">@s.whatsapp.net</code> e outra com <code className="bg-muted px-1 rounded">+número</code>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>URL da API Baserow</Label>
+                      <Input
+                        placeholder="https://baserow.seudominio.com"
+                        value={baserowApiUrl}
+                        onChange={(e) => setBaserowApiUrl(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">URL base da sua instância Baserow (sem barra final)</p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Token da API</Label>
+                        <div className="relative">
+                          <Input
+                            type={showBaserowToken ? 'text' : 'password'}
+                            placeholder="Token do Baserow"
+                            value={baserowToken}
+                            onChange={(e) => setBaserowToken(e.target.value)}
+                          />
+                          <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowBaserowToken(!showBaserowToken)}>
+                            {showBaserowToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>ID da Tabela</Label>
+                        <Input
+                          placeholder="533"
+                          value={baserowTableId}
+                          onChange={(e) => setBaserowTableId(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Eventos que criam leads</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Selecione quais eventos devem criar leads no Baserow</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['proposta.enviada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
+                        <Badge
+                          key={evt}
+                          variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setBaserowEvents(prev =>
+                              prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                            );
+                          }}
+                        >
+                          {evt}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button onClick={handleSaveBaserow} disabled={isSavingBaserow}>
+                    {isSavingBaserow ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Salvar Baserow
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
