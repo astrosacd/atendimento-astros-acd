@@ -849,3 +849,34 @@ Aguardo seu retorno! 😊`;
     );
   }
 });
+
+async function createBaserowLead(
+  supabaseUrl: string,
+  event: string,
+  clientName: string,
+  clientPhone: string | null,
+) {
+  if (!clientPhone) return;
+
+  try {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || '';
+    const resp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        module: 'recovery',
+        event,
+        lead_name: clientName,
+        lead_phone: clientPhone,
+        lead_date: new Date().toLocaleDateString('pt-BR'),
+      }),
+    });
+    const result = await resp.text();
+    console.log(`📦 Baserow lead creation (recovery/${event}): ${resp.status} - ${result}`);
+  } catch (err: any) {
+    console.error(`❌ Baserow lead creation error:`, err.message);
+  }
+}
