@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
-  Settings, Clock, Webhook, Plus, Trash2, Save, Timer, Eye, Sparkles, Bot,
+  Settings, Clock, Webhook, Plus, Trash2, Save, Timer, Eye, EyeOff, Sparkles, Bot, Database,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
