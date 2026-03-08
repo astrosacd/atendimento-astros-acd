@@ -127,6 +127,7 @@ const permissionIcons: Record<string, React.ReactNode> = {
   manage_despesas_cron: <Settings className="h-4 w-4" />,
   manage_proposal_baserow: <Database className="h-4 w-4" />,
   manage_followup_baserow: <Database className="h-4 w-4" />,
+  manage_recovery_baserow: <Database className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,14 @@ import {
   MessageSquare,
   ShoppingBag,
   Users,
-  Webhook
+  Webhook,
+  Database,
+  Save,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface Cliente {
   id: string;
@@ -83,6 +90,39 @@ export const ClientRecoveryManager = () => {
   const [isNewSaleMode, setIsNewSaleMode] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ attemptId: string; converted: boolean } | null>(null);
   const [confirmReason, setConfirmReason] = useState('');
+
+  // Baserow state
+  const queryClient = useQueryClient();
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
+  const [baserowEvents, setBaserowEvents] = useState<string[]>(['recovery.inadimplente', 'recovery.registro']);
+  const [showBaserowToken, setShowBaserowToken] = useState(false);
+  const [isSavingBaserow, setIsSavingBaserow] = useState(false);
+
+  const { data: baserowConfig } = useQuery({
+    queryKey: ['baserow-config-recovery'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baserow_integrations')
+        .select('*')
+        .eq('module', 'recovery')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (baserowConfig) {
+      setBaserowEnabled(baserowConfig.is_enabled ?? false);
+      setBaserowApiUrl(baserowConfig.api_url || '');
+      setBaserowToken(baserowConfig.api_token || '');
+      setBaserowTableId(baserowConfig.table_id || '');
+      setBaserowEvents(baserowConfig.events || []);
+    }
+  }, [baserowConfig]);
 
   useEffect(() => {
     loadOverdueClients();
@@ -444,6 +484,10 @@ export const ClientRecoveryManager = () => {
           <TabsTrigger value="webhooks">
             <Webhook className="w-4 h-4 mr-2" />
             Webhooks
+          </TabsTrigger>
+          <TabsTrigger value="baserow">
+            <Database className="w-4 h-4 mr-2" />
+            Baserow
           </TabsTrigger>
         </TabsList>
 
@@ -955,6 +999,121 @@ export const ClientRecoveryManager = () => {
         </TabsContent>
         <TabsContent value="webhooks" className="space-y-4">
           <RecoveryWebhooksManager />
+        </TabsContent>
+
+        <TabsContent value="baserow" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-primary" />
+                    Integração Baserow
+                  </CardTitle>
+                  <CardDescription>Crie leads automaticamente no Baserow ao enviar mensagens de recuperação</CardDescription>
+                </div>
+                <Switch checked={baserowEnabled} onCheckedChange={setBaserowEnabled} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>URL da API</Label>
+                <Input
+                  placeholder="https://api.baserow.io"
+                  value={baserowApiUrl}
+                  onChange={e => setBaserowApiUrl(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Token da API</Label>
+                <div className="relative">
+                  <Input
+                    type={showBaserowToken ? 'text' : 'password'}
+                    placeholder="Token do Baserow"
+                    value={baserowToken}
+                    onChange={e => setBaserowToken(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setShowBaserowToken(!showBaserowToken)}
+                  >
+                    {showBaserowToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>ID da Tabela</Label>
+                <Input
+                  placeholder="ID numérico da tabela"
+                  value={baserowTableId}
+                  onChange={e => setBaserowTableId(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eventos que criam leads</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['recovery.inadimplente', 'recovery.registro'].map(evt => (
+                    <Badge
+                      key={evt}
+                      variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setBaserowEvents(prev =>
+                          prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                        );
+                      }}
+                    >
+                      {evt === 'recovery.inadimplente' ? 'Inadimplente' : 'Cliente Registro'} ({evt})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={async () => {
+                  setIsSavingBaserow(true);
+                  try {
+                    const { error } = await supabase
+                      .from('baserow_integrations')
+                      .update({
+                        is_enabled: baserowEnabled,
+                        api_url: baserowApiUrl,
+                        api_token: baserowToken,
+                        table_id: baserowTableId,
+                        events: baserowEvents,
+                        updated_at: new Date().toISOString(),
+                      } as any)
+                      .eq('module', 'recovery');
+                    if (error) throw error;
+                    queryClient.invalidateQueries({ queryKey: ['baserow-config-recovery'] });
+                    toast({
+                      title: 'Configuração Baserow salva!',
+                      description: 'As configurações foram atualizadas com sucesso.',
+                    });
+                  } catch (err: any) {
+                    toast({
+                      title: 'Erro ao salvar',
+                      description: err.message,
+                      variant: 'destructive',
+                    });
+                  } finally {
+                    setIsSavingBaserow(false);
+                  }
+                }}
+                disabled={isSavingBaserow}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSavingBaserow ? 'Salvando...' : 'Salvar Baserow'}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
