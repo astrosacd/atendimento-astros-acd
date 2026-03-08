@@ -72,6 +72,15 @@ export default function PropostasConfig() {
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
+  // Baserow integration
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEvents, setBaserowEvents] = useState<string[]>(['proposta.enviada', 'proposta.aceita', 'proposta.recusada']);
+  const [isSavingBaserow, setIsSavingBaserow] = useState(false);
+  const [showBaserowToken, setShowBaserowToken] = useState(false);
+
   useEffect(() => {
     if (config) {
       setGmailUser(config.gmail_user || '');
