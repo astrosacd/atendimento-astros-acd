@@ -1000,6 +1000,121 @@ export const ClientRecoveryManager = () => {
         <TabsContent value="webhooks" className="space-y-4">
           <RecoveryWebhooksManager />
         </TabsContent>
+
+        <TabsContent value="baserow" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-primary" />
+                    Integração Baserow
+                  </CardTitle>
+                  <CardDescription>Crie leads automaticamente no Baserow ao enviar mensagens de recuperação</CardDescription>
+                </div>
+                <Switch checked={baserowEnabled} onCheckedChange={setBaserowEnabled} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>URL da API</Label>
+                <Input
+                  placeholder="https://api.baserow.io"
+                  value={baserowApiUrl}
+                  onChange={e => setBaserowApiUrl(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Token da API</Label>
+                <div className="relative">
+                  <Input
+                    type={showBaserowToken ? 'text' : 'password'}
+                    placeholder="Token do Baserow"
+                    value={baserowToken}
+                    onChange={e => setBaserowToken(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setShowBaserowToken(!showBaserowToken)}
+                  >
+                    {showBaserowToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>ID da Tabela</Label>
+                <Input
+                  placeholder="ID numérico da tabela"
+                  value={baserowTableId}
+                  onChange={e => setBaserowTableId(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eventos que criam leads</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['recovery.inadimplente', 'recovery.registro'].map(evt => (
+                    <Badge
+                      key={evt}
+                      variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setBaserowEvents(prev =>
+                          prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                        );
+                      }}
+                    >
+                      {evt === 'recovery.inadimplente' ? 'Inadimplente' : 'Cliente Registro'} ({evt})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={async () => {
+                  setIsSavingBaserow(true);
+                  try {
+                    const { error } = await supabase
+                      .from('baserow_integrations')
+                      .update({
+                        is_enabled: baserowEnabled,
+                        api_url: baserowApiUrl,
+                        api_token: baserowToken,
+                        table_id: baserowTableId,
+                        events: baserowEvents,
+                        updated_at: new Date().toISOString(),
+                      } as any)
+                      .eq('module', 'recovery');
+                    if (error) throw error;
+                    queryClient.invalidateQueries({ queryKey: ['baserow-config-recovery'] });
+                    toast({
+                      title: 'Configuração Baserow salva!',
+                      description: 'As configurações foram atualizadas com sucesso.',
+                    });
+                  } catch (err: any) {
+                    toast({
+                      title: 'Erro ao salvar',
+                      description: err.message,
+                      variant: 'destructive',
+                    });
+                  } finally {
+                    setIsSavingBaserow(false);
+                  }
+                }}
+                disabled={isSavingBaserow}
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSavingBaserow ? 'Salvando...' : 'Salvar Baserow'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Confirm Convert Dialog */}
