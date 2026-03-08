@@ -197,7 +197,7 @@ ${productContext}`;
     const message = result.choices?.[0]?.message?.content || "";
 
     return new Response(
-      JSON.stringify({ message, matched_products: matchedProducts.length }),
+      JSON.stringify({ message, matched_products: matchedProducts.length, matched_external: matchedExternal.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {
