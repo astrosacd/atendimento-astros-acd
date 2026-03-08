@@ -15,7 +15,8 @@ import {
   ArrowLeft, Shield, Users, Eye, UserPlus, Edit, Trash2, 
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
   Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
-  MessageSquare, Send, UserMinus, BarChart3
+  MessageSquare, Send, UserMinus, BarChart3, Database, ShoppingCart,
+  Award, Share2, Phone
 } from 'lucide-react';
 import {
   Dialog,
@@ -86,13 +87,16 @@ const categoryIcons: Record<string, React.ReactNode> = {
   cobranca: <CreditCard className="h-4 w-4" />,
   'Guia': <FileText className="h-4 w-4" />,
   'Consulta de Números': <Eye className="h-4 w-4" />,
-  'Números Aquecimento': <Settings className="h-4 w-4" />,
+  'Status de Números': <Phone className="h-4 w-4" />,
   'Relatórios': <BarChart3 className="h-4 w-4" />,
   'Chamados': <MessageSquare className="h-4 w-4" />,
   'Despesas': <CreditCard className="h-4 w-4" />,
   'Follow-ups': <Send className="h-4 w-4" />,
-    'Propostas': <FileText className="h-4 w-4" />,
-    'Pipeline': <Users className="h-4 w-4" />,
+  'Propostas': <FileText className="h-4 w-4" />,
+  'Pipeline': <Users className="h-4 w-4" />,
+  'Gateway': <ShoppingCart className="h-4 w-4" />,
+  'Revendedor': <Award className="h-4 w-4" />,
+  'Social Media': <Share2 className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
@@ -121,6 +125,8 @@ const permissionIcons: Record<string, React.ReactNode> = {
   view_despesas: <Eye className="h-4 w-4" />,
   manage_despesas: <Edit className="h-4 w-4" />,
   manage_despesas_cron: <Settings className="h-4 w-4" />,
+  manage_proposal_baserow: <Database className="h-4 w-4" />,
+  manage_followup_baserow: <Database className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {
@@ -342,12 +348,16 @@ export default function AdminPermissoes() {
     cobranca: t('permissions.categories.billing'),
     'Guia': t('permissions.categories.guide'),
     'Consulta de Números': t('permissions.categories.numberQuery'),
-    'Números Aquecimento': t('permissions.categories.numberStatus'),
+    'Status de Números': 'Status de Números',
     'Relatórios': t('permissions.categories.reports'),
     'Chamados': t('permissions.categories.tickets'),
     'Follow-ups': 'Follow-ups',
     'Propostas': 'Propostas',
     'Pipeline': 'Pipeline',
+    'Gateway': 'Gateway',
+    'Revendedor': 'Revendedor',
+    'Social Media': 'Social Media',
+    'Despesas': 'Despesas',
   });
 
   const colorOptions = getColorOptions(t);
