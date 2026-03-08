@@ -656,6 +656,22 @@ export default function ConsultarCliente() {
                                 </Button>
                               </>
                             )}
+                            {canViewSocialCredentials() && (
+                              <Button
+                                onClick={() => {
+                                  setSocialClienteId(cliente.id);
+                                  setSocialClienteName(cliente.nome);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-pink-500"
+                                title="Credenciais Social Media"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </Button>
+                            )}
+                              </>
+                            )}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
