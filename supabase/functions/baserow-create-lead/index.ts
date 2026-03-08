@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface CreateLeadRequest {
-  module: 'proposals' | 'followups';
+  module: 'proposals' | 'followups' | 'recovery';
   event: string;
   lead_name: string;
   lead_phone: string;
