@@ -91,6 +91,39 @@ export const ClientRecoveryManager = () => {
   const [confirmAction, setConfirmAction] = useState<{ attemptId: string; converted: boolean } | null>(null);
   const [confirmReason, setConfirmReason] = useState('');
 
+  // Baserow state
+  const queryClient = useQueryClient();
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
+  const [baserowEvents, setBaserowEvents] = useState<string[]>(['recovery.inadimplente', 'recovery.registro']);
+  const [showBaserowToken, setShowBaserowToken] = useState(false);
+  const [isSavingBaserow, setIsSavingBaserow] = useState(false);
+
+  const { data: baserowConfig } = useQuery({
+    queryKey: ['baserow-config-recovery'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baserow_integrations')
+        .select('*')
+        .eq('module', 'recovery')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (baserowConfig) {
+      setBaserowEnabled(baserowConfig.is_enabled ?? false);
+      setBaserowApiUrl(baserowConfig.api_url || '');
+      setBaserowToken(baserowConfig.api_token || '');
+      setBaserowTableId(baserowConfig.table_id || '');
+      setBaserowEvents(baserowConfig.events || []);
+    }
+  }, [baserowConfig]);
+
   useEffect(() => {
     loadOverdueClients();
     loadRegistroClients();
