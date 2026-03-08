@@ -853,6 +853,14 @@ export default function ConsultarCliente() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Social Media Credentials */}
+        <ClientSocialCredentials
+          clienteId={socialClienteId || ''}
+          clienteName={socialClienteName}
+          open={!!socialClienteId}
+          onOpenChange={() => setSocialClienteId(null)}
+        />
       </div>
     </DashboardLayout>
   );
