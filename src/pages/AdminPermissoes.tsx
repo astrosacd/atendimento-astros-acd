@@ -348,12 +348,16 @@ export default function AdminPermissoes() {
     cobranca: t('permissions.categories.billing'),
     'Guia': t('permissions.categories.guide'),
     'Consulta de Números': t('permissions.categories.numberQuery'),
-    'Números Aquecimento': t('permissions.categories.numberStatus'),
+    'Status de Números': 'Status de Números',
     'Relatórios': t('permissions.categories.reports'),
     'Chamados': t('permissions.categories.tickets'),
     'Follow-ups': 'Follow-ups',
     'Propostas': 'Propostas',
     'Pipeline': 'Pipeline',
+    'Gateway': 'Gateway',
+    'Revendedor': 'Revendedor',
+    'Social Media': 'Social Media',
+    'Despesas': 'Despesas',
   });
 
   const colorOptions = getColorOptions(t);
