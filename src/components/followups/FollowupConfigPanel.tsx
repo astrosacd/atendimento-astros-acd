@@ -116,10 +116,6 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       setCronMinute(getConfigValue('cron_minute', '0'));
       setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
       setExternalAnonKey(getConfigValue('external_supabase_anon_key', ''));
-      setBaserowApiUrl(getConfigValue('baserow_api_url', ''));
-      setBaserowToken(getConfigValue('baserow_token', ''));
-      setBaserowTableId(getConfigValue('baserow_table_id', ''));
-      setBaserowEnabled(getConfigValue('baserow_enabled', 'false') === 'true');
     }
   }, [configs]);
 

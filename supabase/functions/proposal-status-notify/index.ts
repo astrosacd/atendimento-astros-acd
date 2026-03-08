@@ -393,6 +393,7 @@ async function createBaserowLead(
 
   const eventMap: Record<string, string> = {
     'sent': 'proposta.enviada',
+    'viewed': 'proposta.visualizada',
     'accepted': 'proposta.aceita',
     'rejected': 'proposta.recusada',
   };
