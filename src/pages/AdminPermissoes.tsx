@@ -87,13 +87,16 @@ const categoryIcons: Record<string, React.ReactNode> = {
   cobranca: <CreditCard className="h-4 w-4" />,
   'Guia': <FileText className="h-4 w-4" />,
   'Consulta de Números': <Eye className="h-4 w-4" />,
-  'Números Aquecimento': <Settings className="h-4 w-4" />,
+  'Status de Números': <Phone className="h-4 w-4" />,
   'Relatórios': <BarChart3 className="h-4 w-4" />,
   'Chamados': <MessageSquare className="h-4 w-4" />,
   'Despesas': <CreditCard className="h-4 w-4" />,
   'Follow-ups': <Send className="h-4 w-4" />,
-    'Propostas': <FileText className="h-4 w-4" />,
-    'Pipeline': <Users className="h-4 w-4" />,
+  'Propostas': <FileText className="h-4 w-4" />,
+  'Pipeline': <Users className="h-4 w-4" />,
+  'Gateway': <ShoppingCart className="h-4 w-4" />,
+  'Revendedor': <Award className="h-4 w-4" />,
+  'Social Media': <Share2 className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
