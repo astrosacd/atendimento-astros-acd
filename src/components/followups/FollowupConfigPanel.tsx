@@ -80,6 +80,34 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [baserowToken, setBaserowToken] = useState('');
   const [baserowTableId, setBaserowTableId] = useState('');
   const [baserowEnabled, setBaserowEnabled] = useState(false);
+  const [baserowEvents, setBaserowEvents] = useState<string[]>(['followup.sent', 'followup.failed']);
+  const [showBaserowToken, setShowBaserowToken] = useState(false);
+  const [isSavingBaserow, setIsSavingBaserow] = useState(false);
+
+  // Baserow config (separate from followup_config, uses baserow_integrations table)
+  const { data: baserowConfig } = useQuery({
+    queryKey: ['baserow-config-followups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baserow_integrations')
+        .select('*')
+        .eq('module', 'followups')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (baserowConfig) {
+      setBaserowEnabled(baserowConfig.is_enabled ?? false);
+      setBaserowApiUrl(baserowConfig.api_url || '');
+      setBaserowToken(baserowConfig.api_token || '');
+      setBaserowTableId(baserowConfig.table_id || '');
+      setBaserowEvents(baserowConfig.events || []);
+    }
+  }, [baserowConfig]);
 
   useEffect(() => {
     if (configs.length > 0) {
