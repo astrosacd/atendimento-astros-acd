@@ -926,7 +926,7 @@ export default function PropostasConfig() {
                     <Label>Eventos que criam leads</Label>
                     <p className="text-xs text-muted-foreground mb-2">Selecione quais eventos devem criar leads no Baserow</p>
                     <div className="flex flex-wrap gap-2">
-                      {['proposta.enviada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
+                      {['proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
                         <Badge
                           key={evt}
                           variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
