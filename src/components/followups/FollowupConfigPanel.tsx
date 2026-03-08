@@ -386,6 +386,117 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
             )}
           </TabsContent>
 
+          {/* Baserow Tab */}
+          <TabsContent value="baserow" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Database className="h-4 w-4 text-primary" />
+                      Integração Baserow
+                    </CardTitle>
+                    <CardDescription>
+                      Crie leads automaticamente no Baserow quando eventos de follow-up ocorrerem
+                    </CardDescription>
+                  </div>
+                  <Switch checked={baserowEnabled} onCheckedChange={setBaserowEnabled} />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                  <p>📦 Quando um evento selecionado ocorrer, o sistema cria automaticamente 2 linhas no Baserow:</p>
+                  <p>• Uma com o número no formato <code className="bg-muted px-1 rounded">@s.whatsapp.net</code></p>
+                  <p>• Outra com o número no formato <code className="bg-muted px-1 rounded">+número</code></p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>URL da API Baserow</Label>
+                  <Input
+                    placeholder="https://baserow.seudominio.com"
+                    value={baserowApiUrl}
+                    onChange={e => setBaserowApiUrl(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Token da API</Label>
+                    <div className="relative">
+                      <Input
+                        type={showBaserowToken ? 'text' : 'password'}
+                        placeholder="Token"
+                        value={baserowToken}
+                        onChange={e => setBaserowToken(e.target.value)}
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowBaserowToken(!showBaserowToken)}>
+                        {showBaserowToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ID da Tabela</Label>
+                    <Input
+                      placeholder="533"
+                      value={baserowTableId}
+                      onChange={e => setBaserowTableId(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Eventos que criam leads</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_EVENTS.map(evt => (
+                      <Badge
+                        key={evt}
+                        variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setBaserowEvents(prev =>
+                            prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                          );
+                        }}
+                      >
+                        {evt === 'followup.sent' ? 'Follow-up Enviado' : 'Follow-up Falhou'} ({evt})
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    setIsSavingBaserow(true);
+                    try {
+                      const { error } = await supabase
+                        .from('baserow_integrations')
+                        .update({
+                          is_enabled: baserowEnabled,
+                          api_url: baserowApiUrl,
+                          api_token: baserowToken,
+                          table_id: baserowTableId,
+                          events: baserowEvents,
+                          updated_at: new Date().toISOString(),
+                        } as any)
+                        .eq('module', 'followups');
+                      if (error) throw error;
+                      queryClient.invalidateQueries({ queryKey: ['baserow-config-followups'] });
+                      toast.success('Configuração Baserow salva!');
+                    } catch (err: any) {
+                      toast.error('Erro: ' + err.message);
+                    } finally {
+                      setIsSavingBaserow(false);
+                    }
+                  }}
+                  disabled={isSavingBaserow}
+                  className="w-full"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSavingBaserow ? 'Salvando...' : 'Salvar Baserow'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Webhooks Tab */}
           <TabsContent value="webhooks" className="space-y-4 mt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
