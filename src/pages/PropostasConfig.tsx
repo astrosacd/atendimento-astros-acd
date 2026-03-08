@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { value: 'auto-remarketing', label: 'Remarketing Auto', icon: RefreshCcw },
   { value: 'confirmacoes', label: 'Confirmações', icon: Bell },
   { value: 'webhooks', label: 'Webhooks', icon: Webhook },
+  { value: 'baserow', label: 'Baserow', icon: Database },
 ];
 
 export default function PropostasConfig() {
