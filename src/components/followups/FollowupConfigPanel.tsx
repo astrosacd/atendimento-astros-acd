@@ -76,6 +76,10 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
   const [externalAnonKey, setExternalAnonKey] = useState('');
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
 
   useEffect(() => {
     if (configs.length > 0) {
@@ -84,6 +88,10 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       setCronMinute(getConfigValue('cron_minute', '0'));
       setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
       setExternalAnonKey(getConfigValue('external_supabase_anon_key', ''));
+      setBaserowApiUrl(getConfigValue('baserow_api_url', ''));
+      setBaserowToken(getConfigValue('baserow_token', ''));
+      setBaserowTableId(getConfigValue('baserow_table_id', ''));
+      setBaserowEnabled(getConfigValue('baserow_enabled', 'false') === 'true');
     }
   }, [configs]);
 
