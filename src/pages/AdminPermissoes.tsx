@@ -15,7 +15,8 @@ import {
   ArrowLeft, Shield, Users, Eye, UserPlus, Edit, Trash2, 
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
   Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
-  MessageSquare, Send, UserMinus, BarChart3
+  MessageSquare, Send, UserMinus, BarChart3, Database, ShoppingCart,
+  Award, Share2, Phone
 } from 'lucide-react';
 import {
   Dialog,
