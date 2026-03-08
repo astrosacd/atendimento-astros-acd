@@ -713,7 +713,7 @@ export default function PropostasConfig() {
                     <div className="space-y-2">
                       <Label>Eventos</Label>
                       <div className="flex flex-wrap gap-2">
-                        {['proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
+                        {['proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
                           <Badge
                             key={evt}
                             variant={newWebhookEvents.includes(evt) ? 'default' : 'outline'}

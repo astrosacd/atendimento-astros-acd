@@ -55,7 +55,7 @@ serve(async (req: Request) => {
     const clientPhone = proposal.manual_client_phone || proposal.clientes?.numero;
     const clientEmail = proposal.manual_client_email || proposal.clientes?.email;
 
-    // === WEBHOOKS: Fire for all status changes (viewed, accepted, rejected) ===
+    // === WEBHOOKS: Fire for all status changes (sent, viewed, accepted, rejected) ===
     await fireProposalWebhooks(supabase, proposal, new_status, clientName, clientPhone, clientEmail, rejection_reason);
 
     // === NOTIFICATIONS: Only for accepted/rejected ===
