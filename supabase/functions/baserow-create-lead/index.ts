@@ -101,12 +101,14 @@ serve(async (req: Request) => {
       'Name': lead_name,
       'Número': `${cleanPhone}@s.whatsapp.net`,
       'Data': dateStr,
+      'Atende Humano': true,
     };
 
     const row2 = {
       'Name': lead_name,
       'Número': `+${cleanPhone}`,
       'Data': dateStr,
+      'Atende Humano': true,
     };
 
     const results = [];
