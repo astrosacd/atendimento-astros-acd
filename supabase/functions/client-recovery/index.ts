@@ -724,6 +724,9 @@ Aguardo seu retorno! 😊`;
         } catch (e: any) {
           console.error('Webhook dispatch error:', e.message);
         }
+
+        // === BASEROW: Create/update lead ===
+        await createBaserowLead(supabaseUrl, evento, cliente.nome, cliente.numero);
       }
       
       return new Response(
