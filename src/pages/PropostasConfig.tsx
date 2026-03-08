@@ -66,7 +66,7 @@ export default function PropostasConfig() {
   const [newWebhookName, setNewWebhookName] = useState('');
   const [newWebhookUrl, setNewWebhookUrl] = useState('');
   const [newWebhookSecret, setNewWebhookSecret] = useState('');
-  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(['proposta.visualizada', 'proposta.aceita', 'proposta.recusada']);
+  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(['proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada']);
 
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
