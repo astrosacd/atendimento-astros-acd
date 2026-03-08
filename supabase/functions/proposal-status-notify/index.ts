@@ -58,6 +58,9 @@ serve(async (req: Request) => {
     // === WEBHOOKS: Fire for all status changes (sent, viewed, accepted, rejected) ===
     await fireProposalWebhooks(supabase, proposal, new_status, clientName, clientPhone, clientEmail, rejection_reason);
 
+    // === BASEROW: Create lead for relevant events ===
+    await createBaserowLead(supabaseUrl, 'proposals', new_status, clientName, clientPhone, proposal.title);
+
     // === NOTIFICATIONS: Only for accepted/rejected ===
     if (new_status !== 'accepted' && new_status !== 'rejected') {
       return new Response(JSON.stringify({ success: true, webhooks_only: true }), {
