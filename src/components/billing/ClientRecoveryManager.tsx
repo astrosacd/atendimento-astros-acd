@@ -485,6 +485,10 @@ export const ClientRecoveryManager = () => {
             <Webhook className="w-4 h-4 mr-2" />
             Webhooks
           </TabsTrigger>
+          <TabsTrigger value="baserow">
+            <Database className="w-4 h-4 mr-2" />
+            Baserow
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients" className="space-y-4">
