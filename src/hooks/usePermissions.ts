@@ -244,5 +244,8 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    // Social Media
+    canViewSocialCredentials,
+    canManageSocialCredentials,
   };
 }
