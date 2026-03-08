@@ -129,14 +129,16 @@ export function ContactHistoryDialog({ open, onOpenChange, contactPhone, contact
                     className={`relative border rounded-lg p-3 space-y-2 ${isLatest ? 'border-primary/40 bg-primary/5' : ''}`}
                   >
                     {isLatest && (
-                      <Badge className="absolute -top-2 right-2 text-[10px] px-1.5 py-0 bg-primary text-primary-foreground">
-                        Último envio
-                      </Badge>
+                      <div className="flex justify-end mb-1">
+                        <Badge className="text-[10px] px-1.5 py-0 bg-primary text-primary-foreground">
+                          Último envio
+                        </Badge>
+                      </div>
                     )}
 
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{item.produto}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm break-words">{item.produto}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(item.scheduled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </p>
