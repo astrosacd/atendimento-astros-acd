@@ -30,8 +30,14 @@ import {
   MessageSquare,
   ShoppingBag,
   Users,
-  Webhook
+  Webhook,
+  Database,
+  Save,
+  Eye,
+  EyeOff
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface Cliente {
   id: string;
