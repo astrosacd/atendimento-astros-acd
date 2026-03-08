@@ -86,71 +86,73 @@ serve(async (req: Request) => {
     const cleanPhone = lead_phone.replace(/\D/g, '');
     const dateStr = lead_date || new Date().toLocaleDateString('pt-BR');
 
-    // Create 2 rows in Baserow:
-    // Row 1: number with @s.whatsapp.net format
-    // Row 2: number with + prefix
     const baseUrl = config.api_url.replace(/\/$/, '');
-    const apiEndpoint = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
-
+    const listEndpoint = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
     const headers = {
       'Authorization': `Token ${config.api_token}`,
       'Content-Type': 'application/json',
     };
 
-    const row1 = {
-      'Name': lead_name,
-      'Número': `${cleanPhone}@s.whatsapp.net`,
-      'Data': dateStr,
-      'Atende Humano': true,
-    };
-
-    const row2 = {
-      'Name': lead_name,
-      'Número': `+${cleanPhone}`,
-      'Data': dateStr,
-      'Atende Humano': true,
-    };
+    const number1 = `${cleanPhone}@s.whatsapp.net`;
+    const number2 = `+${cleanPhone}`;
 
     const results = [];
 
-    // Create row 1
-    try {
-      const resp1 = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(row1),
-      });
-      const data1 = await resp1.text();
-      if (!resp1.ok) {
-        console.error(`❌ Baserow row 1 error: ${resp1.status} - ${data1}`);
-        results.push({ row: 1, success: false, error: data1 });
-      } else {
-        console.log(`✅ Baserow row 1 created (${cleanPhone}@s.whatsapp.net)`);
-        results.push({ row: 1, success: true });
-      }
-    } catch (err: any) {
-      console.error(`❌ Baserow row 1 fetch error:`, err.message);
-      results.push({ row: 1, success: false, error: err.message });
-    }
+    // Process each number format: check if exists, then create or update
+    for (const numero of [number1, number2]) {
+      try {
+        // Search for existing row by Número field
+        const searchUrl = `${listEndpoint}&filter__field__Número__equal=${encodeURIComponent(numero)}&size=1`;
+        const searchResp = await fetch(searchUrl, { method: 'GET', headers });
+        const searchData = await searchResp.json();
 
-    // Create row 2
-    try {
-      const resp2 = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(row2),
-      });
-      const data2 = await resp2.text();
-      if (!resp2.ok) {
-        console.error(`❌ Baserow row 2 error: ${resp2.status} - ${data2}`);
-        results.push({ row: 2, success: false, error: data2 });
-      } else {
-        console.log(`✅ Baserow row 2 created (+${cleanPhone})`);
-        results.push({ row: 2, success: true });
+        if (searchResp.ok && searchData.results && searchData.results.length > 0) {
+          // Row exists — just update the boolean "Atende Humano" to true
+          const existingRow = searchData.results[0];
+          const rowId = existingRow.id;
+
+          const updateUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
+          const updateResp = await fetch(updateUrl, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ 'Atende Humano': true }),
+          });
+          const updateData = await updateResp.text();
+
+          if (updateResp.ok) {
+            console.log(`✅ Baserow row updated (${numero}) — Atende Humano = true`);
+            results.push({ numero, action: 'updated', success: true });
+          } else {
+            console.error(`❌ Baserow update error: ${updateResp.status} - ${updateData}`);
+            results.push({ numero, action: 'update_failed', success: false, error: updateData });
+          }
+        } else {
+          // Row does not exist — create new
+          const createUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
+          const createResp = await fetch(createUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              'Name': lead_name,
+              'Número': numero,
+              'Data': dateStr,
+              'Atende Humano': true,
+            }),
+          });
+          const createData = await createResp.text();
+
+          if (createResp.ok) {
+            console.log(`✅ Baserow row created (${numero})`);
+            results.push({ numero, action: 'created', success: true });
+          } else {
+            console.error(`❌ Baserow create error: ${createResp.status} - ${createData}`);
+            results.push({ numero, action: 'create_failed', success: false, error: createData });
+          }
+        }
+      } catch (err: any) {
+        console.error(`❌ Baserow error for ${numero}:`, err.message);
+        results.push({ numero, action: 'error', success: false, error: err.message });
       }
-    } catch (err: any) {
-      console.error(`❌ Baserow row 2 fetch error:`, err.message);
-      results.push({ row: 2, success: false, error: err.message });
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
