@@ -104,6 +104,7 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       const updates = [
         { key: 'delay_seconds', value: delaySeconds },
         { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
+        { key: 'external_supabase_anon_key', value: externalAnonKey },
       ];
       for (const u of updates) {
         const { data: existing } = await supabase
