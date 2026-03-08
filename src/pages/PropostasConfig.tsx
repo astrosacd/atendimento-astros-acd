@@ -150,6 +150,48 @@ export default function PropostasConfig() {
     fetchLogs();
   }, []);
 
+  // Fetch Baserow config
+  useEffect(() => {
+    async function fetchBaserowConfig() {
+      const { data } = await supabase
+        .from('baserow_integrations')
+        .select('*')
+        .eq('module', 'proposals')
+        .maybeSingle();
+      if (data) {
+        setBaserowEnabled(data.is_enabled ?? false);
+        setBaserowApiUrl(data.api_url || '');
+        setBaserowToken(data.api_token || '');
+        setBaserowTableId(data.table_id || '');
+        setBaserowEvents(data.events || []);
+      }
+    }
+    fetchBaserowConfig();
+  }, []);
+
+  const handleSaveBaserow = async () => {
+    setIsSavingBaserow(true);
+    try {
+      const { error } = await supabase
+        .from('baserow_integrations')
+        .update({
+          is_enabled: baserowEnabled,
+          api_url: baserowApiUrl,
+          api_token: baserowToken,
+          table_id: baserowTableId,
+          events: baserowEvents,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('module', 'proposals');
+      if (error) throw error;
+      toast.success('Configuração Baserow salva!');
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + err.message);
+    } finally {
+      setIsSavingBaserow(false);
+    }
+  };
+
   const handleSaveStatusNotif = async () => {
     setIsSavingStatusNotif(true);
     try {
