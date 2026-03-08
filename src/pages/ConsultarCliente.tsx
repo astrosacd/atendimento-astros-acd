@@ -59,6 +59,9 @@ export default function ConsultarCliente() {
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
   const [timelineClienteId, setTimelineClienteId] = useState<string | null>(null);
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
+  const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
+  const [socialClienteName, setSocialClienteName] = useState<string>('');
+  const { canViewSocialCredentials } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
