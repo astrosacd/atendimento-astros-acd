@@ -34,6 +34,8 @@ import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
+import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
