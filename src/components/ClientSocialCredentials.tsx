@@ -271,7 +271,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Credencial' : 'Nova Credencial'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <Label>Plataforma</Label>
               <Select value={form.platform} onValueChange={v => setForm(f => ({ ...f, platform: v }))}>
