@@ -314,9 +314,26 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                       />
                     </div>
                     {aiMessageEnabled && (
-                      <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
-                        <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
-                        <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                      <div className="space-y-4">
+                        <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                          <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
+                          <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            Anon Key do Projeto Externo
+                          </Label>
+                          <Input
+                            type="password"
+                            value={externalAnonKey}
+                            onChange={e => setExternalAnonKey(e.target.value)}
+                            placeholder="eyJhbGciOiJIUzI1NiIs..."
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Chave anônima do projeto externo que contém a base de produtos. Deixe vazio para usar apenas o catálogo interno.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </CardContent>
