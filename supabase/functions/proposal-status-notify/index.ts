@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface NotifyRequest {
   proposal_id: string;
-  new_status: 'accepted' | 'rejected' | 'viewed';
+  new_status: 'sent' | 'accepted' | 'rejected' | 'viewed';
   old_status: string;
   signed_name?: string;
   rejection_reason?: string;
@@ -55,7 +55,7 @@ serve(async (req: Request) => {
     const clientPhone = proposal.manual_client_phone || proposal.clientes?.numero;
     const clientEmail = proposal.manual_client_email || proposal.clientes?.email;
 
-    // === WEBHOOKS: Fire for all status changes (viewed, accepted, rejected) ===
+    // === WEBHOOKS: Fire for all status changes (sent, viewed, accepted, rejected) ===
     await fireProposalWebhooks(supabase, proposal, new_status, clientName, clientPhone, clientEmail, rejection_reason);
 
     // === NOTIFICATIONS: Only for accepted/rejected ===
@@ -277,6 +277,7 @@ async function fireProposalWebhooks(
 ) {
   try {
     const eventMap: Record<string, string> = {
+      'sent': 'proposta.enviada',
       'viewed': 'proposta.visualizada',
       'accepted': 'proposta.aceita',
       'rejected': 'proposta.recusada',

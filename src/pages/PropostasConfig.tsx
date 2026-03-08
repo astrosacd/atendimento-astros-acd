@@ -66,7 +66,7 @@ export default function PropostasConfig() {
   const [newWebhookName, setNewWebhookName] = useState('');
   const [newWebhookUrl, setNewWebhookUrl] = useState('');
   const [newWebhookSecret, setNewWebhookSecret] = useState('');
-  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(['proposta.visualizada', 'proposta.aceita', 'proposta.recusada']);
+  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(['proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada']);
 
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -713,7 +713,7 @@ export default function PropostasConfig() {
                     <div className="space-y-2">
                       <Label>Eventos</Label>
                       <div className="flex flex-wrap gap-2">
-                        {['proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
+                        {['proposta.enviada', 'proposta.visualizada', 'proposta.aceita', 'proposta.recusada'].map(evt => (
                           <Badge
                             key={evt}
                             variant={newWebhookEvents.includes(evt) ? 'default' : 'outline'}
