@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trigger_proposal_status_notify ON public.proposals;
