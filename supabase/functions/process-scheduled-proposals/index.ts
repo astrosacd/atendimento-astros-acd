@@ -167,6 +167,33 @@ serve(async (req: Request) => {
           // Update proposal status
           await supabase.from("proposals").update({ status: "sent" }).eq("id", scheduled.proposal_id);
 
+          // Trigger Baserow lead creation
+          try {
+            const cleanPhone = (clientPhone || '').replace(/\D/g, '');
+            if (cleanPhone) {
+              console.log(`📦 Triggering Baserow lead creation for scheduled proposal`);
+              const baserowResp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  module: 'proposals',
+                  event: 'proposta.enviada',
+                  lead_name: clientName,
+                  lead_phone: cleanPhone,
+                  lead_date: new Date().toLocaleDateString('pt-BR'),
+                  lead_produto: proposal.title,
+                }),
+              });
+              const baserowData = await baserowResp.json();
+              console.log('📦 Baserow response:', JSON.stringify(baserowData));
+            }
+          } catch (baserowErr: any) {
+            console.error('⚠️ Baserow lead creation failed (non-blocking):', baserowErr.message);
+          }
+
           processed++;
         } else {
           const errorMsg = [results.email.error, results.whatsapp.error].filter(Boolean).join("; ");
