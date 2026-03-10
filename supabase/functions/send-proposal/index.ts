@@ -486,6 +486,34 @@ serve(async (req: Request) => {
           remarketing_message: isRemarketing ? remarketingMessage : undefined,
         },
       });
+
+      // Trigger Baserow lead creation
+      const baserowEvent = isRemarketing ? 'proposta.remarketing' : 'proposta.enviada';
+      try {
+        const cleanPhone = (clientPhone || '').replace(/\D/g, '');
+        if (cleanPhone) {
+          console.log(`📦 Triggering Baserow lead creation for event: ${baserowEvent}`);
+          const baserowResp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              module: 'proposals',
+              event: baserowEvent,
+              lead_name: clientName,
+              lead_phone: cleanPhone,
+              lead_date: new Date().toLocaleDateString('pt-BR'),
+              lead_produto: proposal.title,
+            }),
+          });
+          const baserowData = await baserowResp.json();
+          console.log('📦 Baserow response:', JSON.stringify(baserowData));
+        }
+      } catch (baserowErr: any) {
+        console.error('⚠️ Baserow lead creation failed (non-blocking):', baserowErr.message);
+      }
     }
 
     return new Response(JSON.stringify({
