@@ -155,6 +155,7 @@ function AppRoutes() {
       <Route path="/loja/:customSlug" element={<Catalogo />} />
       <Route path="/p/:slug" element={<Checkout />} />
       <Route path="/sucesso" element={<Sucesso />} />
+      <Route path="/credenciais/:token" element={<CredenciaisPublica />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
