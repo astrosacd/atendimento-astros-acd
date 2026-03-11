@@ -120,6 +120,17 @@ export function AutomationRulesPanel() {
     setCronSaving(false);
   };
 
+  const loadData = async () => {
+    setLoading(true);
+    const [rulesRes, logsRes] = await Promise.all([
+      supabase.from('automation_rules').select('*').order('created_at'),
+      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(50),
+    ]);
+    if (rulesRes.data) setRules(rulesRes.data as AutomationRule[]);
+    if (logsRes.data) setLogs(logsRes.data as AutomationLog[]);
+    setLoading(false);
+  
+
   const toggleRule = async (id: string, active: boolean) => {
     const { error } = await supabase.from('automation_rules').update({ is_active: active }).eq('id', id);
     if (error) { toast.error('Erro ao atualizar regra'); return; }
