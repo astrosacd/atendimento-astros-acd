@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Zap, Clock, Play, History, AlertTriangle, Copy } from 'lucide-react';
+import { Zap, Clock, Play, History, AlertTriangle, Copy, Settings, Power, PowerOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 interface AutomationRule {
   id: string;
@@ -57,7 +59,66 @@ export function AutomationRulesPanel() {
   const [dupDays, setDupDays] = useState('');
   const [dupSaving, setDupSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  // Cron config state
+  const [cronHour, setCronHour] = useState('9');
+  const [cronMinute, setCronMinute] = useState('0');
+  const [cronActive, setCronActive] = useState(false);
+  const [cronLoading, setCronLoading] = useState(true);
+  const [cronSaving, setCronSaving] = useState(false);
+
+  useEffect(() => { loadData(); loadCronSchedule(); }, []);
+
+  const loadCronSchedule = async () => {
+    setCronLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_automations_cron_schedule');
+      if (!error && data && data.length > 0) {
+        setCronActive(true);
+        // Parse cron schedule "minute hour * * *" and convert UTC to BRT
+        const parts = data[0].schedule.split(' ');
+        const utcMinute = parseInt(parts[0]);
+        let utcHour = parseInt(parts[1]);
+        let brtHour = utcHour - 3;
+        if (brtHour < 0) brtHour += 24;
+        setCronHour(String(brtHour));
+        setCronMinute(String(utcMinute));
+      } else {
+        setCronActive(false);
+      }
+    } catch {
+      setCronActive(false);
+    }
+    setCronLoading(false);
+  };
+
+  const saveCronSchedule = async () => {
+    setCronSaving(true);
+    try {
+      const { data, error } = await supabase.rpc('update_automations_cron_schedule', {
+        p_hour: parseInt(cronHour),
+        p_minute: parseInt(cronMinute),
+      });
+      if (error) throw error;
+      toast.success(`Cron configurado para ${cronHour.padStart(2, '0')}:${cronMinute.padStart(2, '0')} (Brasília)`);
+      setCronActive(true);
+    } catch (err: any) {
+      toast.error('Erro ao salvar horário: ' + (err.message || 'Erro desconhecido'));
+    }
+    setCronSaving(false);
+  };
+
+  const disableCron = async () => {
+    setCronSaving(true);
+    try {
+      const { error } = await supabase.rpc('disable_automations_cron');
+      if (error) throw error;
+      toast.success('Cron de automações desativado');
+      setCronActive(false);
+    } catch (err: any) {
+      toast.error('Erro ao desativar cron');
+    }
+    setCronSaving(false);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -126,6 +187,67 @@ export function AutomationRulesPanel() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      {/* Cron Config */}
+      <Card className="p-4 bg-card border-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-semibold text-sm text-foreground">Execução Automática (Cron)</h3>
+          </div>
+          <Badge variant={cronActive ? 'default' : 'secondary'} className="text-[10px]">
+            {cronLoading ? 'Carregando...' : cronActive ? 'Ativo' : 'Inativo'}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Configure o horário diário para executar automaticamente as regras de automação.
+        </p>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Hora (Brasília)</Label>
+            <Select value={cronHour} onValueChange={setCronHour}>
+              <SelectTrigger className="w-[80px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 24 }, (_, i) => (
+                  <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}h</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Minuto</Label>
+            <Select value={cronMinute} onValueChange={setCronMinute}>
+              <SelectTrigger className="w-[80px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => (
+                  <SelectItem key={m} value={String(m)}>{String(m).padStart(2, '0')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button size="sm" onClick={saveCronSchedule} disabled={cronSaving} className="gap-1.5 h-8">
+            <Power className="h-3.5 w-3.5" />
+            {cronSaving ? 'Salvando...' : 'Salvar Horário'}
+          </Button>
+          {cronActive && (
+            <Button size="sm" variant="outline" onClick={disableCron} disabled={cronSaving} className="gap-1.5 h-8 text-destructive hover:text-destructive">
+              <PowerOff className="h-3.5 w-3.5" />
+              Desativar
+            </Button>
+          )}
+        </div>
+        {cronActive && (
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Próxima execução: todos os dias às {cronHour.padStart(2, '0')}:{cronMinute.padStart(2, '0')} (horário de Brasília)
+          </p>
+        )}
+      </Card>
+
+      <Separator />
+
       {/* Rules */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-foreground">Regras de Automação</h3>
