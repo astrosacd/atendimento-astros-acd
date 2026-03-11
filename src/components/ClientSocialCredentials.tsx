@@ -213,7 +213,10 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           </DialogHeader>
 
           {canManage && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
+                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+              </Button>
               <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Nova Credencial
               </Button>
