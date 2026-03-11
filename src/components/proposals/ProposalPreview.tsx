@@ -55,10 +55,25 @@ interface BrandingStyles {
 
 export function ProposalPreview({ proposal, sections, client, onGalleryView, brandingOverride }: ProposalPreviewProps) {
   const visibleSections = sections.filter((s) => s.is_visible);
-  const { branding: hookBranding } = useProposalBranding();
+  const { branding: hookBranding, isLoading: isBrandingLoading } = useProposalBranding();
 
   // Use override branding (from RPC in public view) or hook branding (for editor)
   const branding = brandingOverride !== undefined ? brandingOverride : hookBranding;
+
+  // Wait for branding to load before rendering to avoid color flash
+  if (brandingOverride === undefined && isBrandingLoading) {
+    return (
+      <div id="proposal-preview" className="max-w-4xl mx-auto">
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="py-16 text-center text-muted-foreground">
+              Carregando...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const currency = ((proposal as any).currency as 'BRL' | 'USD' | undefined) || 'BRL';
 
