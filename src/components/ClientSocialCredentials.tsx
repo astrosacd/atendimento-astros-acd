@@ -71,6 +71,10 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareExpHours, setShareExpHours] = useState('24');
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [form, setForm] = useState({
     platform: 'instagram',
