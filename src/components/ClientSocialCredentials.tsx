@@ -25,7 +25,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
-  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe,
+  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe, Link2, Copy, Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
