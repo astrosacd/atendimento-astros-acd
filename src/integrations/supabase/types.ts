@@ -4746,6 +4746,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      disable_automations_cron: { Args: never; Returns: boolean }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_auto_remarketing: { Args: never; Returns: undefined }
@@ -4754,8 +4755,16 @@ export type Database = {
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_followups_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
+      execute_process_automations: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
+      get_automations_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
       get_billing_cron_schedule: {
         Args: never
         Returns: {
@@ -4861,6 +4870,10 @@ export type Database = {
         Returns: boolean
       }
       trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
+      update_automations_cron_schedule: {
+        Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
         Returns: boolean
