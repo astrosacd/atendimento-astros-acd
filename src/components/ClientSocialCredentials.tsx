@@ -25,7 +25,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
-  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe,
+  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe, Link2, Copy, Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -71,6 +71,10 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareExpHours, setShareExpHours] = useState('24');
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [form, setForm] = useState({
     platform: 'instagram',
@@ -150,6 +154,30 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
     setShowForm(false);
   };
 
+  const generateShareLink = async () => {
+    const hours = parseInt(shareExpHours);
+    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('social_credential_share_links')
+      .insert({ cliente_id: clienteId, expires_at: expiresAt, created_by: user?.id } as any)
+      .select('token')
+      .single();
+    if (error) {
+      toast.error('Erro ao gerar link');
+      return;
+    }
+    const link = `${window.location.origin}/credenciais/${data.token}`;
+    setGeneratedLink(link);
+  };
+
+  const copyLink = () => {
+    if (!generatedLink) return;
+    navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const startEdit = (cred: SocialCredential) => {
     setForm({
       platform: cred.platform,
@@ -185,7 +213,10 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           </DialogHeader>
 
           {canManage && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
+                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+              </Button>
               <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Nova Credencial
               </Button>
@@ -350,6 +381,59 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              Gerar Link de Acesso
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Validade do link</Label>
+              <Select value={shareExpHours} onValueChange={setShareExpHours}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 hora</SelectItem>
+                  <SelectItem value="6">6 horas</SelectItem>
+                  <SelectItem value="12">12 horas</SelectItem>
+                  <SelectItem value="24">24 horas</SelectItem>
+                  <SelectItem value="48">48 horas</SelectItem>
+                  <SelectItem value="72">3 dias</SelectItem>
+                  <SelectItem value="168">7 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {generatedLink && (
+              <div className="space-y-2">
+                <Label>Link gerado</Label>
+                <div className="flex gap-2">
+                  <Input value={generatedLink} readOnly className="text-xs" />
+                  <Button size="icon" variant="outline" onClick={copyLink}>
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Quem acessar este link poderá ver as credenciais deste cliente (somente leitura).
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fechar</Button>
+            {!generatedLink && (
+              <Button onClick={generateShareLink}>
+                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

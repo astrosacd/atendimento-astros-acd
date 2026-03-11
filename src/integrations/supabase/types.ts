@@ -4579,6 +4579,41 @@ export type Database = {
           },
         ]
       }
+      social_credential_share_links: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          token?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_credential_share_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_permissions: {
         Row: {
           category: string
@@ -4735,6 +4770,10 @@ export type Database = {
           job_name: string
           schedule: string
         }[]
+      }
+      get_credentials_by_share_token: {
+        Args: { p_token: string }
+        Returns: Json
       }
       get_divulgador_cron_schedule: {
         Args: never

@@ -1,0 +1,167 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Eye, EyeOff, Lock, Instagram, Facebook, Twitter, Youtube, Globe, ShieldX, Clock,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const PLATFORMS = [
+  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-500' },
+  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'text-blue-600' },
+  { value: 'twitter', label: 'Twitter / X', icon: Twitter, color: 'text-sky-500' },
+  { value: 'threads', label: 'Threads', icon: Globe, color: 'text-foreground' },
+  { value: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
+  { value: 'tiktok', label: 'TikTok', icon: Globe, color: 'text-foreground' },
+  { value: 'linkedin', label: 'LinkedIn', icon: Globe, color: 'text-blue-700' },
+  { value: 'outro', label: 'Outro', icon: Globe, color: 'text-muted-foreground' },
+];
+
+interface Credential {
+  id: string;
+  platform: string;
+  login: string;
+  encrypted_password: string;
+  notes: string | null;
+}
+
+export default function CredenciaisPublica() {
+  const { token } = useParams<{ token: string }>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_credentials_by_share_token', {
+          p_token: token,
+        });
+        if (rpcError) throw rpcError;
+        const result = data as any;
+        if (result?.error) {
+          setError(result.error);
+        } else {
+          setClientName(result.client_name);
+          setCredentials(result.credentials || []);
+          setExpiresAt(result.expires_at);
+        }
+      } catch (e: any) {
+        setError('Link inválido ou expirado');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [token]);
+
+  const getPlatformInfo = (value: string) =>
+    PLATFORMS.find(p => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
+
+  const togglePassword = (id: string) => {
+    setVisiblePasswords(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg">
+          <CardContent className="p-8 space-y-4">
+            <Skeleton className="h-8 w-3/4 mx-auto" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-destructive/50">
+          <CardContent className="py-12 text-center space-y-4">
+            <ShieldX className="h-12 w-12 mx-auto text-destructive opacity-70" />
+            <h2 className="text-xl font-semibold text-destructive">Link Inválido ou Expirado</h2>
+            <p className="text-muted-foreground text-sm">
+              Este link de acesso às credenciais não é mais válido. Solicite um novo link ao administrador.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-lg">
+            <Lock className="h-5 w-5 text-primary" />
+            Credenciais — {clientName}
+          </CardTitle>
+          {expiresAt && (
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
+              <Clock className="h-3 w-3" />
+              Expira em {format(new Date(expiresAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {credentials.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">Nenhuma credencial cadastrada</p>
+          ) : (
+            credentials.map(cred => {
+              const platform = getPlatformInfo(cred.platform);
+              const Icon = platform.icon;
+              const isVisible = visiblePasswords.has(cred.id);
+
+              return (
+                <Card key={cred.id} className="border">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-sm">{platform.label}</span>
+                        <p className="text-xs text-muted-foreground truncate">Login: {cred.login}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs text-muted-foreground">Senha:</span>
+                          <span className="text-xs font-mono">
+                            {isVisible ? cred.encrypted_password : '••••••••'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => togglePassword(cred.id)}
+                          >
+                            {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                        {cred.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">📝 {cred.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
