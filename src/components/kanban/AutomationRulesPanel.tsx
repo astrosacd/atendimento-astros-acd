@@ -129,7 +129,7 @@ export function AutomationRulesPanel() {
     if (rulesRes.data) setRules(rulesRes.data as AutomationRule[]);
     if (logsRes.data) setLogs(logsRes.data as AutomationLog[]);
     setLoading(false);
-  
+  };
 
   const toggleRule = async (id: string, active: boolean) => {
     const { error } = await supabase.from('automation_rules').update({ is_active: active }).eq('id', id);
