@@ -154,6 +154,30 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
     setShowForm(false);
   };
 
+  const generateShareLink = async () => {
+    const hours = parseInt(shareExpHours);
+    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('social_credential_share_links')
+      .insert({ cliente_id: clienteId, expires_at: expiresAt, created_by: user?.id } as any)
+      .select('token')
+      .single();
+    if (error) {
+      toast.error('Erro ao gerar link');
+      return;
+    }
+    const link = `${window.location.origin}/credenciais/${data.token}`;
+    setGeneratedLink(link);
+  };
+
+  const copyLink = () => {
+    if (!generatedLink) return;
+    navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const startEdit = (cred: SocialCredential) => {
     setForm({
       platform: cred.platform,
