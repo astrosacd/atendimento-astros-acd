@@ -381,6 +381,59 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              Gerar Link de Acesso
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Validade do link</Label>
+              <Select value={shareExpHours} onValueChange={setShareExpHours}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 hora</SelectItem>
+                  <SelectItem value="6">6 horas</SelectItem>
+                  <SelectItem value="12">12 horas</SelectItem>
+                  <SelectItem value="24">24 horas</SelectItem>
+                  <SelectItem value="48">48 horas</SelectItem>
+                  <SelectItem value="72">3 dias</SelectItem>
+                  <SelectItem value="168">7 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {generatedLink && (
+              <div className="space-y-2">
+                <Label>Link gerado</Label>
+                <div className="flex gap-2">
+                  <Input value={generatedLink} readOnly className="text-xs" />
+                  <Button size="icon" variant="outline" onClick={copyLink}>
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Quem acessar este link poderá ver as credenciais deste cliente (somente leitura).
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fechar</Button>
+            {!generatedLink && (
+              <Button onClick={generateShareLink}>
+                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
