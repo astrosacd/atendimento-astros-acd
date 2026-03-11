@@ -59,17 +59,65 @@ export function AutomationRulesPanel() {
   const [dupDays, setDupDays] = useState('');
   const [dupSaving, setDupSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  // Cron config state
+  const [cronHour, setCronHour] = useState('9');
+  const [cronMinute, setCronMinute] = useState('0');
+  const [cronActive, setCronActive] = useState(false);
+  const [cronLoading, setCronLoading] = useState(true);
+  const [cronSaving, setCronSaving] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [rulesRes, logsRes] = await Promise.all([
-      supabase.from('automation_rules').select('*').order('created_at'),
-      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(50),
-    ]);
-    if (rulesRes.data) setRules(rulesRes.data as AutomationRule[]);
-    if (logsRes.data) setLogs(logsRes.data as AutomationLog[]);
-    setLoading(false);
+  useEffect(() => { loadData(); loadCronSchedule(); }, []);
+
+  const loadCronSchedule = async () => {
+    setCronLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_automations_cron_schedule');
+      if (!error && data && data.length > 0) {
+        setCronActive(true);
+        // Parse cron schedule "minute hour * * *" and convert UTC to BRT
+        const parts = data[0].schedule.split(' ');
+        const utcMinute = parseInt(parts[0]);
+        let utcHour = parseInt(parts[1]);
+        let brtHour = utcHour - 3;
+        if (brtHour < 0) brtHour += 24;
+        setCronHour(String(brtHour));
+        setCronMinute(String(utcMinute));
+      } else {
+        setCronActive(false);
+      }
+    } catch {
+      setCronActive(false);
+    }
+    setCronLoading(false);
+  };
+
+  const saveCronSchedule = async () => {
+    setCronSaving(true);
+    try {
+      const { data, error } = await supabase.rpc('update_automations_cron_schedule', {
+        p_hour: parseInt(cronHour),
+        p_minute: parseInt(cronMinute),
+      });
+      if (error) throw error;
+      toast.success(`Cron configurado para ${cronHour.padStart(2, '0')}:${cronMinute.padStart(2, '0')} (Brasília)`);
+      setCronActive(true);
+    } catch (err: any) {
+      toast.error('Erro ao salvar horário: ' + (err.message || 'Erro desconhecido'));
+    }
+    setCronSaving(false);
+  };
+
+  const disableCron = async () => {
+    setCronSaving(true);
+    try {
+      const { error } = await supabase.rpc('disable_automations_cron');
+      if (error) throw error;
+      toast.success('Cron de automações desativado');
+      setCronActive(false);
+    } catch (err: any) {
+      toast.error('Erro ao desativar cron');
+    }
+    setCronSaving(false);
   };
 
   const toggleRule = async (id: string, active: boolean) => {
