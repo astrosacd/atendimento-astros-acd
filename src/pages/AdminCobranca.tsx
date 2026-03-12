@@ -1186,6 +1186,9 @@ const AdminCobranca = () => {
             {canViewCobrancaLogs() && (
               <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />{t('billing.tabs.logs')}</TabsTrigger>
             )}
+            {canViewCobrancaConfig() && (
+              <TabsTrigger value="baserow"><Database className="w-4 h-4 mr-2" />Baserow</TabsTrigger>
+            )}
           </TabsList>
 
           {/* Métricas Dashboard Tab */}
