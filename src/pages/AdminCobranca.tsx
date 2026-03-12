@@ -20,6 +20,7 @@ import { exportBillingReportPDF } from '@/utils/exportPDF';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { PendingPaymentsList } from '@/components/PendingPaymentsList';
 import { ClientRecoveryManager } from '@/components/billing/ClientRecoveryManager';
+import { BillingBaserowConfig } from '@/components/billing/BillingBaserowConfig';
 import { useTranslation } from 'react-i18next';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -61,7 +62,8 @@ import {
   Link2,
   FileText,
   Download,
-  UserPlus
+  UserPlus,
+  Database
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -1185,6 +1187,9 @@ const AdminCobranca = () => {
             )}
             {canViewCobrancaLogs() && (
               <TabsTrigger value="logs"><History className="w-4 h-4 mr-2" />{t('billing.tabs.logs')}</TabsTrigger>
+            )}
+            {canViewCobrancaConfig() && (
+              <TabsTrigger value="baserow"><Database className="w-4 h-4 mr-2" />Baserow</TabsTrigger>
             )}
           </TabsList>
 
@@ -2951,6 +2956,13 @@ const AdminCobranca = () => {
                 Salvar Configurações
               </Button>
             </div>
+          </TabsContent>
+          )}
+
+          {/* Baserow Tab */}
+          {canViewCobrancaConfig() && (
+          <TabsContent value="baserow" className="space-y-6">
+            <BillingBaserowConfig />
           </TabsContent>
           )}
         </Tabs>

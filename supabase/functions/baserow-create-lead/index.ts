@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface CreateLeadRequest {
-  module: 'proposals' | 'followups' | 'recovery';
+  module: 'proposals' | 'followups' | 'recovery' | 'billing';
   event: string;
   lead_name: string;
   lead_phone: string;
@@ -36,7 +36,7 @@ serve(async (req: Request) => {
     }
 
     // Validate module
-    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery') {
+    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery' && module !== 'billing') {
       return new Response(JSON.stringify({ error: "Invalid module" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1193,6 +1193,30 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
       }
+
+      // Call Baserow integration for billing events
+      try {
+        const baserowEvent = `billing.${messageType}`;
+        console.log(`📦 Triggering Baserow for billing event: ${baserowEvent}, client: ${cliente.nome}`);
+        
+        await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            module: 'billing',
+            event: baserowEvent,
+            lead_name: cliente.nome,
+            lead_phone: cliente.numero,
+            lead_date: new Date().toLocaleDateString('pt-BR'),
+            lead_produto: cliente.produto,
+          }),
+        });
+      } catch (baserowErr: any) {
+        console.error(`⚠️ Baserow billing error (non-blocking): ${baserowErr.message}`);
+      }
     };
 
     if (isManualBilling) {
