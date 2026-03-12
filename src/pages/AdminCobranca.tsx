@@ -2956,6 +2956,13 @@ const AdminCobranca = () => {
             </div>
           </TabsContent>
           )}
+
+          {/* Baserow Tab */}
+          {canViewCobrancaConfig() && (
+          <TabsContent value="baserow" className="space-y-6">
+            <BillingBaserowConfig />
+          </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
