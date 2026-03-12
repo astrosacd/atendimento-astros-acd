@@ -10,7 +10,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
   Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight,
-  Wallet, Phone, Headphones
+  Wallet, Phone, Headphones, ThumbsUp
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
