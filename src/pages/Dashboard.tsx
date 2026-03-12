@@ -10,7 +10,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
   Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight,
-  Wallet, Phone, Headphones
+  Wallet, Phone, Headphones, ThumbsUp
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -578,6 +578,16 @@ export default function Dashboard() {
 
   const failedFollowups = followups.filter(f => f.status === 'failed');
 
+  // Follow-ups sent before today without conversion status
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const pendingConversionFollowups = followups.filter(f => {
+    const isSentOrCompleted = f.status === 'sent' || f.status === 'completed';
+    const hasNoConversion = !f.conversion_status;
+    const sentBeforeToday = new Date(f.scheduled_at) < today;
+    return isSentOrCompleted && hasNoConversion && sentBeforeToday;
+  });
+
   const followupStats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
@@ -822,6 +832,31 @@ export default function Dashboard() {
                   {failedFollowups.length}
                 </Badge>
                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {/* Follow-ups pendentes de conversão */}
+        {pendingConversionFollowups.length > 0 && (
+          <Card 
+            className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mb-4"
+            onClick={() => navigate('/followups')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <ThumbsUp className="h-6 w-6 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-foreground text-sm">Follow-ups aguardando marcação de conversão</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingConversionFollowups.length} follow-up(s) enviado(s) precisam ser marcados como Convertido ou Não Convertido
+                  </p>
+                </div>
+                <Badge className="bg-amber-500 hover:bg-amber-600">
+                  {pendingConversionFollowups.length}
+                </Badge>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
               </div>
             </CardContent>
           </Card>
