@@ -578,6 +578,16 @@ export default function Dashboard() {
 
   const failedFollowups = followups.filter(f => f.status === 'failed');
 
+  // Follow-ups sent before today without conversion status
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const pendingConversionFollowups = followups.filter(f => {
+    const isSentOrCompleted = f.status === 'sent' || f.status === 'completed';
+    const hasNoConversion = !f.conversion_status;
+    const sentBeforeToday = new Date(f.scheduled_at) < today;
+    return isSentOrCompleted && hasNoConversion && sentBeforeToday;
+  });
+
   const followupStats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
