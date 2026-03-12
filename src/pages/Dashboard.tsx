@@ -836,6 +836,31 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+        {/* Follow-ups pendentes de conversão */}
+        {pendingConversionFollowups.length > 0 && (
+          <Card 
+            className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mb-4"
+            onClick={() => navigate('/followups')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <ThumbsUp className="h-6 w-6 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-foreground text-sm">Follow-ups aguardando marcação de conversão</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingConversionFollowups.length} follow-up(s) enviado(s) precisam ser marcados como Convertido ou Não Convertido
+                  </p>
+                </div>
+                <Badge className="bg-amber-500 hover:bg-amber-600">
+                  {pendingConversionFollowups.length}
+                </Badge>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
         {followups.length > 0 && (
