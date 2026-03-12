@@ -62,7 +62,8 @@ import {
   Link2,
   FileText,
   Download,
-  UserPlus
+  UserPlus,
+  Database
 } from 'lucide-react';
 
 interface BillingConfig {
