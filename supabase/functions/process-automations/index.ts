@@ -67,13 +67,21 @@ Deno.serve(async (req) => {
               .replace('{valor}', String(cliente.valor))
               .replace('{data_renovacao}', cliente.data_renovacao);
 
+            // Map English priority values to Portuguese (DB constraint)
+            const priorityMap: Record<string, string> = {
+              low: 'baixa', medium: 'media', high: 'alta', urgent: 'urgente',
+              baixa: 'baixa', media: 'media', alta: 'alta', urgente: 'urgente',
+            };
+            const rawPriority = config.priority || 'media';
+            const priority = priorityMap[rawPriority] || 'media';
+
             const { error: taskError } = await supabase
               .from('client_tasks')
               .insert({
                 cliente_id: cliente.id,
                 title,
                 description,
-                priority: config.priority || 'medium',
+                priority,
                 status: 'pending',
               });
 
