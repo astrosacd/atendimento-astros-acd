@@ -49,9 +49,10 @@ Deno.serve(async (req) => {
             .eq('rule_id', rule.id)
             .eq('cliente_id', cliente.id)
             .gte('created_at', sevenDaysAgo.toISOString())
+            .like('result', 'success')
             .limit(1);
 
-          if (recentLogs && recentLogs.length > 0) continue; // Skip, already processed recently
+          if (recentLogs && recentLogs.length > 0) continue; // Skip, only if successfully processed recently
 
           if (rule.action_type === 'create_task') {
             const config = rule.action_config || {};

@@ -87,7 +87,6 @@ serve(async (req: Request) => {
     const dateStr = lead_date || new Date().toLocaleDateString('pt-BR');
 
     const baseUrl = config.api_url.replace(/\/$/, '');
-    const listEndpoint = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
     const headers = {
       'Authorization': `Token ${config.api_token}`,
       'Content-Type': 'application/json',
@@ -101,14 +100,26 @@ serve(async (req: Request) => {
     // Process each number format: check if exists, then create or update
     for (const numero of [number1, number2]) {
       try {
-        // Search for existing row by Número field
-        const searchUrl = `${listEndpoint}&filter__field__Número__equal=${encodeURIComponent(numero)}&size=1`;
+        // Search for existing row by Número field using the search endpoint
+        // Fetch all rows and filter client-side, since filter__field requires numeric field IDs
+        const searchUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true&search=${encodeURIComponent(numero)}&size=10`;
+        console.log(`🔍 Baserow search URL: ${searchUrl}`);
         const searchResp = await fetch(searchUrl, { method: 'GET', headers });
         const searchData = await searchResp.json();
 
+        console.log(`🔍 Baserow search result: status=${searchResp.status}, count=${searchData?.count || 0}`);
+
+        // Find exact match in results (search is fuzzy, so we filter for exact)
+        let existingRow = null;
         if (searchResp.ok && searchData.results && searchData.results.length > 0) {
+          existingRow = searchData.results.find((row: any) => {
+            const rowNumero = row['Número'] || row['Numero'] || '';
+            return rowNumero === numero;
+          });
+        }
+
+        if (existingRow) {
           // Row exists — just update the boolean "Atende Humano" to true
-          const existingRow = searchData.results[0];
           const rowId = existingRow.id;
 
           const updateUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
