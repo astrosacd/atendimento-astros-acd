@@ -350,6 +350,7 @@ async function createBaserowLead(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
       },
       body: JSON.stringify({
         module: 'followups',
@@ -359,8 +360,35 @@ async function createBaserowLead(
         lead_date: new Date().toLocaleDateString('pt-BR'),
       }),
     });
-    const result = await resp.text();
-    console.log(`📦 Baserow lead creation (followups/${event}): ${resp.status} - ${result}`);
+
+    const resultText = await resp.text();
+    let parsed: any = null;
+
+    try {
+      parsed = JSON.parse(resultText);
+    } catch {
+      // keep raw text only
+    }
+
+    if (!resp.ok) {
+      console.error(`❌ Baserow lead creation HTTP error (followups/${event}): ${resp.status} - ${resultText}`);
+      return;
+    }
+
+    const allFailed = Array.isArray(parsed?.results)
+      ? parsed.results.length > 0 && parsed.results.every((r: any) => r?.success === false)
+      : false;
+
+    if (parsed?.success === false || allFailed) {
+      console.error(`❌ Baserow lead creation failed (followups/${event}): ${resultText}`);
+      return;
+    }
+
+    if (parsed?.partial_failure) {
+      console.warn(`⚠️ Baserow lead creation partial failure (followups/${event}): ${resultText}`);
+    } else {
+      console.log(`📦 Baserow lead creation (followups/${event}): ${resp.status} - ${resultText}`);
+    }
   } catch (err: any) {
     console.error(`❌ Baserow lead creation error:`, err.message);
   }
