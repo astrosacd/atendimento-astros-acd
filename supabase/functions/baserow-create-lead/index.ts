@@ -223,7 +223,6 @@ async function findExistingRowExact(
   tableId: string,
   numero: string,
 ): Promise<any | null> {
-  const normalizedTarget = normalizeNumberValue(numero);
   const pageSize = 200;
   const maxPages = 10;
 
