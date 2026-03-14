@@ -97,73 +97,52 @@ serve(async (req: Request) => {
 
     const results = [];
 
-    // Process each number format: check if exists, then create or update
+    // Process each number format: exact-match/update-or-create with retry-safe fallback
     for (const numero of [number1, number2]) {
       try {
-        // Search for existing row by Número field using the search endpoint
-        // Fetch all rows and filter client-side, since filter__field requires numeric field IDs
-        const searchUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true&search=${encodeURIComponent(numero)}&size=10`;
-        console.log(`🔍 Baserow search URL: ${searchUrl}`);
-        const searchResp = await fetch(searchUrl, { method: 'GET', headers });
-        const searchData = await searchResp.json();
-
-        console.log(`🔍 Baserow search result: status=${searchResp.status}, count=${searchData?.count || 0}`);
-
-        // Find exact match in results (search is fuzzy, so we filter for exact)
-        let existingRow = null;
-        if (searchResp.ok && searchData.results && searchData.results.length > 0) {
-          existingRow = searchData.results.find((row: any) => {
-            const rowNumero = row['Número'] || row['Numero'] || '';
-            return rowNumero === numero;
-          });
-        }
+        const existingRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
 
         if (existingRow) {
-          // Row exists — just update the boolean "Atende Humano" to true
-          const rowId = existingRow.id;
+          const updated = await updateAtendeHumano(baseUrl, headers, config.table_id, existingRow.id, numero);
+          results.push(updated);
+          continue;
+        }
 
-          const updateUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
-          const updateResp = await fetch(updateUrl, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({ 'Atende Humano': true }),
-          });
-          const updateData = await updateResp.text();
+        const created = await createLeadRow(baseUrl, headers, config.table_id, lead_name, numero, dateStr);
+        if (created.success) {
+          results.push(created);
+          continue;
+        }
 
-          if (updateResp.ok) {
-            console.log(`✅ Baserow row updated (${numero}) — Atende Humano = true`);
-            results.push({ numero, action: 'updated', success: true });
-          } else {
-            console.error(`❌ Baserow update error: ${updateResp.status} - ${updateData}`);
-            results.push({ numero, action: 'update_failed', success: false, error: updateData });
-          }
+        // Fallback for race conditions / duplicate constraints:
+        // try searching again and updating if the row appeared between search and create.
+        const recoveredRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
+        if (recoveredRow) {
+          const recovered = await updateAtendeHumano(baseUrl, headers, config.table_id, recoveredRow.id, numero);
+          results.push({ ...recovered, action: 'updated_after_create_conflict' });
         } else {
-          // Row does not exist — create new
-          const createUrl = `${baseUrl}/api/database/rows/table/${config.table_id}/?user_field_names=true`;
-          const createResp = await fetch(createUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              'Name': lead_name,
-              'Número': numero,
-              'Data': dateStr,
-              'Atende Humano': true,
-            }),
-          });
-          const createData = await createResp.text();
-
-          if (createResp.ok) {
-            console.log(`✅ Baserow row created (${numero})`);
-            results.push({ numero, action: 'created', success: true });
-          } else {
-            console.error(`❌ Baserow create error: ${createResp.status} - ${createData}`);
-            results.push({ numero, action: 'create_failed', success: false, error: createData });
-          }
+          results.push(created);
         }
       } catch (err: any) {
         console.error(`❌ Baserow error for ${numero}:`, err.message);
         results.push({ numero, action: 'error', success: false, error: err.message });
       }
+    }
+
+    const hasAnySuccess = results.some((r: any) => r.success === true);
+    const hasAnyFailure = results.some((r: any) => r.success === false);
+
+    if (hasAnyFailure && !hasAnySuccess) {
+      return new Response(JSON.stringify({ success: false, results }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (hasAnyFailure) {
+      return new Response(JSON.stringify({ success: true, partial_failure: true, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ success: true, results }), {
