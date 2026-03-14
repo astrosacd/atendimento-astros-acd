@@ -165,6 +165,25 @@ serve(async (req: Request) => {
   }
 });
 
+function normalizeLeadPhone(value: string): string {
+  let digits = value.replace(/\D/g, '');
+
+  if (!digits) return '';
+
+  // Common international prefix variant (e.g. 0055...)
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+
+  // Default BR country code when only local mobile/landline digits were provided
+  // (10 or 11 digits, e.g. 11987654321 -> 5511987654321)
+  if ((digits.length === 10 || digits.length === 11) && !digits.startsWith('55')) {
+    digits = `55${digits}`;
+  }
+
+  return digits;
+}
+
 type NumberSignature = {
   kind: 'whatsapp_net' | 'plus_or_plain' | 'unknown';
   digits: string;
