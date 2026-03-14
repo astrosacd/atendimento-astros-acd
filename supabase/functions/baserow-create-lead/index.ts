@@ -239,7 +239,7 @@ async function findExistingRowExact(
     if (!searchResp.ok) break;
 
     const rows = Array.isArray(searchData?.results) ? searchData.results : [];
-    const exact = rows.find((row: Record<string, any>) => normalizeNumberValue(getRowNumeroValue(row)) === normalizedTarget);
+    const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
     if (exact) return exact;
 
     const total = Number(searchData?.count ?? rows.length);
