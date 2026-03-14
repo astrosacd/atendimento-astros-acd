@@ -407,6 +407,7 @@ async function createBaserowLead(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey,
       },
       body: JSON.stringify({
         module,
@@ -416,7 +417,13 @@ async function createBaserowLead(
         lead_date: new Date().toLocaleDateString('pt-BR'),
       }),
     });
+
     const result = await resp.text();
+    if (!resp.ok) {
+      console.error(`❌ Baserow lead creation HTTP error (${module}/${event}): ${resp.status} - ${result}`);
+      return;
+    }
+
     console.log(`📦 Baserow lead creation (${module}/${event}): ${resp.status} - ${result}`);
   } catch (err: any) {
     console.error(`❌ Baserow lead creation error:`, err.message);

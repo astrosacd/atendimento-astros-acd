@@ -82,8 +82,15 @@ serve(async (req: Request) => {
       });
     }
 
-    // Clean phone number - remove non-digits
-    const cleanPhone = lead_phone.replace(/\D/g, '');
+    // Clean and normalize phone number
+    const cleanPhone = normalizeLeadPhone(lead_phone);
+    if (!cleanPhone) {
+      return new Response(JSON.stringify({ error: 'Invalid lead_phone' }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const dateStr = lead_date || new Date().toLocaleDateString('pt-BR');
 
     const baseUrl = config.api_url.replace(/\/$/, '');
@@ -158,8 +165,61 @@ serve(async (req: Request) => {
   }
 });
 
-function normalizeNumberValue(value: string | null | undefined): string {
-  return (value ?? '').trim();
+function normalizeLeadPhone(value: string): string {
+  let digits = value.replace(/\D/g, '');
+
+  if (!digits) return '';
+
+  // Common international prefix variant (e.g. 0055...)
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+
+  // Default BR country code when only local mobile/landline digits were provided
+  // (10 or 11 digits, e.g. 11987654321 -> 5511987654321)
+  if ((digits.length === 10 || digits.length === 11) && !digits.startsWith('55')) {
+    digits = `55${digits}`;
+  }
+
+  return digits;
+}
+
+type NumberSignature = {
+  kind: 'whatsapp_net' | 'plus_or_plain' | 'unknown';
+  digits: string;
+  raw: string;
+};
+
+function toNumberSignature(value: string | null | undefined): NumberSignature {
+  const raw = (value ?? '').trim();
+  const lower = raw.toLowerCase();
+
+  if (!raw) {
+    return { kind: 'unknown', digits: '', raw };
+  }
+
+  if (lower.endsWith('@s.whatsapp.net')) {
+    const digits = lower.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+    return { kind: 'whatsapp_net', digits, raw };
+  }
+
+  const digits = raw.replace(/\D/g, '');
+  return { kind: 'plus_or_plain', digits, raw };
+}
+
+function numbersEquivalent(target: string, candidate: string): boolean {
+  const t = toNumberSignature(target);
+  const c = toNumberSignature(candidate);
+
+  // Keep formats separated to preserve business rule:
+  // @s.whatsapp.net and +number are treated as distinct records.
+  if (t.kind !== c.kind) return false;
+
+  if (t.digits && c.digits) {
+    return t.digits === c.digits;
+  }
+
+  return t.raw === c.raw;
 }
 
 function normalizeFieldName(value: string): string {
@@ -189,7 +249,6 @@ async function findExistingRowExact(
   tableId: string,
   numero: string,
 ): Promise<any | null> {
-  const normalizedTarget = normalizeNumberValue(numero);
   const pageSize = 200;
   const maxPages = 10;
 
@@ -206,7 +265,7 @@ async function findExistingRowExact(
     if (!searchResp.ok) break;
 
     const rows = Array.isArray(searchData?.results) ? searchData.results : [];
-    const exact = rows.find((row: Record<string, any>) => normalizeNumberValue(getRowNumeroValue(row)) === normalizedTarget);
+    const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
     if (exact) return exact;
 
     const total = Number(searchData?.count ?? rows.length);
@@ -222,7 +281,7 @@ async function findExistingRowExact(
     if (!listResp.ok) break;
 
     const rows = Array.isArray(listData?.results) ? listData.results : [];
-    const exact = rows.find((row: Record<string, any>) => normalizeNumberValue(getRowNumeroValue(row)) === normalizedTarget);
+    const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
     if (exact) return exact;
 
     const total = Number(listData?.count ?? rows.length);

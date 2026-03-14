@@ -1199,11 +1199,12 @@ const handler = async (req: Request): Promise<Response> => {
         const baserowEvent = `billing.${messageType}`;
         console.log(`📦 Triggering Baserow for billing event: ${baserowEvent}, client: ${cliente.nome}`);
         
-        await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+        const baserowResp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey,
           },
           body: JSON.stringify({
             module: 'billing',
@@ -1214,6 +1215,13 @@ const handler = async (req: Request): Promise<Response> => {
             lead_produto: cliente.produto,
           }),
         });
+
+        const baserowText = await baserowResp.text();
+        if (!baserowResp.ok) {
+          console.error(`❌ Baserow billing HTTP error (${baserowEvent}): ${baserowResp.status} - ${baserowText}`);
+        } else {
+          console.log(`📦 Baserow billing response (${baserowEvent}): ${baserowText}`);
+        }
       } catch (baserowErr: any) {
         console.error(`⚠️ Baserow billing error (non-blocking): ${baserowErr.message}`);
       }
