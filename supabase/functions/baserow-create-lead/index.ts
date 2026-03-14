@@ -82,8 +82,15 @@ serve(async (req: Request) => {
       });
     }
 
-    // Clean phone number - remove non-digits
-    const cleanPhone = lead_phone.replace(/\D/g, '');
+    // Clean and normalize phone number
+    const cleanPhone = normalizeLeadPhone(lead_phone);
+    if (!cleanPhone) {
+      return new Response(JSON.stringify({ error: 'Invalid lead_phone' }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const dateStr = lead_date || new Date().toLocaleDateString('pt-BR');
 
     const baseUrl = config.api_url.replace(/\/$/, '');
