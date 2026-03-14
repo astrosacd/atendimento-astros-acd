@@ -255,7 +255,7 @@ async function findExistingRowExact(
     if (!listResp.ok) break;
 
     const rows = Array.isArray(listData?.results) ? listData.results : [];
-    const exact = rows.find((row: Record<string, any>) => normalizeNumberValue(getRowNumeroValue(row)) === normalizedTarget);
+    const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
     if (exact) return exact;
 
     const total = Number(listData?.count ?? rows.length);
