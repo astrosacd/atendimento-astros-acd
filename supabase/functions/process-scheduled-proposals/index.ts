@@ -177,6 +177,7 @@ serve(async (req: Request) => {
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${supabaseKey}`,
+                  'apikey': supabaseKey,
                 },
                 body: JSON.stringify({
                   module: 'proposals',
@@ -187,8 +188,13 @@ serve(async (req: Request) => {
                   lead_produto: proposal.title,
                 }),
               });
-              const baserowData = await baserowResp.json();
-              console.log('📦 Baserow response:', JSON.stringify(baserowData));
+
+              const baserowText = await baserowResp.text();
+              if (!baserowResp.ok) {
+                console.error(`❌ Baserow error ${baserowResp.status}: ${baserowText}`);
+              } else {
+                console.log(`📦 Baserow response (proposta.enviada): ${baserowText}`);
+              }
             }
           } catch (baserowErr: any) {
             console.error('⚠️ Baserow lead creation failed (non-blocking):', baserowErr.message);
