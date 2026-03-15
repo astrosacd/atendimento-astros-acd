@@ -15,6 +15,59 @@ interface CreateLeadRequest {
   lead_produto?: string;
 }
 
+type ModuleName = CreateLeadRequest['module'];
+
+const EVENT_ALIASES: Record<ModuleName, Record<string, string>> = {
+  proposals: {
+    'proposta.remarketing': 'proposta.enviada',
+  },
+  followups: {
+    'followup.enviado': 'followup.sent',
+    'followup.enviada': 'followup.sent',
+    'followup.falhou': 'followup.failed',
+  },
+  billing: {
+    'billing.d-3': 'billing.d_menos_3',
+    'billing.d0': 'billing.d_zero',
+    'billing.d+1': 'billing.d_mais_1',
+    'billing.d+2': 'billing.d_mais_2',
+    'billing.d+15': 'billing.d_mais_15',
+    'billing.d+30': 'billing.d_mais_30',
+  },
+  recovery: {
+    'recovery.novo_registro': 'recovery.registro',
+    'recovery.inadimplencia': 'recovery.inadimplente',
+  },
+};
+
+function getEquivalentEvents(module: ModuleName, event: string): string[] {
+  const rawEvent = event.trim();
+  if (!rawEvent) return [];
+
+  const aliasMap = EVENT_ALIASES[module] ?? {};
+  const canonicalEvent = aliasMap[rawEvent] ?? rawEvent;
+  const aliasesForCanonical = Object.entries(aliasMap)
+    .filter(([, target]) => target === canonicalEvent)
+    .map(([alias]) => alias);
+
+  return Array.from(new Set([rawEvent, canonicalEvent, ...aliasesForCanonical]));
+}
+
+function resolveEnabledEvent(module: ModuleName, event: string, enabledEvents: unknown): string | null {
+  const configuredEvents = Array.isArray(enabledEvents)
+    ? enabledEvents.filter((value): value is string => typeof value === 'string')
+    : [];
+
+  if (configuredEvents.length === 0) {
+    return null;
+  }
+
+  const equivalentEvents = getEquivalentEvents(module, event);
+  const matched = equivalentEvents.find((candidate) => configuredEvents.includes(candidate));
+
+  return matched ?? null;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -66,12 +119,23 @@ serve(async (req: Request) => {
       });
     }
 
-    // Check if event is enabled
-    if (!config.events || !config.events.includes(event)) {
+    const moduleName = module as ModuleName;
+
+    // Check if event is enabled (supports legacy aliases per module)
+    const matchedEvent = resolveEnabledEvent(moduleName, event, config.events);
+    if (!matchedEvent) {
       console.log(`⏭️ Event ${event} not enabled for module: ${module}`);
-      return new Response(JSON.stringify({ skipped: true, reason: `Event ${event} not enabled` }), {
+      return new Response(JSON.stringify({
+        skipped: true,
+        reason: `Event ${event} not enabled`,
+        enabled_events: Array.isArray(config.events) ? config.events : [],
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (matchedEvent !== event) {
+      console.log(`ℹ️ Event alias resolved: ${event} -> ${matchedEvent} (module=${module})`);
     }
 
     if (!config.api_url || !config.api_token || !config.table_id) {
