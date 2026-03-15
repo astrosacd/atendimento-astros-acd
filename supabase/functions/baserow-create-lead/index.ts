@@ -314,10 +314,10 @@ async function findExistingRowExact(
   numero: string,
 ): Promise<any | null> {
   const pageSize = 200;
-  const maxPages = 10;
+  const maxRowsScan = 50000;
 
-  // Pass 1: filtered search endpoint (faster)
-  for (let page = 1; page <= maxPages; page++) {
+  // Pass 1: filtered search endpoint (faster and usually enough)
+  for (let page = 1; ; page++) {
     const searchUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&search=${encodeURIComponent(numero)}&size=${pageSize}&page=${page}`;
     console.log(`🔍 Baserow search URL: ${searchUrl}`);
 
@@ -333,11 +333,13 @@ async function findExistingRowExact(
     if (exact) return exact;
 
     const total = Number(searchData?.count ?? rows.length);
-    if (rows.length === 0 || page * pageSize >= total) break;
+    const scanned = page * pageSize;
+    if (rows.length === 0 || scanned >= total || scanned >= maxRowsScan) break;
   }
 
   // Pass 2 (fallback): unfiltered pagination with exact compare
-  for (let page = 1; page <= maxPages; page++) {
+  // This guarantees we still find old rows even when search endpoint misses formatting variants.
+  for (let page = 1; ; page++) {
     const listUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&size=${pageSize}&page=${page}`;
     const listResp = await fetch(listUrl, { method: 'GET', headers });
     const listData = await listResp.json().catch(() => ({}));
@@ -349,7 +351,8 @@ async function findExistingRowExact(
     if (exact) return exact;
 
     const total = Number(listData?.count ?? rows.length);
-    if (rows.length === 0 || page * pageSize >= total) break;
+    const scanned = page * pageSize;
+    if (rows.length === 0 || scanned >= total || scanned >= maxRowsScan) break;
   }
 
   return null;
@@ -366,12 +369,15 @@ async function updateAtendeHumano(
   const updateResp = await fetch(updateUrl, {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({ 'Atende Humano': true }),
+    body: JSON.stringify({
+      'Número': numero,
+      'Atende Humano': true,
+    }),
   });
   const updateData = await updateResp.text();
 
   if (updateResp.ok) {
-    console.log(`✅ Baserow row updated (${numero}) — Atende Humano = true`);
+    console.log(`✅ Baserow row updated (${numero}) — Número synced + Atende Humano = true`);
     return { numero, action: 'updated', success: true };
   }
 
