@@ -119,12 +119,23 @@ serve(async (req: Request) => {
       });
     }
 
-    // Check if event is enabled
-    if (!config.events || !config.events.includes(event)) {
+    const moduleName = module as ModuleName;
+
+    // Check if event is enabled (supports legacy aliases per module)
+    const matchedEvent = resolveEnabledEvent(moduleName, event, config.events);
+    if (!matchedEvent) {
       console.log(`⏭️ Event ${event} not enabled for module: ${module}`);
-      return new Response(JSON.stringify({ skipped: true, reason: `Event ${event} not enabled` }), {
+      return new Response(JSON.stringify({
+        skipped: true,
+        reason: `Event ${event} not enabled`,
+        enabled_events: Array.isArray(config.events) ? config.events : [],
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (matchedEvent !== event) {
+      console.log(`ℹ️ Event alias resolved: ${event} -> ${matchedEvent} (module=${module})`);
     }
 
     if (!config.api_url || !config.api_token || !config.table_id) {
