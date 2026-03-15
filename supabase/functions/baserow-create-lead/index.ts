@@ -369,12 +369,15 @@ async function updateAtendeHumano(
   const updateResp = await fetch(updateUrl, {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({ 'Atende Humano': true }),
+    body: JSON.stringify({
+      'Número': numero,
+      'Atende Humano': true,
+    }),
   });
   const updateData = await updateResp.text();
 
   if (updateResp.ok) {
-    console.log(`✅ Baserow row updated (${numero}) — Atende Humano = true`);
+    console.log(`✅ Baserow row updated (${numero}) — Número synced + Atende Humano = true`);
     return { numero, action: 'updated', success: true };
   }
 
