@@ -402,6 +402,16 @@ async function createBaserowLead(
 
   try {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || '';
+    const payload = {
+      module,
+      event,
+      lead_name: clientName,
+      lead_phone: clientPhone,
+      lead_date: new Date().toLocaleDateString('pt-BR'),
+    };
+
+    console.log(`📦 [proposal-status-notify] sending to Baserow: ${JSON.stringify(payload)}`);
+
     const resp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
       method: 'POST',
       headers: {
@@ -409,22 +419,16 @@ async function createBaserowLead(
         'Authorization': `Bearer ${anonKey}`,
         'apikey': anonKey,
       },
-      body: JSON.stringify({
-        module,
-        event,
-        lead_name: clientName,
-        lead_phone: clientPhone,
-        lead_date: new Date().toLocaleDateString('pt-BR'),
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await resp.text();
     if (!resp.ok) {
-      console.error(`❌ Baserow lead creation HTTP error (${module}/${event}): ${resp.status} - ${result}`);
+      console.error(`❌ [proposal-status-notify] Baserow HTTP error (${module}/${event}): ${resp.status} - ${result}`);
       return;
     }
 
-    console.log(`📦 Baserow lead creation (${module}/${event}): ${resp.status} - ${result}`);
+    console.log(`✅ [proposal-status-notify] Baserow response (${module}/${event}): ${result}`);
   } catch (err: any) {
     console.error(`❌ Baserow lead creation error:`, err.message);
   }

@@ -165,8 +165,10 @@ serve(async (req: Request) => {
 
     const number1 = `${cleanPhone}@s.whatsapp.net`;
     const number2 = `+${cleanPhone}`;
-
+    const tableFields = await resolveTableFieldNames(baseUrl, headers, config.table_id);
     const results = [];
+
+    console.log(`📦 Baserow sync payload: ${JSON.stringify({ module, event, matchedEvent, lead_name, cleanPhone, number1, number2, tableFields })}`);
 
     // Process each number format: exact-match/update-or-create with retry-safe fallback
     for (const numero of [number1, number2]) {
@@ -174,12 +176,12 @@ serve(async (req: Request) => {
         const existingRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
 
         if (existingRow) {
-          const updated = await updateAtendeHumano(baseUrl, headers, config.table_id, existingRow.id, numero);
+          const updated = await updateAtendeHumano(baseUrl, headers, config.table_id, tableFields, existingRow.id, numero);
           results.push(updated);
           continue;
         }
 
-        const created = await createLeadRow(baseUrl, headers, config.table_id, lead_name, numero, dateStr);
+        const created = await createLeadRow(baseUrl, headers, config.table_id, tableFields, lead_name, numero, dateStr);
         if (created.success) {
           results.push(created);
           continue;
@@ -189,7 +191,7 @@ serve(async (req: Request) => {
         // try searching again and updating if the row appeared between search and create.
         const recoveredRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
         if (recoveredRow) {
-          const recovered = await updateAtendeHumano(baseUrl, headers, config.table_id, recoveredRow.id, numero);
+          const recovered = await updateAtendeHumano(baseUrl, headers, config.table_id, tableFields, recoveredRow.id, numero);
           results.push({ ...recovered, action: 'updated_after_create_conflict' });
         } else {
           results.push(created);
