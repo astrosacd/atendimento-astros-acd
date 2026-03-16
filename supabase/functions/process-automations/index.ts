@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
                 title,
                 description,
                 priority,
-                status: 'pending',
+                status: 'pendente',
               });
 
             if (!taskError) {

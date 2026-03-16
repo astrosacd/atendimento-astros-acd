@@ -165,8 +165,10 @@ serve(async (req: Request) => {
 
     const number1 = `${cleanPhone}@s.whatsapp.net`;
     const number2 = `+${cleanPhone}`;
-
+    const tableFields = await resolveTableFieldNames(baseUrl, headers, config.table_id);
     const results = [];
+
+    console.log(`📦 Baserow sync payload: ${JSON.stringify({ module, event, matchedEvent, lead_name, cleanPhone, number1, number2, tableFields })}`);
 
     // Process each number format: exact-match/update-or-create with retry-safe fallback
     for (const numero of [number1, number2]) {
@@ -174,12 +176,12 @@ serve(async (req: Request) => {
         const existingRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
 
         if (existingRow) {
-          const updated = await updateAtendeHumano(baseUrl, headers, config.table_id, existingRow.id, numero);
+          const updated = await updateAtendeHumano(baseUrl, headers, config.table_id, tableFields, existingRow.id, numero);
           results.push(updated);
           continue;
         }
 
-        const created = await createLeadRow(baseUrl, headers, config.table_id, lead_name, numero, dateStr);
+        const created = await createLeadRow(baseUrl, headers, config.table_id, tableFields, lead_name, numero, dateStr);
         if (created.success) {
           results.push(created);
           continue;
@@ -189,7 +191,7 @@ serve(async (req: Request) => {
         // try searching again and updating if the row appeared between search and create.
         const recoveredRow = await findExistingRowExact(baseUrl, headers, config.table_id, numero);
         if (recoveredRow) {
-          const recovered = await updateAtendeHumano(baseUrl, headers, config.table_id, recoveredRow.id, numero);
+          const recovered = await updateAtendeHumano(baseUrl, headers, config.table_id, tableFields, recoveredRow.id, numero);
           results.push({ ...recovered, action: 'updated_after_create_conflict' });
         } else {
           results.push(created);
@@ -271,6 +273,22 @@ function toNumberSignature(value: string | null | undefined): NumberSignature {
   return { kind: 'plus_or_plain', digits, raw };
 }
 
+function getComparableDigitVariants(digits: string): string[] {
+  if (!digits) return [];
+
+  const variants = new Set<string>([digits]);
+
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    variants.add(digits.slice(2));
+  }
+
+  if (!digits.startsWith('55') && (digits.length === 10 || digits.length === 11)) {
+    variants.add(`55${digits}`);
+  }
+
+  return Array.from(variants);
+}
+
 function numbersEquivalent(target: string, candidate: string): boolean {
   const t = toNumberSignature(target);
   const c = toNumberSignature(candidate);
@@ -280,7 +298,8 @@ function numbersEquivalent(target: string, candidate: string): boolean {
   if (t.kind !== c.kind) return false;
 
   if (t.digits && c.digits) {
-    return t.digits === c.digits;
+    const targetVariants = new Set(getComparableDigitVariants(t.digits));
+    return getComparableDigitVariants(c.digits).some((value) => targetVariants.has(value));
   }
 
   return t.raw === c.raw;
@@ -291,13 +310,24 @@ function normalizeFieldName(value: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/[\s_-]+/g, '')
     .trim();
 }
 
-function getRowNumeroValue(row: Record<string, any>): string {
-  if (typeof row['Número'] === 'string') return row['Número'];
-  if (typeof row['Numero'] === 'string') return row['Numero'];
+type TableFieldNames = {
+  nameField: string;
+  numeroField: string;
+  dateField: string;
+  humanField: string;
+};
 
+function findFieldName(keys: string[], aliases: string[], fallback: string): string {
+  const aliasSet = new Set(aliases.map((alias) => normalizeFieldName(alias)));
+  const matched = keys.find((key) => aliasSet.has(normalizeFieldName(key)));
+  return matched ?? fallback;
+}
+
+function getRowNumeroValue(row: Record<string, any>): string {
   for (const [key, value] of Object.entries(row)) {
     if (normalizeFieldName(key) === 'numero' && typeof value === 'string') {
       return value;
@@ -305,6 +335,77 @@ function getRowNumeroValue(row: Record<string, any>): string {
   }
 
   return '';
+}
+
+function getSearchCandidates(numero: string): string[] {
+  const signature = toNumberSignature(numero);
+  const raw = signature.raw ? [signature.raw] : [];
+
+  if (!signature.digits) {
+    return raw;
+  }
+
+  const digitVariants = getComparableDigitVariants(signature.digits);
+
+  if (signature.kind === 'whatsapp_net') {
+    return Array.from(new Set([
+      ...raw,
+      ...digitVariants.map((digits) => `${digits}@s.whatsapp.net`),
+    ]));
+  }
+
+  return Array.from(new Set([
+    ...raw,
+    ...digitVariants,
+    ...digitVariants.map((digits) => `+${digits}`),
+  ]));
+}
+
+async function fetchWithRetry(url: string, init: RequestInit, label: string, maxAttempts = 3): Promise<Response> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url, init);
+
+      if (response.ok || (response.status !== 429 && response.status < 500) || attempt === maxAttempts) {
+        return response;
+      }
+
+      const bodyPreview = await response.text().catch(() => '');
+      console.warn(`⚠️ ${label} retry ${attempt}/${maxAttempts} -> HTTP ${response.status}: ${bodyPreview}`);
+    } catch (error: any) {
+      if (attempt === maxAttempts) {
+        throw error;
+      }
+
+      console.warn(`⚠️ ${label} retry ${attempt}/${maxAttempts} -> ${error?.message || 'unknown error'}`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, attempt * 300));
+  }
+
+  throw new Error(`${label} failed after ${maxAttempts} attempts`);
+}
+
+async function resolveTableFieldNames(
+  baseUrl: string,
+  headers: Record<string, string>,
+  tableId: string,
+): Promise<TableFieldNames> {
+  const previewUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&size=1&page=1`;
+  const response = await fetchWithRetry(previewUrl, { method: 'GET', headers }, 'resolve_table_fields');
+  const data = await response.json().catch(() => ({}));
+  const sampleRow = Array.isArray(data?.results) ? data.results[0] : null;
+  const keys = sampleRow ? Object.keys(sampleRow) : [];
+
+  const fields: TableFieldNames = {
+    nameField: findFieldName(keys, ['name', 'nome'], 'Name'),
+    numeroField: findFieldName(keys, ['numero', 'número'], 'Número'),
+    dateField: findFieldName(keys, ['data', 'date'], 'Data'),
+    humanField: findFieldName(keys, ['AtendeHumano', 'Atende Humano', 'atende_humano'], 'AtendeHumano'),
+  };
+
+  console.log(`🧭 Baserow fields resolved for table ${tableId}: ${JSON.stringify(fields)}`);
+  return fields;
 }
 
 async function findExistingRowExact(
@@ -315,33 +416,36 @@ async function findExistingRowExact(
 ): Promise<any | null> {
   const pageSize = 200;
   const maxRowsScan = 50000;
+  const searchCandidates = getSearchCandidates(numero);
 
   // Pass 1: filtered search endpoint (faster and usually enough)
-  for (let page = 1; ; page++) {
-    const searchUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&search=${encodeURIComponent(numero)}&size=${pageSize}&page=${page}`;
-    console.log(`🔍 Baserow search URL: ${searchUrl}`);
+  for (const candidate of searchCandidates) {
+    for (let page = 1; ; page++) {
+      const searchUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&search=${encodeURIComponent(candidate)}&size=${pageSize}&page=${page}`;
+      console.log(`🔍 Baserow search URL: ${searchUrl}`);
 
-    const searchResp = await fetch(searchUrl, { method: 'GET', headers });
-    const searchData = await searchResp.json().catch(() => ({}));
+      const searchResp = await fetchWithRetry(searchUrl, { method: 'GET', headers }, `search_${candidate}`);
+      const searchData = await searchResp.json().catch(() => ({}));
 
-    console.log(`🔍 Baserow search result: status=${searchResp.status}, count=${searchData?.count || 0}`);
+      console.log(`🔍 Baserow search result: candidate=${candidate}, status=${searchResp.status}, count=${searchData?.count || 0}`);
 
-    if (!searchResp.ok) break;
+      if (!searchResp.ok) break;
 
-    const rows = Array.isArray(searchData?.results) ? searchData.results : [];
-    const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
-    if (exact) return exact;
+      const rows = Array.isArray(searchData?.results) ? searchData.results : [];
+      const exact = rows.find((row: Record<string, any>) => numbersEquivalent(numero, getRowNumeroValue(row)));
+      if (exact) return exact;
 
-    const total = Number(searchData?.count ?? rows.length);
-    const scanned = page * pageSize;
-    if (rows.length === 0 || scanned >= total || scanned >= maxRowsScan) break;
+      const total = Number(searchData?.count ?? rows.length);
+      const scanned = page * pageSize;
+      if (rows.length === 0 || scanned >= total || scanned >= maxRowsScan) break;
+    }
   }
 
   // Pass 2 (fallback): unfiltered pagination with exact compare
   // This guarantees we still find old rows even when search endpoint misses formatting variants.
   for (let page = 1; ; page++) {
     const listUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true&size=${pageSize}&page=${page}`;
-    const listResp = await fetch(listUrl, { method: 'GET', headers });
+    const listResp = await fetchWithRetry(listUrl, { method: 'GET', headers }, 'list_rows');
     const listData = await listResp.json().catch(() => ({}));
 
     if (!listResp.ok) break;
@@ -362,26 +466,29 @@ async function updateAtendeHumano(
   baseUrl: string,
   headers: Record<string, string>,
   tableId: string,
+  fields: TableFieldNames,
   rowId: number,
   numero: string,
 ): Promise<{ numero: string; action: string; success: boolean; error?: string }> {
   const updateUrl = `${baseUrl}/api/database/rows/table/${tableId}/${rowId}/?user_field_names=true`;
-  const updateResp = await fetch(updateUrl, {
+  const payload = {
+    [fields.numeroField]: numero,
+    [fields.humanField]: true,
+  };
+
+  const updateResp = await fetchWithRetry(updateUrl, {
     method: 'PATCH',
     headers,
-    body: JSON.stringify({
-      'Número': numero,
-      'Atende Humano': true,
-    }),
-  });
+    body: JSON.stringify(payload),
+  }, 'update_row');
   const updateData = await updateResp.text();
 
   if (updateResp.ok) {
-    console.log(`✅ Baserow row updated (${numero}) — Número synced + Atende Humano = true`);
+    console.log(`✅ Baserow row updated (${numero}) — ${fields.numeroField} synced + ${fields.humanField} = true`);
     return { numero, action: 'updated', success: true };
   }
 
-  console.error(`❌ Baserow update error: ${updateResp.status} - ${updateData}`);
+  console.error(`❌ Baserow update error (${numero}) with payload ${JSON.stringify(payload)}: ${updateResp.status} - ${updateData}`);
   return { numero, action: 'update_failed', success: false, error: updateData };
 }
 
@@ -389,29 +496,32 @@ async function createLeadRow(
   baseUrl: string,
   headers: Record<string, string>,
   tableId: string,
+  fields: TableFieldNames,
   leadName: string,
   numero: string,
   dateStr: string,
 ): Promise<{ numero: string; action: string; success: boolean; error?: string }> {
   const createUrl = `${baseUrl}/api/database/rows/table/${tableId}/?user_field_names=true`;
-  const createResp = await fetch(createUrl, {
+  const payload = {
+    [fields.nameField]: leadName,
+    [fields.numeroField]: numero,
+    [fields.dateField]: dateStr,
+    [fields.humanField]: true,
+  };
+
+  const createResp = await fetchWithRetry(createUrl, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      'Name': leadName,
-      'Número': numero,
-      'Data': dateStr,
-      'Atende Humano': true,
-    }),
-  });
+    body: JSON.stringify(payload),
+  }, 'create_row');
 
   const createData = await createResp.text();
 
   if (createResp.ok) {
-    console.log(`✅ Baserow row created (${numero})`);
+    console.log(`✅ Baserow row created (${numero}) using fields ${JSON.stringify(fields)}`);
     return { numero, action: 'created', success: true };
   }
 
-  console.error(`❌ Baserow create error: ${createResp.status} - ${createData}`);
+  console.error(`❌ Baserow create error (${numero}) with payload ${JSON.stringify(payload)}: ${createResp.status} - ${createData}`);
   return { numero, action: 'create_failed', success: false, error: createData };
 }

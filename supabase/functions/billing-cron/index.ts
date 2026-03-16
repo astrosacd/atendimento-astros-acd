@@ -1197,7 +1197,16 @@ const handler = async (req: Request): Promise<Response> => {
       // Call Baserow integration for billing events
       try {
         const baserowEvent = `billing.${messageType}`;
-        console.log(`📦 Triggering Baserow for billing event: ${baserowEvent}, client: ${cliente.nome}`);
+        const payload = {
+          module: 'billing',
+          event: baserowEvent,
+          lead_name: cliente.nome,
+          lead_phone: cliente.numero,
+          lead_date: new Date().toLocaleDateString('pt-BR'),
+          lead_produto: cliente.produto,
+        };
+
+        console.log(`📦 [billing-cron] sending to Baserow: ${JSON.stringify(payload)}`);
         
         const baserowResp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
           method: 'POST',
@@ -1206,24 +1215,17 @@ const handler = async (req: Request): Promise<Response> => {
             'Authorization': `Bearer ${supabaseKey}`,
             'apikey': supabaseKey,
           },
-          body: JSON.stringify({
-            module: 'billing',
-            event: baserowEvent,
-            lead_name: cliente.nome,
-            lead_phone: cliente.numero,
-            lead_date: new Date().toLocaleDateString('pt-BR'),
-            lead_produto: cliente.produto,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const baserowText = await baserowResp.text();
         if (!baserowResp.ok) {
-          console.error(`❌ Baserow billing HTTP error (${baserowEvent}): ${baserowResp.status} - ${baserowText}`);
+          console.error(`❌ [billing-cron] Baserow HTTP error (${baserowEvent}): ${baserowResp.status} - ${baserowText}`);
         } else {
-          console.log(`📦 Baserow billing response (${baserowEvent}): ${baserowText}`);
+          console.log(`✅ [billing-cron] Baserow response (${baserowEvent}): ${baserowText}`);
         }
       } catch (baserowErr: any) {
-        console.error(`⚠️ Baserow billing error (non-blocking): ${baserowErr.message}`);
+        console.error(`⚠️ [billing-cron] Baserow error (non-blocking): ${baserowErr.message}`);
       }
     };
 
