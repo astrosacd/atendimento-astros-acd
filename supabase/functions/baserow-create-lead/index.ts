@@ -271,6 +271,22 @@ function toNumberSignature(value: string | null | undefined): NumberSignature {
   return { kind: 'plus_or_plain', digits, raw };
 }
 
+function getComparableDigitVariants(digits: string): string[] {
+  if (!digits) return [];
+
+  const variants = new Set<string>([digits]);
+
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    variants.add(digits.slice(2));
+  }
+
+  if (!digits.startsWith('55') && (digits.length === 10 || digits.length === 11)) {
+    variants.add(`55${digits}`);
+  }
+
+  return Array.from(variants);
+}
+
 function numbersEquivalent(target: string, candidate: string): boolean {
   const t = toNumberSignature(target);
   const c = toNumberSignature(candidate);
@@ -280,7 +296,8 @@ function numbersEquivalent(target: string, candidate: string): boolean {
   if (t.kind !== c.kind) return false;
 
   if (t.digits && c.digits) {
-    return t.digits === c.digits;
+    const targetVariants = new Set(getComparableDigitVariants(t.digits));
+    return getComparableDigitVariants(c.digits).some((value) => targetVariants.has(value));
   }
 
   return t.raw === c.raw;
