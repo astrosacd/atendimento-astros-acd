@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Zap, Clock, Play, History, AlertTriangle, Copy, Settings, Power, PowerOff } from 'lucide-react';
+import { Zap, Clock, Play, History, AlertTriangle, Copy, Settings, Power, PowerOff, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -49,15 +49,28 @@ const ACTION_LABELS: Record<string, string> = {
   send_notification: 'Enviar notificação',
 };
 
+const PRIORITY_LABELS: Record<string, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta',
+  urgente: 'Urgente',
+};
+
 export function AutomationRulesPanel() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
-  const [duplicating, setDuplicating] = useState<AutomationRule | null>(null);
-  const [dupName, setDupName] = useState('');
-  const [dupDays, setDupDays] = useState('');
-  const [dupSaving, setDupSaving] = useState(false);
+
+  // Edit/Duplicate dialog state
+  const [editingRule, setEditingRule] = useState<AutomationRule | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false); // true = edit, false = duplicate
+  const [formName, setFormName] = useState('');
+  const [formDays, setFormDays] = useState('30');
+  const [formDedupDays, setFormDedupDays] = useState('7');
+  const [formPriority, setFormPriority] = useState('urgente');
+  const [formDueDateDays, setFormDueDateDays] = useState('5');
+  const [formSaving, setFormSaving] = useState(false);
 
   // Cron config state
   const [cronHour, setCronHour] = useState('9');
@@ -74,7 +87,6 @@ export function AutomationRulesPanel() {
       const { data, error } = await supabase.rpc('get_automations_cron_schedule');
       if (!error && data && data.length > 0) {
         setCronActive(true);
-        // Parse cron schedule "minute hour * * *" and convert UTC to BRT
         const parts = data[0].schedule.split(' ');
         const utcMinute = parseInt(parts[0]);
         let utcHour = parseInt(parts[1]);
@@ -94,7 +106,7 @@ export function AutomationRulesPanel() {
   const saveCronSchedule = async () => {
     setCronSaving(true);
     try {
-      const { data, error } = await supabase.rpc('update_automations_cron_schedule', {
+      const { error } = await supabase.rpc('update_automations_cron_schedule', {
         p_hour: parseInt(cronHour),
         p_minute: parseInt(cronMinute),
       });
@@ -114,7 +126,7 @@ export function AutomationRulesPanel() {
       if (error) throw error;
       toast.success('Cron de automações desativado');
       setCronActive(false);
-    } catch (err: any) {
+    } catch {
       toast.error('Erro ao desativar cron');
     }
     setCronSaving(false);
@@ -152,32 +164,61 @@ export function AutomationRulesPanel() {
     }
   };
 
-  const openDuplicate = (rule: AutomationRule) => {
-    setDuplicating(rule);
-    setDupName(rule.name + ' (cópia)');
-    setDupDays(String(rule.trigger_config?.days || 30));
+  const openDialog = (rule: AutomationRule, edit: boolean) => {
+    setEditingRule(rule);
+    setIsEditMode(edit);
+    setFormName(edit ? rule.name : rule.name + ' (cópia)');
+    setFormDays(String(rule.trigger_config?.days || 30));
+    setFormDedupDays(String(rule.trigger_config?.dedup_days ?? 7));
+    setFormPriority(rule.action_config?.priority || 'urgente');
+    setFormDueDateDays(String(rule.action_config?.due_date_days ?? 5));
   };
 
-  const handleDuplicate = async () => {
-    if (!duplicating) return;
-    setDupSaving(true);
-    const newTriggerConfig = { ...duplicating.trigger_config, days: parseInt(dupDays) || 30 };
-    const newActionConfig = { ...duplicating.action_config };
+  const handleSave = async () => {
+    if (!editingRule) return;
+    setFormSaving(true);
 
-    const { error } = await supabase.from('automation_rules').insert({
-      name: dupName,
-      description: duplicating.description,
-      trigger_type: duplicating.trigger_type,
-      trigger_config: newTriggerConfig,
-      action_type: duplicating.action_type,
-      action_config: newActionConfig,
-      is_active: false,
-    });
+    const triggerConfig = {
+      ...editingRule.trigger_config,
+      days: parseInt(formDays) || 30,
+      dedup_days: parseInt(formDedupDays) || 7,
+    };
+    const actionConfig = {
+      ...editingRule.action_config,
+      priority: formPriority,
+      due_date_days: parseInt(formDueDateDays) || 5,
+    };
 
-    setDupSaving(false);
-    if (error) { toast.error('Erro ao duplicar regra'); return; }
-    toast.success('Regra duplicada com sucesso');
-    setDuplicating(null);
+    if (isEditMode) {
+      const { error } = await supabase
+        .from('automation_rules')
+        .update({
+          name: formName,
+          trigger_config: triggerConfig,
+          action_config: actionConfig,
+        })
+        .eq('id', editingRule.id);
+
+      setFormSaving(false);
+      if (error) { toast.error('Erro ao salvar regra'); return; }
+      toast.success('Regra atualizada com sucesso');
+    } else {
+      const { error } = await supabase.from('automation_rules').insert({
+        name: formName,
+        description: editingRule.description,
+        trigger_type: editingRule.trigger_type,
+        trigger_config: triggerConfig,
+        action_type: editingRule.action_type,
+        action_config: actionConfig,
+        is_active: false,
+      });
+
+      setFormSaving(false);
+      if (error) { toast.error('Erro ao duplicar regra'); return; }
+      toast.success('Regra duplicada com sucesso');
+    }
+
+    setEditingRule(null);
     await loadData();
   };
 
@@ -257,42 +298,64 @@ export function AutomationRulesPanel() {
         </Button>
       </div>
 
-      {rules.map(rule => (
-        <Card key={rule.id} className="p-4 bg-card border-border">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Zap className="h-4 w-4 text-amber-500 shrink-0" />
-                <span className="font-medium text-sm text-foreground">{rule.name}</span>
-              </div>
-              {rule.description && (
-                <p className="text-xs text-muted-foreground mb-2 ml-6">{rule.description}</p>
-              )}
-              <div className="flex items-center gap-2 ml-6 flex-wrap">
-                <Badge variant="outline" className="text-[10px]">
-                  Gatilho: {TRIGGER_LABELS[rule.trigger_type] || rule.trigger_type}
-                  {rule.trigger_config?.days && ` (${rule.trigger_config.days} dias)`}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">
-                  Ação: {ACTION_LABELS[rule.action_type] || rule.action_type}
-                </Badge>
-                {rule.last_run_at && (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" />
-                    Última execução: {format(new Date(rule.last_run_at), 'dd/MM/yy HH:mm')}
-                  </span>
+      {rules.map(rule => {
+        const dedupDays = rule.trigger_config?.dedup_days ?? 7;
+        const dueDateDays = rule.action_config?.due_date_days ?? 5;
+        const priority = rule.action_config?.priority || 'urgente';
+
+        return (
+          <Card key={rule.id} className="p-4 bg-card border-border">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="font-medium text-sm text-foreground">{rule.name}</span>
+                </div>
+                {rule.description && (
+                  <p className="text-xs text-muted-foreground mb-2 ml-6">{rule.description}</p>
                 )}
+                <div className="flex items-center gap-2 ml-6 flex-wrap">
+                  <Badge variant="outline" className="text-[10px]">
+                    Gatilho: {TRIGGER_LABELS[rule.trigger_type] || rule.trigger_type}
+                    {rule.trigger_config?.days && ` (${rule.trigger_config.days} dias)`}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    Ação: {ACTION_LABELS[rule.action_type] || rule.action_type}
+                  </Badge>
+                  {rule.action_type === 'create_task' && (
+                    <>
+                      <Badge variant="outline" className="text-[10px]">
+                        Prioridade: {PRIORITY_LABELS[priority] || priority}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        Prazo: +{dueDateDays} dias
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        Repetição: a cada {dedupDays} dias
+                      </Badge>
+                    </>
+                  )}
+                  {rule.last_run_at && (
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      Última execução: {format(new Date(rule.last_run_at), 'dd/MM/yy HH:mm')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar regra" onClick={() => openDialog(rule, true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicar regra" onClick={() => openDialog(rule, false)}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicar regra" onClick={() => openDuplicate(rule)}>
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-              <Switch checked={rule.is_active} onCheckedChange={v => toggleRule(rule.id, v)} />
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
 
       {rules.length === 0 && (
         <Card className="p-8 bg-card border-border text-center text-muted-foreground">
@@ -323,29 +386,66 @@ export function AutomationRulesPanel() {
         </div>
       )}
 
-      {/* Duplicate Dialog */}
-      <Dialog open={!!duplicating} onOpenChange={open => !open && setDuplicating(null)}>
+      {/* Edit/Duplicate Dialog */}
+      <Dialog open={!!editingRule} onOpenChange={open => !open && setEditingRule(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Duplicar Regra de Automação</DialogTitle>
-            <DialogDescription>Altere o nome e os dias para a nova regra.</DialogDescription>
+            <DialogTitle>{isEditMode ? 'Editar Regra' : 'Duplicar Regra'}</DialogTitle>
+            <DialogDescription>
+              {isEditMode ? 'Altere as configurações da regra.' : 'Altere o nome e configurações para a nova regra.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Nome da nova regra</Label>
-              <Input value={dupName} onChange={e => setDupName(e.target.value)} />
+              <Label>Nome da regra</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} />
             </div>
-            {duplicating?.trigger_type === 'renewal_delay' && (
-              <div className="space-y-2">
-                <Label>Dias de atraso (gatilho)</Label>
-                <Input type="number" min={1} value={dupDays} onChange={e => setDupDays(e.target.value)} />
-              </div>
+            {editingRule?.trigger_type === 'renewal_delay' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Dias de atraso (gatilho)</Label>
+                  <Input type="number" min={1} value={formDays} onChange={e => setFormDays(e.target.value)} />
+                  <p className="text-[10px] text-muted-foreground">Clientes com renovação atrasada há X dias serão selecionados.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Intervalo de repetição (dias)</Label>
+                  <Input type="number" min={1} value={formDedupDays} onChange={e => setFormDedupDays(e.target.value)} />
+                  <p className="text-[10px] text-muted-foreground">
+                    Após criar tarefa para um cliente, só criará novamente após esse período. Ex: 7 = a cada 7 dias.
+                  </p>
+                </div>
+              </>
+            )}
+            {editingRule?.action_type === 'create_task' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Prioridade da tarefa</Label>
+                  <Select value={formPriority} onValueChange={setFormPriority}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="baixa">Baixa</SelectItem>
+                      <SelectItem value="media">Média</SelectItem>
+                      <SelectItem value="alta">Alta</SelectItem>
+                      <SelectItem value="urgente">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prazo da tarefa (dias à frente)</Label>
+                  <Input type="number" min={1} value={formDueDateDays} onChange={e => setFormDueDateDays(e.target.value)} />
+                  <p className="text-[10px] text-muted-foreground">
+                    A tarefa será criada com data de vencimento X dias à frente. Ex: 5 = prazo de 5 dias.
+                  </p>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDuplicating(null)}>Cancelar</Button>
-            <Button onClick={handleDuplicate} disabled={dupSaving || !dupName.trim()}>
-              {dupSaving ? 'Duplicando...' : 'Duplicar'}
+            <Button variant="outline" onClick={() => setEditingRule(null)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={formSaving || !formName.trim()}>
+              {formSaving ? 'Salvando...' : isEditMode ? 'Salvar' : 'Duplicar'}
             </Button>
           </DialogFooter>
         </DialogContent>
