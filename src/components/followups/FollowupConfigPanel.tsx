@@ -151,6 +151,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
         { key: 'delay_seconds', value: delaySeconds },
         { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
         { key: 'external_supabase_anon_key', value: externalAnonKey },
+        { key: 'ai_provider', value: aiProvider },
+        { key: 'ai_model', value: aiModel },
+        { key: 'ai_api_key_openai', value: aiKeyOpenai },
+        { key: 'ai_api_key_groq', value: aiKeyGroq },
+        { key: 'ai_custom_prompt', value: aiCustomPrompt },
       ];
       for (const u of updates) {
         const { data: existing } = await supabase
