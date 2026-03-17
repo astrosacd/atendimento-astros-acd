@@ -136,7 +136,7 @@ export function AutomationRulesPanel() {
     setLoading(true);
     const [rulesRes, logsRes] = await Promise.all([
       supabase.from('automation_rules').select('*').order('created_at'),
-      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(100),
     ]);
     if (rulesRes.data) setRules(rulesRes.data as AutomationRule[]);
     if (logsRes.data) setLogs(logsRes.data as AutomationLog[]);
@@ -371,16 +371,36 @@ export function AutomationRulesPanel() {
             <History className="h-4 w-4" /> Histórico de Execuções
           </h3>
           <ScrollArea className="max-h-[300px]">
-            <div className="space-y-1.5">
-              {logs.map(log => (
-                <div key={log.id} className="flex items-center gap-3 text-xs py-1.5 px-3 rounded bg-secondary/30">
-                  <span className="text-muted-foreground shrink-0">
-                    {format(new Date(log.created_at), 'dd/MM HH:mm')}
-                  </span>
-                  <span className="text-foreground truncate flex-1">{log.action_taken}</span>
-                  {log.result && <Badge variant="secondary" className="text-[10px]">{log.result}</Badge>}
-                </div>
-              ))}
+             <div className="space-y-1.5">
+              {logs.map(log => {
+                const resultColor = log.result === 'success'
+                  ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                  : log.result === 'skipped'
+                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                  : log.result === 'info'
+                  ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                  : log.result?.startsWith('error')
+                  ? 'bg-red-500/10 text-red-600 border-red-500/20'
+                  : '';
+                const resultLabel = log.result === 'success'
+                  ? '✅ Criado'
+                  : log.result === 'skipped'
+                  ? '⏭️ Pulado'
+                  : log.result === 'info'
+                  ? 'ℹ️ Info'
+                  : log.result?.startsWith('error')
+                  ? '❌ Erro'
+                  : log.result;
+                return (
+                  <div key={log.id} className={`flex items-start gap-3 text-xs py-2 px-3 rounded ${log.result === 'skipped' ? 'bg-amber-500/5' : log.result?.startsWith('error') ? 'bg-red-500/5' : 'bg-secondary/30'}`}>
+                    <span className="text-muted-foreground shrink-0 pt-0.5">
+                      {format(new Date(log.created_at), 'dd/MM HH:mm')}
+                    </span>
+                    <span className="text-foreground flex-1">{log.action_taken}</span>
+                    {log.result && <Badge variant="outline" className={`text-[10px] shrink-0 ${resultColor}`}>{resultLabel}</Badge>}
+                  </div>
+                );
+              })}
             </div>
           </ScrollArea>
         </div>
