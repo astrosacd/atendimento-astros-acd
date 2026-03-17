@@ -159,7 +159,9 @@ serve(async (req: Request) => {
 
     const safeName = (client_name || "Cliente").substring(0, 100);
 
-    const systemPrompt = `Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.
+    // Get custom prompt or use default
+    const customPrompt = getVal("ai_custom_prompt", "");
+    const systemPrompt = customPrompt || `Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.
 
 REGRAS:
 - Mensagem curta e direta (máximo 4 parágrafos)
@@ -176,14 +178,42 @@ REGRAS:
 Informações do produto no banco de dados:
 ${productContext}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Determine API URL, key, and model based on provider
+    let apiUrl: string;
+    let apiKey: string;
+    let model: string;
+
+    if (aiProvider === "openai") {
+      if (!openaiKey) throw new Error("Chave da API OpenAI não configurada");
+      apiUrl = "https://api.openai.com/v1/chat/completions";
+      apiKey = openaiKey;
+      model = aiModel || "gpt-4o-mini";
+    } else if (aiProvider === "groq") {
+      if (!groqKey) throw new Error("Chave da API Groq não configurada");
+      apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+      apiKey = groqKey;
+      model = aiModel || "llama-3.1-70b-versatile";
+    } else {
+      // Lovable AI (default)
+      if (!lovableApiKey) {
+        return new Response(
+          JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+      apiKey = lovableApiKey;
+      model = aiModel || "google/gemini-2.5-flash";
+    }
+
+    const aiResponse = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
