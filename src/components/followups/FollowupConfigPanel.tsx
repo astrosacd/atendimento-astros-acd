@@ -80,6 +80,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
   const [externalAnonKey, setExternalAnonKey] = useState('');
+  const [aiProvider, setAiProvider] = useState('lovable');
+  const [aiModel, setAiModel] = useState('');
+  const [aiKeyOpenai, setAiKeyOpenai] = useState('');
+  const [aiKeyGroq, setAiKeyGroq] = useState('');
+  const [aiCustomPrompt, setAiCustomPrompt] = useState('');
   const [baserowApiUrl, setBaserowApiUrl] = useState('');
   const [baserowToken, setBaserowToken] = useState('');
   const [baserowTableId, setBaserowTableId] = useState('');
