@@ -373,6 +373,82 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                           <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
                           <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
                         </div>
+
+                        {/* AI Provider */}
+                        <div className="space-y-2">
+                          <Label>Provedor de IA</Label>
+                          <Select value={aiProvider} onValueChange={setAiProvider}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="lovable">Lovable AI (padrão, gratuito)</SelectItem>
+                              <SelectItem value="openai">OpenAI</SelectItem>
+                              <SelectItem value="groq">Groq</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Model */}
+                        <div className="space-y-2">
+                          <Label>Modelo (opcional)</Label>
+                          <Input
+                            value={aiModel}
+                            onChange={e => setAiModel(e.target.value)}
+                            placeholder={
+                              aiProvider === 'openai' ? 'gpt-4o-mini'
+                              : aiProvider === 'groq' ? 'llama-3.1-70b-versatile'
+                              : 'google/gemini-2.5-flash'
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">Deixe vazio para usar o modelo padrão do provedor.</p>
+                        </div>
+
+                        {/* API Keys per provider */}
+                        {aiProvider === 'openai' && (
+                          <div className="space-y-2">
+                            <Label>API Key OpenAI</Label>
+                            <Input
+                              type="password"
+                              value={aiKeyOpenai}
+                              onChange={e => setAiKeyOpenai(e.target.value)}
+                              placeholder="sk-..."
+                            />
+                          </div>
+                        )}
+                        {aiProvider === 'groq' && (
+                          <div className="space-y-2">
+                            <Label>API Key Groq</Label>
+                            <Input
+                              type="password"
+                              value={aiKeyGroq}
+                              onChange={e => setAiKeyGroq(e.target.value)}
+                              placeholder="gsk_..."
+                            />
+                          </div>
+                        )}
+                        {aiProvider === 'lovable' && (
+                          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                            🆓 Lovable AI não requer chave de API. Já está configurado automaticamente.
+                          </div>
+                        )}
+
+                        {/* Custom Prompt */}
+                        <div className="space-y-2">
+                          <Label>Prompt do Sistema (personalizável)</Label>
+                          <Textarea
+                            value={aiCustomPrompt}
+                            onChange={e => setAiCustomPrompt(e.target.value)}
+                            rows={6}
+                            className="resize-y text-xs font-mono"
+                            placeholder={`Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.\n\nREGRAS:\n- Mensagem curta e direta (máximo 4 parágrafos)\n- Tom profissional mas amigável\n- Use emojis moderadamente\n- Mencione benefícios específicos do produto quando disponível\n- NÃO invente preços ou detalhes que não estejam no contexto\n- A mensagem deve ser para reengajar o cliente que demonstrou interesse\n- Use formatação do WhatsApp (*negrito*, _itálico_)\n- Escreva em português brasileiro`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Deixe vazio para usar o prompt padrão. O placeholder mostra o texto padrão como referência.
+                          </p>
+                        </div>
+
+                        {/* External Anon Key */}
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <Sparkles className="h-3.5 w-3.5 text-primary" />
