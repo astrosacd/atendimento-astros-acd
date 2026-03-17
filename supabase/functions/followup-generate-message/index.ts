@@ -26,6 +26,22 @@ serve(async (req: Request) => {
 
     const { produto, client_name } = await req.json();
 
+    // Get AI provider config
+    const { data: providerConfig } = await supabase
+      .from("followup_config")
+      .select("config_key, config_value")
+      .in("config_key", [
+        "ai_provider", "ai_model", "ai_api_key_openai", "ai_api_key_groq", "ai_custom_prompt"
+      ]);
+
+    const getVal = (key: string, fallback: string) =>
+      providerConfig?.find((c: any) => c.config_key === key)?.config_value || fallback;
+
+    const aiProvider = getVal("ai_provider", "lovable");
+    const aiModel = getVal("ai_model", "");
+    const openaiKey = getVal("ai_api_key_openai", "");
+    const groqKey = getVal("ai_api_key_groq", "");
+
     if (!produto || typeof produto !== "string" || produto.length > 200) {
       return new Response(
         JSON.stringify({ error: "Produto inválido" }),
