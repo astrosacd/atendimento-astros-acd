@@ -85,7 +85,8 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
       if (data?.error) throw new Error(data.error);
       if (data?.message) {
         setCustomMessage(data.message);
-        toast.success(`Mensagem gerada pela IA! (${data.matched_products || 0} produto(s) encontrado(s))`);
+        const totalMatched = (data.matched_products || 0) + (data.matched_external || 0);
+        toast.success(`Mensagem gerada pela IA! (${totalMatched} produto(s) encontrado(s))`);
       }
     } catch (err: any) {
       toast.error('Erro ao gerar mensagem: ' + (err.message || 'Erro desconhecido'));

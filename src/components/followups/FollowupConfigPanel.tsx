@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -76,6 +80,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
   const [cronMinute, setCronMinute] = useState('0');
   const [aiMessageEnabled, setAiMessageEnabled] = useState(false);
   const [externalAnonKey, setExternalAnonKey] = useState('');
+  const [aiProvider, setAiProvider] = useState('lovable');
+  const [aiModel, setAiModel] = useState('');
+  const [aiKeyOpenai, setAiKeyOpenai] = useState('');
+  const [aiKeyGroq, setAiKeyGroq] = useState('');
+  const [aiCustomPrompt, setAiCustomPrompt] = useState('');
   const [baserowApiUrl, setBaserowApiUrl] = useState('');
   const [baserowToken, setBaserowToken] = useState('');
   const [baserowTableId, setBaserowTableId] = useState('');
@@ -116,6 +125,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
       setCronMinute(getConfigValue('cron_minute', '0'));
       setAiMessageEnabled(getConfigValue('ai_message_enabled', 'false') === 'true');
       setExternalAnonKey(getConfigValue('external_supabase_anon_key', ''));
+      setAiProvider(getConfigValue('ai_provider', 'lovable'));
+      setAiModel(getConfigValue('ai_model', ''));
+      setAiKeyOpenai(getConfigValue('ai_api_key_openai', ''));
+      setAiKeyGroq(getConfigValue('ai_api_key_groq', ''));
+      setAiCustomPrompt(getConfigValue('ai_custom_prompt', ''));
     }
   }, [configs]);
 
@@ -137,6 +151,11 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
         { key: 'delay_seconds', value: delaySeconds },
         { key: 'ai_message_enabled', value: aiMessageEnabled ? 'true' : 'false' },
         { key: 'external_supabase_anon_key', value: externalAnonKey },
+        { key: 'ai_provider', value: aiProvider },
+        { key: 'ai_model', value: aiModel },
+        { key: 'ai_api_key_openai', value: aiKeyOpenai },
+        { key: 'ai_api_key_groq', value: aiKeyGroq },
+        { key: 'ai_custom_prompt', value: aiCustomPrompt },
       ];
       for (const u of updates) {
         const { data: existing } = await supabase
@@ -354,6 +373,82 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                           <p>✨ Para melhores resultados, cadastre seus produtos no catálogo (Admin → menu lateral).</p>
                           <p>🔍 A IA busca o produto pelo nome de interesse e gera uma mensagem contextual.</p>
                         </div>
+
+                        {/* AI Provider */}
+                        <div className="space-y-2">
+                          <Label>Provedor de IA</Label>
+                          <Select value={aiProvider} onValueChange={setAiProvider}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="lovable">Lovable AI (padrão, gratuito)</SelectItem>
+                              <SelectItem value="openai">OpenAI</SelectItem>
+                              <SelectItem value="groq">Groq</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Model */}
+                        <div className="space-y-2">
+                          <Label>Modelo (opcional)</Label>
+                          <Input
+                            value={aiModel}
+                            onChange={e => setAiModel(e.target.value)}
+                            placeholder={
+                              aiProvider === 'openai' ? 'gpt-4o-mini'
+                              : aiProvider === 'groq' ? 'llama-3.1-70b-versatile'
+                              : 'google/gemini-2.5-flash'
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">Deixe vazio para usar o modelo padrão do provedor.</p>
+                        </div>
+
+                        {/* API Keys per provider */}
+                        {aiProvider === 'openai' && (
+                          <div className="space-y-2">
+                            <Label>API Key OpenAI</Label>
+                            <Input
+                              type="password"
+                              value={aiKeyOpenai}
+                              onChange={e => setAiKeyOpenai(e.target.value)}
+                              placeholder="sk-..."
+                            />
+                          </div>
+                        )}
+                        {aiProvider === 'groq' && (
+                          <div className="space-y-2">
+                            <Label>API Key Groq</Label>
+                            <Input
+                              type="password"
+                              value={aiKeyGroq}
+                              onChange={e => setAiKeyGroq(e.target.value)}
+                              placeholder="gsk_..."
+                            />
+                          </div>
+                        )}
+                        {aiProvider === 'lovable' && (
+                          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                            🆓 Lovable AI não requer chave de API. Já está configurado automaticamente.
+                          </div>
+                        )}
+
+                        {/* Custom Prompt */}
+                        <div className="space-y-2">
+                          <Label>Prompt do Sistema (personalizável)</Label>
+                          <Textarea
+                            value={aiCustomPrompt}
+                            onChange={e => setAiCustomPrompt(e.target.value)}
+                            rows={6}
+                            className="resize-y text-xs font-mono"
+                            placeholder={`Você é um assistente de vendas de uma agência digital. Gere uma mensagem de follow-up personalizada para WhatsApp.\n\nREGRAS:\n- Mensagem curta e direta (máximo 4 parágrafos)\n- Tom profissional mas amigável\n- Use emojis moderadamente\n- Mencione benefícios específicos do produto quando disponível\n- NÃO invente preços ou detalhes que não estejam no contexto\n- A mensagem deve ser para reengajar o cliente que demonstrou interesse\n- Use formatação do WhatsApp (*negrito*, _itálico_)\n- Escreva em português brasileiro`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Deixe vazio para usar o prompt padrão. O placeholder mostra o texto padrão como referência.
+                          </p>
+                        </div>
+
+                        {/* External Anon Key */}
                         <div className="space-y-2">
                           <Label className="flex items-center gap-2">
                             <Sparkles className="h-3.5 w-3.5 text-primary" />
