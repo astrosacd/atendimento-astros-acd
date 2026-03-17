@@ -388,7 +388,7 @@ export function AutomationRulesPanel() {
 
       {/* Edit/Duplicate Dialog */}
       <Dialog open={!!editingRule} onOpenChange={open => !open && setEditingRule(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditMode ? 'Editar Regra' : 'Duplicar Regra'}</DialogTitle>
             <DialogDescription>
