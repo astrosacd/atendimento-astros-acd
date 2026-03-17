@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
     if (rulesError) throw rulesError;
 
     let totalActions = 0;
+    let totalSkipped = 0;
 
     for (const rule of rules || []) {
       if (rule.trigger_type === 'renewal_delay') {
@@ -38,6 +39,18 @@ Deno.serve(async (req) => {
           .select('id, nome, produto, valor, data_renovacao')
           .lte('data_renovacao', cutoffStr);
 
+        const overdueCount = overdueClients?.length || 0;
+        console.log(`[Rule: ${rule.name}] Found ${overdueCount} overdue clients (cutoff: ${cutoffStr}, delay: ${days} days)`);
+
+        if (overdueCount === 0) {
+          await supabase.from('automation_logs').insert({
+            rule_id: rule.id,
+            cliente_id: null,
+            action_taken: `Nenhum cliente inadimplente encontrado (atraso > ${days} dias, corte: ${cutoffStr})`,
+            result: 'info',
+          });
+        }
+
         // Dedup window: configurable via trigger_config.dedup_days, default 7
         const dedupDays = rule.trigger_config?.dedup_days ?? 7;
 
@@ -48,14 +61,25 @@ Deno.serve(async (req) => {
           
           const { data: recentLogs } = await supabase
             .from('automation_logs')
-            .select('id')
+            .select('id, created_at')
             .eq('rule_id', rule.id)
             .eq('cliente_id', cliente.id)
             .gte('created_at', dedupCutoff.toISOString())
             .like('result', 'success')
             .limit(1);
 
-          if (recentLogs && recentLogs.length > 0) continue;
+          if (recentLogs && recentLogs.length > 0) {
+            const lastRun = recentLogs[0].created_at;
+            console.log(`[Rule: ${rule.name}] Skipping ${cliente.nome}: task already created on ${lastRun} (dedup window: ${dedupDays} days)`);
+            await supabase.from('automation_logs').insert({
+              rule_id: rule.id,
+              cliente_id: cliente.id,
+              action_taken: `Pulado: tarefa já criada em ${new Date(lastRun).toLocaleDateString('pt-BR')} (janela de desduplicação: ${dedupDays} dias)`,
+              result: 'skipped',
+            });
+            totalSkipped++;
+            continue;
+          }
 
           if (rule.action_type === 'create_task') {
             const config = rule.action_config || {};
@@ -109,10 +133,19 @@ Deno.serve(async (req) => {
               await supabase.from('automation_logs').insert({
                 rule_id: rule.id,
                 cliente_id: cliente.id,
-                action_taken: `Falha ao criar tarefa para ${cliente.nome}`,
+                action_taken: `Falha ao criar tarefa para ${cliente.nome}: ${taskError.message}`,
                 result: `error: ${taskError.message}`,
               });
             }
+          } else {
+            console.log(`[Rule: ${rule.name}] Unknown action_type: ${rule.action_type} for client ${cliente.nome}`);
+            await supabase.from('automation_logs').insert({
+              rule_id: rule.id,
+              cliente_id: cliente.id,
+              action_taken: `Tipo de ação desconhecido: ${rule.action_type}`,
+              result: 'skipped',
+            });
+            totalSkipped++;
           }
         }
 
@@ -123,6 +156,8 @@ Deno.serve(async (req) => {
           .eq('id', rule.id);
       }
     }
+
+    console.log(`Automation finished: ${totalActions} actions, ${totalSkipped} skipped`);
 
     return new Response(JSON.stringify({ success: true, actions: totalActions }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
