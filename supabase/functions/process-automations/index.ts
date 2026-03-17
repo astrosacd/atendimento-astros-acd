@@ -38,21 +38,24 @@ Deno.serve(async (req) => {
           .select('id, nome, produto, valor, data_renovacao')
           .lte('data_renovacao', cutoffStr);
 
+        // Dedup window: configurable via trigger_config.dedup_days, default 7
+        const dedupDays = rule.trigger_config?.dedup_days ?? 7;
+
         for (const cliente of overdueClients || []) {
-          // Check if we already created a task for this client from this rule recently (last 7 days)
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          // Check if we already created a task for this client from this rule recently
+          const dedupCutoff = new Date();
+          dedupCutoff.setDate(dedupCutoff.getDate() - dedupDays);
           
           const { data: recentLogs } = await supabase
             .from('automation_logs')
             .select('id')
             .eq('rule_id', rule.id)
             .eq('cliente_id', cliente.id)
-            .gte('created_at', sevenDaysAgo.toISOString())
+            .gte('created_at', dedupCutoff.toISOString())
             .like('result', 'success')
             .limit(1);
 
-          if (recentLogs && recentLogs.length > 0) continue; // Skip, only if successfully processed recently
+          if (recentLogs && recentLogs.length > 0) continue;
 
           if (rule.action_type === 'create_task') {
             const config = rule.action_config || {};
@@ -73,8 +76,14 @@ Deno.serve(async (req) => {
               low: 'baixa', medium: 'media', high: 'alta', urgent: 'urgente',
               baixa: 'baixa', media: 'media', alta: 'alta', urgente: 'urgente',
             };
-            const rawPriority = config.priority || 'media';
-            const priority = priorityMap[rawPriority] || 'media';
+            const rawPriority = config.priority || 'urgente';
+            const priority = priorityMap[rawPriority] || 'urgente';
+
+            // Calculate due_date: today + due_date_days (configurable, default 5)
+            const dueDateDays = config.due_date_days ?? 5;
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + dueDateDays);
+            const dueDateStr = dueDate.toISOString().split('T')[0];
 
             const { error: taskError } = await supabase
               .from('client_tasks')
@@ -84,17 +93,19 @@ Deno.serve(async (req) => {
                 description,
                 priority,
                 status: 'pendente',
+                due_date: dueDateStr,
               });
 
             if (!taskError) {
               await supabase.from('automation_logs').insert({
                 rule_id: rule.id,
                 cliente_id: cliente.id,
-                action_taken: `Tarefa criada para ${cliente.nome}: ${title}`,
+                action_taken: `Tarefa criada para ${cliente.nome}: ${title} (prazo: ${dueDateStr})`,
                 result: 'success',
               });
               totalActions++;
             } else {
+              console.error(`Task creation error for ${cliente.nome}:`, taskError);
               await supabase.from('automation_logs').insert({
                 rule_id: rule.id,
                 cliente_id: cliente.id,
