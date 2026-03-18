@@ -241,6 +241,39 @@ const AdminCobranca = () => {
     loadStripeConfig();
   }, []);
 
+  // Handle URL filter param for skipped billing
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter === 'skipped') {
+      setLogStatusFilter('skipped');
+      setLogDateFilter('all');
+    }
+  }, [searchParams]);
+
+  const handleResolveSkipped = async () => {
+    if (!resolvingLogId) return;
+    try {
+      const { error } = await supabase
+        .from('billing_logs')
+        .update({
+          resolution: resolutionType,
+          resolution_note: resolutionNote || null,
+          resolved_at: new Date().toISOString(),
+          resolved_by: (await supabase.auth.getUser()).data.user?.email || 'unknown',
+        })
+        .eq('id', resolvingLogId);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Resolvido!', description: 'Status do log atualizado com sucesso.' });
+      setResolvingLogId(null);
+      setResolutionNote('');
+      loadLogs();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const loadStripeConfig = async () => {
     try {
       const { data, error } = await supabase
