@@ -80,6 +80,10 @@ interface BillingLog {
   status: string;
   error_message: string | null;
   sent_at: string;
+  resolution: string | null;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
 }
 
 interface Cliente {
