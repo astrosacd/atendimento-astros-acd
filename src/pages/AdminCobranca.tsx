@@ -2757,13 +2757,14 @@ const AdminCobranca = () => {
                               <TableHead className="w-[80px]">Tipo</TableHead>
                               <TableHead className="w-[100px]">Canal</TableHead>
                               <TableHead className="w-[100px]">Status</TableHead>
-                              <TableHead className="hidden lg:table-cell">Erro</TableHead>
+                              <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                              <TableHead className="w-[100px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filteredLogs.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                                   <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                   Nenhum registro encontrado com os filtros aplicados
                                 </TableCell>
@@ -2794,12 +2795,33 @@ const AdminCobranca = () => {
                                   <TableCell>{getChannelBadge(log.channel)}</TableCell>
                                   <TableCell>{getStatusBadge(log.status)}</TableCell>
                                   <TableCell className="hidden lg:table-cell">
-                                    {log.error_message ? (
+                                    {log.resolution ? (
+                                      <span className="text-sm text-emerald-400" title={log.resolution_note || ''}>
+                                        ✅ {log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
+                                      </span>
+                                    ) : log.error_message ? (
                                       <span className="text-sm text-red-400 truncate max-w-[200px] block" title={log.error_message}>
-                                        {log.error_message.substring(0, 50)}...
+                                        {log.error_message.substring(0, 50)}{log.error_message.length > 50 ? '...' : ''}
                                       </span>
                                     ) : (
                                       <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {log.status === 'skipped' && !log.resolution && (
+                                      <Button
+                                        onClick={() => setResolvingLogId(log.id)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                      >
+                                        Resolver
+                                      </Button>
+                                    )}
+                                    {log.resolution && (
+                                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                        Resolvido
+                                      </Badge>
                                     )}
                                   </TableCell>
                                 </TableRow>
