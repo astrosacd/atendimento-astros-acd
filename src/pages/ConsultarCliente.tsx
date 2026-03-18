@@ -42,8 +42,9 @@ export default function ConsultarCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const { searchCliente, fetchClientes, isLoading } = useClientes();
+  const { searchCliente, fetchClientes, updateCliente, isLoading } = useClientes();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const { fetchClientHistory } = useClientHistory();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Cliente[] | null>(null);
