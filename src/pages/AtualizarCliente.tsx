@@ -177,6 +177,7 @@ export default function AtualizarCliente() {
       setNewObservacao('');
       setNewTags([]);
       setNewNumero('');
+      setNewEmail('');
       setNewValor('');
       setNewPlano(null);
       setIsOriginallyReseller(false);
