@@ -72,6 +72,7 @@ interface ClienteStats {
   vendasUnicasUsd: number;
   clientesRegistroSemValor: number;
   recuperacaoPendentes: number;
+  billingSkipped: number;
 }
 
 interface CustomRole {
