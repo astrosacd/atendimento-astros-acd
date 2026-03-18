@@ -185,6 +185,12 @@ const AdminCobranca = () => {
   const [logChannelFilter, setLogChannelFilter] = useState<string>('all');
   const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
   const [logDateFilter, setLogDateFilter] = useState<string>('7days');
+  
+  // Resolution dialog state
+  const [resolvingLogId, setResolvingLogId] = useState<string | null>(null);
+  const [resolutionType, setResolutionType] = useState<string>('erro_numero');
+  const [resolutionNote, setResolutionNote] = useState('');
+  
   const [metrics, setMetrics] = useState<MetricsData>({
     successRate: 0,
     previousSuccessRate: 0,
