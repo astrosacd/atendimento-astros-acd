@@ -274,6 +274,37 @@ export default function ConsultarCliente() {
     }
   };
 
+  // Quick edit handlers
+  const handleOpenEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente);
+    setEditEmail(cliente.email || '');
+    setEditNumero(cliente.numero || '');
+    setEditObservacao(cliente.observacao || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCliente) return;
+    setIsSavingEdit(true);
+    
+    const updates: Partial<any> = {};
+    if (editEmail !== editingCliente.email) updates.email = editEmail;
+    if (editNumero !== editingCliente.numero) updates.numero = editNumero;
+    if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    
+    if (Object.keys(updates).length === 0) {
+      toast({ title: 'Nenhuma alteração detectada' });
+      setIsSavingEdit(false);
+      return;
+    }
+    
+    const result = await updateCliente(editingCliente.id, updates, editingCliente);
+    if (result) {
+      await refreshClienteData(editingCliente.id);
+      setEditingCliente(null);
+    }
+    setIsSavingEdit(false);
+  };
+
   const formatDate = (dateString: string) => {
     // Adiciona horário meio-dia para evitar problema de timezone
     const date = new Date(dateString + 'T12:00:00');
