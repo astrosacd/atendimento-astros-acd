@@ -287,6 +287,7 @@ export default function Dashboard() {
       let tarefasAtrasadas = 0;
       let tarefasConcluidas = 0;
       let recoveryPending = 0;
+      let billingSkippedCount = 0;
 
       if (isAdmin) {
         const { count: pending } = await supabase
