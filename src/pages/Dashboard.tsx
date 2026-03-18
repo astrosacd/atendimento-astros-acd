@@ -320,11 +320,12 @@ export default function Dashboard() {
         recoveryPending = recPending || 0;
 
         // Billing skipped (unresolved)
-        const { count: skippedCount } = await supabase
+        const { count: skippedC } = await supabase
           .from('billing_logs')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'skipped')
           .is('resolution', null);
+        billingSkippedCount = skippedC || 0;
 
         // Chamados stats
         const { count: abertos } = await supabase
