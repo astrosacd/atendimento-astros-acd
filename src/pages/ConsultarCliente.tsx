@@ -906,6 +906,67 @@ export default function ConsultarCliente() {
           </DialogContent>
         </Dialog>
 
+        {/* Quick Edit Dialog */}
+        <Dialog open={!!editingCliente} onOpenChange={() => setEditingCliente(null)}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <Edit className="h-5 w-5 text-update" />
+                Editar Cliente
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {editingCliente?.nome} — {editingCliente?.produto}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">E-mail</Label>
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.phone')}</Label>
+                <Input
+                  placeholder="5511999999999"
+                  value={editNumero}
+                  onChange={(e) => setEditNumero(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
+                <Input
+                  placeholder="Observações"
+                  value={editObservacao}
+                  onChange={(e) => setEditObservacao(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  className="flex-1 bg-update text-update-foreground hover:bg-update/90"
+                >
+                  {isSavingEdit ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button
+                  onClick={() => setEditingCliente(null)}
+                  variant="outline"
+                  className="border-border"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Social Media Credentials */}
         <ClientSocialCredentials
           clienteId={socialClienteId || ''}
