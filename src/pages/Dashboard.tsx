@@ -382,7 +382,7 @@ export default function Dashboard() {
         vendasUnicasUsd,
         clientesRegistroSemValor,
         recuperacaoPendentes: recoveryPending || 0,
-        billingSkipped: skippedCount || 0,
+        billingSkipped: billingSkippedCount,
       });
     };
 
