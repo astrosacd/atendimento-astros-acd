@@ -3031,6 +3031,53 @@ const AdminCobranca = () => {
           </TabsContent>
           )}
         </Tabs>
+
+        {/* Resolution Dialog */}
+        <Dialog open={!!resolvingLogId} onOpenChange={() => setResolvingLogId(null)}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Resolver cobrança pulada</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Informe o motivo pelo qual esta cobrança foi pulada
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">Motivo</Label>
+                <Select value={resolutionType} onValueChange={setResolutionType}>
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="erro_numero">Erro de número</SelectItem>
+                    <SelectItem value="erro_email">Erro de e-mail</SelectItem>
+                    <SelectItem value="erro_sistema">Erro do sistema</SelectItem>
+                    <SelectItem value="sem_dados">Sem dados de contato</SelectItem>
+                    <SelectItem value="cliente_inativo">Cliente inativo</SelectItem>
+                    <SelectItem value="ignorar">Ignorar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">Observação (opcional)</Label>
+                <Input
+                  placeholder="Detalhes adicionais..."
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  className="bg-secondary border-border text-foreground"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleResolveSkipped} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                  Confirmar
+                </Button>
+                <Button onClick={() => setResolvingLogId(null)} variant="outline" className="border-border">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
