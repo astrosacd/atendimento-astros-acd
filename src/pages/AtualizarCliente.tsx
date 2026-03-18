@@ -152,10 +152,11 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null; email?: string } = {
       observacao: newObservacao,
       tags: newTags,
       numero: newNumero,
+      email: newEmail,
       valor: parseCurrency(newValor),
       plano: newPlano,
       moeda: newMoeda,
