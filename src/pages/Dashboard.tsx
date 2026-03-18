@@ -123,6 +123,7 @@ export default function Dashboard() {
     vendasUnicasUsd: 0,
     clientesRegistroSemValor: 0,
     recuperacaoPendentes: 0,
+    billingSkipped: 0,
   });
 
   useEffect(() => {
