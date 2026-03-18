@@ -108,6 +108,7 @@ export default function AtualizarCliente() {
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
+    setNewEmail(cliente.email || '');
     setNewPlano(planoNormalizado);
     setIsOriginallyReseller(clienteIsReseller);
     // Try to detect country code from the number
