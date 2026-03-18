@@ -80,6 +80,10 @@ interface BillingLog {
   status: string;
   error_message: string | null;
   sent_at: string;
+  resolution: string | null;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
 }
 
 interface Cliente {
@@ -181,6 +185,12 @@ const AdminCobranca = () => {
   const [logChannelFilter, setLogChannelFilter] = useState<string>('all');
   const [logTypeFilter, setLogTypeFilter] = useState<string>('all');
   const [logDateFilter, setLogDateFilter] = useState<string>('7days');
+  
+  // Resolution dialog state
+  const [resolvingLogId, setResolvingLogId] = useState<string | null>(null);
+  const [resolutionType, setResolutionType] = useState<string>('erro_numero');
+  const [resolutionNote, setResolutionNote] = useState('');
+  
   const [metrics, setMetrics] = useState<MetricsData>({
     successRate: 0,
     previousSuccessRate: 0,
@@ -230,6 +240,39 @@ const AdminCobranca = () => {
     loadLastExecution();
     loadStripeConfig();
   }, []);
+
+  // Handle URL filter param for skipped billing
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    if (filter === 'skipped') {
+      setLogStatusFilter('skipped');
+      setLogDateFilter('all');
+    }
+  }, [searchParams]);
+
+  const handleResolveSkipped = async () => {
+    if (!resolvingLogId) return;
+    try {
+      const { error } = await supabase
+        .from('billing_logs')
+        .update({
+          resolution: resolutionType,
+          resolution_note: resolutionNote || null,
+          resolved_at: new Date().toISOString(),
+          resolved_by: (await supabase.auth.getUser()).data.user?.email || 'unknown',
+        })
+        .eq('id', resolvingLogId);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Resolvido!', description: 'Status do log atualizado com sucesso.' });
+      setResolvingLogId(null);
+      setResolutionNote('');
+      loadLogs();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
 
   const loadStripeConfig = async () => {
     try {
@@ -2714,13 +2757,14 @@ const AdminCobranca = () => {
                               <TableHead className="w-[80px]">Tipo</TableHead>
                               <TableHead className="w-[100px]">Canal</TableHead>
                               <TableHead className="w-[100px]">Status</TableHead>
-                              <TableHead className="hidden lg:table-cell">Erro</TableHead>
+                              <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                              <TableHead className="w-[100px]">Ações</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filteredLogs.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                                <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                                   <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                   Nenhum registro encontrado com os filtros aplicados
                                 </TableCell>
@@ -2751,12 +2795,33 @@ const AdminCobranca = () => {
                                   <TableCell>{getChannelBadge(log.channel)}</TableCell>
                                   <TableCell>{getStatusBadge(log.status)}</TableCell>
                                   <TableCell className="hidden lg:table-cell">
-                                    {log.error_message ? (
+                                    {log.resolution ? (
+                                      <span className="text-sm text-emerald-400" title={log.resolution_note || ''}>
+                                        ✅ {log.resolution === 'erro_numero' ? 'Erro de número' : log.resolution === 'erro_sistema' ? 'Erro do sistema' : log.resolution === 'sem_dados' ? 'Sem dados' : log.resolution === 'ignorar' ? 'Ignorado' : log.resolution}
+                                      </span>
+                                    ) : log.error_message ? (
                                       <span className="text-sm text-red-400 truncate max-w-[200px] block" title={log.error_message}>
-                                        {log.error_message.substring(0, 50)}...
+                                        {log.error_message.substring(0, 50)}{log.error_message.length > 50 ? '...' : ''}
                                       </span>
                                     ) : (
                                       <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {log.status === 'skipped' && !log.resolution && (
+                                      <Button
+                                        onClick={() => setResolvingLogId(log.id)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                      >
+                                        Resolver
+                                      </Button>
+                                    )}
+                                    {log.resolution && (
+                                      <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                        Resolvido
+                                      </Badge>
                                     )}
                                   </TableCell>
                                 </TableRow>
@@ -2966,6 +3031,53 @@ const AdminCobranca = () => {
           </TabsContent>
           )}
         </Tabs>
+
+        {/* Resolution Dialog */}
+        <Dialog open={!!resolvingLogId} onOpenChange={() => setResolvingLogId(null)}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Resolver cobrança pulada</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Informe o motivo pelo qual esta cobrança foi pulada
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">Motivo</Label>
+                <Select value={resolutionType} onValueChange={setResolutionType}>
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="erro_numero">Erro de número</SelectItem>
+                    <SelectItem value="erro_email">Erro de e-mail</SelectItem>
+                    <SelectItem value="erro_sistema">Erro do sistema</SelectItem>
+                    <SelectItem value="sem_dados">Sem dados de contato</SelectItem>
+                    <SelectItem value="cliente_inativo">Cliente inativo</SelectItem>
+                    <SelectItem value="ignorar">Ignorar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">Observação (opcional)</Label>
+                <Input
+                  placeholder="Detalhes adicionais..."
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  className="bg-secondary border-border text-foreground"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleResolveSkipped} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                  Confirmar
+                </Button>
+                <Button onClick={() => setResolvingLogId(null)} variant="outline" className="border-border">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

@@ -72,6 +72,7 @@ interface ClienteStats {
   vendasUnicasUsd: number;
   clientesRegistroSemValor: number;
   recuperacaoPendentes: number;
+  billingSkipped: number;
 }
 
 interface CustomRole {
@@ -122,6 +123,7 @@ export default function Dashboard() {
     vendasUnicasUsd: 0,
     clientesRegistroSemValor: 0,
     recuperacaoPendentes: 0,
+    billingSkipped: 0,
   });
 
   useEffect(() => {
@@ -285,6 +287,7 @@ export default function Dashboard() {
       let tarefasAtrasadas = 0;
       let tarefasConcluidas = 0;
       let recoveryPending = 0;
+      let billingSkippedCount = 0;
 
       if (isAdmin) {
         const { count: pending } = await supabase
@@ -315,6 +318,14 @@ export default function Dashboard() {
           .eq('status', 'sent')
           .is('converteu', null);
         recoveryPending = recPending || 0;
+
+        // Billing skipped (unresolved)
+        const { count: skippedC } = await supabase
+          .from('billing_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'skipped')
+          .is('resolution', null);
+        billingSkippedCount = skippedC || 0;
 
         // Chamados stats
         const { count: abertos } = await supabase
@@ -371,6 +382,7 @@ export default function Dashboard() {
         vendasUnicasUsd,
         clientesRegistroSemValor,
         recuperacaoPendentes: recoveryPending || 0,
+        billingSkipped: billingSkippedCount,
       });
     };
 
@@ -807,7 +819,32 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Propostas Comerciais */}
+          {/* Cobranças puladas (skipped) */}
+          {isAdmin && stats.billingSkipped > 0 && (
+            <Card 
+              className="bg-gradient-to-br from-orange-500/10 to-destructive/5 border-orange-500/30 hover:border-orange-500/50 transition-colors cursor-pointer group mt-4 mb-4"
+              onClick={() => navigate('/admin/cobranca?tab=historico&filter=skipped')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0 animate-pulse">
+                    <AlertCircle className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-foreground text-sm">Cobranças puladas pendentes</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {stats.billingSkipped} cobrança(s) foram puladas e precisam de análise
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-orange-500/50 text-orange-500 bg-orange-500/10">
+                    {stats.billingSkipped}
+                  </Badge>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
         </CollapsibleSection>
 

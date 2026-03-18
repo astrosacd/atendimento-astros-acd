@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -44,6 +44,7 @@ export default function AtualizarCliente() {
   const [newNumero, setNewNumero] = useState('');
   const [newCountryCode, setNewCountryCode] = useState('BR');
   const [newValor, setNewValor] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
@@ -107,6 +108,7 @@ export default function AtualizarCliente() {
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
     setNewNumero(cliente.numero || '');
+    setNewEmail(cliente.email || '');
     setNewPlano(planoNormalizado);
     setIsOriginallyReseller(clienteIsReseller);
     // Try to detect country code from the number
@@ -150,10 +152,11 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null } = {
+    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null; email?: string } = {
       observacao: newObservacao,
       tags: newTags,
       numero: newNumero,
+      email: newEmail,
       valor: parseCurrency(newValor),
       plano: newPlano,
       moeda: newMoeda,
@@ -174,6 +177,7 @@ export default function AtualizarCliente() {
       setNewObservacao('');
       setNewTags([]);
       setNewNumero('');
+      setNewEmail('');
       setNewValor('');
       setNewPlano(null);
       setIsOriginallyReseller(false);
@@ -392,6 +396,21 @@ export default function AtualizarCliente() {
                 {isClienteVitalicio && (
                   <p className="text-xs text-muted-foreground">Valor pago na venda única (vitalício)</p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newEmail" className="text-foreground font-medium">E-mail</Label>
+                </div>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-12"
+                />
               </div>
 
               <div className="space-y-2">

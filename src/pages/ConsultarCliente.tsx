@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,13 +36,15 @@ import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ConsultarCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const { searchCliente, fetchClientes, isLoading } = useClientes();
+  const { searchCliente, fetchClientes, updateCliente, isLoading } = useClientes();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const { fetchClientHistory } = useClientHistory();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Cliente[] | null>(null);
@@ -65,6 +67,13 @@ export default function ConsultarCliente() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
+  
+  // Quick edit state
+  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editNumero, setEditNumero] = useState('');
+  const [editObservacao, setEditObservacao] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   
   // Advanced filters
   const [filters, setFilters] = useState({
@@ -263,6 +272,37 @@ export default function ConsultarCliente() {
       // Update in allClientes
       setAllClientes(prev => prev.map(c => c.id === clienteId ? data as Cliente : c));
     }
+  };
+
+  // Quick edit handlers
+  const handleOpenEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente);
+    setEditEmail(cliente.email || '');
+    setEditNumero(cliente.numero || '');
+    setEditObservacao(cliente.observacao || '');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCliente) return;
+    setIsSavingEdit(true);
+    
+    const updates: Partial<any> = {};
+    if (editEmail !== editingCliente.email) updates.email = editEmail;
+    if (editNumero !== editingCliente.numero) updates.numero = editNumero;
+    if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
+    
+    if (Object.keys(updates).length === 0) {
+      toast({ title: 'Nenhuma alteração detectada' });
+      setIsSavingEdit(false);
+      return;
+    }
+    
+    const result = await updateCliente(editingCliente.id, updates, editingCliente);
+    if (result) {
+      await refreshClienteData(editingCliente.id);
+      setEditingCliente(null);
+    }
+    setIsSavingEdit(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -586,6 +626,18 @@ export default function ConsultarCliente() {
                             )}
                           </div>
                           <div className="flex gap-1">
+                            {/* Quick edit button */}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => handleOpenEdit(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-update"
+                                title="Editar cliente"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
                             {/* Files button - only for Registro clients */}
                             {cliente.cobranca_ativa === false && (
                               <Button
@@ -850,6 +902,67 @@ export default function ConsultarCliente() {
               {timelineClienteId && (
                 <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick Edit Dialog */}
+        <Dialog open={!!editingCliente} onOpenChange={() => setEditingCliente(null)}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <Edit className="h-5 w-5 text-update" />
+                Editar Cliente
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {editingCliente?.nome} — {editingCliente?.produto}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">E-mail</Label>
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.phone')}</Label>
+                <Input
+                  placeholder="5511999999999"
+                  value={editNumero}
+                  onChange={(e) => setEditNumero(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.observations')}</Label>
+                <Input
+                  placeholder="Observações"
+                  value={editObservacao}
+                  onChange={(e) => setEditObservacao(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  className="flex-1 bg-update text-update-foreground hover:bg-update/90"
+                >
+                  {isSavingEdit ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button
+                  onClick={() => setEditingCliente(null)}
+                  variant="outline"
+                  className="border-border"
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
