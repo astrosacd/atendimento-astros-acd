@@ -626,6 +626,18 @@ export default function ConsultarCliente() {
                             )}
                           </div>
                           <div className="flex gap-1">
+                            {/* Quick edit button */}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => handleOpenEdit(cliente)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-update"
+                                title="Editar cliente"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
                             {/* Files button - only for Registro clients */}
                             {cliente.cobranca_ativa === false && (
                               <Button
