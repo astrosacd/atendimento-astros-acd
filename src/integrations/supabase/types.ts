@@ -339,6 +339,10 @@ export type Database = {
           error_message: string | null
           id: string
           message_type: string
+          resolution: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
           sent_at: string
           status: string
         }
@@ -351,6 +355,10 @@ export type Database = {
           error_message?: string | null
           id?: string
           message_type: string
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           sent_at?: string
           status?: string
         }
@@ -363,6 +371,10 @@ export type Database = {
           error_message?: string | null
           id?: string
           message_type?: string
+          resolution?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           sent_at?: string
           status?: string
         }
