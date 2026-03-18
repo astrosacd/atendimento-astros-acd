@@ -400,6 +400,21 @@ export default function AtualizarCliente() {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="newEmail" className="text-foreground font-medium">E-mail</Label>
+                </div>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <Label htmlFor="newNumero" className="text-foreground font-medium">{t('clients.phone')} (WhatsApp)</Label>
                 </div>
