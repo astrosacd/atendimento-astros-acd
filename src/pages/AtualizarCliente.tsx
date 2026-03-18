@@ -44,6 +44,7 @@ export default function AtualizarCliente() {
   const [newNumero, setNewNumero] = useState('');
   const [newCountryCode, setNewCountryCode] = useState('BR');
   const [newValor, setNewValor] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
