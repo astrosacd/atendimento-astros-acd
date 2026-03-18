@@ -318,6 +318,13 @@ export default function Dashboard() {
           .is('converteu', null);
         recoveryPending = recPending || 0;
 
+        // Billing skipped (unresolved)
+        const { count: skippedCount } = await supabase
+          .from('billing_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'skipped')
+          .is('resolution', null);
+
         // Chamados stats
         const { count: abertos } = await supabase
           .from('chamados')
