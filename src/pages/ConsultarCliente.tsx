@@ -68,6 +68,13 @@ export default function ConsultarCliente() {
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
   
+  // Quick edit state
+  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editNumero, setEditNumero] = useState('');
+  const [editObservacao, setEditObservacao] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  
   // Advanced filters
   const [filters, setFilters] = useState({
     dataInicio: '',
