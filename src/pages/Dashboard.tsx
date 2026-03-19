@@ -823,7 +823,7 @@ export default function Dashboard() {
           {isAdmin && stats.billingSkipped > 0 && (
             <Card 
               className="bg-gradient-to-br from-orange-500/10 to-destructive/5 border-orange-500/30 hover:border-orange-500/50 transition-colors cursor-pointer group mt-4 mb-4"
-              onClick={() => navigate('/admin/cobranca?tab=historico&filter=skipped')}
+              onClick={() => navigate('/admin/cobranca?tab=logs&filter=skipped')}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
