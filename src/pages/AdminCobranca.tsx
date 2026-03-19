@@ -256,6 +256,7 @@ const AdminCobranca = () => {
       const { error } = await supabase
         .from('billing_logs')
         .update({
+          status: 'resolved',
           resolution: resolutionType,
           resolution_note: resolutionNote || null,
           resolved_at: new Date().toISOString(),

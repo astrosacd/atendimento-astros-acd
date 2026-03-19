@@ -136,7 +136,7 @@ export function AutomationRulesPanel() {
     setLoading(true);
     const [rulesRes, logsRes] = await Promise.all([
       supabase.from('automation_rules').select('*').order('created_at'),
-      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(100),
+      supabase.from('automation_logs').select('*').order('created_at', { ascending: false }).limit(500),
     ]);
     if (rulesRes.data) setRules(rulesRes.data as AutomationRule[]);
     if (logsRes.data) setLogs(logsRes.data as AutomationLog[]);
