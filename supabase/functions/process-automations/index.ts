@@ -5,6 +5,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const priorityMap: Record<string, string> = {
+  low: 'baixa',
+  medium: 'media',
+  high: 'alta',
+  urgent: 'urgente',
+  baixa: 'baixa',
+  media: 'media',
+  alta: 'alta',
+  urgente: 'urgente',
+};
+
+function applyTemplate(template: string, cliente: {
+  nome: string;
+  produto: string;
+  valor: number;
+  data_renovacao: string;
+}) {
+  return template
+    .replaceAll('{nome}', cliente.nome)
+    .replaceAll('{produto}', cliente.produto)
+    .replaceAll('{valor}', String(cliente.valor))
+    .replaceAll('{data_renovacao}', cliente.data_renovacao);
+}
+
+function buildTaskContent(rule: any, cliente: {
+  nome: string;
+  produto: string;
+  valor: number;
+  data_renovacao: string;
+}) {
+  const config = rule.action_config || {};
+  const title = applyTemplate(config.title || 'Tarefa automática', cliente);
+  const description = applyTemplate(config.description || '', cliente);
+  const rawPriority = config.priority || 'urgente';
+  const priority = priorityMap[rawPriority] || 'urgente';
+  const dueDateDays = config.due_date_days ?? 5;
+
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + dueDateDays);
+
+  return {
+    title,
+    description,
+    priority,
+    dueDateStr: dueDate.toISOString().split('T')[0],
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +63,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get active rules
     const { data: rules, error: rulesError } = await supabase
       .from('automation_rules')
       .select('*')
@@ -27,134 +74,125 @@ Deno.serve(async (req) => {
     let totalSkipped = 0;
 
     for (const rule of rules || []) {
-      if (rule.trigger_type === 'renewal_delay') {
-        const days = rule.trigger_config?.days || 30;
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - days);
-        const cutoffStr = cutoffDate.toISOString().split('T')[0];
+      if (rule.trigger_type !== 'renewal_delay') continue;
 
-        // Find clients with renewal date older than cutoff
-        const { data: overdueClients } = await supabase
-          .from('clientes')
-          .select('id, nome, produto, valor, data_renovacao')
-          .lte('data_renovacao', cutoffStr);
+      const days = rule.trigger_config?.days || 30;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-        const overdueCount = overdueClients?.length || 0;
-        console.log(`[Rule: ${rule.name}] Found ${overdueCount} overdue clients (cutoff: ${cutoffStr}, delay: ${days} days)`);
+      const { data: overdueClients, error: overdueClientsError } = await supabase
+        .from('clientes')
+        .select('id, nome, produto, valor, data_renovacao')
+        .lte('data_renovacao', cutoffStr);
 
-        if (overdueCount === 0) {
+      if (overdueClientsError) throw overdueClientsError;
+
+      const overdueCount = overdueClients?.length || 0;
+      console.log(
+        `[Rule: ${rule.name}] Found ${overdueCount} overdue clients (cutoff: ${cutoffStr}, delay: ${days} days)`,
+      );
+
+      if (overdueCount === 0) {
+        await supabase.from('automation_logs').insert({
+          rule_id: rule.id,
+          cliente_id: null,
+          action_taken: `Nenhum cliente inadimplente encontrado (atraso > ${days} dias, corte: ${cutoffStr})`,
+          result: 'info',
+        });
+      }
+
+      const dedupDays = rule.trigger_config?.dedup_days ?? 7;
+
+      for (const cliente of overdueClients || []) {
+        const { title, description, priority, dueDateStr } = buildTaskContent(rule, cliente);
+
+        const dedupCutoff = new Date();
+        dedupCutoff.setDate(dedupCutoff.getDate() - dedupDays);
+
+        const { data: recentLogs } = await supabase
+          .from('automation_logs')
+          .select('id, created_at')
+          .eq('rule_id', rule.id)
+          .eq('cliente_id', cliente.id)
+          .eq('result', 'success')
+          .gte('created_at', dedupCutoff.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const { data: existingTask } = await supabase
+          .from('client_tasks')
+          .select('id, status, created_at')
+          .eq('cliente_id', cliente.id)
+          .eq('title', title)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recentLogs && recentLogs.length > 0 && existingTask) {
+          const lastRun = recentLogs[0].created_at;
+          console.log(
+            `[Rule: ${rule.name}] Skipping ${cliente.nome}: task still exists and was created on ${lastRun} (dedup window: ${dedupDays} days)`,
+          );
           await supabase.from('automation_logs').insert({
             rule_id: rule.id,
-            cliente_id: null,
-            action_taken: `Nenhum cliente inadimplente encontrado (atraso > ${days} dias, corte: ${cutoffStr})`,
-            result: 'info',
+            cliente_id: cliente.id,
+            action_taken: `Pulado: tarefa ainda existe e foi criada em ${new Date(lastRun).toLocaleDateString('pt-BR')} (janela de desduplicação: ${dedupDays} dias)`,
+            result: 'skipped',
           });
+          totalSkipped++;
+          continue;
         }
 
-        // Dedup window: configurable via trigger_config.dedup_days, default 7
-        const dedupDays = rule.trigger_config?.dedup_days ?? 7;
+        if (rule.action_type === 'create_task') {
+          const wasDeletedAfterPreviousRun = recentLogs && recentLogs.length > 0 && !existingTask;
 
-        for (const cliente of overdueClients || []) {
-          // Check if we already created a task for this client from this rule recently
-          const dedupCutoff = new Date();
-          dedupCutoff.setDate(dedupCutoff.getDate() - dedupDays);
-          
-          const { data: recentLogs } = await supabase
-            .from('automation_logs')
-            .select('id, created_at')
-            .eq('rule_id', rule.id)
-            .eq('cliente_id', cliente.id)
-            .gte('created_at', dedupCutoff.toISOString())
-            .like('result', 'success')
-            .limit(1);
+          const { error: taskError } = await supabase
+            .from('client_tasks')
+            .insert({
+              cliente_id: cliente.id,
+              title,
+              description,
+              priority,
+              status: 'pendente',
+              due_date: dueDateStr,
+            });
 
-          if (recentLogs && recentLogs.length > 0) {
-            const lastRun = recentLogs[0].created_at;
-            console.log(`[Rule: ${rule.name}] Skipping ${cliente.nome}: task already created on ${lastRun} (dedup window: ${dedupDays} days)`);
+          if (!taskError) {
             await supabase.from('automation_logs').insert({
               rule_id: rule.id,
               cliente_id: cliente.id,
-              action_taken: `Pulado: tarefa já criada em ${new Date(lastRun).toLocaleDateString('pt-BR')} (janela de desduplicação: ${dedupDays} dias)`,
-              result: 'skipped',
+              action_taken: wasDeletedAfterPreviousRun
+                ? `Tarefa recriada para ${cliente.nome}: ${title} (tarefa anterior foi excluída, prazo: ${dueDateStr})`
+                : `Tarefa criada para ${cliente.nome}: ${title} (prazo: ${dueDateStr})`,
+              result: 'success',
             });
-            totalSkipped++;
-            continue;
-          }
-
-          if (rule.action_type === 'create_task') {
-            const config = rule.action_config || {};
-            const title = (config.title || 'Tarefa automática')
-              .replace('{nome}', cliente.nome)
-              .replace('{produto}', cliente.produto)
-              .replace('{valor}', String(cliente.valor))
-              .replace('{data_renovacao}', cliente.data_renovacao);
-            
-            const description = (config.description || '')
-              .replace('{nome}', cliente.nome)
-              .replace('{produto}', cliente.produto)
-              .replace('{valor}', String(cliente.valor))
-              .replace('{data_renovacao}', cliente.data_renovacao);
-
-            // Map English priority values to Portuguese (DB constraint)
-            const priorityMap: Record<string, string> = {
-              low: 'baixa', medium: 'media', high: 'alta', urgent: 'urgente',
-              baixa: 'baixa', media: 'media', alta: 'alta', urgente: 'urgente',
-            };
-            const rawPriority = config.priority || 'urgente';
-            const priority = priorityMap[rawPriority] || 'urgente';
-
-            // Calculate due_date: today + due_date_days (configurable, default 5)
-            const dueDateDays = config.due_date_days ?? 5;
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + dueDateDays);
-            const dueDateStr = dueDate.toISOString().split('T')[0];
-
-            const { error: taskError } = await supabase
-              .from('client_tasks')
-              .insert({
-                cliente_id: cliente.id,
-                title,
-                description,
-                priority,
-                status: 'pendente',
-                due_date: dueDateStr,
-              });
-
-            if (!taskError) {
-              await supabase.from('automation_logs').insert({
-                rule_id: rule.id,
-                cliente_id: cliente.id,
-                action_taken: `Tarefa criada para ${cliente.nome}: ${title} (prazo: ${dueDateStr})`,
-                result: 'success',
-              });
-              totalActions++;
-            } else {
-              console.error(`Task creation error for ${cliente.nome}:`, taskError);
-              await supabase.from('automation_logs').insert({
-                rule_id: rule.id,
-                cliente_id: cliente.id,
-                action_taken: `Falha ao criar tarefa para ${cliente.nome}: ${taskError.message}`,
-                result: `error: ${taskError.message}`,
-              });
-            }
+            totalActions++;
           } else {
-            console.log(`[Rule: ${rule.name}] Unknown action_type: ${rule.action_type} for client ${cliente.nome}`);
+            console.error(`Task creation error for ${cliente.nome}:`, taskError);
             await supabase.from('automation_logs').insert({
               rule_id: rule.id,
               cliente_id: cliente.id,
-              action_taken: `Tipo de ação desconhecido: ${rule.action_type}`,
-              result: 'skipped',
+              action_taken: `Falha ao criar tarefa para ${cliente.nome}: ${taskError.message}`,
+              result: `error: ${taskError.message}`,
             });
-            totalSkipped++;
           }
+        } else {
+          console.log(`[Rule: ${rule.name}] Unknown action_type: ${rule.action_type} for client ${cliente.nome}`);
+          await supabase.from('automation_logs').insert({
+            rule_id: rule.id,
+            cliente_id: cliente.id,
+            action_taken: `Tipo de ação desconhecido: ${rule.action_type}`,
+            result: 'skipped',
+          });
+          totalSkipped++;
         }
-
-        // Update last_run_at
-        await supabase
-          .from('automation_rules')
-          .update({ last_run_at: new Date().toISOString() })
-          .eq('id', rule.id);
       }
+
+      await supabase
+        .from('automation_rules')
+        .update({ last_run_at: new Date().toISOString() })
+        .eq('id', rule.id);
     }
 
     console.log(`Automation finished: ${totalActions} actions, ${totalSkipped} skipped`);
