@@ -600,6 +600,57 @@ export default function Dashboard() {
     return isSentOrCompleted && hasNoConversion && sentBeforeToday;
   });
 
+  const priorityAlerts = [
+    isAdmin && stats.billingSkipped > 0
+      ? {
+          id: 'billing-skipped',
+          title: 'Cobranças puladas pendentes',
+          description: `${stats.billingSkipped} cobrança(s) precisam de análise para sair do dashboard.`,
+          count: stats.billingSkipped,
+          onClick: () => navigate('/admin/cobranca?tab=logs&filter=skipped'),
+          tone: 'critical' as const,
+          icon: AlertCircle,
+          pulse: true,
+        }
+      : null,
+    isAdmin && stats.recuperacaoPendentes > 0
+      ? {
+          id: 'billing-recovery',
+          title: 'Recuperação aguardando revisão',
+          description: `${stats.recuperacaoPendentes} tentativa(s) de recuperação ainda precisam de retorno manual.`,
+          count: stats.recuperacaoPendentes,
+          onClick: () => navigate('/admin/cobranca?tab=recovery'),
+          tone: 'warning' as const,
+          icon: AlertTriangle,
+          pulse: false,
+        }
+      : null,
+    failedFollowups.length > 0
+      ? {
+          id: 'followups-failed',
+          title: 'Follow-ups com falha',
+          description: `${failedFollowups.length} follow-up(s) falharam e precisam de correção.`,
+          count: failedFollowups.length,
+          onClick: () => navigate('/followups'),
+          tone: 'critical' as const,
+          icon: AlertTriangle,
+          pulse: true,
+        }
+      : null,
+    pendingConversionFollowups.length > 0
+      ? {
+          id: 'followups-pending',
+          title: 'Conversões aguardando marcação',
+          description: `${pendingConversionFollowups.length} follow-up(s) enviados ainda precisam ser marcados.`,
+          count: pendingConversionFollowups.length,
+          onClick: () => navigate('/followups'),
+          tone: 'warning' as const,
+          icon: ThumbsUp,
+          pulse: false,
+        }
+      : null,
+  ].filter((alert): alert is NonNullable<typeof alert> => Boolean(alert));
+
   const followupStats = {
     total: followups.length,
     pending: followups.filter(f => f.status === 'pending').length,
@@ -607,36 +658,76 @@ export default function Dashboard() {
     converted: followups.filter(f => f.conversion_status === 'converted').length,
     not_converted: followups.filter(f => f.conversion_status === 'not_converted').length,
   };
-
-  return (
-    <DashboardLayout>
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold font-display text-gradient">
-              {t('auth.welcomeBack')}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {user?.email} • <span className="text-primary font-medium">{roleDisplayName || t('common.loading')}</span>
-            </p>
-          </div>
-          
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              {isSupported && permission !== 'granted' && (
-                <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
-                  <Bell className="h-4 w-4 mr-2" />
-                  {t('dashboard.enableNotifications')}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
-                <Database className="h-4 w-4 mr-2" />
-                {isBackingUp ? t('common.loading') : t('dashboard.backup')}
-              </Button>
-            </div>
-          )}
+...
         </div>
+
+        {priorityAlerts.length > 0 && (
+          <section className="mb-8 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Bell className="h-4 w-4 text-primary" />
+                  Central de atenção
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Os avisos mais importantes ficam destacados aqui para não passarem despercebidos.
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit border-border/60 bg-background/80 text-foreground">
+                {priorityAlerts.length} alerta(s) ativo(s)
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {priorityAlerts.map((alert) => {
+                const Icon = alert.icon;
+                const isCritical = alert.tone === 'critical';
+
+                return (
+                  <Card
+                    key={alert.id}
+                    className={`cursor-pointer transition-all duration-300 group ${
+                      isCritical
+                        ? 'border-destructive/30 bg-gradient-to-br from-destructive/10 to-destructive/5 hover:border-destructive/50'
+                        : 'border-update/30 bg-gradient-to-br from-update/10 to-update/5 hover:border-update/50'
+                    }`}
+                    onClick={alert.onClick}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center ${
+                            isCritical ? 'bg-destructive/15 text-destructive' : 'bg-update/15 text-update'
+                          } ${alert.pulse ? 'animate-pulse' : ''}`}
+                        >
+                          <Icon className="h-6 w-6" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-sm font-semibold text-foreground">{alert.title}</h3>
+                            {isCritical ? (
+                              <Badge variant="destructive">{alert.count}</Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-update/40 bg-update/10 text-update">
+                                {alert.count}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
+                          <div className="mt-3 flex items-center gap-2 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                            Abrir agora
+                            <ChevronRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ===================== ÁREA FINANCEIRA ===================== */}
         <CollapsibleSection 
@@ -645,259 +736,9 @@ export default function Dashboard() {
           iconColor="bg-gradient-to-br from-info to-info/80"
           defaultOpen={true}
         >
-          {/* Primary Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t('dashboard.totalClients')}
-                      <span className="text-primary ml-1">({stats.clientesRecorrentes} ativos)</span>
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20 hover:border-info/40 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-info/20 flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-info" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (BRL)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.mrrUsd)}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (USD)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card 
-              className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
-              onClick={() => navigate('/consultar?filter=renovacao-proxima')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Clock className="h-6 w-6 text-update" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-update opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
-              onClick={() => navigate('/consultar?filter=inadimplente')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <AlertTriangle className="h-6 w-6 text-destructive" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
-                    <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Vendas Únicas (Clientes Registro) */}
-          {canViewClients && (stats.vendasUnicasBrl > 0 || stats.vendasUnicasUsd > 0 || stats.clientesRegistro > 0) && (
-            <>
-              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <span className="h-4 w-0.5 bg-purple-500 rounded-full"></span>
-                Vendas Únicas (Vitalícios)
-                {stats.clientesRegistroSemValor > 0 && (
-                  <span 
-                    className="text-xs font-normal text-muted-foreground ml-2 cursor-pointer hover:text-purple-500 hover:underline transition-colors"
-                    onClick={() => navigate('/consultar?filter=registro-sem-valor')}
-                  >
-                    * {stats.clientesRegistroSemValor} não contabilizado(s)
-                  </span>
-                )}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold text-foreground font-display">{stats.clientesRegistro}</p>
-                        <p className="text-xs text-muted-foreground">Clientes Registro</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                        <DollarSign className="h-6 w-6 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.vendasUnicasBrl)}</p>
-                        <p className="text-xs text-muted-foreground">Vendas Únicas (BRL)</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {stats.vendasUnicasUsd > 0 && (
-                  <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                          <DollarSign className="h-6 w-6 text-purple-500" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground font-display">{formatCurrencyUsd(stats.vendasUnicasUsd)}</p>
-                          <p className="text-xs text-muted-foreground">Vendas Únicas (USD)</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-              <MonthlyPurchasesCard />
-            </>
-          )}
-
-          {/* Recuperação pendente */}
-          {isAdmin && stats.recuperacaoPendentes > 0 && (
-            <Card 
-              className="bg-gradient-to-br from-amber-500/10 to-destructive/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mt-6 mb-4"
-              onClick={() => navigate('/admin/cobranca?tab=recovery')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-6 w-6 text-amber-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground text-sm">Recuperação: ações pendentes</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {stats.recuperacaoPendentes} tentativa(s) aguardando marcação de conversão
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="border-amber-500/50 text-amber-500 bg-amber-500/10">
-                    {stats.recuperacaoPendentes}
-                  </Badge>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Cobranças puladas (skipped) */}
-          {isAdmin && stats.billingSkipped > 0 && (
-            <Card 
-              className="bg-gradient-to-br from-orange-500/10 to-destructive/5 border-orange-500/30 hover:border-orange-500/50 transition-colors cursor-pointer group mt-4 mb-4"
-              onClick={() => navigate('/admin/cobranca?tab=logs&filter=skipped')}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0 animate-pulse">
-                    <AlertCircle className="h-6 w-6 text-orange-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground text-sm">Cobranças puladas pendentes</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {stats.billingSkipped} cobrança(s) foram puladas e precisam de análise
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="border-orange-500/50 text-orange-500 bg-orange-500/10">
-                    {stats.billingSkipped}
-                  </Badge>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
+...
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
         </CollapsibleSection>
-
-        {/* Follow-ups com falha alert */}
-        {failedFollowups.length > 0 && (
-          <Card 
-            className="bg-gradient-to-br from-destructive/10 to-amber-500/5 border-destructive/30 hover:border-destructive/50 transition-colors cursor-pointer group mb-4"
-            onClick={() => navigate('/followups')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center shrink-0 animate-pulse">
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground text-sm">Follow-ups com falha no envio</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {failedFollowups.length} follow-up(s) falharam e precisam de atenção — verifique os dados de contato
-                  </p>
-                </div>
-                <Badge variant="destructive">
-                  {failedFollowups.length}
-                </Badge>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {/* Follow-ups pendentes de conversão */}
-        {pendingConversionFollowups.length > 0 && (
-          <Card 
-            className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30 hover:border-amber-500/50 transition-colors cursor-pointer group mb-4"
-            onClick={() => navigate('/followups')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                  <ThumbsUp className="h-6 w-6 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground text-sm">Follow-ups aguardando marcação de conversão</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {pendingConversionFollowups.length} follow-up(s) enviado(s) precisam ser marcados como Convertido ou Não Convertido
-                  </p>
-                </div>
-                <Badge className="bg-amber-500 hover:bg-amber-600">
-                  {pendingConversionFollowups.length}
-                </Badge>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
         {followups.length > 0 && (
