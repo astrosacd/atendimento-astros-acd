@@ -252,24 +252,51 @@ const AdminCobranca = () => {
 
   const handleResolveSkipped = async () => {
     if (!resolvingLogId) return;
+
+    const resolvedAt = new Date().toISOString();
+    const userResponse = await supabase.auth.getUser();
+    const resolvedBy = userResponse.data.user?.email || 'unknown';
+
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('billing_logs')
         .update({
           status: 'resolved',
           resolution: resolutionType,
           resolution_note: resolutionNote || null,
-          resolved_at: new Date().toISOString(),
-          resolved_by: (await supabase.auth.getUser()).data.user?.email || 'unknown',
+          resolved_at: resolvedAt,
+          resolved_by: resolvedBy,
         })
-        .eq('id', resolvingLogId);
-      
+        .eq('id', resolvingLogId)
+        .is('resolution', null)
+        .select('id, status, resolution, resolution_note, resolved_at, resolved_by')
+        .maybeSingle();
+
       if (error) throw error;
-      
-      toast({ title: 'Resolvido!', description: 'Status do log atualizado com sucesso.' });
+      if (!data) {
+        throw new Error('Não foi possível atualizar este log. Recarregue a página e tente novamente.');
+      }
+
+      setLogs((currentLogs) =>
+        currentLogs.map((log) =>
+          log.id === resolvingLogId
+            ? {
+                ...log,
+                status: data.status,
+                resolution: data.resolution,
+                resolution_note: data.resolution_note,
+                resolved_at: data.resolved_at,
+                resolved_by: data.resolved_by,
+              }
+            : log
+        )
+      );
+
+      toast({ title: 'Resolvido!', description: 'Cobrança marcada como resolvida com sucesso.' });
       setResolvingLogId(null);
+      setResolutionType('erro_numero');
       setResolutionNote('');
-      loadLogs();
+      await loadLogs();
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     }
@@ -959,7 +986,10 @@ const AdminCobranca = () => {
     return labels[type] || type;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, resolution?: string | null) => {
+    if (status === 'resolved' || resolution) {
+      return <Badge className="bg-primary/15 text-primary border-primary/30"><CheckCircle className="w-3 h-3 mr-1" />Resolvido</Badge>;
+    }
     if (status === 'sent') {
       return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle className="w-3 h-3 mr-1" />OK</Badge>;
     }
@@ -2794,7 +2824,7 @@ const AdminCobranca = () => {
                                     </Badge>
                                   </TableCell>
                                   <TableCell>{getChannelBadge(log.channel)}</TableCell>
-                                  <TableCell>{getStatusBadge(log.status)}</TableCell>
+                                  <TableCell>{getStatusBadge(log.status, log.resolution)}</TableCell>
                                   <TableCell className="hidden lg:table-cell">
                                     {log.resolution ? (
                                       <span className="text-sm text-emerald-400" title={log.resolution_note || ''}>
@@ -2811,7 +2841,11 @@ const AdminCobranca = () => {
                                   <TableCell>
                                     {log.status === 'skipped' && !log.resolution && (
                                       <Button
-                                        onClick={() => setResolvingLogId(log.id)}
+                                        onClick={() => {
+                                          setResolvingLogId(log.id);
+                                          setResolutionType('erro_numero');
+                                          setResolutionNote('');
+                                        }}
                                         variant="outline"
                                         size="sm"
                                         className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
@@ -3034,7 +3068,16 @@ const AdminCobranca = () => {
         </Tabs>
 
         {/* Resolution Dialog */}
-        <Dialog open={!!resolvingLogId} onOpenChange={() => setResolvingLogId(null)}>
+        <Dialog
+          open={!!resolvingLogId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setResolvingLogId(null);
+              setResolutionType('erro_numero');
+              setResolutionNote('');
+            }
+          }}
+        >
           <DialogContent className="bg-card border-border max-w-md">
             <DialogHeader>
               <DialogTitle className="text-foreground">Resolver cobrança pulada</DialogTitle>
@@ -3072,7 +3115,15 @@ const AdminCobranca = () => {
                 <Button onClick={handleResolveSkipped} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
                   Confirmar
                 </Button>
-                <Button onClick={() => setResolvingLogId(null)} variant="outline" className="border-border">
+                <Button
+                  onClick={() => {
+                    setResolvingLogId(null);
+                    setResolutionType('erro_numero');
+                    setResolutionNote('');
+                  }}
+                  variant="outline"
+                  className="border-border"
+                >
                   Cancelar
                 </Button>
               </div>

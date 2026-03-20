@@ -658,7 +658,35 @@ export default function Dashboard() {
     converted: followups.filter(f => f.conversion_status === 'converted').length,
     not_converted: followups.filter(f => f.conversion_status === 'not_converted').length,
   };
-...
+
+  return (
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold font-display text-gradient">
+              {t('auth.welcomeBack')}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {user?.email} • <span className="text-primary font-medium">{roleDisplayName || t('common.loading')}</span>
+            </p>
+          </div>
+          
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              {isSupported && permission !== 'granted' && (
+                <Button variant="outline" size="sm" onClick={handleEnableNotifications}>
+                  <Bell className="h-4 w-4 mr-2" />
+                  {t('dashboard.enableNotifications')}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleBackup} disabled={isBackingUp}>
+                <Database className="h-4 w-4 mr-2" />
+                {isBackingUp ? t('common.loading') : t('dashboard.backup')}
+              </Button>
+            </div>
+          )}
         </div>
 
         {priorityAlerts.length > 0 && (
@@ -736,7 +764,71 @@ export default function Dashboard() {
           iconColor="bg-gradient-to-br from-info to-info/80"
           defaultOpen={true}
         >
-...
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.totalClientes}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.totalClients')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20 hover:border-info/40 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-info/20 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-info" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground font-display">{formatCurrency(stats.mrr)}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.mrr')} (BRL)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="bg-gradient-to-br from-update/10 to-update/5 border-update/20 hover:border-update/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=renovacao-proxima')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-update/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Clock className="h-6 w-6 text-update" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.renovacoesProximas}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.upcomingRenewals')} (7d)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
+              onClick={() => navigate('/consultar?filter=inadimplente')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-3xl font-bold text-foreground font-display">{stats.inadimplentes}</p>
+                    <p className="text-xs text-muted-foreground">{t('dashboard.overduedClients')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {canViewClients && <MonthlyPurchasesCard />}
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
         </CollapsibleSection>
 
