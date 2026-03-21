@@ -123,10 +123,11 @@ export default function LeadHunterConfig() {
 
   return (
     <Tabs defaultValue="apis" className="space-y-6">
-      <TabsList>
+      <TabsList className="flex flex-wrap gap-1 h-auto p-1">
         <TabsTrigger value="apis" className="gap-2"><Key className="h-4 w-4" /> APIs</TabsTrigger>
         <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" /> WhatsApp</TabsTrigger>
         <TabsTrigger value="ia" className="gap-2"><Brain className="h-4 w-4" /> IA</TabsTrigger>
+        <TabsTrigger value="scraping" className="gap-2"><Globe className="h-4 w-4" /> Scraping</TabsTrigger>
         <TabsTrigger value="baserow" className="gap-2"><Database className="h-4 w-4" /> Baserow</TabsTrigger>
       </TabsList>
 
