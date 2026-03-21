@@ -92,8 +92,11 @@ serve(async (req) => {
           
           // Try to scrape lead's website for personalized context
           let websiteContext = "";
+          const skipDomains = config.scrape_skip_domains 
+            ? (() => { try { return JSON.parse(config.scrape_skip_domains); } catch { return DEFAULT_SKIP_DOMAINS; } })()
+            : DEFAULT_SKIP_DOMAINS;
           if (lead.website) {
-            websiteContext = await scrapeWebsite(lead.website);
+            websiteContext = await scrapeWebsite(lead.website, skipDomains);
           }
           
           let leadContext = `Lead: ${lead.nome || 'Sem nome'}, Empresa: ${lead.empresa || 'N/A'}, Categoria: ${lead.categoria || 'N/A'}, Cidade: ${lead.cidade || 'N/A'}`;
@@ -409,37 +412,32 @@ async function syncToBaserow(baserowConfig: any, phone: string, lead: any) {
   }
 }
 
-// Domains to skip scraping (social media, short links, messaging)
-const SKIP_DOMAINS = [
-  "instagram.com", "www.instagram.com",
-  "facebook.com", "www.facebook.com", "fb.com",
-  "twitter.com", "www.twitter.com", "x.com",
-  "tiktok.com", "www.tiktok.com",
-  "youtube.com", "www.youtube.com", "youtu.be",
-  "wa.me", "api.whatsapp.com", "web.whatsapp.com",
-  "linktr.ee", "lnktr.ee",
-  "bityli.com", "bit.ly", "goo.gl", "t.co",
-  "linkedin.com", "www.linkedin.com",
-  "pinterest.com", "www.pinterest.com",
-  "threads.net", "www.threads.net",
-  "t.me", "telegram.me",
+// Default domains to skip scraping (fallback if not configured)
+const DEFAULT_SKIP_DOMAINS = [
+  "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+  "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+  "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+  "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
 ];
 
-function shouldSkipScraping(url: string): boolean {
+function shouldSkipScraping(url: string, skipDomains: string[]): boolean {
   try {
     let normalized = url.trim();
     if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
       normalized = "https://" + normalized;
     }
-    const hostname = new URL(normalized).hostname.toLowerCase();
-    return SKIP_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d));
+    const hostname = new URL(normalized).hostname.toLowerCase().replace(/^www\./, "");
+    return skipDomains.some(d => {
+      const cleanD = d.toLowerCase().replace(/^www\./, "");
+      return hostname === cleanD || hostname.endsWith("." + cleanD);
+    });
   } catch {
     return true;
   }
 }
 
-async function scrapeWebsite(url: string): Promise<string> {
-  if (!url || shouldSkipScraping(url)) {
+async function scrapeWebsite(url: string, skipDomains: string[]): Promise<string> {
+  if (!url || shouldSkipScraping(url, skipDomains)) {
     return "";
   }
 

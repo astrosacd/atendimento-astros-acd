@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X
 } from 'lucide-react';
 import { 
   useLeadHunterConfig, useUpdateConfig, 
@@ -33,6 +33,16 @@ export default function LeadHunterConfig() {
   const [groqKey, setGroqKey] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
+  // Scraping skip domains
+  const DEFAULT_SKIP_DOMAINS = [
+    "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+    "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+    "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+    "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
+  ];
+  const [skipDomains, setSkipDomains] = useState<string[]>(DEFAULT_SKIP_DOMAINS);
+  const [newDomain, setNewDomain] = useState('');
+
   // WhatsApp instance form
   const [showInstanceDialog, setShowInstanceDialog] = useState(false);
   const [instanceForm, setInstanceForm] = useState({ instance_name: '', api_url: '', api_key: '' });
@@ -45,6 +55,11 @@ export default function LeadHunterConfig() {
       setSerpApiKey(config.serp_api_key || '');
       setOpenaiKey(config.openai_api_key || '');
       setGroqKey(config.groq_api_key || '');
+      if (config.scrape_skip_domains) {
+        try {
+          setSkipDomains(JSON.parse(config.scrape_skip_domains));
+        } catch { /* keep defaults */ }
+      }
     }
   }, [config, configLoading]);
 
@@ -64,7 +79,29 @@ export default function LeadHunterConfig() {
       serp_api_key: serpApiKey,
       openai_api_key: openaiKey,
       groq_api_key: groqKey,
+      scrape_skip_domains: JSON.stringify(skipDomains),
     });
+  };
+
+  const handleAddDomain = () => {
+    const domain = newDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!domain) return;
+    if (skipDomains.includes(domain)) {
+      toast.error('Domínio já existe na lista');
+      return;
+    }
+    const updated = [...skipDomains, domain];
+    setSkipDomains(updated);
+    setNewDomain('');
+    updateConfig.mutate({ scrape_skip_domains: JSON.stringify(updated) });
+    toast.success(`${domain} adicionado à lista`);
+  };
+
+  const handleRemoveDomain = (domain: string) => {
+    const updated = skipDomains.filter(d => d !== domain);
+    setSkipDomains(updated);
+    updateConfig.mutate({ scrape_skip_domains: JSON.stringify(updated) });
+    toast.success(`${domain} removido da lista`);
   };
 
   const handleAddInstance = async () => {
@@ -86,10 +123,11 @@ export default function LeadHunterConfig() {
 
   return (
     <Tabs defaultValue="apis" className="space-y-6">
-      <TabsList>
+      <TabsList className="flex flex-wrap gap-1 h-auto p-1">
         <TabsTrigger value="apis" className="gap-2"><Key className="h-4 w-4" /> APIs</TabsTrigger>
         <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" /> WhatsApp</TabsTrigger>
         <TabsTrigger value="ia" className="gap-2"><Brain className="h-4 w-4" /> IA</TabsTrigger>
+        <TabsTrigger value="scraping" className="gap-2"><Globe className="h-4 w-4" /> Scraping</TabsTrigger>
         <TabsTrigger value="baserow" className="gap-2"><Database className="h-4 w-4" /> Baserow</TabsTrigger>
       </TabsList>
 
@@ -240,6 +278,51 @@ export default function LeadHunterConfig() {
             <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
               <Save className="h-4 w-4 mr-2" /> Salvar Configurações
             </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Scraping Tab */}
+      <TabsContent value="scraping">
+        <Card className="border-border/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Scraping de Sites</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Quando o lead possui um site, o sistema faz scraping automático para extrair informações e gerar mensagens personalizadas via IA.
+              Os domínios abaixo serão <strong>ignorados</strong> (redes sociais, encurtadores, etc).
+            </p>
+
+            <div className="flex gap-2">
+              <Input
+                value={newDomain}
+                onChange={e => setNewDomain(e.target.value)}
+                placeholder="Ex: exemplo.com"
+                onKeyDown={e => e.key === 'Enter' && handleAddDomain()}
+              />
+              <Button onClick={handleAddDomain} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+              {skipDomains.map(domain => (
+                <Badge key={domain} variant="secondary" className="gap-1 pr-1">
+                  {domain}
+                  <button
+                    onClick={() => handleRemoveDomain(domain)}
+                    className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+
+            {skipDomains.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">Nenhum domínio na lista — todos os sites serão scraped.</p>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
