@@ -79,7 +79,29 @@ export default function LeadHunterConfig() {
       serp_api_key: serpApiKey,
       openai_api_key: openaiKey,
       groq_api_key: groqKey,
+      scrape_skip_domains: JSON.stringify(skipDomains),
     });
+  };
+
+  const handleAddDomain = () => {
+    const domain = newDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!domain) return;
+    if (skipDomains.includes(domain)) {
+      toast.error('Domínio já existe na lista');
+      return;
+    }
+    const updated = [...skipDomains, domain];
+    setSkipDomains(updated);
+    setNewDomain('');
+    updateConfig.mutate({ scrape_skip_domains: JSON.stringify(updated) });
+    toast.success(`${domain} adicionado à lista`);
+  };
+
+  const handleRemoveDomain = (domain: string) => {
+    const updated = skipDomains.filter(d => d !== domain);
+    setSkipDomains(updated);
+    updateConfig.mutate({ scrape_skip_domains: JSON.stringify(updated) });
+    toast.success(`${domain} removido da lista`);
   };
 
   const handleAddInstance = async () => {
