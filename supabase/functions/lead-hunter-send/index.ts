@@ -433,8 +433,8 @@ function shouldSkipScraping(url: string, skipDomains: string[]): boolean {
   }
 }
 
-async function scrapeWebsite(url: string): Promise<string> {
-  if (!url || shouldSkipScraping(url)) {
+async function scrapeWebsite(url: string, skipDomains: string[]): Promise<string> {
+  if (!url || shouldSkipScraping(url, skipDomains)) {
     return "";
   }
 
