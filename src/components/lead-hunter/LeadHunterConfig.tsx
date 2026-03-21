@@ -33,6 +33,16 @@ export default function LeadHunterConfig() {
   const [groqKey, setGroqKey] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
+  // Scraping skip domains
+  const DEFAULT_SKIP_DOMAINS = [
+    "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+    "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+    "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+    "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
+  ];
+  const [skipDomains, setSkipDomains] = useState<string[]>(DEFAULT_SKIP_DOMAINS);
+  const [newDomain, setNewDomain] = useState('');
+
   // WhatsApp instance form
   const [showInstanceDialog, setShowInstanceDialog] = useState(false);
   const [instanceForm, setInstanceForm] = useState({ instance_name: '', api_url: '', api_key: '' });
