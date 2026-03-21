@@ -51,6 +51,7 @@ import PropostasConfig from "./pages/PropostasConfig";
 import Followups from "./pages/Followups";
 import Despesas from "./pages/Despesas";
 import KanbanClientes from "./pages/KanbanClientes";
+import LeadHunter from "./pages/LeadHunter";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
