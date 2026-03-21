@@ -282,6 +282,51 @@ export default function LeadHunterConfig() {
         </Card>
       </TabsContent>
 
+      {/* Scraping Tab */}
+      <TabsContent value="scraping">
+        <Card className="border-border/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Scraping de Sites</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Quando o lead possui um site, o sistema faz scraping automático para extrair informações e gerar mensagens personalizadas via IA.
+              Os domínios abaixo serão <strong>ignorados</strong> (redes sociais, encurtadores, etc).
+            </p>
+
+            <div className="flex gap-2">
+              <Input
+                value={newDomain}
+                onChange={e => setNewDomain(e.target.value)}
+                placeholder="Ex: exemplo.com"
+                onKeyDown={e => e.key === 'Enter' && handleAddDomain()}
+              />
+              <Button onClick={handleAddDomain} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+              {skipDomains.map(domain => (
+                <Badge key={domain} variant="secondary" className="gap-1 pr-1">
+                  {domain}
+                  <button
+                    onClick={() => handleRemoveDomain(domain)}
+                    className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+
+            {skipDomains.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">Nenhum domínio na lista — todos os sites serão scraped.</p>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
       {/* Baserow Tab */}
       <TabsContent value="baserow">
         <Card className="border-border/40">
