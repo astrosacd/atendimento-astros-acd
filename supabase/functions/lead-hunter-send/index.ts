@@ -92,8 +92,11 @@ serve(async (req) => {
           
           // Try to scrape lead's website for personalized context
           let websiteContext = "";
+          const skipDomains = config.scrape_skip_domains 
+            ? (() => { try { return JSON.parse(config.scrape_skip_domains); } catch { return DEFAULT_SKIP_DOMAINS; } })()
+            : DEFAULT_SKIP_DOMAINS;
           if (lead.website) {
-            websiteContext = await scrapeWebsite(lead.website);
+            websiteContext = await scrapeWebsite(lead.website, skipDomains);
           }
           
           let leadContext = `Lead: ${lead.nome || 'Sem nome'}, Empresa: ${lead.empresa || 'N/A'}, Categoria: ${lead.categoria || 'N/A'}, Cidade: ${lead.cidade || 'N/A'}`;
