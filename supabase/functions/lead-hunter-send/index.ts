@@ -89,7 +89,17 @@ serve(async (req) => {
         } else {
           // Use AI to generate message
           const prompt = campanha?.prompt_ia || "Gere uma mensagem curta e persuasiva para WhatsApp (máximo 500 caracteres) apresentando nossos serviços. Seja direto e profissional.";
-          const leadContext = `Lead: ${lead.nome || 'Sem nome'}, Empresa: ${lead.empresa || 'N/A'}, Categoria: ${lead.categoria || 'N/A'}, Cidade: ${lead.cidade || 'N/A'}`;
+          
+          // Try to scrape lead's website for personalized context
+          let websiteContext = "";
+          if (lead.website) {
+            websiteContext = await scrapeWebsite(lead.website);
+          }
+          
+          let leadContext = `Lead: ${lead.nome || 'Sem nome'}, Empresa: ${lead.empresa || 'N/A'}, Categoria: ${lead.categoria || 'N/A'}, Cidade: ${lead.cidade || 'N/A'}`;
+          if (websiteContext) {
+            leadContext += `\n\nInformações do site do lead:\n${websiteContext}`;
+          }
 
           const provedor = campanha?.provedor_ia || "lovable";
           message = await generateAIMessage(provedor, prompt, leadContext, config, lovableApiKey, campanha?.modelo_ia);
