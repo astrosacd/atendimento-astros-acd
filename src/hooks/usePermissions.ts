@@ -150,6 +150,15 @@ export function usePermissions() {
   const canManagePipelineStages = () => hasPermission('manage_pipeline_stages');
   const canManagePipelineAutomations = () => hasPermission('manage_pipeline_automations');
 
+  // Lead Hunter permissions
+  const canViewLeadHunter = () => hasPermission('view_lead_hunter');
+  const canManageLeadHunterLeads = () => hasPermission('manage_lead_hunter_leads');
+  const canManageLeadHunterCampanhas = () => hasPermission('manage_lead_hunter_campanhas');
+  const canManageLeadHunterConfig = () => hasPermission('manage_lead_hunter_config');
+  const canManageLeadHunterBaserow = () => hasPermission('manage_lead_hunter_baserow');
+  const canViewLeadHunterHistorico = () => hasPermission('view_lead_hunter_historico');
+  const canManageLeadHunterBusca = () => hasPermission('manage_lead_hunter_busca');
+
   return {
     permissions,
     hasPermission,
@@ -244,6 +253,14 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    // Lead Hunter
+    canViewLeadHunter,
+    canManageLeadHunterLeads,
+    canManageLeadHunterCampanhas,
+    canManageLeadHunterConfig,
+    canManageLeadHunterBaserow,
+    canViewLeadHunterHistorico,
+    canManageLeadHunterBusca,
     // Social Media
     canViewSocialCredentials,
     canManageSocialCredentials,
