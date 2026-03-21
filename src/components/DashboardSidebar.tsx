@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -128,6 +128,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: 'Follow-ups', icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
     { title: 'Despesas', icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
     { title: 'Pipeline', icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+    { title: 'Lead Hunter', icon: Crosshair, path: '/lead-hunter', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
   ];
 
   const adminItems: NavItem[] = [

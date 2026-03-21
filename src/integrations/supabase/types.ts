@@ -3285,6 +3285,314 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_hunter_baserow_config: {
+        Row: {
+          api_token: string | null
+          api_url: string | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          table_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_token?: string | null
+          api_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          table_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_token?: string | null
+          api_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          table_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      lead_hunter_buscas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          erro_mensagem: string | null
+          id: string
+          localizacao: string | null
+          query: string
+          status: string | null
+          total_resultados: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          localizacao?: string | null
+          query: string
+          status?: string | null
+          total_resultados?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          localizacao?: string | null
+          query?: string
+          status?: string | null
+          total_resultados?: number | null
+        }
+        Relationships: []
+      }
+      lead_hunter_campanhas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          delay_entre_mensagens: number | null
+          descricao: string | null
+          id: string
+          mensagem_modelo: string | null
+          modelo_ia: string | null
+          nome: string
+          prompt_ia: string | null
+          provedor_ia: string | null
+          status: string | null
+          tipo_mensagem: string | null
+          total_enviados: number | null
+          total_erros: number | null
+          total_leads: number | null
+          total_respondidos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          delay_entre_mensagens?: number | null
+          descricao?: string | null
+          id?: string
+          mensagem_modelo?: string | null
+          modelo_ia?: string | null
+          nome: string
+          prompt_ia?: string | null
+          provedor_ia?: string | null
+          status?: string | null
+          tipo_mensagem?: string | null
+          total_enviados?: number | null
+          total_erros?: number | null
+          total_leads?: number | null
+          total_respondidos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          delay_entre_mensagens?: number | null
+          descricao?: string | null
+          id?: string
+          mensagem_modelo?: string | null
+          modelo_ia?: string | null
+          nome?: string
+          prompt_ia?: string | null
+          provedor_ia?: string | null
+          status?: string | null
+          tipo_mensagem?: string | null
+          total_enviados?: number | null
+          total_erros?: number | null
+          total_leads?: number | null
+          total_respondidos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      lead_hunter_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      lead_hunter_leads: {
+        Row: {
+          avaliacao: number | null
+          campanha_id: string | null
+          categoria: string | null
+          cidade: string | null
+          created_at: string | null
+          created_by: string | null
+          dados_extras: Json | null
+          email: string | null
+          empresa: string | null
+          endereco: string | null
+          enviado_at: string | null
+          enviado_por_instancia: string | null
+          erro_mensagem: string | null
+          estado: string | null
+          fonte: string | null
+          id: string
+          nome: string | null
+          status: string | null
+          telefone: string
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          avaliacao?: number | null
+          campanha_id?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dados_extras?: Json | null
+          email?: string | null
+          empresa?: string | null
+          endereco?: string | null
+          enviado_at?: string | null
+          enviado_por_instancia?: string | null
+          erro_mensagem?: string | null
+          estado?: string | null
+          fonte?: string | null
+          id?: string
+          nome?: string | null
+          status?: string | null
+          telefone: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          avaliacao?: number | null
+          campanha_id?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dados_extras?: Json | null
+          email?: string | null
+          empresa?: string | null
+          endereco?: string | null
+          enviado_at?: string | null
+          enviado_por_instancia?: string | null
+          erro_mensagem?: string | null
+          estado?: string | null
+          fonte?: string | null
+          id?: string
+          nome?: string | null
+          status?: string | null
+          telefone?: string
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_hunter_leads_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "lead_hunter_campanhas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_hunter_logs: {
+        Row: {
+          campanha_id: string | null
+          created_at: string | null
+          detalhes: Json | null
+          id: string
+          lead_id: string | null
+          mensagem: string | null
+          resultado: string | null
+          tipo: string
+        }
+        Insert: {
+          campanha_id?: string | null
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          lead_id?: string | null
+          mensagem?: string | null
+          resultado?: string | null
+          tipo: string
+        }
+        Update: {
+          campanha_id?: string | null
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          lead_id?: string | null
+          mensagem?: string | null
+          resultado?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_hunter_logs_campanha_id_fkey"
+            columns: ["campanha_id"]
+            isOneToOne: false
+            referencedRelation: "lead_hunter_campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_hunter_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_hunter_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_hunter_whatsapp_instances: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string | null
+          id: string
+          instance_name: string
+          is_active: boolean | null
+          last_used_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string | null
+          id?: string
+          instance_name: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string | null
+          id?: string
+          instance_name?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       licencas_entregues: {
         Row: {
           cliente_id: string
