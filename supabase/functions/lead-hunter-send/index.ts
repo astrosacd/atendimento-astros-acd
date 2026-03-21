@@ -408,3 +408,72 @@ async function syncToBaserow(baserowConfig: any, phone: string, lead: any) {
     if (row) await patchRow(row.id);
   }
 }
+
+// Domains to skip scraping (social media, short links, messaging)
+const SKIP_DOMAINS = [
+  "instagram.com", "www.instagram.com",
+  "facebook.com", "www.facebook.com", "fb.com",
+  "twitter.com", "www.twitter.com", "x.com",
+  "tiktok.com", "www.tiktok.com",
+  "youtube.com", "www.youtube.com", "youtu.be",
+  "wa.me", "api.whatsapp.com", "web.whatsapp.com",
+  "linktr.ee", "lnktr.ee",
+  "bityli.com", "bit.ly", "goo.gl", "t.co",
+  "linkedin.com", "www.linkedin.com",
+  "pinterest.com", "www.pinterest.com",
+  "threads.net", "www.threads.net",
+  "t.me", "telegram.me",
+];
+
+function shouldSkipScraping(url: string): boolean {
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+    const hostname = new URL(normalized).hostname.toLowerCase();
+    return SKIP_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d));
+  } catch {
+    return true;
+  }
+}
+
+async function scrapeWebsite(url: string): Promise<string> {
+  if (!url || shouldSkipScraping(url)) {
+    return "";
+  }
+
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+
+    console.log(`[LeadHunter] Scraping website: ${normalized}`);
+    
+    const response = await fetch(`https://r.jina.ai/${normalized}`, {
+      method: "GET",
+      headers: {
+        "Accept": "text/plain",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`[LeadHunter] Scrape failed for ${normalized}: ${response.status}`);
+      return "";
+    }
+
+    let content = await response.text();
+    
+    // Limit content to ~2000 chars to avoid huge AI prompts
+    if (content.length > 2000) {
+      content = content.substring(0, 2000) + "...";
+    }
+
+    console.log(`[LeadHunter] Scraped ${content.length} chars from ${normalized}`);
+    return content;
+  } catch (error: any) {
+    console.warn(`[LeadHunter] Scrape error for ${url}:`, error.message);
+    return "";
+  }
+}
