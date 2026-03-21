@@ -97,6 +97,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Gateway': <ShoppingCart className="h-4 w-4" />,
   'Revendedor': <Award className="h-4 w-4" />,
   'Social Media': <Share2 className="h-4 w-4" />,
+  'Lead Hunter': <Crosshair className="h-4 w-4" />,
 };
 
 const permissionIcons: Record<string, React.ReactNode> = {
