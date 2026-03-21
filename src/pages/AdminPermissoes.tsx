@@ -129,6 +129,15 @@ const permissionIcons: Record<string, React.ReactNode> = {
   manage_proposal_baserow: <Database className="h-4 w-4" />,
   manage_followup_baserow: <Database className="h-4 w-4" />,
   manage_recovery_baserow: <Database className="h-4 w-4" />,
+  manage_billing_baserow: <Database className="h-4 w-4" />,
+  // Lead Hunter
+  view_lead_hunter: <Eye className="h-4 w-4" />,
+  manage_lead_hunter_leads: <Users className="h-4 w-4" />,
+  manage_lead_hunter_campanhas: <Megaphone className="h-4 w-4" />,
+  manage_lead_hunter_config: <Settings className="h-4 w-4" />,
+  manage_lead_hunter_baserow: <Database className="h-4 w-4" />,
+  view_lead_hunter_historico: <FileText className="h-4 w-4" />,
+  manage_lead_hunter_busca: <Search className="h-4 w-4" />,
 };
 
 export default function AdminPermissoes() {

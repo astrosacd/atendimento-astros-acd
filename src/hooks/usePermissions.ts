@@ -253,6 +253,14 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    // Lead Hunter
+    canViewLeadHunter,
+    canManageLeadHunterLeads,
+    canManageLeadHunterCampanhas,
+    canManageLeadHunterConfig,
+    canManageLeadHunterBaserow,
+    canViewLeadHunterHistorico,
+    canManageLeadHunterBusca,
     // Social Media
     canViewSocialCredentials,
     canManageSocialCredentials,
