@@ -55,6 +55,11 @@ export default function LeadHunterConfig() {
       setSerpApiKey(config.serp_api_key || '');
       setOpenaiKey(config.openai_api_key || '');
       setGroqKey(config.groq_api_key || '');
+      if (config.scrape_skip_domains) {
+        try {
+          setSkipDomains(JSON.parse(config.scrape_skip_domains));
+        } catch { /* keep defaults */ }
+      }
     }
   }, [config, configLoading]);
 
