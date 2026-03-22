@@ -993,6 +993,15 @@ export default function ConsultarCliente() {
           open={!!socialClienteId}
           onOpenChange={() => setSocialClienteId(null)}
         />
+
+        {/* WhatsApp Group Creation */}
+        <CreateWhatsAppGroupDialog
+          clienteId={groupClienteId || ''}
+          clienteName={groupClienteName}
+          clienteNumero={groupClienteNumero}
+          open={!!groupClienteId}
+          onOpenChange={() => setGroupClienteId(null)}
+        />
       </div>
     </DashboardLayout>
   );
