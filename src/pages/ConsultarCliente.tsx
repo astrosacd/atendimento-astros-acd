@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +35,7 @@ import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
+import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -63,6 +64,9 @@ export default function ConsultarCliente() {
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
+  const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
+  const [groupClienteName, setGroupClienteName] = useState<string>('');
+  const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const { canViewSocialCredentials } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
@@ -722,6 +726,21 @@ export default function ConsultarCliente() {
                                 <Lock className="h-4 w-4" />
                               </Button>
                             )}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => {
+                                  setGroupClienteId(cliente.id);
+                                  setGroupClienteName(cliente.nome);
+                                  setGroupClienteNumero(cliente.numero);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-primary"
+                                title="Criar Grupo WhatsApp"
+                              >
+                                <Users className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -973,6 +992,15 @@ export default function ConsultarCliente() {
           clienteName={socialClienteName}
           open={!!socialClienteId}
           onOpenChange={() => setSocialClienteId(null)}
+        />
+
+        {/* WhatsApp Group Creation */}
+        <CreateWhatsAppGroupDialog
+          clienteId={groupClienteId || ''}
+          clienteName={groupClienteName}
+          clienteNumero={groupClienteNumero}
+          open={!!groupClienteId}
+          onOpenChange={() => setGroupClienteId(null)}
         />
       </div>
     </DashboardLayout>

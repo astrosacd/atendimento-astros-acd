@@ -1476,6 +1476,65 @@ export type Database = {
           },
         ]
       }
+      client_whatsapp_groups: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          created_by_name: string | null
+          error_message: string | null
+          group_description: string | null
+          group_jid: string | null
+          group_name: string
+          id: string
+          image_url: string | null
+          motivo: string | null
+          participants: string[]
+          status: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          created_by_name?: string | null
+          error_message?: string | null
+          group_description?: string | null
+          group_jid?: string | null
+          group_name: string
+          id?: string
+          image_url?: string | null
+          motivo?: string | null
+          participants?: string[]
+          status?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          created_by_name?: string | null
+          error_message?: string | null
+          group_description?: string | null
+          group_jid?: string | null
+          group_name?: string
+          id?: string
+          image_url?: string | null
+          motivo?: string | null
+          participants?: string[]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_whatsapp_groups_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           ciclo_cobranca: string
