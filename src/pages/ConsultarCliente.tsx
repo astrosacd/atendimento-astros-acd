@@ -64,6 +64,9 @@ export default function ConsultarCliente() {
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
+  const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
+  const [groupClienteName, setGroupClienteName] = useState<string>('');
+  const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const { canViewSocialCredentials } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
