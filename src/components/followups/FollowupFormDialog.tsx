@@ -15,7 +15,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
-import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles } from 'lucide-react';
+import { Mail, MessageSquare, Loader2, UserPlus, Users, Sparkles, Languages } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useFollowups, type CreateFollowupData, type Followup } from '@/hooks/useFollowups';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -53,6 +59,44 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const [intervalDays, setIntervalDays] = useState(3);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const translateLanguages = [
+    { code: 'pt-BR', label: '🇧🇷 Português' },
+    { code: 'en', label: '🇺🇸 English' },
+    { code: 'es', label: '🇪🇸 Español' },
+    { code: 'fr', label: '🇫🇷 Français' },
+    { code: 'it', label: '🇮🇹 Italiano' },
+    { code: 'de', label: '🇩🇪 Deutsch' },
+  ];
+
+  const handleTranslateMessage = async (targetLang: string, langLabel: string) => {
+    if (!customMessage.trim()) {
+      toast.error('Escreva ou gere uma mensagem primeiro');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('followup-generate-message', {
+        body: {
+          produto: produto.trim() || 'produto',
+          client_name: 'Cliente',
+          translate_to: targetLang,
+          original_message: customMessage,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.message) {
+        setCustomMessage(data.message);
+        toast.success(`Mensagem traduzida para ${langLabel}!`);
+      }
+    } catch (err: any) {
+      toast.error('Erro ao traduzir: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   // Check if AI message generation is enabled
   const { data: aiEnabled } = useQuery({
@@ -348,23 +392,55 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Mensagem</Label>
-              {aiEnabled && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateAIMessage}
-                  disabled={isGeneratingAI || !produto.trim()}
-                  className="h-7 text-xs gap-1"
-                >
-                  {isGeneratingAI ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 text-primary" />
-                  )}
-                  Gerar com IA
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {customMessage.trim() && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isTranslating}
+                        className="h-7 text-xs gap-1"
+                      >
+                        {isTranslating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Languages className="h-3 w-3 text-primary" />
+                        )}
+                        Traduzir
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {translateLanguages.map(lang => (
+                        <DropdownMenuItem
+                          key={lang.code}
+                          onClick={() => handleTranslateMessage(lang.code, lang.label)}
+                        >
+                          {lang.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {aiEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAIMessage}
+                    disabled={isGeneratingAI || !produto.trim()}
+                    className="h-7 text-xs gap-1"
+                  >
+                    {isGeneratingAI ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-primary" />
+                    )}
+                    Gerar com IA
+                  </Button>
+                )}
+              </div>
             </div>
             <Textarea
               placeholder="Escreva sua mensagem de follow-up..."

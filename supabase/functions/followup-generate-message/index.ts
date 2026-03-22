@@ -20,7 +20,78 @@ serve(async (req: Request) => {
     // lovableApiKey may be null if using external provider
 
 
-    const { produto, client_name } = await req.json();
+    const { produto, client_name, translate_to, original_message } = await req.json();
+
+    // If this is a translation request, handle it separately
+    if (translate_to && original_message) {
+      const langNames: Record<string, string> = {
+        'pt-BR': 'português brasileiro',
+        'en': 'inglês',
+        'es': 'espanhol',
+        'fr': 'francês',
+        'it': 'italiano',
+        'de': 'alemão',
+      };
+      const targetLangName = langNames[translate_to] || translate_to;
+
+      // Get AI provider config
+      const { data: providerConfig } = await supabase
+        .from("followup_config")
+        .select("config_key, config_value")
+        .in("config_key", ["ai_provider", "ai_model", "ai_api_key_openai", "ai_api_key_groq"]);
+
+      const getV = (key: string, fb: string) =>
+        providerConfig?.find((c: any) => c.config_key === key)?.config_value || fb;
+
+      const aiProv = getV("ai_provider", "lovable");
+      const aiMod = getV("ai_model", "");
+      const oKey = getV("ai_api_key_openai", "");
+      const gKey = getV("ai_api_key_groq", "");
+
+      let tUrl: string, tKey: string, tModel: string;
+      if (aiProv === "openai") {
+        if (!oKey) throw new Error("Chave da API OpenAI não configurada");
+        tUrl = "https://api.openai.com/v1/chat/completions";
+        tKey = oKey;
+        tModel = aiMod || "gpt-4o-mini";
+      } else if (aiProv === "groq") {
+        if (!gKey) throw new Error("Chave da API Groq não configurada");
+        tUrl = "https://api.groq.com/openai/v1/chat/completions";
+        tKey = gKey;
+        tModel = aiMod || "llama-3.1-70b-versatile";
+      } else {
+        if (!lovableApiKey) throw new Error("LOVABLE_API_KEY não configurada");
+        tUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+        tKey = lovableApiKey;
+        tModel = aiMod || "google/gemini-2.5-flash";
+      }
+
+      const tResp = await fetch(tUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: tModel,
+          messages: [
+            { role: "system", content: `Você é um tradutor profissional. Traduza a mensagem abaixo para ${targetLangName}. Mantenha a formatação do WhatsApp (*negrito*, _itálico_), emojis e o tom da mensagem original. Retorne APENAS a mensagem traduzida, sem explicações.` },
+            { role: "user", content: original_message },
+          ],
+        }),
+      });
+
+      if (!tResp.ok) {
+        const errText = await tResp.text();
+        console.error("Translation error:", tResp.status, errText);
+        throw new Error("Erro na tradução");
+      }
+
+      const tResult = await tResp.json();
+      const translated = tResult.choices?.[0]?.message?.content || "";
+
+      return new Response(
+        JSON.stringify({ message: translated }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get AI provider config
     const { data: providerConfig } = await supabase
