@@ -392,23 +392,55 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Mensagem</Label>
-              {aiEnabled && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateAIMessage}
-                  disabled={isGeneratingAI || !produto.trim()}
-                  className="h-7 text-xs gap-1"
-                >
-                  {isGeneratingAI ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 text-primary" />
-                  )}
-                  Gerar com IA
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {customMessage.trim() && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isTranslating}
+                        className="h-7 text-xs gap-1"
+                      >
+                        {isTranslating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Languages className="h-3 w-3 text-primary" />
+                        )}
+                        Traduzir
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {translateLanguages.map(lang => (
+                        <DropdownMenuItem
+                          key={lang.code}
+                          onClick={() => handleTranslateMessage(lang.code, lang.label)}
+                        >
+                          {lang.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {aiEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAIMessage}
+                    disabled={isGeneratingAI || !produto.trim()}
+                    className="h-7 text-xs gap-1"
+                  >
+                    {isGeneratingAI ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-primary" />
+                    )}
+                    Gerar com IA
+                  </Button>
+                )}
+              </div>
             </div>
             <Textarea
               placeholder="Escreva sua mensagem de follow-up..."
