@@ -59,6 +59,44 @@ export function FollowupFormDialog({ open, onOpenChange, editData }: FollowupFor
   const [intervalDays, setIntervalDays] = useState(3);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const translateLanguages = [
+    { code: 'pt-BR', label: '🇧🇷 Português' },
+    { code: 'en', label: '🇺🇸 English' },
+    { code: 'es', label: '🇪🇸 Español' },
+    { code: 'fr', label: '🇫🇷 Français' },
+    { code: 'it', label: '🇮🇹 Italiano' },
+    { code: 'de', label: '🇩🇪 Deutsch' },
+  ];
+
+  const handleTranslateMessage = async (targetLang: string, langLabel: string) => {
+    if (!customMessage.trim()) {
+      toast.error('Escreva ou gere uma mensagem primeiro');
+      return;
+    }
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('followup-generate-message', {
+        body: {
+          produto: produto.trim() || 'produto',
+          client_name: 'Cliente',
+          translate_to: targetLang,
+          original_message: customMessage,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.message) {
+        setCustomMessage(data.message);
+        toast.success(`Mensagem traduzida para ${langLabel}!`);
+      }
+    } catch (err: any) {
+      toast.error('Erro ao traduzir: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   // Check if AI message generation is enabled
   const { data: aiEnabled } = useQuery({
