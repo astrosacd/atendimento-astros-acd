@@ -726,6 +726,21 @@ export default function ConsultarCliente() {
                                 <Lock className="h-4 w-4" />
                               </Button>
                             )}
+                            {isAdmin && (
+                              <Button
+                                onClick={() => {
+                                  setGroupClienteId(cliente.id);
+                                  setGroupClienteName(cliente.nome);
+                                  setGroupClienteNumero(cliente.numero);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-primary"
+                                title="Criar Grupo WhatsApp"
+                              >
+                                <Users className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
