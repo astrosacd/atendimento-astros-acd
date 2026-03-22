@@ -35,6 +35,7 @@ import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
+import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
