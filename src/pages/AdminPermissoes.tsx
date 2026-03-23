@@ -331,6 +331,7 @@ export default function AdminPermissoes() {
     'Revendedor': 'Revendedor',
     'Social Media': 'Social Media',
     'Despesas': 'Despesas',
+    'Lead Hunter': 'Lead Hunter',
   });
 
   const colorOptions = getColorOptions(t);
