@@ -100,45 +100,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Lead Hunter': <Crosshair className="h-4 w-4" />,
 };
 
-const permissionIcons: Record<string, React.ReactNode> = {
-  view_dashboard: <LayoutDashboard className="h-4 w-4" />,
-  view_clients: <Eye className="h-4 w-4" />,
-  create_clients: <UserPlus className="h-4 w-4" />,
-  update_clients: <Edit className="h-4 w-4" />,
-  delete_clients: <Trash2 className="h-4 w-4" />,
-  export_clients: <Download className="h-4 w-4" />,
-  manage_users: <Users className="h-4 w-4" />,
-  manage_permissions: <Shield className="h-4 w-4" />,
-  manage_billing: <CreditCard className="h-4 w-4" />,
-  manage_webhooks: <Webhook className="h-4 w-4" />,
-  manage_api: <Key className="h-4 w-4" />,
-  view_logs: <FileText className="h-4 w-4" />,
-  manage_settings: <Settings className="h-4 w-4" />,
-  view_divulgador: <Megaphone className="h-4 w-4" />,
-  manage_divulgador_config: <Settings className="h-4 w-4" />,
-  manage_divulgador_campaigns: <Send className="h-4 w-4" />,
-  manage_divulgador_groups: <Users className="h-4 w-4" />,
-  manage_divulgador_messages: <MessageSquare className="h-4 w-4" />,
-  manage_divulgador_participants: <UserMinus className="h-4 w-4" />,
-  view_divulgador_reports: <BarChart3 className="h-4 w-4" />,
-  view_reports: <BarChart3 className="h-4 w-4" />,
-  view_guia_relatorios: <BarChart3 className="h-4 w-4" />,
-  view_despesas: <Eye className="h-4 w-4" />,
-  manage_despesas: <Edit className="h-4 w-4" />,
-  manage_despesas_cron: <Settings className="h-4 w-4" />,
-  manage_proposal_baserow: <Database className="h-4 w-4" />,
-  manage_followup_baserow: <Database className="h-4 w-4" />,
-  manage_recovery_baserow: <Database className="h-4 w-4" />,
-  manage_billing_baserow: <Database className="h-4 w-4" />,
-  // Lead Hunter
-  view_lead_hunter: <Eye className="h-4 w-4" />,
-  manage_lead_hunter_leads: <Users className="h-4 w-4" />,
-  manage_lead_hunter_campanhas: <Megaphone className="h-4 w-4" />,
-  manage_lead_hunter_config: <Settings className="h-4 w-4" />,
-  manage_lead_hunter_baserow: <Database className="h-4 w-4" />,
-  view_lead_hunter_historico: <FileText className="h-4 w-4" />,
-  manage_lead_hunter_busca: <Search className="h-4 w-4" />,
-};
+// Icons removed from individual permissions — only category titles have icons
 
 export default function AdminPermissoes() {
   const navigate = useNavigate();
@@ -369,6 +331,7 @@ export default function AdminPermissoes() {
     'Revendedor': 'Revendedor',
     'Social Media': 'Social Media',
     'Despesas': 'Despesas',
+    'Lead Hunter': 'Lead Hunter',
   });
 
   const colorOptions = getColorOptions(t);
@@ -505,12 +468,9 @@ export default function AdminPermissoes() {
                     {perms.map((perm) => (
                       <TableRow key={perm.id}>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {permissionIcons[perm.key]}
-                            <div>
-                              <p className="font-medium">{perm.name}</p>
-                              <p className="text-xs text-muted-foreground">{perm.description}</p>
-                            </div>
+                          <div>
+                            <p className="font-medium">{perm.name}</p>
+                            <p className="text-xs text-muted-foreground">{perm.description}</p>
                           </div>
                         </TableCell>
                         {roles.map((role) => {

@@ -67,7 +67,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
-  const { canViewSocialCredentials } = usePermissions();
+  const { canViewSocialCredentials, canCreateWhatsAppGroups } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -726,7 +726,7 @@ export default function ConsultarCliente() {
                                 <Lock className="h-4 w-4" />
                               </Button>
                             )}
-                            {isAdmin && (
+                            {(isAdmin || canCreateWhatsAppGroups()) && (
                               <Button
                                 onClick={() => {
                                   setGroupClienteId(cliente.id);

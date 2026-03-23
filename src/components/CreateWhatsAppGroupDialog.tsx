@@ -11,9 +11,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone } from 'lucide-react';
+import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone, Server } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -37,6 +40,22 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   const [participants, setParticipants] = useState<string[]>(clienteNumero ? [clienteNumero] : []);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
+
+  // Fetch WhatsApp instances
+  const { data: instances = [] } = useQuery({
+    queryKey: ['whatsapp-instances'],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('billing_whatsapp_instances')
+        .select('*')
+        .eq('is_active', true)
+        .order('instance_name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: groupHistory = [], isLoading: loadingHistory, refetch: refetchHistory } = useQuery({
     queryKey: ['whatsapp-groups', clienteId],
@@ -76,13 +95,26 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     reader.readAsDataURL(file);
   };
 
+  const isFormValid = () => {
+    return (
+      groupName.trim() !== '' &&
+      groupDescription.trim() !== '' &&
+      motivo.trim() !== '' &&
+      participants.length > 0 &&
+      imageFile !== null &&
+      selectedInstanceId !== ''
+    );
+  };
+
   const handleCreate = async () => {
-    if (!groupName.trim()) {
-      toast.error('Nome do grupo é obrigatório');
+    if (!isFormValid()) {
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-    if (participants.length === 0) {
-      toast.error('Adicione pelo menos um participante');
+
+    const selectedInstance = instances.find(i => i.id === selectedInstanceId);
+    if (!selectedInstance) {
+      toast.error('Selecione uma instância do WhatsApp');
       return;
     }
 
@@ -105,6 +137,9 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
           participants,
           imageBase64,
           motivo: motivo.trim(),
+          instanceApiUrl: selectedInstance.api_url,
+          instanceApiKey: selectedInstance.api_key,
+          instanceName: selectedInstance.instance_name,
         },
       });
 
@@ -113,13 +148,13 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
 
       toast.success('Grupo criado com sucesso no WhatsApp!');
       refetchHistory();
-      // Reset form
       setGroupName('');
       setGroupDescription('');
       setMotivo('');
       setParticipants(clienteNumero ? [clienteNumero] : []);
       setImageFile(null);
       setImagePreview(null);
+      setSelectedInstanceId('');
       setActiveTab('historico');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar grupo');
@@ -159,6 +194,32 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
           </TabsList>
 
           <TabsContent value="criar" className="space-y-4 mt-4">
+            {/* Instance Selector */}
+            <div className="space-y-2">
+              <Label className="font-medium">Instância WhatsApp *</Label>
+              {instances.length === 0 ? (
+                <p className="text-sm text-destructive">
+                  Nenhuma instância ativa encontrada. Configure no módulo de Cobrança.
+                </p>
+              ) : (
+                <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a instância..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {instances.map((inst) => (
+                      <SelectItem key={inst.id} value={inst.id}>
+                        <div className="flex items-center gap-2">
+                          <Server className="h-3 w-3 text-muted-foreground" />
+                          {inst.instance_name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             {/* Group Name */}
             <div className="space-y-2">
               <Label className="font-medium">Nome do Grupo *</Label>
@@ -172,7 +233,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
 
             {/* Description */}
             <div className="space-y-2">
-              <Label className="font-medium">Descrição do Grupo</Label>
+              <Label className="font-medium">Descrição do Grupo *</Label>
               <Textarea
                 placeholder="Descrição que aparecerá no grupo do WhatsApp..."
                 value={groupDescription}
@@ -184,7 +245,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
 
             {/* Motivo */}
             <div className="space-y-2">
-              <Label className="font-medium">Motivo da Criação</Label>
+              <Label className="font-medium">Motivo da Criação *</Label>
               <Input
                 placeholder="Ex: Atendimento de Social Media, Tráfego Pago..."
                 value={motivo}
@@ -230,7 +291,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
 
             {/* Group Image */}
             <div className="space-y-2">
-              <Label className="font-medium">Imagem do Grupo (opcional)</Label>
+              <Label className="font-medium">Imagem do Grupo *</Label>
               <div className="flex items-center gap-3">
                 {imagePreview ? (
                   <div className="relative">
@@ -258,7 +319,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
 
             <Button
               onClick={handleCreate}
-              disabled={isCreating || !groupName.trim() || participants.length === 0}
+              disabled={isCreating || !isFormValid()}
               className="w-full"
             >
               {isCreating ? (
