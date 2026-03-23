@@ -726,7 +726,7 @@ export default function ConsultarCliente() {
                                 <Lock className="h-4 w-4" />
                               </Button>
                             )}
-                            {isAdmin && (
+                            {(isAdmin || canCreateWhatsAppGroups()) && (
                               <Button
                                 onClick={() => {
                                   setGroupClienteId(cliente.id);
