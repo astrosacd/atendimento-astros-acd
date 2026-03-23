@@ -468,12 +468,9 @@ export default function AdminPermissoes() {
                     {perms.map((perm) => (
                       <TableRow key={perm.id}>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {permissionIcons[perm.key]}
-                            <div>
-                              <p className="font-medium">{perm.name}</p>
-                              <p className="text-xs text-muted-foreground">{perm.description}</p>
-                            </div>
+                          <div>
+                            <p className="font-medium">{perm.name}</p>
+                            <p className="text-xs text-muted-foreground">{perm.description}</p>
                           </div>
                         </TableCell>
                         {roles.map((role) => {
