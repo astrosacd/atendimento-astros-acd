@@ -1,0 +1,1 @@
+DELETE FROM public.client_tasks WHERE title = 'Cliente não renovou - entrar em contato';
