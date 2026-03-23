@@ -25,19 +25,19 @@ serve(async (req) => {
     if (authError || !user) throw new Error('Não autorizado');
 
     const body = await req.json();
-    const { clienteId, groupName, groupDescription, participants, imageBase64, motivo } = body;
+    const { clienteId, groupName, groupDescription, participants, imageBase64, motivo, instanceApiUrl, instanceApiKey, instanceName } = body;
 
     if (!groupName || !participants || participants.length === 0) {
       throw new Error('Nome do grupo e pelo menos um participante são obrigatórios');
     }
 
-    // Get Evolution API config from billing_whatsapp_instances (reuse existing config)
-    const evolutionApiUrl = Deno.env.get('EVOLUTION_API_URL');
-    const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
-    const evolutionInstance = Deno.env.get('EVOLUTION_INSTANCE');
+    // Use instance passed from frontend, or fallback to env vars
+    const evolutionApiUrl = instanceApiUrl || Deno.env.get('EVOLUTION_API_URL');
+    const evolutionApiKey = instanceApiKey || Deno.env.get('EVOLUTION_API_KEY');
+    const evolutionInstance = instanceName || Deno.env.get('EVOLUTION_INSTANCE');
 
     if (!evolutionApiUrl || !evolutionApiKey || !evolutionInstance) {
-      throw new Error('Configuração da Evolution API não encontrada. Configure EVOLUTION_API_URL, EVOLUTION_API_KEY e EVOLUTION_INSTANCE.');
+      throw new Error('Configuração da Evolution API não encontrada. Selecione uma instância ou configure as variáveis de ambiente.');
     }
 
     // Get user profile info
