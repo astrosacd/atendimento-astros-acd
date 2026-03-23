@@ -267,5 +267,7 @@ export function usePermissions() {
     // Social Media
     canViewSocialCredentials,
     canManageSocialCredentials,
+    // WhatsApp Groups
+    canCreateWhatsAppGroups,
   };
 }
