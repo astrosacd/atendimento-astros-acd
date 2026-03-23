@@ -119,6 +119,9 @@ export function usePermissions() {
   const canViewSocialCredentials = () => hasPermission('view_social_credentials');
   const canManageSocialCredentials = () => hasPermission('manage_social_credentials');
 
+  // WhatsApp Groups
+  const canCreateWhatsAppGroups = () => hasPermission('create_whatsapp_groups');
+
   // Reports permission
   const canViewReports = () => hasPermission('view_reports');
 
