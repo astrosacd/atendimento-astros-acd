@@ -52,6 +52,7 @@ import Followups from "./pages/Followups";
 import Despesas from "./pages/Despesas";
 import KanbanClientes from "./pages/KanbanClientes";
 import LeadHunter from "./pages/LeadHunter";
+import Agenda from "./pages/Agenda";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
@@ -148,6 +149,7 @@ function AppRoutes() {
       <Route path="/despesas" element={<ProtectedRoute permission="view_dashboard"><Despesas /></ProtectedRoute>} />
       <Route path="/kanban" element={<ProtectedRoute permission="view_pipeline"><KanbanClientes /></ProtectedRoute>} />
       <Route path="/lead-hunter" element={<ProtectedRoute permission="view_dashboard"><LeadHunter /></ProtectedRoute>} />
+      <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
