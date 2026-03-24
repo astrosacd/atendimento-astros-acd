@@ -276,5 +276,11 @@ export function usePermissions() {
     canManageSocialCredentials,
     // WhatsApp Groups
     canCreateWhatsAppGroups,
+    // Agenda
+    canViewAgenda,
+    canCreateAgendaEvents,
+    canEditAgendaEvents,
+    canDeleteAgendaEvents,
+    canManageAgendaConfig,
   };
 }
