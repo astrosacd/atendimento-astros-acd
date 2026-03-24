@@ -98,6 +98,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Revendedor': <Award className="h-4 w-4" />,
   'Social Media': <Share2 className="h-4 w-4" />,
   'Lead Hunter': <Crosshair className="h-4 w-4" />,
+  'Agenda': <Eye className="h-4 w-4" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
