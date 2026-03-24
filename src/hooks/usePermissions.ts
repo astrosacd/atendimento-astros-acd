@@ -162,6 +162,13 @@ export function usePermissions() {
   const canViewLeadHunterHistorico = () => hasPermission('view_lead_hunter_historico');
   const canManageLeadHunterBusca = () => hasPermission('manage_lead_hunter_busca');
 
+  // Agenda permissions
+  const canViewAgenda = () => hasPermission('view_agenda');
+  const canCreateAgendaEvents = () => hasPermission('create_agenda_events');
+  const canEditAgendaEvents = () => hasPermission('edit_agenda_events');
+  const canDeleteAgendaEvents = () => hasPermission('delete_agenda_events');
+  const canManageAgendaConfig = () => hasPermission('manage_agenda_config');
+
   return {
     permissions,
     hasPermission,
