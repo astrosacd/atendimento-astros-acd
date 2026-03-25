@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { RefreshCw, RotateCcw, Trash2, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -317,35 +317,27 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="restore-status">Status *</Label>
-              <Select value={restoreStatusId} onValueChange={setRestoreStatusId}>
-                <SelectTrigger id="restore-status">
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusList.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      {status.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Status *</Label>
+              <SearchableSelect
+                options={statusList.map((s) => ({ value: s.id, label: s.nome }))}
+                value={restoreStatusId}
+                onValueChange={setRestoreStatusId}
+                placeholder="Selecione o status"
+                searchPlaceholder="Buscar status..."
+                emptyMessage="Nenhum status encontrado."
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="restore-modelo">Modelo *</Label>
-              <Select value={restoreModeloId} onValueChange={setRestoreModeloId}>
-                <SelectTrigger id="restore-modelo">
-                  <SelectValue placeholder="Selecione o modelo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelosList.map((modelo) => (
-                    <SelectItem key={modelo.id} value={modelo.id}>
-                      {modelo.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Modelo *</Label>
+              <SearchableSelect
+                options={modelosList.map((m) => ({ value: m.id, label: m.nome }))}
+                value={restoreModeloId}
+                onValueChange={setRestoreModeloId}
+                placeholder="Selecione o modelo"
+                searchPlaceholder="Buscar modelo..."
+                emptyMessage="Nenhum modelo encontrado."
+              />
             </div>
 
             <div className="space-y-2">
