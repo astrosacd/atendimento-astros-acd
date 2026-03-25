@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Smartphone, Plus, Search, Download, MoreHorizontal, Edit, Trash2, 
   History, Settings, Webhook, Key, FileCode, Copy, Eye, EyeOff,
@@ -482,8 +483,19 @@ export default function AdminNumerosAquecimento() {
                                 <TableCell className="text-sm text-muted-foreground">
                                   {numero.ultima_atividade}
                                 </TableCell>
-                                <TableCell className="max-w-[200px] truncate">
-                                  {numero.observacoes || '-'}
+                                <TableCell className="max-w-[200px]">
+                                  {numero.observacoes ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="block truncate cursor-default">{numero.observacoes}</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-[400px] whitespace-pre-wrap">
+                                          {numero.observacoes}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : '-'}
                                 </TableCell>
                                 <TableCell>
                                   <NumeroActionsMenu

@@ -80,7 +80,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       client_phone: clientPhone.trim() || null,
       start_time: startDateTime,
       end_time: endDateTime,
-      meet_link: meetLink.trim() || null,
+      meet_link: event ? (meetLink.trim() || null) : null,
       location: location.trim() || null,
       status,
       notes: notes.trim() || null,
@@ -156,10 +156,14 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            <div className="space-y-2">
-              <Label>Link do Google Meet</Label>
-              <Input placeholder="https://meet.google.com/..." value={meetLink} onChange={(e) => setMeetLink(e.target.value)} />
-            </div>
+            {event?.meet_link && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <Label className="text-green-700 dark:text-green-400 text-xs font-medium">Link do Google Meet (gerado automaticamente)</Label>
+                <a href={event.meet_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline block mt-1">
+                  {event.meet_link}
+                </a>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Local</Label>
               <Input placeholder="Local da reunião (opcional)" value={location} onChange={(e) => setLocation(e.target.value)} />

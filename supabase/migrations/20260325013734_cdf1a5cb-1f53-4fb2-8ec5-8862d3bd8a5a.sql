@@ -1,0 +1,1 @@
+INSERT INTO calendar_config (config_key, config_value) VALUES ('google_refresh_token', '') ON CONFLICT DO NOTHING;
