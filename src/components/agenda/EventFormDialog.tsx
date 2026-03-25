@@ -80,7 +80,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       client_phone: clientPhone.trim() || null,
       start_time: startDateTime,
       end_time: endDateTime,
-      meet_link: meetLink.trim() || null,
+      meet_link: event ? (meetLink.trim() || null) : null,
       location: location.trim() || null,
       status,
       notes: notes.trim() || null,
