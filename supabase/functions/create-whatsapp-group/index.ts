@@ -101,34 +101,45 @@ serve(async (req) => {
     // Step 3: Set group image if provided
     if (imageBase64 && groupJid) {
       try {
-        // Clean base64 and ensure it has the data URI prefix
-        // Evolution API expects: "data:image/jpeg;base64,..."
         let cleanImage = imageBase64.trim();
-        cleanImage = cleanImage.replace(/\s/g, '');
-        
-        // If it already has data URI prefix, use as-is
-        // If it's raw base64, add the prefix
-        if (!cleanImage.startsWith('data:')) {
-          cleanImage = `data:image/jpeg;base64,${cleanImage}`;
+        if (cleanImage.includes(',') && cleanImage.startsWith('data:')) {
+          cleanImage = cleanImage.split(',')[1];
         }
+        cleanImage = cleanImage.replace(/\s/g, '');
 
-        console.log('Setting group image, total length:', cleanImage.length);
+        console.log('Setting group image, raw base64 length:', cleanImage.length);
 
-        const imgResponse = await fetch(`${evolutionApiUrl}/group/updateGroupPicture/${evolutionInstance}`, {
+        const imagePayload = JSON.stringify({ image: cleanImage });
+        const imageUrl = `${evolutionApiUrl}/group/updateGroupPicture/${evolutionInstance}?groupJid=${encodeURIComponent(groupJid)}`;
+
+        let imgResponse = await fetch(imageUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'apikey': evolutionApiKey,
           },
-          body: JSON.stringify({
-            groupJid,
-            image: cleanImage,
-          }),
+          body: imagePayload,
         });
 
-        const imgData = await imgResponse.text();
+        let imgData = await imgResponse.text();
         console.log('Group image response status:', imgResponse.status);
         console.log('Group image response:', imgData);
+
+        // Fallback for Evolution v2 variants that expect POST
+        if (!imgResponse.ok) {
+          imgResponse = await fetch(imageUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evolutionApiKey,
+            },
+            body: imagePayload,
+          });
+
+          imgData = await imgResponse.text();
+          console.log('Group image fallback response status:', imgResponse.status);
+          console.log('Group image fallback response:', imgData);
+        }
 
         if (!imgResponse.ok) {
           console.error('Failed to set group image:', imgData);
