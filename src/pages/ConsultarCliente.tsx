@@ -735,7 +735,7 @@ export default function ConsultarCliente() {
                                 }}
                                 variant="ghost"
                                 size="sm"
-                                className="text-muted-foreground hover:text-primary"
+                                className="text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-300"
                                 title="Criar Grupo WhatsApp"
                               >
                                 <Users className="h-4 w-4" />
