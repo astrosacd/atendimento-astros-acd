@@ -668,7 +668,7 @@ export default function ConsultarCliente() {
                                     }}
                                     variant="ghost"
                                     size="sm"
-                                    className="text-muted-foreground hover:text-primary"
+                                    className="text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-300"
                                     title="Ver pagamentos"
                                   >
                                     <CreditCard className="h-4 w-4" />
