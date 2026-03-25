@@ -610,8 +610,18 @@ export default function ConsultaNumeros() {
       if (!json.success) throw new Error(json.error);
       return json;
     },
-    onSuccess: () => {
-      toast({ title: t('numberQuery.registeredSuccess') });
+    onSuccess: (json) => {
+      const rowId = json?.data?.id;
+      const numero = json?.data?.numero || json?.data?.Numero || '';
+      if (createType === 'interno' && rowId) {
+        toast({ 
+          title: '✅ Número cadastrado com sucesso!', 
+          description: `Número: ${numero} — Código (ID da linha): ${rowId}`,
+          duration: 10000,
+        });
+      } else {
+        toast({ title: t('numberQuery.registeredSuccess') });
+      }
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros'] });
       setCreateDialogOpen(false);
       resetCreateForm();
