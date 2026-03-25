@@ -101,16 +101,20 @@ serve(async (req) => {
     // Step 3: Set group image if provided
     if (imageBase64 && groupJid) {
       try {
-        // Clean base64: remove data URL prefix if present and any whitespace
+        // Clean base64 and ensure it has the data URI prefix
+        // Evolution API expects: "data:image/jpeg;base64,..."
         let cleanImage = imageBase64.trim();
-        if (cleanImage.includes(',') && cleanImage.startsWith('data:')) {
-          cleanImage = cleanImage.split(',')[1];
-        }
         cleanImage = cleanImage.replace(/\s/g, '');
+        
+        // If it already has data URI prefix, use as-is
+        // If it's raw base64, add the prefix
+        if (!cleanImage.startsWith('data:')) {
+          cleanImage = `data:image/jpeg;base64,${cleanImage}`;
+        }
 
-        console.log('Setting group image, base64 length:', cleanImage.length);
+        console.log('Setting group image, total length:', cleanImage.length);
 
-        await fetch(`${evolutionApiUrl}/group/updateGroupPicture/${evolutionInstance}`, {
+        const imgResponse = await fetch(`${evolutionApiUrl}/group/updateGroupPicture/${evolutionInstance}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -121,6 +125,14 @@ serve(async (req) => {
             image: cleanImage,
           }),
         });
+
+        const imgData = await imgResponse.text();
+        console.log('Group image response status:', imgResponse.status);
+        console.log('Group image response:', imgData);
+
+        if (!imgResponse.ok) {
+          console.error('Failed to set group image:', imgData);
+        }
       } catch (e) {
         console.error('Error setting group image:', e);
       }
