@@ -103,40 +103,112 @@ export function AgendaConfigPanel() {
                   </p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Client ID</Label>
-                <Input
-                  placeholder="Seu Google Client ID"
-                  value={googleClientId}
-                  onChange={(e) => setGoogleClientId(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Client Secret</Label>
-                <Input
-                  type="password"
-                  placeholder="Seu Google Client Secret"
-                  value={googleClientSecret}
-                  onChange={(e) => setGoogleClientSecret(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Refresh Token</Label>
-                <Input
-                  type="password"
-                  placeholder="Seu Google Refresh Token"
-                  value={googleRefreshToken}
-                  onChange={(e) => setGoogleRefreshToken(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>ID do Calendário</Label>
-                <Input
-                  placeholder="Ex: seuemail@gmail.com (ou 'primary')"
-                  value={googleCalendarId}
-                  onChange={(e) => setGoogleCalendarId(e.target.value)}
-                />
-              </div>
+              <TooltipProvider delayDuration={200}>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    Client ID
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
+                        <p className="font-semibold mb-1">Como obter o Client ID:</p>
+                        <ol className="list-decimal list-inside space-y-0.5">
+                          <li>Acesse o Google Cloud Console</li>
+                          <li>Crie um projeto (ou use um existente)</li>
+                          <li>Vá em APIs e Serviços → Biblioteca</li>
+                          <li>Ative a "Google Calendar API"</li>
+                          <li>Vá em Credenciais → Criar credenciais → ID do cliente OAuth</li>
+                          <li>Tipo: Aplicativo da Web</li>
+                          <li>Em URIs de redirecionamento, adicione: https://developers.google.com/oauthplayground</li>
+                          <li>O Client ID aparecerá após criar</li>
+                        </ol>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    placeholder="Seu Google Client ID"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    Client Secret
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
+                        <p className="font-semibold mb-1">Como obter o Client Secret:</p>
+                        <p>O Client Secret aparece junto com o Client ID ao criar as credenciais OAuth no Google Cloud Console (mesmo passo acima).</p>
+                        <p className="mt-1">Se já criou, vá em Credenciais → clique no seu ID OAuth → o Secret estará lá.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Seu Google Client Secret"
+                    value={googleClientSecret}
+                    onChange={(e) => setGoogleClientSecret(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    Refresh Token
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[350px] text-xs leading-relaxed">
+                        <p className="font-semibold mb-1">Como obter o Refresh Token:</p>
+                        <ol className="list-decimal list-inside space-y-0.5">
+                          <li>Acesse o OAuth 2.0 Playground do Google (developers.google.com/oauthplayground)</li>
+                          <li>Clique na engrenagem (⚙️) no canto superior direito</li>
+                          <li>Marque "Use your own OAuth credentials"</li>
+                          <li>Cole o Client ID e Client Secret</li>
+                          <li>No lado esquerdo, selecione "Google Calendar API v3" → escopo: .../auth/calendar</li>
+                          <li>Clique em "Authorize APIs" e faça login</li>
+                          <li>Clique em "Exchange authorization code for tokens"</li>
+                          <li>Copie o Refresh Token exibido</li>
+                        </ol>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Seu Google Refresh Token"
+                    value={googleRefreshToken}
+                    onChange={(e) => setGoogleRefreshToken(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    ID do Calendário
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
+                        <p className="font-semibold mb-1">Como obter o ID do Calendário:</p>
+                        <ol className="list-decimal list-inside space-y-0.5">
+                          <li>Abra o Google Agenda (calendar.google.com)</li>
+                          <li>No lado esquerdo, passe o mouse no calendário desejado</li>
+                          <li>Clique nos 3 pontinhos → Configurações</li>
+                          <li>Role até "Integrar agenda"</li>
+                          <li>O ID do calendário estará lá</li>
+                        </ol>
+                        <p className="mt-1">Se for o calendário principal, geralmente é o seu email (ex: seuemail@gmail.com).</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    placeholder="Ex: seuemail@gmail.com (ou 'primary')"
+                    value={googleCalendarId}
+                    onChange={(e) => setGoogleCalendarId(e.target.value)}
+                  />
+                </div>
+              </TooltipProvider>
             </div>
           )}
         </CardContent>
