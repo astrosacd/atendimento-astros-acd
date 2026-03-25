@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Bell, Key, Calendar, Info, ExternalLink } from 'lucide-react';
+import { Save, Loader2, Bell, Key, Calendar, Info, ExternalLink, HelpCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCalendarConfig, useUpdateCalendarConfig } from '@/hooks/useCalendar';
 
 export function AgendaConfigPanel() {
