@@ -101,6 +101,15 @@ serve(async (req) => {
     // Step 3: Set group image if provided
     if (imageBase64 && groupJid) {
       try {
+        // Clean base64: remove data URL prefix if present and any whitespace
+        let cleanImage = imageBase64.trim();
+        if (cleanImage.includes(',') && cleanImage.startsWith('data:')) {
+          cleanImage = cleanImage.split(',')[1];
+        }
+        cleanImage = cleanImage.replace(/\s/g, '');
+
+        console.log('Setting group image, base64 length:', cleanImage.length);
+
         await fetch(`${evolutionApiUrl}/group/updateGroupPicture/${evolutionInstance}`, {
           method: 'PUT',
           headers: {
@@ -109,7 +118,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             groupJid,
-            image: imageBase64,
+            image: cleanImage,
           }),
         });
       } catch (e) {

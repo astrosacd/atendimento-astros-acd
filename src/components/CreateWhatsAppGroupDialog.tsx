@@ -124,7 +124,12 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
       if (imageFile) {
         const reader = new FileReader();
         imageBase64 = await new Promise((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            // Remove data URL prefix, send only raw base64
+            const base64Only = result.includes(',') ? result.split(',')[1] : result;
+            resolve(base64Only);
+          };
           reader.readAsDataURL(imageFile);
         });
       }
