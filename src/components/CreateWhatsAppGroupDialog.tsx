@@ -197,7 +197,9 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
             {/* Instance Selector */}
             <div className="space-y-2">
               <Label className="font-medium">Instância WhatsApp *</Label>
-              {instances.length === 0 ? (
+              {loadingInstances ? (
+                <p className="text-sm text-muted-foreground">Carregando instâncias...</p>
+              ) : instances.length === 0 ? (
                 <p className="text-sm text-destructive">
                   Nenhuma instância ativa encontrada. Configure no módulo de Cobrança.
                 </p>
