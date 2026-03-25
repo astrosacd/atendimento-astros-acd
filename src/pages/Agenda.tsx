@@ -3,11 +3,13 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Calendar, Settings, Plus, Loader2 } from 'lucide-react';
-import { useCalendarEvents, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
+import { useCalendarEvents, useCalendarConfig, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
 import { AgendaCalendarView } from '@/components/agenda/AgendaCalendarView';
 import { AgendaConfigPanel } from '@/components/agenda/AgendaConfigPanel';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +23,7 @@ export default function Agenda() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useCalendarEvents(currentMonth);
+  const { data: calendarConfig } = useCalendarConfig();
   const createEvent = useCreateCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
   const deleteEvent = useDeleteCalendarEvent();
@@ -31,11 +34,53 @@ export default function Agenda() {
   const canDelete = hasPermission('delete_agenda_events');
   const canConfig = hasPermission('manage_agenda_config');
 
+  const googleEnabled = calendarConfig?.google_calendar_enabled === 'true';
+
+  const createMeetLink = async (eventData: any, calendarEventId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-create-meet`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: eventData.title,
+            description: eventData.description,
+            start_time: eventData.start_time,
+            end_time: eventData.end_time,
+            attendee_email: eventData.client_email,
+            calendar_event_id: calendarEventId,
+          }),
+        }
+      );
+
+      const json = await res.json();
+      if (json.success && json.meet_link) {
+        toast.success(`Link do Meet criado: ${json.meet_link}`);
+      } else if (json.error) {
+        toast.error(`Erro ao criar Meet: ${json.error}`);
+      }
+    } catch (e: any) {
+      console.error('Meet creation error:', e);
+      toast.error('Erro ao criar link do Meet automaticamente');
+    }
+  };
+
   const handleSave = async (data: any) => {
     if (editingEvent) {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
     } else {
-      await createEvent.mutateAsync(data);
+      const result = await createEvent.mutateAsync(data);
+      // Auto-create Meet link if Google Calendar is enabled
+      if (googleEnabled && result?.id) {
+        createMeetLink(data, result.id);
+      }
     }
     setFormOpen(false);
     setEditingEvent(null);
