@@ -482,8 +482,19 @@ export default function AdminNumerosAquecimento() {
                                 <TableCell className="text-sm text-muted-foreground">
                                   {numero.ultima_atividade}
                                 </TableCell>
-                                <TableCell className="max-w-[200px] truncate">
-                                  {numero.observacoes || '-'}
+                                <TableCell className="max-w-[200px]">
+                                  {numero.observacoes ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="block truncate cursor-default">{numero.observacoes}</span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-[400px] whitespace-pre-wrap">
+                                          {numero.observacoes}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : '-'}
                                 </TableCell>
                                 <TableCell>
                                   <NumeroActionsMenu
