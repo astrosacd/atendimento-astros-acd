@@ -43,7 +43,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
 
   // Fetch WhatsApp instances
-  const { data: instances = [] } = useQuery({
+  const { data: instances = [], isLoading: loadingInstances } = useQuery({
     queryKey: ['whatsapp-instances'],
     enabled: open,
     queryFn: async () => {
