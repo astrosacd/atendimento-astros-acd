@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Bell, Key, Calendar, Info } from 'lucide-react';
+import { Save, Loader2, Bell, Key, Calendar, Info, ExternalLink } from 'lucide-react';
 import { useCalendarConfig, useUpdateCalendarConfig } from '@/hooks/useCalendar';
 
 export function AgendaConfigPanel() {
@@ -18,6 +18,7 @@ export function AgendaConfigPanel() {
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
+  const [googleRefreshToken, setGoogleRefreshToken] = useState('');
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyHoursBefore, setNotifyHoursBefore] = useState('1');
   const [notifyChannel, setNotifyChannel] = useState('whatsapp');
@@ -29,6 +30,7 @@ export function AgendaConfigPanel() {
       setGoogleClientId(config.google_client_id || '');
       setGoogleClientSecret(config.google_client_secret || '');
       setGoogleCalendarId(config.google_calendar_id || '');
+      setGoogleRefreshToken(config.google_refresh_token || '');
       setNotifyEnabled(config.notify_client_enabled === 'true');
       setNotifyHoursBefore(config.notify_hours_before || '1');
       setNotifyChannel(config.notify_channel || 'whatsapp');
@@ -42,6 +44,7 @@ export function AgendaConfigPanel() {
       google_client_id: googleClientId,
       google_client_secret: googleClientSecret,
       google_calendar_id: googleCalendarId,
+      google_refresh_token: googleRefreshToken,
       notify_client_enabled: notifyEnabled ? 'true' : 'false',
       notify_hours_before: notifyHoursBefore,
       notify_channel: notifyChannel,
@@ -67,7 +70,7 @@ export function AgendaConfigPanel() {
             <CardTitle className="text-lg">Google Agenda</CardTitle>
           </div>
           <CardDescription>
-            Configure as credenciais do Google Calendar para sincronização automática
+            Configure as credenciais do Google Calendar para criação automática de links do Google Meet
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -85,10 +88,19 @@ export function AgendaConfigPanel() {
             <div className="space-y-3 pl-1">
               <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg flex items-start gap-2">
                 <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-blue-700 dark:text-blue-400">
-                  Para obter as credenciais, acesse o Google Cloud Console, crie um projeto com a API do Google Calendar habilitada
-                  e gere as credenciais OAuth 2.0.
-                </p>
+                <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                  <p>
+                    Para obter as credenciais, acesse o{' '}
+                    <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-0.5">
+                      Google Cloud Console <ExternalLink className="h-3 w-3" />
+                    </a>
+                    , crie um projeto com a API do Google Calendar habilitada e gere as credenciais OAuth 2.0.
+                  </p>
+                  <p>
+                    O <strong>Refresh Token</strong> é necessário para gerar links do Google Meet automaticamente.
+                    Você pode obtê-lo usando o OAuth 2.0 Playground ou ferramentas como n8n/Postman.
+                  </p>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Client ID</Label>
@@ -108,9 +120,18 @@ export function AgendaConfigPanel() {
                 />
               </div>
               <div className="space-y-2">
+                <Label>Refresh Token</Label>
+                <Input
+                  type="password"
+                  placeholder="Seu Google Refresh Token"
+                  value={googleRefreshToken}
+                  onChange={(e) => setGoogleRefreshToken(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>ID do Calendário</Label>
                 <Input
-                  placeholder="Ex: seuemail@gmail.com"
+                  placeholder="Ex: seuemail@gmail.com (ou 'primary')"
                   value={googleCalendarId}
                   onChange={(e) => setGoogleCalendarId(e.target.value)}
                 />
@@ -128,7 +149,11 @@ export function AgendaConfigPanel() {
             <CardTitle className="text-lg">Notificações</CardTitle>
           </div>
           <CardDescription>
-            Configure notificações automáticas para clientes no dia da reunião
+            Configure notificações automáticas para clientes no dia da reunião.
+            <br />
+            <span className="text-xs text-muted-foreground">
+              WhatsApp usa a Evolution API configurada no sistema. Email usa o Gmail configurado.
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -144,6 +169,13 @@ export function AgendaConfigPanel() {
 
           {notifyEnabled && (
             <div className="space-y-3 pl-1">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg flex items-start gap-2">
+                <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="text-xs text-amber-700 dark:text-amber-400">
+                  <p><strong>WhatsApp:</strong> Utiliza a Evolution API (URL, API Key e Instância) já configuradas no sistema.</p>
+                  <p><strong>Email:</strong> Utiliza as credenciais do Gmail (GMAIL_USER e GMAIL_APP_PASSWORD) já configuradas no sistema.</p>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Horas antes da reunião</Label>
