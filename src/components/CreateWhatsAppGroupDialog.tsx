@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone, Server } from 'lucide-react';
+import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone, Server, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -28,6 +28,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+type NumberStatus = 'pending' | 'checking' | 'valid' | 'invalid';
+
+interface ParticipantInfo {
+  number: string;
+  status: NumberStatus;
+}
+
 export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumero, open, onOpenChange }: Props) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('criar');
@@ -37,7 +44,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   const [groupDescription, setGroupDescription] = useState('');
   const [motivo, setMotivo] = useState('');
   const [participantInput, setParticipantInput] = useState('');
-  const [participants, setParticipants] = useState<string[]>(clienteNumero ? [clienteNumero] : []);
+  const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
@@ -71,19 +78,84 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     },
   });
 
+  // Pre-fill client number when dialog opens
+  useEffect(() => {
+    if (open && clienteNumero) {
+      const cleanNum = clienteNumero.replace(/\D/g, '');
+      if (cleanNum && !participants.some(p => p.number === cleanNum)) {
+        setParticipants([{ number: cleanNum, status: 'pending' }]);
+      }
+    }
+  }, [open, clienteNumero]);
+
+  // Auto-validate pending numbers when an instance is selected
+  const validateNumber = useCallback(async (number: string) => {
+    const selectedInstance = instances.find(i => i.id === selectedInstanceId);
+    if (!selectedInstance) return;
+
+    setParticipants(prev =>
+      prev.map(p => p.number === number ? { ...p, status: 'checking' as NumberStatus } : p)
+    );
+
+    try {
+      const cleanNum = number.replace(/\D/g, '');
+      const response = await fetch(
+        `${selectedInstance.api_url}/chat/whatsappNumbers/${selectedInstance.instance_name}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': selectedInstance.api_key,
+          },
+          body: JSON.stringify({ numbers: [cleanNum] }),
+        }
+      );
+
+      const data = await response.json();
+      // Evolution API returns array with exists field
+      const exists = Array.isArray(data) && data.length > 0 && data[0]?.exists === true;
+
+      setParticipants(prev =>
+        prev.map(p => p.number === number ? { ...p, status: exists ? 'valid' : 'invalid' } : p)
+      );
+    } catch (err) {
+      console.error('Error validating number:', err);
+      // On error, keep as pending (don't block)
+      setParticipants(prev =>
+        prev.map(p => p.number === number ? { ...p, status: 'pending' as NumberStatus } : p)
+      );
+    }
+  }, [instances, selectedInstanceId]);
+
+  // When instance changes, re-validate all pending/invalid numbers
+  useEffect(() => {
+    if (!selectedInstanceId || participants.length === 0) return;
+    participants.forEach(p => {
+      if (p.status === 'pending') {
+        validateNumber(p.number);
+      }
+    });
+  }, [selectedInstanceId]);
+
   const addParticipant = () => {
     const num = participantInput.replace(/\D/g, '').trim();
     if (!num) return;
-    if (participants.includes(num)) {
+    if (participants.some(p => p.number === num)) {
       toast.error('Número já adicionado');
       return;
     }
-    setParticipants(prev => [...prev, num]);
+    const newParticipant: ParticipantInfo = { number: num, status: 'pending' };
+    setParticipants(prev => [...prev, newParticipant]);
     setParticipantInput('');
+
+    // Validate immediately if instance is selected
+    if (selectedInstanceId) {
+      setTimeout(() => validateNumber(num), 100);
+    }
   };
 
   const removeParticipant = (num: string) => {
-    setParticipants(prev => prev.filter(p => p !== num));
+    setParticipants(prev => prev.filter(p => p.number !== num));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +178,9 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     );
   };
 
+  const invalidParticipants = participants.filter(p => p.status === 'invalid');
+  const hasInvalidNumbers = invalidParticipants.length > 0;
+
   const handleCreate = async () => {
     if (!isFormValid()) {
       toast.error('Preencha todos os campos obrigatórios');
@@ -118,6 +193,12 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
       return;
     }
 
+    // Warn about invalid numbers but allow creation
+    if (hasInvalidNumbers) {
+      const invalidNums = invalidParticipants.map(p => p.number).join(', ');
+      toast.warning(`Atenção: os números ${invalidNums} não foram encontrados no WhatsApp. Eles serão ignorados na criação do grupo.`);
+    }
+
     setIsCreating(true);
     try {
       let imageBase64: string | null = null;
@@ -126,7 +207,6 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
         imageBase64 = await new Promise((resolve) => {
           reader.onloadend = () => {
             const result = reader.result as string;
-            // Remove data URL prefix, send only raw base64
             const base64Only = result.includes(',') ? result.split(',')[1] : result;
             resolve(base64Only);
           };
@@ -134,12 +214,23 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
         });
       }
 
+      // Only send valid/pending/checking numbers (exclude invalid)
+      const validNumbers = participants
+        .filter(p => p.status !== 'invalid')
+        .map(p => p.number);
+
+      if (validNumbers.length === 0) {
+        toast.error('Nenhum participante com número válido. Adicione pelo menos um número válido.');
+        setIsCreating(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-whatsapp-group', {
         body: {
           clienteId,
           groupName: groupName.trim(),
           groupDescription: groupDescription.trim(),
-          participants,
+          participants: validNumbers,
           imageBase64,
           motivo: motivo.trim(),
           instanceApiUrl: selectedInstance.api_url,
@@ -156,7 +247,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
       setGroupName('');
       setGroupDescription('');
       setMotivo('');
-      setParticipants(clienteNumero ? [clienteNumero] : []);
+      setParticipants(clienteNumero ? [{ number: clienteNumero.replace(/\D/g, ''), status: 'pending' }] : []);
       setImageFile(null);
       setImagePreview(null);
       setSelectedInstanceId('');
@@ -172,6 +263,27 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     if (e.key === 'Enter') {
       e.preventDefault();
       addParticipant();
+    }
+  };
+
+  const getStatusIcon = (status: NumberStatus) => {
+    switch (status) {
+      case 'checking':
+        return <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />;
+      case 'valid':
+        return <CheckCircle className="h-3 w-3 text-emerald-500" />;
+      case 'invalid':
+        return <XCircle className="h-3 w-3 text-destructive" />;
+      default:
+        return <AlertCircle className="h-3 w-3 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusVariant = (status: NumberStatus): 'secondary' | 'destructive' | 'outline' | 'default' => {
+    switch (status) {
+      case 'valid': return 'default';
+      case 'invalid': return 'destructive';
+      default: return 'secondary';
     }
   };
 
@@ -281,18 +393,40 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
               </div>
               {participants.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {participants.map((num) => (
-                    <Badge key={num} variant="secondary" className="gap-1 text-xs py-1">
-                      {num}
-                      <button onClick={() => removeParticipant(num)} className="ml-1 hover:text-destructive">
+                  {participants.map((p) => (
+                    <Badge
+                      key={p.number}
+                      variant={getStatusVariant(p.status)}
+                      className="gap-1 text-xs py-1"
+                    >
+                      {getStatusIcon(p.status)}
+                      {p.number}
+                      {p.number === clienteNumero?.replace(/\D/g, '') && (
+                        <span className="text-[10px] opacity-70">(cliente)</span>
+                      )}
+                      <button onClick={() => removeParticipant(p.number)} className="ml-1 hover:text-destructive">
                         <X className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
                 </div>
               )}
+              {hasInvalidNumbers && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <XCircle className="h-3 w-3" />
+                  {invalidParticipants.length === 1
+                    ? `O número ${invalidParticipants[0].number} não foi encontrado no WhatsApp`
+                    : `${invalidParticipants.length} números não foram encontrados no WhatsApp`
+                  }
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {participants.length} participante(s) — inclua o número com DDI (ex: 5511999999999)
+                {!selectedInstanceId && participants.some(p => p.status === 'pending') && (
+                  <span className="block text-amber-500 mt-0.5">
+                    Selecione uma instância para validar os números
+                  </span>
+                )}
               </p>
             </div>
 
