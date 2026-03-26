@@ -60,6 +60,7 @@ import Catalogo from "./pages/public/Catalogo";
 import Checkout from "./pages/public/Checkout";
 import Sucesso from "./pages/public/Sucesso";
 import CredenciaisPublica from "./pages/public/CredenciaisPublica";
+import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
