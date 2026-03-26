@@ -130,6 +130,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     { title: 'Pipeline', icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
     { title: 'Lead Hunter', icon: Crosshair, path: '/lead-hunter', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
     { title: 'Agenda', icon: CalendarDays, path: '/agenda', adminOnly: !canViewAgenda(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
+    { title: 'Link Pagamento', icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
   ];
 
   const adminItems: NavItem[] = [
