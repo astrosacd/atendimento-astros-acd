@@ -80,6 +80,8 @@ export default function ConsultaNumeros() {
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createTypeDialogOpen, setCreateTypeDialogOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{ numero: string; rowId: string } | null>(null);
   const [createType, setCreateType] = useState<'interno' | 'externo' | null>(null);
   const [selectedSeguro, setSelectedSeguro] = useState<string>('');
   const [newValues, setNewValues] = useState<Record<string, string>>({});
