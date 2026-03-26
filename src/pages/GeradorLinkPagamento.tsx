@@ -44,13 +44,13 @@ export default function GeradorLinkPagamento() {
   const { data: linkHistory = [], isLoading: historyLoading } = useQuery({
     queryKey: ['payment-links-history'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('payment_links')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
