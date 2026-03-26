@@ -37,13 +37,13 @@ export default function LinkPagamentoPublico() {
     (async () => {
       try {
         // Validate token
-        const { data: valid } = await supabase.rpc('validate_payment_link_token', {
+        const { data: valid } = await (supabase as any).rpc('validate_payment_link_token', {
           p_token: token,
         });
         setIsValid(!!valid);
         if (valid) {
           // Get expiry
-          const { data } = await supabase
+          const { data } = await (supabase as any)
             .from('payment_link_share_tokens')
             .select('expires_at')
             .eq('token', token)

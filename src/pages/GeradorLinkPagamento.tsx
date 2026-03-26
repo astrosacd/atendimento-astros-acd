@@ -124,7 +124,7 @@ export default function GeradorLinkPagamento() {
   // Delete share token
   const deleteTokenMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('payment_link_share_tokens')
         .delete()
         .eq('id', id);
