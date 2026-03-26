@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, CalendarIcon,
   Plus, Filter, RefreshCw, ListTodo, User, Search, History, Eye
@@ -62,6 +63,10 @@ export default function Tarefas() {
   const [editingTask, setEditingTask] = useState<ClientTask | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteReason, setBulkDeleteReason] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     cliente_id: '' as string | null,
@@ -210,6 +215,38 @@ export default function Tarefas() {
         setDeleteReason('');
         loadData();
       }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedTasks.size === 0 || !bulkDeleteReason.trim()) return;
+    setBulkDeleting(true);
+    let successCount = 0;
+    for (const taskId of selectedTasks) {
+      const success = await deleteTask(taskId, bulkDeleteReason);
+      if (success) successCount++;
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    setBulkDeleteReason('');
+    setSelectedTasks(new Set());
+    loadData();
+  };
+
+  const toggleSelectTask = (taskId: string) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks.map(t => t.id)));
     }
   };
 
@@ -429,6 +466,26 @@ export default function Tarefas() {
           </CardContent>
         </Card>
 
+        {/* Bulk Actions Bar */}
+        {selectedTasks.size > 0 && (
+          <Card className="bg-destructive/10 border-destructive/30">
+            <CardContent className="p-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">
+                {selectedTasks.size} tarefa{selectedTasks.size > 1 ? 's' : ''} selecionada{selectedTasks.size > 1 ? 's' : ''}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedTasks(new Set())} className="border-border">
+                  Limpar seleção
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Excluir selecionadas
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Task List */}
         <Card className="bg-card border-border">
           <CardContent className="p-0">
@@ -440,11 +497,24 @@ export default function Tarefas() {
               </div>
             ) : (
               <div className="divide-y divide-border">
+                {/* Select All Header */}
+                <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
+                  <Checkbox
+                    checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-xs text-muted-foreground">Selecionar todas</span>
+                </div>
                 {filteredTasks.map((task) => (
                   <div 
                     key={task.id} 
-                    className={`flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''}`}
+                    className={`flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''} ${selectedTasks.has(task.id) ? 'bg-primary/5' : ''}`}
                   >
+                    <Checkbox
+                      checked={selectedTasks.has(task.id)}
+                      onCheckedChange={() => toggleSelectTask(task.id)}
+                      className="mt-1"
+                    />
                     <button
                       onClick={() => {
                         if (task.status === 'pendente') handleStatusChange(task.id, 'em_andamento');
@@ -752,7 +822,46 @@ export default function Tarefas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Task History Dialog */}
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Excluir {selectedTasks.size} Tarefa{selectedTasks.size > 1 ? 's' : ''}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir {selectedTasks.size} tarefa{selectedTasks.size > 1 ? 's' : ''} selecionada{selectedTasks.size > 1 ? 's' : ''}? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="bulk-delete-reason" className="text-foreground">
+              Motivo da exclusão *
+            </Label>
+            <Textarea
+              id="bulk-delete-reason"
+              value={bulkDeleteReason}
+              onChange={(e) => setBulkDeleteReason(e.target.value)}
+              placeholder="Informe o motivo da exclusão em lote..."
+              className="mt-2 bg-secondary border-border text-foreground"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="border-border"
+              onClick={() => { setBulkDeleteOpen(false); setBulkDeleteReason(''); }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              disabled={!bulkDeleteReason.trim() || bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Excluindo...' : `Excluir ${selectedTasks.size} tarefa${selectedTasks.size > 1 ? 's' : ''}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <TaskHistoryDialog 
         open={isHistoryOpen} 
         onOpenChange={setIsHistoryOpen} 
