@@ -58,12 +58,12 @@ export default function GeradorLinkPagamento() {
   const { data: shareTokens = [], isLoading: tokensLoading } = useQuery({
     queryKey: ['payment-link-share-tokens'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('payment_link_share_tokens')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
