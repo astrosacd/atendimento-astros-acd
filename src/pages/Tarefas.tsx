@@ -497,14 +497,16 @@ export default function Tarefas() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {/* Select All Header */}
-                <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
-                  <Checkbox
-                    checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                  <span className="text-xs text-muted-foreground">Selecionar todas</span>
-                </div>
+                {/* Select All Header - only visible when tasks are selected */}
+                {selectedTasks.size > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-b border-border">
+                    <Checkbox
+                      checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                    <span className="text-xs text-muted-foreground">Selecionar todas</span>
+                  </div>
+                )}
                 {filteredTasks.map((task) => (
                   <div 
                     key={task.id} 
