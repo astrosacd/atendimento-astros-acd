@@ -616,11 +616,8 @@ export default function ConsultaNumeros() {
       const rowId = json?.data?.id;
       const numero = json?.data?.numero || json?.data?.Numero || '';
       if (createType === 'interno' && rowId) {
-        toast({ 
-          title: '✅ Número cadastrado com sucesso!', 
-          description: `Número: ${numero} — Código (ID da linha): ${rowId}`,
-          duration: 10000,
-        });
+        setSuccessModalData({ numero, rowId: String(rowId) });
+        setSuccessModalOpen(true);
       } else {
         toast({ title: t('numberQuery.registeredSuccess') });
       }
