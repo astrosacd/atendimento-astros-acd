@@ -53,12 +53,14 @@ import Despesas from "./pages/Despesas";
 import KanbanClientes from "./pages/KanbanClientes";
 import LeadHunter from "./pages/LeadHunter";
 import Agenda from "./pages/Agenda";
+import GeradorLinkPagamento from "./pages/GeradorLinkPagamento";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
 import Checkout from "./pages/public/Checkout";
 import Sucesso from "./pages/public/Sucesso";
 import CredenciaisPublica from "./pages/public/CredenciaisPublica";
+import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -150,6 +152,7 @@ function AppRoutes() {
       <Route path="/kanban" element={<ProtectedRoute permission="view_pipeline"><KanbanClientes /></ProtectedRoute>} />
       <Route path="/lead-hunter" element={<ProtectedRoute permission="view_dashboard"><LeadHunter /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
+      <Route path="/link-pagamento" element={<ProtectedRoute permission="view_payment_links"><GeradorLinkPagamento /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
@@ -160,6 +163,7 @@ function AppRoutes() {
       <Route path="/p/:slug" element={<Checkout />} />
       <Route path="/sucesso" element={<Sucesso />} />
       <Route path="/credenciais/:token" element={<CredenciaisPublica />} />
+      <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
