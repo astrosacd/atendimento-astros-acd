@@ -129,15 +129,31 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        if (recentLogs && recentLogs.length > 0 && existingTask) {
+        // Skip if there's a recent successful execution within the dedup window
+        if (recentLogs && recentLogs.length > 0) {
           const lastRun = recentLogs[0].created_at;
           console.log(
-            `[Rule: ${rule.name}] Skipping ${cliente.nome}: task still exists and was created on ${lastRun} (dedup window: ${dedupDays} days)`,
+            `[Rule: ${rule.name}] Skipping ${cliente.nome}: already executed on ${lastRun} (dedup window: ${dedupDays} days)`,
           );
           await supabase.from('automation_logs').insert({
             rule_id: rule.id,
             cliente_id: cliente.id,
-            action_taken: `Pulado: tarefa ainda existe e foi criada em ${new Date(lastRun).toLocaleDateString('pt-BR')} (janela de desduplicação: ${dedupDays} dias)`,
+            action_taken: `Pulado: última execução em ${new Date(lastRun).toLocaleDateString('pt-BR')} (janela de desduplicação: ${dedupDays} dias)`,
+            result: 'skipped',
+          });
+          totalSkipped++;
+          continue;
+        }
+
+        // Also skip if there's already an active (non-completed, non-cancelled) task with the same title
+        if (existingTask && existingTask.status !== 'concluida' && existingTask.status !== 'cancelada') {
+          console.log(
+            `[Rule: ${rule.name}] Skipping ${cliente.nome}: active task already exists (status: ${existingTask.status})`,
+          );
+          await supabase.from('automation_logs').insert({
+            rule_id: rule.id,
+            cliente_id: cliente.id,
+            action_taken: `Pulado: tarefa ativa já existe (status: ${existingTask.status})`,
             result: 'skipped',
           });
           totalSkipped++;
