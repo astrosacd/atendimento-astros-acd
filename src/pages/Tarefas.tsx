@@ -822,7 +822,46 @@ export default function Tarefas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Task History Dialog */}
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Excluir {selectedTasks.size} Tarefa{selectedTasks.size > 1 ? 's' : ''}</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Tem certeza que deseja excluir {selectedTasks.size} tarefa{selectedTasks.size > 1 ? 's' : ''} selecionada{selectedTasks.size > 1 ? 's' : ''}? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="bulk-delete-reason" className="text-foreground">
+              Motivo da exclusão *
+            </Label>
+            <Textarea
+              id="bulk-delete-reason"
+              value={bulkDeleteReason}
+              onChange={(e) => setBulkDeleteReason(e.target.value)}
+              placeholder="Informe o motivo da exclusão em lote..."
+              className="mt-2 bg-secondary border-border text-foreground"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="border-border"
+              onClick={() => { setBulkDeleteOpen(false); setBulkDeleteReason(''); }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              disabled={!bulkDeleteReason.trim() || bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Excluindo...' : `Excluir ${selectedTasks.size} tarefa${selectedTasks.size > 1 ? 's' : ''}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <TaskHistoryDialog 
         open={isHistoryOpen} 
         onOpenChange={setIsHistoryOpen} 
