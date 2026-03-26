@@ -497,30 +497,37 @@ export default function Tarefas() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {/* Select All Header */}
-                <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
-                  <Checkbox
-                    checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                  <span className="text-xs text-muted-foreground">Selecionar todas</span>
-                </div>
+                {/* Select All Header - only visible when tasks are selected */}
+                {selectedTasks.size > 0 && (
+                  <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-b border-border">
+                    <Checkbox
+                      checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                    <span className="text-xs text-muted-foreground">Selecionar todas</span>
+                  </div>
+                )}
                 {filteredTasks.map((task) => (
                   <div 
                     key={task.id} 
-                    className={`flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''} ${selectedTasks.has(task.id) ? 'bg-primary/5' : ''}`}
+                    className={`group flex items-start gap-3 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''} ${selectedTasks.has(task.id) ? 'bg-primary/5' : ''}`}
                   >
-                    <Checkbox
-                      checked={selectedTasks.has(task.id)}
-                      onCheckedChange={() => toggleSelectTask(task.id)}
-                      className="mt-1"
-                    />
+                    {/* Checkbox: visible on hover or when any task is selected */}
+                    <div className={cn(
+                      "mt-0.5 transition-all duration-150",
+                      selectedTasks.size > 0 ? "opacity-100 w-5" : "opacity-0 w-0 group-hover:opacity-100 group-hover:w-5"
+                    )}>
+                      <Checkbox
+                        checked={selectedTasks.has(task.id)}
+                        onCheckedChange={() => toggleSelectTask(task.id)}
+                      />
+                    </div>
                     <button
                       onClick={() => {
                         if (task.status === 'pendente') handleStatusChange(task.id, 'em_andamento');
                         else if (task.status === 'em_andamento') handleStatusChange(task.id, 'concluida');
                       }}
-                      className="mt-0.5 hover:opacity-80 transition-opacity"
+                      className="mt-0.5 hover:opacity-80 transition-opacity shrink-0"
                       title={task.status === 'pendente' ? 'Iniciar' : task.status === 'em_andamento' ? 'Concluir' : ''}
                       disabled={task.status === 'concluida' || task.status === 'cancelada'}
                     >
