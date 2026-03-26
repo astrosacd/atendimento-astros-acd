@@ -497,11 +497,24 @@ export default function Tarefas() {
               </div>
             ) : (
               <div className="divide-y divide-border">
+                {/* Select All Header */}
+                <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
+                  <Checkbox
+                    checked={selectedTasks.size === filteredTasks.length && filteredTasks.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-xs text-muted-foreground">Selecionar todas</span>
+                </div>
                 {filteredTasks.map((task) => (
                   <div 
                     key={task.id} 
-                    className={`flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''}`}
+                    className={`flex items-start gap-4 p-4 hover:bg-muted/30 transition-colors ${isOverdue(task) ? 'bg-destructive/5' : ''} ${selectedTasks.has(task.id) ? 'bg-primary/5' : ''}`}
                   >
+                    <Checkbox
+                      checked={selectedTasks.has(task.id)}
+                      onCheckedChange={() => toggleSelectTask(task.id)}
+                      className="mt-1"
+                    />
                     <button
                       onClick={() => {
                         if (task.status === 'pendente') handleStatusChange(task.id, 'em_andamento');
