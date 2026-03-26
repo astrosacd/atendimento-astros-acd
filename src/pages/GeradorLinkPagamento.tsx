@@ -96,7 +96,7 @@ export default function GeradorLinkPagamento() {
   const createShareTokenMutation = useMutation({
     mutationFn: async (expiryHours: number) => {
       const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('payment_link_share_tokens')
         .insert({
           created_by: user?.id,
@@ -108,7 +108,7 @@ export default function GeradorLinkPagamento() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['payment-link-share-tokens'] });
       const baseUrl = window.location.hostname.includes('lovable')
         ? 'https://atendimento-astros-acd.lovable.app'
