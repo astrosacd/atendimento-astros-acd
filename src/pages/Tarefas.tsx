@@ -466,6 +466,26 @@ export default function Tarefas() {
           </CardContent>
         </Card>
 
+        {/* Bulk Actions Bar */}
+        {selectedTasks.size > 0 && (
+          <Card className="bg-destructive/10 border-destructive/30">
+            <CardContent className="p-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">
+                {selectedTasks.size} tarefa{selectedTasks.size > 1 ? 's' : ''} selecionada{selectedTasks.size > 1 ? 's' : ''}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedTasks(new Set())} className="border-border">
+                  Limpar seleção
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Excluir selecionadas
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Task List */}
         <Card className="bg-card border-border">
           <CardContent className="p-0">
