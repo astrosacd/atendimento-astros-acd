@@ -218,6 +218,38 @@ export default function Tarefas() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedTasks.size === 0 || !bulkDeleteReason.trim()) return;
+    setBulkDeleting(true);
+    let successCount = 0;
+    for (const taskId of selectedTasks) {
+      const success = await deleteTask(taskId, bulkDeleteReason);
+      if (success) successCount++;
+    }
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    setBulkDeleteReason('');
+    setSelectedTasks(new Set());
+    loadData();
+  };
+
+  const toggleSelectTask = (taskId: string) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTasks.size === filteredTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredTasks.map(t => t.id)));
+    }
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'baixa': return 'bg-muted text-muted-foreground';
