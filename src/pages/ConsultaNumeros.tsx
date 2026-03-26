@@ -80,6 +80,8 @@ export default function ConsultaNumeros() {
   // Create number state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createTypeDialogOpen, setCreateTypeDialogOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{ numero: string; rowId: string } | null>(null);
   const [createType, setCreateType] = useState<'interno' | 'externo' | null>(null);
   const [selectedSeguro, setSelectedSeguro] = useState<string>('');
   const [newValues, setNewValues] = useState<Record<string, string>>({});
@@ -614,11 +616,8 @@ export default function ConsultaNumeros() {
       const rowId = json?.data?.id;
       const numero = json?.data?.numero || json?.data?.Numero || '';
       if (createType === 'interno' && rowId) {
-        toast({ 
-          title: '✅ Número cadastrado com sucesso!', 
-          description: `Número: ${numero} — Código (ID da linha): ${rowId}`,
-          duration: 10000,
-        });
+        setSuccessModalData({ numero, rowId: String(rowId) });
+        setSuccessModalOpen(true);
       } else {
         toast({ title: t('numberQuery.registeredSuccess') });
       }
@@ -2223,6 +2222,31 @@ export default function ConsultaNumeros() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Modal - Código do número cadastrado */}
+      <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">✅ Número cadastrado com sucesso!</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              O número foi registrado no sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="bg-muted rounded-lg p-4 w-full text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Número</p>
+              <p className="text-lg font-semibold font-mono">{successModalData?.numero}</p>
+            </div>
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 w-full text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Código (ID da linha)</p>
+              <p className="text-2xl font-bold font-mono text-primary">{successModalData?.rowId}</p>
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={() => setSuccessModalOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
