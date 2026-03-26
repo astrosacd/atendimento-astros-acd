@@ -287,5 +287,9 @@ export function usePermissions() {
     canEditAgendaEvents,
     canDeleteAgendaEvents,
     canManageAgendaConfig,
+    // Payment Links
+    canViewPaymentLinks,
+    canGeneratePaymentLinks,
+    canSharePaymentLinks,
   };
 }
