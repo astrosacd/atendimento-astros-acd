@@ -2241,7 +2241,7 @@ export default function ConsultaNumeros() {
               <p className="text-lg font-semibold font-mono">{successModalData?.numero}</p>
             </div>
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 w-full text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Código (ID da linha)</p>
+              <p className="text-sm text-muted-foreground">ID do número</p>
               <p className="text-2xl font-bold font-mono text-primary">{successModalData?.rowId}</p>
             </div>
           </div>
