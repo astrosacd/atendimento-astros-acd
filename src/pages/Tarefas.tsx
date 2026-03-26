@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   CheckCircle2, Clock, AlertTriangle, Circle, Trash2, Edit, Calendar, CalendarIcon,
   Plus, Filter, RefreshCw, ListTodo, User, Search, History, Eye
