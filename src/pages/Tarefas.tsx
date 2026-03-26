@@ -63,6 +63,10 @@ export default function Tarefas() {
   const [editingTask, setEditingTask] = useState<ClientTask | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteReason, setBulkDeleteReason] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     cliente_id: '' as string | null,
