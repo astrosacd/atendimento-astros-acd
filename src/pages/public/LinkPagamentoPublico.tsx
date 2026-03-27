@@ -14,17 +14,28 @@ import {
   Link2, Copy, ExternalLink, Loader2, ShieldX, Clock, Building2
 } from 'lucide-react';
 
+type Provider = 'mercadopago' | 'stripe';
+
+const providerLabels: Record<Provider, string> = {
+  mercadopago: 'Mercado Pago',
+  stripe: 'Stripe',
+};
+
 export default function LinkPagamentoPublico() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [allowedProviders, setAllowedProviders] = useState<Provider[]>([]);
 
   const [empresa, setEmpresa] = useState('');
   const [valorVenda, setValorVenda] = useState('');
   const [validadeHoras, setValidadeHoras] = useState('24');
+  const [provider, setProvider] = useState<Provider>('mercadopago');
   const [generating, setGenerating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<{
+    provider_label: string;
+    config_source: string;
     payment_url: string;
     valor_original: number;
     valor_com_taxa: number;
@@ -36,19 +47,20 @@ export default function LinkPagamentoPublico() {
     if (!token) return;
     (async () => {
       try {
-        // Validate token
-        const { data: valid } = await (supabase as any).rpc('validate_payment_link_token', {
+        const { data, error } = await (supabase as any).rpc('validate_payment_link_token', {
           p_token: token,
         });
-        setIsValid(!!valid);
+        if (error) throw error;
+
+        const valid = !!data?.valid;
+        setIsValid(valid);
         if (valid) {
-          // Get expiry
-          const { data } = await (supabase as any)
-            .from('payment_link_share_tokens')
-            .select('expires_at')
-            .eq('token', token)
-            .single();
-          if (data) setExpiresAt(data.expires_at);
+          setExpiresAt(data.expires_at || null);
+          const providers = Array.isArray(data.allowed_providers)
+            ? data.allowed_providers.filter((item: string): item is Provider => item === 'mercadopago' || item === 'stripe')
+            : [];
+          setAllowedProviders(providers);
+          if (providers.length > 0) setProvider(providers[0]);
         }
       } catch {
         setIsValid(false);
@@ -62,6 +74,7 @@ export default function LinkPagamentoPublico() {
     if (!empresa.trim()) return toast.error('Informe o nome da empresa');
     const val = parseFloat(valorVenda.replace(',', '.'));
     if (isNaN(val) || val <= 0) return toast.error('Informe um valor válido');
+    if (!allowedProviders.includes(provider)) return toast.error('Este provedor não está liberado neste link');
 
     setGenerating(true);
     try {
@@ -71,6 +84,7 @@ export default function LinkPagamentoPublico() {
           valor_da_venda: valorVenda.replace(',', '.'),
           validade_horas: parseInt(validadeHoras),
           share_token: token,
+          provider,
         },
       });
       if (res.error) throw new Error(res.error.message);
@@ -135,10 +149,23 @@ export default function LinkPagamentoPublico() {
               </div>
             )}
             <CardDescription>
-              Preencha os dados abaixo para gerar um link de pagamento do Mercado Pago
+              Este acesso usa as configurações do módulo Cobrança → Pagamentos.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="provider">Provedor</Label>
+              <Select value={provider} onValueChange={(value) => setProvider(value as Provider)}>
+                <SelectTrigger id="provider">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedProviders.map((item) => (
+                    <SelectItem key={item} value={item}>{providerLabels[item]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="empresa">Nome da Empresa / Título</Label>
               <Input
@@ -196,12 +223,20 @@ export default function LinkPagamentoPublico() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
+                  <span className="text-muted-foreground">Provedor:</span>
+                  <p className="font-semibold">{generatedLink.provider_label}</p>
+                </div>
+                <div>
                   <span className="text-muted-foreground">Valor original:</span>
                   <p className="font-semibold">R$ {generatedLink.valor_original.toFixed(2)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Com taxa ({generatedLink.taxa_percentual}%):</span>
                   <p className="font-semibold">R$ {generatedLink.valor_com_taxa.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Origem:</span>
+                  <p className="font-semibold">{generatedLink.config_source}</p>
                 </div>
               </div>
               <div className="flex gap-2">

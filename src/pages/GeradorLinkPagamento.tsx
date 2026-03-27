@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,14 @@ import {
   DollarSign, Building2, Plus
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+
+type Provider = 'mercadopago' | 'stripe';
+
+const providerLabels: Record<Provider, string> = {
+  mercadopago: 'Mercado Pago',
+  stripe: 'Stripe',
+};
 
 export default function GeradorLinkPagamento() {
   const { user } = useAuth();
@@ -28,7 +36,10 @@ export default function GeradorLinkPagamento() {
   const [empresa, setEmpresa] = useState('');
   const [valorVenda, setValorVenda] = useState('');
   const [validadeHoras, setValidadeHoras] = useState('24');
+  const [provider, setProvider] = useState<Provider>('mercadopago');
   const [generatedLink, setGeneratedLink] = useState<{
+    provider_label: string;
+    config_source: string;
     payment_url: string;
     valor_original: number;
     valor_com_taxa: number;
@@ -39,6 +50,61 @@ export default function GeradorLinkPagamento() {
   // Share token dialog
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareExpiry, setShareExpiry] = useState('1');
+  const [shareProviders, setShareProviders] = useState<Provider[]>(['mercadopago', 'stripe']);
+
+  const { data: providerConfig } = useQuery({
+    queryKey: ['payment-link-provider-config'],
+    queryFn: async () => {
+      const [{ data: billingData, error: billingError }, { data: stripeData, error: stripeError }] = await Promise.all([
+        supabase
+          .from('billing_config')
+          .select('config_key, config_value')
+          .in('config_key', ['mp_access_token', 'mp_taxa_cartao', 'mp_link_enabled']),
+        supabase
+          .from('billing_stripe_config')
+          .select('stripe_enabled, stripe_tax_percent, stripe_secret_key')
+          .limit(1)
+          .single(),
+      ]);
+
+      if (billingError) throw billingError;
+      if (stripeError && stripeError.code !== 'PGRST116') throw stripeError;
+
+      const getConfig = (key: string) => billingData?.find((item) => item.config_key === key)?.config_value || '';
+
+      return {
+        mercadopago: {
+          enabled: getConfig('mp_link_enabled') === 'true' && !!getConfig('mp_access_token'),
+          fee: Number(getConfig('mp_taxa_cartao') || 0),
+          source: 'Módulo Cobrança → Pagamentos',
+        },
+        stripe: {
+          enabled: !!stripeData?.stripe_enabled && !!stripeData?.stripe_secret_key,
+          fee: Number(stripeData?.stripe_tax_percent || 0),
+          source: 'Módulo Cobrança → Pagamentos',
+        },
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (!providerConfig) return;
+
+    const enabledProviders = (Object.entries(providerConfig) as [Provider, { enabled: boolean }][])
+      .filter(([, config]) => config.enabled)
+      .map(([key]) => key);
+
+    if (enabledProviders.length > 0 && !enabledProviders.includes(provider)) {
+      setProvider(enabledProviders[0]);
+    }
+
+    if (enabledProviders.length > 0) {
+      setShareProviders((current) => {
+        const filtered = current.filter((item) => enabledProviders.includes(item));
+        return filtered.length > 0 ? filtered : enabledProviders;
+      });
+    }
+  }, [providerConfig, provider]);
 
   // History query
   const { data: linkHistory = [], isLoading: historyLoading } = useQuery({
@@ -70,12 +136,12 @@ export default function GeradorLinkPagamento() {
   // Generate link mutation
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await supabase.functions.invoke('generate-payment-link', {
         body: {
           empresa: empresa.trim(),
           valor_da_venda: valorVenda.replace(',', '.'),
           validade_horas: parseInt(validadeHoras),
+          provider,
         },
       });
       if (res.error) throw new Error(res.error.message || 'Erro ao gerar link');
@@ -94,7 +160,7 @@ export default function GeradorLinkPagamento() {
 
   // Create share token mutation
   const createShareTokenMutation = useMutation({
-    mutationFn: async (expiryHours: number) => {
+    mutationFn: async ({ expiryHours, allowedProviders }: { expiryHours: number; allowedProviders: Provider[] }) => {
       const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
         .from('payment_link_share_tokens')
@@ -102,6 +168,7 @@ export default function GeradorLinkPagamento() {
           created_by: user?.id,
           created_by_email: user?.email,
           expires_at: expiresAt,
+          allowed_providers: allowedProviders,
         })
         .select()
         .single();
@@ -118,7 +185,7 @@ export default function GeradorLinkPagamento() {
       toast.success('Link de acesso temporário copiado!');
       setShowShareDialog(false);
     },
-    onError: () => toast.error('Erro ao gerar link temporário'),
+    onError: (err: any) => toast.error(err.message || 'Erro ao gerar link temporário'),
   });
 
   // Delete share token
@@ -140,7 +207,17 @@ export default function GeradorLinkPagamento() {
     if (!empresa.trim()) return toast.error('Informe o nome da empresa');
     const val = parseFloat(valorVenda.replace(',', '.'));
     if (isNaN(val) || val <= 0) return toast.error('Informe um valor válido');
+    if (!providerConfig?.[provider]?.enabled) return toast.error(`Configure ${providerLabels[provider]} em Cobrança primeiro`);
     generateMutation.mutate();
+  };
+
+  const toggleShareProvider = (target: Provider, checked: boolean) => {
+    setShareProviders((current) => {
+      if (checked) {
+        return current.includes(target) ? current : [...current, target];
+      }
+      return current.filter((item) => item !== target);
+    });
   };
 
   const copyLink = (url: string) => {
@@ -198,10 +275,34 @@ export default function GeradorLinkPagamento() {
                       Gerar Novo Link
                     </CardTitle>
                     <CardDescription>
-                      O valor será ajustado automaticamente com a taxa de 4.99% do Mercado Pago
+                      Escolha o provedor e o sistema aplica automaticamente a taxa configurada em Cobrança.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {(['mercadopago', 'stripe'] as Provider[]).map((option) => {
+                        const config = providerConfig?.[option];
+                        const isActive = provider === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => config?.enabled && setProvider(option)}
+                            className={`rounded-lg border p-4 text-left transition-colors ${isActive ? 'border-primary bg-primary/5' : 'border-border bg-card'} ${config?.enabled ? '' : 'opacity-60'}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-foreground">{providerLabels[option]}</span>
+                              <Badge variant={config?.enabled ? 'default' : 'secondary'}>
+                                {config?.enabled ? 'Disponível' : 'Não configurado'}
+                              </Badge>
+                            </div>
+                            <p className="mt-2 text-xs text-muted-foreground">Origem: {config?.source || 'Módulo Cobrança → Pagamentos'}</p>
+                            <p className="text-xs text-muted-foreground">Taxa aplicada: {Number(config?.fee || 0).toFixed(2)}%</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="empresa">Nome da Empresa / Título</Label>
@@ -263,12 +364,20 @@ export default function GeradorLinkPagamento() {
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div>
+                          <span className="text-muted-foreground">Provedor:</span>
+                          <p className="font-semibold">{generatedLink.provider_label}</p>
+                        </div>
+                        <div>
                           <span className="text-muted-foreground">Valor original:</span>
                           <p className="font-semibold">R$ {generatedLink.valor_original.toFixed(2)}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Valor com taxa ({generatedLink.taxa_percentual}%):</span>
                           <p className="font-semibold">R$ {generatedLink.valor_com_taxa.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Origem:</span>
+                          <p className="font-semibold">{generatedLink.config_source}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Expira em:</span>
@@ -328,6 +437,9 @@ export default function GeradorLinkPagamento() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-sm truncate">{link.empresa}</span>
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {link.provider_label}
+                              </Badge>
                               <Badge variant={isExpired ? "secondary" : "default"} className="text-xs shrink-0">
                                 {isExpired ? 'Expirado' : 'Ativo'}
                               </Badge>
@@ -342,8 +454,9 @@ export default function GeradorLinkPagamento() {
                                 {format(new Date(link.created_at), "dd/MM HH:mm", { locale: ptBR })}
                               </span>
                               {link.created_by_email && (
-                                <span className="truncate">{link.created_by_email}</span>
+                                <span className="truncate">Criado por: {link.created_by_email}</span>
                               )}
+                              <span className="truncate">Origem: {link.config_source}</span>
                             </div>
                           </div>
                           {!isExpired && (
@@ -406,10 +519,20 @@ export default function GeradorLinkPagamento() {
                                   Criado em {format(new Date(tk.created_at), "dd/MM HH:mm", { locale: ptBR })}
                                 </span>
                               </div>
+                              <div className="flex flex-wrap items-center gap-1 mt-2">
+                                {(tk.allowed_providers || []).map((item: Provider) => (
+                                  <Badge key={item} variant="outline" className="text-[10px]">
+                                    {providerLabels[item]}
+                                  </Badge>
+                                ))}
+                              </div>
                               <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 Expira em {format(new Date(tk.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                               </div>
+                              {tk.created_by_email && (
+                                <div className="text-xs text-muted-foreground mt-1">Criado por: {tk.created_by_email}</div>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {!isExpired && (
@@ -443,6 +566,27 @@ export default function GeradorLinkPagamento() {
             <p className="text-sm text-muted-foreground">
               Gere um link que permite acesso temporário ao gerador de links de pagamento, sem precisar de conta no CRM.
             </p>
+            <div className="space-y-3">
+              <Label>Provedores liberados no link</Label>
+              <div className="space-y-2 rounded-lg border p-3">
+                {(['mercadopago', 'stripe'] as Provider[]).map((option) => {
+                  const enabled = !!providerConfig?.[option]?.enabled;
+                  return (
+                    <label key={option} className={`flex items-center justify-between gap-3 ${enabled ? '' : 'opacity-60'}`}>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-foreground">{providerLabels[option]}</p>
+                        <p className="text-xs text-muted-foreground">Origem: {providerConfig?.[option]?.source || 'Módulo Cobrança → Pagamentos'}</p>
+                      </div>
+                      <Checkbox
+                        checked={shareProviders.includes(option)}
+                        disabled={!enabled}
+                        onCheckedChange={(checked) => toggleShareProvider(option, checked === true)}
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Validade do Acesso</Label>
               <Select value={shareExpiry} onValueChange={setShareExpiry}>
@@ -464,7 +608,13 @@ export default function GeradorLinkPagamento() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowShareDialog(false)}>Cancelar</Button>
             <Button
-              onClick={() => createShareTokenMutation.mutate(parseInt(shareExpiry))}
+              onClick={() => {
+                if (shareProviders.length === 0) {
+                  toast.error('Selecione pelo menos um provedor');
+                  return;
+                }
+                createShareTokenMutation.mutate({ expiryHours: parseInt(shareExpiry), allowedProviders: shareProviders });
+              }}
               disabled={createShareTokenMutation.isPending}
               className="gap-2"
             >
