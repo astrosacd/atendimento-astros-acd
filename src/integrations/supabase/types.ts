@@ -4105,6 +4105,90 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_link_share_tokens: {
+        Row: {
+          allowed_providers: string[]
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          allowed_providers?: string[]
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at: string
+          id?: string
+          token?: string
+        }
+        Update: {
+          allowed_providers?: string[]
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      payment_links: {
+        Row: {
+          config_source: string
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          empresa: string
+          expires_at: string
+          external_reference: string | null
+          id: string
+          payment_url: string
+          preference_id: string | null
+          provider: string
+          provider_label: string
+          taxa_percentual: number
+          valor_com_taxa: number
+          valor_original: number
+        }
+        Insert: {
+          config_source: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          empresa: string
+          expires_at: string
+          external_reference?: string | null
+          id?: string
+          payment_url: string
+          preference_id?: string | null
+          provider: string
+          provider_label: string
+          taxa_percentual?: number
+          valor_com_taxa: number
+          valor_original: number
+        }
+        Update: {
+          config_source?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          empresa?: string
+          expires_at?: string
+          external_reference?: string | null
+          id?: string
+          payment_url?: string
+          preference_id?: string | null
+          provider?: string
+          provider_label?: string
+          taxa_percentual?: number
+          valor_com_taxa?: number
+          valor_original?: number
+        }
+        Relationships: []
+      }
       pipeline_stages: {
         Row: {
           color: string | null
@@ -5363,6 +5447,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      validate_payment_link_token: { Args: { p_token: string }; Returns: Json }
       verify_email_exists: { Args: { p_email: string }; Returns: boolean }
       verify_proposal_password: {
         Args: { p_password: string; p_share_token: string }
