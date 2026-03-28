@@ -206,7 +206,7 @@ async function createStripeLink(params: {
     body: new URLSearchParams({
       product: product.id,
       unit_amount: String(amountInCents),
-      currency: "brl",
+      currency: "usd",
     }).toString(),
   });
 
