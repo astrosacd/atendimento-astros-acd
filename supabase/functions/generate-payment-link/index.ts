@@ -174,11 +174,13 @@ async function createStripeLink(params: {
   metadata: Record<string, string>;
 }) {
   const amountInCents = Math.round(params.finalValue * 100);
+  const normalizedSecretKey = params.secretKey.replace(/^Bearer\s+/i, "").trim();
+  const stripeAuthHeader = `Basic ${btoa(`${normalizedSecretKey}:`)}`;
 
   const productResponse = await fetch("https://api.stripe.com/v1/products", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.secretKey}`,
+      Authorization: stripeAuthHeader,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
@@ -198,7 +200,7 @@ async function createStripeLink(params: {
   const priceResponse = await fetch("https://api.stripe.com/v1/prices", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.secretKey}`,
+      Authorization: stripeAuthHeader,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
@@ -219,14 +221,12 @@ async function createStripeLink(params: {
   const paymentLinkResponse = await fetch("https://api.stripe.com/v1/payment_links", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.secretKey}`,
+      Authorization: stripeAuthHeader,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
       "line_items[0][price]": price.id,
       "line_items[0][quantity]": "1",
-      after_completion: "redirect",
-      "after_completion[redirect][url]": `${params.requestBaseUrl}/sucesso`,
       ...Object.fromEntries(Object.entries(params.metadata).map(([key, value]) => [`metadata[${key}]`, value])),
     }).toString(),
   });
