@@ -388,6 +388,7 @@ serve(async (req) => {
       valor_original: valorOriginal,
       valor_com_taxa: valorComTaxa,
       taxa_percentual: feePercent,
+      currency: provider === "stripe" ? "USD" : "BRL",
       expires_at: expiresAt,
       reference_id: referenceId,
     }), {
