@@ -45,6 +45,7 @@ export default function GeradorLinkPagamento() {
     valor_com_taxa: number;
     taxa_percentual: number;
     expires_at: string;
+    currency?: string;
   } | null>(null);
 
   // Share token dialog
@@ -312,15 +313,17 @@ export default function GeradorLinkPagamento() {
                           onChange={(e) => setEmpresa(e.target.value)}
                           placeholder="Ex: Gravum Digital"
                           maxLength={100}
+                          required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="valor">Valor da Venda (R$)</Label>
+                        <Label htmlFor="valor">Valor da Venda ({provider === 'stripe' ? 'US$' : 'R$'})</Label>
                         <Input
                           id="valor"
                           value={valorVenda}
                           onChange={(e) => setValorVenda(e.target.value)}
-                          placeholder="Ex: 150,00"
+                          placeholder={provider === 'stripe' ? 'Ex: 50.00' : 'Ex: 150,00'}
+                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -369,11 +372,11 @@ export default function GeradorLinkPagamento() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Valor original:</span>
-                          <p className="font-semibold">R$ {generatedLink.valor_original.toFixed(2)}</p>
+                          <p className="font-semibold">{generatedLink.currency === 'USD' ? 'US$' : 'R$'} {generatedLink.valor_original.toFixed(2)}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Valor com taxa ({generatedLink.taxa_percentual}%):</span>
-                          <p className="font-semibold">R$ {generatedLink.valor_com_taxa.toFixed(2)}</p>
+                          <p className="font-semibold">{generatedLink.currency === 'USD' ? 'US$' : 'R$'} {generatedLink.valor_com_taxa.toFixed(2)}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Origem:</span>
@@ -447,7 +450,7 @@ export default function GeradorLinkPagamento() {
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <DollarSign className="h-3 w-3" />
-                                R$ {Number(link.valor_original).toFixed(2)} → R$ {Number(link.valor_com_taxa).toFixed(2)}
+                                {link.provider === 'stripe' ? 'US$' : 'R$'} {Number(link.valor_original).toFixed(2)} → {link.provider === 'stripe' ? 'US$' : 'R$'} {Number(link.valor_com_taxa).toFixed(2)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
