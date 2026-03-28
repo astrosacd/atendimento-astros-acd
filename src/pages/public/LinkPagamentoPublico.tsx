@@ -41,6 +41,7 @@ export default function LinkPagamentoPublico() {
     valor_com_taxa: number;
     taxa_percentual: number;
     expires_at: string;
+    currency?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -174,15 +175,17 @@ export default function LinkPagamentoPublico() {
                 onChange={(e) => setEmpresa(e.target.value)}
                 placeholder="Ex: Gravum Digital"
                 maxLength={100}
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="valor">Valor da Venda (R$)</Label>
+              <Label htmlFor="valor">Valor da Venda ({provider === 'stripe' ? 'US$' : 'R$'})</Label>
               <Input
                 id="valor"
                 value={valorVenda}
                 onChange={(e) => setValorVenda(e.target.value)}
-                placeholder="Ex: 150,00"
+                placeholder={provider === 'stripe' ? 'Ex: 50.00' : 'Ex: 150,00'}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -228,11 +231,11 @@ export default function LinkPagamentoPublico() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Valor original:</span>
-                  <p className="font-semibold">R$ {generatedLink.valor_original.toFixed(2)}</p>
+                  <p className="font-semibold">{generatedLink.currency === 'USD' ? 'US$' : 'R$'} {generatedLink.valor_original.toFixed(2)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Com taxa ({generatedLink.taxa_percentual}%):</span>
-                  <p className="font-semibold">R$ {generatedLink.valor_com_taxa.toFixed(2)}</p>
+                  <p className="font-semibold">{generatedLink.currency === 'USD' ? 'US$' : 'R$'} {generatedLink.valor_com_taxa.toFixed(2)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Origem:</span>
