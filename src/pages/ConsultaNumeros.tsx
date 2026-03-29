@@ -1710,12 +1710,10 @@ export default function ConsultaNumeros() {
             </CardContent>
           </Card>
         </div>
-        </div>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-      </div>
-
 
       <Dialog open={!!quickViewRow} onOpenChange={(open) => !open && setQuickViewRow(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
