@@ -1108,6 +1108,25 @@ export default function ConsultaNumeros() {
           </div>
         </div>
 
+        {/* Module Tabs */}
+        <Tabs defaultValue="consulta" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="consulta">
+              <Search className="h-4 w-4 mr-2" />
+              Consulta
+            </TabsTrigger>
+            <TabsTrigger value="validacao-sms">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Validação & SMS
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="validacao-sms">
+            <ValidacaoSmsTab />
+          </TabsContent>
+
+          <TabsContent value="consulta">
+
         {/* Monitored Status Display Card */}
         {isAdmin && (
           <MonitoredStatusDisplay
