@@ -14,7 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail, Eye } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail, Eye, MessageSquare } from 'lucide-react';
+import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import {
   DropdownMenu,
@@ -1107,6 +1108,25 @@ export default function ConsultaNumeros() {
           </div>
         </div>
 
+        {/* Module Tabs */}
+        <Tabs defaultValue="consulta" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="consulta">
+              <Search className="h-4 w-4 mr-2" />
+              Consulta
+            </TabsTrigger>
+            <TabsTrigger value="validacao-sms">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Validação & SMS
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="validacao-sms">
+            <ValidacaoSmsTab />
+          </TabsContent>
+
+          <TabsContent value="consulta">
+
         {/* Monitored Status Display Card */}
         {isAdmin && (
           <MonitoredStatusDisplay
@@ -1690,10 +1710,11 @@ export default function ConsultaNumeros() {
             </CardContent>
           </Card>
         </div>
-      </div>
+          </TabsContent>
+        </Tabs>
+        </div>
       </div>
 
-      {/* Quick View Modal */}
       <Dialog open={!!quickViewRow} onOpenChange={(open) => !open && setQuickViewRow(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
