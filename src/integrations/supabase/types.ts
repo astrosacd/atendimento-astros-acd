@@ -5120,6 +5120,39 @@ export type Database = {
           },
         ]
       }
+      sms_validation_logs: {
+        Row: {
+          baserow_row_id: string | null
+          created_at: string
+          id: string
+          motivo: string | null
+          numero: string
+          resultado: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          baserow_row_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          numero: string
+          resultado: string
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          baserow_row_id?: string | null
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          numero?: string
+          resultado?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_credential_share_links: {
         Row: {
           cliente_id: string
