@@ -1125,7 +1125,7 @@ export default function ConsultaNumeros() {
             <ValidacaoSmsTab />
           </TabsContent>
 
-          <TabsContent value="consulta">
+          <TabsContent value="consulta" className="space-y-6">
 
         {/* Monitored Status Display Card */}
         {isAdmin && (
