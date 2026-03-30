@@ -210,6 +210,8 @@ export function usePermissions() {
     canManageNumerosWebhooks,
     canManageNumerosApi,
     canViewConsultaNumeros,
+    canViewValidacaoSms,
+    canShareValidacaoSms,
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
