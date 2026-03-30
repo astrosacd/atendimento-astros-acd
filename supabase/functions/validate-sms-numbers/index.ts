@@ -15,6 +15,17 @@ interface NumberResult {
   data_cadastro?: string;
 }
 
+function normalizeNumeroCompra(raw: string): string {
+  let n = raw.trim();
+  // Remove @s.whatsapp.net suffix
+  n = n.replace(/@s\.whatsapp\.net$/i, "");
+  // Remove leading +
+  n = n.replace(/^\+/, "");
+  // Remove all non-digit characters
+  n = n.replace(/\D/g, "");
+  return n;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,22 +36,18 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate JWT
+    // Support both authenticated and public (token-based) access
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    let userId: string | null = null;
+    let userEmail: string | null = null;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        userId = user.id;
+        userEmail = user.email || null;
+      }
     }
 
     if (req.method !== "POST") {
@@ -51,7 +58,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { numeros } = body;
+    const { numeros, numero_compra, is_public } = body;
 
     if (!numeros || !Array.isArray(numeros) || numeros.length === 0) {
       return new Response(JSON.stringify({ error: "numeros é obrigatório (array de strings)" }), {
@@ -66,6 +73,15 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (!numero_compra || typeof numero_compra !== "string" || !numero_compra.trim()) {
+      return new Response(JSON.stringify({ error: "numero_compra é obrigatório" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const normalizedCompra = normalizeNumeroCompra(numero_compra);
 
     // Fetch all cached rows from Baserow
     const { data: cacheData, error: cacheError } = await supabase
@@ -123,6 +139,27 @@ Deno.serve(async (req) => {
       const obsLower = observacoes.toLowerCase();
       const nome = String(matchingRow.nome ?? matchingRow.Nome ?? "").trim();
       const dataCadastro = String(matchingRow.data_cadastro ?? matchingRow.Data_Cadastro ?? "").trim();
+
+      // Check: Purchase number match
+      const rowNumeroCompra = String(
+        matchingRow.numero_de_compra ?? matchingRow.Numero_De_Compra ?? matchingRow.numero_compra ?? ""
+      ).trim();
+
+      if (rowNumeroCompra) {
+        const normalizedRow = normalizeNumeroCompra(rowNumeroCompra);
+        if (normalizedRow && normalizedRow !== normalizedCompra) {
+          results.push({
+            numero,
+            status: "bloqueado",
+            motivo: `O número solicitante (${normalizedCompra}) não corresponde ao utilizado na compra para o numero (${numero}). Por isso, não será possível concluir a liberação do SMS.`,
+            baserow_id: matchingRow.id,
+            nome,
+            observacoes,
+            data_cadastro: dataCadastro,
+          });
+          continue;
+        }
+      }
 
       // Check: External number
       if (obsLower.includes("numero externo")) {
@@ -213,18 +250,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Log all validations
-    const logInserts = results.map((r) => ({
-      numero: r.numero,
-      resultado: r.status,
-      motivo: r.motivo || null,
-      baserow_row_id: r.baserow_id ? String(r.baserow_id) : null,
-      user_id: user.id,
-      user_email: user.email || null,
-    }));
+    // Log all validations (only if authenticated)
+    if (userId) {
+      const logInserts = results.map((r) => ({
+        numero: r.numero,
+        resultado: r.status,
+        motivo: r.motivo || null,
+        baserow_row_id: r.baserow_id ? String(r.baserow_id) : null,
+        user_id: userId,
+        user_email: userEmail,
+      }));
 
-    if (logInserts.length > 0) {
-      await supabase.from("sms_validation_logs").insert(logInserts);
+      if (logInserts.length > 0) {
+        await supabase.from("sms_validation_logs").insert(logInserts);
+      }
     }
 
     return new Response(
