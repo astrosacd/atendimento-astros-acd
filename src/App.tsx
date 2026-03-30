@@ -61,6 +61,7 @@ import Checkout from "./pages/public/Checkout";
 import Sucesso from "./pages/public/Sucesso";
 import CredenciaisPublica from "./pages/public/CredenciaisPublica";
 import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
+import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
