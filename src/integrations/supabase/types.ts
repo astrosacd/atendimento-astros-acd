@@ -5153,6 +5153,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_validation_share_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at: string
+          id?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: []
+      }
       social_credential_share_links: {
         Row: {
           cliente_id: string
@@ -5481,6 +5508,7 @@ export type Database = {
         }[]
       }
       validate_payment_link_token: { Args: { p_token: string }; Returns: Json }
+      validate_sms_share_token: { Args: { p_token: string }; Returns: Json }
       verify_email_exists: { Args: { p_email: string }; Returns: boolean }
       verify_proposal_password: {
         Args: { p_password: string; p_share_token: string }
