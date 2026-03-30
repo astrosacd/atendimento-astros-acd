@@ -68,6 +68,8 @@ export function usePermissions() {
 
   // Consulta de Números permissions
   const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
+  const canViewValidacaoSms = () => hasPermission('view_validacao_sms');
+  const canShareValidacaoSms = () => hasPermission('share_validacao_sms');
 
   // Chamados permissions
   const canViewChamados = () => hasPermission('view_chamados');
