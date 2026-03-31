@@ -138,3 +138,6 @@ verify_jwt = false
 
 [functions.process-followups]
 verify_jwt = false
+
+[functions.validate-sms-numbers]
+verify_jwt = false

@@ -140,18 +140,42 @@ Deno.serve(async (req) => {
       const nome = String(matchingRow.nome ?? matchingRow.Nome ?? "").trim();
       const dataCadastro = String(matchingRow.data_cadastro ?? matchingRow.Data_Cadastro ?? "").trim();
 
-      // Check: Purchase number match
-      const rowNumeroCompra = String(
-        matchingRow.numero_de_compra ?? matchingRow.Numero_De_Compra ?? matchingRow.numero_compra ?? ""
-      ).trim();
+      // Check: Purchase number match — try many possible Baserow field name variants
+      const possibleCompraKeys = [
+        "numero_de_compra", "Numero_De_Compra", "numero_compra", "Numero_de_compra",
+        "Numero de Compra", "numero de compra", "Número de Compra", "Número de compra",
+        "Numero De Compra", "numero_De_Compra", "NumeroDeCompra", "numerodecompra",
+      ];
+      let rowNumeroCompra = "";
+      for (const key of possibleCompraKeys) {
+        const val = matchingRow[key];
+        if (val !== undefined && val !== null && String(val).trim() !== "") {
+          rowNumeroCompra = String(val).trim();
+          break;
+        }
+      }
+      // Also try case-insensitive search through all keys
+      if (!rowNumeroCompra) {
+        for (const key of Object.keys(matchingRow)) {
+          const keyLower = key.toLowerCase().replace(/[\s_]/g, "");
+          if (keyLower === "numerodecompra" || keyLower === "númerodecompra") {
+            const val = matchingRow[key];
+            if (val !== undefined && val !== null && String(val).trim() !== "") {
+              rowNumeroCompra = String(val).trim();
+              break;
+            }
+          }
+        }
+      }
 
       if (rowNumeroCompra) {
         const normalizedRow = normalizeNumeroCompra(rowNumeroCompra);
+        console.log(`[validate-sms] numero=${numero}, rowNumeroCompra="${rowNumeroCompra}", normalizedRow="${normalizedRow}", normalizedCompra="${normalizedCompra}"`);
         if (normalizedRow && normalizedRow !== normalizedCompra) {
           results.push({
             numero,
             status: "bloqueado",
-            motivo: `O número solicitante (${normalizedCompra}) não corresponde ao utilizado na compra para o numero (${numero}). Por isso, não será possível concluir a liberação do SMS.`,
+            motivo: `🚨 O número solicitante (${normalizedCompra}) não corresponde ao utilizado na compra para o numero (${numero}). Por isso, não será possível concluir a liberação do SMS.`,
             baserow_id: matchingRow.id,
             nome,
             observacoes,

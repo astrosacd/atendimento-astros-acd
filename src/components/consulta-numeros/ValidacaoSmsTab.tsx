@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, CheckCircle, XCircle, AlertTriangle, Search, Trash2, Copy, Link2, Clock, Shield } from 'lucide-react';
+import { Loader2, Send, CheckCircle, XCircle, AlertTriangle, Search, Trash2, Copy, Link2, Clock, Shield, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -66,6 +66,21 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
       return data || [];
     },
     enabled: !isPublicAccess,
+    staleTime: 30 * 1000,
+  });
+
+  // Fetch share token history
+  const { data: shareTokens = [], refetch: refetchTokens } = useQuery({
+    queryKey: ['sms-validation-share-tokens'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('sms_validation_share_tokens')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !isPublicAccess && canShare,
     staleTime: 30 * 1000,
   });
 
@@ -169,11 +184,13 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
   const handleCopyResults = () => {
     if (!results) return;
+    const header = 'Número | Status | Motivo';
+    const separator = '─'.repeat(50);
     const lines = results.map(r => {
-      const motivo = r.motivo ? ` | ${r.motivo}` : '';
+      const motivo = r.motivo ? ` | ${r.motivo}` : ' | -';
       return `${r.numero} | ${r.status === 'apto' ? 'Apto' : 'Bloqueado'}${motivo}`;
     });
-    const text = lines.join('\n');
+    const text = [header, separator, ...lines].join('\n');
     navigator.clipboard.writeText(text).then(() => {
       toast({ title: 'Resultados copiados!' });
     }).catch(() => {
@@ -205,6 +222,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       await navigator.clipboard.writeText(link);
       toast({ title: '🔗 Link copiado!', description: `Válido por ${hours}h` });
+      refetchTokens();
     } catch (err: any) {
       toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
     } finally {
@@ -262,6 +280,63 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
                 Gerar e Copiar Link
               </Button>
             </div>
+
+            {/* Share token history */}
+            {shareTokens.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                  <History className="h-3 w-3" />
+                  Histórico de Links Gerados
+                </p>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2">
+                    {shareTokens.map((t: any) => {
+                      const isExpired = new Date(t.expires_at) < new Date();
+                      return (
+                        <div key={t.id} className="flex items-center justify-between p-2 rounded-md border bg-card text-sm">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={isExpired ? 'secondary' : 'default'} className="text-xs">
+                                {isExpired ? 'Expirado' : 'Ativo'}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {t.created_by_email}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Criado: {new Date(t.created_at).toLocaleString('pt-BR')}
+                              </span>
+                              <span>
+                                Expira: {new Date(t.expires_at).toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                          </div>
+                          {!isExpired && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={async () => {
+                                const baseUrl = window.location.hostname.includes('lovable.app')
+                                  ? 'https://atendimento-astros-acd.lovable.app'
+                                  : window.location.origin;
+                                const link = `${baseUrl}/validacao-sms/${t.token}`;
+                                await navigator.clipboard.writeText(link);
+                                toast({ title: 'Link copiado!' });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
