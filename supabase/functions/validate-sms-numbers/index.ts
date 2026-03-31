@@ -97,15 +97,20 @@ Deno.serve(async (req) => {
       ...r.row_data,
     }));
 
-    // Fetch today's SMS log count per number
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayIso = today.toISOString();
+    // Fetch SMS log count since last reset (7:00 AM Brasília = 10:00 UTC)
+    const now = new Date();
+    const resetToday = new Date(now);
+    resetToday.setUTCHours(10, 0, 0, 0); // 10:00 UTC = 07:00 BRT
+    // If current time is before 10:00 UTC, use yesterday's 10:00 UTC as reset point
+    if (now < resetToday) {
+      resetToday.setUTCDate(resetToday.getUTCDate() - 1);
+    }
+    const resetIso = resetToday.toISOString();
 
     const { data: smsLogs } = await supabase
       .from("sms_validation_logs")
       .select("numero, resultado")
-      .gte("created_at", todayIso)
+      .gte("created_at", resetIso)
       .eq("resultado", "apto");
 
     const dailyCounts: Record<string, number> = {};

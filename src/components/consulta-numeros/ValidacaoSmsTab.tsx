@@ -396,6 +396,10 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
             <CardDescription>
               Cole os números separados por vírgula, espaço ou um por linha. Máximo 20 números por vez.
             </CardDescription>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+              <Clock className="h-3 w-3" />
+              Limite diário: 2 SMS por número — reinicia todos os dias às 07:00 (horário de Brasília)
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
