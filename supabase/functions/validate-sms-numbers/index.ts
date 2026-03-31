@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const { data: smsLogs } = await supabase
       .from("sms_validation_logs")
       .select("numero, resultado")
-      .gte("created_at", todayIso)
+      .gte("created_at", resetIso)
       .eq("resultado", "apto");
 
     const dailyCounts: Record<string, number> = {};
