@@ -169,11 +169,13 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
   const handleCopyResults = () => {
     if (!results) return;
+    const header = 'Número | Status | Motivo';
+    const separator = '─'.repeat(50);
     const lines = results.map(r => {
-      const motivo = r.motivo ? ` | ${r.motivo}` : '';
+      const motivo = r.motivo ? ` | ${r.motivo}` : ' | -';
       return `${r.numero} | ${r.status === 'apto' ? 'Apto' : 'Bloqueado'}${motivo}`;
     });
-    const text = lines.join('\n');
+    const text = [header, separator, ...lines].join('\n');
     navigator.clipboard.writeText(text).then(() => {
       toast({ title: 'Resultados copiados!' });
     }).catch(() => {

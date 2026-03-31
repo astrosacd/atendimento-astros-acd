@@ -221,9 +221,22 @@ export default function GeradorLinkPagamento() {
     });
   };
 
-  const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
-    toast.success('Link copiado!');
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copiado!');
+    } catch {
+      // Fallback for environments where clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast.success('Link copiado!');
+    }
   };
 
   const canGenerate = hasPermission('generate_payment_links');
