@@ -222,6 +222,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       await navigator.clipboard.writeText(link);
       toast({ title: '🔗 Link copiado!', description: `Válido por ${hours}h` });
+      refetchTokens();
     } catch (err: any) {
       toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
     } finally {
