@@ -69,6 +69,21 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
     staleTime: 30 * 1000,
   });
 
+  // Fetch share token history
+  const { data: shareTokens = [], refetch: refetchTokens } = useQuery({
+    queryKey: ['sms-validation-share-tokens'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('sms_validation_share_tokens')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !isPublicAccess && canShare,
+    staleTime: 30 * 1000,
+  });
+
   const handleConfirmNumeroCompra = () => {
     const cleaned = numeroCompra.trim();
     if (!cleaned) {
