@@ -170,11 +170,12 @@ Deno.serve(async (req) => {
 
       if (rowNumeroCompra) {
         const normalizedRow = normalizeNumeroCompra(rowNumeroCompra);
+        console.log(`[validate-sms] numero=${numero}, rowNumeroCompra="${rowNumeroCompra}", normalizedRow="${normalizedRow}", normalizedCompra="${normalizedCompra}"`);
         if (normalizedRow && normalizedRow !== normalizedCompra) {
           results.push({
             numero,
             status: "bloqueado",
-            motivo: `O número solicitante (${normalizedCompra}) não corresponde ao utilizado na compra para o numero (${numero}). Por isso, não será possível concluir a liberação do SMS.`,
+            motivo: `🚨 O número solicitante (${normalizedCompra}) não corresponde ao utilizado na compra para o numero (${numero}). Por isso, não será possível concluir a liberação do SMS.`,
             baserow_id: matchingRow.id,
             nome,
             observacoes,
