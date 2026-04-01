@@ -62,6 +62,7 @@ import Sucesso from "./pages/public/Sucesso";
 import CredenciaisPublica from "./pages/public/CredenciaisPublica";
 import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
+import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -166,6 +167,7 @@ function AppRoutes() {
       <Route path="/credenciais/:token" element={<CredenciaisPublica />} />
       <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
+      <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

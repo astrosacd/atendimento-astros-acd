@@ -6,12 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, CheckCircle, XCircle, AlertTriangle, Search, Trash2, Copy, Link2, Clock, Shield, History } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Send, CheckCircle, XCircle, AlertTriangle, Search, Trash2, Copy, Link2, Clock, Shield, History, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -37,6 +39,16 @@ interface ValidacaoSmsTabProps {
   isPublicAccess?: boolean;
 }
 
+const RESULT_SHARE_MESSAGE = `- Solicite o SMS somente após ser notificado para isso.
+
+- Você só receberá se for envio de SMS, envio para app e/ou por ligação para ter o código, não será enviado.
+
+- Você tem 60 segundos para solicitar o SMS.
+
+- Não solicite o SMS antes de ser notificado.
+
+⛔ OBS: A falta de interação ou a não solicitação do SMS resultará no encerramento automático do atendimento. ⛔`;
+
 export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps) {
   const { user, isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
@@ -50,6 +62,14 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
   // Share link state
   const [shareExpiry, setShareExpiry] = useState('4');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
+  // Result share link state
+  const [selectedNumbers, setSelectedNumbers] = useState<Set<string>>(new Set());
+  const [isGeneratingResultLink, setIsGeneratingResultLink] = useState(false);
+
+  // Observation dialog
+  const [obsDialogOpen, setObsDialogOpen] = useState(false);
+  const [obsDialogData, setObsDialogData] = useState<{ numero: string; observacoes: string } | null>(null);
 
   const canShare = !isPublicAccess && (isAdmin || hasPermission('share_validacao_sms'));
 
@@ -118,6 +138,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
     setIsProcessing(true);
     setResults(null);
     setSummary(null);
+    setSelectedNumbers(new Set());
 
     try {
       const headers: Record<string, string> = {
@@ -155,6 +176,8 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       setResults(json.results);
       setSummary({ total: json.total, aptos: json.aptos, bloqueados: json.bloqueados });
+      // Select all numbers by default
+      setSelectedNumbers(new Set(json.results.map(r => r.numero)));
       if (!isPublicAccess) refetchLogs();
 
       if (json.aptos > 0) {
@@ -174,6 +197,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
     setNumerosInput('');
     setResults(null);
     setSummary(null);
+    setSelectedNumbers(new Set());
   };
 
   const handleResetAll = () => {
@@ -196,6 +220,45 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
     }).catch(() => {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
     });
+  };
+
+  const handleGenerateResultLink = async () => {
+    if (!results || selectedNumbers.size === 0) return;
+
+    setIsGeneratingResultLink(true);
+    try {
+      const selectedResults = results
+        .filter(r => selectedNumbers.has(r.numero))
+        .map(r => ({ numero: r.numero, status: r.status, motivo: r.motivo || null }));
+
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+
+      const { data, error } = await (supabase as any)
+        .from('sms_validation_result_shares')
+        .insert({
+          results: selectedResults,
+          message: RESULT_SHARE_MESSAGE,
+          expires_at: expiresAt,
+          created_by: user?.id || null,
+          created_by_email: user?.email || null,
+        })
+        .select('token')
+        .single();
+
+      if (error) throw error;
+
+      const baseUrl = window.location.hostname.includes('lovable.app')
+        ? 'https://atendimento-astros-acd.lovable.app'
+        : window.location.origin;
+      const link = `${baseUrl}/resultado-sms/${data.token}`;
+
+      await navigator.clipboard.writeText(link);
+      toast({ title: '🔗 Link copiado!', description: 'Válido por 5 minutos' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsGeneratingResultLink(false);
+    }
   };
 
   const handleGenerateShareLink = async () => {
@@ -227,6 +290,24 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
       toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const toggleNumberSelection = (numero: string) => {
+    setSelectedNumbers(prev => {
+      const next = new Set(prev);
+      if (next.has(numero)) next.delete(numero);
+      else next.add(numero);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!results) return;
+    if (selectedNumbers.size === results.length) {
+      setSelectedNumbers(new Set());
+    } else {
+      setSelectedNumbers(new Set(results.map(r => r.numero)));
     }
   };
 
@@ -449,28 +530,63 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
                   <span className="text-destructive">Bloqueados: <strong>{summary.bloqueados}</strong></span>
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={handleCopyResults}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copiar Resultados
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={handleCopyResults}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar Resultados
+                </Button>
+                {!isPublicAccess && (
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateResultLink}
+                    disabled={isGeneratingResultLink || selectedNumbers.size === 0}
+                  >
+                    {isGeneratingResultLink ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Link2 className="h-4 w-4 mr-2" />
+                    )}
+                    Gerar Link ({selectedNumbers.size})
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
+            {!isPublicAccess && (
+              <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={selectedNumbers.size === results.length}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span>Selecionar/Desmarcar todos para o link</span>
+              </div>
+            )}
             <ScrollArea className="h-[400px]">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {!isPublicAccess && <TableHead className="w-[40px]"></TableHead>}
                     <TableHead className="w-[40px]"></TableHead>
                     <TableHead>Número</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Motivo</TableHead>
                     {!isPublicAccess && <TableHead>Nome</TableHead>}
                     {!isPublicAccess && <TableHead>ID</TableHead>}
+                    {!isPublicAccess && <TableHead className="w-[40px]">Obs</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {results.map((r, idx) => (
                     <TableRow key={idx} className={r.status === 'bloqueado' ? 'opacity-70' : ''}>
+                      {!isPublicAccess && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedNumbers.has(r.numero)}
+                            onCheckedChange={() => toggleNumberSelection(r.numero)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>{getStatusIcon(r.status)}</TableCell>
                       <TableCell className="font-mono text-sm">{r.numero}</TableCell>
                       <TableCell>{getStatusBadge(r.status)}</TableCell>
@@ -483,6 +599,24 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
                           {r.baserow_id || '-'}
                         </TableCell>
                       )}
+                      {!isPublicAccess && (
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setObsDialogData({
+                                numero: r.numero,
+                                observacoes: r.observacoes || 'Sem observação',
+                              });
+                              setObsDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -491,6 +625,21 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
           </CardContent>
         </Card>
       )}
+
+      {/* Observation Dialog */}
+      <Dialog open={obsDialogOpen} onOpenChange={setObsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              Observação — {obsDialogData?.numero}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="bg-muted rounded-md p-4 text-sm whitespace-pre-wrap">
+            {obsDialogData?.observacoes || 'Sem observação'}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent Logs (authenticated only) */}
       {!isPublicAccess && recentLogs.length > 0 && (
