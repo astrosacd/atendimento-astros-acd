@@ -19,16 +19,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe, Link2, Copy, Check,
+  Upload, Image, Download, X,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PLATFORMS = [
   { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-500' },
@@ -54,6 +51,17 @@ interface SocialCredential {
   updated_at: string;
 }
 
+interface ClientLogo {
+  id: string;
+  cliente_id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  description: string | null;
+  created_at: string;
+}
+
 interface Props {
   clienteId: string;
   clienteName: string;
@@ -76,6 +84,11 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Logo upload state
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoDescription, setLogoDescription] = useState('');
+  const [deleteLogoId, setDeleteLogoId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     platform: 'instagram',
     login: '',
@@ -94,6 +107,21 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
         .order('platform', { ascending: true });
       if (error) throw error;
       return data as SocialCredential[];
+    },
+  });
+
+  // Fetch client logos
+  const { data: logos = [], isLoading: isLoadingLogos } = useQuery({
+    queryKey: ['client-logos', clienteId],
+    enabled: open && !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('client_logos')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as ClientLogo[];
     },
   });
 
@@ -148,10 +176,80 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
     onError: (err: any) => toast.error(err.message),
   });
 
+  const deleteLogoMutation = useMutation({
+    mutationFn: async (logo: ClientLogo) => {
+      // Delete from storage
+      await supabase.storage.from('client-logos').remove([logo.file_path]);
+      // Delete from DB
+      const { error } = await (supabase as any).from('client_logos').delete().eq('id', logo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-logos', clienteId] });
+      toast.success('Logo excluída');
+      setDeleteLogoId(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const resetForm = () => {
     setForm({ platform: 'instagram', login: '', password: '', notes: '' });
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato não suportado. Use PNG, JPG, WebP ou SVG.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 5MB.');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${clienteId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-logos')
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await (supabase as any)
+        .from('client_logos')
+        .insert({
+          cliente_id: clienteId,
+          file_name: file.name,
+          file_path: filePath,
+          file_type: file.type,
+          file_size: file.size,
+          description: logoDescription || null,
+          created_by: user?.id,
+        });
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ['client-logos', clienteId] });
+      toast.success('Logo enviada com sucesso!');
+      setLogoDescription('');
+    } catch (err: any) {
+      toast.error('Erro ao enviar logo: ' + err.message);
+    } finally {
+      setIsUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const getLogoUrl = (filePath: string) => {
+    const { data } = supabase.storage.from('client-logos').getPublicUrl(filePath);
+    return data.publicUrl;
   };
 
   const generateShareLink = async () => {
@@ -214,87 +312,198 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
             </DialogTitle>
           </DialogHeader>
 
-          {canManage && (
-            <div className="flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
-                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
-              </Button>
-              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> Nova Credencial
-              </Button>
-            </div>
-          )}
+          <Tabs defaultValue="credentials" className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="credentials" className="flex-1">Credenciais</TabsTrigger>
+              <TabsTrigger value="logos" className="flex-1">
+                <Image className="h-4 w-4 mr-1" />
+                Logos
+              </TabsTrigger>
+            </TabsList>
 
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map(i => <Skeleton key={i} className="h-16" />)}
-            </div>
-          ) : credentials.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Nenhuma credencial cadastrada</p>
-                {canManage && (
-                  <p className="text-xs mt-1">Clique em "Nova Credencial" para adicionar</p>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {credentials.map(cred => {
-                const platform = getPlatformInfo(cred.platform);
-                const Icon = platform.icon;
-                const isVisible = visiblePasswords.has(cred.id);
+            {/* Credentials Tab */}
+            <TabsContent value="credentials" className="space-y-4">
+              {canManage && (
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
+                    <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+                  </Button>
+                  <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                    <Plus className="h-4 w-4 mr-1" /> Nova Credencial
+                  </Button>
+                </div>
+              )}
 
-                return (
-                  <Card key={cred.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-sm">{platform.label}</span>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map(i => <Skeleton key={i} className="h-16" />)}
+                </div>
+              ) : credentials.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma credencial cadastrada</p>
+                    {canManage && (
+                      <p className="text-xs mt-1">Clique em "Nova Credencial" para adicionar</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {credentials.map(cred => {
+                    const platform = getPlatformInfo(cred.platform);
+                    const Icon = platform.icon;
+                    const isVisible = visiblePasswords.has(cred.id);
+
+                    return (
+                      <Card key={cred.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-sm">{platform.label}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  Login: {cred.login}
+                                </p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="text-xs text-muted-foreground">Senha:</span>
+                                  <span className="text-xs font-mono">
+                                    {isVisible ? cred.encrypted_password : '••••••••'}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={() => togglePasswordVisibility(cred.id)}
+                                  >
+                                    {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                  </Button>
+                                </div>
+                                {cred.notes && (
+                                  <p className="text-xs text-muted-foreground mt-1 italic">📝 {cred.notes}</p>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Login: {cred.login}
-                            </p>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-xs text-muted-foreground">Senha:</span>
-                              <span className="text-xs font-mono">
-                                {isVisible ? cred.encrypted_password : '••••••••'}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => togglePasswordVisibility(cred.id)}
-                              >
-                                {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                              </Button>
-                            </div>
-                            {cred.notes && (
-                              <p className="text-xs text-muted-foreground mt-1 italic">📝 {cred.notes}</p>
+                            {canManage && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(cred)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(cred.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             )}
                           </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Logos Tab */}
+            <TabsContent value="logos" className="space-y-4">
+              {canManage && (
+                <Card>
+                  <CardContent className="pt-6 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Descrição (opcional)</Label>
+                      <Input
+                        placeholder="Ex: Logo principal, Logo marca d'água, Logo branca..."
+                        value={logoDescription}
+                        onChange={e => setLogoDescription(e.target.value)}
+                        maxLength={200}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="logo-upload" className="cursor-pointer">
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                          {isUploadingLogo ? (
+                            <div className="text-sm text-muted-foreground">Enviando...</div>
+                          ) : (
+                            <>
+                              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">Clique para fazer upload da logo</p>
+                              <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP ou SVG — máx. 5MB</p>
+                            </>
+                          )}
                         </div>
+                      </Label>
+                      <input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        disabled={isUploadingLogo}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isLoadingLogos ? (
+                <div className="space-y-3">
+                  {[1, 2].map(i => <Skeleton key={i} className="h-24" />)}
+                </div>
+              ) : logos.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma logo cadastrada</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {logos.map((logo: ClientLogo) => (
+                    <Card key={logo.id} className="overflow-hidden">
+                      <div className="relative aspect-square bg-muted/30 flex items-center justify-center p-2">
+                        <img
+                          src={getLogoUrl(logo.file_path)}
+                          alt={logo.file_name}
+                          className="max-w-full max-h-full object-contain"
+                        />
                         {canManage && (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(cred)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(cred.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6"
+                            onClick={() => setDeleteLogoId(logo.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
                         )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      <CardContent className="p-3">
+                        <p className="text-xs font-medium truncate">{logo.description || logo.file_name}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {logo.file_size ? `${(logo.file_size / 1024).toFixed(0)} KB` : ''}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              const url = getLogoUrl(logo.file_path);
+                              window.open(url, '_blank');
+                            }}
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -365,7 +574,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Credential Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -376,6 +585,28 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Logo Confirmation */}
+      <AlertDialog open={!!deleteLogoId} onOpenChange={() => setDeleteLogoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir logo?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const logo = logos.find((l: ClientLogo) => l.id === deleteLogoId);
+                if (logo) deleteLogoMutation.mutate(logo);
+              }}
               className="bg-destructive text-destructive-foreground"
             >
               Excluir
