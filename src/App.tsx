@@ -62,6 +62,7 @@ import Sucesso from "./pages/public/Sucesso";
 import CredenciaisPublica from "./pages/public/CredenciaisPublica";
 import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
+import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
