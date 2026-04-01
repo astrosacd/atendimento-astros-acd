@@ -1101,6 +1101,50 @@ export type Database = {
           },
         ]
       }
+      client_logos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_logos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_payments: {
         Row: {
           amount: number
@@ -5153,6 +5197,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_validation_result_shares: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          expires_at: string
+          id: string
+          message: string | null
+          results: Json
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at: string
+          id?: string
+          message?: string | null
+          results: Json
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          expires_at?: string
+          id?: string
+          message?: string | null
+          results?: Json
+          token?: string
+        }
+        Relationships: []
+      }
       sms_validation_share_tokens: {
         Row: {
           created_at: string
@@ -5410,6 +5487,7 @@ export type Database = {
         Args: { p_share_token: string }
         Returns: Json
       }
+      get_sms_result_share: { Args: { p_token: string }; Returns: Json }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_role:
         | {
