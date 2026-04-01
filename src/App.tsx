@@ -167,6 +167,7 @@ function AppRoutes() {
       <Route path="/credenciais/:token" element={<CredenciaisPublica />} />
       <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
+      <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
