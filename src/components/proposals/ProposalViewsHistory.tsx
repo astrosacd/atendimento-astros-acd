@@ -156,7 +156,7 @@ export function ProposalViewsHistory({ proposalId }: ProposalViewsHistoryProps) 
             {Object.entries(viewsByDate).map(([date, dayViews]) => (
               <div key={date}>
                 <p className="text-sm font-medium text-muted-foreground mb-3">
-                  {format(new Date(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  {format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </p>
                 <div className="space-y-2">
                   {dayViews.map((view) => {
