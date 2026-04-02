@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ShieldX, Clock, CheckCircle, XCircle, MessageSquare, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -82,12 +81,12 @@ export default function ResultadoSmsPublico() {
   const bloqueados = results.filter(r => r.status === 'bloqueado').length;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-3 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Resultado da Validação SMS</h1>
+            <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+            <h1 className="text-lg md:text-2xl font-bold">Resultado da Validação SMS</h1>
           </div>
           {expiresAt && (
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
@@ -100,66 +99,97 @@ export default function ResultadoSmsPublico() {
         {/* Instructions message */}
         {message && (
           <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div className="text-sm whitespace-pre-line">{message}</div>
+            <CardContent className="p-4 md:pt-6">
+              <div className="flex gap-2 md:gap-3">
+                <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0 mt-0.5" />
+                <div className="text-xs md:text-sm whitespace-pre-line">{message}</div>
               </div>
             </CardContent>
           </Card>
         )}
 
         {/* Summary */}
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Badge variant="outline" className="text-sm px-4 py-1.5">
+        <div className="flex gap-2 md:gap-4 justify-center flex-wrap">
+          <Badge variant="outline" className="text-xs md:text-sm px-3 md:px-4 py-1 md:py-1.5">
             Total: <strong className="ml-1">{results.length}</strong>
           </Badge>
-          <Badge className="bg-green-500/10 text-green-500 border-green-500/30 text-sm px-4 py-1.5">
+          <Badge className="bg-green-500/10 text-green-500 border-green-500/30 text-xs md:text-sm px-3 md:px-4 py-1 md:py-1.5">
             Aptos: <strong className="ml-1">{aptos}</strong>
           </Badge>
-          <Badge variant="destructive" className="text-sm px-4 py-1.5">
+          <Badge variant="destructive" className="text-xs md:text-sm px-3 md:px-4 py-1 md:py-1.5">
             Bloqueados: <strong className="ml-1">{bloqueados}</strong>
           </Badge>
         </div>
 
-        {/* Results Table */}
+        {/* Results - Card layout for mobile, table for desktop */}
         <Card>
-          <CardContent className="pt-6">
-            <ScrollArea className="max-h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Motivo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((r, idx) => (
-                    <TableRow key={idx} className={r.status === 'bloqueado' ? 'opacity-70' : ''}>
-                      <TableCell>
-                        {r.status === 'apto'
-                          ? <CheckCircle className="h-4 w-4 text-green-500" />
-                          : <XCircle className="h-4 w-4 text-destructive" />
-                        }
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{r.numero}</TableCell>
-                      <TableCell>
-                        {r.status === 'apto' ? (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Apto</Badge>
-                        ) : (
-                          <Badge variant="destructive">Bloqueado</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[250px]">
-                        {r.motivo || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+          <CardContent className="pt-4 md:pt-6">
+            {/* Mobile card layout */}
+            <div className="block md:hidden space-y-3">
+              {results.map((r, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg border ${r.status === 'bloqueado' ? 'opacity-80 border-destructive/30' : 'border-green-500/30'}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {r.status === 'apto'
+                        ? <CheckCircle className="h-4 w-4 text-green-500" />
+                        : <XCircle className="h-4 w-4 text-destructive" />
+                      }
+                      <span className="font-mono text-sm font-medium">{r.numero}</span>
+                    </div>
+                    {r.status === 'apto' ? (
+                      <Badge className="bg-green-500/10 text-green-500 border-green-500/30 text-xs">Apto</Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-xs">Bloqueado</Badge>
+                    )}
+                  </div>
+                  {r.motivo && r.motivo !== '-' && (
+                    <p className="text-xs text-muted-foreground mt-1 break-words">
+                      <span className="font-medium">Motivo:</span> {r.motivo}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table layout */}
+            <div className="hidden md:block">
+              <ScrollArea className="max-h-[500px]">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 w-[40px]"></th>
+                      <th className="text-left p-2 text-sm font-medium text-muted-foreground">Número</th>
+                      <th className="text-left p-2 text-sm font-medium text-muted-foreground">Status</th>
+                      <th className="text-left p-2 text-sm font-medium text-muted-foreground">Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((r, idx) => (
+                      <tr key={idx} className={`border-b last:border-0 ${r.status === 'bloqueado' ? 'opacity-70' : ''}`}>
+                        <td className="p-2">
+                          {r.status === 'apto'
+                            ? <CheckCircle className="h-4 w-4 text-green-500" />
+                            : <XCircle className="h-4 w-4 text-destructive" />
+                          }
+                        </td>
+                        <td className="p-2 font-mono text-sm">{r.numero}</td>
+                        <td className="p-2">
+                          {r.status === 'apto' ? (
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Apto</Badge>
+                          ) : (
+                            <Badge variant="destructive">Bloqueado</Badge>
+                          )}
+                        </td>
+                        <td className="p-2 text-sm text-muted-foreground">{r.motivo || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            </div>
           </CardContent>
         </Card>
       </div>
