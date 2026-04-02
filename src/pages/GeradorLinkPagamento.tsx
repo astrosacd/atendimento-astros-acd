@@ -182,8 +182,8 @@ export default function GeradorLinkPagamento() {
         ? 'https://atendimento-astros-acd.lovable.app'
         : window.location.origin;
       const link = `${baseUrl}/link-pagamento/${data.token}`;
-      navigator.clipboard.writeText(link);
-      toast.success('Link de acesso temporário copiado!');
+      copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
+      setShowShareDialog(false);
       setShowShareDialog(false);
     },
     onError: (err: any) => toast.error(err.message || 'Erro ao gerar link temporário'),
