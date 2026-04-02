@@ -278,9 +278,6 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => toast.error('Erro ao copiar'));
   };
-    toast.success('Link copiado!');
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const startEdit = (cred: SocialCredential) => {
     setForm({
