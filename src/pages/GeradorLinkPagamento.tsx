@@ -552,7 +552,7 @@ export default function GeradorLinkPagamento() {
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {!isExpired && (
-                                <Button variant="ghost" size="icon" onClick={() => { navigator.clipboard.writeText(link); toast.success('Link copiado!'); }}>
+                                <Button variant="ghost" size="icon" onClick={() => { copyToClipboard(link).then(() => toast.success('Link copiado!')).catch(() => toast.error('Erro ao copiar')); }}>
                                   <Copy className="h-4 w-4" />
                                 </Button>
                               )}
