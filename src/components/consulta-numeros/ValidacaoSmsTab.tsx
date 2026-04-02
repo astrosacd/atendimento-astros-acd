@@ -405,7 +405,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
                                   ? 'https://atendimento-astros-acd.lovable.app'
                                   : window.location.origin;
                                 const link = `${baseUrl}/validacao-sms/${t.token}`;
-                                await navigator.clipboard.writeText(link);
+                                await copyToClipboard(link);
                                 toast({ title: 'Link copiado!' });
                               }}
                             >
