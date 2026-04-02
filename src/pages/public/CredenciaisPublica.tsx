@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Eye, EyeOff, Lock, Instagram, Facebook, Twitter, Youtube, Globe, ShieldX, Clock,
+  Eye, EyeOff, Lock, Instagram, Facebook, Twitter, Youtube, Globe, ShieldX, Clock, Download, Image,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,12 +30,22 @@ interface Credential {
   notes: string | null;
 }
 
+interface Logo {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  description: string | null;
+}
+
 export default function CredenciaisPublica() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [logos, setLogos] = useState<Logo[]>([]);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
@@ -53,6 +63,7 @@ export default function CredenciaisPublica() {
         } else {
           setClientName(result.client_name);
           setCredentials(result.credentials || []);
+          setLogos(result.logos || []);
           setExpiresAt(result.expires_at);
         }
       } catch (e: any) {
@@ -72,6 +83,22 @@ export default function CredenciaisPublica() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const getLogoPublicUrl = (filePath: string) => {
+    const { data } = supabase.storage.from('client-logos').getPublicUrl(filePath);
+    return data?.publicUrl || '';
+  };
+
+  const handleDownloadLogo = async (logo: Logo) => {
+    const url = getLogoPublicUrl(logo.file_path);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = logo.file_name;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   if (loading) {
@@ -119,7 +146,8 @@ export default function CredenciaisPublica() {
             </div>
           )}
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
+          {/* Credentials */}
           {credentials.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">Nenhuma credencial cadastrada</p>
           ) : (
@@ -159,6 +187,42 @@ export default function CredenciaisPublica() {
                 </Card>
               );
             })
+          )}
+
+          {/* Logos section */}
+          {logos.length > 0 && (
+            <div className="pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Image className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Logos</span>
+                <Badge variant="secondary" className="text-xs">{logos.length}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {logos.map(logo => (
+                  <Card key={logo.id} className="border overflow-hidden">
+                    <div className="aspect-square bg-muted/30 flex items-center justify-center p-2">
+                      <img
+                        src={getLogoPublicUrl(logo.file_path)}
+                        alt={logo.file_name}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <CardContent className="p-2">
+                      <p className="text-xs truncate font-medium">{logo.description || logo.file_name}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-1.5 h-7 text-xs gap-1"
+                        onClick={() => handleDownloadLogo(logo)}
+                      >
+                        <Download className="h-3 w-3" />
+                        Baixar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
