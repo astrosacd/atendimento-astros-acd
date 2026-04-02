@@ -271,8 +271,12 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
 
   const copyLink = () => {
     if (!generatedLink) return;
-    navigator.clipboard.writeText(generatedLink);
-    setCopied(true);
+    copyToClipboard(generatedLink).then(() => {
+      setCopied(true);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast.error('Erro ao copiar'));
+  };
     toast.success('Link copiado!');
     setTimeout(() => setCopied(false), 2000);
   };
