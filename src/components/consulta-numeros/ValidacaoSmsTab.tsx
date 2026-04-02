@@ -284,7 +284,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
         : window.location.origin;
       const link = `${baseUrl}/validacao-sms/${data.token}`;
 
-      await navigator.clipboard.writeText(link);
+      await copyToClipboard(link);
       toast({ title: '🔗 Link copiado!', description: `Válido por ${hours}h` });
       refetchTokens();
     } catch (err: any) {
