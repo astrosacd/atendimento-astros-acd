@@ -253,7 +253,8 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
         : window.location.origin;
       const link = `${baseUrl}/resultado-sms/${data.token}`;
 
-      await copyToClipboard(link);
+      const textToCopy = `📋 Veja a análise dos números solicitados:\n${link}`;
+      await copyToClipboard(textToCopy);
       toast({ title: '🔗 Link copiado!', description: 'Válido por 5 minutos' });
     } catch (err: any) {
       toast({ title: 'Erro ao gerar link', description: err.message, variant: 'destructive' });
