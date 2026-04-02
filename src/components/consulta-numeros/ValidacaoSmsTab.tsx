@@ -216,7 +216,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
       return `${r.numero} | ${r.status === 'apto' ? 'Apto' : 'Bloqueado'}${motivo}`;
     });
     const text = [header, separator, ...lines].join('\n');
-    navigator.clipboard.writeText(text).then(() => {
+    copyToClipboard(text).then(() => {
       toast({ title: 'Resultados copiados!' });
     }).catch(() => {
       toast({ title: 'Erro ao copiar', variant: 'destructive' });
