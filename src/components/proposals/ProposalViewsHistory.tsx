@@ -89,7 +89,8 @@ export function ProposalViewsHistory({ proposalId }: ProposalViewsHistoryProps) 
 
   // Group views by date
   const viewsByDate = views.reduce((acc, view) => {
-    const date = format(new Date(view.created_at), 'yyyy-MM-dd');
+    const dateObj = new Date(view.created_at);
+    const date = `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
     if (!acc[date]) acc[date] = [];
     acc[date].push(view);
     return acc;
@@ -155,7 +156,7 @@ export function ProposalViewsHistory({ proposalId }: ProposalViewsHistoryProps) 
             {Object.entries(viewsByDate).map(([date, dayViews]) => (
               <div key={date}>
                 <p className="text-sm font-medium text-muted-foreground mb-3">
-                  {format(new Date(date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  {format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </p>
                 <div className="space-y-2">
                   {dayViews.map((view) => {

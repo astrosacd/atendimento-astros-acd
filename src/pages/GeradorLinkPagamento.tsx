@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -182,8 +183,8 @@ export default function GeradorLinkPagamento() {
         ? 'https://atendimento-astros-acd.lovable.app'
         : window.location.origin;
       const link = `${baseUrl}/link-pagamento/${data.token}`;
-      navigator.clipboard.writeText(link);
-      toast.success('Link de acesso temporário copiado!');
+      copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
+      setShowShareDialog(false);
       setShowShareDialog(false);
     },
     onError: (err: any) => toast.error(err.message || 'Erro ao gerar link temporário'),
@@ -552,7 +553,7 @@ export default function GeradorLinkPagamento() {
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               {!isExpired && (
-                                <Button variant="ghost" size="icon" onClick={() => { navigator.clipboard.writeText(link); toast.success('Link copiado!'); }}>
+                                <Button variant="ghost" size="icon" onClick={() => { copyToClipboard(link).then(() => toast.success('Link copiado!')).catch(() => toast.error('Erro ao copiar')); }}>
                                   <Copy className="h-4 w-4" />
                                 </Button>
                               )}

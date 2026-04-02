@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
@@ -271,10 +272,11 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
 
   const copyLink = () => {
     if (!generatedLink) return;
-    navigator.clipboard.writeText(generatedLink);
-    setCopied(true);
-    toast.success('Link copiado!');
-    setTimeout(() => setCopied(false), 2000);
+    copyToClipboard(generatedLink).then(() => {
+      setCopied(true);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast.error('Erro ao copiar'));
   };
 
   const startEdit = (cred: SocialCredential) => {
