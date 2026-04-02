@@ -277,20 +277,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Log all validations (only if authenticated)
-    if (userId) {
-      const logInserts = results.map((r) => ({
-        numero: r.numero,
-        resultado: r.status,
-        motivo: r.motivo || null,
-        baserow_row_id: r.baserow_id ? String(r.baserow_id) : null,
-        user_id: userId,
-        user_email: userEmail,
-      }));
+    // Log all validations (authenticated AND public/temporary access)
+    const logInserts = results.map((r) => ({
+      numero: r.numero,
+      resultado: r.status,
+      motivo: r.motivo || null,
+      baserow_row_id: r.baserow_id ? String(r.baserow_id) : null,
+      user_id: userId,
+      user_email: userEmail || (is_public ? 'acesso_temporario' : null),
+    }));
 
-      if (logInserts.length > 0) {
-        await supabase.from("sms_validation_logs").insert(logInserts);
-      }
+    if (logInserts.length > 0) {
+      await supabase.from("sms_validation_logs").insert(logInserts);
     }
 
     return new Response(
