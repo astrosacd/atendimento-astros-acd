@@ -325,25 +325,54 @@ async function syncToBaserow(baserowConfig: any, phone: string, lead: any) {
   const whatsappId = `${normalizedPhone}@s.whatsapp.net`;
   const internationalPhone = `+${normalizedPhone}`;
 
-  // Fetch all rows to check for existing entries (exhaustive search)
-  const headers = {
-    Authorization: `Token ${token}`,
+  // Build auth header - add Token prefix if not present
+  const authToken = token.startsWith("Token ") ? token : `Token ${token}`;
+  const headers: Record<string, string> = {
+    Authorization: authToken,
     "Content-Type": "application/json",
   };
 
-  // Get field names
-  const fieldsRes = await fetch(`${apiUrl}/api/database/fields/table/${tableId}/`, { headers });
-  const fields = await fieldsRes.json();
-  
-  // Find the boolean field "Atende Humano" (fuzzy match)
-  let boolFieldName = "AtendeHumano";
-  let phoneFieldName = "Telefone";
-  
-  for (const field of (Array.isArray(fields) ? fields : [])) {
-    const name = field.name?.toLowerCase().replace(/\s+/g, "");
-    if (name === "atendehumano" || name === "atende_humano") boolFieldName = field.name;
-    if (name === "telefone" || name === "phone" || name === "numero") phoneFieldName = field.name;
+  // Get field names from Baserow
+  let fields: any[] = [];
+  try {
+    const fieldsRes = await fetch(`${apiUrl}/api/database/fields/table/${tableId}/`, { headers });
+    if (!fieldsRes.ok) {
+      console.error(`[Baserow] Fields API error: ${fieldsRes.status} ${await fieldsRes.text()}`);
+      return;
+    }
+    fields = await fieldsRes.json();
+    if (!Array.isArray(fields)) {
+      console.error("[Baserow] Fields response is not an array:", fields);
+      return;
+    }
+    console.log(`[Baserow] Found ${fields.length} fields:`, fields.map((f: any) => f.name).join(", "));
+  } catch (err: any) {
+    console.error("[Baserow] Error fetching fields:", err.message);
+    return;
   }
+
+  // Build field name map with fuzzy matching
+  const fieldMap: Record<string, string> = {};
+  for (const field of fields) {
+    const name = (field.name || "").toLowerCase().replace(/[\s_-]+/g, "");
+    // Phone field
+    if (["telefone", "phone", "numero"].includes(name)) fieldMap.phone = field.name;
+    // Boolean field
+    if (["atendehumano", "atende_humano"].includes(name)) fieldMap.bool = field.name;
+    // Additional fields
+    if (["nome", "name"].includes(name)) fieldMap.nome = field.name;
+    if (["empresa", "company"].includes(name)) fieldMap.empresa = field.name;
+    if (["email", "e-mail"].includes(name)) fieldMap.email = field.name;
+    if (["website", "site", "url"].includes(name)) fieldMap.website = field.name;
+    if (["cidade", "city"].includes(name)) fieldMap.cidade = field.name;
+    if (["estado", "state", "uf"].includes(name)) fieldMap.estado = field.name;
+    if (["categoria", "category"].includes(name)) fieldMap.categoria = field.name;
+  }
+
+  const phoneFieldName = fieldMap.phone || "Telefone";
+  const boolFieldName = fieldMap.bool || "AtendeHumano";
+
+  console.log(`[Baserow] Using fields - phone: "${phoneFieldName}", bool: "${boolFieldName}"`);
 
   // Search for existing rows
   let page = 1;
@@ -354,12 +383,18 @@ async function syncToBaserow(baserowConfig: any, phone: string, lead: any) {
       `${apiUrl}/api/database/rows/table/${tableId}/?page=${page}&size=200&search=${normalizedPhone}`,
       { headers }
     );
+    if (!res.ok) {
+      console.error(`[Baserow] Search error: ${res.status}`);
+      break;
+    }
     const data = await res.json();
     if (data.results) existingRows.push(...data.results);
     if (!data.next) break;
     page++;
-    if (page > 250) break; // safety limit
+    if (page > 250) break;
   }
+
+  console.log(`[Baserow] Found ${existingRows.length} existing rows for ${normalizedPhone}`);
 
   const hasWhatsApp = existingRows.some((r: any) => {
     const val = r[phoneFieldName];
@@ -371,28 +406,53 @@ async function syncToBaserow(baserowConfig: any, phone: string, lead: any) {
     return val && val.startsWith("+");
   });
 
+  // Build extra fields from lead data
+  const extraFields: Record<string, any> = {};
+  if (fieldMap.nome && lead.nome) extraFields[fieldMap.nome] = lead.nome;
+  if (fieldMap.empresa && lead.empresa) extraFields[fieldMap.empresa] = lead.empresa;
+  if (fieldMap.email && lead.email) extraFields[fieldMap.email] = lead.email;
+  if (fieldMap.website && lead.website) extraFields[fieldMap.website] = lead.website;
+  if (fieldMap.cidade && lead.cidade) extraFields[fieldMap.cidade] = lead.cidade;
+  if (fieldMap.estado && lead.estado) extraFields[fieldMap.estado] = lead.estado;
+  if (fieldMap.categoria && lead.categoria) extraFields[fieldMap.categoria] = lead.categoria;
+
   // Create missing entries and mark as true
   const createRow = async (phoneValue: string) => {
-    const body: any = {};
-    body[phoneFieldName] = phoneValue;
-    body[boolFieldName] = true;
+    const body: any = {
+      [phoneFieldName]: phoneValue,
+      [boolFieldName]: true,
+      ...extraFields,
+    };
     
-    await fetch(`${apiUrl}/api/database/rows/table/${tableId}/`, {
+    console.log(`[Baserow] Creating row with body:`, JSON.stringify(body));
+    
+    const res = await fetch(`${apiUrl}/api/database/rows/table/${tableId}/`, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
     });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[Baserow] Create row error: ${res.status} ${errorText}`);
+    } else {
+      console.log(`[Baserow] Row created successfully for ${phoneValue}`);
+    }
   };
 
   const patchRow = async (rowId: number) => {
-    const body: any = {};
-    body[boolFieldName] = true;
+    const body: any = { [boolFieldName]: true };
     
-    await fetch(`${apiUrl}/api/database/rows/table/${tableId}/${rowId}/`, {
+    const res = await fetch(`${apiUrl}/api/database/rows/table/${tableId}/${rowId}/`, {
       method: "PATCH",
       headers,
       body: JSON.stringify(body),
     });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[Baserow] Patch row error: ${res.status} ${errorText}`);
+    }
   };
 
   // Create or update WhatsApp format

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Pause, Megaphone, Send, Loader2 } from 'lucide-react';
+import { Plus, Play, Pause, Megaphone, Send, Loader2, Info } from 'lucide-react';
 import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -68,6 +68,15 @@ export default function LeadHunterCampanhas() {
 
   return (
     <div className="space-y-6">
+      {/* Info banner */}
+      <div className="p-3 bg-muted/50 rounded-lg border border-border/50 flex items-start gap-2">
+        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="text-xs text-muted-foreground">
+          <p><strong>Como funciona:</strong> Campanhas são opcionais. Você pode disparar mensagens diretamente na aba <strong>Leads</strong> clicando no botão de envio (✈️) em cada lead.</p>
+          <p className="mt-1">Campanhas servem para organizar disparos em lote com configurações de IA e modelo de mensagem específicos. Os leads vinculados a uma campanha serão disparados com as configurações dela.</p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Megaphone className="h-5 w-5" />
@@ -85,7 +94,7 @@ export default function LeadHunterCampanhas() {
           <CardContent className="py-12 text-center text-muted-foreground">
             <Megaphone className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p>Nenhuma campanha criada</p>
-            <p className="text-sm">Crie uma campanha para organizar seus disparos</p>
+            <p className="text-sm">Você pode disparar leads diretamente na aba Leads sem precisar de uma campanha.</p>
           </CardContent>
         </Card>
       ) : (
@@ -100,13 +109,11 @@ export default function LeadHunterCampanhas() {
                 <Badge className={statusColor[c.status] || ''}>{c.status}</Badge>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4 flex-wrap">
                   <span>Leads: <strong className="text-foreground">{c.total_leads}</strong></span>
                   <span>Enviados: <strong className="text-primary">{c.total_enviados}</strong></span>
                   <span>Erros: <strong className="text-destructive">{c.total_erros}</strong></span>
                   <span>Respondidos: <strong className="text-emerald-500">{c.total_respondidos}</strong></span>
-                  <span>IA: <strong className="text-foreground">{c.provedor_ia}</strong></span>
-                  <span>Tipo: <strong className="text-foreground">{c.tipo_mensagem === 'personalizada' ? 'Personalizada por lead' : 'Modelo único'}</strong></span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -122,8 +129,17 @@ export default function LeadHunterCampanhas() {
                     onClick={() => handleDispatch(c.id)}
                     disabled={dispatching === c.id}
                   >
-                    {dispatching === c.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-                    Disparar Agora
+                    {dispatching === c.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-1" />
+                        Disparar Agora
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
