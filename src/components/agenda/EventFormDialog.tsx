@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarPlus, Loader2, Save } from 'lucide-react';
+import { CalendarPlus, Loader2, Save, AlertTriangle } from 'lucide-react';
 import { type CalendarEvent } from '@/hooks/useCalendar';
 
 interface EventFormDialogProps {
@@ -16,6 +16,20 @@ interface EventFormDialogProps {
   event?: CalendarEvent | null;
   onSave: (data: any) => void;
   isSaving: boolean;
+}
+
+function addOneHour(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const newH = (h + 1) % 24;
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function isEndBeforeMinimum(start: string, end: string): boolean {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+  return endMin < startMin + 60;
 }
 
 export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }: EventFormDialogProps) {
@@ -47,7 +61,9 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
-      setNotes(event.notes || '');
+      // Filter out [NOTIFICADO] marks from notes display
+      const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
+      setNotes(cleanNotes);
     } else if (open && !event) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -65,6 +81,21 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setNotes('');
     }
   }, [open, event]);
+
+  // Auto-update endTime when startTime changes (only for new events or if end was in sync)
+  const handleStartTimeChange = (newStart: string) => {
+    const oldEnd = endTime;
+    const oldExpectedEnd = addOneHour(startTime);
+    setStartTime(newStart);
+    
+    // Auto-adjust end time if it was exactly 1h after old start (user didn't manually change it)
+    // Or if the new start would make end invalid
+    if (oldEnd === oldExpectedEnd || isEndBeforeMinimum(newStart, oldEnd)) {
+      setEndTime(addOneHour(newStart));
+    }
+  };
+
+  const endTimeWarning = isEndBeforeMinimum(startTime, endTime);
 
   const handleSubmit = () => {
     if (!title.trim() || !startDate || !startTime || !endTime) return;
@@ -87,7 +118,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
     });
   };
 
-  const isValid = title.trim() && startDate && startTime && endTime;
+  const isValid = title.trim() && startDate && startTime && endTime && !endTimeWarning;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,13 +160,25 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
             </div>
             <div className="space-y-2">
               <Label>Início *</Label>
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              <Input type="time" value={startTime} onChange={(e) => handleStartTimeChange(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Fim *</Label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              <Input 
+                type="time" 
+                value={endTime} 
+                onChange={(e) => setEndTime(e.target.value)}
+                className={endTimeWarning ? 'border-destructive focus-visible:ring-destructive' : ''}
+              />
             </div>
           </div>
+          
+          {endTimeWarning && (
+            <div className="flex items-center gap-2 text-destructive text-xs p-2 bg-destructive/10 rounded-md">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>O horário de fim deve ser pelo menos 1 hora após o início ({addOneHour(startTime)} ou mais)</span>
+            </div>
+          )}
 
           <div className="border-t pt-4 space-y-3">
             <p className="text-sm font-medium text-muted-foreground">Dados do Cliente</p>
@@ -189,13 +232,14 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           )}
 
           <div className="space-y-2">
-            <Label>Observações</Label>
+            <Label>Observações internas</Label>
             <Textarea
-              placeholder="Observações internas..."
+              placeholder="Motivo do agendamento, observações internas..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
             />
+            <p className="text-xs text-muted-foreground">Estas observações ficam visíveis na visualização do evento no calendário.</p>
           </div>
         </div>
 

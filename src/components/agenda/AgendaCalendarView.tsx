@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, isToday, startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
@@ -28,6 +28,11 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
   rescheduled: { label: 'Reagendado', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
 };
+
+function getCleanNotes(notes: string | null): string {
+  if (!notes) return '';
+  return notes.split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
+}
 
 export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onComplete, currentMonth, onMonthChange }: AgendaCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -137,68 +142,77 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
           {selectedEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhum evento neste dia</p>
           ) : (
-            selectedEvents.map(ev => (
-              <div key={ev.id} className="p-3 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className={cn("font-medium text-sm", ev.status === 'cancelled' && 'line-through text-muted-foreground')}>
-                      {ev.title}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3" />
-                      {format(new Date(ev.start_time), 'HH:mm')} - {format(new Date(ev.end_time), 'HH:mm')}
+            selectedEvents.map(ev => {
+              const cleanNotes = getCleanNotes(ev.notes);
+              return (
+                <div key={ev.id} className="p-3 border rounded-lg space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className={cn("font-medium text-sm", ev.status === 'cancelled' && 'line-through text-muted-foreground')}>
+                        {ev.title}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(ev.start_time), 'HH:mm')} - {format(new Date(ev.end_time), 'HH:mm')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className={cn("text-[10px]", statusConfig[ev.status]?.color)}>
+                        {statusConfig[ev.status]?.label || ev.status}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onEdit(ev)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Editar / Reagendar
+                          </DropdownMenuItem>
+                          {['scheduled', 'confirmed', 'rescheduled'].includes(ev.status) && (
+                            <DropdownMenuItem onClick={() => onComplete(ev.id)}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Concluir
+                            </DropdownMenuItem>
+                          )}
+                          {ev.status !== 'cancelled' && (
+                            <DropdownMenuItem onClick={() => onCancel(ev.id)} className="text-amber-600">
+                              <XCircle className="h-3.5 w-3.5 mr-2" /> Cancelar
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => onDelete(ev.id)} className="text-destructive">
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Badge variant="outline" className={cn("text-[10px]", statusConfig[ev.status]?.color)}>
-                      {statusConfig[ev.status]?.label || ev.status}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(ev)}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        {ev.status === 'scheduled' && (
-                          <DropdownMenuItem onClick={() => onComplete(ev.id)}>
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Concluir
-                          </DropdownMenuItem>
-                        )}
-                        {ev.status !== 'cancelled' && (
-                          <DropdownMenuItem onClick={() => onCancel(ev.id)} className="text-amber-600">
-                            <XCircle className="h-3.5 w-3.5 mr-2" /> Cancelar
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => onDelete(ev.id)} className="text-destructive">
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
 
-                {ev.client_name && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" /> {ev.client_name}
-                  </div>
-                )}
-                {ev.meet_link && (
-                  <a href={ev.meet_link} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-                    <Video className="h-3 w-3" /> Entrar no Meet
-                  </a>
-                )}
-                {ev.location && (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" /> {ev.location}
-                  </div>
-                )}
-              </div>
-            ))
+                  {ev.client_name && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" /> {ev.client_name}
+                    </div>
+                  )}
+                  {ev.meet_link && (
+                    <a href={ev.meet_link} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                      <Video className="h-3 w-3" /> Entrar no Meet
+                    </a>
+                  )}
+                  {ev.location && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" /> {ev.location}
+                    </div>
+                  )}
+                  {cleanNotes && (
+                    <div className="flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                      <StickyNote className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span className="whitespace-pre-wrap">{cleanNotes}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
