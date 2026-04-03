@@ -223,11 +223,14 @@ export function AgendaConfigPanel() {
           </div>
           <CardDescription>
             Configure notificações automáticas para clientes no dia da reunião.
-            <br />
-            <span className="text-xs text-muted-foreground">
-              WhatsApp usa a Evolution API configurada no sistema. Email usa o Gmail configurado.
-            </span>
           </CardDescription>
+          <div className="mt-2 p-2.5 bg-muted/60 rounded-lg border border-border/50">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>📌 De onde vêm as credenciais:</strong><br />
+              • <strong>WhatsApp:</strong> Usa os segredos do sistema (EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE) — mesmas credenciais configuradas em <em>Admin → Configurações</em>.<br />
+              • <strong>Email:</strong> Usa os segredos do sistema (GMAIL_USER, GMAIL_APP_PASSWORD) — mesmas credenciais do módulo de cobrança.
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">

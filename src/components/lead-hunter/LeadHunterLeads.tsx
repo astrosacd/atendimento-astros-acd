@@ -6,20 +6,49 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Trash2, Send, Upload, Users, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useLeadHunterLeads, useCreateLead, useDeleteLead } from '@/hooks/useLeadHunter';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Search, Trash2, Send, Upload, Users, AlertCircle, CheckCircle, Clock, XCircle, Globe, Loader2, Ban } from 'lucide-react';
+import { useLeadHunterLeads, useCreateLead, useDeleteLead, useLeadHunterConfig } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const DEFAULT_SKIP_DOMAINS = [
+  "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+  "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+  "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+  "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
+];
+
+function isSkippedDomain(url: string, skipDomains: string[]): boolean {
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+    const hostname = new URL(normalized).hostname.toLowerCase().replace(/^www\./, "");
+    return skipDomains.some(d => {
+      const cleanD = d.toLowerCase().replace(/^www\./, "");
+      return hostname === cleanD || hostname.endsWith("." + cleanD);
+    });
+  } catch {
+    return false;
+  }
+}
+
 export default function LeadHunterLeads() {
   const { data: leads = [], isLoading } = useLeadHunterLeads();
+  const { data: config = {} } = useLeadHunterConfig();
   const createLead = useCreateLead();
   const deleteLead = useDeleteLead();
   const [search, setSearch] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({ nome: '', telefone: '', email: '', empresa: '', website: '', cidade: '', estado: '', categoria: '' });
+
+  const skipDomains: string[] = (() => {
+    try { return config.scrape_skip_domains ? JSON.parse(config.scrape_skip_domains) : DEFAULT_SKIP_DOMAINS; } catch { return DEFAULT_SKIP_DOMAINS; }
+  })();
 
   const filtered = leads.filter(l => 
     (l.nome || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -90,15 +119,28 @@ export default function LeadHunterLeads() {
   };
 
   const handleSendSingle = async (leadId: string) => {
+    setSendingIds(prev => new Set(prev).add(leadId));
     try {
       const { data, error } = await supabase.functions.invoke('lead-hunter-send', {
         body: { leadIds: [leadId] },
       });
       if (error) throw error;
-      toast.success(data?.message || 'Disparo iniciado!');
+      toast.success(data?.message || 'Disparo enviado com sucesso!');
     } catch {
       toast.error('Erro ao disparar mensagem');
+    } finally {
+      setSendingIds(prev => {
+        const next = new Set(prev);
+        next.delete(leadId);
+        return next;
+      });
     }
+  };
+
+  const getSiteStatus = (website: string | null) => {
+    if (!website) return null;
+    const blocked = isSkippedDomain(website, skipDomains);
+    return { url: website, blocked };
   };
 
   const stats = {
@@ -168,54 +210,102 @@ export default function LeadHunterLeads() {
           </div>
 
           <div className="overflow-auto max-h-[500px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Fonte</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
-                ) : filtered.slice(0, 100).map(lead => (
-                  <TableRow key={lead.id}>
-                    <TableCell className="font-medium">{lead.nome || '-'}</TableCell>
-                    <TableCell className="font-mono text-sm">{lead.telefone}</TableCell>
-                    <TableCell>{lead.empresa || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{lead.fonte}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {statusBadge(lead.status)}
-                      {lead.erro_mensagem && (
-                        <p className="text-xs text-destructive mt-1 max-w-[200px] truncate" title={lead.erro_mensagem}>
-                          {lead.erro_mensagem}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-1 justify-end">
-                        {lead.status === 'novo' && (
-                          <Button variant="ghost" size="icon" onClick={() => handleSendSingle(lead.id)} title="Disparar">
-                            <Send className="h-4 w-4 text-primary" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" onClick={() => deleteLead.mutate(lead.id)} title="Remover">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <TooltipProvider delayDuration={200}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Fonte</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                  ) : filtered.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
+                  ) : filtered.slice(0, 100).map(lead => {
+                    const siteStatus = getSiteStatus(lead.website);
+                    const isSending = sendingIds.has(lead.id);
+                    
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-medium">{lead.nome || '-'}</TableCell>
+                        <TableCell className="font-mono text-sm">{lead.telefone}</TableCell>
+                        <TableCell>{lead.empresa || '-'}</TableCell>
+                        <TableCell>
+                          {siteStatus ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1">
+                                  {siteStatus.blocked ? (
+                                    <Badge variant="destructive" className="gap-1 text-[10px]">
+                                      <Ban className="h-3 w-3" /> Bloqueado
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="gap-1 text-[10px] border-emerald-500 text-emerald-600">
+                                      <Globe className="h-3 w-3" /> Permitido
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">{siteStatus.url}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {siteStatus.blocked 
+                                    ? 'Este domínio está na lista de ignorados (scraping não será feito)' 
+                                    : 'Site será scraped para personalizar a mensagem via IA'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{lead.fonte}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {statusBadge(lead.status)}
+                          {lead.erro_mensagem && (
+                            <p className="text-xs text-destructive mt-1 max-w-[200px] truncate" title={lead.erro_mensagem}>
+                              {lead.erro_mensagem}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end">
+                            {lead.status === 'novo' && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleSendSingle(lead.id)} 
+                                disabled={isSending}
+                                title="Disparar"
+                                className="hover:bg-primary/10 hover:text-primary"
+                              >
+                                {isSending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                ) : (
+                                  <Send className="h-4 w-4 text-primary" />
+                                )}
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => deleteLead.mutate(lead.id)} title="Remover" className="hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>
