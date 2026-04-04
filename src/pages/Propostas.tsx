@@ -34,7 +34,7 @@ import {
   BarChart3,
   Mail,
   MessageSquare,
-  User,
+  Repeat,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { useProposalSections } from '@/hooks/useProposalSections';
