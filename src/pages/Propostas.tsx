@@ -33,6 +33,7 @@ import {
   BarChart3,
   Mail,
   MessageSquare,
+  Repeat,
   User,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
@@ -84,6 +85,31 @@ export default function Propostas() {
       return data;
     },
     enabled: proposalIds.length > 0,
+  });
+
+  // Fetch remarketing logs per proposal
+  const { data: remarketingLogs = [] } = useQuery({
+    queryKey: ['proposal-remarketing-logs', proposalIds],
+    queryFn: async () => {
+      if (proposalIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('proposal_auto_remarketing_logs')
+        .select('proposal_id, status, day_number')
+        .in('proposal_id', proposalIds);
+      if (error) return [];
+      return data;
+    },
+    enabled: proposalIds.length > 0,
+  });
+
+  // Build remarketing count map
+  const remarketingCounts: Record<string, { sent: number; total: number }> = {};
+  remarketingLogs.forEach((log: any) => {
+    if (!remarketingCounts[log.proposal_id]) {
+      remarketingCounts[log.proposal_id] = { sent: 0, total: 0 };
+    }
+    remarketingCounts[log.proposal_id].total++;
+    if (log.status === 'sent') remarketingCounts[log.proposal_id].sent++;
   });
 
   const proposalsWithPendingSchedule = new Set(allScheduledSends.map(s => s.proposal_id));
@@ -278,6 +304,7 @@ export default function Propostas() {
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
                 hasScheduledSend={proposalsWithPendingSchedule.has(proposal.id)}
+                remarketingInfo={remarketingCounts[proposal.id]}
               />
             ))}
           </div>
@@ -339,6 +366,7 @@ function ProposalCard({
   formatCurrency,
   sendChannels,
   hasScheduledSend,
+  remarketingInfo,
 }: {
   proposal: Proposal;
   onClick: () => void;
@@ -347,6 +375,7 @@ function ProposalCard({
   formatCurrency: (value: number) => string;
   sendChannels: string[];
   hasScheduledSend?: boolean;
+  remarketingInfo?: { sent: number; total: number };
 }) {
   const displayStatus = hasScheduledSend && proposal.status === 'draft' ? 'scheduled' : proposal.status;
   const config = displayStatus === 'scheduled'
@@ -397,6 +426,26 @@ function ProposalCard({
                 {statusIcons[displayStatus] || statusIcons[proposal.status]}
                 {config.label}
               </Badge>
+              {remarketingInfo && remarketingInfo.total > 0 && (
+                <Badge
+                  variant="outline"
+                  className={`gap-1 text-xs ${
+                    proposal.status === 'accepted' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : proposal.status === 'rejected'
+                        ? 'border-destructive text-destructive'
+                        : 'border-amber-500 text-amber-600'
+                  }`}
+                >
+                  <Repeat className="h-3 w-3" />
+                  {remarketingInfo.sent}x remarketing
+                  {proposal.status === 'accepted' 
+                    ? ' • Assinou' 
+                    : proposal.status === 'rejected'
+                      ? ' • Recusou'
+                      : ''}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
               {/* Nome do cliente com tipo */}

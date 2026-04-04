@@ -5,19 +5,26 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Play, Pause, Megaphone, Send, Loader2, Info } from 'lucide-react';
-import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha } from '@/hooks/useLeadHunter';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users } from 'lucide-react';
+import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
+  const { data: allLeads = [] } = useLeadHunterLeads();
   const createCampanha = useCreateCampanha();
   const updateCampanha = useUpdateCampanha();
+  const deleteCampanha = useDeleteCampanha();
   const [showCreate, setShowCreate] = useState(false);
+  const [showLinkLeads, setShowLinkLeads] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [dispatching, setDispatching] = useState<string | null>(null);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     nome: '',
     descricao: '',
@@ -29,6 +36,9 @@ export default function LeadHunterCampanhas() {
     delay_entre_mensagens: 10,
   });
 
+  const unlinkedLeads = allLeads.filter(l => !l.campanha_id && l.status === 'novo');
+  const campaignLeads = (campId: string) => allLeads.filter(l => l.campanha_id === campId);
+
   const handleCreate = async () => {
     if (!form.nome) return toast.error('Nome da campanha é obrigatório');
     await createCampanha.mutateAsync(form as any);
@@ -37,6 +47,20 @@ export default function LeadHunterCampanhas() {
       nome: '', descricao: '', tipo_mensagem: 'personalizada', mensagem_modelo: '',
       prompt_ia: form.prompt_ia, provedor_ia: 'lovable', modelo_ia: '', delay_entre_mensagens: 10,
     });
+  };
+
+  const handleLinkLeads = async (campanhaId: string) => {
+    if (selectedLeadIds.size === 0) return toast.error('Selecione pelo menos um lead');
+    try {
+      for (const leadId of selectedLeadIds) {
+        await supabase.from('lead_hunter_leads').update({ campanha_id: campanhaId } as any).eq('id', leadId);
+      }
+      toast.success(`${selectedLeadIds.size} leads vinculados à campanha`);
+      setShowLinkLeads(null);
+      setSelectedLeadIds(new Set());
+    } catch {
+      toast.error('Erro ao vincular leads');
+    }
   };
 
   const handleDispatch = async (campanhaId: string) => {
@@ -72,8 +96,13 @@ export default function LeadHunterCampanhas() {
       <div className="p-3 bg-muted/50 rounded-lg border border-border/50 flex items-start gap-2">
         <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground">
-          <p><strong>Como funciona:</strong> Campanhas são opcionais. Você pode disparar mensagens diretamente na aba <strong>Leads</strong> clicando no botão de envio (✈️) em cada lead.</p>
-          <p className="mt-1">Campanhas servem para organizar disparos em lote com configurações de IA e modelo de mensagem específicos. Os leads vinculados a uma campanha serão disparados com as configurações dela.</p>
+          <p><strong>Como funciona:</strong></p>
+          <ol className="list-decimal ml-4 mt-1 space-y-1">
+            <li>Crie uma campanha com as configurações de mensagem/IA desejadas.</li>
+            <li>Clique em <strong>"Vincular Leads"</strong> para adicionar leads (somente leads com status "Novo" e sem campanha aparecem).</li>
+            <li>Clique em <strong>"Disparar Agora"</strong> para enviar mensagens para todos os leads vinculados.</li>
+          </ol>
+          <p className="mt-1">Você também pode disparar leads individualmente na aba <strong>Leads</strong> sem precisar de uma campanha.</p>
         </div>
       </div>
 
@@ -99,54 +128,133 @@ export default function LeadHunterCampanhas() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {campanhas.map(c => (
-            <Card key={c.id} className="border-border/40">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div>
-                  <CardTitle className="text-lg">{c.nome}</CardTitle>
-                  {c.descricao && <p className="text-sm text-muted-foreground mt-1">{c.descricao}</p>}
-                </div>
-                <Badge className={statusColor[c.status] || ''}>{c.status}</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4 flex-wrap">
-                  <span>Leads: <strong className="text-foreground">{c.total_leads}</strong></span>
-                  <span>Enviados: <strong className="text-primary">{c.total_enviados}</strong></span>
-                  <span>Erros: <strong className="text-destructive">{c.total_erros}</strong></span>
-                  <span>Respondidos: <strong className="text-emerald-500">{c.total_respondidos}</strong></span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={c.status === 'ativa' ? 'outline' : 'default'}
-                    onClick={() => handleToggleStatus(c)}
-                  >
-                    {c.status === 'ativa' ? <><Pause className="h-4 w-4 mr-1" /> Pausar</> : <><Play className="h-4 w-4 mr-1" /> Ativar</>}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDispatch(c.id)}
-                    disabled={dispatching === c.id}
-                  >
-                    {dispatching === c.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Processando...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-1" />
-                        Disparar Agora
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {campanhas.map(c => {
+            const linked = campaignLeads(c.id);
+            return (
+              <Card key={c.id} className="border-border/40">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-lg">{c.nome}</CardTitle>
+                    {c.descricao && <p className="text-sm text-muted-foreground mt-1">{c.descricao}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={statusColor[c.status] || ''}>{c.status}</Badge>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)} className="hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4 flex-wrap">
+                    <span>Leads vinculados: <strong className="text-foreground">{linked.length}</strong></span>
+                    <span>Enviados: <strong className="text-primary">{c.total_enviados}</strong></span>
+                    <span>Erros: <strong className="text-destructive">{c.total_erros}</strong></span>
+                    <span>Respondidos: <strong className="text-emerald-500">{c.total_respondidos}</strong></span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setSelectedLeadIds(new Set()); setShowLinkLeads(c.id); }}
+                    >
+                      <Users className="h-4 w-4 mr-1" /> Vincular Leads ({unlinkedLeads.length} disponíveis)
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={c.status === 'ativa' ? 'outline' : 'default'}
+                      onClick={() => handleToggleStatus(c)}
+                    >
+                      {c.status === 'ativa' ? <><Pause className="h-4 w-4 mr-1" /> Pausar</> : <><Play className="h-4 w-4 mr-1" /> Ativar</>}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDispatch(c.id)}
+                      disabled={dispatching === c.id || linked.length === 0}
+                    >
+                      {dispatching === c.id ? (
+                        <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Processando...</>
+                      ) : (
+                        <><Send className="h-4 w-4 mr-1" /> Disparar Agora</>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Link Leads Dialog */}
+      <Dialog open={!!showLinkLeads} onOpenChange={() => setShowLinkLeads(null)}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vincular Leads à Campanha</DialogTitle>
+          </DialogHeader>
+          {unlinkedLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum lead disponível (somente leads com status "Novo" e sem campanha aparecem aqui).</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox
+                  checked={selectedLeadIds.size === unlinkedLeads.length}
+                  onCheckedChange={(checked) => {
+                    setSelectedLeadIds(checked ? new Set(unlinkedLeads.map(l => l.id)) : new Set());
+                  }}
+                />
+                <span className="text-sm font-medium">Selecionar todos ({unlinkedLeads.length})</span>
+              </div>
+              {unlinkedLeads.map(lead => (
+                <div key={lead.id} className="flex items-center gap-2 p-2 rounded border border-border/40 hover:bg-muted/30">
+                  <Checkbox
+                    checked={selectedLeadIds.has(lead.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedLeadIds(prev => {
+                        const next = new Set(prev);
+                        checked ? next.add(lead.id) : next.delete(lead.id);
+                        return next;
+                      });
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{lead.nome || lead.telefone}</p>
+                    {lead.empresa && <p className="text-xs text-muted-foreground">{lead.empresa}</p>}
+                  </div>
+                  <span className="text-xs font-mono text-muted-foreground">{lead.telefone}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLinkLeads(null)}>Cancelar</Button>
+            <Button onClick={() => showLinkLeads && handleLinkLeads(showLinkLeads)} disabled={selectedLeadIds.size === 0}>
+              Vincular {selectedLeadIds.size} lead(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir campanha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A campanha será excluída e os leads vinculados serão desvinculados (não excluídos).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteId) { deleteCampanha.mutate(deleteId); setDeleteId(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Campaign Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

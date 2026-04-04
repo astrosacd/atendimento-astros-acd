@@ -191,6 +191,24 @@ export function useUpdateCampanha() {
   });
 }
 
+export function useDeleteCampanha() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // First unlink leads from this campaign
+      await supabase.from('lead_hunter_leads').update({ campanha_id: null } as any).eq('campanha_id', id);
+      const { error } = await supabase.from('lead_hunter_campanhas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-hunter-campanhas'] });
+      qc.invalidateQueries({ queryKey: ['lead-hunter-leads'] });
+      toast.success('Campanha excluída');
+    },
+    onError: () => toast.error('Erro ao excluir campanha'),
+  });
+}
+
 // ========== WHATSAPP INSTANCES ==========
 export function useLeadHunterInstances() {
   return useQuery({

@@ -214,29 +214,29 @@ export default function LeadHunterLeads() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Site</TableHead>
-                    <TableHead>Fonte</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[180px]">Nome</TableHead>
+                    <TableHead className="w-[130px]">Telefone</TableHead>
+                    <TableHead className="w-[100px]">Site</TableHead>
+                    <TableHead className="w-[80px]">Status</TableHead>
+                    <TableHead className="w-[90px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
                   ) : filtered.slice(0, 100).map(lead => {
                     const siteStatus = getSiteStatus(lead.website);
                     const isSending = sendingIds.has(lead.id);
                     
                     return (
                       <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.nome || '-'}</TableCell>
-                        <TableCell className="font-mono text-sm">{lead.telefone}</TableCell>
-                        <TableCell>{lead.empresa || '-'}</TableCell>
+                        <TableCell className="font-medium max-w-[180px]">
+                          <div className="truncate" title={lead.nome || '-'}>{lead.nome || '-'}</div>
+                          {lead.empresa && <div className="text-xs text-muted-foreground truncate" title={lead.empresa}>{lead.empresa}</div>}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{lead.telefone}</TableCell>
                         <TableCell>
                           {siteStatus ? (
                             <Tooltip>
@@ -265,9 +265,6 @@ export default function LeadHunterLeads() {
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">{lead.fonte}</Badge>
                         </TableCell>
                         <TableCell>
                           {statusBadge(lead.status)}
