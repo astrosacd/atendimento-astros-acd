@@ -118,12 +118,35 @@ export default function Agenda() {
             </h1>
             <p className="text-muted-foreground">Gerencie seus agendamentos e reuniões</p>
           </div>
-          {canCreate && (
-            <Button onClick={() => { setEditingEvent(null); setFormOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Agendamento
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {googleEnabled && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('calendar-sync-google');
+                    if (error) throw error;
+                    toast.success(data?.message || 'Sincronização concluída!');
+                  } catch {
+                    toast.error('Erro ao sincronizar com Google Agenda');
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Sincronizando...' : 'Sincronizar Google'}
+              </Button>
+            )}
+            {canCreate && (
+              <Button onClick={() => { setEditingEvent(null); setFormOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Agendamento
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
