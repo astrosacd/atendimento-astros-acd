@@ -366,6 +366,7 @@ function ProposalCard({
   formatCurrency,
   sendChannels,
   hasScheduledSend,
+  remarketingInfo,
 }: {
   proposal: Proposal;
   onClick: () => void;
@@ -374,6 +375,7 @@ function ProposalCard({
   formatCurrency: (value: number) => string;
   sendChannels: string[];
   hasScheduledSend?: boolean;
+  remarketingInfo?: { sent: number; total: number };
 }) {
   const displayStatus = hasScheduledSend && proposal.status === 'draft' ? 'scheduled' : proposal.status;
   const config = displayStatus === 'scheduled'
