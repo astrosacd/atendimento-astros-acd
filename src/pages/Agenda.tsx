@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, Plus, Loader2 } from 'lucide-react';
+import { Calendar, Settings, Plus, Loader2, RefreshCw } from 'lucide-react';
 import { useCalendarEvents, useCalendarConfig, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
 import { AgendaCalendarView } from '@/components/agenda/AgendaCalendarView';
 import { AgendaConfigPanel } from '@/components/agenda/AgendaConfigPanel';
