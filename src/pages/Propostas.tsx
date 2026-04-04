@@ -426,6 +426,26 @@ function ProposalCard({
                 {statusIcons[displayStatus] || statusIcons[proposal.status]}
                 {config.label}
               </Badge>
+              {remarketingInfo && remarketingInfo.total > 0 && (
+                <Badge
+                  variant="outline"
+                  className={`gap-1 text-xs ${
+                    proposal.status === 'accepted' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : proposal.status === 'rejected'
+                        ? 'border-destructive text-destructive'
+                        : 'border-amber-500 text-amber-600'
+                  }`}
+                >
+                  <Repeat className="h-3 w-3" />
+                  {remarketingInfo.sent}x remarketing
+                  {proposal.status === 'accepted' 
+                    ? ' • Assinou' 
+                    : proposal.status === 'rejected'
+                      ? ' • Recusou'
+                      : ''}
+                </Badge>
+              )}
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
               {/* Nome do cliente com tipo */}
