@@ -21,6 +21,7 @@ export default function Agenda() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: events = [], isLoading } = useCalendarEvents(currentMonth);
   const { data: calendarConfig } = useCalendarConfig();
