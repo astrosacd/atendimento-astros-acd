@@ -303,6 +303,7 @@ export default function Propostas() {
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
                 hasScheduledSend={proposalsWithPendingSchedule.has(proposal.id)}
+                remarketingInfo={remarketingCounts[proposal.id]}
               />
             ))}
           </div>
