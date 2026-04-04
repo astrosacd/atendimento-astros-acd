@@ -214,13 +214,11 @@ export default function LeadHunterLeads() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Empresa</TableHead>
-                    <TableHead>Site</TableHead>
-                    <TableHead>Fonte</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[180px]">Nome</TableHead>
+                    <TableHead className="w-[130px]">Telefone</TableHead>
+                    <TableHead className="w-[100px]">Site</TableHead>
+                    <TableHead className="w-[80px]">Status</TableHead>
+                    <TableHead className="w-[90px] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
