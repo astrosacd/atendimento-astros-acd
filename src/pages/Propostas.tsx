@@ -35,6 +35,7 @@ import {
   Mail,
   MessageSquare,
   Repeat,
+  User,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
 import { useProposalSections } from '@/hooks/useProposalSections';
