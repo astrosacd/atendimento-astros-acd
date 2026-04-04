@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, Plus, Loader2 } from 'lucide-react';
+import { Calendar, Settings, Plus, Loader2, RefreshCw } from 'lucide-react';
 import { useCalendarEvents, useCalendarConfig, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
 import { AgendaCalendarView } from '@/components/agenda/AgendaCalendarView';
 import { AgendaConfigPanel } from '@/components/agenda/AgendaConfigPanel';
@@ -21,6 +21,7 @@ export default function Agenda() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: events = [], isLoading } = useCalendarEvents(currentMonth);
   const { data: calendarConfig } = useCalendarConfig();
@@ -117,12 +118,35 @@ export default function Agenda() {
             </h1>
             <p className="text-muted-foreground">Gerencie seus agendamentos e reuniões</p>
           </div>
-          {canCreate && (
-            <Button onClick={() => { setEditingEvent(null); setFormOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Agendamento
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {googleEnabled && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('calendar-sync-google');
+                    if (error) throw error;
+                    toast.success(data?.message || 'Sincronização concluída!');
+                  } catch {
+                    toast.error('Erro ao sincronizar com Google Agenda');
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Sincronizando...' : 'Sincronizar Google'}
+              </Button>
+            )}
+            {canCreate && (
+              <Button onClick={() => { setEditingEvent(null); setFormOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Agendamento
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
