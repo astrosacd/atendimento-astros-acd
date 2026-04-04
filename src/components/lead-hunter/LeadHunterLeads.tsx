@@ -267,9 +267,6 @@ export default function LeadHunterLeads() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">{lead.fonte}</Badge>
-                        </TableCell>
-                        <TableCell>
                           {statusBadge(lead.status)}
                           {lead.erro_mensagem && (
                             <p className="text-xs text-destructive mt-1 max-w-[200px] truncate" title={lead.erro_mensagem}>
