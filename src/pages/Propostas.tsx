@@ -86,6 +86,31 @@ export default function Propostas() {
     enabled: proposalIds.length > 0,
   });
 
+  // Fetch remarketing logs per proposal
+  const { data: remarketingLogs = [] } = useQuery({
+    queryKey: ['proposal-remarketing-logs', proposalIds],
+    queryFn: async () => {
+      if (proposalIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('proposal_auto_remarketing_logs')
+        .select('proposal_id, status, day_number')
+        .in('proposal_id', proposalIds);
+      if (error) return [];
+      return data;
+    },
+    enabled: proposalIds.length > 0,
+  });
+
+  // Build remarketing count map
+  const remarketingCounts: Record<string, { sent: number; total: number }> = {};
+  remarketingLogs.forEach((log: any) => {
+    if (!remarketingCounts[log.proposal_id]) {
+      remarketingCounts[log.proposal_id] = { sent: 0, total: 0 };
+    }
+    remarketingCounts[log.proposal_id].total++;
+    if (log.status === 'sent') remarketingCounts[log.proposal_id].sent++;
+  });
+
   const proposalsWithPendingSchedule = new Set(allScheduledSends.map(s => s.proposal_id));
 
   const handleCreateWithTemplate = async (template: ProposalTemplate) => {
