@@ -223,9 +223,9 @@ export default function LeadHunterLeads() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Carregando...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum lead encontrado</TableCell></TableRow>
                   ) : filtered.slice(0, 100).map(lead => {
                     const siteStatus = getSiteStatus(lead.website);
                     const isSending = sendingIds.has(lead.id);
