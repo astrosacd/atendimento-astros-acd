@@ -232,9 +232,11 @@ export default function LeadHunterLeads() {
                     
                     return (
                       <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.nome || '-'}</TableCell>
-                        <TableCell className="font-mono text-sm">{lead.telefone}</TableCell>
-                        <TableCell>{lead.empresa || '-'}</TableCell>
+                        <TableCell className="font-medium max-w-[180px]">
+                          <div className="truncate" title={lead.nome || '-'}>{lead.nome || '-'}</div>
+                          {lead.empresa && <div className="text-xs text-muted-foreground truncate" title={lead.empresa}>{lead.empresa}</div>}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{lead.telefone}</TableCell>
                         <TableCell>
                           {siteStatus ? (
                             <Tooltip>
