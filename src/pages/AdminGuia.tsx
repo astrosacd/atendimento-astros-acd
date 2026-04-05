@@ -4169,6 +4169,495 @@ Acesse **Painel Administrativo** → **Permissões**
         "Mantenha planos inativos para referência histórica",
         "Descreva claramente os recursos de cada plano para evitar dúvidas"
       ]
+    },
+    {
+      id: "pipeline-visao-geral",
+      title: "Pipeline de Clientes (Kanban)",
+      icon: Columns,
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      description: "Gerencie clientes e leads em um quadro Kanban com etapas personalizáveis",
+      steps: [
+        {
+          title: "O que é o Pipeline?",
+          content: `O **Pipeline** é um quadro Kanban para visualizar o funil de vendas:
+
+- **Etapas personalizáveis**: Crie colunas como "Prospecção", "Negociação", "Fechado"
+- **Leads e Clientes**: Arraste leads entre as etapas conforme avançam no funil
+- **Conversão**: Converta leads em clientes cadastrados com um clique
+- **Automações**: Crie regras automáticas para mover leads entre etapas
+- **Notas**: Adicione observações e acompanhamentos em cada card
+
+**Acessar:**
+Menu lateral → **Pipeline**`
+        },
+        {
+          title: "Gerenciar Etapas",
+          content: `**Criar e organizar etapas do funil:**
+
+1. Acesse **Pipeline** → clique em **"Gerenciar Etapas"**
+2. Clique em **"Nova Etapa"**
+3. Preencha:
+   - **Nome**: Identificação da etapa (ex: "Qualificação")
+   - **Cor**: Cor do cabeçalho da coluna
+   - **Ordem**: Posição no quadro
+4. Salve a etapa
+
+**Dica:** Ordene as etapas da esquerda para direita seguindo o fluxo natural de vendas.`
+        },
+        {
+          title: "Adicionar Leads",
+          content: `**Criar novo lead no Pipeline:**
+
+1. No quadro Kanban, clique em **"+ Novo Lead"**
+2. Preencha os dados:
+   - **Nome**: Nome do lead
+   - **Email**: Email de contato
+   - **Telefone**: WhatsApp
+   - **Produto**: Interesse do lead
+   - **Notas**: Observações iniciais
+3. O lead aparece na primeira etapa do funil
+
+**Mover entre etapas:**
+Arraste e solte o card entre as colunas para avançar o lead no funil.`
+        },
+        {
+          title: "Converter Lead em Cliente",
+          content: `Quando um lead fecha negócio:
+
+1. No card do lead, clique em **"Converter"**
+2. Os dados são preenchidos automaticamente
+3. Complete os dados obrigatórios (CPF, valor, etc.)
+4. O lead é convertido em **cliente cadastrado** no CRM
+5. O card mostra badge "Convertido" no Pipeline
+
+**Importante:** A conversão cria um registro completo em Clientes.`
+        }
+      ],
+      tips: [
+        "Use etapas claras que reflitam seu processo de vendas real",
+        "Mova leads rapidamente entre etapas para manter o funil atualizado",
+        "Adicione notas em cada interação com o lead",
+        "Revise leads parados em uma etapa por muito tempo",
+        "Configure automações para agilizar movimentos repetitivos"
+      ]
+    },
+    {
+      id: "pipeline-automacoes",
+      title: "Automações do Pipeline",
+      icon: Zap,
+      color: "text-indigo-400",
+      bgColor: "bg-indigo-500/10",
+      description: "Configure regras automáticas para o Pipeline",
+      steps: [
+        {
+          title: "Criar regras de automação",
+          content: `**Automatize ações no Pipeline:**
+
+1. Acesse **Pipeline** → aba **"Automações"**
+2. Clique em **"Nova Regra"**
+3. Configure:
+   - **Nome**: Identificação da regra
+   - **Gatilho**: Quando a regra dispara (ex: lead entra em etapa X)
+   - **Ação**: O que acontece (ex: enviar WhatsApp, mover para outra etapa)
+   - **Condições**: Filtros adicionais
+
+**Exemplos de automações:**
+- Lead entra em "Negociação" → Enviar mensagem de boas-vindas
+- Lead fica 7 dias em "Proposta Enviada" → Mover para "Follow-up"
+- Lead é convertido → Notificar gerente por WhatsApp`
+        },
+        {
+          title: "Permissões do Pipeline",
+          content: `**Configurar em Permissões do Sistema:**
+
+**Permissões disponíveis:**
+- **view_pipeline**: Visualizar o quadro Kanban
+- **manage_pipeline_stages**: Criar e editar etapas
+- **manage_pipeline_automations**: Configurar regras de automação
+
+**Recomendações:**
+- **Vendedor**: view_pipeline + manage_pipeline_stages
+- **Admin**: Todas as permissões
+- **Visualizador**: Apenas view_pipeline`
+        }
+      ],
+      tips: [
+        "Comece com automações simples e vá adicionando complexidade",
+        "Teste regras com um lead de teste antes de ativar para todos",
+        "Monitore os logs de automação para verificar se as regras estão funcionando"
+      ]
+    },
+    {
+      id: "lead-hunter-visao-geral",
+      title: "Lead Hunter - Visão Geral",
+      icon: Crosshair,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Prospecção automatizada via Google Maps + WhatsApp com IA",
+      steps: [
+        {
+          title: "O que é o Lead Hunter?",
+          content: `O **Lead Hunter** é uma ferramenta de prospecção automatizada:
+
+- **Busca SERP**: Encontre empresas via Google usando palavras-chave
+- **Scraping inteligente**: O sistema acessa os sites encontrados via Jina Reader para extrair informações
+- **IA para mensagens**: Gere mensagens personalizadas com base no conteúdo do site do lead
+- **Campanhas**: Organize leads em campanhas para envio em massa via WhatsApp
+- **Status de sites**: Veja se o site está acessível, bloqueado ou apenas tracking
+- **Integração Baserow**: Sincronize leads com o Baserow automaticamente
+
+**Acessar:**
+Menu lateral → **Lead Hunter**`
+        },
+        {
+          title: "Gerenciar Leads",
+          content: `Na aba **Leads**, você encontra todos os leads prospectados:
+
+**Informações exibidas:**
+- Nome / Empresa (agrupados)
+- Telefone
+- Email
+- Site (com status: Permitido, Bloqueado, Tracking)
+- Status do lead
+
+**Ações disponíveis:**
+- 📋 **Copiar dados**: Copie informações do lead
+- ✏️ **Editar**: Atualize dados do lead
+- 🗑️ **Excluir**: Remova o lead
+- 📎 **Vincular a campanha**: Associe a uma campanha existente
+
+**Importação:**
+Importe leads de CSV ou adicione manualmente.`
+        },
+        {
+          title: "Status dos sites",
+          content: `Ao vincular leads a campanhas, o sistema mostra o status do site:
+
+- 🟢 **Permitido**: Site acessível, scraping funcionará normalmente
+- 🔴 **Bloqueado**: Site bloqueia acesso do Jina Reader
+- 🟡 **Tracking**: Site tem rastreadores que podem identificar o acesso
+- ⚪ **Sem site**: Lead não possui site cadastrado
+
+**Por que isso importa:**
+A IA usa o conteúdo do site para gerar mensagens personalizadas. Sites bloqueados resultarão em mensagens genéricas.`
+        }
+      ],
+      tips: [
+        "Priorize leads com sites permitidos para melhor personalização por IA",
+        "Mantenha leads organizados em campanhas por segmento",
+        "O status do site é verificado automaticamente ao vincular leads",
+        "Use a busca SERP para encontrar leads segmentados por localização e nicho"
+      ]
+    },
+    {
+      id: "lead-hunter-campanhas",
+      title: "Campanhas de Prospecção",
+      icon: Megaphone,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Organize leads em campanhas e envie mensagens em massa",
+      steps: [
+        {
+          title: "Criar uma campanha",
+          content: `1. Acesse **Lead Hunter** → aba **Campanhas**
+2. Clique em **"Nova Campanha"**
+3. Preencha:
+   - **Nome**: Identificação (ex: "Prospecção Restaurantes SP")
+   - **Descrição**: Objetivo da campanha
+   - **Instância WhatsApp**: Para envio das mensagens
+   - **Modelo de mensagem**: Template de mensagem com IA
+4. Salve a campanha`
+        },
+        {
+          title: "Vincular leads à campanha",
+          content: `**Adicionar leads disponíveis:**
+
+1. Na campanha, clique em **"Vincular Leads"**
+2. Veja a lista de leads disponíveis com:
+   - Nome / Empresa
+   - Telefone
+   - Status do site (Permitido / Bloqueado / Tracking)
+3. Selecione os leads desejados
+4. Clique em **"Vincular"**
+
+**Dica:** O status do site ajuda a priorizar quais leads terão melhor personalização pela IA.`
+        },
+        {
+          title: "Disparar campanha",
+          content: `**Enviar mensagens:**
+
+1. Na campanha, clique em **"Disparar"**
+2. O sistema processa cada lead:
+   - Acessa o site via Jina Reader (se permitido)
+   - Gera mensagem personalizada com IA
+   - Envia via WhatsApp
+3. Acompanhe o progresso em tempo real
+
+**Indicadores durante o disparo:**
+- ✅ Enviado com sucesso
+- ⏳ Processando (acessando site + gerando mensagem)
+- ❌ Erro (site bloqueado, número inválido, etc.)
+
+**Delay entre envios:**
+Configure um intervalo entre mensagens para evitar bloqueios do WhatsApp.`
+        }
+      ],
+      tips: [
+        "Configure delay de 30-60 segundos entre envios para evitar bloqueios",
+        "Verifique o status dos sites antes de disparar a campanha",
+        "Use mensagens diferentes para cada segmento de leads",
+        "Acompanhe o histórico para ver taxas de entrega"
+      ]
+    },
+    {
+      id: "lead-hunter-busca",
+      title: "Busca SERP",
+      icon: Database,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500/10",
+      description: "Encontre leads automaticamente via pesquisa Google",
+      steps: [
+        {
+          title: "O que é a Busca SERP?",
+          content: `A **Busca SERP** (Search Engine Results Page) permite encontrar empresas via Google:
+
+1. Acesse **Lead Hunter** → aba **Busca SERP**
+2. Configure a busca:
+   - **Palavra-chave**: O que buscar (ex: "restaurante italiano")
+   - **Localização**: Cidade ou região (ex: "São Paulo")
+   - **Quantidade**: Quantos resultados trazer
+3. Clique em **"Buscar"**
+
+**O sistema:**
+- Faz a pesquisa via API de busca
+- Extrai dados das empresas encontradas
+- Adiciona automaticamente como leads
+- Verifica o status dos sites encontrados`
+        },
+        {
+          title: "Configurações do Lead Hunter",
+          content: `Na aba **Configurações**, configure:
+
+- **API de Busca**: Credenciais para busca SERP
+- **Instância WhatsApp**: Para envio de mensagens
+- **Modelo de IA**: Qual modelo usar para gerar mensagens
+- **Prompt base**: Contexto para a IA ao gerar mensagens
+- **Integração Baserow**: Sincronização de leads
+
+**Permissões disponíveis:**
+- **view_lead_hunter**: Visualizar leads e campanhas
+- **manage_lead_hunter_leads**: Gerenciar leads
+- **manage_lead_hunter_campanhas**: Gerenciar campanhas
+- **manage_lead_hunter_config**: Alterar configurações
+- **manage_lead_hunter_busca**: Usar busca SERP
+- **view_lead_hunter_historico**: Ver histórico de envios`
+        }
+      ],
+      tips: [
+        "Use termos específicos para encontrar leads mais qualificados",
+        "Combine busca com localização para prospecção local",
+        "Verifique os resultados antes de adicionar à campanha",
+        "A busca consome créditos da API - use com sabedoria"
+      ]
+    },
+    {
+      id: "agenda-visao-geral",
+      title: "Agenda de Eventos",
+      icon: Calendar,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Gerencie eventos, reuniões e compromissos com visão de calendário",
+      steps: [
+        {
+          title: "O que é a Agenda?",
+          content: `O módulo de **Agenda** permite gerenciar compromissos e reuniões:
+
+- **Calendário visual**: Visualize eventos em formato mensal, semanal ou diário
+- **Criação rápida**: Clique em um horário para criar um evento
+- **Dados do cliente**: Vincule eventos a clientes (nome, email, telefone)
+- **Google Meet**: Gere links de reunião automaticamente
+- **Notificações**: Alertas por WhatsApp e/ou Email antes do evento
+- **Status**: Acompanhe se o evento foi confirmado, cancelado ou realizado
+
+**Acessar:**
+Menu lateral → **Agenda**`
+        },
+        {
+          title: "Criar um evento",
+          content: `1. Acesse **Agenda** e clique em **"Novo Evento"** ou clique diretamente no calendário
+2. Preencha:
+   - **Título**: Nome do evento (ex: "Reunião com cliente X")
+   - **Data e hora início**: Quando começa
+   - **Data e hora fim**: Quando termina
+   - **Descrição**: Detalhes da reunião
+   - **Local**: Onde será (presencial ou link)
+   - **Cliente**: Nome, email e telefone do participante
+3. Opções adicionais:
+   - **Gerar Meet**: Criar link do Google Meet automaticamente
+   - **Notas internas**: Anotações visíveis apenas para a equipe
+4. Clique em **"Salvar"**`
+        },
+        {
+          title: "Visualizações do calendário",
+          content: `A Agenda oferece diferentes formas de visualização:
+
+- **Mês**: Visão geral do mês com todos os eventos
+- **Semana**: Detalhamento da semana com horários
+- **Dia**: Visão detalhada de um dia específico
+- **Lista**: Eventos em formato de lista cronológica
+
+**Cores por status:**
+- 🟢 **Confirmado**: Evento confirmado
+- 🟡 **Pendente**: Aguardando confirmação
+- 🔴 **Cancelado**: Evento cancelado
+- 🔵 **Realizado**: Evento já aconteceu`
+        },
+        {
+          title: "Gerenciar eventos",
+          content: `**Ações disponíveis:**
+
+- ✏️ **Editar**: Modifique dados do evento
+- 🗑️ **Excluir**: Remova o evento
+- ✅ **Confirmar**: Marque como confirmado
+- ❌ **Cancelar**: Marque como cancelado
+- 📋 **Copiar Meet**: Copie o link da reunião
+
+**Arrastar e soltar:**
+Arraste eventos entre datas para reagendá-los rapidamente.`
+        }
+      ],
+      tips: [
+        "Use a visão semanal para planejar seus dias de trabalho",
+        "Gere links de Meet para reuniões online automaticamente",
+        "Vincule o email do cliente para enviar convites",
+        "Verifique a agenda diariamente para não perder compromissos",
+        "Use notas internas para preparação de reuniões"
+      ]
+    },
+    {
+      id: "agenda-config",
+      title: "Configurações da Agenda",
+      icon: Settings,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Configure notificações e integrações da Agenda",
+      steps: [
+        {
+          title: "Notificações de eventos",
+          content: `**Configure alertas automáticos:**
+
+1. Na Agenda, acesse **Configurações**
+2. Configure notificações:
+   - **WhatsApp**: Envie lembrete ao cliente via Evolution API
+   - **Email**: Envie lembrete por email via Gmail
+   - **Antecedência**: Quantos minutos/horas antes notificar
+3. Salve as configurações
+
+**Variáveis nas mensagens:**
+- \`{titulo}\`: Nome do evento
+- \`{data}\`: Data do evento
+- \`{hora}\`: Horário do evento
+- \`{local}\`: Local ou link da reunião
+- \`{cliente_nome}\`: Nome do cliente`
+        },
+        {
+          title: "Permissões da Agenda",
+          content: `**Configurar em Permissões do Sistema:**
+
+**Permissões disponíveis:**
+- **view_agenda**: Visualizar calendário e eventos
+- **create_agenda_events**: Criar novos eventos
+- **edit_agenda_events**: Editar eventos existentes
+- **delete_agenda_events**: Excluir eventos
+- **manage_agenda_config**: Alterar configurações da agenda
+
+**Recomendações:**
+- **Vendedor**: view + create + edit
+- **Admin**: Todas as permissões
+- **Visualizador**: Apenas view_agenda`
+        }
+      ],
+      tips: [
+        "Configure notificações por WhatsApp para lembrar clientes sobre reuniões",
+        "Use antecedência de 30-60 minutos para notificações",
+        "A integração com Google Meet facilita reuniões online"
+      ]
+    },
+    {
+      id: "link-pagamento-visao-geral",
+      title: "Gerador de Link de Pagamento",
+      icon: Link,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Gere links de pagamento personalizados para enviar a clientes",
+      steps: [
+        {
+          title: "O que é o Gerador de Link de Pagamento?",
+          content: `O **Gerador de Link de Pagamento** permite criar links de pagamento únicos para enviar a clientes:
+
+- **Link personalizado**: Gere links com valor, descrição e dados do cliente
+- **Múltiplos métodos**: PIX, Cartão de Crédito e Boleto
+- **Envio direto**: Copie o link ou envie por WhatsApp
+- **Rastreamento**: Acompanhe se o pagamento foi realizado
+- **Validade configurável**: Defina quando o link expira
+
+**Acessar:**
+Menu lateral → **Link de Pagamento**`
+        },
+        {
+          title: "Gerar um link de pagamento",
+          content: `1. Acesse **Link de Pagamento**
+2. Preencha os dados:
+   - **Cliente**: Selecione um cliente existente ou preencha manualmente
+   - **Nome**: Nome do pagador
+   - **Email**: Email do pagador
+   - **CPF/CNPJ**: Documento do pagador
+   - **Valor**: Quantia a ser cobrada
+   - **Descrição**: Detalhes da cobrança
+3. Clique em **"Gerar Link"**
+4. O link é gerado e pode ser:
+   - 📋 **Copiado** para área de transferência
+   - 📱 **Enviado via WhatsApp** diretamente ao cliente
+
+**O cliente acessa o link e vê:**
+- Dados da cobrança
+- Opções de pagamento (PIX, cartão, boleto)
+- Formulário seguro de pagamento`
+        },
+        {
+          title: "Acompanhar pagamentos",
+          content: `Após gerar o link:
+
+- O status do pagamento é atualizado automaticamente
+- **Pendente**: Aguardando pagamento do cliente
+- **Pago**: Pagamento confirmado
+- **Expirado**: Link passou da validade
+
+**Pré-requisitos:**
+- Configure o **Mercado Pago** em Cobrança → Pagamentos
+- O Access Token deve estar configurado corretamente`
+        },
+        {
+          title: "Permissões",
+          content: `**Permissões disponíveis:**
+- **view_payment_links**: Acessar o módulo
+- **generate_payment_links**: Gerar novos links
+- **share_payment_links**: Compartilhar links gerados
+
+**Recomendações:**
+- **Financeiro**: Todas as permissões
+- **Vendedor**: generate + share
+- **Visualizador**: Apenas view`
+        }
+      ],
+      tips: [
+        "Configure o Mercado Pago antes de usar este módulo",
+        "Envie o link por WhatsApp para maior taxa de conversão",
+        "Use descrições claras para o cliente saber do que se trata",
+        "Links de pagamento são independentes do sistema de cobrança automática",
+        "CPF/CNPJ válido é necessário para geração de boleto"
+      ]
     }
   ];
 
