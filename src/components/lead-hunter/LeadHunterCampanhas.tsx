@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users, Globe, Ban, CheckCircle } from 'lucide-react';
+import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users, Globe, Ban } from 'lucide-react';
 import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads, useLeadHunterConfig } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,6 +40,10 @@ function isSkippedDomain(url: string, skipDomains: string[]): boolean {
 export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
   const { data: allLeads = [] } = useLeadHunterLeads();
+  const { data: config = {} } = useLeadHunterConfig();
+  const skipDomains: string[] = (() => {
+    try { return config.scrape_skip_domains ? JSON.parse(config.scrape_skip_domains) : DEFAULT_SKIP_DOMAINS; } catch { return DEFAULT_SKIP_DOMAINS; }
+  })();
   const createCampanha = useCreateCampanha();
   const updateCampanha = useUpdateCampanha();
   const deleteCampanha = useDeleteCampanha();
