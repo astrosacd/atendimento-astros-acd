@@ -49,6 +49,7 @@ import { statusConfig, type Proposal, type ProposalStatus } from '@/types/propos
 import type { ProposalTemplate } from '@/data/proposalTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { useScheduledSends } from '@/hooks/useScheduledProposals';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const statusIcons: Record<string, React.ReactNode> = {
   draft: <Clock className="h-3 w-3" />,

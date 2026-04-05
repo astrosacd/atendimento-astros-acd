@@ -9,10 +9,33 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users } from 'lucide-react';
-import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads } from '@/hooks/useLeadHunter';
+import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users, Globe, Ban, CheckCircle } from 'lucide-react';
+import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads, useLeadHunterConfig } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const DEFAULT_SKIP_DOMAINS = [
+  "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+  "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+  "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+  "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
+];
+
+function isSkippedDomain(url: string, skipDomains: string[]): boolean {
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+    const hostname = new URL(normalized).hostname.toLowerCase().replace(/^www\./, "");
+    return skipDomains.some(d => {
+      const cleanD = d.toLowerCase().replace(/^www\./, "");
+      return hostname === cleanD || hostname.endsWith("." + cleanD);
+    });
+  } catch {
+    return false;
+  }
+}
 
 export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
