@@ -9,14 +9,41 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users } from 'lucide-react';
-import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads } from '@/hooks/useLeadHunter';
+import { Plus, Play, Pause, Megaphone, Send, Loader2, Info, Trash2, Users, Globe, Ban } from 'lucide-react';
+import { useLeadHunterCampanhas, useCreateCampanha, useUpdateCampanha, useDeleteCampanha, useLeadHunterLeads, useLeadHunterConfig } from '@/hooks/useLeadHunter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const DEFAULT_SKIP_DOMAINS = [
+  "instagram.com", "facebook.com", "fb.com", "twitter.com", "x.com",
+  "tiktok.com", "youtube.com", "youtu.be", "wa.me", "api.whatsapp.com",
+  "web.whatsapp.com", "linktr.ee", "lnktr.ee", "bityli.com", "bit.ly",
+  "goo.gl", "t.co", "linkedin.com", "pinterest.com", "threads.net", "t.me", "telegram.me",
+];
+
+function isSkippedDomain(url: string, skipDomains: string[]): boolean {
+  try {
+    let normalized = url.trim();
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+    const hostname = new URL(normalized).hostname.toLowerCase().replace(/^www\./, "");
+    return skipDomains.some(d => {
+      const cleanD = d.toLowerCase().replace(/^www\./, "");
+      return hostname === cleanD || hostname.endsWith("." + cleanD);
+    });
+  } catch {
+    return false;
+  }
+}
 
 export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
   const { data: allLeads = [] } = useLeadHunterLeads();
+  const { data: config = {} } = useLeadHunterConfig();
+  const skipDomains: string[] = (() => {
+    try { return config.scrape_skip_domains ? JSON.parse(config.scrape_skip_domains) : DEFAULT_SKIP_DOMAINS; } catch { return DEFAULT_SKIP_DOMAINS; }
+  })();
   const createCampanha = useCreateCampanha();
   const updateCampanha = useUpdateCampanha();
   const deleteCampanha = useDeleteCampanha();
@@ -221,6 +248,18 @@ export default function LeadHunterCampanhas() {
                     <p className="text-sm font-medium truncate">{lead.nome || lead.telefone}</p>
                     {lead.empresa && <p className="text-xs text-muted-foreground">{lead.empresa}</p>}
                   </div>
+                  {lead.website ? (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+                      isSkippedDomain(lead.website, skipDomains)
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-emerald-500/10 text-emerald-600'
+                    }`}>
+                      {isSkippedDomain(lead.website, skipDomains) ? <Ban className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                      {isSkippedDomain(lead.website, skipDomains) ? 'Bloqueado' : 'Permitido'}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Sem site</span>
+                  )}
                   <span className="text-xs font-mono text-muted-foreground">{lead.telefone}</span>
                 </div>
               ))}

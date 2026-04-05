@@ -49,6 +49,7 @@ import { statusConfig, type Proposal, type ProposalStatus } from '@/types/propos
 import type { ProposalTemplate } from '@/data/proposalTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { useScheduledSends } from '@/hooks/useScheduledProposals';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const statusIcons: Record<string, React.ReactNode> = {
   draft: <Clock className="h-3 w-3" />,
@@ -94,21 +95,23 @@ export default function Propostas() {
       if (proposalIds.length === 0) return [];
       const { data, error } = await supabase
         .from('proposal_auto_remarketing_logs')
-        .select('proposal_id, status, day_number')
-        .in('proposal_id', proposalIds);
+        .select('proposal_id, status, day_number, sent_at, channel')
+        .in('proposal_id', proposalIds)
+        .order('sent_at', { ascending: false });
       if (error) return [];
       return data;
     },
     enabled: proposalIds.length > 0,
   });
 
-  // Build remarketing count map
-  const remarketingCounts: Record<string, { sent: number; total: number }> = {};
+  // Build remarketing count map with details
+  const remarketingCounts: Record<string, { sent: number; total: number; logs: any[] }> = {};
   remarketingLogs.forEach((log: any) => {
     if (!remarketingCounts[log.proposal_id]) {
-      remarketingCounts[log.proposal_id] = { sent: 0, total: 0 };
+      remarketingCounts[log.proposal_id] = { sent: 0, total: 0, logs: [] };
     }
     remarketingCounts[log.proposal_id].total++;
+    remarketingCounts[log.proposal_id].logs.push(log);
     if (log.status === 'sent') remarketingCounts[log.proposal_id].sent++;
   });
 
@@ -375,7 +378,7 @@ function ProposalCard({
   formatCurrency: (value: number) => string;
   sendChannels: string[];
   hasScheduledSend?: boolean;
-  remarketingInfo?: { sent: number; total: number };
+  remarketingInfo?: { sent: number; total: number; logs: any[] };
 }) {
   const displayStatus = hasScheduledSend && proposal.status === 'draft' ? 'scheduled' : proposal.status;
   const config = displayStatus === 'scheduled'
@@ -427,24 +430,53 @@ function ProposalCard({
                 {config.label}
               </Badge>
               {remarketingInfo && remarketingInfo.total > 0 && (
-                <Badge
-                  variant="outline"
-                  className={`gap-1 text-xs ${
-                    proposal.status === 'accepted' 
-                      ? 'border-emerald-500 text-emerald-600' 
-                      : proposal.status === 'rejected'
-                        ? 'border-destructive text-destructive'
-                        : 'border-amber-500 text-amber-600'
-                  }`}
-                >
-                  <Repeat className="h-3 w-3" />
-                  {remarketingInfo.sent}x remarketing
-                  {proposal.status === 'accepted' 
-                    ? ' • Assinou' 
-                    : proposal.status === 'rejected'
-                      ? ' • Recusou'
-                      : ''}
-                </Badge>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className={`gap-1 text-xs cursor-pointer hover:opacity-80 ${
+                        proposal.status === 'accepted' 
+                          ? 'border-emerald-500 text-emerald-600' 
+                          : proposal.status === 'rejected'
+                            ? 'border-destructive text-destructive'
+                            : 'border-amber-500 text-amber-600'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Eye className="h-3 w-3" />
+                      {remarketingInfo.sent}x remarketing
+                      {proposal.status === 'accepted' 
+                        ? ' • Assinou' 
+                        : proposal.status === 'rejected'
+                          ? ' • Recusou'
+                          : ''}
+                    </Badge>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-3" align="start" onClick={(e) => e.stopPropagation()}>
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                      <Repeat className="h-3.5 w-3.5" />
+                      Histórico de Remarketing
+                    </h4>
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                      {remarketingInfo.logs.map((log: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-xs border-b border-border/30 pb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'sent' ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                            <span>Dia {log.day_number}</span>
+                            {log.channel && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                {log.channel === 'email' ? 'E-mail' : log.channel === 'whatsapp' ? 'WhatsApp' : log.channel}
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-muted-foreground">
+                            {log.sent_at ? format(new Date(log.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               )}
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
