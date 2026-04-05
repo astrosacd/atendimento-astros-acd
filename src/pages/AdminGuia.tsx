@@ -313,6 +313,38 @@ const AdminGuia = () => {
       permissionKey: "view_guia_revendedor"
     },
     {
+      id: "pipeline",
+      title: "Pipeline",
+      icon: Columns,
+      color: "text-indigo-400",
+      categories: ["pipeline-visao-geral", "pipeline-automacoes"],
+      permissionKey: "view_guia_pipeline"
+    },
+    {
+      id: "lead-hunter",
+      title: "Lead Hunter",
+      icon: Crosshair,
+      color: "text-orange-400",
+      categories: ["lead-hunter-visao-geral", "lead-hunter-campanhas", "lead-hunter-busca"],
+      permissionKey: "view_guia_lead_hunter"
+    },
+    {
+      id: "agenda-grupo",
+      title: "Agenda",
+      icon: Calendar,
+      color: "text-blue-400",
+      categories: ["agenda-visao-geral", "agenda-config"],
+      permissionKey: "view_guia_agenda"
+    },
+    {
+      id: "link-pagamento",
+      title: "Link de Pagamento",
+      icon: Link,
+      color: "text-emerald-400",
+      categories: ["link-pagamento-visao-geral"],
+      permissionKey: "view_guia_link_pagamento"
+    },
+    {
       id: "relatorios",
       title: "Relatórios",
       icon: BarChart3,
