@@ -147,12 +147,12 @@ function AppRoutes() {
       <Route path="/propostas/:id" element={<ProtectedRoute permission="view_proposals"><PropostaEditor /></ProtectedRoute>} />
       
       {/* Follow-ups Route */}
-      <Route path="/followups" element={<ProtectedRoute permission="view_proposals"><Followups /></ProtectedRoute>} />
+      <Route path="/followups" element={<ProtectedRoute permission="view_followups"><Followups /></ProtectedRoute>} />
       
       {/* Despesas Route */}
-      <Route path="/despesas" element={<ProtectedRoute permission="view_dashboard"><Despesas /></ProtectedRoute>} />
+      <Route path="/despesas" element={<ProtectedRoute permission="view_despesas"><Despesas /></ProtectedRoute>} />
       <Route path="/kanban" element={<ProtectedRoute permission="view_pipeline"><KanbanClientes /></ProtectedRoute>} />
-      <Route path="/lead-hunter" element={<ProtectedRoute permission="view_dashboard"><LeadHunter /></ProtectedRoute>} />
+      <Route path="/lead-hunter" element={<ProtectedRoute permission="view_lead_hunter"><LeadHunter /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
       <Route path="/link-pagamento" element={<ProtectedRoute permission="view_payment_links"><GeradorLinkPagamento /></ProtectedRoute>} />
       
