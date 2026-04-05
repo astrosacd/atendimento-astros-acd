@@ -248,6 +248,18 @@ export default function LeadHunterCampanhas() {
                     <p className="text-sm font-medium truncate">{lead.nome || lead.telefone}</p>
                     {lead.empresa && <p className="text-xs text-muted-foreground">{lead.empresa}</p>}
                   </div>
+                  {lead.website ? (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+                      isSkippedDomain(lead.website, skipDomains)
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-emerald-500/10 text-emerald-600'
+                    }`}>
+                      {isSkippedDomain(lead.website, skipDomains) ? <Ban className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                      {isSkippedDomain(lead.website, skipDomains) ? 'Bloqueado' : 'Permitido'}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Sem site</span>
+                  )}
                   <span className="text-xs font-mono text-muted-foreground">{lead.telefone}</span>
                 </div>
               ))}
