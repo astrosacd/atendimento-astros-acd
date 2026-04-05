@@ -140,6 +140,14 @@ const categoryToPermission: Record<string, string> = {
   'despesas-visao-geral': 'view_guia_despesas',
   'despesas-recorrencia': 'view_guia_despesas',
   'revendedor-visao-geral': 'view_guia_revendedor',
+  'pipeline-visao-geral': 'view_guia_pipeline',
+  'pipeline-automacoes': 'view_guia_pipeline',
+  'lead-hunter-visao-geral': 'view_guia_lead_hunter',
+  'lead-hunter-campanhas': 'view_guia_lead_hunter',
+  'lead-hunter-busca': 'view_guia_lead_hunter',
+  'agenda-visao-geral': 'view_guia_agenda',
+  'agenda-config': 'view_guia_agenda',
+  'link-pagamento-visao-geral': 'view_guia_link_pagamento',
 };
 
 const AdminGuia = () => {
