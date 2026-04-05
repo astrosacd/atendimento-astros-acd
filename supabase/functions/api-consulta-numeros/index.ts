@@ -655,33 +655,26 @@ Deno.serve(async (req) => {
       apiKeyId = apiKeyData.id;
       origem = 'api';
     } else if (authHeader) {
-      // JWT is already verified by the platform (verify_jwt=true). Here we only extract user info.
+      // Verify JWT cryptographically using Supabase Auth
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const parts = token.split('.');
-
-      if (parts.length !== 3) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Autenticação inválida' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
 
       try {
-        const payloadRaw = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const payloadJson = atob(payloadRaw.padEnd(payloadRaw.length + (4 - (payloadRaw.length % 4)) % 4, '='));
-        const payload = JSON.parse(payloadJson);
+        const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
 
-        userId = payload?.sub || null;
-        userEmail = payload?.email || null;
-
-        if (!userId) {
+        if (claimsError || !claimsData?.claims?.sub) {
           return new Response(
             JSON.stringify({ success: false, error: 'Autenticação inválida' }),
             { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+
+        userId = claimsData.claims.sub as string;
+        userEmail = (claimsData.claims.email as string) || null;
       } catch (e) {
-        console.error('[api-consulta-numeros] Failed to parse JWT payload', { endpoint, error: String(e) });
+        console.error('[api-consulta-numeros] JWT verification failed', { endpoint, error: String(e) });
         return new Response(
           JSON.stringify({ success: false, error: 'Autenticação inválida' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
