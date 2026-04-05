@@ -42,9 +42,7 @@ import {
   LucideIcon,
   Megaphone,
   Send,
-  UserMinus,
   Clock,
-  Calendar,
   Smartphone,
   ShoppingCart,
   Store,
@@ -56,7 +54,11 @@ import {
   Ticket,
   ClipboardList,
   FileSignature,
-  CalendarClock
+  CalendarClock,
+  Crosshair,
+  Calendar,
+  Link,
+  Columns,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
