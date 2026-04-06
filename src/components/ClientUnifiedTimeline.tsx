@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
-  Clock, ArrowUpDown
+  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation';
   date: string;
   title: string;
   description: string;
@@ -36,6 +36,11 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   purchase: { icon: ShoppingBag, color: 'text-orange-500', label: 'Compra' },
   file: { icon: File, color: 'text-cyan-500', label: 'Arquivo' },
   recovery: { icon: AlertTriangle, color: 'text-red-500', label: 'Recuperação' },
+  whatsapp_group: { icon: Users, color: 'text-green-500', label: 'Grupo WhatsApp' },
+  logo: { icon: Image, color: 'text-pink-500', label: 'Logo' },
+  credential: { icon: Key, color: 'text-yellow-500', label: 'Credencial' },
+  pipeline: { icon: Columns3, color: 'text-indigo-500', label: 'Pipeline' },
+  automation: { icon: Zap, color: 'text-teal-500', label: 'Automação' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -63,6 +68,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         purchasesRes,
         filesRes,
         recoveryRes,
+        whatsappGroupsRes,
+        logosRes,
+        credentialsRes,
+        pipelineRes,
+        automationRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -72,6 +82,11 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_purchases').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_files').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_recovery_attempts').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_whatsapp_groups').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_logos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_social_credentials').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('client_pipeline').select('*, stage:pipeline_stages(name)').eq('cliente_id', clienteId).limit(10),
+        supabase.from('automation_logs').select('*, rule:automation_rules(name)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -172,6 +187,65 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           title: `Recuperação — ${r.canal}`,
           description: `${r.status}${r.converteu ? ' ✓ Converteu' : ''}${r.error_message ? ` — ${r.error_message}` : ''}`,
           status: r.status,
+        });
+      });
+
+      // WhatsApp Groups
+      (whatsappGroupsRes.data || []).forEach((g: any) => {
+        allEvents.push({
+          id: `whatsapp-${g.id}`,
+          type: 'whatsapp_group',
+          date: g.created_at,
+          title: `Grupo: ${g.group_name}`,
+          description: `${g.participants?.length || 0} participantes${g.motivo ? ` — ${g.motivo}` : ''}`,
+          status: g.status,
+        });
+      });
+
+      // Logos
+      (logosRes.data || []).forEach((l: any) => {
+        allEvents.push({
+          id: `logo-${l.id}`,
+          type: 'logo',
+          date: l.created_at,
+          title: `Logo: ${l.file_name}`,
+          description: l.description || l.file_type || '',
+        });
+      });
+
+      // Social Credentials
+      (credentialsRes.data || []).forEach((c: any) => {
+        allEvents.push({
+          id: `credential-${c.id}`,
+          type: 'credential',
+          date: c.created_at,
+          title: `Credencial: ${c.platform}`,
+          description: `Login: ${c.login}`,
+        });
+      });
+
+      // Pipeline
+      (pipelineRes.data || []).forEach((p: any) => {
+        const stageName = (p.stage as any)?.name || 'Sem etapa';
+        allEvents.push({
+          id: `pipeline-${p.id}`,
+          type: 'pipeline',
+          date: p.moved_at,
+          title: `Pipeline: ${stageName}`,
+          description: p.notes || (p.is_lead ? 'Lead' : 'Cliente'),
+          status: p.is_lead ? 'lead' : 'cliente',
+        });
+      });
+
+      // Automation logs
+      (automationRes.data || []).forEach((a: any) => {
+        const ruleName = (a.rule as any)?.name || 'Regra';
+        allEvents.push({
+          id: `automation-${a.id}`,
+          type: 'automation',
+          date: a.created_at,
+          title: `Automação: ${ruleName}`,
+          description: `${a.action_taken}${a.result ? ` — ${a.result}` : ''}`,
         });
       });
 
