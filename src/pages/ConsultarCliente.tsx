@@ -76,6 +76,7 @@ export default function ConsultarCliente() {
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [editEmail, setEditEmail] = useState('');
   const [editNumero, setEditNumero] = useState('');
+  const [editProduto, setEditProduto] = useState('');
   const [editObservacao, setEditObservacao] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   
@@ -283,6 +284,7 @@ export default function ConsultarCliente() {
     setEditingCliente(cliente);
     setEditEmail(cliente.email || '');
     setEditNumero(cliente.numero || '');
+    setEditProduto(cliente.produto || '');
     setEditObservacao(cliente.observacao || '');
   };
 
@@ -293,6 +295,7 @@ export default function ConsultarCliente() {
     const updates: Partial<any> = {};
     if (editEmail !== editingCliente.email) updates.email = editEmail;
     if (editNumero !== editingCliente.numero) updates.numero = editNumero;
+    if (editProduto !== editingCliente.produto) updates.produto = editProduto;
     if (editObservacao !== (editingCliente.observacao || '')) updates.observacao = editObservacao;
     
     if (Object.keys(updates).length === 0) {
@@ -954,6 +957,15 @@ export default function ConsultarCliente() {
                   placeholder="5511999999999"
                   value={editNumero}
                   onChange={(e) => setEditNumero(e.target.value)}
+                  className="bg-secondary border-border text-foreground h-10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground font-medium">{t('clients.product')}</Label>
+                <Input
+                  placeholder="Nome do produto"
+                  value={editProduto}
+                  onChange={(e) => setEditProduto(e.target.value)}
                   className="bg-secondary border-border text-foreground h-10"
                 />
               </div>
