@@ -429,55 +429,88 @@ function ProposalCard({
                 {statusIcons[displayStatus] || statusIcons[proposal.status]}
                 {config.label}
               </Badge>
-              {remarketingInfo && remarketingInfo.total > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Badge
-                      variant="outline"
-                      className={`gap-1 text-xs cursor-pointer hover:opacity-80 ${
-                        proposal.status === 'accepted' 
-                          ? 'border-emerald-500 text-emerald-600' 
-                          : proposal.status === 'rejected'
-                            ? 'border-destructive text-destructive'
-                            : 'border-amber-500 text-amber-600'
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Eye className="h-3 w-3" />
-                      {remarketingInfo.sent}x remarketing
-                      {proposal.status === 'accepted' 
-                        ? ' • Assinou' 
-                        : proposal.status === 'rejected'
-                          ? ' • Recusou'
-                          : ''}
-                    </Badge>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-3" align="start" onClick={(e) => e.stopPropagation()}>
-                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                      <Repeat className="h-3.5 w-3.5" />
-                      Histórico de Remarketing
-                    </h4>
-                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                      {remarketingInfo.logs.map((log: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between text-xs border-b border-border/30 pb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'sent' ? 'bg-emerald-500' : 'bg-destructive'}`} />
-                            <span>Dia {log.day_number}</span>
-                            {log.channel && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                {log.channel === 'email' ? 'E-mail' : log.channel === 'whatsapp' ? 'WhatsApp' : log.channel}
-                              </Badge>
-                            )}
+              {remarketingInfo && remarketingInfo.total > 0 && (() => {
+                const isAccepted = proposal.status === 'accepted';
+                const isRejected = proposal.status === 'rejected';
+                const isFinalized = isAccepted || isRejected;
+                
+                // Determine which attempt led to signature/rejection
+                const signedAt = proposal.signed_at ? new Date(proposal.signed_at) : null;
+                let signedOnAttempt: number | null = null;
+                if (signedAt && isFinalized && remarketingInfo.logs.length > 0) {
+                  // Find the last remarketing sent before the signature
+                  const sortedLogs = [...remarketingInfo.logs]
+                    .filter((l: any) => l.status === 'sent')
+                    .sort((a: any, b: any) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+                  for (const log of sortedLogs) {
+                    if (new Date(log.sent_at) <= signedAt) {
+                      signedOnAttempt = log.day_number;
+                    }
+                  }
+                }
+                
+                // Badge color and label
+                const badgeClass = isAccepted 
+                  ? 'border-emerald-500 text-emerald-600' 
+                  : isRejected
+                    ? 'border-destructive text-destructive'
+                    : 'border-amber-500 text-amber-600';
+                
+                const outcomeLabel = isAccepted 
+                  ? signedOnAttempt ? ` • Assinou no ${signedOnAttempt}º` : ' • Assinou'
+                  : isRejected
+                    ? signedOnAttempt ? ` • Recusou no ${signedOnAttempt}º` : ' • Recusou'
+                    : '';
+
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className={`gap-1 text-xs cursor-pointer hover:opacity-80 ${badgeClass}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Eye className="h-3 w-3" />
+                        {remarketingInfo.sent}x remarketing{outcomeLabel}
+                      </Badge>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-3" align="start" onClick={(e) => e.stopPropagation()}>
+                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                        <Repeat className="h-3.5 w-3.5" />
+                        Histórico de Remarketing
+                      </h4>
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        {remarketingInfo.logs.map((log: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between text-xs border-b border-border/30 pb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'sent' ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                              <span>Dia {log.day_number}</span>
+                              {log.channel && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                  {log.channel === 'email' ? 'E-mail' : log.channel === 'whatsapp' ? 'WhatsApp' : log.channel}
+                                </Badge>
+                              )}
+                              {signedOnAttempt === log.day_number && isFinalized && (
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                  {isAccepted ? '✓ Assinou' : '✗ Recusou'}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-muted-foreground">
+                              {log.sent_at ? format(new Date(log.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—'}
+                            </span>
                           </div>
-                          <span className="text-muted-foreground">
-                            {log.sent_at ? format(new Date(log.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
+                        ))}
+                      </div>
+                      {!isFinalized && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          Aguardando resposta do cliente...
+                        </p>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
             </div>
             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
               {/* Nome do cliente com tipo */}

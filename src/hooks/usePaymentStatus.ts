@@ -169,15 +169,26 @@ export function usePaymentStatus() {
         // Get current client renewal date
         const { data: cliente, error: clienteError } = await supabase
           .from('clientes')
-          .select('data_renovacao')
+          .select('data_renovacao, ciclo_cobranca')
           .eq('id', payment.cliente_id)
           .single();
         
         if (!clienteError && cliente) {
-          // Add 1 month to renewal date
-          const currentDate = new Date(cliente.data_renovacao);
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          const newRenewalDate = currentDate.toISOString().split('T')[0];
+          // Use the later of today or the current renewal date as base,
+          // then add the billing cycle period (default 1 month).
+          // This prevents inactive clients from getting a renewal date still in the past.
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const renewalDate = new Date(cliente.data_renovacao);
+          const baseDate = renewalDate > today ? renewalDate : today;
+          
+          // Respect billing cycle
+          const cycleMonths: Record<string, number> = {
+            mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
+          };
+          const months = cycleMonths[cliente.ciclo_cobranca] || 1;
+          baseDate.setMonth(baseDate.getMonth() + months);
+          const newRenewalDate = baseDate.toISOString().split('T')[0];
           
           // Update client - the database trigger will recalculate D-3, D+1, D+2, D+15, D+30
           await supabase
