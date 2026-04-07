@@ -12,7 +12,6 @@ import {
   Clock, 
   AlertCircle,
   Calendar,
-  DollarSign,
   QrCode,
   Link as LinkIcon,
   FileText,
