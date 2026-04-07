@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
-  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users
+  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link';
   date: string;
   title: string;
   description: string;
@@ -41,6 +41,8 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   credential: { icon: Key, color: 'text-yellow-500', label: 'Credencial' },
   pipeline: { icon: Columns3, color: 'text-indigo-500', label: 'Pipeline' },
   automation: { icon: Zap, color: 'text-teal-500', label: 'Automação' },
+  license: { icon: Award, color: 'text-lime-500', label: 'Licença' },
+  share_link: { icon: ExternalLink, color: 'text-sky-500', label: 'Link Compartilhado' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -73,6 +75,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         credentialsRes,
         pipelineRes,
         automationRes,
+        licensesRes,
+        shareLinksRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -87,6 +91,8 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('client_social_credentials').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('client_pipeline').select('*, stage:pipeline_stages(name)').eq('cliente_id', clienteId).limit(10),
         supabase.from('automation_logs').select('*, rule:automation_rules(name)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('licencas_entregues').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('social_credential_share_links').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -246,6 +252,29 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           date: a.created_at,
           title: `Automação: ${ruleName}`,
           description: `${a.action_taken}${a.result ? ` — ${a.result}` : ''}`,
+        });
+      });
+
+      // Licenças entregues
+      (licensesRes.data || []).forEach((l: any) => {
+        allEvents.push({
+          id: `license-${l.id}`,
+          type: 'license',
+          date: l.data_entrega || l.created_at,
+          title: `Licença: ${l.ferramenta}`,
+          description: `${l.origem ? `Origem: ${l.origem}` : ''}${l.observacao ? ` — ${l.observacao}` : ''}`.trim() || 'Licença entregue',
+        });
+      });
+
+      // Links de compartilhamento de credenciais
+      (shareLinksRes.data || []).forEach((s: any) => {
+        const expiresAt = new Date(s.expires_at).toLocaleDateString('pt-BR');
+        allEvents.push({
+          id: `share-link-${s.id}`,
+          type: 'share_link',
+          date: s.created_at,
+          title: 'Link de credenciais compartilhado',
+          description: `Expira em: ${expiresAt}`,
         });
       });
 
