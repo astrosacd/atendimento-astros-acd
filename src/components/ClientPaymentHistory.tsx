@@ -87,10 +87,23 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     const success = await cancelPayment(paymentId);
     if (success) {
       await loadPayments();
-      // Notify parent to refresh client data
       onPaymentUpdate?.();
     }
     setActionLoading(null);
+  };
+
+  const handleEarlyPayment = async () => {
+    const amount = parseFloat(earlyPaymentAmount);
+    if (!amount || amount <= 0) return;
+    setEarlyPaymentLoading(true);
+    const success = await registerEarlyPayment(clienteId, amount);
+    if (success) {
+      await loadPayments();
+      onPaymentUpdate?.();
+      setShowEarlyPayment(false);
+      setEarlyPaymentAmount('');
+    }
+    setEarlyPaymentLoading(false);
   };
 
   const getStatusBadge = (status: string) => {
