@@ -263,7 +263,7 @@ export function usePaymentStatus() {
   };
 
   // Register early payment (before billing date) - renewal counts from billing date, not payment date
-  const registerEarlyPayment = async (clienteId: string, amount: number, moeda: string = 'BRL'): Promise<boolean> => {
+  const registerEarlyPayment = async (clienteId: string, amount: number): Promise<boolean> => {
     try {
       const paidAt = new Date().toISOString();
       const paymentId = `manual_early_${Date.now()}`;
