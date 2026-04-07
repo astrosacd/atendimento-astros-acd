@@ -287,6 +287,54 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
               </span>
             </div>
 
+            {/* Early Payment Button / Form */}
+            {!showEarlyPayment ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                onClick={() => setShowEarlyPayment(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar pagamento antecipado (Pix direto)
+              </Button>
+            ) : (
+              <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+                <p className="text-sm font-medium text-emerald-400">Pagamento antecipado via Pix</p>
+                <p className="text-xs text-muted-foreground">
+                  A renovação será calculada a partir da data de vencimento atual, não da data do pagamento.
+                </p>
+                <div className="space-y-1">
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 49.90"
+                    value={earlyPaymentAmount}
+                    onChange={(e) => setEarlyPaymentAmount(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleEarlyPayment}
+                    disabled={earlyPaymentLoading || !earlyPaymentAmount}
+                  >
+                    {earlyPaymentLoading ? 'Registrando...' : 'Confirmar e enviar recibo'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowEarlyPayment(false); setEarlyPaymentAmount(''); }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Payments List - Grouped by Date */}
             {payments.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
