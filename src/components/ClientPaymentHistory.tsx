@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { 
   CreditCard, 
@@ -10,11 +12,11 @@ import {
   Clock, 
   AlertCircle,
   Calendar,
-  DollarSign,
   QrCode,
   Link as LinkIcon,
   FileText,
-  Receipt
+  Receipt,
+  Plus
 } from 'lucide-react';
 
 interface Payment {
@@ -42,11 +44,7 @@ interface ClientPaymentHistoryProps {
 // Helper to determine currency based on payment type
 const getPaymentCurrency = (paymentType: string): 'USD' | 'BRL' => {
   const type = paymentType.toLowerCase();
-  // Stripe payments are always in USD
-  if (type.includes('stripe')) {
-    return 'USD';
-  }
-  // Mercado Pago, PIX, Boleto are always in BRL
+  if (type.includes('stripe')) return 'USD';
   return 'BRL';
 };
 
@@ -54,7 +52,10 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const { fetchClientPayments, markPaymentAsPaid, cancelPayment } = usePaymentStatus();
+  const [showEarlyPayment, setShowEarlyPayment] = useState(false);
+  const [earlyPaymentAmount, setEarlyPaymentAmount] = useState('');
+  const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
+  const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
 
   useEffect(() => {
     if (isOpen && clienteId) {
@@ -85,10 +86,23 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     const success = await cancelPayment(paymentId);
     if (success) {
       await loadPayments();
-      // Notify parent to refresh client data
       onPaymentUpdate?.();
     }
     setActionLoading(null);
+  };
+
+  const handleEarlyPayment = async () => {
+    const amount = parseFloat(earlyPaymentAmount);
+    if (!amount || amount <= 0) return;
+    setEarlyPaymentLoading(true);
+    const success = await registerEarlyPayment(clienteId, amount);
+    if (success) {
+      await loadPayments();
+      onPaymentUpdate?.();
+      setShowEarlyPayment(false);
+      setEarlyPaymentAmount('');
+    }
+    setEarlyPaymentLoading(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -272,6 +286,54 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                 <CreditCard className="w-3 h-3 text-purple-400" /> Stripe (USD)
               </span>
             </div>
+
+            {/* Early Payment Button / Form */}
+            {!showEarlyPayment ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                onClick={() => setShowEarlyPayment(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar pagamento antecipado (Pix direto)
+              </Button>
+            ) : (
+              <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
+                <p className="text-sm font-medium text-emerald-400">Pagamento antecipado via Pix</p>
+                <p className="text-xs text-muted-foreground">
+                  A renovação será calculada a partir da data de vencimento atual, não da data do pagamento.
+                </p>
+                <div className="space-y-1">
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 49.90"
+                    value={earlyPaymentAmount}
+                    onChange={(e) => setEarlyPaymentAmount(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleEarlyPayment}
+                    disabled={earlyPaymentLoading || !earlyPaymentAmount}
+                  >
+                    {earlyPaymentLoading ? 'Registrando...' : 'Confirmar e enviar recibo'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowEarlyPayment(false); setEarlyPaymentAmount(''); }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Payments List - Grouped by Date */}
             {payments.length === 0 ? (

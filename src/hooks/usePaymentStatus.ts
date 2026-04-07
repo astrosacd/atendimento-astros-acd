@@ -262,6 +262,76 @@ export function usePaymentStatus() {
     }
   };
 
+  // Register early payment (before billing date) - renewal counts from billing date, not payment date
+  const registerEarlyPayment = async (clienteId: string, amount: number): Promise<boolean> => {
+    try {
+      const paidAt = new Date().toISOString();
+      const paymentId = `manual_early_${Date.now()}`;
+
+      // Insert payment record as already paid
+      const { error: insertError } = await supabase
+        .from('client_payments')
+        .insert({
+          cliente_id: clienteId,
+          payment_id: paymentId,
+          payment_type: 'pix_manual',
+          amount,
+          status: 'paid',
+          paid_at: paidAt,
+          billing_date: new Date().toISOString().split('T')[0],
+        });
+
+      if (insertError) throw insertError;
+
+      // Get client data to calculate renewal from CURRENT renewal date (not today)
+      const { data: cliente, error: clienteError } = await supabase
+        .from('clientes')
+        .select('data_renovacao, ciclo_cobranca')
+        .eq('id', clienteId)
+        .single();
+
+      if (!clienteError && cliente) {
+        // For early payments: always renew from the CURRENT billing date, not from today
+        const renewalDate = new Date(cliente.data_renovacao);
+        const cycleMonths: Record<string, number> = {
+          mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
+        };
+        const months = cycleMonths[cliente.ciclo_cobranca] || 1;
+        renewalDate.setMonth(renewalDate.getMonth() + months);
+        const newRenewalDate = renewalDate.toISOString().split('T')[0];
+
+        await supabase
+          .from('clientes')
+          .update({ data_renovacao: newRenewalDate })
+          .eq('id', clienteId);
+      }
+
+      // Send receipt
+      try {
+        await supabase.functions.invoke('send-receipt', {
+          body: { clienteId, paymentId, paidAt },
+        });
+      } catch (e) {
+        console.error('Erro ao enviar recibo:', e);
+      }
+
+      toast({
+        title: 'Pagamento antecipado registrado',
+        description: 'Recibo enviado e renovação calculada a partir do vencimento',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error registering early payment:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao registrar pagamento antecipado',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     isLoading,
     checkPaymentStatus,
@@ -269,5 +339,6 @@ export function usePaymentStatus() {
     getPaymentStats,
     markPaymentAsPaid,
     cancelPayment,
+    registerEarlyPayment,
   };
 }
