@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CreditCard, 
   CheckCircle, 
@@ -14,7 +17,8 @@ import {
   QrCode,
   Link as LinkIcon,
   FileText,
-  Receipt
+  Receipt,
+  Plus
 } from 'lucide-react';
 
 interface Payment {
@@ -42,11 +46,7 @@ interface ClientPaymentHistoryProps {
 // Helper to determine currency based on payment type
 const getPaymentCurrency = (paymentType: string): 'USD' | 'BRL' => {
   const type = paymentType.toLowerCase();
-  // Stripe payments are always in USD
-  if (type.includes('stripe')) {
-    return 'USD';
-  }
-  // Mercado Pago, PIX, Boleto are always in BRL
+  if (type.includes('stripe')) return 'USD';
   return 'BRL';
 };
 
@@ -54,7 +54,10 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const { fetchClientPayments, markPaymentAsPaid, cancelPayment } = usePaymentStatus();
+  const [showEarlyPayment, setShowEarlyPayment] = useState(false);
+  const [earlyPaymentAmount, setEarlyPaymentAmount] = useState('');
+  const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
+  const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
 
   useEffect(() => {
     if (isOpen && clienteId) {
