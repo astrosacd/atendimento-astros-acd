@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone, Server, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Users, Plus, X, ImageIcon, MessageSquare, History, Loader2, Phone, Server, CheckCircle, XCircle, AlertCircle, Settings, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
