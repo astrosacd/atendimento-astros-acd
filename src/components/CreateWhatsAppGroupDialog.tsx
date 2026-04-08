@@ -64,6 +64,21 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     },
   });
 
+  // Fetch default participants
+  const { data: defaultParticipants = [] } = useQuery({
+    queryKey: ['whatsapp-default-participants'],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_group_default_participants')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; phone_number: string; name: string; is_active: boolean }[];
+    },
+  });
+
   const { data: groupHistory = [], isLoading: loadingHistory, refetch: refetchHistory } = useQuery({
     queryKey: ['whatsapp-groups', clienteId],
     enabled: open && !!clienteId,
