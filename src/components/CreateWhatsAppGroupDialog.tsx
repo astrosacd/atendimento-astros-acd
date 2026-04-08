@@ -36,6 +36,7 @@ interface ParticipantInfo {
 }
 
 export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumero, open, onOpenChange }: Props) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('criar');
   const [isCreating, setIsCreating] = useState(false);
   const [newDefaultName, setNewDefaultName] = useState('');
