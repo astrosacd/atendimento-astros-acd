@@ -34,29 +34,27 @@ serve(async (req) => {
     // Find events happening in the next X hours that haven't been notified
     const now = new Date();
     const targetTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
-    
-    // Get events starting between now and now + hoursBefore + 30min window
     const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
 
     const { data: events, error: eventsError } = await supabase
       .from("calendar_events")
       .select("*")
       .in("status", ["scheduled", "confirmed"])
+      .eq("source", "local") // ONLY notify for locally created events, NOT imported from Google
       .gte("start_time", now.toISOString())
       .lte("start_time", windowEnd.toISOString());
 
     if (eventsError) throw eventsError;
 
     if (!events?.length) {
-      console.log("[calendar-notify] No upcoming events to notify");
+      console.log("[calendar-notify] No upcoming local events to notify");
       return new Response(JSON.stringify({ message: "No events to notify", checked: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[calendar-notify] Found ${events.length} events to check`);
+    console.log(`[calendar-notify] Found ${events.length} local events to check`);
 
-    // Get Evolution API credentials from secrets
     const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
     const evolutionInstance = Deno.env.get("EVOLUTION_INSTANCE");
@@ -67,13 +65,11 @@ serve(async (req) => {
     let errors = 0;
 
     for (const event of events) {
-      // Skip if no client contact info
       if (!event.client_phone && !event.client_email) {
         console.log(`[calendar-notify] Skipping event ${event.id} - no contact info`);
         continue;
       }
 
-      // Check if already notified (using notes field as simple tracking)
       if (event.notes?.includes("[NOTIFICADO]")) {
         console.log(`[calendar-notify] Skipping event ${event.id} - already notified`);
         continue;
@@ -121,45 +117,6 @@ serve(async (req) => {
         if ((channel === "email" || channel === "both") && event.client_email && gmailUser && gmailPass) {
           const emailBody = message.replace(/\n/g, "<br>");
           const subject = `Lembrete: ${event.title} - ${dateStr} às ${timeStr}`;
-
-          // Use Gmail SMTP via a simple POST
-          const nodemailerData = {
-            to: event.client_email,
-            subject,
-            html: `<div style="font-family:sans-serif;padding:20px;max-width:600px;">
-              <h2 style="color:#333;">🗓️ Lembrete de Reunião</h2>
-              <p>${emailBody}</p>
-              ${event.meet_link ? `<p><a href="${event.meet_link}" style="color:#1a73e8;">Entrar na reunião</a></p>` : ""}
-              <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
-              <p style="font-size:12px;color:#999;">Este é um lembrete automático.</p>
-            </div>`,
-          };
-
-          // Simple SMTP via fetch to Gmail
-          const smtpUrl = "https://smtp-relay.gmail.com"; // This won't work directly, use edge function approach
-          
-          // Use a simpler approach - construct the email manually
-          const boundary = "boundary_" + Date.now();
-          const emailRaw = [
-            `From: ${gmailUser}`,
-            `To: ${event.client_email}`,
-            `Subject: ${subject}`,
-            `MIME-Version: 1.0`,
-            `Content-Type: text/html; charset=UTF-8`,
-            ``,
-            nodemailerData.html,
-          ].join("\r\n");
-
-          // Base64url encode
-          const encodedEmail = btoa(unescape(encodeURIComponent(emailRaw)))
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
-
-          // For now, use the Gmail API approach or skip email if no proper method
-          // Email sending requires SMTP which isn't directly available in Deno
-          // The existing system uses GMAIL_USER and GMAIL_APP_PASSWORD via other edge functions
-          // For simplicity, we'll log and skip email here - WhatsApp is the primary channel
           console.log(`[calendar-notify] Email notification for event ${event.id} - would send to ${event.client_email}`);
         }
 

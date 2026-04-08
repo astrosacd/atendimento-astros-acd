@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, Plus, Loader2, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Settings, Plus, Loader2, RefreshCw, Check } from 'lucide-react';
 import { useCalendarEvents, useCalendarConfig, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
 import { AgendaCalendarView } from '@/components/agenda/AgendaCalendarView';
 import { AgendaConfigPanel } from '@/components/agenda/AgendaConfigPanel';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
+import { EventViewDialog } from '@/components/agenda/EventViewDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -19,9 +24,12 @@ export default function Agenda() {
   const [activeTab, setActiveTab] = useState('calendario');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [formOpen, setFormOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<CalendarEvent | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useCalendarEvents(currentMonth);
   const { data: calendarConfig } = useCalendarConfig();
@@ -29,6 +37,7 @@ export default function Agenda() {
   const updateEvent = useUpdateCalendarEvent();
   const deleteEvent = useDeleteCalendarEvent();
   const { hasPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   const canCreate = hasPermission('create_agenda_events');
   const canEdit = hasPermission('edit_agenda_events');
@@ -36,6 +45,44 @@ export default function Agenda() {
   const canConfig = hasPermission('manage_agenda_config');
 
   const googleEnabled = calendarConfig?.google_calendar_enabled === 'true';
+  const autoSyncEnabled = calendarConfig?.auto_sync_enabled === 'true' && googleEnabled;
+
+  // Load last sync time
+  useEffect(() => {
+    if (calendarConfig?.last_sync_at) {
+      setLastSyncAt(calendarConfig.last_sync_at);
+    }
+  }, [calendarConfig]);
+
+  const doSync = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('calendar-sync-google');
+      if (error) throw error;
+      const now = new Date().toISOString();
+      setLastSyncAt(now);
+      // Save last_sync_at
+      await supabase.from('calendar_config').update({ config_value: now }).eq('config_key', 'last_sync_at');
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(data?.message || 'Sincronização concluída!');
+    } catch {
+      toast.error('Erro ao sincronizar com Google Agenda');
+    } finally {
+      setSyncing(false);
+    }
+  }, [queryClient]);
+
+  // Auto-sync on mount if enabled
+  useEffect(() => {
+    if (!autoSyncEnabled) return;
+    // Check if should auto-sync (last sync > interval ago)
+    const intervalMin = parseInt(calendarConfig?.sync_interval_minutes || '15');
+    const last = lastSyncAt ? new Date(lastSyncAt).getTime() : 0;
+    const now = Date.now();
+    if (now - last > intervalMin * 60 * 1000) {
+      doSync();
+    }
+  }, [autoSyncEnabled]); // only on mount/config change
 
   const createMeetLink = async (eventData: any, calendarEventId: string) => {
     try {
@@ -64,6 +111,7 @@ export default function Agenda() {
       const json = await res.json();
       if (json.success && json.meet_link) {
         toast.success(`Link do Meet criado: ${json.meet_link}`);
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       } else if (json.error) {
         toast.error(`Erro ao criar Meet: ${json.error}`);
       }
@@ -76,9 +124,18 @@ export default function Agenda() {
   const handleSave = async (data: any) => {
     if (editingEvent) {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
+      // Sync update to Google if the event has a google_event_id
+      if (googleEnabled && (editingEvent as any).google_event_id) {
+        try {
+          await supabase.functions.invoke('calendar-sync-google', {
+            body: { action: 'update', eventId: editingEvent.id },
+          });
+        } catch (e) {
+          console.error('Google sync update error:', e);
+        }
+      }
     } else {
       const result = await createEvent.mutateAsync(data);
-      // Auto-create Meet link if Google Calendar is enabled
       if (googleEnabled && result?.id) {
         createMeetLink(data, result.id);
       }
@@ -92,20 +149,49 @@ export default function Agenda() {
     setFormOpen(true);
   };
 
-  const handleCancel = (id: string) => {
-    updateEvent.mutate({ id, status: 'cancelled' });
+  const handleView = (event: CalendarEvent) => {
+    setViewingEvent(event);
+    setViewOpen(true);
+  };
+
+  const handleCancel = async (id: string) => {
+    await updateEvent.mutateAsync({ id, status: 'cancelled' });
+    // Sync cancellation to Google
+    if (googleEnabled) {
+      try {
+        await supabase.functions.invoke('calendar-sync-google', {
+          body: { action: 'cancel', eventId: id },
+        });
+      } catch (e) {
+        console.error('Google sync cancel error:', e);
+      }
+    }
   };
 
   const handleComplete = (id: string) => {
     updateEvent.mutate({ id, status: 'completed' });
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteId) {
+      // Sync deletion to Google before deleting locally
+      if (googleEnabled) {
+        try {
+          await supabase.functions.invoke('calendar-sync-google', {
+            body: { action: 'delete', eventId: deleteId },
+          });
+        } catch (e) {
+          console.error('Google sync delete error:', e);
+        }
+      }
       deleteEvent.mutate(deleteId);
       setDeleteId(null);
     }
   };
+
+  const lastSyncFormatted = lastSyncAt
+    ? format(new Date(lastSyncAt), "dd/MM 'às' HH:mm", { locale: ptBR })
+    : null;
 
   return (
     <DashboardLayout>
@@ -118,27 +204,25 @@ export default function Agenda() {
             </h1>
             <p className="text-muted-foreground">Gerencie seus agendamentos e reuniões</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {googleEnabled && (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  setSyncing(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke('calendar-sync-google');
-                    if (error) throw error;
-                    toast.success(data?.message || 'Sincronização concluída!');
-                  } catch {
-                    toast.error('Erro ao sincronizar com Google Agenda');
-                  } finally {
-                    setSyncing(false);
-                  }
-                }}
-                disabled={syncing}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Sincronizando...' : 'Sincronizar Google'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {lastSyncFormatted && (
+                  <span className="text-xs text-muted-foreground hidden sm:inline-flex items-center gap-1">
+                    <Check className="h-3 w-3 text-emerald-500" />
+                    Atualizado {lastSyncFormatted}
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={doSync}
+                  disabled={syncing}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Sincronizando...' : 'Sincronizar'}
+                </Button>
+              </div>
             )}
             {canCreate && (
               <Button onClick={() => { setEditingEvent(null); setFormOpen(true); }}>
@@ -175,6 +259,7 @@ export default function Agenda() {
                 onDelete={canDelete ? setDeleteId : () => {}}
                 onCancel={canEdit ? handleCancel : () => {}}
                 onComplete={canEdit ? handleComplete : () => {}}
+                onView={handleView}
                 currentMonth={currentMonth}
                 onMonthChange={setCurrentMonth}
               />
@@ -194,6 +279,12 @@ export default function Agenda() {
           event={editingEvent}
           onSave={handleSave}
           isSaving={createEvent.isPending || updateEvent.isPending}
+        />
+
+        <EventViewDialog
+          open={viewOpen}
+          onOpenChange={(open) => { setViewOpen(open); if (!open) setViewingEvent(null); }}
+          event={viewingEvent}
         />
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
