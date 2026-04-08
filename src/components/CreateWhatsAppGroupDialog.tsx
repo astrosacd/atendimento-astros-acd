@@ -93,15 +93,32 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     },
   });
 
-  // Pre-fill client number when dialog opens
+  // Pre-fill client number and default participants when dialog opens
   useEffect(() => {
-    if (open && clienteNumero) {
-      const cleanNum = clienteNumero.replace(/\D/g, '');
-      if (cleanNum && !participants.some(p => p.number === cleanNum)) {
-        setParticipants([{ number: cleanNum, status: 'pending' }]);
+    if (open) {
+      const initial: ParticipantInfo[] = [];
+      
+      // Add default participants
+      defaultParticipants.forEach(dp => {
+        const cleanNum = dp.phone_number.replace(/\D/g, '');
+        if (cleanNum && !initial.some(p => p.number === cleanNum)) {
+          initial.push({ number: cleanNum, status: 'pending' });
+        }
+      });
+      
+      // Add client number
+      if (clienteNumero) {
+        const cleanNum = clienteNumero.replace(/\D/g, '');
+        if (cleanNum && !initial.some(p => p.number === cleanNum)) {
+          initial.push({ number: cleanNum, status: 'pending' });
+        }
+      }
+      
+      if (initial.length > 0) {
+        setParticipants(initial);
       }
     }
-  }, [open, clienteNumero]);
+  }, [open, clienteNumero, defaultParticipants]);
 
   // Auto-validate pending numbers when an instance is selected
   const validateNumber = useCallback(async (number: string) => {
