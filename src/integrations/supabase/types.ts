@@ -481,10 +481,12 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_time: string
+          google_event_id: string | null
           id: string
           location: string | null
           meet_link: string | null
           notes: string | null
+          source: string
           start_time: string
           status: string
           title: string
@@ -498,10 +500,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_time: string
+          google_event_id?: string | null
           id?: string
           location?: string | null
           meet_link?: string | null
           notes?: string | null
+          source?: string
           start_time: string
           status?: string
           title: string
@@ -515,10 +519,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_time?: string
+          google_event_id?: string | null
           id?: string
           location?: string | null
           meet_link?: string | null
           notes?: string | null
+          source?: string
           start_time?: string
           status?: string
           title?: string
@@ -5376,6 +5382,33 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_group_default_participants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_instances: {
         Row: {
           api_key: string
@@ -5425,10 +5458,12 @@ export type Database = {
         Returns: boolean
       }
       disable_automations_cron: { Args: never; Returns: boolean }
+      disable_calendar_sync_cron: { Args: never; Returns: boolean }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
+      execute_calendar_sync: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
       execute_followups_cron: { Args: never; Returns: undefined }
@@ -5444,6 +5479,13 @@ export type Database = {
         }[]
       }
       get_billing_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
+      get_calendar_sync_cron_schedule: {
         Args: never
         Returns: {
           job_name: string
@@ -5555,6 +5597,10 @@ export type Database = {
       }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
+      update_calendar_sync_cron: {
+        Args: { p_interval_minutes: number }
         Returns: boolean
       }
       update_consulta_numeros_reminder_cron: {

@@ -7,9 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Bell, Key, Calendar, Info, ExternalLink, HelpCircle } from 'lucide-react';
+import { Save, Loader2, Bell, Calendar, Info, ExternalLink, HelpCircle, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCalendarConfig, useUpdateCalendarConfig } from '@/hooks/useCalendar';
+import { supabase } from '@/integrations/supabase/client';
+
 
 export function AgendaConfigPanel() {
   const { data: config, isLoading } = useCalendarConfig();
@@ -20,6 +22,8 @@ export function AgendaConfigPanel() {
   const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
   const [googleRefreshToken, setGoogleRefreshToken] = useState('');
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [syncInterval, setSyncInterval] = useState('15');
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyHoursBefore, setNotifyHoursBefore] = useState('1');
   const [notifyChannel, setNotifyChannel] = useState('whatsapp');
@@ -32,6 +36,8 @@ export function AgendaConfigPanel() {
       setGoogleClientSecret(config.google_client_secret || '');
       setGoogleCalendarId(config.google_calendar_id || '');
       setGoogleRefreshToken(config.google_refresh_token || '');
+      setAutoSyncEnabled(config.auto_sync_enabled === 'true');
+      setSyncInterval(config.sync_interval_minutes || '15');
       setNotifyEnabled(config.notify_client_enabled === 'true');
       setNotifyHoursBefore(config.notify_hours_before || '1');
       setNotifyChannel(config.notify_channel || 'whatsapp');
@@ -39,18 +45,34 @@ export function AgendaConfigPanel() {
     }
   }, [config]);
 
-  const handleSave = () => {
-    updateConfig.mutate({
+  const handleSave = async () => {
+    const newAutoSync = autoSyncEnabled && googleEnabled;
+    const prevAutoSync = config?.auto_sync_enabled === 'true';
+
+    await updateConfig.mutateAsync({
       google_calendar_enabled: googleEnabled ? 'true' : 'false',
       google_client_id: googleClientId,
       google_client_secret: googleClientSecret,
       google_calendar_id: googleCalendarId,
       google_refresh_token: googleRefreshToken,
+      auto_sync_enabled: newAutoSync ? 'true' : 'false',
+      sync_interval_minutes: syncInterval,
       notify_client_enabled: notifyEnabled ? 'true' : 'false',
       notify_hours_before: notifyHoursBefore,
       notify_channel: notifyChannel,
       notify_message_template: notifyTemplate,
     });
+
+    // Manage cron job
+    try {
+      if (newAutoSync) {
+        await supabase.rpc('update_calendar_sync_cron', { p_interval_minutes: parseInt(syncInterval) });
+      } else if (prevAutoSync && !newAutoSync) {
+        await supabase.rpc('disable_calendar_sync_cron');
+      }
+    } catch (e) {
+      console.error('Cron update error:', e);
+    }
   };
 
   if (isLoading) {
@@ -97,10 +119,6 @@ export function AgendaConfigPanel() {
                     </a>
                     , crie um projeto com a API do Google Calendar habilitada e gere as credenciais OAuth 2.0.
                   </p>
-                  <p>
-                    O <strong>Refresh Token</strong> é necessário para gerar links do Google Meet automaticamente.
-                    Você pode obtê-lo usando o OAuth 2.0 Playground ou ferramentas como n8n/Postman.
-                  </p>
                 </div>
               </div>
               <TooltipProvider delayDuration={200}>
@@ -126,11 +144,7 @@ export function AgendaConfigPanel() {
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    placeholder="Seu Google Client ID"
-                    value={googleClientId}
-                    onChange={(e) => setGoogleClientId(e.target.value)}
-                  />
+                  <Input placeholder="Seu Google Client ID" value={googleClientId} onChange={(e) => setGoogleClientId(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
@@ -140,18 +154,11 @@ export function AgendaConfigPanel() {
                         <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-                        <p className="font-semibold mb-1">Como obter o Client Secret:</p>
-                        <p>O Client Secret aparece junto com o Client ID ao criar as credenciais OAuth no Google Cloud Console (mesmo passo acima).</p>
-                        <p className="mt-1">Se já criou, vá em Credenciais → clique no seu ID OAuth → o Secret estará lá.</p>
+                        O Client Secret aparece junto com o Client ID ao criar as credenciais OAuth.
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    type="password"
-                    placeholder="Seu Google Client Secret"
-                    value={googleClientSecret}
-                    onChange={(e) => setGoogleClientSecret(e.target.value)}
-                  />
+                  <Input type="password" placeholder="Seu Google Client Secret" value={googleClientSecret} onChange={(e) => setGoogleClientSecret(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
@@ -163,24 +170,19 @@ export function AgendaConfigPanel() {
                       <TooltipContent side="right" className="max-w-[350px] text-xs leading-relaxed">
                         <p className="font-semibold mb-1">Como obter o Refresh Token:</p>
                         <ol className="list-decimal list-inside space-y-0.5">
-                          <li>Acesse o OAuth 2.0 Playground do Google (developers.google.com/oauthplayground)</li>
+                          <li>Acesse o OAuth 2.0 Playground do Google</li>
                           <li>Clique na engrenagem (⚙️) no canto superior direito</li>
                           <li>Marque "Use your own OAuth credentials"</li>
                           <li>Cole o Client ID e Client Secret</li>
-                          <li>No lado esquerdo, selecione "Google Calendar API v3" → escopo: .../auth/calendar</li>
+                          <li>No lado esquerdo, selecione "Google Calendar API v3"</li>
                           <li>Clique em "Authorize APIs" e faça login</li>
                           <li>Clique em "Exchange authorization code for tokens"</li>
-                          <li>Copie o Refresh Token exibido</li>
+                          <li>Copie o Refresh Token</li>
                         </ol>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    type="password"
-                    placeholder="Seu Google Refresh Token"
-                    value={googleRefreshToken}
-                    onChange={(e) => setGoogleRefreshToken(e.target.value)}
-                  />
+                  <Input type="password" placeholder="Seu Google Refresh Token" value={googleRefreshToken} onChange={(e) => setGoogleRefreshToken(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
@@ -190,25 +192,44 @@ export function AgendaConfigPanel() {
                         <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-                        <p className="font-semibold mb-1">Como obter o ID do Calendário:</p>
-                        <ol className="list-decimal list-inside space-y-0.5">
-                          <li>Abra o Google Agenda (calendar.google.com)</li>
-                          <li>No lado esquerdo, passe o mouse no calendário desejado</li>
-                          <li>Clique nos 3 pontinhos → Configurações</li>
-                          <li>Role até "Integrar agenda"</li>
-                          <li>O ID do calendário estará lá</li>
-                        </ol>
-                        <p className="mt-1">Se for o calendário principal, geralmente é o seu email (ex: seuemail@gmail.com).</p>
+                        Abra o Google Agenda, clique nos 3 pontinhos do calendário → Configurações → Integrar agenda. O ID estará lá. Se for o principal, use "primary" ou seu email.
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    placeholder="Ex: seuemail@gmail.com (ou 'primary')"
-                    value={googleCalendarId}
-                    onChange={(e) => setGoogleCalendarId(e.target.value)}
-                  />
+                  <Input placeholder="Ex: seuemail@gmail.com (ou 'primary')" value={googleCalendarId} onChange={(e) => setGoogleCalendarId(e.target.value)} />
                 </div>
               </TooltipProvider>
+
+              {/* Auto Sync */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    <Label>Sincronização automática</Label>
+                    <Badge variant="outline" className="text-[10px]">
+                      {autoSyncEnabled ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </div>
+                  <Switch checked={autoSyncEnabled} onCheckedChange={setAutoSyncEnabled} />
+                </div>
+                {autoSyncEnabled && (
+                  <div className="mt-3 space-y-2">
+                    <Label>Intervalo de sincronização</Label>
+                    <Select value={syncInterval} onValueChange={setSyncInterval}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">A cada 5 minutos</SelectItem>
+                        <SelectItem value="10">A cada 10 minutos</SelectItem>
+                        <SelectItem value="15">A cada 15 minutos</SelectItem>
+                        <SelectItem value="30">A cada 30 minutos</SelectItem>
+                        <SelectItem value="60">A cada 1 hora</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -223,12 +244,14 @@ export function AgendaConfigPanel() {
           </div>
           <CardDescription>
             Configure notificações automáticas para clientes no dia da reunião.
+            <br />
+            <span className="text-xs text-muted-foreground">⚠️ Notificações são enviadas somente para eventos criados no sistema. Eventos importados do Google Calendar não recebem notificações.</span>
           </CardDescription>
           <div className="mt-2 p-2.5 bg-muted/60 rounded-lg border border-border/50">
             <p className="text-xs text-muted-foreground leading-relaxed">
               <strong>📌 De onde vêm as credenciais:</strong><br />
-              • <strong>WhatsApp:</strong> Usa os segredos do sistema (EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE) — mesmas credenciais configuradas em <em>Admin → Configurações</em>.<br />
-              • <strong>Email:</strong> Usa os segredos do sistema (GMAIL_USER, GMAIL_APP_PASSWORD) — mesmas credenciais do módulo de cobrança.
+              • <strong>WhatsApp:</strong> Usa os segredos do sistema (EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE).<br />
+              • <strong>Email:</strong> Usa os segredos do sistema (GMAIL_USER, GMAIL_APP_PASSWORD).
             </p>
           </div>
         </CardHeader>
@@ -248,17 +271,15 @@ export function AgendaConfigPanel() {
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg flex items-start gap-2">
                 <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                 <div className="text-xs text-amber-700 dark:text-amber-400">
-                  <p><strong>WhatsApp:</strong> Utiliza a Evolution API (URL, API Key e Instância) já configuradas no sistema.</p>
-                  <p><strong>Email:</strong> Utiliza as credenciais do Gmail (GMAIL_USER e GMAIL_APP_PASSWORD) já configuradas no sistema.</p>
+                  <p><strong>WhatsApp:</strong> Utiliza a Evolution API já configurada no sistema.</p>
+                  <p><strong>Email:</strong> Utiliza as credenciais do Gmail já configuradas no sistema.</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Horas antes da reunião</Label>
                   <Select value={notifyHoursBefore} onValueChange={setNotifyHoursBefore}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">1 hora</SelectItem>
                       <SelectItem value="2">2 horas</SelectItem>
@@ -272,9 +293,7 @@ export function AgendaConfigPanel() {
                 <div className="space-y-2">
                   <Label>Canal</Label>
                   <Select value={notifyChannel} onValueChange={setNotifyChannel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="whatsapp">WhatsApp</SelectItem>
                       <SelectItem value="email">Email</SelectItem>

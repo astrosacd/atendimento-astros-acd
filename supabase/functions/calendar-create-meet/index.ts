@@ -12,6 +12,7 @@ interface CalendarEventRequest {
   end_time: string;
   attendee_email?: string;
   calendar_event_id: string;
+  notes?: string;
 }
 
 async function getAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
@@ -66,6 +67,17 @@ Deno.serve(async (req) => {
 
     const body: CalendarEventRequest = await req.json();
 
+    // Get the event's notes for description
+    let eventNotes = body.notes || "";
+    if (!eventNotes && body.calendar_event_id) {
+      const { data: evData } = await supabase
+        .from("calendar_events")
+        .select("notes")
+        .eq("id", body.calendar_event_id)
+        .single();
+      eventNotes = evData?.notes || "";
+    }
+
     // Get Google Calendar config
     const { data: configs } = await supabase
       .from("calendar_config")
@@ -91,12 +103,20 @@ Deno.serve(async (req) => {
     // Get access token
     const accessToken = await getAccessToken(clientId, clientSecret, refreshToken);
 
+    // Build description with notes
+    const descriptionParts = [body.description || ""];
+    const cleanNotes = (eventNotes || "").split("\n").filter((l: string) => !l.startsWith("[NOTIFICADO")).join("\n").trim();
+    if (cleanNotes) {
+      descriptionParts.push(`Observações:\n${cleanNotes}`);
+    }
+    const fullDescription = descriptionParts.filter(Boolean).join("\n\n---\n");
+
     // Create Google Calendar event with Meet
     const attendees = body.attendee_email ? [{ email: body.attendee_email }] : [];
 
     const calendarEvent = {
       summary: body.title,
-      description: body.description || "",
+      description: fullDescription,
       start: {
         dateTime: body.start_time,
         timeZone: "America/Sao_Paulo",
@@ -147,6 +167,7 @@ Deno.serve(async (req) => {
         .from("calendar_events")
         .update({ 
           meet_link: meetLink,
+          google_event_id: googleEventId,
         })
         .eq("id", body.calendar_event_id);
     }

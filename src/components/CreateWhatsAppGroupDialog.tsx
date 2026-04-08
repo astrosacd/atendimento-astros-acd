@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,9 +36,11 @@ interface ParticipantInfo {
 }
 
 export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumero, open, onOpenChange }: Props) {
-  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('criar');
   const [isCreating, setIsCreating] = useState(false);
+  const [newDefaultName, setNewDefaultName] = useState('');
+  const [newDefaultPhone, setNewDefaultPhone] = useState('');
 
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
@@ -64,6 +66,21 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     },
   });
 
+  // Fetch default participants
+  const { data: defaultParticipants = [] } = useQuery({
+    queryKey: ['whatsapp-default-participants'],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_group_default_participants')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data as { id: string; phone_number: string; name: string; is_active: boolean }[];
+    },
+  });
+
   const { data: groupHistory = [], isLoading: loadingHistory, refetch: refetchHistory } = useQuery({
     queryKey: ['whatsapp-groups', clienteId],
     enabled: open && !!clienteId,
@@ -78,15 +95,32 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
     },
   });
 
-  // Pre-fill client number when dialog opens
+  // Pre-fill client number and default participants when dialog opens
   useEffect(() => {
-    if (open && clienteNumero) {
-      const cleanNum = clienteNumero.replace(/\D/g, '');
-      if (cleanNum && !participants.some(p => p.number === cleanNum)) {
-        setParticipants([{ number: cleanNum, status: 'pending' }]);
+    if (open) {
+      const initial: ParticipantInfo[] = [];
+      
+      // Add default participants
+      defaultParticipants.forEach(dp => {
+        const cleanNum = dp.phone_number.replace(/\D/g, '');
+        if (cleanNum && !initial.some(p => p.number === cleanNum)) {
+          initial.push({ number: cleanNum, status: 'pending' });
+        }
+      });
+      
+      // Add client number
+      if (clienteNumero) {
+        const cleanNum = clienteNumero.replace(/\D/g, '');
+        if (cleanNum && !initial.some(p => p.number === cleanNum)) {
+          initial.push({ number: cleanNum, status: 'pending' });
+        }
+      }
+      
+      if (initial.length > 0) {
+        setParticipants(initial);
       }
     }
-  }, [open, clienteNumero]);
+  }, [open, clienteNumero, defaultParticipants]);
 
   // Auto-validate pending numbers when an instance is selected
   const validateNumber = useCallback(async (number: string) => {
@@ -301,12 +335,15 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="criar">
-              <Plus className="h-4 w-4 mr-1" /> Criar Grupo
+              <Plus className="h-4 w-4 mr-1" /> Criar
             </TabsTrigger>
             <TabsTrigger value="historico">
-              <History className="h-4 w-4 mr-1" /> Histórico ({groupHistory.length})
+              <History className="h-4 w-4 mr-1" /> Histórico
+            </TabsTrigger>
+            <TabsTrigger value="config">
+              <Users className="h-4 w-4 mr-1" /> Padrões
             </TabsTrigger>
           </TabsList>
 
@@ -518,6 +555,49 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                       )}
                     </CardContent>
                   </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="config" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Números que serão adicionados automaticamente em todos os novos grupos.
+            </p>
+            <div className="flex gap-2">
+              <Input placeholder="Nome (ex: Gerente)" value={newDefaultName} onChange={(e) => setNewDefaultName(e.target.value)} className="flex-1" />
+              <Input placeholder="5511999999999" value={newDefaultPhone} onChange={(e) => setNewDefaultPhone(e.target.value)} className="flex-1" />
+              <Button size="icon" variant="outline" onClick={async () => {
+                const name = newDefaultName.trim();
+                const phone = newDefaultPhone.replace(/\D/g, '').trim();
+                if (!name || !phone) { toast.error('Preencha nome e número'); return; }
+                const { error } = await supabase.from('whatsapp_group_default_participants').insert({ name, phone_number: phone });
+                if (error) { toast.error('Erro ao salvar'); return; }
+                toast.success('Participante padrão adicionado!');
+                setNewDefaultName(''); setNewDefaultPhone('');
+                queryClient.invalidateQueries({ queryKey: ['whatsapp-default-participants'] });
+              }}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {defaultParticipants.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhum participante padrão configurado</p>
+            ) : (
+              <div className="space-y-2">
+                {defaultParticipants.map((dp) => (
+                  <div key={dp.id} className="flex items-center justify-between p-2 border rounded-lg">
+                    <div>
+                      <span className="text-sm font-medium">{dp.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{dp.phone_number}</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
+                      await supabase.from('whatsapp_group_default_participants').delete().eq('id', dp.id);
+                      queryClient.invalidateQueries({ queryKey: ['whatsapp-default-participants'] });
+                      toast.success('Removido');
+                    }}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 ))}
               </div>
             )}
