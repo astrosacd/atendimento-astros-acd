@@ -334,12 +334,15 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="criar">
-              <Plus className="h-4 w-4 mr-1" /> Criar Grupo
+              <Plus className="h-4 w-4 mr-1" /> Criar
             </TabsTrigger>
             <TabsTrigger value="historico">
-              <History className="h-4 w-4 mr-1" /> Histórico ({groupHistory.length})
+              <History className="h-4 w-4 mr-1" /> Histórico
+            </TabsTrigger>
+            <TabsTrigger value="config">
+              <Users className="h-4 w-4 mr-1" /> Padrões
             </TabsTrigger>
           </TabsList>
 
