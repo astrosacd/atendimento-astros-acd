@@ -558,6 +558,49 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="config" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Números que serão adicionados automaticamente em todos os novos grupos.
+            </p>
+            <div className="flex gap-2">
+              <Input placeholder="Nome (ex: Gerente)" value={newDefaultName} onChange={(e) => setNewDefaultName(e.target.value)} className="flex-1" />
+              <Input placeholder="5511999999999" value={newDefaultPhone} onChange={(e) => setNewDefaultPhone(e.target.value)} className="flex-1" />
+              <Button size="icon" variant="outline" onClick={async () => {
+                const name = newDefaultName.trim();
+                const phone = newDefaultPhone.replace(/\D/g, '').trim();
+                if (!name || !phone) { toast.error('Preencha nome e número'); return; }
+                const { error } = await supabase.from('whatsapp_group_default_participants').insert({ name, phone_number: phone });
+                if (error) { toast.error('Erro ao salvar'); return; }
+                toast.success('Participante padrão adicionado!');
+                setNewDefaultName(''); setNewDefaultPhone('');
+                queryClient.invalidateQueries({ queryKey: ['whatsapp-default-participants'] });
+              }}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {defaultParticipants.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhum participante padrão configurado</p>
+            ) : (
+              <div className="space-y-2">
+                {defaultParticipants.map((dp) => (
+                  <div key={dp.id} className="flex items-center justify-between p-2 border rounded-lg">
+                    <div>
+                      <span className="text-sm font-medium">{dp.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{dp.phone_number}</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={async () => {
+                      await supabase.from('whatsapp_group_default_participants').delete().eq('id', dp.id);
+                      queryClient.invalidateQueries({ queryKey: ['whatsapp-default-participants'] });
+                      toast.success('Removido');
+                    }}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
