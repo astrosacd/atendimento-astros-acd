@@ -62,9 +62,9 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
-      // Filter out [NOTIFICADO] marks from notes display
       const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
       setNotes(cleanNotes);
+      setConsultantPhones(((event as any).consultant_phones || []).join(', '));
     } else if (open && !event) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -80,6 +80,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setLocation('');
       setStatus('scheduled');
       setNotes('');
+      setConsultantPhones('');
     }
   }, [open, event]);
 
