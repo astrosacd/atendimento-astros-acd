@@ -477,6 +477,7 @@ export type Database = {
           client_email: string | null
           client_name: string | null
           client_phone: string | null
+          consultant_phones: string[] | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -486,6 +487,7 @@ export type Database = {
           location: string | null
           meet_link: string | null
           notes: string | null
+          notified_at: string | null
           source: string
           start_time: string
           status: string
@@ -496,6 +498,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_phone?: string | null
+          consultant_phones?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -505,6 +508,7 @@ export type Database = {
           location?: string | null
           meet_link?: string | null
           notes?: string | null
+          notified_at?: string | null
           source?: string
           start_time: string
           status?: string
@@ -515,6 +519,7 @@ export type Database = {
           client_email?: string | null
           client_name?: string | null
           client_phone?: string | null
+          consultant_phones?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -524,10 +529,101 @@ export type Database = {
           location?: string | null
           meet_link?: string | null
           notes?: string | null
+          notified_at?: string | null
           source?: string
           start_time?: string
           status?: string
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      calendar_notification_logs: {
+        Row: {
+          channel: string
+          error_message: string | null
+          event_id: string | null
+          id: string
+          message_sent: string | null
+          recipient_contact: string | null
+          recipient_name: string | null
+          recipient_type: string
+          sent_at: string
+          status: string
+          whatsapp_instance_id: string | null
+        }
+        Insert: {
+          channel?: string
+          error_message?: string | null
+          event_id?: string | null
+          id?: string
+          message_sent?: string | null
+          recipient_contact?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          sent_at?: string
+          status?: string
+          whatsapp_instance_id?: string | null
+        }
+        Update: {
+          channel?: string
+          error_message?: string | null
+          event_id?: string | null
+          id?: string
+          message_sent?: string | null
+          recipient_contact?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          sent_at?: string
+          status?: string
+          whatsapp_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_notification_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_notification_logs_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_notification_whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_notification_whatsapp_instances: {
+        Row: {
+          api_key: string
+          api_url: string
+          created_at: string
+          id: string
+          instance_name: string
+          is_active: boolean | null
+          last_used_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          created_at?: string
+          id?: string
+          instance_name: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          created_at?: string
+          id?: string
+          instance_name?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -5458,11 +5554,13 @@ export type Database = {
         Returns: boolean
       }
       disable_automations_cron: { Args: never; Returns: boolean }
+      disable_calendar_notify_cron: { Args: never; Returns: boolean }
       disable_calendar_sync_cron: { Args: never; Returns: boolean }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
+      execute_calendar_notify: { Args: never; Returns: undefined }
       execute_calendar_sync: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
@@ -5479,6 +5577,13 @@ export type Database = {
         }[]
       }
       get_billing_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
+      }
+      get_calendar_notify_cron_schedule: {
         Args: never
         Returns: {
           job_name: string
@@ -5597,6 +5702,10 @@ export type Database = {
       }
       update_billing_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
+        Returns: boolean
+      }
+      update_calendar_notify_cron: {
+        Args: { p_interval_minutes: number }
         Returns: boolean
       }
       update_calendar_sync_cron: {

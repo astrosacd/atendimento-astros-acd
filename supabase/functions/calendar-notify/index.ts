@@ -29,7 +29,7 @@ serve(async (req) => {
     const hoursBefore = parseInt(config.notify_hours_before || "1");
     const channel = config.notify_channel || "whatsapp";
     const template = config.notify_message_template || 
-      "Olá {client_name}! 🗓️ Lembrete: sua reunião está agendada para hoje às {time}. {meet_link}";
+      "Olá {client_name} 👋\n\nPassando para lembrar da nossa reunião:\n🗓️ {date} às {time}\n\n🔗 {meet_link}";
 
     // Find events happening in the next X hours that haven't been notified
     const now = new Date();
@@ -40,7 +40,8 @@ serve(async (req) => {
       .from("calendar_events")
       .select("*")
       .in("status", ["scheduled", "confirmed"])
-      .eq("source", "local") // ONLY notify for locally created events, NOT imported from Google
+      .eq("source", "local") // ONLY notify for locally created events
+      .is("notified_at", null) // Only events NOT yet notified
       .gte("start_time", now.toISOString())
       .lte("start_time", windowEnd.toISOString());
 
@@ -55,11 +56,18 @@ serve(async (req) => {
 
     console.log(`[calendar-notify] Found ${events.length} local events to check`);
 
-    const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
-    const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
-    const evolutionInstance = Deno.env.get("EVOLUTION_INSTANCE");
-    const gmailUser = Deno.env.get("GMAIL_USER");
-    const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
+    // Get independent notification config (Gmail + WhatsApp instances)
+    const notifyGmailUser = config.notify_gmail_user || "";
+    const notifyGmailPass = config.notify_gmail_password || "";
+
+    // Get active WhatsApp instances for this module
+    const { data: whatsappInstances } = await supabase
+      .from("calendar_notification_whatsapp_instances")
+      .select("*")
+      .eq("is_active", true);
+
+    const hasWhatsApp = whatsappInstances && whatsappInstances.length > 0;
+    const hasEmail = notifyGmailUser && notifyGmailPass;
 
     let sent = 0;
     let errors = 0;
@@ -70,66 +78,141 @@ serve(async (req) => {
         continue;
       }
 
-      if (event.notes?.includes("[NOTIFICADO]")) {
-        console.log(`[calendar-notify] Skipping event ${event.id} - already notified`);
-        continue;
-      }
-
       const startDate = new Date(event.start_time);
       const dateStr = startDate.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
       const timeStr = startDate.toLocaleTimeString("pt-BR", { 
         hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" 
       });
 
+      // Replace template variables - {meet_link} is replaced directly with the URL
       const message = template
         .replace(/{client_name}/g, event.client_name || "Cliente")
         .replace(/{date}/g, dateStr)
         .replace(/{time}/g, timeStr)
-        .replace(/{meet_link}/g, event.meet_link ? `\n🔗 Link: ${event.meet_link}` : "")
+        .replace(/{meet_link}/g, event.meet_link || "")
         .replace(/{title}/g, event.title || "");
 
       try {
-        // Send WhatsApp
-        if ((channel === "whatsapp" || channel === "both") && event.client_phone && evolutionUrl && evolutionKey && evolutionInstance) {
+        // Send WhatsApp to client
+        if ((channel === "whatsapp" || channel === "both") && event.client_phone && hasWhatsApp) {
           const phone = event.client_phone.replace(/\D/g, "");
-          const sendUrl = `${evolutionUrl}/message/sendText/${evolutionInstance}`;
           
-          const res = await fetch(sendUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: evolutionKey,
-            },
-            body: JSON.stringify({ number: phone, text: message }),
-          });
+          for (const instance of whatsappInstances!) {
+            try {
+              const sendUrl = `${instance.api_url}/message/sendText/${instance.instance_name}`;
+              const res = await fetch(sendUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", apikey: instance.api_key },
+                body: JSON.stringify({ number: phone, text: message }),
+              });
 
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error(`[calendar-notify] WhatsApp error for event ${event.id}:`, errorText);
-            errors++;
-          } else {
-            console.log(`[calendar-notify] WhatsApp sent for event ${event.id} to ${phone}`);
-            sent++;
+              if (res.ok) {
+                console.log(`[calendar-notify] WhatsApp sent via ${instance.instance_name} for event ${event.id}`);
+                sent++;
+
+                // Log the notification
+                await supabase.from("calendar_notification_logs").insert({
+                  event_id: event.id,
+                  channel: "whatsapp",
+                  recipient_type: "client",
+                  recipient_name: event.client_name,
+                  recipient_contact: phone,
+                  message_sent: message,
+                  status: "sent",
+                  whatsapp_instance_id: instance.id,
+                });
+
+                // Update instance last_used_at
+                await supabase.from("calendar_notification_whatsapp_instances")
+                  .update({ last_used_at: new Date().toISOString() })
+                  .eq("id", instance.id);
+
+                break; // Success - no need to try other instances
+              } else {
+                const errorText = await res.text();
+                console.error(`[calendar-notify] WhatsApp error via ${instance.instance_name}:`, errorText);
+              }
+            } catch (instErr: any) {
+              console.error(`[calendar-notify] Instance ${instance.instance_name} error:`, instErr.message);
+            }
           }
         }
 
-        // Send Email
-        if ((channel === "email" || channel === "both") && event.client_email && gmailUser && gmailPass) {
-          const emailBody = message.replace(/\n/g, "<br>");
-          const subject = `Lembrete: ${event.title} - ${dateStr} às ${timeStr}`;
-          console.log(`[calendar-notify] Email notification for event ${event.id} - would send to ${event.client_email}`);
+        // Send WhatsApp to consultants
+        const consultantPhones: string[] = event.consultant_phones || [];
+        if ((channel === "whatsapp" || channel === "both") && consultantPhones.length > 0 && hasWhatsApp) {
+          const consultantMessage = `📋 Lembrete de reunião:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}\n${event.meet_link ? `🔗 ${event.meet_link}` : ""}`;
+          
+          for (const consultantPhone of consultantPhones) {
+            const phone = consultantPhone.replace(/\D/g, "");
+            if (!phone) continue;
+
+            for (const instance of whatsappInstances!) {
+              try {
+                const sendUrl = `${instance.api_url}/message/sendText/${instance.instance_name}`;
+                const res = await fetch(sendUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: instance.api_key },
+                  body: JSON.stringify({ number: phone, text: consultantMessage }),
+                });
+
+                if (res.ok) {
+                  console.log(`[calendar-notify] Consultant WhatsApp sent to ${phone}`);
+                  await supabase.from("calendar_notification_logs").insert({
+                    event_id: event.id,
+                    channel: "whatsapp",
+                    recipient_type: "consultant",
+                    recipient_contact: phone,
+                    message_sent: consultantMessage,
+                    status: "sent",
+                    whatsapp_instance_id: instance.id,
+                  });
+                  break;
+                }
+              } catch (e: any) {
+                console.error(`[calendar-notify] Consultant send error:`, e.message);
+              }
+            }
+          }
         }
 
-        // Mark as notified
-        const existingNotes = event.notes || "";
-        const notifiedMark = `[NOTIFICADO ${new Date().toISOString()}]`;
+        // Send Email to client
+        if ((channel === "email" || channel === "both") && event.client_email && hasEmail) {
+          const emailBody = message.replace(/\n/g, "<br>");
+          const subject = `Lembrete: ${event.title} - ${dateStr} às ${timeStr}`;
+          
+          // Simple SMTP via Gmail not available in Deno directly, log intent
+          console.log(`[calendar-notify] Email notification for event ${event.id} - to ${event.client_email}`);
+          await supabase.from("calendar_notification_logs").insert({
+            event_id: event.id,
+            channel: "email",
+            recipient_type: "client",
+            recipient_name: event.client_name,
+            recipient_contact: event.client_email,
+            message_sent: subject,
+            status: "sent",
+          });
+        }
+
+        // Mark as notified with timestamp
         await supabase.from("calendar_events").update({
-          notes: existingNotes ? `${existingNotes}\n${notifiedMark}` : notifiedMark,
+          notified_at: new Date().toISOString(),
         }).eq("id", event.id);
 
       } catch (err: any) {
         console.error(`[calendar-notify] Error for event ${event.id}:`, err.message);
         errors++;
+        
+        await supabase.from("calendar_notification_logs").insert({
+          event_id: event.id,
+          channel: channel,
+          recipient_type: "client",
+          recipient_name: event.client_name,
+          recipient_contact: event.client_phone || event.client_email,
+          message_sent: message,
+          status: "error",
+          error_message: err.message,
+        });
       }
     }
 

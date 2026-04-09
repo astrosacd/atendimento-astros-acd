@@ -7,16 +7,43 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Bell, Calendar, Info, ExternalLink, HelpCircle, RefreshCw } from 'lucide-react';
+import { Save, Loader2, Bell, Calendar, Info, ExternalLink, HelpCircle, RefreshCw, Plus, Trash2, MessageSquare, Mail, History } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCalendarConfig, useUpdateCalendarConfig } from '@/hooks/useCalendar';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
+interface WhatsAppInstance {
+  id: string;
+  api_url: string;
+  api_key: string;
+  instance_name: string;
+  is_active: boolean;
+  last_used_at: string | null;
+}
+
+interface NotificationLog {
+  id: string;
+  event_id: string | null;
+  channel: string;
+  recipient_type: string;
+  recipient_name: string | null;
+  recipient_contact: string | null;
+  message_sent: string | null;
+  status: string;
+  error_message: string | null;
+  sent_at: string;
+}
 
 export function AgendaConfigPanel() {
   const { data: config, isLoading } = useCalendarConfig();
   const updateConfig = useUpdateCalendarConfig();
+  const queryClient = useQueryClient();
 
+  // Google Calendar
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleClientSecret, setGoogleClientSecret] = useState('');
@@ -24,10 +51,48 @@ export function AgendaConfigPanel() {
   const [googleRefreshToken, setGoogleRefreshToken] = useState('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [syncInterval, setSyncInterval] = useState('15');
+
+  // Notifications
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyHoursBefore, setNotifyHoursBefore] = useState('1');
   const [notifyChannel, setNotifyChannel] = useState('whatsapp');
   const [notifyTemplate, setNotifyTemplate] = useState('');
+  const [notifyCronEnabled, setNotifyCronEnabled] = useState(false);
+  const [notifyCronInterval, setNotifyCronInterval] = useState('15');
+
+  // Independent Gmail config
+  const [notifyGmailUser, setNotifyGmailUser] = useState('');
+  const [notifyGmailPassword, setNotifyGmailPassword] = useState('');
+
+  // WhatsApp instances
+  const [newInstanceUrl, setNewInstanceUrl] = useState('');
+  const [newInstanceKey, setNewInstanceKey] = useState('');
+  const [newInstanceName, setNewInstanceName] = useState('');
+
+  const { data: whatsappInstances = [], refetch: refetchInstances } = useQuery({
+    queryKey: ['calendar-notification-whatsapp-instances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('calendar_notification_whatsapp_instances')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as WhatsAppInstance[];
+    },
+  });
+
+  const { data: notificationLogs = [] } = useQuery({
+    queryKey: ['calendar-notification-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('calendar_notification_logs')
+        .select('*')
+        .order('sent_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data as NotificationLog[];
+    },
+  });
 
   useEffect(() => {
     if (config) {
@@ -42,6 +107,10 @@ export function AgendaConfigPanel() {
       setNotifyHoursBefore(config.notify_hours_before || '1');
       setNotifyChannel(config.notify_channel || 'whatsapp');
       setNotifyTemplate(config.notify_message_template || '');
+      setNotifyCronEnabled(config.notify_cron_enabled === 'true');
+      setNotifyCronInterval(config.notify_cron_interval || '15');
+      setNotifyGmailUser(config.notify_gmail_user || '');
+      setNotifyGmailPassword(config.notify_gmail_password || '');
     }
   }, [config]);
 
@@ -61,9 +130,13 @@ export function AgendaConfigPanel() {
       notify_hours_before: notifyHoursBefore,
       notify_channel: notifyChannel,
       notify_message_template: notifyTemplate,
+      notify_cron_enabled: notifyCronEnabled ? 'true' : 'false',
+      notify_cron_interval: notifyCronInterval,
+      notify_gmail_user: notifyGmailUser,
+      notify_gmail_password: notifyGmailPassword,
     });
 
-    // Manage cron job
+    // Manage sync cron
     try {
       if (newAutoSync) {
         await supabase.rpc('update_calendar_sync_cron', { p_interval_minutes: parseInt(syncInterval) });
@@ -71,8 +144,51 @@ export function AgendaConfigPanel() {
         await supabase.rpc('disable_calendar_sync_cron');
       }
     } catch (e) {
-      console.error('Cron update error:', e);
+      console.error('Sync cron update error:', e);
     }
+
+    // Manage notify cron
+    try {
+      if (notifyCronEnabled && notifyEnabled) {
+        await supabase.rpc('update_calendar_notify_cron', { p_interval_minutes: parseInt(notifyCronInterval) });
+      } else {
+        await supabase.rpc('disable_calendar_notify_cron');
+      }
+    } catch (e) {
+      console.error('Notify cron update error:', e);
+    }
+  };
+
+  const handleAddInstance = async () => {
+    if (!newInstanceUrl || !newInstanceKey || !newInstanceName) {
+      toast.error('Preencha todos os campos da instância');
+      return;
+    }
+    const { error } = await supabase.from('calendar_notification_whatsapp_instances').insert({
+      api_url: newInstanceUrl,
+      api_key: newInstanceKey,
+      instance_name: newInstanceName,
+    });
+    if (error) {
+      toast.error('Erro ao adicionar instância');
+      return;
+    }
+    toast.success('Instância adicionada!');
+    setNewInstanceUrl('');
+    setNewInstanceKey('');
+    setNewInstanceName('');
+    refetchInstances();
+  };
+
+  const handleDeleteInstance = async (id: string) => {
+    await supabase.from('calendar_notification_whatsapp_instances').delete().eq('id', id);
+    toast.success('Instância removida');
+    refetchInstances();
+  };
+
+  const handleToggleInstance = async (id: string, active: boolean) => {
+    await supabase.from('calendar_notification_whatsapp_instances').update({ is_active: active }).eq('id', id);
+    refetchInstances();
   };
 
   if (isLoading) {
@@ -117,7 +233,6 @@ export function AgendaConfigPanel() {
                     <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline inline-flex items-center gap-0.5">
                       Google Cloud Console <ExternalLink className="h-3 w-3" />
                     </a>
-                    , crie um projeto com a API do Google Calendar habilitada e gere as credenciais OAuth 2.0.
                   </p>
                 </div>
               </div>
@@ -126,76 +241,22 @@ export function AgendaConfigPanel() {
                   <Label className="flex items-center gap-1.5">
                     Client ID
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-                        <p className="font-semibold mb-1">Como obter o Client ID:</p>
-                        <ol className="list-decimal list-inside space-y-0.5">
-                          <li>Acesse o Google Cloud Console</li>
-                          <li>Crie um projeto (ou use um existente)</li>
-                          <li>Vá em APIs e Serviços → Biblioteca</li>
-                          <li>Ative a "Google Calendar API"</li>
-                          <li>Vá em Credenciais → Criar credenciais → ID do cliente OAuth</li>
-                          <li>Tipo: Aplicativo da Web</li>
-                          <li>Em URIs de redirecionamento, adicione: https://developers.google.com/oauthplayground</li>
-                          <li>O Client ID aparecerá após criar</li>
-                        </ol>
-                      </TooltipContent>
+                      <TooltipTrigger asChild><HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[320px] text-xs">Acesse Google Cloud Console → APIs → Credenciais OAuth</TooltipContent>
                     </Tooltip>
                   </Label>
                   <Input placeholder="Seu Google Client ID" value={googleClientId} onChange={(e) => setGoogleClientId(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    Client Secret
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-                        O Client Secret aparece junto com o Client ID ao criar as credenciais OAuth.
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
+                  <Label>Client Secret</Label>
                   <Input type="password" placeholder="Seu Google Client Secret" value={googleClientSecret} onChange={(e) => setGoogleClientSecret(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    Refresh Token
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[350px] text-xs leading-relaxed">
-                        <p className="font-semibold mb-1">Como obter o Refresh Token:</p>
-                        <ol className="list-decimal list-inside space-y-0.5">
-                          <li>Acesse o OAuth 2.0 Playground do Google</li>
-                          <li>Clique na engrenagem (⚙️) no canto superior direito</li>
-                          <li>Marque "Use your own OAuth credentials"</li>
-                          <li>Cole o Client ID e Client Secret</li>
-                          <li>No lado esquerdo, selecione "Google Calendar API v3"</li>
-                          <li>Clique em "Authorize APIs" e faça login</li>
-                          <li>Clique em "Exchange authorization code for tokens"</li>
-                          <li>Copie o Refresh Token</li>
-                        </ol>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
+                  <Label>Refresh Token</Label>
                   <Input type="password" placeholder="Seu Google Refresh Token" value={googleRefreshToken} onChange={(e) => setGoogleRefreshToken(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    ID do Calendário
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[320px] text-xs leading-relaxed">
-                        Abra o Google Agenda, clique nos 3 pontinhos do calendário → Configurações → Integrar agenda. O ID estará lá. Se for o principal, use "primary" ou seu email.
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
+                  <Label>ID do Calendário</Label>
                   <Input placeholder="Ex: seuemail@gmail.com (ou 'primary')" value={googleCalendarId} onChange={(e) => setGoogleCalendarId(e.target.value)} />
                 </div>
               </TooltipProvider>
@@ -206,9 +267,7 @@ export function AgendaConfigPanel() {
                   <div className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4 text-muted-foreground" />
                     <Label>Sincronização automática</Label>
-                    <Badge variant="outline" className="text-[10px]">
-                      {autoSyncEnabled ? 'Ativo' : 'Inativo'}
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">{autoSyncEnabled ? 'Ativo' : 'Inativo'}</Badge>
                   </div>
                   <Switch checked={autoSyncEnabled} onCheckedChange={setAutoSyncEnabled} />
                 </div>
@@ -216,9 +275,7 @@ export function AgendaConfigPanel() {
                   <div className="mt-3 space-y-2">
                     <Label>Intervalo de sincronização</Label>
                     <Select value={syncInterval} onValueChange={setSyncInterval}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="5">A cada 5 minutos</SelectItem>
                         <SelectItem value="10">A cada 10 minutos</SelectItem>
@@ -235,7 +292,7 @@ export function AgendaConfigPanel() {
         </CardContent>
       </Card>
 
-      {/* Notifications */}
+      {/* Independent Notifications Config */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -243,38 +300,22 @@ export function AgendaConfigPanel() {
             <CardTitle className="text-lg">Notificações</CardTitle>
           </div>
           <CardDescription>
-            Configure notificações automáticas para clientes no dia da reunião.
+            Configure notificações automáticas independentes para o módulo Agenda.
             <br />
-            <span className="text-xs text-muted-foreground">⚠️ Notificações são enviadas somente para eventos criados no sistema. Eventos importados do Google Calendar não recebem notificações.</span>
+            <span className="text-xs text-muted-foreground">⚠️ Somente para eventos criados no sistema. Eventos importados do Google Calendar não recebem notificações.</span>
           </CardDescription>
-          <div className="mt-2 p-2.5 bg-muted/60 rounded-lg border border-border/50">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong>📌 De onde vêm as credenciais:</strong><br />
-              • <strong>WhatsApp:</strong> Usa os segredos do sistema (EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE).<br />
-              • <strong>Email:</strong> Usa os segredos do sistema (GMAIL_USER, GMAIL_APP_PASSWORD).
-            </p>
-          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Label>Notificar clientes</Label>
-              <Badge variant="outline" className="text-[10px]">
-                {notifyEnabled ? 'Ativo' : 'Inativo'}
-              </Badge>
+              <Badge variant="outline" className="text-[10px]">{notifyEnabled ? 'Ativo' : 'Inativo'}</Badge>
             </div>
             <Switch checked={notifyEnabled} onCheckedChange={setNotifyEnabled} />
           </div>
 
           {notifyEnabled && (
-            <div className="space-y-3 pl-1">
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg flex items-start gap-2">
-                <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                <div className="text-xs text-amber-700 dark:text-amber-400">
-                  <p><strong>WhatsApp:</strong> Utiliza a Evolution API já configurada no sistema.</p>
-                  <p><strong>Email:</strong> Utiliza as credenciais do Gmail já configuradas no sistema.</p>
-                </div>
-              </div>
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Horas antes da reunião</Label>
@@ -306,19 +347,147 @@ export function AgendaConfigPanel() {
               <div className="space-y-2">
                 <Label>Modelo da Mensagem</Label>
                 <Textarea
-                  placeholder="Use {client_name}, {date}, {time}, {meet_link} como variáveis"
+                  placeholder="Use {client_name}, {date}, {time}, {meet_link}, {title} como variáveis"
                   value={notifyTemplate}
                   onChange={(e) => setNotifyTemplate(e.target.value)}
                   rows={4}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Variáveis: {'{client_name}'}, {'{date}'}, {'{time}'}, {'{meet_link}'}
+                  Variáveis: {'{client_name}'}, {'{date}'}, {'{time}'}, {'{meet_link}'}, {'{title}'}
                 </p>
+              </div>
+
+              {/* Cron Config */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    <Label>Envio automático (Cron)</Label>
+                    <Badge variant="outline" className="text-[10px]">{notifyCronEnabled ? 'Ativo' : 'Inativo'}</Badge>
+                  </div>
+                  <Switch checked={notifyCronEnabled} onCheckedChange={setNotifyCronEnabled} />
+                </div>
+                {notifyCronEnabled && (
+                  <div className="mt-3 space-y-2">
+                    <Label>Intervalo de verificação</Label>
+                    <Select value={notifyCronInterval} onValueChange={setNotifyCronInterval}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">A cada 1 minuto</SelectItem>
+                        <SelectItem value="5">A cada 5 minutos</SelectItem>
+                        <SelectItem value="10">A cada 10 minutos</SelectItem>
+                        <SelectItem value="15">A cada 15 minutos</SelectItem>
+                        <SelectItem value="30">A cada 30 minutos</SelectItem>
+                        <SelectItem value="60">A cada 1 hora</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">O sistema verifica eventos próximos e envia a notificação. Cada evento recebe apenas uma notificação.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* WhatsApp Instances */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="h-4 w-4 text-emerald-500" />
+                  <Label className="text-base font-medium">WhatsApp (Evolution API)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">Configure uma ou mais instâncias de WhatsApp independentes para envio de notificações da agenda.</p>
+
+                {whatsappInstances.map((inst) => (
+                  <div key={inst.id} className="flex items-center gap-2 p-2.5 border rounded-lg mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{inst.instance_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{inst.api_url}</p>
+                      {inst.last_used_at && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Último uso: {format(new Date(inst.last_used_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      )}
+                    </div>
+                    <Switch
+                      checked={inst.is_active}
+                      onCheckedChange={(checked) => handleToggleInstance(inst.id, checked)}
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteInstance(inst.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <Input placeholder="URL da API" value={newInstanceUrl} onChange={(e) => setNewInstanceUrl(e.target.value)} className="text-xs" />
+                  <Input placeholder="API Key" value={newInstanceKey} onChange={(e) => setNewInstanceKey(e.target.value)} className="text-xs" />
+                  <div className="flex gap-1">
+                    <Input placeholder="Nome da instância" value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} className="text-xs" />
+                    <Button size="icon" variant="outline" className="shrink-0" onClick={handleAddInstance}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gmail Config */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mail className="h-4 w-4 text-blue-500" />
+                  <Label className="text-base font-medium">Email (Gmail)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">Configure as credenciais de email independentes para envio de notificações da agenda.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Endereço Gmail</Label>
+                    <Input placeholder="seuemail@gmail.com" value={notifyGmailUser} onChange={(e) => setNotifyGmailUser(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Senha de App</Label>
+                    <Input type="password" placeholder="Senha de aplicativo" value={notifyGmailPassword} onChange={(e) => setNotifyGmailPassword(e.target.value)} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Notification History */}
+      {notifyEnabled && notificationLogs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-lg">Histórico de Envios</CardTitle>
+            </div>
+            <CardDescription>Últimas notificações enviadas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {notificationLogs.map((log) => (
+                <div key={log.id} className="flex items-center gap-3 p-2.5 border rounded-lg text-xs">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${log.status === 'sent' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {log.channel === 'whatsapp' ? '📱 WhatsApp' : '📧 Email'}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {log.recipient_type === 'client' ? '👤 Cliente' : '📋 Consultor'}
+                      </Badge>
+                      <span className="text-muted-foreground">
+                        {log.recipient_name || log.recipient_contact}
+                      </span>
+                    </div>
+                    {log.error_message && <p className="text-destructive mt-1">{log.error_message}</p>}
+                  </div>
+                  <span className="text-muted-foreground shrink-0">
+                    {format(new Date(log.sent_at), "dd/MM HH:mm", { locale: ptBR })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateConfig.isPending}>
