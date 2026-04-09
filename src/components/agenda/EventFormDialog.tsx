@@ -105,6 +105,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
     const startDateTime = new Date(`${startDate}T${startTime}:00-03:00`).toISOString();
     const endDateTime = new Date(`${startDate}T${endTime}:00-03:00`).toISOString();
 
+    const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
+
     onSave({
       title: title.trim(),
       description: description.trim() || null,
@@ -117,6 +119,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       location: location.trim() || null,
       status,
       notes: notes.trim() || null,
+      consultant_phones: consultantPhonesArray.length > 0 ? consultantPhonesArray : [],
     });
   };
 
@@ -242,6 +245,16 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
               rows={2}
             />
             <p className="text-xs text-muted-foreground">Estas observações ficam visíveis na visualização do evento no calendário.</p>
+          </div>
+
+          <div className="border-t pt-4 space-y-2">
+            <Label>Consultores (WhatsApp)</Label>
+            <Input
+              placeholder="Ex: 5511999999999, 5511888888888"
+              value={consultantPhones}
+              onChange={(e) => setConsultantPhones(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Números dos consultores que receberão o link do Meet. Separe com vírgula.</p>
           </div>
         </div>
 
