@@ -45,6 +45,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('scheduled');
   const [notes, setNotes] = useState('');
+  const [consultantPhones, setConsultantPhones] = useState('');
 
   useEffect(() => {
     if (open && event) {

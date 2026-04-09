@@ -299,12 +299,13 @@ Deno.serve(async (req) => {
         if (checkRes.ok) {
           const gEvent = await checkRes.json();
           if (gEvent.status === "cancelled") {
-            await supabase.from("calendar_events").update({ status: "cancelled" }).eq("id", ev.id);
+            // Event cancelled on Google → delete locally
+            await supabase.from("calendar_events").delete().eq("id", ev.id);
             cancelled++;
           }
         } else if (checkRes.status === 404 || checkRes.status === 410) {
-          // Event was deleted from Google
-          await supabase.from("calendar_events").update({ status: "cancelled" }).eq("id", ev.id);
+          // Event was deleted from Google → delete locally
+          await supabase.from("calendar_events").delete().eq("id", ev.id);
           cancelled++;
         }
       } catch (e) {
