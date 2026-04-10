@@ -292,6 +292,7 @@ export function usePermissions() {
     canEditAgendaEvents,
     canDeleteAgendaEvents,
     canManageAgendaConfig,
+    canAccessAgendaMeetLinks,
     // Payment Links
     canViewPaymentLinks,
     canGeneratePaymentLinks,
