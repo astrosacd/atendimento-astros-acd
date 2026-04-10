@@ -6,6 +6,7 @@ import { Clock, User, Video, MapPin, StickyNote, CloudDownload, Mail, Phone } fr
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface EventViewDialogProps {
   open: boolean;
@@ -27,6 +28,9 @@ function getCleanNotes(notes: string | null): string {
 }
 
 export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogProps) {
+  const { hasPermission } = usePermissions();
+  const canAccessMeetLinks = hasPermission('access_agenda_meet_links');
+
   if (!event) return null;
 
   const cleanNotes = getCleanNotes(event.notes);
@@ -92,7 +96,7 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
               </div>
             )}
 
-            {event.meet_link && (
+            {event.meet_link && canAccessMeetLinks && (
               <a href={event.meet_link} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-primary hover:underline">
                 <Video className="h-4 w-4" /> Entrar no Meet
