@@ -123,7 +123,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
     });
   };
 
-  const isValid = title.trim() && startDate && startTime && endTime && !endTimeWarning;
+  const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,7 +141,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Título *</Label>
+            <Label>Título <span className="text-destructive">*</span></Label>
             <Input
               placeholder="Ex: Reunião com cliente"
               value={title}
@@ -149,7 +150,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           </div>
 
           <div className="space-y-2">
-            <Label>Descrição</Label>
+            <Label>Descrição <span className="text-destructive">*</span></Label>
             <Textarea
               placeholder="Detalhes do agendamento..."
               value={description}
@@ -188,16 +189,16 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           <div className="border-t pt-4 space-y-3">
             <p className="text-sm font-medium text-muted-foreground">Dados do Cliente</p>
             <div className="space-y-2">
-              <Label>Nome do Cliente</Label>
+              <Label>Nome do Cliente <span className="text-destructive">*</span></Label>
               <Input placeholder="Nome" value={clientName} onChange={(e) => setClientName(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>Email <span className="text-destructive">*</span></Label>
                 <Input type="email" placeholder="email@exemplo.com" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>WhatsApp</Label>
+                <Label>WhatsApp <span className="text-destructive">*</span></Label>
                 <Input placeholder="5511999999999" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
               </div>
             </div>
@@ -237,7 +238,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           )}
 
           <div className="space-y-2">
-            <Label>Observações internas</Label>
+            <Label>Observações internas <span className="text-destructive">*</span></Label>
             <Textarea
               placeholder="Motivo do agendamento, observações internas..."
               value={notes}
@@ -248,7 +249,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           </div>
 
           <div className="border-t pt-4 space-y-2">
-            <Label>Consultores (WhatsApp)</Label>
+            <Label>Consultores (WhatsApp) <span className="text-destructive">*</span></Label>
             <Input
               placeholder="Ex: 5511999999999, 5511888888888"
               value={consultantPhones}
