@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calendar, Settings, Plus, Loader2, RefreshCw, Check } from 'lucide-react';
+import { Calendar, Settings, Plus, Loader2, RefreshCw, Check, History } from 'lucide-react';
 import { useCalendarEvents, useCalendarConfig, useCreateCalendarEvent, useUpdateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from '@/hooks/useCalendar';
 import { AgendaCalendarView } from '@/components/agenda/AgendaCalendarView';
 import { AgendaConfigPanel } from '@/components/agenda/AgendaConfigPanel';
 import { EventFormDialog } from '@/components/agenda/EventFormDialog';
 import { EventViewDialog } from '@/components/agenda/EventViewDialog';
 import { ReasonDialog } from '@/components/agenda/ReasonDialog';
+import { AgendaHistoryTab } from '@/components/agenda/AgendaHistoryTab';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,6 +140,7 @@ export default function Agenda() {
   const handleSave = async (data: any) => {
     if (editingEvent) {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
+      await recordHistory(editingEvent.id, data.title || editingEvent.title, 'edited', '');
       if (googleEnabled && (editingEvent as any).google_event_id) {
         try {
           await supabase.functions.invoke('calendar-sync-google', {
@@ -150,8 +152,11 @@ export default function Agenda() {
       }
     } else {
       const result = await createEvent.mutateAsync(data);
-      if (googleEnabled && result?.id) {
-        createMeetLink(data, result.id);
+      if (result?.id) {
+        await recordHistory(result.id, data.title, 'created', '');
+        if (googleEnabled) {
+          createMeetLink(data, result.id);
+        }
       }
     }
     setFormOpen(false);
@@ -261,6 +266,10 @@ export default function Agenda() {
                 Configurações
               </TabsTrigger>
             )}
+            <TabsTrigger value="historico" className="gap-2 data-[state=active]:bg-background">
+              <History className="h-4 w-4" />
+              Histórico
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendario" className="mt-0">
@@ -287,6 +296,10 @@ export default function Agenda() {
               <AgendaConfigPanel />
             </TabsContent>
           )}
+
+          <TabsContent value="historico" className="mt-0">
+            <AgendaHistoryTab />
+          </TabsContent>
         </Tabs>
 
         <EventFormDialog
