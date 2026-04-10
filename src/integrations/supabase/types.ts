@@ -472,6 +472,47 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_event_history: {
+        Row: {
+          action: string
+          created_at: string
+          event_id: string | null
+          event_title: string | null
+          id: string
+          reason: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          event_id?: string | null
+          event_title?: string | null
+          id?: string
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          event_id?: string | null
+          event_title?: string | null
+          id?: string
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_event_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           client_email: string | null
