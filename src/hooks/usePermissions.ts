@@ -170,6 +170,7 @@ export function usePermissions() {
   const canEditAgendaEvents = () => hasPermission('edit_agenda_events');
   const canDeleteAgendaEvents = () => hasPermission('delete_agenda_events');
   const canManageAgendaConfig = () => hasPermission('manage_agenda_config');
+  const canAccessAgendaMeetLinks = () => hasPermission('access_agenda_meet_links');
 
   // Payment Links permissions
   const canViewPaymentLinks = () => hasPermission('view_payment_links');
