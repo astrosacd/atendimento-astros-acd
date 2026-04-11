@@ -587,6 +587,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                           )}
                         </div>
                       )}
+                    </CardContent>
                   </Card>
                 ))}
               </div>
