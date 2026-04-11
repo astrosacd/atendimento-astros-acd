@@ -638,6 +638,19 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {finalizeGroup && (
+        <FinalizeGroupDialog
+          open={!!finalizeGroup}
+          onOpenChange={(v) => { if (!v) setFinalizeGroup(null); }}
+          group={finalizeGroup}
+          clienteName={clienteName}
+          onFinalized={() => {
+            setFinalizeGroup(null);
+            refetchHistory();
+          }}
+        />
+      )}
     </Dialog>
   );
 }
