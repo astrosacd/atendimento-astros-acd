@@ -42,6 +42,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   const [isCreating, setIsCreating] = useState(false);
   const [newDefaultName, setNewDefaultName] = useState('');
   const [newDefaultPhone, setNewDefaultPhone] = useState('');
+  const [finalizeGroup, setFinalizeGroup] = useState<any>(null);
 
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
