@@ -570,7 +570,23 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                       {group.error_message && (
                         <p className="text-xs text-destructive">Erro: {group.error_message}</p>
                       )}
-                    </CardContent>
+                      {group.status === 'finalized' && (
+                        <div className="text-xs space-y-1 pt-1 border-t border-border bg-muted/50 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+                          <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground">Finalizado por:</span> {group.finalized_by_name || group.finalized_by_email}
+                          </p>
+                          {group.finalized_at && (
+                            <p className="text-muted-foreground">
+                              <span className="font-medium text-foreground">Em:</span> {format(new Date(group.finalized_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          )}
+                          {group.finalization_reason && (
+                            <p className="text-muted-foreground">
+                              <span className="font-medium text-foreground">Motivo:</span> {group.finalization_reason}
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </Card>
                 ))}
               </div>
