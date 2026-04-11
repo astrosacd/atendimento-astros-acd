@@ -1749,6 +1749,12 @@ export type Database = {
           created_by_email: string | null
           created_by_name: string | null
           error_message: string | null
+          finalization_message: string | null
+          finalization_reason: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          finalized_by_email: string | null
+          finalized_by_name: string | null
           group_description: string | null
           group_jid: string | null
           group_name: string
@@ -1765,6 +1771,12 @@ export type Database = {
           created_by_email?: string | null
           created_by_name?: string | null
           error_message?: string | null
+          finalization_message?: string | null
+          finalization_reason?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          finalized_by_email?: string | null
+          finalized_by_name?: string | null
           group_description?: string | null
           group_jid?: string | null
           group_name: string
@@ -1781,6 +1793,12 @@ export type Database = {
           created_by_email?: string | null
           created_by_name?: string | null
           error_message?: string | null
+          finalization_message?: string | null
+          finalization_reason?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          finalized_by_email?: string | null
+          finalized_by_name?: string | null
           group_description?: string | null
           group_jid?: string | null
           group_name?: string
@@ -5516,6 +5534,30 @@ export type Database = {
           secret_key?: string | null
           updated_at?: string
           url?: string
+        }
+        Relationships: []
+      }
+      whatsapp_group_config: {
+        Row: {
+          config_key: string
+          config_value: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
