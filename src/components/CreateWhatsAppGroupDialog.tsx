@@ -39,6 +39,7 @@ interface ParticipantInfo {
 
 export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumero, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
+  const { canFinalizeWhatsAppGroups } = usePermissions();
   const [activeTab, setActiveTab] = useState('criar');
   const [isCreating, setIsCreating] = useState(false);
   const [newDefaultName, setNewDefaultName] = useState('');
@@ -529,7 +530,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{group.group_name}</span>
                         <div className="flex items-center gap-2">
-                          {group.status === 'created' && group.group_jid && (
+                          {group.status === 'created' && group.group_jid && canFinalizeWhatsAppGroups() && (
                             <Button
                               size="sm"
                               variant="destructive"
