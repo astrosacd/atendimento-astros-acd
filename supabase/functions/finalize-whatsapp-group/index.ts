@@ -54,7 +54,7 @@ serve(async (req) => {
     const delay = Math.max(1, Math.min(30, delaySeconds || 3)) * 1000;
 
     // Step 1: Get current group participants from Evolution API
-    let currentParticipants: string[] = [];
+    let participantsForRemoval: string[] = [];
     try {
       const groupInfoRes = await fetch(
         `${instanceApiUrl}/group/participants/${instanceName}?groupJid=${encodeURIComponent(group.group_jid)}`,
@@ -66,30 +66,45 @@ serve(async (req) => {
       const groupInfo = await groupInfoRes.json();
       console.log('Group participants response:', JSON.stringify(groupInfo));
       
-      // Extract participant JIDs (exclude the bot's own number)
-      if (Array.isArray(groupInfo)) {
-        currentParticipants = groupInfo.map((p: any) => p.id || p.jid || p).filter((p: string) => typeof p === 'string');
-      } else if (groupInfo?.participants) {
-        currentParticipants = groupInfo.participants.map((p: any) => p.id || p.jid || p).filter((p: string) => typeof p === 'string');
+      // Extract participant phone numbers in @s.whatsapp.net format for removal
+      // The API returns participants with @lid IDs but also phoneNumber field
+      const participants = Array.isArray(groupInfo) ? groupInfo : (groupInfo?.participants || []);
+      
+      for (const p of participants) {
+        // Prefer phoneNumber field (format: 55xxxx@s.whatsapp.net)
+        if (p.phoneNumber && typeof p.phoneNumber === 'string') {
+          participantsForRemoval.push(p.phoneNumber);
+        } else if (p.id && typeof p.id === 'string' && p.id.includes('@s.whatsapp.net')) {
+          participantsForRemoval.push(p.id);
+        }
       }
+      
+      // Filter out the bot/admin (superadmin) to avoid removing itself
+      const adminParticipants = participants
+        .filter((p: any) => p.admin === 'superadmin')
+        .map((p: any) => p.phoneNumber || p.id);
+      
+      participantsForRemoval = participantsForRemoval.filter(
+        p => !adminParticipants.includes(p)
+      );
+      
     } catch (e) {
       console.error('Error fetching group participants:', e);
       // Fallback to stored participants
-      currentParticipants = (group.participants || []).map((p: string) => {
+      participantsForRemoval = (group.participants || []).map((p: string) => {
         const clean = p.replace(/\D/g, '');
-        return clean.includes('@') ? clean : `${clean}@s.whatsapp.net`;
+        return `${clean}@s.whatsapp.net`;
       });
     }
 
-    console.log('Participants to mention:', currentParticipants);
+    console.log('Participants to remove:', participantsForRemoval);
 
-    // Step 2: Send farewell message mentioning all participants
+    // Step 2: Send farewell message mentioning all participants (same pattern as divulgador)
     const mentionPayload = {
       number: group.group_jid,
       text: message,
-      mentions: {
-        everyOne: true,
-      },
+      mentionsEveryOne: true,
+      mentioned: [group.group_jid],
     };
 
     console.log('Sending farewell message:', JSON.stringify(mentionPayload));
@@ -116,7 +131,7 @@ serve(async (req) => {
     // Step 3: Wait initial delay then remove participants one by one
     const removeResults: { participant: string; success: boolean; error?: string }[] = [];
 
-    for (const participant of currentParticipants) {
+    for (const participant of participantsForRemoval) {
       // Wait the configured delay between each removal
       await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -139,7 +154,31 @@ serve(async (req) => {
 
         const removeData = await removeRes.json();
         console.log(`Remove ${participant}:`, JSON.stringify(removeData));
-        removeResults.push({ participant, success: removeRes.ok });
+        
+        // If PUT fails, try POST as fallback
+        if (!removeRes.ok) {
+          console.log(`PUT failed for ${participant}, trying POST...`);
+          const removeRes2 = await fetch(
+            `${instanceApiUrl}/group/updateParticipant/${instanceName}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': instanceApiKey,
+              },
+              body: JSON.stringify({
+                groupJid: group.group_jid,
+                action: 'remove',
+                participants: [participant],
+              }),
+            }
+          );
+          const removeData2 = await removeRes2.json();
+          console.log(`POST Remove ${participant}:`, JSON.stringify(removeData2));
+          removeResults.push({ participant, success: removeRes2.ok });
+        } else {
+          removeResults.push({ participant, success: true });
+        }
       } catch (e: any) {
         console.error(`Error removing ${participant}:`, e);
         removeResults.push({ participant, success: false, error: e.message });
