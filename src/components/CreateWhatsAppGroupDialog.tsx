@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FinalizeGroupDialog } from '@/components/FinalizeGroupDialog';
 import { supabase } from '@/integrations/supabase/client';
 
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   const [isCreating, setIsCreating] = useState(false);
   const [newDefaultName, setNewDefaultName] = useState('');
   const [newDefaultPhone, setNewDefaultPhone] = useState('');
+  const [finalizeGroup, setFinalizeGroup] = useState<any>(null);
 
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
@@ -525,9 +527,24 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{group.group_name}</span>
-                        <Badge variant={group.status === 'created' ? 'default' : 'destructive'} className="text-xs">
-                          {group.status === 'created' ? 'Criado' : 'Erro'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {group.status === 'created' && group.group_jid && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-6 text-xs px-2"
+                              onClick={() => setFinalizeGroup(group)}
+                            >
+                              Finalizar Projeto
+                            </Button>
+                          )}
+                          <Badge
+                            variant={group.status === 'created' ? 'default' : group.status === 'finalized' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {group.status === 'created' ? 'Criado' : group.status === 'finalized' ? 'Finalizado' : 'Erro'}
+                          </Badge>
+                        </div>
                       </div>
                       {group.group_description && (
                         <p className="text-xs text-muted-foreground">{group.group_description}</p>
@@ -552,6 +569,23 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                       </div>
                       {group.error_message && (
                         <p className="text-xs text-destructive">Erro: {group.error_message}</p>
+                      )}
+                      {group.status === 'finalized' && (
+                        <div className="text-xs space-y-1 pt-1 border-t border-border bg-muted/50 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+                          <p className="text-muted-foreground">
+                            <span className="font-medium text-foreground">Finalizado por:</span> {group.finalized_by_name || group.finalized_by_email}
+                          </p>
+                          {group.finalized_at && (
+                            <p className="text-muted-foreground">
+                              <span className="font-medium text-foreground">Em:</span> {format(new Date(group.finalized_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          )}
+                          {group.finalization_reason && (
+                            <p className="text-muted-foreground">
+                              <span className="font-medium text-foreground">Motivo:</span> {group.finalization_reason}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -604,6 +638,19 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {finalizeGroup && (
+        <FinalizeGroupDialog
+          open={!!finalizeGroup}
+          onOpenChange={(v) => { if (!v) setFinalizeGroup(null); }}
+          group={finalizeGroup}
+          clienteName={clienteName}
+          onFinalized={() => {
+            setFinalizeGroup(null);
+            refetchHistory();
+          }}
+        />
+      )}
     </Dialog>
   );
 }
