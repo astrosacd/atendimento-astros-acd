@@ -123,6 +123,7 @@ export function usePermissions() {
 
   // WhatsApp Groups
   const canCreateWhatsAppGroups = () => hasPermission('create_whatsapp_groups');
+  const canFinalizeWhatsAppGroups = () => hasPermission('finalize_whatsapp_groups');
 
   // Reports permission
   const canViewReports = () => hasPermission('view_reports');
@@ -286,6 +287,7 @@ export function usePermissions() {
     canManageSocialCredentials,
     // WhatsApp Groups
     canCreateWhatsAppGroups,
+    canFinalizeWhatsAppGroups,
     // Agenda
     canViewAgenda,
     canCreateAgendaEvents,

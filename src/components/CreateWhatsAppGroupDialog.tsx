@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FinalizeGroupDialog } from '@/components/FinalizeGroupDialog';
 import { supabase } from '@/integrations/supabase/client';
+import { usePermissions } from '@/hooks/usePermissions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
