@@ -527,9 +527,24 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{group.group_name}</span>
-                        <Badge variant={group.status === 'created' ? 'default' : 'destructive'} className="text-xs">
-                          {group.status === 'created' ? 'Criado' : 'Erro'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {group.status === 'created' && group.group_jid && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-6 text-xs px-2"
+                              onClick={() => setFinalizeGroup(group)}
+                            >
+                              Finalizar Projeto
+                            </Button>
+                          )}
+                          <Badge
+                            variant={group.status === 'created' ? 'default' : group.status === 'finalized' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {group.status === 'created' ? 'Criado' : group.status === 'finalized' ? 'Finalizado' : 'Erro'}
+                          </Badge>
+                        </div>
                       </div>
                       {group.group_description && (
                         <p className="text-xs text-muted-foreground">{group.group_description}</p>
