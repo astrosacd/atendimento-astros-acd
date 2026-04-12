@@ -5296,6 +5296,105 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_analysis_config: {
+        Row: {
+          ai_model: string | null
+          ai_provider: string | null
+          created_at: string
+          custom_prompt: string | null
+          email_recipients: string[] | null
+          frequency: string | null
+          grok_api_key: string | null
+          id: string
+          is_active: boolean | null
+          last_analysis_at: string | null
+          notify_email: boolean | null
+          notify_whatsapp: boolean | null
+          openai_api_key: string | null
+          schedule_hour: number | null
+          schedule_minute: number | null
+          updated_at: string
+          whatsapp_recipients: string[] | null
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_provider?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          email_recipients?: string[] | null
+          frequency?: string | null
+          grok_api_key?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_analysis_at?: string | null
+          notify_email?: boolean | null
+          notify_whatsapp?: boolean | null
+          openai_api_key?: string | null
+          schedule_hour?: number | null
+          schedule_minute?: number | null
+          updated_at?: string
+          whatsapp_recipients?: string[] | null
+        }
+        Update: {
+          ai_model?: string | null
+          ai_provider?: string | null
+          created_at?: string
+          custom_prompt?: string | null
+          email_recipients?: string[] | null
+          frequency?: string | null
+          grok_api_key?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_analysis_at?: string | null
+          notify_email?: boolean | null
+          notify_whatsapp?: boolean | null
+          openai_api_key?: string | null
+          schedule_hour?: number | null
+          schedule_minute?: number | null
+          updated_at?: string
+          whatsapp_recipients?: string[] | null
+        }
+        Relationships: []
+      }
+      reports_analysis_history: {
+        Row: {
+          ai_model: string | null
+          ai_provider: string
+          analysis_text: string
+          created_at: string
+          created_by: string | null
+          id: string
+          metrics_snapshot: Json | null
+          notification_channels: string[] | null
+          notification_sent: boolean | null
+          prompt_used: string | null
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_provider: string
+          analysis_text: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          notification_channels?: string[] | null
+          notification_sent?: boolean | null
+          prompt_used?: string | null
+        }
+        Update: {
+          ai_model?: string | null
+          ai_provider?: string
+          analysis_text?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          notification_channels?: string[] | null
+          notification_sent?: boolean | null
+          prompt_used?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string | null

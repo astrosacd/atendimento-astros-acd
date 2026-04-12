@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,7 +68,7 @@ serve(async (req) => {
       .eq("is_active", true);
 
     const hasWhatsApp = whatsappInstances && whatsappInstances.length > 0;
-    const hasEmail = notifyGmailUser && notifyGmailPass;
+    const hasEmail = !!(notifyGmailUser && notifyGmailPass);
 
     let sent = 0;
     let errors = 0;
@@ -84,7 +85,7 @@ serve(async (req) => {
         hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" 
       });
 
-      // Replace template variables - {meet_link} is replaced directly with the URL
+      // Replace template variables
       const message = template
         .replace(/{client_name}/g, event.client_name || "Cliente")
         .replace(/{date}/g, dateStr)
@@ -110,7 +111,6 @@ serve(async (req) => {
                 console.log(`[calendar-notify] WhatsApp sent via ${instance.instance_name} for event ${event.id}`);
                 sent++;
 
-                // Log the notification
                 await supabase.from("calendar_notification_logs").insert({
                   event_id: event.id,
                   channel: "whatsapp",
@@ -122,12 +122,11 @@ serve(async (req) => {
                   whatsapp_instance_id: instance.id,
                 });
 
-                // Update instance last_used_at
                 await supabase.from("calendar_notification_whatsapp_instances")
                   .update({ last_used_at: new Date().toISOString() })
                   .eq("id", instance.id);
 
-                break; // Success - no need to try other instances
+                break;
               } else {
                 const errorText = await res.text();
                 console.error(`[calendar-notify] WhatsApp error via ${instance.instance_name}:`, errorText);
@@ -176,22 +175,84 @@ serve(async (req) => {
           }
         }
 
-        // Send Email to client
+        // Send Email to client using SMTP
         if ((channel === "email" || channel === "both") && event.client_email && hasEmail) {
-          const emailBody = message.replace(/\n/g, "<br>");
           const subject = `Lembrete: ${event.title} - ${dateStr} às ${timeStr}`;
-          
-          // Simple SMTP via Gmail not available in Deno directly, log intent
-          console.log(`[calendar-notify] Email notification for event ${event.id} - to ${event.client_email}`);
-          await supabase.from("calendar_notification_logs").insert({
-            event_id: event.id,
-            channel: "email",
-            recipient_type: "client",
-            recipient_name: event.client_name,
-            recipient_contact: event.client_email,
-            message_sent: subject,
-            status: "sent",
-          });
+          const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0;">📅 Lembrete de Reunião</h1>
+  </div>
+  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb;">
+    <p style="font-size: 16px; color: #374151;">Olá, <strong>${event.client_name || "Cliente"}</strong>!</p>
+    <p style="font-size: 14px; color: #6b7280;">Passando para lembrar da nossa reunião:</p>
+    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 5px 0; font-size: 14px;"><strong>📌 Título:</strong> ${event.title}</p>
+      <p style="margin: 5px 0; font-size: 14px;"><strong>🗓️ Data:</strong> ${dateStr} às ${timeStr}</p>
+      ${event.meet_link ? `<p style="margin: 5px 0; font-size: 14px;"><strong>🔗 Link:</strong> <a href="${event.meet_link}" style="color: #667eea;">${event.meet_link}</a></p>` : ""}
+      ${event.description ? `<p style="margin: 5px 0; font-size: 14px;"><strong>📝 Descrição:</strong> ${event.description}</p>` : ""}
+    </div>
+    ${event.meet_link ? `<div style="text-align: center; margin: 20px 0;">
+      <a href="${event.meet_link}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Entrar na Reunião</a>
+    </div>` : ""}
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+    <p style="font-size: 11px; color: #9ca3af; text-align: center;">Sistema de Gerenciamento - Astros</p>
+  </div>
+</body>
+</html>`.trim();
+
+          try {
+            const smtpClient = new SMTPClient({
+              connection: {
+                hostname: "smtp.gmail.com",
+                port: 465,
+                tls: true,
+                auth: {
+                  username: notifyGmailUser,
+                  password: notifyGmailPass,
+                },
+              },
+            });
+
+            await smtpClient.send({
+              from: notifyGmailUser,
+              to: event.client_email,
+              subject: subject,
+              content: message,
+              html: emailHtml,
+            });
+
+            await smtpClient.close();
+
+            console.log(`[calendar-notify] Email sent to ${event.client_email} for event ${event.id}`);
+            sent++;
+
+            await supabase.from("calendar_notification_logs").insert({
+              event_id: event.id,
+              channel: "email",
+              recipient_type: "client",
+              recipient_name: event.client_name,
+              recipient_contact: event.client_email,
+              message_sent: subject,
+              status: "sent",
+            });
+          } catch (emailErr: any) {
+            console.error(`[calendar-notify] Email error for event ${event.id}:`, emailErr.message);
+            errors++;
+            await supabase.from("calendar_notification_logs").insert({
+              event_id: event.id,
+              channel: "email",
+              recipient_type: "client",
+              recipient_name: event.client_name,
+              recipient_contact: event.client_email,
+              message_sent: subject,
+              status: "error",
+              error_message: emailErr.message,
+            });
+          }
         }
 
         // Mark as notified with timestamp
