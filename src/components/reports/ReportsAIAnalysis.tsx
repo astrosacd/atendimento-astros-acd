@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
