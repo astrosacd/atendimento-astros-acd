@@ -127,6 +127,19 @@ export function usePermissions() {
 
   // Reports permission
   const canViewReports = () => hasPermission('view_reports');
+  const canViewReportsAI = () => hasPermission('view_reports_ai');
+  const canManageReportsSchedule = () => hasPermission('manage_reports_schedule');
+
+  // Client detail permissions
+  const canViewClientTimeline = () => hasPermission('view_client_timeline');
+  const canManageClientLogos = () => hasPermission('manage_client_logos');
+  const canManageClientLicenses = () => hasPermission('manage_client_licenses');
+  const canViewClientFiles = () => hasPermission('view_client_files');
+  const canViewClientPurchases = () => hasPermission('view_client_purchases');
+  const canViewClientPayments = () => hasPermission('view_client_payments');
+
+  // Agenda history
+  const canViewAgendaHistory = () => hasPermission('view_agenda_history');
 
   // Despesas permissions
   const canViewDespesas = () => hasPermission('view_despesas');
