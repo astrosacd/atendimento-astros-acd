@@ -566,12 +566,16 @@ export default function AdminRelatorios() {
         </div>
 
         <Tabs defaultValue="conversao" className="space-y-4">
-          <TabsList className="bg-muted/50">
+          <TabsList className="bg-muted/50 flex-wrap">
             <TabsTrigger value="conversao">Conversão</TabsTrigger>
             <TabsTrigger value="churn">Churn</TabsTrigger>
             <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
             <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
             <TabsTrigger value="vendas-unicas">Vendas Únicas</TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-1">
+              <Bot className="h-3.5 w-3.5" />
+              Análise IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Conversão */}
