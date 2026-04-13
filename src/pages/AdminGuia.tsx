@@ -3626,6 +3626,44 @@ Isso evita confusão ao somar moedas diferentes.
       ]
     },
     {
+      id: "relatorios-ia",
+      title: "Análise com IA",
+      icon: Bot,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Use IA para interpretar métricas e receber recomendações estratégicas",
+      steps: [
+        {
+          title: "O que é a Análise com IA?",
+          content: `A **Análise com IA** interpreta automaticamente suas métricas de negócio (Churn, MRR, LTV) e gera recomendações práticas:
+
+- **Clientes em risco**: Identifica clientes com renovação próxima ou atrasada
+- **Recomendações**: Ações específicas para reduzir churn e aumentar receita
+- **Múltiplos provedores**: Lovable AI (padrão), OpenAI e Grok (xAI)
+- **Prompt visível**: Veja exatamente o prompt usado na análise
+
+**Acessar:** Relatórios → aba **Análise IA**`
+        },
+        {
+          title: "Agendamento Automático",
+          content: `Configure análises automáticas com notificações:
+
+- **Frequência**: Diária (08:00) ou Semanal (Segunda 08:00)
+- **WhatsApp**: Adicione números para receber o relatório
+- **E-mail**: Configure destinatários para receber por e-mail
+- **Histórico**: Todas as análises ficam salvas no histórico
+
+**Configurar:** Relatórios → Análise IA → aba **Agendamento**`
+        }
+      ],
+      tips: [
+        "Use Lovable AI como padrão — não precisa de API key",
+        "Compare análises de diferentes provedores para insights variados",
+        "Configure o agendamento diário para acompanhar a saúde do negócio",
+        "Clique no ícone de olho para ver o prompt utilizado"
+      ]
+    },
+    {
       id: "propostas-visao-geral",
       title: "Sistema de Propostas",
       icon: FileSignature,
