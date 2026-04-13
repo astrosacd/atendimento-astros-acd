@@ -132,6 +132,7 @@ const categoryToPermission: Record<string, string> = {
   'chamados-config': 'view_guia_chamados',
   'relatorios-visao-geral': 'view_guia_relatorios',
   'relatorios-metricas': 'view_guia_relatorios',
+  'relatorios-ia': 'view_guia_relatorios',
   'tarefas': 'view_guia_tarefas',
   'propostas-visao-geral': 'view_guia_propostas',
   'propostas-editor': 'view_guia_propostas',
@@ -349,7 +350,7 @@ const AdminGuia = () => {
       title: "Relatórios",
       icon: BarChart3,
       color: "text-cyan-400",
-      categories: ["relatorios-visao-geral", "relatorios-metricas"],
+      categories: ["relatorios-visao-geral", "relatorios-metricas", "relatorios-ia"],
       permissionKey: "view_guia_relatorios"
     },
     {
@@ -3623,6 +3624,44 @@ Isso evita confusão ao somar moedas diferentes.
         "LTV deve ser pelo menos 3x o custo de aquisição",
         "Acompanhe o MRR semanalmente para detectar tendências",
         "Compare com meses anteriores para ver evolução"
+      ]
+    },
+    {
+      id: "relatorios-ia",
+      title: "Análise com IA",
+      icon: Bot,
+      color: "text-cyan-400",
+      bgColor: "bg-cyan-500/10",
+      description: "Use IA para interpretar métricas e receber recomendações estratégicas",
+      steps: [
+        {
+          title: "O que é a Análise com IA?",
+          content: `A **Análise com IA** interpreta automaticamente suas métricas de negócio (Churn, MRR, LTV) e gera recomendações práticas:
+
+- **Clientes em risco**: Identifica clientes com renovação próxima ou atrasada
+- **Recomendações**: Ações específicas para reduzir churn e aumentar receita
+- **Múltiplos provedores**: Lovable AI (padrão), OpenAI e Grok (xAI)
+- **Prompt visível**: Veja exatamente o prompt usado na análise
+
+**Acessar:** Relatórios → aba **Análise IA**`
+        },
+        {
+          title: "Agendamento Automático",
+          content: `Configure análises automáticas com notificações:
+
+- **Frequência**: Diária (08:00) ou Semanal (Segunda 08:00)
+- **WhatsApp**: Adicione números para receber o relatório
+- **E-mail**: Configure destinatários para receber por e-mail
+- **Histórico**: Todas as análises ficam salvas no histórico
+
+**Configurar:** Relatórios → Análise IA → aba **Agendamento**`
+        }
+      ],
+      tips: [
+        "Use Lovable AI como padrão — não precisa de API key",
+        "Compare análises de diferentes provedores para insights variados",
+        "Configure o agendamento diário para acompanhar a saúde do negócio",
+        "Clique no ícone de olho para ver o prompt utilizado"
       ]
     },
     {

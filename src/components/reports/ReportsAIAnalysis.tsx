@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check, Clock, Mail, MessageSquare, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -51,7 +52,6 @@ const LOVABLE_MODELS = [
 const OPENAI_MODELS = [
   { value: 'gpt-4o', label: 'GPT-4o' },
   { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
 ];
 
 const GROK_MODELS = [
@@ -60,6 +60,7 @@ const GROK_MODELS = [
 ];
 
 export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
+  const queryClient = useQueryClient();
   const [provider, setProvider] = useState('lovable');
   const [model, setModel] = useState('google/gemini-3-flash-preview');
   const [openaiKey, setOpenaiKey] = useState('');
@@ -71,6 +72,17 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Schedule config state
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleFrequency, setScheduleFrequency] = useState('daily');
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>([]);
+  const [emailAddresses, setEmailAddresses] = useState<string[]>([]);
+  const [newWhatsapp, setNewWhatsapp] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [configId, setConfigId] = useState<string | null>(null);
+
   const { data: history = [], refetch: refetchHistory } = useQuery({
     queryKey: ['reports-ai-history'],
     queryFn: async () => {
@@ -81,6 +93,76 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         .limit(10);
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Load schedule config
+  const { data: scheduleConfig } = useQuery({
+    queryKey: ['reports-schedule-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reports_analysis_config')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (scheduleConfig) {
+      setConfigId(scheduleConfig.id);
+      setScheduleEnabled(scheduleConfig.is_active || false);
+      setScheduleFrequency(scheduleConfig.frequency || 'daily');
+      setNotifyWhatsapp(scheduleConfig.notify_whatsapp || false);
+      setNotifyEmail(scheduleConfig.notify_email || false);
+      setWhatsappNumbers(scheduleConfig.whatsapp_recipients || []);
+      setEmailAddresses(scheduleConfig.email_recipients || []);
+      if (scheduleConfig.ai_provider) setProvider(scheduleConfig.ai_provider);
+      if (scheduleConfig.ai_model) setModel(scheduleConfig.ai_model);
+      if (scheduleConfig.openai_api_key) setOpenaiKey(scheduleConfig.openai_api_key);
+      if (scheduleConfig.grok_api_key) setGrokKey(scheduleConfig.grok_api_key);
+    }
+  }, [scheduleConfig]);
+
+  const saveScheduleConfig = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        is_active: scheduleEnabled,
+        frequency: scheduleFrequency,
+        ai_provider: provider,
+        ai_model: model,
+        openai_api_key: openaiKey || null,
+        grok_api_key: grokKey || null,
+        notify_whatsapp: notifyWhatsapp,
+        notify_email: notifyEmail,
+        whatsapp_recipients: whatsappNumbers,
+        email_recipients: emailAddresses,
+      };
+
+      if (configId) {
+        const { error } = await supabase
+          .from('reports_analysis_config')
+          .update(payload)
+          .eq('id', configId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('reports_analysis_config')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setConfigId(data.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports-schedule-config'] });
+      toast.success('Configurações de agendamento salvas!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar: ' + err.message);
     },
   });
 
@@ -127,6 +209,20 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const addWhatsappNumber = () => {
+    if (newWhatsapp.trim() && !whatsappNumbers.includes(newWhatsapp.trim())) {
+      setWhatsappNumbers([...whatsappNumbers, newWhatsapp.trim()]);
+      setNewWhatsapp('');
+    }
+  };
+
+  const addEmailAddress = () => {
+    if (newEmail.trim() && !emailAddresses.includes(newEmail.trim())) {
+      setEmailAddresses([...emailAddresses, newEmail.trim()]);
+      setNewEmail('');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="analysis" className="space-y-4">
@@ -135,6 +231,10 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
             <Sparkles className="h-4 w-4" />
             Análise IA
           </TabsTrigger>
+          <TabsTrigger value="schedule" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Agendamento
+          </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Histórico
@@ -142,7 +242,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         </TabsList>
 
         <TabsContent value="analysis" className="space-y-4">
-          {/* Config Section */}
           <Card className="bg-card/50 backdrop-blur-sm border-border/50">
             <Collapsible open={showConfig} onOpenChange={setShowConfig}>
               <CollapsibleTrigger asChild>
@@ -166,28 +265,21 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                         const models = v === 'lovable' ? LOVABLE_MODELS : v === 'openai' ? OPENAI_MODELS : GROK_MODELS;
                         setModel(models[0].value);
                       }}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {AI_PROVIDERS.map(p => (
                             <SelectItem key={p.value} value={p.value}>
-                              <div>
-                                <span>{p.label}</span>
-                                <span className="text-xs text-muted-foreground ml-2">— {p.description}</span>
-                              </div>
+                              <span>{p.label}</span>
+                              <span className="text-xs text-muted-foreground ml-2">— {p.description}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Modelo</Label>
                       <Select value={model} onValueChange={setModel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {getModelsForProvider().map(m => (
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -196,28 +288,16 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                       </Select>
                     </div>
                   </div>
-
                   {provider === 'openai' && (
                     <div className="space-y-2">
                       <Label>API Key da OpenAI</Label>
-                      <Input
-                        type="password"
-                        placeholder="sk-..."
-                        value={openaiKey}
-                        onChange={e => setOpenaiKey(e.target.value)}
-                      />
+                      <Input type="password" placeholder="sk-..." value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
                     </div>
                   )}
-
                   {provider === 'grok' && (
                     <div className="space-y-2">
                       <Label>API Key do Grok (xAI)</Label>
-                      <Input
-                        type="password"
-                        placeholder="xai-..."
-                        value={grokKey}
-                        onChange={e => setGrokKey(e.target.value)}
-                      />
+                      <Input type="password" placeholder="xai-..." value={grokKey} onChange={e => setGrokKey(e.target.value)} />
                     </div>
                   )}
                 </CardContent>
@@ -225,7 +305,20 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
             </Collapsible>
           </Card>
 
-          {/* Action Button */}
+          {metricsData.clientesAtRisk && metricsData.clientesAtRisk.length > 0 && (
+            <Card className="bg-destructive/5 border-destructive/30">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="destructive" className="text-xs">⚠️ Atenção</Badge>
+                  <span className="text-sm font-medium">{metricsData.clientesAtRisk.length} cliente(s) em risco de churn</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Clientes com renovação nos próximos 15 dias ou até 30 dias atrasada. A IA incluirá esses dados na análise.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex items-center gap-4">
             <Button
               onClick={handleAnalyze}
@@ -234,24 +327,16 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
               size="lg"
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Analisando...
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin" />Analisando...</>
               ) : (
-                <>
-                  <Bot className="h-4 w-4" />
-                  Gerar Análise com IA
-                </>
+                <><Bot className="h-4 w-4" />Gerar Análise com IA</>
               )}
             </Button>
-
             <Badge variant="outline" className="text-xs">
               {AI_PROVIDERS.find(p => p.value === provider)?.label} • {getModelsForProvider().find(m => m.value === model)?.label}
             </Badge>
           </div>
 
-          {/* Analysis Result */}
           {analysis && (
             <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
               <CardHeader>
@@ -274,20 +359,112 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{analysis}</ReactMarkdown>
                 </div>
-
                 {showPrompt && promptUsed && (
-                  <Collapsible open={showPrompt}>
-                    <CollapsibleContent>
-                      <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Prompt utilizado:</p>
-                        <pre className="text-xs whitespace-pre-wrap text-muted-foreground">{promptUsed}</pre>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Prompt utilizado:</p>
+                    <pre className="text-xs whitespace-pre-wrap text-muted-foreground">{promptUsed}</pre>
+                  </div>
                 )}
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="space-y-4">
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Análise Agendada
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Ativar agendamento automático</Label>
+                  <p className="text-xs text-muted-foreground">A IA gerará análises automaticamente</p>
+                </div>
+                <Switch checked={scheduleEnabled} onCheckedChange={setScheduleEnabled} />
+              </div>
+
+              {scheduleEnabled && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Frequência</Label>
+                    <Select value={scheduleFrequency} onValueChange={setScheduleFrequency}>
+                      <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Diário (08:00)</SelectItem>
+                        <SelectItem value="weekly">Semanal (Segunda 08:00)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Notificações por WhatsApp
+                    </h4>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enviar por WhatsApp</Label>
+                      <Switch checked={notifyWhatsapp} onCheckedChange={setNotifyWhatsapp} />
+                    </div>
+                    {notifyWhatsapp && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input placeholder="Ex: 5511999999999" value={newWhatsapp} onChange={e => setNewWhatsapp(e.target.value)} onKeyDown={e => e.key === 'Enter' && addWhatsappNumber()} />
+                          <Button size="sm" variant="outline" onClick={addWhatsappNumber}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {whatsappNumbers.map((n, i) => (
+                            <Badge key={i} variant="secondary" className="gap-1">
+                              {n}
+                              <X className="h-3 w-3 cursor-pointer" onClick={() => setWhatsappNumbers(whatsappNumbers.filter((_, j) => j !== i))} />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t pt-4 space-y-4">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Notificações por E-mail
+                    </h4>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Enviar por E-mail</Label>
+                      <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} />
+                    </div>
+                    {notifyEmail && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input placeholder="destinatario@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEmailAddress()} />
+                          <Button size="sm" variant="outline" onClick={addEmailAddress}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {emailAddresses.map((e, i) => (
+                            <Badge key={i} variant="secondary" className="gap-1">
+                              {e}
+                              <X className="h-3 w-3 cursor-pointer" onClick={() => setEmailAddresses(emailAddresses.filter((_, j) => j !== i))} />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-4 border-t">
+                    <Button onClick={() => saveScheduleConfig.mutate()} disabled={saveScheduleConfig.isPending}>
+                      {saveScheduleConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Salvar Configurações
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* History Tab */}
@@ -310,14 +487,8 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                         {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {item.ai_provider}
-                        </Badge>
-                        {item.ai_model && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.ai_model}
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
+                        {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
                       </div>
                     </div>
                   </CardHeader>

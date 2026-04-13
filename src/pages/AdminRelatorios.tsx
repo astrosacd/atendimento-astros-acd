@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface ClienteData {
   id: string;
+  nome: string;
   created_at: string;
   data_renovacao: string;
   valor: number;
@@ -80,8 +81,8 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes, clientes registro e histórico de compras
       const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
+        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
+        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0'),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
@@ -566,12 +567,16 @@ export default function AdminRelatorios() {
         </div>
 
         <Tabs defaultValue="conversao" className="space-y-4">
-          <TabsList className="bg-muted/50">
+          <TabsList className="bg-muted/50 flex-wrap">
             <TabsTrigger value="conversao">Conversão</TabsTrigger>
             <TabsTrigger value="churn">Churn</TabsTrigger>
             <TabsTrigger value="ltv">LTV & Receita</TabsTrigger>
             <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
             <TabsTrigger value="vendas-unicas">Vendas Únicas</TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-1">
+              <Bot className="h-3.5 w-3.5" />
+              Análise IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Conversão */}
@@ -972,6 +977,39 @@ export default function AdminRelatorios() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Tab Análise IA */}
+          <TabsContent value="ai" className="space-y-4">
+            <ReportsAIAnalysis
+              metricsData={{
+                mrrBRL: ltvMetrics.mrrBRL,
+                mrrUSD: ltvMetrics.mrrUSD,
+                ltvBRL: ltvMetrics.ltvBRL,
+                ltvUSD: ltvMetrics.ltvUSD,
+                churnMedio,
+                tempoMedioMeses: ltvMetrics.tempoMedioMeses,
+                totalClientes: clientes.length,
+                clientesBRL: ltvMetrics.clientesBRL,
+                clientesUSD: ltvMetrics.clientesUSD,
+                ticketMedioBRL: ltvMetrics.ticketMedioBRL,
+                ticketMedioUSD: ltvMetrics.ticketMedioUSD,
+                churnHistory: churnMetrics.map(m => ({ month: m.monthLabel, value: m.value })),
+                mrrHistory: mrrGrowth.map(m => ({ month: m.monthLabel, value: m.value })),
+                clientesAtRisk: clientes
+                  .filter(c => {
+                    const renovacao = parseISO(c.data_renovacao);
+                    const now = new Date();
+                    const daysUntilRenewal = Math.ceil((renovacao.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    return daysUntilRenewal <= 15 && daysUntilRenewal >= -30;
+                  })
+                  .map(c => ({
+                    nome: c.nome,
+                    renovacao: c.data_renovacao,
+                    valor: c.valor,
+                  })),
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
