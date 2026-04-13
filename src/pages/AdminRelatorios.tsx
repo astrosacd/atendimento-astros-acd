@@ -977,6 +977,39 @@ export default function AdminRelatorios() {
               </Card>
             )}
           </TabsContent>
+
+          {/* Tab Análise IA */}
+          <TabsContent value="ai" className="space-y-4">
+            <ReportsAIAnalysis
+              metricsData={{
+                mrrBRL: ltvMetrics.mrrBRL,
+                mrrUSD: ltvMetrics.mrrUSD,
+                ltvBRL: ltvMetrics.ltvBRL,
+                ltvUSD: ltvMetrics.ltvUSD,
+                churnMedio,
+                tempoMedioMeses: ltvMetrics.tempoMedioMeses,
+                totalClientes: clientes.length,
+                clientesBRL: ltvMetrics.clientesBRL,
+                clientesUSD: ltvMetrics.clientesUSD,
+                ticketMedioBRL: ltvMetrics.ticketMedioBRL,
+                ticketMedioUSD: ltvMetrics.ticketMedioUSD,
+                churnHistory: churnMetrics.map(m => ({ month: m.monthLabel, value: m.value })),
+                mrrHistory: mrrGrowth.map(m => ({ month: m.monthLabel, value: m.value })),
+                clientesAtRisk: clientes
+                  .filter(c => {
+                    const renovacao = parseISO(c.data_renovacao);
+                    const now = new Date();
+                    const daysUntilRenewal = Math.ceil((renovacao.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    return daysUntilRenewal <= 15 && daysUntilRenewal >= -30;
+                  })
+                  .map(c => ({
+                    nome: c.id,
+                    renovacao: c.data_renovacao,
+                    valor: c.valor,
+                  })),
+              }}
+            />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
