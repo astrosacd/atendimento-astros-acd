@@ -1004,7 +1004,7 @@ export default function AdminRelatorios() {
                     return daysUntilRenewal <= 15 && daysUntilRenewal >= -30;
                   })
                   .map(c => ({
-                    nome: c.id,
+                    nome: c.nome,
                     renovacao: c.data_renovacao,
                     valor: c.valor,
                   })),
