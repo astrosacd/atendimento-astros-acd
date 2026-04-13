@@ -170,16 +170,17 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
 
 async function sendScheduledNotifications(supabase: any, analysis: string) {
   try {
-    const { data: configs } = await supabase.from("reports_analysis_config").select("*");
-    if (!configs?.length) return;
+    const { data: configRow } = await supabase
+      .from("reports_analysis_config")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+    if (!configRow) return;
 
-    const configMap: Record<string, string> = {};
-    configs.forEach((c: any) => { configMap[c.config_key] = c.config_value; });
-
-    const notifyWhatsapp = configMap.notify_whatsapp === "true";
-    const notifyEmail = configMap.notify_email === "true";
-    const whatsappNumbers = configMap.whatsapp_numbers ? JSON.parse(configMap.whatsapp_numbers) : [];
-    const emailAddresses = configMap.email_addresses ? JSON.parse(configMap.email_addresses) : [];
+    const notifyWhatsapp = configRow.notify_whatsapp;
+    const notifyEmail = configRow.notify_email;
+    const whatsappNumbers: string[] = configRow.whatsapp_recipients || [];
+    const emailAddresses: string[] = configRow.email_recipients || [];
 
     // WhatsApp notifications
     if (notifyWhatsapp && whatsappNumbers.length > 0) {
