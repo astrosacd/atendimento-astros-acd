@@ -349,7 +349,7 @@ const AdminGuia = () => {
       title: "Relatórios",
       icon: BarChart3,
       color: "text-cyan-400",
-      categories: ["relatorios-visao-geral", "relatorios-metricas"],
+      categories: ["relatorios-visao-geral", "relatorios-metricas", "relatorios-ia"],
       permissionKey: "view_guia_relatorios"
     },
     {
