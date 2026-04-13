@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface ClienteData {
   id: string;
+  nome: string;
   created_at: string;
   data_renovacao: string;
   valor: number;
@@ -80,8 +81,8 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes, clientes registro e histórico de compras
       const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
-        supabase.from('clientes').select('id, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
+        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
+        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0'),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
