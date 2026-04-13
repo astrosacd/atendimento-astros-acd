@@ -132,6 +132,7 @@ const categoryToPermission: Record<string, string> = {
   'chamados-config': 'view_guia_chamados',
   'relatorios-visao-geral': 'view_guia_relatorios',
   'relatorios-metricas': 'view_guia_relatorios',
+  'relatorios-ia': 'view_guia_relatorios',
   'tarefas': 'view_guia_tarefas',
   'propostas-visao-geral': 'view_guia_propostas',
   'propostas-editor': 'view_guia_propostas',
