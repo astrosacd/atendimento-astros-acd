@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,7 +70,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [promptUsed, setPromptUsed] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Schedule config state
@@ -82,8 +81,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [emailAddresses, setEmailAddresses] = useState<string[]>([]);
   const [newWhatsapp, setNewWhatsapp] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [gmailUser, setGmailUser] = useState('');
-  const [gmailPass, setGmailPass] = useState('');
+  const [configId, setConfigId] = useState<string | null>(null);
 
   const { data: history = [], refetch: refetchHistory } = useQuery({
     queryKey: ['reports-ai-history'],
@@ -104,72 +102,59 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('reports_analysis_config')
-        .select('*');
+        .select('*')
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      const configMap: Record<string, string> = {};
-      (data || []).forEach((c: any) => { configMap[c.config_key] = c.config_value; });
-      return configMap;
-    },
-    meta: {
-      onSuccess: (data: Record<string, string>) => {
-        if (data) {
-          setScheduleEnabled(data.schedule_enabled === 'true');
-          setScheduleFrequency(data.schedule_frequency || 'daily');
-          setNotifyWhatsapp(data.notify_whatsapp === 'true');
-          setNotifyEmail(data.notify_email === 'true');
-          setWhatsappNumbers(data.whatsapp_numbers ? JSON.parse(data.whatsapp_numbers) : []);
-          setEmailAddresses(data.email_addresses ? JSON.parse(data.email_addresses) : []);
-          setGmailUser(data.gmail_user || '');
-          setGmailPass(data.gmail_password || '');
-        }
-      },
+      return data;
     },
   });
 
-  // Sync state when config loads
-  useState(() => {
+  useEffect(() => {
     if (scheduleConfig) {
-      setScheduleEnabled(scheduleConfig.schedule_enabled === 'true');
-      setScheduleFrequency(scheduleConfig.schedule_frequency || 'daily');
-      setNotifyWhatsapp(scheduleConfig.notify_whatsapp === 'true');
-      setNotifyEmail(scheduleConfig.notify_email === 'true');
-      setWhatsappNumbers(scheduleConfig.whatsapp_numbers ? JSON.parse(scheduleConfig.whatsapp_numbers) : []);
-      setEmailAddresses(scheduleConfig.email_addresses ? JSON.parse(scheduleConfig.email_addresses) : []);
-      setGmailUser(scheduleConfig.gmail_user || '');
-      setGmailPass(scheduleConfig.gmail_password || '');
+      setConfigId(scheduleConfig.id);
+      setScheduleEnabled(scheduleConfig.is_active || false);
+      setScheduleFrequency(scheduleConfig.frequency || 'daily');
+      setNotifyWhatsapp(scheduleConfig.notify_whatsapp || false);
+      setNotifyEmail(scheduleConfig.notify_email || false);
+      setWhatsappNumbers(scheduleConfig.whatsapp_recipients || []);
+      setEmailAddresses(scheduleConfig.email_recipients || []);
+      if (scheduleConfig.ai_provider) setProvider(scheduleConfig.ai_provider);
+      if (scheduleConfig.ai_model) setModel(scheduleConfig.ai_model);
+      if (scheduleConfig.openai_api_key) setOpenaiKey(scheduleConfig.openai_api_key);
+      if (scheduleConfig.grok_api_key) setGrokKey(scheduleConfig.grok_api_key);
     }
-  });
+  }, [scheduleConfig]);
 
   const saveScheduleConfig = useMutation({
     mutationFn: async () => {
-      const configs: Record<string, string> = {
-        schedule_enabled: scheduleEnabled.toString(),
-        schedule_frequency: scheduleFrequency,
-        notify_whatsapp: notifyWhatsapp.toString(),
-        notify_email: notifyEmail.toString(),
-        whatsapp_numbers: JSON.stringify(whatsappNumbers),
-        email_addresses: JSON.stringify(emailAddresses),
-        gmail_user: gmailUser,
-        gmail_password: gmailPass,
+      const payload = {
+        is_active: scheduleEnabled,
+        frequency: scheduleFrequency,
+        ai_provider: provider,
+        ai_model: model,
+        openai_api_key: openaiKey || null,
+        grok_api_key: grokKey || null,
+        notify_whatsapp: notifyWhatsapp,
+        notify_email: notifyEmail,
+        whatsapp_recipients: whatsappNumbers,
+        email_recipients: emailAddresses,
       };
 
-      for (const [key, value] of Object.entries(configs)) {
-        const { data: existing } = await supabase
+      if (configId) {
+        const { error } = await supabase
           .from('reports_analysis_config')
-          .select('id')
-          .eq('config_key', key)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
-            .from('reports_analysis_config')
-            .update({ config_value: value })
-            .eq('config_key', key);
-        } else {
-          await supabase
-            .from('reports_analysis_config')
-            .insert({ config_key: key, config_value: value });
-        }
+          .update(payload)
+          .eq('id', configId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('reports_analysis_config')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setConfigId(data.id);
       }
     },
     onSuccess: () => {
@@ -257,7 +242,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         </TabsList>
 
         <TabsContent value="analysis" className="space-y-4">
-          {/* Config Section */}
           <Card className="bg-card/50 backdrop-blur-sm border-border/50">
             <Collapsible open={showConfig} onOpenChange={setShowConfig}>
               <CollapsibleTrigger asChild>
@@ -281,28 +265,21 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                         const models = v === 'lovable' ? LOVABLE_MODELS : v === 'openai' ? OPENAI_MODELS : GROK_MODELS;
                         setModel(models[0].value);
                       }}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {AI_PROVIDERS.map(p => (
                             <SelectItem key={p.value} value={p.value}>
-                              <div>
-                                <span>{p.label}</span>
-                                <span className="text-xs text-muted-foreground ml-2">— {p.description}</span>
-                              </div>
+                              <span>{p.label}</span>
+                              <span className="text-xs text-muted-foreground ml-2">— {p.description}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Modelo</Label>
                       <Select value={model} onValueChange={setModel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {getModelsForProvider().map(m => (
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -311,14 +288,12 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                       </Select>
                     </div>
                   </div>
-
                   {provider === 'openai' && (
                     <div className="space-y-2">
                       <Label>API Key da OpenAI</Label>
                       <Input type="password" placeholder="sk-..." value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} />
                     </div>
                   )}
-
                   {provider === 'grok' && (
                     <div className="space-y-2">
                       <Label>API Key do Grok (xAI)</Label>
@@ -330,7 +305,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
             </Collapsible>
           </Card>
 
-          {/* At-risk clients alert */}
           {metricsData.clientesAtRisk && metricsData.clientesAtRisk.length > 0 && (
             <Card className="bg-destructive/5 border-destructive/30">
               <CardContent className="py-4">
@@ -345,7 +319,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
             </Card>
           )}
 
-          {/* Action Button */}
           <div className="flex items-center gap-4">
             <Button
               onClick={handleAnalyze}
@@ -354,24 +327,16 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
               size="lg"
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Analisando...
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin" />Analisando...</>
               ) : (
-                <>
-                  <Bot className="h-4 w-4" />
-                  Gerar Análise com IA
-                </>
+                <><Bot className="h-4 w-4" />Gerar Análise com IA</>
               )}
             </Button>
-
             <Badge variant="outline" className="text-xs">
               {AI_PROVIDERS.find(p => p.value === provider)?.label} • {getModelsForProvider().find(m => m.value === model)?.label}
             </Badge>
           </div>
 
-          {/* Analysis Result */}
           {analysis && (
             <Card className="bg-card/50 backdrop-blur-sm border-primary/30">
               <CardHeader>
@@ -394,7 +359,6 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{analysis}</ReactMarkdown>
                 </div>
-
                 {showPrompt && promptUsed && (
                   <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Prompt utilizado:</p>
@@ -429,9 +393,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                   <div className="space-y-2">
                     <Label>Frequência</Label>
                     <Select value={scheduleFrequency} onValueChange={setScheduleFrequency}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="daily">Diário (08:00)</SelectItem>
                         <SelectItem value="weekly">Semanal (Segunda 08:00)</SelectItem>
@@ -451,15 +413,8 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                     {notifyWhatsapp && (
                       <div className="space-y-2">
                         <div className="flex gap-2">
-                          <Input
-                            placeholder="Ex: 5511999999999"
-                            value={newWhatsapp}
-                            onChange={e => setNewWhatsapp(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && addWhatsappNumber()}
-                          />
-                          <Button size="sm" variant="outline" onClick={addWhatsappNumber}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                          <Input placeholder="Ex: 5511999999999" value={newWhatsapp} onChange={e => setNewWhatsapp(e.target.value)} onKeyDown={e => e.key === 'Enter' && addWhatsappNumber()} />
+                          <Button size="sm" variant="outline" onClick={addWhatsappNumber}><Plus className="h-4 w-4" /></Button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {whatsappNumbers.map((n, i) => (
@@ -483,27 +438,10 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                       <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} />
                     </div>
                     {notifyEmail && (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Gmail (remetente)</Label>
-                            <Input type="email" placeholder="seu@gmail.com" value={gmailUser} onChange={e => setGmailUser(e.target.value)} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Senha de app Gmail</Label>
-                            <Input type="password" placeholder="****" value={gmailPass} onChange={e => setGmailPass(e.target.value)} />
-                          </div>
-                        </div>
+                      <div className="space-y-2">
                         <div className="flex gap-2">
-                          <Input
-                            placeholder="destinatario@email.com"
-                            value={newEmail}
-                            onChange={e => setNewEmail(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && addEmailAddress()}
-                          />
-                          <Button size="sm" variant="outline" onClick={addEmailAddress}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
+                          <Input placeholder="destinatario@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEmailAddress()} />
+                          <Button size="sm" variant="outline" onClick={addEmailAddress}><Plus className="h-4 w-4" /></Button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {emailAddresses.map((e, i) => (
