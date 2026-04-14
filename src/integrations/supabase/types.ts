@@ -5740,6 +5740,7 @@ export type Database = {
       disable_calendar_sync_cron: { Args: never; Returns: boolean }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
+      disable_reports_analysis_cron: { Args: never; Returns: boolean }
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_calendar_notify: { Args: never; Returns: undefined }
@@ -5749,6 +5750,7 @@ export type Database = {
       execute_followups_cron: { Args: never; Returns: undefined }
       execute_gateway_abandoned_cart: { Args: never; Returns: undefined }
       execute_process_automations: { Args: never; Returns: undefined }
+      execute_reports_analysis_cron: { Args: never; Returns: undefined }
       execute_scheduled_proposal_sends: { Args: never; Returns: undefined }
       get_auth_access_code: { Args: never; Returns: string }
       get_automations_cron_schedule: {
@@ -5815,6 +5817,13 @@ export type Database = {
       get_proposal_by_share_token: {
         Args: { p_share_token: string }
         Returns: Json
+      }
+      get_reports_analysis_cron_schedule: {
+        Args: never
+        Returns: {
+          job_name: string
+          schedule: string
+        }[]
       }
       get_sms_result_share: { Args: { p_token: string }; Returns: Json }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
@@ -5913,6 +5922,10 @@ export type Database = {
       update_remarketing_cron_schedule: {
         Args: { new_schedule: string }
         Returns: undefined
+      }
+      update_reports_analysis_cron: {
+        Args: { p_frequency: string }
+        Returns: boolean
       }
       validate_password_reset_token: {
         Args: { p_token: string }

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -211,14 +212,12 @@ async function sendScheduledNotifications(supabase: any, analysis: string) {
       }
     }
 
-    // Email notifications via Gmail SMTP
+    // Email notifications via Gmail SMTP - using system-level Gmail secrets
     if (notifyEmail && emailAddresses.length > 0) {
-      const gmailUser = configMap.gmail_user || "";
-      const gmailPass = configMap.gmail_password || "";
+      const gmailUser = Deno.env.get("GMAIL_USER") || "";
+      const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD") || "";
 
       if (gmailUser && gmailPass) {
-        const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
-        
         const htmlContent = `
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
@@ -234,26 +233,43 @@ async function sendScheduledNotifications(supabase: any, analysis: string) {
   </div>
 </body></html>`;
 
-        const smtpClient = new SMTPClient({
-          connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass } },
-        });
+        try {
+          const smtpClient = new SMTPClient({
+            connection: {
+              hostname: "smtp.gmail.com",
+              port: 587,
+              tls: false,
+              auth: { username: gmailUser, password: gmailPass },
+            },
+          });
 
-        for (const email of emailAddresses) {
-          try {
-            await smtpClient.send({
-              from: gmailUser,
-              to: email,
-              subject: `📊 Relatório de IA - Análise Automática - ${new Date().toLocaleDateString("pt-BR")}`,
-              html: htmlContent,
-            });
-            console.log(`[reports-ai] Email sent to ${email}`);
-          } catch (e: any) {
-            console.error(`[reports-ai] Email error:`, e.message);
+          for (const email of emailAddresses) {
+            try {
+              await smtpClient.send({
+                from: gmailUser,
+                to: email,
+                subject: `📊 Relatório de IA - Análise Automática - ${new Date().toLocaleDateString("pt-BR")}`,
+                html: htmlContent,
+              });
+              console.log(`[reports-ai] Email sent to ${email}`);
+            } catch (e: any) {
+              console.error(`[reports-ai] Email error:`, e.message);
+            }
           }
+          await smtpClient.close();
+        } catch (smtpErr: any) {
+          console.error(`[reports-ai] SMTP connection error:`, smtpErr.message);
         }
-        await smtpClient.close();
+      } else {
+        console.warn("[reports-ai] GMAIL_USER or GMAIL_APP_PASSWORD not configured for email notifications");
       }
     }
+
+    // Update last_analysis_at
+    await supabase.from("reports_analysis_config").update({
+      last_analysis_at: new Date().toISOString(),
+    }).eq("id", configRow.id);
+
   } catch (e: any) {
     console.error("[reports-ai] Notification error:", e.message);
   }
