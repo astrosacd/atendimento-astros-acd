@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check, Clock, Mail, MessageSquare, Plus, X } from 'lucide-react';
+import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check, Clock, Mail, MessageSquare, Plus, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -83,6 +84,9 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [newEmail, setNewEmail] = useState('');
   const [configId, setConfigId] = useState<string | null>(null);
 
+  // History expand state
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+
   const { data: history = [], refetch: refetchHistory } = useQuery({
     queryKey: ['reports-ai-history'],
     queryFn: async () => {
@@ -90,7 +94,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         .from('reports_analysis_history')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
       if (error) throw error;
       return data;
     },
@@ -401,6 +405,20 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                     </Select>
                   </div>
 
+                  {/* Info about WhatsApp/Email sources */}
+                  <Card className="bg-muted/30 border-border/50">
+                    <CardContent className="py-3">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p><strong>WhatsApp:</strong> As notificações são enviadas usando as instâncias de WhatsApp configuradas no módulo de Cobrança (Instâncias ativas).</p>
+                          <p><strong>E-mail:</strong> As notificações são enviadas via SMTP usando as credenciais do Gmail configuradas no sistema (GMAIL_USER e GMAIL_APP_PASSWORD).</p>
+                          <p><strong>Cron:</strong> O sistema executa automaticamente via cron: diário às 08:00 (horário de Brasília) ou semanal às segundas-feiras 08:00.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <div className="border-t pt-4 space-y-4">
                     <h4 className="font-medium flex items-center gap-2">
                       <MessageSquare className="h-4 w-4" />
@@ -477,31 +495,54 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {history.map((item: any) => (
-                <Card key={item.id} className="bg-card/50 border-border/50">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Bot className="h-4 w-4" />
-                        {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
-                        {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-4 pr-4">
+                {history.map((item: any) => (
+                  <Card key={item.id} className="bg-card/50 border-border/50">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Bot className="h-4 w-4" />
+                          {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
+                          {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Ver análise completa">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl max-h-[80vh]">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                  <Bot className="h-4 w-4" />
+                                  Análise - {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  <Badge variant="outline" className="text-xs ml-2">{item.ai_provider}</Badge>
+                                  {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <ScrollArea className="max-h-[60vh]">
+                                <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
+                                  <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
+                                </div>
+                              </ScrollArea>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="max-h-[300px]">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-6 text-sm">
                         <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
                       </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <p className="text-xs text-muted-foreground mt-2">Clique no ícone 👁️ para ver a análise completa</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
           )}
         </TabsContent>
       </Tabs>
