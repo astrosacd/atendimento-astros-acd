@@ -160,6 +160,17 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         if (error) throw error;
         setConfigId(data.id);
       }
+
+      // Manage cron job
+      if (scheduleEnabled) {
+        const { error: cronError } = await supabase.rpc('update_reports_analysis_cron', {
+          p_frequency: scheduleFrequency,
+        });
+        if (cronError) console.error('Cron update error:', cronError);
+      } else {
+        const { error: cronError } = await supabase.rpc('disable_reports_analysis_cron');
+        if (cronError) console.error('Cron disable error:', cronError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports-schedule-config'] });
