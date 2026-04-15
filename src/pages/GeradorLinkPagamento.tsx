@@ -49,6 +49,10 @@ export default function GeradorLinkPagamento() {
     currency?: string;
   } | null>(null);
 
+  // MP status checking
+  const [mpQueryId, setMpQueryId] = useState('');
+  const [mpQueryResult, setMpQueryResult] = useState<any>(null);
+
   // Share token dialog
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareExpiry, setShareExpiry] = useState('1');
