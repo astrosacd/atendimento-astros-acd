@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Link2, Copy, ExternalLink, Loader2, Clock, Trash2, Share2, History,
-  DollarSign, Building2, Plus
+  DollarSign, Building2, Plus, RefreshCw, Search, CheckCircle2, XCircle, AlertCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +48,10 @@ export default function GeradorLinkPagamento() {
     expires_at: string;
     currency?: string;
   } | null>(null);
+
+  // MP status checking
+  const [mpQueryId, setMpQueryId] = useState('');
+  const [mpQueryResult, setMpQueryResult] = useState<any>(null);
 
   // Share token dialog
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -203,6 +207,41 @@ export default function GeradorLinkPagamento() {
       queryClient.invalidateQueries({ queryKey: ['payment-link-share-tokens'] });
       toast.success('Link temporário revogado');
     },
+  });
+
+  // Check all pending payment links status
+  const checkStatusMutation = useMutation({
+    mutationFn: async () => {
+      const res = await supabase.functions.invoke('check-payment-link-status', {
+        body: {},
+      });
+      if (res.error) throw new Error(res.error.message);
+      return res.data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
+      if (data.updated > 0) {
+        toast.success(`${data.updated} link(s) atualizado(s) de ${data.checked} verificado(s)`);
+      } else {
+        toast.info(`${data.checked} link(s) verificado(s), nenhuma alteração`);
+      }
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao verificar pagamentos'),
+  });
+
+  // Query a specific MP payment ID
+  const queryMpMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await supabase.functions.invoke('check-payment-link-status', {
+        body: { mp_payment_id: paymentId },
+      });
+      if (res.error) throw new Error(res.error.message);
+      return res.data;
+    },
+    onSuccess: (data: any) => {
+      setMpQueryResult(data);
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao consultar pagamento'),
   });
 
   const handleGenerate = () => {
@@ -429,13 +468,69 @@ export default function GeradorLinkPagamento() {
 
           <TabsContent value="historico">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base flex items-center gap-2">
                   <History className="h-4 w-4" />
                   Histórico de Links Gerados
                 </CardTitle>
+                <div className="flex gap-2">
+                  {hasPermission('check_payment_link_status') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={checkStatusMutation.isPending}
+                      onClick={() => checkStatusMutation.mutate()}
+                    >
+                      {checkStatusMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      Verificar Pagamentos
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
+                {/* Consultar código MP */}
+                {hasPermission('check_payment_link_status') && (
+                  <div className="mb-4 flex gap-2">
+                    <Input
+                      placeholder="Consultar código MP (ex: 12345678)"
+                      value={mpQueryId}
+                      onChange={(e) => setMpQueryId(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={queryMpMutation.isPending || !mpQueryId.trim()}
+                      onClick={() => queryMpMutation.mutate(mpQueryId.trim())}
+                      className="gap-2"
+                    >
+                      {queryMpMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Consultar
+                    </Button>
+                  </div>
+                )}
+
+                {mpQueryResult && (
+                  <div className="mb-4 p-3 rounded-lg border bg-muted/30 text-sm space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Resultado da Consulta MP</span>
+                      <Button variant="ghost" size="sm" onClick={() => setMpQueryResult(null)}>✕</Button>
+                    </div>
+                    <p><strong>ID:</strong> {mpQueryResult.payment_id}</p>
+                    <p><strong>Status:</strong> <Badge variant={mpQueryResult.status === 'approved' ? 'default' : 'secondary'}>{mpQueryResult.status}</Badge></p>
+                    <p><strong>Valor:</strong> R$ {Number(mpQueryResult.amount || 0).toFixed(2)}</p>
+                    {mpQueryResult.payer_email && <p><strong>Pagador:</strong> {mpQueryResult.payer_email}</p>}
+                    {mpQueryResult.payment_method && <p><strong>Método:</strong> {mpQueryResult.payment_method}</p>}
+                    {mpQueryResult.date_approved && <p><strong>Aprovado em:</strong> {format(new Date(mpQueryResult.date_approved), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+                    {mpQueryResult.description && <p><strong>Descrição:</strong> {mpQueryResult.description}</p>}
+                  </div>
+                )}
+
                 {historyLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -446,22 +541,32 @@ export default function GeradorLinkPagamento() {
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {linkHistory.map((link: any) => {
                       const isExpired = new Date(link.expires_at) < new Date();
+                      const status = link.status || (isExpired ? 'expired' : 'pending');
+                      const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
+                        paid: { label: 'Pago', variant: 'default', icon: <CheckCircle2 className="h-3 w-3" /> },
+                        pending: { label: isExpired ? 'Expirado' : 'Pendente', variant: isExpired ? 'secondary' : 'outline', icon: isExpired ? <XCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" /> },
+                        expired: { label: 'Expirado', variant: 'secondary', icon: <XCircle className="h-3 w-3" /> },
+                        rejected: { label: 'Rejeitado', variant: 'destructive', icon: <XCircle className="h-3 w-3" /> },
+                      };
+                      const sc = statusConfig[status] || statusConfig.pending;
+
                       return (
                         <div
                           key={link.id}
                           className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-sm truncate">{link.empresa}</span>
                               <Badge variant="outline" className="text-xs shrink-0">
                                 {link.provider_label}
                               </Badge>
-                              <Badge variant={isExpired ? "secondary" : "default"} className="text-xs shrink-0">
-                                {isExpired ? 'Expirado' : 'Ativo'}
+                              <Badge variant={sc.variant} className="text-xs shrink-0 gap-1">
+                                {sc.icon}
+                                {sc.label}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <DollarSign className="h-3 w-3" />
                                 {link.provider === 'stripe' ? 'US$' : 'R$'} {Number(link.valor_original).toFixed(2)} → {link.provider === 'stripe' ? 'US$' : 'R$'} {Number(link.valor_com_taxa).toFixed(2)}
@@ -470,22 +575,32 @@ export default function GeradorLinkPagamento() {
                                 <Clock className="h-3 w-3" />
                                 {format(new Date(link.created_at), "dd/MM HH:mm", { locale: ptBR })}
                               </span>
+                              {link.mp_payment_id && (
+                                <span className="font-mono text-primary">
+                                  MP: {link.mp_payment_id}
+                                </span>
+                              )}
+                              {link.paid_at && (
+                                <span className="text-green-500">
+                                  Pago em {format(new Date(link.paid_at), "dd/MM HH:mm", { locale: ptBR })}
+                                </span>
+                              )}
                               {link.created_by_email && (
                                 <span className="truncate">Criado por: {link.created_by_email}</span>
                               )}
-                              <span className="truncate">Origem: {link.config_source}</span>
                             </div>
                           </div>
-                          {!isExpired && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => copyLink(link.payment_url)}
-                              className="shrink-0"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <div className="flex gap-1 shrink-0">
+                            {status !== 'expired' && status !== 'rejected' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => copyLink(link.payment_url)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

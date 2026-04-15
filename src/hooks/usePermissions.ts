@@ -190,6 +190,8 @@ export function usePermissions() {
   const canViewPaymentLinks = () => hasPermission('view_payment_links');
   const canGeneratePaymentLinks = () => hasPermission('generate_payment_links');
   const canSharePaymentLinks = () => hasPermission('share_payment_links');
+  const canCheckPaymentLinkStatus = () => hasPermission('check_payment_link_status');
+  const canManagePaymentLinkWebhook = () => hasPermission('manage_payment_link_webhook');
 
   return {
     permissions,
@@ -321,5 +323,7 @@ export function usePermissions() {
     canViewPaymentLinks,
     canGeneratePaymentLinks,
     canSharePaymentLinks,
+    canCheckPaymentLinkStatus,
+    canManagePaymentLinkWebhook,
   };
 }

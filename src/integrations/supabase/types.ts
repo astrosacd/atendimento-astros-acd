@@ -4350,10 +4350,13 @@ export type Database = {
           expires_at: string
           external_reference: string | null
           id: string
+          mp_payment_id: string | null
+          paid_at: string | null
           payment_url: string
           preference_id: string | null
           provider: string
           provider_label: string
+          status: string
           taxa_percentual: number
           valor_com_taxa: number
           valor_original: number
@@ -4367,10 +4370,13 @@ export type Database = {
           expires_at: string
           external_reference?: string | null
           id?: string
+          mp_payment_id?: string | null
+          paid_at?: string | null
           payment_url: string
           preference_id?: string | null
           provider: string
           provider_label: string
+          status?: string
           taxa_percentual?: number
           valor_com_taxa: number
           valor_original: number
@@ -4384,10 +4390,13 @@ export type Database = {
           expires_at?: string
           external_reference?: string | null
           id?: string
+          mp_payment_id?: string | null
+          paid_at?: string | null
           payment_url?: string
           preference_id?: string | null
           provider?: string
           provider_label?: string
+          status?: string
           taxa_percentual?: number
           valor_com_taxa?: number
           valor_original?: number
