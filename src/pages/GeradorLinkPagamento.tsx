@@ -244,6 +244,7 @@ export default function GeradorLinkPagamento() {
     onError: (err: any) => toast.error(err.message || 'Erro ao consultar pagamento'),
   });
 
+  const handleGenerate = () => {
     if (!empresa.trim()) return toast.error('Informe o nome da empresa');
     const val = parseFloat(valorVenda.replace(',', '.'));
     if (isNaN(val) || val <= 0) return toast.error('Informe um valor válido');
