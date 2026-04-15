@@ -209,7 +209,41 @@ export default function GeradorLinkPagamento() {
     },
   });
 
-  const handleGenerate = () => {
+  // Check all pending payment links status
+  const checkStatusMutation = useMutation({
+    mutationFn: async () => {
+      const res = await supabase.functions.invoke('check-payment-link-status', {
+        body: {},
+      });
+      if (res.error) throw new Error(res.error.message);
+      return res.data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
+      if (data.updated > 0) {
+        toast.success(`${data.updated} link(s) atualizado(s) de ${data.checked} verificado(s)`);
+      } else {
+        toast.info(`${data.checked} link(s) verificado(s), nenhuma alteração`);
+      }
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao verificar pagamentos'),
+  });
+
+  // Query a specific MP payment ID
+  const queryMpMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await supabase.functions.invoke('check-payment-link-status', {
+        body: { mp_payment_id: paymentId },
+      });
+      if (res.error) throw new Error(res.error.message);
+      return res.data;
+    },
+    onSuccess: (data: any) => {
+      setMpQueryResult(data);
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao consultar pagamento'),
+  });
+
     if (!empresa.trim()) return toast.error('Informe o nome da empresa');
     const val = parseFloat(valorVenda.replace(',', '.'));
     if (isNaN(val) || val <= 0) return toast.error('Informe um valor válido');
