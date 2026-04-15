@@ -323,5 +323,7 @@ export function usePermissions() {
     canViewPaymentLinks,
     canGeneratePaymentLinks,
     canSharePaymentLinks,
+    canCheckPaymentLinkStatus,
+    canManagePaymentLinkWebhook,
   };
 }
