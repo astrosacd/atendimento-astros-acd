@@ -264,8 +264,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
       toast.error('Erro ao gerar link');
       return;
     }
-    const publishedUrl = 'https://atendimento-astros-acd.lovable.app';
-    const baseUrl = window.location.hostname.includes('lovable') ? publishedUrl : window.location.origin;
+    const baseUrl = window.location.origin;
     const link = `${baseUrl}/credenciais/${data.token}`;
     setGeneratedLink(link);
   };
