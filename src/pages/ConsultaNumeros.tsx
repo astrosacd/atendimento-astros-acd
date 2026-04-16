@@ -121,6 +121,33 @@ export default function ConsultaNumeros() {
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  // Helper to format date and time from Baserow
+  const formatBaserowDate = (value: any, fieldName?: string) => {
+    if (!value) return '-';
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value.toString();
+      
+      const valueStr = value.toString();
+      // Se for um campo de data conhecido por ter hora ou se o valor contiver 'T' (ISO com hora)
+      const hasTime = (fieldName?.toLowerCase().includes('data_') || fieldName?.toLowerCase().includes('_em') || valueStr.includes('T'));
+      
+      if (hasTime) {
+        return date.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      }
+      return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+      return value.toString();
+    }
+  };
+
   // Trigger sync from Baserow to local cache (full sync including deletions)
   const handleSyncFromBaserow = async () => {
     setIsSyncing(true);
