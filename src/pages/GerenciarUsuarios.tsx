@@ -509,8 +509,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const unblockedUser = users.find(u => u.id === userId);
+      logActivity(`Desbloqueou usuário: ${unblockedUser?.name || unblockedUser?.email}`, 'admin');
+      
       toast({
         title: t('userManagement.toast.userUnblocked'),
         description: t('userManagement.toast.userUnblockedDesc'),
