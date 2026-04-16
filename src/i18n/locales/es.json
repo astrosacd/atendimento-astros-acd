@@ -130,6 +130,14 @@
     "manageClientsEfficiently": "Gestione sus clientes de forma eficiente"
   },
   "sidebar": {
+    "groups": {
+      "crm": "CRM y Operativo",
+      "marketing": "Ventas y Marketing",
+      "clients": "Gestión de Clientes",
+      "telephony": "Telefonía",
+      "finance": "Finanzas e Informes",
+      "settings": "Configuración del Sistema"
+    },
     "clients": "Clientes",
     "administration": "Administración",
     "dashboard": "Panel",

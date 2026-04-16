@@ -130,6 +130,14 @@
     "manageClientsEfficiently": "Manage your clients efficiently"
   },
   "sidebar": {
+    "groups": {
+      "crm": "CRM & Operations",
+      "marketing": "Sales & Marketing",
+      "clients": "Client Management",
+      "telephony": "Telephony",
+      "finance": "Finance & Reports",
+      "settings": "System Settings"
+    },
     "clients": "Clients",
     "administration": "Administration",
     "dashboard": "Dashboard",
