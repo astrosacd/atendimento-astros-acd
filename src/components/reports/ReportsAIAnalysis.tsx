@@ -212,7 +212,11 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
           metricsData,
           openaiApiKey: openaiKey || undefined,
           grokApiKey: grokKey || undefined,
-          scheduled: notifyWhatsapp || notifyEmail, // Send notifications if enabled
+          scheduled: notifyWhatsapp || notifyEmail,
+          notifyWhatsapp,
+          notifyEmail,
+          whatsappNumbers,
+          emailAddresses,
         },
       });
 
