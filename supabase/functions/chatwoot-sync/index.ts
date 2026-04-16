@@ -40,6 +40,13 @@ serve(async (req) => {
       );
     }
 
+    // Get default stage
+    const { data: defaultStage } = await supabase
+      .from('pipeline_stages')
+      .select('id')
+      .eq('is_default', true)
+      .maybeSingle();
+
     const baseUrl = `${chatwoot_url.replace(/\/$/, '')}/api/v1/accounts/${account_id}`;
     const headers = {
       "api_access_token": chatwoot_api_key,
@@ -65,11 +72,6 @@ serve(async (req) => {
       console.log(`Found ${contacts.length} contacts in current page`);
 
       for (const contact of contacts) {
-        // Log first contact to see structure
-        if (syncedCount === 0) {
-          console.log(`Processing contact sample: ${contact.name} (ID: ${contact.id}) | Phone: ${contact.phone_number}`);
-        }
-
         // If no phone/email, we skip for now to avoid duplicates without unique keys
         if (!contact.phone_number && !contact.email) {
           continue;
@@ -102,6 +104,7 @@ serve(async (req) => {
             .from('client_pipeline')
             .insert({
               is_lead: true,
+              stage_id: defaultStage?.id,
               lead_name: contact.name || 'Contato Chatwoot',
               lead_phone: contact.phone_number,
               lead_email: contact.email,
@@ -161,13 +164,16 @@ serve(async (req) => {
                 .join('\n');
 
               if (conversationText) {
-                await supabase
-                  .from('client_pipeline')
-                  .update({
-                    notes: `Última conversa Chatwoot:\n${conversationText}\n\n${item.notes || ''}`.substring(0, 1000),
-                    last_interaction_at: new Date().toISOString()
-                  })
-                  .eq('id', item.id);
+                // Update only if conversation text is different or notes don't contain it
+                if (!item.notes?.includes(conversationText.substring(0, 100))) {
+                  await supabase
+                    .from('client_pipeline')
+                    .update({
+                      notes: `Última conversa Chatwoot:\n${conversationText}\n\n${item.notes || ''}`.substring(0, 1000),
+                      last_interaction_at: new Date().toISOString()
+                    })
+                    .eq('id', item.id);
+                }
               }
             }
           }
