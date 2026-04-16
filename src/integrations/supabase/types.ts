@@ -1343,6 +1343,7 @@ export type Database = {
       }
       client_pipeline: {
         Row: {
+          chatwoot_conversation_id: number | null
           cliente_id: string | null
           converted_at: string | null
           id: string
@@ -1362,6 +1363,7 @@ export type Database = {
           stage_id: string | null
         }
         Insert: {
+          chatwoot_conversation_id?: number | null
           cliente_id?: string | null
           converted_at?: string | null
           id?: string
@@ -1381,6 +1383,7 @@ export type Database = {
           stage_id?: string | null
         }
         Update: {
+          chatwoot_conversation_id?: number | null
           cliente_id?: string | null
           converted_at?: string | null
           id?: string
