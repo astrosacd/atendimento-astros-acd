@@ -334,6 +334,16 @@ export const ClientRecoveryManager = () => {
     return { count, lastDate, lastChannel };
   };
 
+  // Check if the client has a WhatsApp error (number doesn't exist)
+  const hasWhatsAppError = (clienteId: string) => {
+    return recoveryHistory.some(r => 
+      r.cliente_id === clienteId && 
+      r.canal === 'whatsapp' &&
+      r.status === 'error' && 
+      r.error_message?.toLowerCase().includes('não existe')
+    );
+  };
+
   const hasPendingRecovery = (clienteId: string) => {
     return recoveryHistory.some(r => 
       r.cliente_id === clienteId && 
@@ -560,7 +570,24 @@ export const ClientRecoveryManager = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium">{cliente.nome}</p>
-                                <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                  {hasWhatsAppError(cliente.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                            <Phone className="w-3 h-3" />
+                                            inválido
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WhatsApp não existe para este número</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -726,7 +753,24 @@ export const ClientRecoveryManager = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium">{cliente.nome}</p>
-                                <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                  {hasWhatsAppError(cliente.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                            <Phone className="w-3 h-3" />
+                                            inválido
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WhatsApp não existe para este número</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -1196,7 +1240,7 @@ export const ClientRecoveryManager = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 pb-1">
             {isGenerating ? (
               <div className="flex flex-col items-center justify-center py-10">
                 <Sparkles className="w-8 h-8 text-purple-400 animate-pulse mb-3" />
@@ -1257,29 +1301,33 @@ export const ClientRecoveryManager = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">Canal de envio</label>
-                    <Select value={selectedChannel} onValueChange={(v: 'whatsapp' | 'email') => setSelectedChannel(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="whatsapp">
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-green-400" />
-                            WhatsApp
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="email">
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-blue-400" />
-                            Email
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">Canal de envio</label>
+                  <Select value={selectedChannel} onValueChange={(v: 'whatsapp' | 'email') => setSelectedChannel(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-green-400" />
+                          WhatsApp
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="email">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-blue-400" />
+                          Email
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedClient && selectedChannel === 'whatsapp' && hasWhatsAppError(selectedClient.id) && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>O WhatsApp deste número não existe. Considere enviar por e-mail.</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
