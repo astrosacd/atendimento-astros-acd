@@ -63,6 +63,7 @@ const GROK_MODELS = [
 
 export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
   const [provider, setProvider] = useState('lovable');
   const [model, setModel] = useState('google/gemini-3-flash-preview');
   const [openaiKey, setOpenaiKey] = useState('');
