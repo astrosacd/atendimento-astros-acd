@@ -30,6 +30,11 @@ export interface PipelineClient {
   lead_email: string | null;
   lead_produto: string | null;
   converted_at: string | null;
+  lead_score: number | null;
+  lead_score_reason: string | null;
+  next_action_suggestion: string | null;
+  last_ai_update: string | null;
+  last_interaction_at: string | null;
   cliente: {
     id: string;
     nome: string;
