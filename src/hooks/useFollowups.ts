@@ -279,9 +279,10 @@ export function useFollowups() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up resolvido!');
+      logActivity(`Resolveu follow-up: ${variables.reason}`, 'followup', `ID: ${variables.id}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao resolver: ' + err.message);
