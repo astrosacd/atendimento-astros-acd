@@ -85,22 +85,31 @@ serve(async (req) => {
         // Normalize phone number (very basic, remove +)
         const cleanPhone = contact.phone_number ? contact.phone_number.replace(/\D/g, '') : null;
         
-        // Check if lead already exists in pipeline by phone or email
-        let query = supabase.from('client_pipeline').select('*');
-        
-        const conditions = [];
-        if (cleanPhone) conditions.push(`lead_phone.ilike.%${cleanPhone}%`);
-        if (contact.email) conditions.push(`lead_email.eq.${contact.email}`);
-        
-        if (conditions.length > 0) {
-          query = query.or(conditions.join(','));
+        // Check if lead already exists by chatwoot_conversation_id
+        let { data: existing, error: searchError } = await supabase
+          .from('client_pipeline')
+          .select('*')
+          .eq('chatwoot_conversation_id', conv.id)
+          .maybeSingle();
+
+        if (searchError) {
+          console.error(`Error searching by conversation ID (${conv.id}):`, searchError);
         }
 
-        const { data: existing, error: searchError } = await query.maybeSingle();
-        
-        if (searchError) {
-          console.error(`Error searching for existing lead (${contact.name}):`, searchError);
-          continue;
+        // If not found by ID, search by phone or email (for legacy ones or new ones)
+        if (!existing) {
+          let query = supabase.from('client_pipeline').select('*');
+          const conditions = [];
+          if (cleanPhone) conditions.push(`lead_phone.ilike.%${cleanPhone}%`);
+          if (contact.email) conditions.push(`lead_email.eq.${contact.email}`);
+          
+          if (conditions.length > 0) {
+            query = query.or(conditions.join(','));
+            const { data: byContactInfo, error: searchContactError } = await query.maybeSingle();
+            if (!searchContactError && byContactInfo) {
+              existing = byContactInfo;
+            }
+          }
         }
 
         if (!existing && sync_leads) {
@@ -113,6 +122,7 @@ serve(async (req) => {
               lead_name: contact.name || 'Contato Chatwoot',
               lead_phone: contact.phone_number,
               lead_email: contact.email,
+              chatwoot_conversation_id: conv.id,
               notes: `Importado de conversa aberta no Chatwoot (ID Conv: ${conv.id})\nAvatar: ${contact.thumbnail || ''}`
             });
           
@@ -135,19 +145,41 @@ serve(async (req) => {
             .map((m: any) => `${m.message_type === 0 ? 'Cliente' : 'Atendente'}: ${m.content || '[Arquivo/Imagem]'}`)
             .join('\n');
 
-          if (conversationText) {
-            // Update only if conversation text is different or notes don't contain it
-            if (!existing.notes?.includes(conversationText.substring(0, 100))) {
-              await supabase
-                .from('client_pipeline')
-                .update({
-                  notes: `Conversa aberta Chatwoot (ID: ${conv.id}):\n${conversationText}\n\n${existing.notes || ''}`.substring(0, 1000),
-                  last_interaction_at: new Date().toISOString()
-                })
-                .eq('id', existing.id);
-            }
+          const updateData: any = {
+            chatwoot_conversation_id: conv.id,
+            is_lead: true, // Keep it as a lead if it's an open conversation
+            last_interaction_at: new Date().toISOString()
+          };
+
+          if (conversationText && !existing.notes?.includes(conversationText.substring(0, 50))) {
+            updateData.notes = `Chatwoot (${conv.id}):\n${conversationText}\n\n${existing.notes || ''}`.substring(0, 1000);
           }
+
+          await supabase
+            .from('client_pipeline')
+            .update(updateData)
+            .eq('id', existing.id);
         }
+      }
+
+      // 3. Logic to "remove" leads that no longer have an open conversation
+      // We'll mark them as is_lead = false if they have a chatwoot_conversation_id and it's NOT in openConvIds
+      if (openConvIds.length > 0) {
+        const { error: closeError } = await supabase
+          .from('client_pipeline')
+          .update({ is_lead: false })
+          .not('chatwoot_conversation_id', 'is', null)
+          .not('chatwoot_conversation_id', 'in', `(${openConvIds.join(',')})`);
+        
+        if (closeError) {
+          console.error("Error closing finished conversations:", closeError);
+        }
+      } else {
+        // If NO open conversations, close ALL that had a chatwoot_id
+        await supabase
+          .from('client_pipeline')
+          .update({ is_lead: false })
+          .not('chatwoot_conversation_id', 'is', null);
       }
     }
 
