@@ -41,6 +41,7 @@ import {
   FileText,
   LucideIcon,
   Megaphone,
+  Share2,
   Send,
   Clock,
   Smartphone,
