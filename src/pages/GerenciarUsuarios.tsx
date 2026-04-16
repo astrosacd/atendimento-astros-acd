@@ -353,6 +353,9 @@ export default function GerenciarUsuarios() {
         title: t('userManagement.toast.userRejected'),
         description: t('userManagement.toast.userRejectedDesc'),
       });
+
+      const userToReject = users.find(u => u.id === rejectingUserId);
+      logActivity(`Recusou usuário: ${userToReject?.name || userToReject?.email}`, 'admin', `Motivo: ${rejectionReason}`);
     },
     onError: (error) => {
       console.error('Error rejecting user:', error);
