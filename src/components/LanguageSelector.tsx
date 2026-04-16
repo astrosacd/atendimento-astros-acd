@@ -49,7 +49,7 @@ export function LanguageSelector({ collapsed = false }: LanguageSelectorProps) {
   return (
     <DropdownMenu>
       {collapsed ? (
-        <Tooltip delayDuration={0}>
+        <Tooltip delayDuration={150}>
           <TooltipTrigger asChild>
             {trigger}
           </TooltipTrigger>
