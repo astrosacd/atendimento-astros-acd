@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 
 interface WhatsAppInstance {
   id: string;

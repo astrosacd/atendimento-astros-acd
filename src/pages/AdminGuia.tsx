@@ -2437,6 +2437,46 @@ Ou acesse diretamente: **/admin/consulta-numeros/guia**`
       ]
     },
     {
+      id: "social-media",
+      title: "Social Media e Credenciais",
+      icon: Share2,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Gerencie credenciais de redes sociais e logos dos clientes.",
+      steps: [
+        {
+          title: "O que é o módulo Social Media?",
+          content: `O módulo **Social Media** permite centralizar o armazenamento de credenciais e logos dos clientes:
+          
+- **Credenciais Seguras**: Armazene logins e senhas de Instagram, Facebook, TikTok, etc.
+- **Logos**: Faça upload e gerencie os arquivos de marca dos clientes.
+- **Compartilhamento**: Gere links temporários para que parceiros ou clientes acessem as credenciais sem precisar de login no sistema.`
+        },
+        {
+          title: "Como gerenciar credenciais",
+          content: `Para gerenciar as credenciais de um cliente:
+          
+1. Vá em **Clientes** -> **Consultar**.
+2. Clique no ícone de cadeado (Credenciais) na linha do cliente.
+3. Clique em **Nova Credencial** para adicionar dados de uma nova plataforma.
+4. Você pode visualizar, editar ou excluir credenciais existentes.`
+        },
+        {
+          title: "Compartilhando acessos",
+          content: `Você pode gerar um link de acesso temporário:
+          
+1. No modal de credenciais, clique em **Gerar Link**.
+2. Escolha o tempo de expiração do link (ex: 24 horas).
+3. Copie o link gerado e envie para quem precisar acessar os dados.`
+        }
+      ],
+      tips: [
+        "Sempre defina um tempo de expiração curto para links compartilhados por segurança.",
+        "As senhas são armazenadas de forma criptografada na base de dados.",
+        "Você pode fazer o download das logos diretamente pela aba 'Logos' no modal."
+      ]
+    },
+    {
       id: "gateway-visao-geral",
       title: "Gateway de Pagamentos",
       icon: Store,

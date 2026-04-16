@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Settings, Mail, Clock, Save, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 
 const AdminChamadosConfig = () => {
   const navigate = useNavigate();
