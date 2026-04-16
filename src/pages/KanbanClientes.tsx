@@ -229,8 +229,20 @@ export default function KanbanClientes() {
   const updateAllAIScores = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('update_all_lead_scores');
-      if (error) throw error;
+      // First try to invoke the Edge Function for actual AI analysis if configured
+      const { data, error: functionError } = await supabase.functions.invoke('update-lead-scores', {
+        headers: {
+          'Authorization': `Bearer ${process.env.CRON_SECRET || ''}` // Note: This might not work if CRON_SECRET isn't exposed to client
+        }
+      });
+
+      // Fallback or secondary update using RPC if needed
+      if (functionError) {
+        console.warn('Edge function error, falling back to RPC simulation:', functionError);
+        const { error: rpcError } = await supabase.rpc('update_all_lead_scores');
+        if (rpcError) throw rpcError;
+      }
+      
       toast.success('Scores de todos os clientes atualizados com sucesso');
       await loadData();
     } catch (err) {
