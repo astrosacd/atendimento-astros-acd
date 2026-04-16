@@ -210,6 +210,7 @@ export function useFollowups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up excluído');
+      logActivity(`Excluiu um follow-up`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao excluir: ' + err.message);
