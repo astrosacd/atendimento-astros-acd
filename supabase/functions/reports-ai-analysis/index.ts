@@ -26,7 +26,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { provider, model, customPrompt, metricsData, openaiApiKey, grokApiKey, scheduled } = await req.json();
+    const payload = await req.json();
+    const { provider, model, customPrompt, metricsData, openaiApiKey, grokApiKey, scheduled } = payload;
 
     const aiProvider = provider || "lovable";
     const aiModel = model || "google/gemini-3-flash-preview";
@@ -145,9 +146,15 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
       metrics_snapshot: metricsData || {},
     });
 
-    // If scheduled, send notifications and log them
+    // If scheduled or specifically requested, send notifications and log them
     if (scheduled) {
-      await sendScheduledNotifications(supabase, responseText);
+      const { notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses } = payload;
+      await sendScheduledNotifications(supabase, responseText, {
+        notifyWhatsapp,
+        notifyEmail,
+        whatsappNumbers,
+        emailAddresses
+      });
     }
 
     return new Response(JSON.stringify({
@@ -169,22 +176,32 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
   }
 });
 
-async function sendScheduledNotifications(supabase: any, analysis: string) {
+async function sendScheduledNotifications(supabase: any, analysis: string, overrides?: any) {
   try {
-    const { data: configRow } = await supabase
-      .from("reports_analysis_config")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
-    if (!configRow) {
-      console.warn("[reports-ai] No reports_analysis_config found, skipping notifications");
-      return;
-    }
+    let notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses;
 
-    const notifyWhatsapp = configRow.notify_whatsapp;
-    const notifyEmail = configRow.notify_email;
-    const whatsappNumbers: string[] = configRow.whatsapp_recipients || [];
-    const emailAddresses: string[] = configRow.email_recipients || [];
+    if (overrides?.notifyWhatsapp !== undefined || overrides?.notifyEmail !== undefined) {
+      notifyWhatsapp = overrides.notifyWhatsapp;
+      notifyEmail = overrides.notifyEmail;
+      whatsappNumbers = overrides.whatsappNumbers || [];
+      emailAddresses = overrides.emailAddresses || [];
+    } else {
+      const { data: configRow } = await supabase
+        .from("reports_analysis_config")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+        
+      if (!configRow) {
+        console.warn("[reports-ai] No reports_analysis_config found, skipping notifications");
+        return;
+      }
+      
+      notifyWhatsapp = configRow.notify_whatsapp;
+      notifyEmail = configRow.notify_email;
+      whatsappNumbers = configRow.whatsapp_recipients || [];
+      emailAddresses = configRow.email_recipients || [];
+    }
 
     console.log(`[reports-ai] Notification config: whatsapp=${notifyWhatsapp} (${whatsappNumbers.length} numbers), email=${notifyEmail} (${emailAddresses.length} emails)`);
 
@@ -342,10 +359,15 @@ async function sendScheduledNotifications(supabase: any, analysis: string) {
       }
     }
 
-    // Update last_analysis_at
-    await supabase.from("reports_analysis_config").update({
-      last_analysis_at: new Date().toISOString(),
-    }).eq("id", configRow.id);
+    // Update last_analysis_at if it's a scheduled run
+    if (!overrides) {
+      const { data: configRow } = await supabase.from("reports_analysis_config").select("id").limit(1).maybeSingle();
+      if (configRow) {
+        await supabase.from("reports_analysis_config").update({
+          last_analysis_at: new Date().toISOString(),
+        }).eq("id", configRow.id);
+      }
+    }
 
   } catch (e: any) {
     console.error("[reports-ai] Notification error:", e.message);

@@ -84,8 +84,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [newEmail, setNewEmail] = useState('');
   const [configId, setConfigId] = useState<string | null>(null);
 
-  // History expand state
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  // Notifications state removed as it's not needed for UI expansion anymore
 
   const { data: history = [], refetch: refetchHistory } = useQuery({
     queryKey: ['reports-ai-history'],
@@ -95,6 +94,19 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: notificationLogs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ['reports-notification-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reports_notification_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
       if (error) throw error;
       return data;
     },
@@ -200,6 +212,11 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
           metricsData,
           openaiApiKey: openaiKey || undefined,
           grokApiKey: grokKey || undefined,
+          scheduled: notifyWhatsapp || notifyEmail,
+          notifyWhatsapp,
+          notifyEmail,
+          whatsappNumbers,
+          emailAddresses,
         },
       });
 
@@ -209,7 +226,8 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       setAnalysis(data.analysis);
       setPromptUsed(data.prompt);
       refetchHistory();
-      toast.success('Análise gerada com sucesso!');
+      refetchLogs();
+      toast.success('Análise gerada e notificações enviadas (se configuradas)!');
     } catch (err: any) {
       console.error('AI analysis error:', err);
       toast.error(err.message || 'Erro ao gerar análise');
@@ -497,64 +515,113 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         </TabsContent>
 
         {/* History Tab */}
-        <TabsContent value="history" className="space-y-4">
-          {history.length === 0 ? (
-            <Card className="bg-card/50 border-border/50">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p>Nenhuma análise gerada ainda</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-4 pr-4">
-                {history.map((item: any) => (
-                  <Card key={item.id} className="bg-card/50 border-border/50">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Bot className="h-4 w-4" />
-                          {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
-                          {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Ver análise completa">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl max-h-[80vh]">
-                              <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                  <Bot className="h-4 w-4" />
-                                  Análise - {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                  <Badge variant="outline" className="text-xs ml-2">{item.ai_provider}</Badge>
-                                  {item.ai_model && <Badge variant="secondary" className="text-xs">{item.ai_model}</Badge>}
-                                </DialogTitle>
-                              </DialogHeader>
-                              <ScrollArea className="max-h-[60vh]">
-                                <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
-                                  <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
-                                </div>
-                              </ScrollArea>
-                            </DialogContent>
-                          </Dialog>
+        <TabsContent value="history" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2 mb-4">
+                <Bot className="h-4 w-4 text-primary" />
+                Histórico de Análises
+              </h3>
+              {history.length === 0 ? (
+                <Card className="bg-card/50 border-border/50">
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                    <p>Nenhuma análise gerada ainda</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-4 pr-4">
+                    {history.map((item: any) => (
+                      <Card key={item.id} className="bg-card/50 border-border/50">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl max-h-[80vh]">
+                                  <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                      <Bot className="h-4 w-4" />
+                                      Análise - {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </DialogTitle>
+                                  </DialogHeader>
+                                  <ScrollArea className="max-h-[60vh]">
+                                    <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
+                                      <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
+                                    </div>
+                                  </ScrollArea>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 text-sm">
+                            <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2 mb-4">
+                <Mail className="h-4 w-4 text-primary" />
+                Histórico de Envios
+              </h3>
+              {notificationLogs.length === 0 ? (
+                <Card className="bg-card/50 border-border/50">
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                    <p>Nenhum envio registrado ainda</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-3 pr-4">
+                    {notificationLogs.map((log: any) => (
+                      <div key={log.id} className="p-3 rounded-lg border border-border/50 bg-card/30 flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 p-1.5 rounded-full ${log.channel === 'whatsapp' ? 'bg-success/10 text-success' : 'bg-info/10 text-info'}`}>
+                            {log.channel === 'whatsapp' ? <MessageSquare className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{log.recipient}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(log.created_at), "dd/MM HH:mm", { locale: ptBR })} • {log.channel}
+                            </p>
+                            {log.error_message && (
+                              <p className="text-xs text-destructive mt-1 bg-destructive/5 p-1.5 rounded border border-destructive/10">
+                                {log.error_message}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                        <Badge 
+                          variant={log.status === 'sent' ? 'outline' : 'destructive'} 
+                          className={`text-[10px] uppercase ${log.status === 'sent' ? 'border-success text-success bg-success/5' : ''}`}
+                        >
+                          {log.status === 'sent' ? 'Enviado' : 'Erro'}
+                        </Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-6 text-sm">
-                        <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">Clique no ícone 👁️ para ver a análise completa</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
