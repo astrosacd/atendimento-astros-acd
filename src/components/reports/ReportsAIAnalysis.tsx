@@ -568,111 +568,108 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
 
         {/* History Tab */}
         <TabsContent value="history" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2 mb-4">
-                <Bot className="h-4 w-4 text-primary" />
-                Histórico de Análises
-              </h3>
-              {history.length === 0 ? (
-                <Card className="bg-card/50 border-border/50">
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                    <p>Nenhuma análise gerada ainda</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <ScrollArea className="h-[600px]">
-                  <div className="space-y-4 pr-4">
-                    {history.map((item: any) => (
-                      <Card key={item.id} className="bg-card/50 border-border/50">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                              {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            </CardTitle>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">{item.ai_provider}</Badge>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-3xl max-h-[80vh]">
-                                  <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2">
-                                      <Bot className="h-4 w-4" />
-                                      Análise - {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <ScrollArea className="max-h-[60vh]">
-                                    <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
-                                      <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
-                                    </div>
-                                  </ScrollArea>
-                                </DialogContent>
-                              </Dialog>
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2 mb-4">
+              <Bot className="h-4 w-4 text-primary" />
+              Histórico de Análises e Envios
+            </h3>
+            
+            {history.length === 0 ? (
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  <p>Nenhuma análise gerada ainda</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <ScrollArea className="h-[700px]">
+                <div className="space-y-6 pr-4">
+                  {history.map((item: any) => (
+                    <Card key={item.id} className="bg-card/50 border-border/50 overflow-hidden">
+                      <div className="grid grid-cols-1 md:grid-cols-3">
+                        {/* Analysis Content */}
+                        <div className="md:col-span-2 p-6 border-b md:border-b-0 md:border-r border-border/50">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="space-y-1">
+                              <CardTitle className="text-sm flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </CardTitle>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] uppercase h-5">{item.ai_provider}</Badge>
+                                <Badge variant="secondary" className="text-[10px] uppercase h-5">{item.ai_model}</Badge>
+                              </div>
                             </div>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="gap-2">
+                                  <Eye className="h-4 w-4" />
+                                  Ver Completa
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl max-h-[80vh]">
+                                <DialogHeader>
+                                  <DialogTitle className="flex items-center gap-2">
+                                    <Bot className="h-4 w-4" />
+                                    Análise - {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <ScrollArea className="max-h-[60vh]">
+                                  <div className="prose prose-sm dark:prose-invert max-w-none pr-4">
+                                    <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
+                                  </div>
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 text-sm">
+                          
+                          <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-4 text-sm text-muted-foreground">
                             <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2 mb-4">
-                <Mail className="h-4 w-4 text-primary" />
-                Histórico de Envios
-              </h3>
-              {notificationLogs.length === 0 ? (
-                <Card className="bg-card/50 border-border/50">
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                    <p>Nenhum envio registrado ainda</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <ScrollArea className="h-[600px]">
-                  <div className="space-y-3 pr-4">
-                    {notificationLogs.map((log: any) => (
-                      <div key={log.id} className="p-3 rounded-lg border border-border/50 bg-card/30 flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-1 p-1.5 rounded-full ${log.channel === 'whatsapp' ? 'bg-success/10 text-success' : 'bg-info/10 text-info'}`}>
-                            {log.channel === 'whatsapp' ? <MessageSquare className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{log.recipient}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(log.created_at), "dd/MM HH:mm", { locale: ptBR })} • {log.channel}
-                            </p>
-                            {log.error_message && (
-                              <p className="text-xs text-destructive mt-1 bg-destructive/5 p-1.5 rounded border border-destructive/10">
-                                {log.error_message}
-                              </p>
-                            )}
-                          </div>
                         </div>
-                        <Badge 
-                          variant={log.status === 'sent' ? 'outline' : 'destructive'} 
-                          className={`text-[10px] uppercase ${log.status === 'sent' ? 'border-success text-success bg-success/5' : ''}`}
-                        >
-                          {log.status === 'sent' ? 'Enviado' : 'Erro'}
-                        </Badge>
+
+                        {/* Notifications Content */}
+                        <div className="bg-muted/30 p-6">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            Envios Realizados
+                          </h4>
+                          
+                          {item.reports_notification_logs && item.reports_notification_logs.length > 0 ? (
+                            <div className="space-y-3">
+                              {item.reports_notification_logs.map((log: any) => (
+                                <div key={log.id} className="bg-card/50 border border-border/50 rounded-md p-2 text-xs flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className={`p-1 rounded-full shrink-0 ${log.channel === 'whatsapp' ? 'bg-success/10 text-success' : 'bg-info/10 text-info'}`}>
+                                      {log.channel === 'whatsapp' ? <MessageSquare className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+                                    </div>
+                                    <div className="truncate">
+                                      <p className="font-medium truncate">{log.recipient}</p>
+                                      <p className="text-[10px] text-muted-foreground capitalize">{log.channel}</p>
+                                    </div>
+                                  </div>
+                                  <Badge 
+                                    variant={log.status === 'sent' ? 'outline' : 'destructive'} 
+                                    className={`text-[9px] px-1.5 h-4 shrink-0 ${log.status === 'sent' ? 'border-success/50 text-success bg-success/5' : ''}`}
+                                  >
+                                    {log.status === 'sent' ? 'OK' : 'Erro'}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center py-4">
+                              <X className="h-6 w-6 text-muted-foreground/20 mb-2" />
+                              <p className="text-[11px] text-muted-foreground">Nenhum envio registrado para esta análise</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </div>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
         </TabsContent>
       </Tabs>
