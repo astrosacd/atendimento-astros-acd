@@ -15,6 +15,12 @@ interface NumberResult {
   data_cadastro?: string;
 }
 
+interface BaserowConfig {
+  api_url: string;
+  api_token: string;
+  table_id: string;
+}
+
 function normalizeNumeroCompra(raw: string): string {
   let n = raw.trim();
   // Remove @s.whatsapp.net suffix
@@ -26,6 +32,33 @@ function normalizeNumeroCompra(raw: string): string {
   return n;
 }
 
+async function updateBaserowConsultaDate(config: BaserowConfig, rowId: number) {
+  const url = `${config.api_url}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
+  const now = new Date();
+  // Format for Baserow date field (YYYY-MM-DD HH:MM:SS) or ISO
+  const dateStr = now.toISOString();
+
+  try {
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Token ${config.api_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        data_da_ultima_consulta: dateStr,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[validate-sms] Failed to update Baserow row ${rowId}:`, errorText);
+    }
+  } catch (error) {
+    console.error(`[validate-sms] Error updating Baserow row ${rowId}:`, error);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -34,7 +67,24 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Admin client for DB operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get Baserow config
+    const { data: configData } = await supabase
+      .from('consulta_numeros_config')
+      .select('config_key, config_value');
+
+    const config: any = {};
+    (configData || []).forEach((row: any) => {
+      config[row.config_key] = row.config_value;
+    });
+
+    const baserowConfig: BaserowConfig | null = config.baserow_api_url && config.baserow_api_token && config.baserow_table_id ? {
+      api_url: config.baserow_api_url,
+      api_token: config.baserow_api_token,
+      table_id: config.baserow_table_id,
+    } : null;
 
     // Support both authenticated and public (token-based) access
     const authHeader = req.headers.get("Authorization");
@@ -278,6 +328,26 @@ Deno.serve(async (req) => {
     }
 
     // Log all validations (authenticated AND public/temporary access)
+    const logInserts = results.map((r) => ({
+      numero: r.numero,
+      resultado: r.status,
+      motivo: r.motivo || null,
+      baserow_row_id: r.baserow_id ? String(r.baserow_id) : null,
+      user_id: userId,
+      user_email: userEmail || (is_public ? 'acesso_temporario' : null),
+    }));
+
+    // Update Baserow data_da_ultima_consulta for found numbers
+    if (baserowConfig) {
+      const updatePromises = results
+        .filter(r => r.baserow_id)
+        .map(r => updateBaserowConsultaDate(baserowConfig, r.baserow_id!));
+      
+      // We don't necessarily want to block the whole response on this, 
+      // but since it's a few requests and we want to ensure they complete, we await them.
+      // Promise.allSettled is safer as it won't throw if one fails.
+      await Promise.allSettled(updatePromises);
+    }
     const logInserts = results.map((r) => ({
       numero: r.numero,
       resultado: r.status,
