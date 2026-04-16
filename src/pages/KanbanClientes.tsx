@@ -172,36 +172,34 @@ export default function KanbanClientes() {
   };
 
   const updateAIScore = async (pipelineId: string) => {
-    // Simulated AI analysis logic
     const item = clients.find(c => c.id === pipelineId);
     if (!item) return;
 
     setLoading(true);
     try {
-      // In a real app, this would call an Edge Function that uses OpenAI/Claude
-      // Here we simulate it with some deterministic logic based on data
+      // Check if we have Chatwoot data in notes
+      const hasChatwootData = item.notes?.includes('Última conversa Chatwoot:');
       
-      const score = Math.floor(Math.random() * 40) + 60; // 60-100 range for active leads
-      const reasons = [
-        "Interação frequente nos últimos 3 dias.",
-        "Perfil do lead compatível com clientes ideais.",
-        "Demonstrou interesse específico no produto " + (item.lead_produto || "principal"),
-        "Respondeu rapidamente às últimas mensagens."
-      ];
-      const suggestions = [
-        "Enviar proposta personalizada hoje.",
-        "Agendar demonstração técnica para amanhã.",
-        "Oferecer cupom de desconto de 10% para fechamento imediato.",
-        "Ligar para tirar dúvidas sobre a última proposta."
-      ];
+      // In a real app, this would call an Edge Function that uses OpenAI
+      // For now, we enhance the simulation based on available data
+      
+      let score = Math.floor(Math.random() * 40) + 50; // Base 50-90
+      let reason = "Interação padrão do lead.";
+      let suggestion = "Enviar mensagem de acompanhamento.";
 
-      const reason = reasons[Math.floor(Math.random() * reasons.length)];
-      const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      if (hasChatwootData) {
+        score += 10;
+        reason = "Lead ativo no Chatwoot com interações recentes analisadas.";
+        suggestion = "Analisar histórico do Chatwoot e responder dúvidas específicas.";
+      } else if (item.lead_phone || item.lead_email) {
+        score += 5;
+        reason = "Lead com informações de contato completas.";
+      }
 
       const { error } = await supabase
         .from('client_pipeline')
         .update({
-          lead_score: score,
+          lead_score: Math.min(score, 100),
           lead_score_reason: reason,
           next_action_suggestion: suggestion,
           last_ai_update: new Date().toISOString()
