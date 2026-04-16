@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ interface ClientPurchasesManagerProps {
 
 export function ClientPurchasesManager({ clienteId, clienteNome }: ClientPurchasesManagerProps) {
   const { t } = useTranslation();
+  const { logActivity } = useSystemActivities();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,6 +87,7 @@ export function ClientPurchasesManager({ clienteId, clienteNome }: ClientPurchas
       toast.error('Erro ao adicionar compra');
     } else {
       toast.success('Compra adicionada com sucesso!');
+      logActivity(`Registrou venda para ${clienteNome}`, 'venda', `Produto: ${newPurchase.produto}, Valor: ${newPurchase.valor} ${newPurchase.moeda}`);
       setIsDialogOpen(false);
       setNewPurchase({
         valor: '',
