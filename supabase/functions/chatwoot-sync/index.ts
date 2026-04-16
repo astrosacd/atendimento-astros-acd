@@ -13,8 +13,8 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get config
     const { data: config, error: configError } = await supabase
@@ -65,36 +65,38 @@ serve(async (req) => {
       console.log(`Found ${contacts.length} contacts in current page`);
 
       for (const contact of contacts) {
-        console.log(`Processing contact: ${contact.name} (ID: ${contact.id}) | Phone: ${contact.phone_number} | Email: ${contact.email}`);
+        // Log first contact to see structure
+        if (syncedCount === 0) {
+          console.log(`Processing contact sample: ${contact.name} (ID: ${contact.id}) | Phone: ${contact.phone_number}`);
+        }
 
-        // If no phone/email, we can still import if they have a name, but we need a unique way to track them
-        // Let's use Chatwoot ID in the notes or a metadata field if available
-        
+        // If no phone/email, we skip for now to avoid duplicates without unique keys
         if (!contact.phone_number && !contact.email) {
-          console.log(`Skipping ${contact.name} - No phone or email`);
           continue;
         }
 
+        // Normalize phone number (very basic, remove +)
+        const cleanPhone = contact.phone_number ? contact.phone_number.replace(/\D/g, '') : null;
+        
         // Check if lead already exists in pipeline by phone or email
         let query = supabase.from('client_pipeline').select('id');
         
-        if (contact.phone_number && contact.email) {
-          query = query.or(`lead_phone.eq.${contact.phone_number},lead_email.eq.${contact.email}`);
-        } else if (contact.phone_number) {
-          query = query.eq('lead_phone', contact.phone_number);
-        } else if (contact.email) {
-          query = query.eq('lead_email', contact.email);
+        const conditions = [];
+        if (cleanPhone) conditions.push(`lead_phone.ilike.%${cleanPhone}%`);
+        if (contact.email) conditions.push(`lead_email.eq.${contact.email}`);
+        
+        if (conditions.length > 0) {
+          query = query.or(conditions.join(','));
         }
 
         const { data: existing, error: searchError } = await query.maybeSingle();
         
         if (searchError) {
-          console.error("Error searching for existing lead:", searchError);
+          console.error(`Error searching for existing lead (${contact.name}):`, searchError);
           continue;
         }
 
         if (!existing) {
-          console.log(`Inserting new lead: ${contact.name}`);
           // Insert new lead
           const { error: insertError } = await supabase
             .from('client_pipeline')
@@ -111,8 +113,6 @@ serve(async (req) => {
           } else {
             console.error(`Error inserting lead ${contact.name}:`, insertError);
           }
-        } else {
-          console.log(`Lead ${contact.name} already exists`);
         }
       }
     }
@@ -129,8 +129,10 @@ serve(async (req) => {
           const searchVal = item.lead_phone || item.lead_email;
           if (!searchVal) continue;
 
-          console.log(`Searching conversations for: ${searchVal}`);
-          const contactSearchRes = await fetch(`${baseUrl}/contacts/search?q=${encodeURIComponent(searchVal)}`, { headers });
+          // Simple cleaning for phone to improve search
+          const queryVal = searchVal.replace(/\D/g, '');
+          
+          const contactSearchRes = await fetch(`${baseUrl}/contacts/search?q=${encodeURIComponent(queryVal)}`, { headers });
           if (!contactSearchRes.ok) continue;
           
           const searchData = await contactSearchRes.json();
