@@ -43,6 +43,7 @@ import { useProposals } from '@/hooks/useProposals';
 import { useProposalSections, type SectionType, type ProposalSection } from '@/hooks/useProposalSections';
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
