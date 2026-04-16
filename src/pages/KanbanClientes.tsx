@@ -230,11 +230,7 @@ export default function KanbanClientes() {
     setLoading(true);
     try {
       // First try to invoke the Edge Function for actual AI analysis if configured
-      const { data, error: functionError } = await supabase.functions.invoke('update-lead-scores', {
-        headers: {
-          'Authorization': `Bearer ${process.env.CRON_SECRET || ''}` // Note: This might not work if CRON_SECRET isn't exposed to client
-        }
-      });
+      const { error: functionError } = await supabase.functions.invoke('update-lead-scores');
 
       // Fallback or secondary update using RPC if needed
       if (functionError) {
