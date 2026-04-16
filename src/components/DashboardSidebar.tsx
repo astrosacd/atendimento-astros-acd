@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
+
 import { supabase } from '@/integrations/supabase/client';
 import {
   Tooltip,
@@ -196,63 +197,70 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     navigate('/auth');
   };
 
-  const NavButton = ({ item }: { item: NavItem }) => {
-    const isActive = location.pathname === item.path;
+interface NavButtonProps {
+  item: NavItem;
+  collapsed: boolean;
+  isActive: boolean;
+  navRef: React.RefObject<HTMLDivElement | null>;
+}
 
-    const base = cn(
-      "w-full h-11 px-3 rounded-md flex items-center gap-3 relative",
-      "text-sm text-left",
-      "transition-colors duration-150",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      collapsed && "justify-center px-0",
-      isActive
-        ? "bg-primary/15 text-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-    );
+const NavButton = memo(({ item, collapsed, isActive, navRef }: NavButtonProps) => {
+  const base = cn(
+    "w-full h-11 px-3 rounded-md flex items-center gap-3 relative",
+    "text-sm text-left",
+    "transition-colors duration-150",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    collapsed && "justify-center px-0",
+    isActive
+      ? "bg-primary/15 text-primary"
+      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+  );
 
-    const content = (
-      <button
-        type="button"
-        aria-current={isActive ? "page" : undefined}
-        onClick={() => {
-          if (navRef.current) {
-            sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
-          }
-          navigate(item.path);
-        }}
-        className={base}
+  const content = (
+    <Link
+      to={item.path}
+      aria-current={isActive ? "page" : undefined}
+      onClick={() => {
+        if (navRef.current) {
+          sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
+        }
+      }}
+      className={base}
+    >
+      {isActive && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+      )}
+
+      <div className={cn("relative flex items-center justify-center shrink-0", isActive && "scale-110")}
       >
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-        )}
+        <item.icon
+          className={cn(
+            "h-5 w-5",
+            isActive ? "text-primary" : item.color || "text-muted-foreground",
+          )}
+        />
+      </div>
 
-        <div className={cn("relative flex items-center justify-center shrink-0", isActive && "scale-110")}
-        >
-          <item.icon
-            className={cn(
-              "h-5 w-5",
-              isActive ? "text-primary" : item.color || "text-muted-foreground",
-            )}
-          />
-        </div>
+      {!collapsed && <span className="truncate">{item.title}</span>}
+    </Link>
+  );
 
-        {!collapsed && <span className="truncate">{item.title}</span>}
-      </button>
+  if (collapsed) {
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" className="bg-popover border-border shadow-lg">
+          {item.title}
+        </TooltipContent>
+      </Tooltip>
     );
+  }
 
-    if (collapsed) {
-      return (
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-            {item.title}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
+  return content;
+});
 
-    return content;
-  };
+NavButton.displayName = 'NavButton';
+
 
   return (
     <aside className={cn(
@@ -343,7 +351,14 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
               index > 0 && <div className="my-3 mx-2 border-t border-border" />
             )}
             {group.items.map((item) => (
-              <NavButton key={item.path} item={item} />
+              <NavButton 
+                key={item.path} 
+                item={item} 
+                collapsed={collapsed}
+                isActive={location.pathname === item.path}
+                navRef={navRef}
+              />
+
             ))}
           </div>
         ))}
