@@ -266,7 +266,7 @@ export default function KanbanClientes() {
                 <Zap className="h-4 w-4" /> Automações
               </TabsTrigger>
             )}
-            {(isAdmin || canManagePipelineStages()) && (
+            {(isAdmin || canManagePipelineChatwoot()) && (
               <TabsTrigger value="chatwoot" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <MessageSquare className="h-4 w-4" /> Chatwoot
               </TabsTrigger>
@@ -276,7 +276,7 @@ export default function KanbanClientes() {
                 <Brain className="h-4 w-4" /> Config. IA
               </TabsTrigger>
             )}
-            {(isAdmin || canManagePipelineStages()) && (
+            {(isAdmin || canSharePipeline()) && (
               <TabsTrigger value="share" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Share2 className="h-4 w-4" /> Compartilhar
               </TabsTrigger>
