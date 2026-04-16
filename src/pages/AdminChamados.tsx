@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { 
   ArrowLeft, 
   Ticket, 
@@ -77,6 +78,7 @@ const AdminChamados = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { logActivity } = useSystemActivities();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null);
@@ -120,6 +122,7 @@ const AdminChamados = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
+      logActivity(`Atualizou status do chamado ${id} para ${status}`, 'duvida');
       toast.success('Status atualizado com sucesso');
     },
     onError: (error) => {
@@ -152,6 +155,7 @@ const AdminChamados = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
       setNewComment("");
+      logActivity(`Comentou no chamado ${chamadoId}`, 'duvida');
       toast.success('Comentário adicionado');
     },
     onError: (error) => {
