@@ -350,6 +350,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
                 recipient: email,
                 status: "error",
                 error_message: e.message?.substring(0, 500),
+                analysis_id: overrides?.analysisId,
               }).then(() => {}).catch(() => {});
             }
           }
