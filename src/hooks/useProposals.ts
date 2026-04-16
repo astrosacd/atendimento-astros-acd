@@ -161,6 +161,7 @@ export function useProposals() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['proposal', data.id] });
+      logActivity(`Atualizou proposta: ${data.title}`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao atualizar proposta:', error);
