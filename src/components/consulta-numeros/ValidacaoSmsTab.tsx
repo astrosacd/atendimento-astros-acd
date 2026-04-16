@@ -54,6 +54,7 @@ const RESULT_SHARE_MESSAGE = `- Solicite o SMS somente após ser notificado para
 export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps) {
   const { user, isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const [numeroCompra, setNumeroCompra] = useState('');
   const [numeroCompraConfirmed, setNumeroCompraConfirmed] = useState(false);
   const [numerosInput, setNumerosInput] = useState('');
