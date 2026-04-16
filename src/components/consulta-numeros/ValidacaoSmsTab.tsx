@@ -248,9 +248,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       if (error) throw error;
 
-      const baseUrl = window.location.hostname.includes('lovable.app')
-        ? 'https://atendimento-astros-acd.lovable.app'
-        : window.location.origin;
+      const baseUrl = window.location.origin;
       const link = `${baseUrl}/resultado-sms/${data.token}`;
 
       const textToCopy = `📋 Veja a análise dos números solicitados:\n${link}`;
