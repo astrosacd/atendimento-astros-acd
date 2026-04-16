@@ -340,7 +340,11 @@ export const ClientRecoveryManager = () => {
       r.cliente_id === clienteId && 
       r.canal === 'whatsapp' &&
       r.status === 'error' && 
-      r.error_message?.toLowerCase().includes('não existe')
+      (
+        r.error_message?.toLowerCase().includes('não existe') || 
+        r.error_message?.toLowerCase().includes('"exists":false') ||
+        r.error_message?.toLowerCase().includes('number does not exist')
+      )
     );
   };
 
