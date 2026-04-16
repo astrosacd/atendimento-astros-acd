@@ -242,6 +242,8 @@ export const useClientTasks = () => {
         description: 'A tarefa foi criada com sucesso.',
       });
 
+      logActivity(`Criou nova tarefa: ${data.title}`, 'tarefa');
+
       return data as ClientTask;
     } catch (error: any) {
       console.error('Error creating task:', error);
