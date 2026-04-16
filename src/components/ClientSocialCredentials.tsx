@@ -266,8 +266,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
       toast.error('Erro ao gerar link');
       return;
     }
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/credenciais/${data.token}`;
+    const link = `${siteUrl}/credenciais/${data.token}`;
     setGeneratedLink(link);
   };
 
