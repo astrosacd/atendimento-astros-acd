@@ -277,6 +277,11 @@ export default function KanbanClientes() {
               <AutomationRulesPanel />
             </TabsContent>
           )}
+          {(isAdmin || canManagePipelineStages()) && (
+            <TabsContent value="chatwoot">
+              <ChatwootIntegration />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
