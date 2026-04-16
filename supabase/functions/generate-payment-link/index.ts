@@ -28,7 +28,7 @@ const calculateValueWithFee = (baseValue: number, feePercent: number) => {
 const getBaseUrl = (req: Request) => {
   const origin = req.headers.get("origin") || "";
   if (origin.includes("lovable.app")) {
-    return "https://atendimento-astros-acd.lovable.app";
+    return origin;
   }
   return origin || "https://atendimento-astros-acd.lovable.app";
 };
