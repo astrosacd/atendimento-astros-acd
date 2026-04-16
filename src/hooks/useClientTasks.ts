@@ -51,6 +51,7 @@ export interface TaskHistoryEntry {
 export const useClientTasks = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
 
   // Helper function to log task history
   const logTaskHistory = async (
