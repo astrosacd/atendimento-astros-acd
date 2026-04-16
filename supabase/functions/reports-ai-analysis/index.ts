@@ -138,13 +138,19 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
     const responseText = aiData.choices?.[0]?.message?.content || "Sem resposta da IA";
 
     // Save to history
-    await supabase.from("reports_analysis_history").insert({
+    const { data: historyData, error: historyError } = await supabase.from("reports_analysis_history").insert({
       analysis_text: responseText,
       ai_provider: aiProvider,
       ai_model: requestBody.model,
       prompt_used: promptToUse,
       metrics_snapshot: metricsData || {},
-    });
+    }).select("id").single();
+
+    if (historyError) {
+      console.error("[reports-ai] History save error:", historyError);
+    }
+
+    const analysisId = historyData?.id;
 
     // If scheduled or specifically requested, send notifications and log them
     if (scheduled) {
@@ -153,7 +159,8 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
         notifyWhatsapp,
         notifyEmail,
         whatsappNumbers,
-        emailAddresses
+        emailAddresses,
+        analysisId
       });
     }
 
@@ -264,6 +271,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               recipient: phone,
               status: sendStatus,
               error_message: sendStatus === "error" ? sendBody.substring(0, 500) : null,
+              analysis_id: overrides?.analysisId,
             }).then(() => {}).catch(() => {});
 
             console.log(`[reports-ai] WhatsApp to ${phone}: ${sendStatus}`);
@@ -274,6 +282,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               recipient: number,
               status: "error",
               error_message: e.message?.substring(0, 500),
+              analysis_id: overrides?.analysisId,
             }).then(() => {}).catch(() => {});
           }
         }
@@ -330,6 +339,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
                 channel: "email",
                 recipient: email,
                 status: "sent",
+                analysis_id: overrides?.analysisId,
               }).then(() => {}).catch(() => {});
 
               console.log(`[reports-ai] Email sent to ${email}`);
@@ -340,6 +350,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
                 recipient: email,
                 status: "error",
                 error_message: e.message?.substring(0, 500),
+                analysis_id: overrides?.analysisId,
               }).then(() => {}).catch(() => {});
             }
           }
@@ -353,6 +364,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               recipient: email,
               status: "error",
               error_message: `SMTP connection failed: ${smtpErr.message?.substring(0, 400)}`,
+              analysis_id: overrides?.analysisId,
             }).then(() => {}).catch(() => {});
           }
         }
