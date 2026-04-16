@@ -5415,6 +5415,7 @@ export type Database = {
       }
       reports_notification_logs: {
         Row: {
+          analysis_id: string | null
           channel: string
           created_at: string
           error_message: string | null
@@ -5423,6 +5424,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          analysis_id?: string | null
           channel: string
           created_at?: string
           error_message?: string | null
@@ -5431,6 +5433,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          analysis_id?: string | null
           channel?: string
           created_at?: string
           error_message?: string | null
@@ -5438,7 +5441,15 @@ export type Database = {
           recipient?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reports_notification_logs_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "reports_analysis_history"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissions: {
         Row: {
