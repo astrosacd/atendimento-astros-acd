@@ -338,10 +338,16 @@ export const ClientRecoveryManager = () => {
   const isInternationalNumber = (numero: string) => {
     if (!numero) return false;
     const clean = numero.replace(/\D/g, '');
-    // Brazilian numbers start with 55 and have 12-13 digits, or 10-11 digits without country code
+    
+    // Brazilian numbers start with 55 and have 12-13 digits
     if (clean.startsWith('55') && (clean.length === 12 || clean.length === 13)) return false;
-    if (!clean.startsWith('55') && (clean.length === 10 || clean.length === 11)) return false;
-    // If it starts with a country code that's not 55, it's international
+    
+    // Local Brazilian numbers (without 55) have 10-11 digits and don't start with '1' (US/Canada DDI)
+    if (!clean.startsWith('55') && (clean.length === 10 || clean.length === 11) && !clean.startsWith('1')) {
+      return false;
+    }
+    
+    // If it's outside the standard Brazilian formats or starts with a different country code, it's international
     return true;
   };
 
@@ -354,16 +360,21 @@ export const ClientRecoveryManager = () => {
       (
         r.error_message?.toLowerCase().includes('não existe') || 
         r.error_message?.toLowerCase().includes('"exists":false') ||
-        r.error_message?.toLowerCase().includes('number does not exist')
+        r.error_message?.toLowerCase().includes('number does not exist') ||
+        r.error_message?.toLowerCase().includes('not registered')
       )
     );
   };
 
   // Get the type of phone issue for display
   const getPhoneIssueType = (clienteId: string, numero: string): 'international' | 'invalid' | null => {
-    if (!hasWhatsAppError(clienteId)) return null;
+    // International numbers always get the yellow badge for manual verification
     if (isInternationalNumber(numero)) return 'international';
-    return 'invalid';
+    
+    // Brazilian numbers only get the red badge if an error was confirmed
+    if (hasWhatsAppError(clienteId)) return 'invalid';
+    
+    return null;
   };
 
   const hasPendingRecovery = (clienteId: string) => {
