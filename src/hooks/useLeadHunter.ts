@@ -293,6 +293,7 @@ export function useUpdateConfig() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead-hunter-config'] });
       toast.success('Configurações salvas!');
+      logActivity(`Atualizou configurações do Lead Hunter`, 'config');
     },
     onError: () => toast.error('Erro ao salvar configurações'),
   });
