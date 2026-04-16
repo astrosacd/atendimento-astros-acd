@@ -30,7 +30,7 @@ serve(async (req) => {
       );
     }
 
-    const { chatwoot_url, chatwoot_api_key, account_id, sync_leads, sync_conversations } = config;
+    const { chatwoot_url, chatwoot_api_key, account_id, inbox_id, sync_leads, sync_conversations } = config;
 
     if (!chatwoot_url || !chatwoot_api_key || !account_id) {
       console.log("Incomplete config:", { chatwoot_url, hasApiKey: !!chatwoot_api_key, account_id });
