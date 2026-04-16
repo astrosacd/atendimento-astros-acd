@@ -43,6 +43,7 @@ import { useProposals } from '@/hooks/useProposals';
 import { useProposalSections, type SectionType, type ProposalSection } from '@/hooks/useProposalSections';
 import { useClientes } from '@/hooks/useClientes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ProposalPreview } from '@/components/proposals/ProposalPreview';
@@ -88,6 +89,7 @@ export default function PropostaEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const siteUrl = useSiteUrl();
 
   const { useProposal, updateProposal } = useProposals();
   const { data: proposal, isLoading: isLoadingProposal } = useProposal(id);
@@ -325,7 +327,7 @@ export default function PropostaEditor() {
       return;
     }
     
-    const url = `${window.location.origin}/proposta/${proposal.id}?token=${proposal.share_token}`;
+    const url = `${siteUrl}/proposta/${proposal.id}?token=${proposal.share_token}`;
     
     try {
       await navigator.clipboard.writeText(url);

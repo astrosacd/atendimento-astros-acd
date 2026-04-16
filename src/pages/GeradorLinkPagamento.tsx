@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -32,6 +33,7 @@ const providerLabels: Record<Provider, string> = {
 export default function GeradorLinkPagamento() {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
 
   const [empresa, setEmpresa] = useState('');
@@ -185,8 +187,7 @@ export default function GeradorLinkPagamento() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['payment-link-share-tokens'] });
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/link-pagamento/${data.token}`;
+      const link = `${siteUrl}/link-pagamento/${data.token}`;
       copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
       setShowShareDialog(false);
       setShowShareDialog(false);
@@ -658,8 +659,7 @@ export default function GeradorLinkPagamento() {
                     <div className="space-y-2">
                       {shareTokens.map((tk: any) => {
                         const isExpired = new Date(tk.expires_at) < new Date();
-                        const baseUrl = window.location.origin;
-                        const link = `${baseUrl}/link-pagamento/${tk.token}`;
+                        const link = `${siteUrl}/link-pagamento/${tk.token}`;
                         return (
                           <div
                             key={tk.id}

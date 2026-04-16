@@ -10,10 +10,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Settings, Mail, Clock, Save, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 
 const AdminChamadosConfig = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const siteUrl = useSiteUrl();
   const [showPassword, setShowPassword] = useState(false);
 
   const { data: config, isLoading } = useQuery({
@@ -72,13 +74,7 @@ const AdminChamadosConfig = () => {
 
   // Sempre usar o domínio de produção correto do Lovable app
   const getPublicUrl = () => {
-    const hostname = window.location.hostname;
-    // Se estiver em ambiente de desenvolvimento, preview ou sandbox, usar o domínio de produção
-    if (hostname.includes('localhost') || hostname.includes('lovableproject.com') || hostname.includes('id-preview')) {
-      return `https://atendimento-astros-acd.lovable.app/chamados`;
-    }
-    // Se já estiver no domínio de produção, usar o origin
-    return `${window.location.origin}/chamados`;
+    return `${siteUrl}/chamados`;
   };
   
   const publicUrl = getPublicUrl();

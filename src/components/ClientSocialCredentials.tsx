@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -72,6 +73,7 @@ interface Props {
 export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
   const canManage = hasPermission('manage_social_credentials');
 
@@ -264,8 +266,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
       toast.error('Erro ao gerar link');
       return;
     }
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/credenciais/${data.token}`;
+    const link = `${siteUrl}/credenciais/${data.token}`;
     setGeneratedLink(link);
   };
 

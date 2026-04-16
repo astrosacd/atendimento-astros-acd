@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 
 interface WhatsAppInstance {
   id: string;
@@ -41,7 +42,7 @@ const AdminBoasVindas = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+  const siteUrl = useSiteUrl();
   const [isSaving, setIsSaving] = useState(false);
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
@@ -292,7 +293,7 @@ Acesse: {url}`;
         .replace(/{nome}/g, "Usuário Teste")
         .replace(/{email}/g, testEmail)
         .replace(/{senha}/g, "senha123")
-        .replace(/{url}/g, window.location.origin);
+        .replace(/{url}/g, siteUrl);
 
       const { error } = await supabase.functions.invoke('send-welcome', {
         body: {
@@ -349,7 +350,7 @@ Acesse: {url}`;
         .replace(/{nome}/g, "Usuário Teste")
         .replace(/{email}/g, "teste@exemplo.com")
         .replace(/{senha}/g, "senha123")
-        .replace(/{url}/g, window.location.origin);
+        .replace(/{url}/g, siteUrl);
 
       const { error } = await supabase.functions.invoke('send-welcome', {
         body: {

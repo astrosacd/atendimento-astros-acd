@@ -77,6 +77,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         automationRes,
         licensesRes,
         shareLinksRes,
+        proposalsRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -93,6 +94,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('automation_logs').select('*, rule:automation_rules(name)').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('licencas_entregues').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('social_credential_share_links').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('proposals').select('*').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -275,6 +277,18 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           date: s.created_at,
           title: 'Link de credenciais compartilhado',
           description: `Expira em: ${expiresAt}`,
+        });
+      });
+      
+      // Propostas
+      (proposalsRes.data || []).forEach((p: any) => {
+        allEvents.push({
+          id: `proposal-${p.id}`,
+          type: 'proposal',
+          date: p.created_at,
+          title: `Proposta: ${p.title || 'Sem título'}`,
+          description: `Status: ${p.status || 'Pendente'}`,
+          status: p.status,
         });
       });
 

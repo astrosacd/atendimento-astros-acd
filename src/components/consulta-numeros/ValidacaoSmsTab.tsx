@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 
 interface NumberResult {
   numero: string;
@@ -53,6 +54,7 @@ const RESULT_SHARE_MESSAGE = `- Solicite o SMS somente após ser notificado para
 export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps) {
   const { user, isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const [numeroCompra, setNumeroCompra] = useState('');
   const [numeroCompraConfirmed, setNumeroCompraConfirmed] = useState(false);
   const [numerosInput, setNumerosInput] = useState('');
@@ -248,8 +250,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       if (error) throw error;
 
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/resultado-sms/${data.token}`;
+      const link = `${siteUrl}/resultado-sms/${data.token}`;
 
       const textToCopy = `📋 Veja a análise dos números solicitados:\n${link}`;
       await copyToClipboard(textToCopy);
@@ -278,8 +279,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       if (error) throw error;
 
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/validacao-sms/${data.token}`;
+      const link = `${siteUrl}/validacao-sms/${data.token}`;
 
       await copyToClipboard(link);
       toast({ title: '🔗 Link copiado!', description: `Válido por ${hours}h` });
@@ -398,8 +398,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
                               size="icon"
                               className="shrink-0"
                               onClick={async () => {
-                                 const baseUrl = window.location.origin;
-                                const link = `${baseUrl}/validacao-sms/${t.token}`;
+                                 const link = `${siteUrl}/validacao-sms/${t.token}`;
                                 await copyToClipboard(link);
                                 toast({ title: 'Link copiado!' });
                               }}
