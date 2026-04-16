@@ -168,8 +168,8 @@ export function ChatwootIntegration() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Sincronizar Conversas</Label>
-                <p className="text-sm text-muted-foreground">Busca conversas recentes para análise de IA</p>
+                <Label>Sincronizar Conversas Abertas</Label>
+                <p className="text-sm text-muted-foreground">Busca o conteúdo das conversas que estão em aberto</p>
               </div>
               <Switch
                 checked={config.sync_conversations}
@@ -179,8 +179,8 @@ export function ChatwootIntegration() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Importar Contatos como Leads</Label>
-                <p className="text-sm text-muted-foreground">Cria leads automaticamente a partir de novos contatos</p>
+                <Label>Importar Leads de Chats Abertos</Label>
+                <p className="text-sm text-muted-foreground">Cria leads automaticamente a partir de conversas em aberto</p>
               </div>
               <Switch
                 checked={config.sync_leads}
