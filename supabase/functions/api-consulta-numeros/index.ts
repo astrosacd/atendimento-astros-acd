@@ -824,6 +824,40 @@ Deno.serve(async (req) => {
           // Return data directly from Baserow without transformation
           const normalizedData = normalizeBaserowData(result.results || []);
 
+          // Update data_da_ultima_consulta in Baserow if searching for a specific number
+          if (searchQuery && result.results && result.results.length > 0) {
+            const now = new Date();
+            const dateStr = now.toISOString();
+            
+            // Limit to first 5 matches to avoid too many requests in a single search
+            const matchesToUpdate = result.results.slice(0, 5);
+            
+            const updatePromises = matchesToUpdate.map(async (row: any) => {
+              try {
+                const patchUrl = `${config.api_url}/api/database/rows/table/${config.table_id}/${row.id}/?user_field_names=true`;
+                await fetch(patchUrl, {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Token ${config.api_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    data_da_ultima_consulta: dateStr,
+                  }),
+                });
+              } catch (e) {
+                console.error(`[api-consulta-numeros] Error updating consultation date for row ${row.id}:`, e);
+              }
+            });
+            
+            // We don't necessarily want to block the whole response on this, 
+            // but we'll fire and forget. (Note: in edge functions, fire and forget 
+            // is risky as the runtime may terminate. But given the environment, 
+            // it often works for quick operations, or we can await it here).
+            // Awaiting to ensure it completes, even if it adds ~200-500ms.
+            await Promise.allSettled(updatePromises);
+          }
+
           // Log consultation
           await logAction(
             supabase,
