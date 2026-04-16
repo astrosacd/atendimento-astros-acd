@@ -1043,7 +1043,10 @@ export default function ConsultaNumeros() {
               displayVal = maskValue(displayVal?.toString(), field.name);
             }
             
-            return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
+            // Format date fields
+            const formattedVal = formatBaserowDate(displayVal, field.name);
+            
+            return `"${(formattedVal || '').toString().replace(/"/g, '""')}"`;
           })
         ].join(',')
       ),
