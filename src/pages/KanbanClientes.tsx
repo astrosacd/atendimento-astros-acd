@@ -244,6 +244,11 @@ export default function KanbanClientes() {
                 <Zap className="h-4 w-4" /> Automações
               </TabsTrigger>
             )}
+            {(isAdmin || canManagePipelineStages()) && (
+              <TabsTrigger value="chatwoot" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <MessageSquare className="h-4 w-4" /> Chatwoot
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="kanban">
