@@ -6,8 +6,9 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap, MessageSquare } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare, Share2 } from 'lucide-react';
 import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
+import { KanbanShareManager } from '@/components/kanban/KanbanShareManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -247,6 +248,11 @@ export default function KanbanClientes() {
                 <MessageSquare className="h-4 w-4" /> Chatwoot
               </TabsTrigger>
             )}
+            {(isAdmin || canManagePipelineStages()) && (
+              <TabsTrigger value="share" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Share2 className="h-4 w-4" /> Compartilhar
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="kanban">
@@ -278,6 +284,11 @@ export default function KanbanClientes() {
           {(isAdmin || canManagePipelineStages()) && (
             <TabsContent value="chatwoot">
               <ChatwootIntegration />
+            </TabsContent>
+          )}
+          {(isAdmin || canManagePipelineStages()) && (
+            <TabsContent value="share">
+              <KanbanShareManager />
             </TabsContent>
           )}
         </Tabs>
