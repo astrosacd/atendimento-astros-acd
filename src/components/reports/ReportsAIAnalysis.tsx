@@ -94,7 +94,10 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('reports_analysis_history')
-        .select('*')
+        .select(`
+          *,
+          reports_notification_logs(*)
+        `)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
