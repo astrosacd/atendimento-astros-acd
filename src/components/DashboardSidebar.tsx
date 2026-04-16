@@ -117,44 +117,79 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     }
   }, []);
 
-  const clientItems: NavItem[] = [
-    { title: t('sidebar.dashboard'), icon: LayoutDashboard, path: '/dashboard', color: 'text-info', gradient: 'from-blue-500 to-cyan-500' },
-    { title: t('sidebar.register'), icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
-    { title: t('sidebar.search'), icon: Search, path: '/consultar', color: 'text-info', gradient: 'from-blue-500 to-indigo-500' },
-    { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
-    { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
-    { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
-    { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Follow-ups', icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
-    { title: 'Despesas', icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
-    { title: 'Pipeline', icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
-    { title: 'Lead Hunter', icon: Crosshair, path: '/lead-hunter', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
-    { title: 'Agenda', icon: CalendarDays, path: '/agenda', adminOnly: !canViewAgenda(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
-    { title: 'Link Pagamento', icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
+  const menuGroups = [
+    {
+      id: 'crm',
+      title: t('sidebar.groups.crm'),
+      items: [
+        { title: t('sidebar.dashboard'), icon: LayoutDashboard, path: '/dashboard', color: 'text-info', gradient: 'from-blue-500 to-cyan-500' },
+        { title: t('sidebar.pipeline'), icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+        { title: t('sidebar.calendar'), icon: CalendarDays, path: '/agenda', adminOnly: !canViewAgenda(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
+        { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
+        { title: t('sidebar.followups'), icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
+        { title: t('sidebar.tickets'), icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
+      ]
+    },
+    {
+      id: 'marketing',
+      title: t('sidebar.groups.marketing'),
+      items: [
+        { title: t('sidebar.leadhunter'), icon: Crosshair, path: '/lead-hunter', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
+        { title: t('sidebar.broadcaster'), icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
+        { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+        { title: t('sidebar.paymentlink'), icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
+      ]
+    },
+    {
+      id: 'clients',
+      title: t('sidebar.groups.clients'),
+      items: [
+        { title: t('sidebar.search'), icon: Search, path: '/consultar', color: 'text-info', gradient: 'from-blue-500 to-indigo-500' },
+        { title: t('sidebar.register'), icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
+        { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
+        { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
+      ]
+    },
+    {
+      id: 'telephony',
+      title: t('sidebar.groups.telephony'),
+      items: [
+        { title: t('sidebar.numberStatus'), icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500', gradient: 'from-lime-500 to-green-500' },
+        { title: t('sidebar.numberQuery'), icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+      ]
+    },
+    {
+      id: 'finance',
+      title: t('sidebar.groups.finance'),
+      items: [
+        { title: t('sidebar.expenses'), icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
+        { title: t('sidebar.reports'), icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
+        { title: t('sidebar.billing'), icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+      ]
+    },
+    {
+      id: 'settings',
+      title: t('sidebar.groups.settings'),
+      items: [
+        { title: t('sidebar.users'), icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500', gradient: 'from-blue-500 to-sky-500' },
+        { title: t('sidebar.permissions'), icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
+        { title: t('sidebar.gateway'), icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
+        { title: t('sidebar.reseller'), icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
+        { title: t('sidebar.tags'), icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
+        { title: t('sidebar.webhooks'), icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
+        { title: t('sidebar.apiRest'), icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
+        { title: t('sidebar.apiLogs'), icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500', gradient: 'from-rose-500 to-red-500' },
+        { title: t('sidebar.activities'), icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
+        { title: t('sidebar.guide'), icon: HelpCircle, path: '/admin/guia', adminOnly: !canViewGuia(), color: 'text-purple-500', gradient: 'from-purple-500 to-violet-500' },
+        { title: t('sidebar.settings'), icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400', gradient: 'from-slate-500 to-zinc-500' },
+      ]
+    }
   ];
 
-  const adminItems: NavItem[] = [
-    { title: t('sidebar.users'), icon: Users, path: '/usuarios', adminOnly: !canManageUsers(), color: 'text-blue-500', gradient: 'from-blue-500 to-sky-500' },
-    { title: t('sidebar.tickets'), icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
-    { title: t('sidebar.broadcaster'), icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
-    { title: t('sidebar.numberStatus'), icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500', gradient: 'from-lime-500 to-green-500' },
-    { title: t('sidebar.numberQuery'), icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
-    { title: t('sidebar.permissions'), icon: ShieldCheck, path: '/admin/permissoes', adminOnly: !canManagePermissions(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
-    { title: t('sidebar.billing'), icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-    { title: t('sidebar.gateway'), icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
-    { title: t('sidebar.reseller'), icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
-    { title: t('sidebar.reports'), icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
-    { title: t('sidebar.tags'), icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
-    { title: t('sidebar.webhooks'), icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
-    { title: t('sidebar.apiRest'), icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
-    { title: t('sidebar.apiLogs'), icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500', gradient: 'from-rose-500 to-red-500' },
-    { title: t('sidebar.activities'), icon: FileText, path: '/admin/activity', adminOnly: !canViewLogs(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
-    { title: t('sidebar.settings'), icon: Settings, path: '/admin', adminOnly: !canManageSettings(), color: 'text-slate-400', gradient: 'from-slate-500 to-zinc-500' },
-    { title: t('sidebar.guide'), icon: HelpCircle, path: '/admin/guia', adminOnly: !canViewGuia(), color: 'text-purple-500', gradient: 'from-purple-500 to-violet-500' },
-  ];
-
-  const visibleClientItems = clientItems.filter(item => !item.adminOnly || isAdmin);
-  const visibleAdminItems = adminItems.filter(item => !item.adminOnly || isAdmin);
+  const visibleGroups = menuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => !item.adminOnly || isAdmin)
+  })).filter(group => group.items.length > 0);
 
   const handleSignOut = async () => {
     await signOut();
@@ -298,30 +333,20 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         ref={navRef}
         className="flex-1 p-2 space-y-0.5 overflow-y-auto scrollbar-thin"
       >
-        {!collapsed && (
-          <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {t('sidebar.clients')}
-          </p>
-        )}
-        {collapsed && <div className="py-1" />}
-        {visibleClientItems.map((item) => (
-          <NavButton key={item.path} item={item} />
-        ))}
-
-        {visibleAdminItems.length > 0 && (
-          <>
+        {visibleGroups.map((group, index) => (
+          <div key={group.id} className={cn(index > 0 && "mt-4")}>
             {!collapsed ? (
-              <p className="px-3 py-2 mt-4 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {t('sidebar.administration')}
+              <p className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {group.title}
               </p>
             ) : (
-              <div className="my-3 mx-2 border-t border-border" />
+              index > 0 && <div className="my-3 mx-2 border-t border-border" />
             )}
-            {visibleAdminItems.map((item) => (
+            {group.items.map((item) => (
               <NavButton key={item.path} item={item} />
             ))}
-          </>
-        )}
+          </div>
+        ))}
 
         {/* Chat Button */}
         {chatEnabled && onOpenChat && (

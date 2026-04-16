@@ -130,6 +130,14 @@
     "manageClientsEfficiently": "Gerencie seus clientes de forma eficiente"
   },
   "sidebar": {
+    "groups": {
+      "crm": "CRM & Operacional",
+      "marketing": "Vendas & Marketing",
+      "clients": "Gestão de Clientes",
+      "telephony": "Telefonia",
+      "finance": "Financeiro & Relatórios",
+      "settings": "Configurações do Sistema"
+    },
     "clients": "Clientes",
     "administration": "Administração",
     "dashboard": "Dashboard",
@@ -139,6 +147,12 @@
     "delete": "Excluir",
     "tasks": "Tarefas",
     "proposals": "Propostas",
+    "pipeline": "Pipeline",
+    "calendar": "Agenda",
+    "followups": "Follow-ups",
+    "expenses": "Despesas",
+    "leadhunter": "Lead Hunter",
+    "paymentlink": "Link Pagamento",
     "users": "Usuários",
     "tickets": "Chamados",
     "broadcaster": "Divulgador",
