@@ -8,6 +8,7 @@ import type { Proposal, ProposalStatus } from '@/types/proposals';
 export function useProposals() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
 
   // Buscar todas as propostas
   const { data: rawProposals = [], isLoading, refetch } = useQuery({
