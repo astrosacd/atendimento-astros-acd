@@ -45,7 +45,7 @@ export function KanbanAIConfig() {
         // Initialize with default if not exists
         setConfig({
           id: '',
-          provider: 'openai',
+          provider: 'lovable',
           api_key: '',
           model: 'gpt-4o',
           prompt_template: `Analise o seguinte lead e forneça um score de 0 a 100, um motivo para o score e uma sugestão de próxima ação.
