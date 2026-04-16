@@ -74,13 +74,7 @@ const AdminChamadosConfig = () => {
 
   // Sempre usar o domínio de produção correto do Lovable app
   const getPublicUrl = () => {
-    const hostname = window.location.hostname;
-    // Se estiver em ambiente de desenvolvimento, preview ou sandbox, usar o domínio de produção
-    if (hostname.includes('localhost') || hostname.includes('lovableproject.com') || hostname.includes('id-preview')) {
-      return `https://atendimento-astros-acd.lovable.app/chamados`;
-    }
-    // Se já estiver no domínio de produção, usar o origin
-    return `${window.location.origin}/chamados`;
+    return `${siteUrl}/chamados`;
   };
   
   const publicUrl = getPublicUrl();
