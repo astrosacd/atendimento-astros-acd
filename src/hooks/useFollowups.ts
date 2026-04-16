@@ -234,9 +234,10 @@ export function useFollowups() {
       const { error: fnError } = await supabase.functions.invoke('process-followups');
       if (fnError) throw fnError;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up reenviado!');
+      logActivity(`Reenviou follow-up ${id}`, 'followup');
     },
     onError: (err: any) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
