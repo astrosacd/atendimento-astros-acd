@@ -302,6 +302,9 @@ export default function GerenciarUsuarios() {
         title: t('userManagement.toast.userApproved'),
         description: t('userManagement.toast.userApprovedDesc'),
       });
+      
+      const userToApprove = users.find(u => u.id === approvingUserId);
+      logActivity(`Aprovou usuário: ${userToApprove?.name || userToApprove?.email}`, 'admin', `Role: ${approveRole}`);
     },
     onError: (error) => {
       console.error('Error approving user:', error);
