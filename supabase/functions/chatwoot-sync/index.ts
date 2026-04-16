@@ -77,8 +77,21 @@ serve(async (req) => {
         }
         
         const responseData = await convsRes.json();
-        const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
-        const currentConvs = Array.isArray(rawConversations) ? rawConversations : [];
+        let rawConversations = [];
+        
+        if (Array.isArray(responseData)) {
+          rawConversations = responseData;
+        } else if (responseData.payload && Array.isArray(responseData.payload)) {
+          rawConversations = responseData.payload;
+        } else if (responseData.data) {
+          if (Array.isArray(responseData.data)) {
+            rawConversations = responseData.data;
+          } else if (responseData.data.payload && Array.isArray(responseData.data.payload)) {
+            rawConversations = responseData.data.payload;
+          }
+        }
+        
+        const currentConvs = rawConversations;
         
         console.log(`Found ${currentConvs.length} ${status} conversations`);
         conversations = [...conversations, ...currentConvs];
