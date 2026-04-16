@@ -1517,7 +1517,7 @@ export default function ConsultaNumeros() {
                                     ) : field.type === 'boolean' ? (
                                       rawValue ? 'Sim' : 'Não'
                                     ) : field.type === 'date' ? (
-                                      rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                      formatBaserowDate(rawValue, field.name)
                                     ) : showTooltip ? (
                                       <TooltipProvider>
                                         <Tooltip>
@@ -1602,7 +1602,7 @@ export default function ConsultaNumeros() {
                                             ) : field.type === 'boolean' ? (
                                               rawValue ? 'Sim' : 'Não'
                                             ) : field.type === 'date' ? (
-                                              rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                              formatBaserowDate(rawValue, field.name)
                                             ) : (
                                               displayValue?.toString() || '-'
                                             )}
@@ -1781,7 +1781,7 @@ export default function ConsultaNumeros() {
                       ) : field.type === 'boolean' ? (
                         rawValue ? 'Sim' : 'Não'
                       ) : field.type === 'date' ? (
-                        rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                        formatBaserowDate(rawValue, field.name)
                       ) : (
                         displayValue?.toString() || '-'
                       )}
