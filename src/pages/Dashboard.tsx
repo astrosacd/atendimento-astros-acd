@@ -92,6 +92,7 @@ export default function Dashboard() {
   const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
+  const canViewCharts = hasPermission('view_dashboard_charts');
   const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -847,27 +848,29 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <RevenueGoalCard currentMrr={stats.mrr} />
-            <ChurnRateCard churnRate={stats.churnRate} />
-            <RevenueByCurrencyCard brl={stats.mrr} usd={stats.mrrUsd} />
-            <ConversionFunnelCard />
-          </div>
+          {canViewCharts && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <RevenueGoalCard currentMrr={stats.mrr} />
+              <ChurnRateCard churnRate={stats.churnRate} />
+              <RevenueByCurrencyCard brl={stats.mrr} usd={stats.mrrUsd} />
+              <ConversionFunnelCard />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
-              {canViewClients && <MonthlyPurchasesCard />}
+              {canViewClients && canViewCharts && <MonthlyPurchasesCard />}
             </div>
             <div>
               <RecentActivityCard />
             </div>
           </div>
           
-          {canViewProposalsDashboard() && <ProposalsStatsCard />}
+          {canViewProposalsDashboard() && canViewCharts && <ProposalsStatsCard />}
         </CollapsibleSection>
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
-        {followups.length > 0 && (
+        {followups.length > 0 && canViewCharts && (
           <CollapsibleSection
             title="Follow-ups"
             icon={MessageSquare}

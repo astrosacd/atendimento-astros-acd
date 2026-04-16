@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { useNavigate } from 'react-router-dom';
 import { useClientes, ClienteInput, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ export default function CadastrarCliente() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [clienteType, setClienteType] = useState<ClienteType>(null);
@@ -223,6 +225,7 @@ export default function CadastrarCliente() {
       
       setShowConfirmation(false);
       setShowSuccess(true);
+      logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : 'Mensal'}`);
     }
   };
 

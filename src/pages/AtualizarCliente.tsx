@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { useNavigate } from 'react-router-dom';
 import { useClientes, Cliente, CicloCobranca, Moeda } from '@/hooks/useClientes';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 export default function AtualizarCliente() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { logActivity } = useSystemActivities();
   const { searchCliente, updateCliente, isLoading } = useClientes();
   const { toast } = useToast();
   
@@ -171,6 +173,7 @@ export default function AtualizarCliente() {
     const result = await updateCliente(selectedCliente.id, updateData, selectedCliente);
     
     if (result) {
+      logActivity(`Atualizou dados do cliente: ${selectedCliente.nome}`, 'cliente');
       setSelectedCliente(null);
       setSearchQuery('');
       setNewDate('');

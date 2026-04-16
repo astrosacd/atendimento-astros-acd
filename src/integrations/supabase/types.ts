@@ -5728,6 +5728,33 @@ export type Database = {
           },
         ]
       }
+      system_activities: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          id: string
+          resource_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          resource_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       system_permissions: {
         Row: {
           category: string

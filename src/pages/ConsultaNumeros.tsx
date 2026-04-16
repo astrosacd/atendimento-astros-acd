@@ -30,6 +30,7 @@ import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 
 interface NumeroResult {
   id: number;
@@ -60,6 +61,7 @@ export default function ConsultaNumeros() {
   const { isAdmin } = useAuth();
   const { hasPermission } = usePermissions();
   const { t } = useTranslation();
+  const { logActivity } = useSystemActivities();
   
   const [inputSearchQuery, setInputSearchQuery] = useState('');
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
@@ -773,6 +775,9 @@ export default function ConsultaNumeros() {
 
     // Apply the typed query and reset to first page.
     setAppliedSearchQuery(nextQuery);
+    if (nextQuery) {
+      logActivity(`Consultou o número: ${nextQuery}`, 'consulta');
+    }
 
     // If already on page 1 and query didn't change, force a refetch.
     if (currentPage === 1 && nextQuery === appliedSearchQuery) {

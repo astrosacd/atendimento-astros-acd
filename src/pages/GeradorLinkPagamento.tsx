@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,6 +36,7 @@ export default function GeradorLinkPagamento() {
   const { hasPermission } = usePermissions();
   const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
 
   const [empresa, setEmpresa] = useState('');
   const [valorVenda, setValorVenda] = useState('');
@@ -161,6 +163,7 @@ export default function GeradorLinkPagamento() {
     onSuccess: (data) => {
       setGeneratedLink(data);
       queryClient.invalidateQueries({ queryKey: ['payment-links-history'] });
+      logActivity(`Gerou link de pagamento para ${empresa}`, 'pagamento', `Valor: ${valorVenda}`);
       toast.success('Link de pagamento gerado com sucesso!');
     },
     onError: (err: any) => {
