@@ -284,10 +284,10 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
 
     // Email notifications via Gmail SMTP
     if (notifyEmail && emailAddresses.length > 0) {
-      const gmailUser = Deno.env.get("GMAIL_USER") || "";
-      const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD") || "";
-
-      if (gmailUser && gmailPass) {
+      // Use config credentials if available, otherwise fallback to environment variables
+      const gmailUser = configRow?.gmail_user || Deno.env.get("GMAIL_USER") || "";
+      const gmailPass = configRow?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD") || "";
+      const gmailSenderName = configRow?.gmail_sender_name || "";
         const dateStr = new Date().toLocaleDateString("pt-BR");
         const htmlContent = `
 <!DOCTYPE html>
@@ -318,7 +318,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
           for (const email of emailAddresses) {
             try {
               await smtpClient.send({
-                from: gmailUser,
+                from: gmailSenderName ? `${gmailSenderName} <${gmailUser}>` : gmailUser,
                 to: email,
                 subject: `📊 Relatório de IA - Análise Automática - ${dateStr}`,
                 html: htmlContent,

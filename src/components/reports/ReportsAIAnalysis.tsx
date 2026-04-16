@@ -83,6 +83,9 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [newWhatsapp, setNewWhatsapp] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [configId, setConfigId] = useState<string | null>(null);
+  const [gmailUser, setGmailUser] = useState('');
+  const [gmailPass, setGmailPass] = useState('');
+  const [gmailSenderName, setGmailSenderName] = useState('');
 
   // Notifications state removed as it's not needed for UI expansion anymore
 
@@ -139,6 +142,9 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       if (scheduleConfig.ai_model) setModel(scheduleConfig.ai_model);
       if (scheduleConfig.openai_api_key) setOpenaiKey(scheduleConfig.openai_api_key);
       if (scheduleConfig.grok_api_key) setGrokKey(scheduleConfig.grok_api_key);
+      if (scheduleConfig.gmail_user) setGmailUser(scheduleConfig.gmail_user);
+      if (scheduleConfig.gmail_app_password) setGmailPass(scheduleConfig.gmail_app_password);
+      if (scheduleConfig.gmail_sender_name) setGmailSenderName(scheduleConfig.gmail_sender_name);
     }
   }, [scheduleConfig]);
 
@@ -155,6 +161,9 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
         notify_email: notifyEmail,
         whatsapp_recipients: whatsappNumbers,
         email_recipients: emailAddresses,
+        gmail_user: gmailUser || null,
+        gmail_app_password: gmailPass || null,
+        gmail_sender_name: gmailSenderName || null,
       };
 
       if (configId) {
@@ -441,7 +450,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                         <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                         <div className="text-xs text-muted-foreground space-y-1">
                           <p><strong>WhatsApp:</strong> As notificações são enviadas usando as instâncias de WhatsApp configuradas no módulo de Cobrança (Instâncias ativas).</p>
-                          <p><strong>E-mail:</strong> As notificações são enviadas via SMTP usando as credenciais do Gmail configuradas no sistema (GMAIL_USER e GMAIL_APP_PASSWORD).</p>
+                          <p><strong>E-mail:</strong> As notificações são enviadas via SMTP usando as credenciais do Gmail configuradas abaixo.</p>
                           <p><strong>Cron:</strong> O sistema executa automaticamente via cron: diário às 08:00 (horário de Brasília) ou semanal às segundas-feiras 08:00.</p>
                         </div>
                       </div>
@@ -485,18 +494,58 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                       <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} />
                     </div>
                     {notifyEmail && (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input placeholder="destinatario@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEmailAddress()} />
-                          <Button size="sm" variant="outline" onClick={addEmailAddress}><Plus className="h-4 w-4" /></Button>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Usuário Gmail</Label>
+                            <Input 
+                              placeholder="seu-email@gmail.com" 
+                              value={gmailUser} 
+                              onChange={e => setGmailUser(e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Senha de App</Label>
+                            <Input 
+                              type="password"
+                              placeholder="abcd efgh ijkl mnop" 
+                              value={gmailPass} 
+                              onChange={e => setGmailPass(e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label className="text-xs">Nome do Remetente (Opcional)</Label>
+                            <Input 
+                              placeholder="Ex: Sistema de Relatórios" 
+                              value={gmailSenderName} 
+                              onChange={e => setGmailSenderName(e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Info className="h-3 w-3" />
+                              Use uma "Senha de App" do Google, não a sua senha normal.
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {emailAddresses.map((e, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1">
-                              {e}
-                              <X className="h-3 w-3 cursor-pointer" onClick={() => setEmailAddresses(emailAddresses.filter((_, j) => j !== i))} />
-                            </Badge>
-                          ))}
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">Destinatários</Label>
+                          <div className="flex gap-2">
+                            <Input placeholder="destinatario@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && addEmailAddress()} />
+                            <Button size="sm" variant="outline" onClick={addEmailAddress}><Plus className="h-4 w-4" /></Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {emailAddresses.map((e, i) => (
+                              <Badge key={i} variant="secondary" className="gap-1">
+                                {e}
+                                <X className="h-3 w-3 cursor-pointer" onClick={() => setEmailAddresses(emailAddresses.filter((_, j) => j !== i))} />
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
