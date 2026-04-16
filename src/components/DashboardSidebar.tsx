@@ -28,6 +28,133 @@ interface NavItem {
   gradient?: string;
 }
 
+interface NavButtonProps {
+  item: NavItem;
+  collapsed: boolean;
+  isActive: boolean;
+  navRef: React.RefObject<HTMLDivElement | null>;
+}
+
+const NavButton = memo(({ item, collapsed, isActive, navRef }: NavButtonProps) => {
+  const base = cn(
+    "w-full h-11 px-3 rounded-md flex items-center relative",
+    "text-sm text-left overflow-hidden whitespace-nowrap",
+    "transition-all duration-300 ease-in-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    collapsed ? "justify-center px-0" : "gap-3",
+    isActive
+      ? "bg-primary/15 text-primary"
+      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+  );
+
+  const content = (
+    <Link
+      to={item.path}
+      aria-current={isActive ? "page" : undefined}
+      onClick={() => {
+        if (navRef.current) {
+          sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
+        }
+      }}
+      className={base}
+    >
+      {isActive && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+      )}
+
+      <div className={cn("relative flex items-center justify-center shrink-0 w-10 transition-transform duration-300", isActive && "scale-110")}>
+        <item.icon
+          className={cn(
+            "h-5 w-5",
+            isActive ? "text-primary" : item.color || "text-muted-foreground",
+          )}
+        />
+      </div>
+
+      <span className={cn(
+        "truncate transition-all duration-300 ease-in-out origin-left",
+        collapsed ? "w-0 opacity-0 -translate-x-10 invisible" : "w-auto opacity-100 translate-x-0 visible"
+      )}>
+        {item.title}
+      </span>
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" className="bg-popover border-border shadow-lg">
+          {item.title}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
+});
+
+NavButton.displayName = 'NavButton';
+
+interface FooterButtonProps {
+  collapsed: boolean;
+  onClick?: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  variant?: "ghost" | "outline" | "default" | "destructive" | "secondary" | "link";
+  className?: string;
+  showIndicator?: boolean;
+}
+
+const FooterButton = memo(({ 
+  collapsed, 
+  onClick, 
+  icon: Icon, 
+  label, 
+  variant = "ghost",
+  className,
+  showIndicator = false
+}: FooterButtonProps) => {
+  const content = (
+    <Button
+      variant={variant}
+      onClick={onClick}
+      className={cn(
+        "w-full h-11 transition-all duration-300 overflow-hidden whitespace-nowrap",
+        collapsed ? "justify-center px-0" : "justify-start gap-3 px-3",
+        className
+      )}
+    >
+      <div className="relative shrink-0 w-10 flex justify-center">
+        <Icon className={cn("h-5 w-5", !collapsed && "shrink-0")} />
+        {showIndicator && <span className="absolute top-0 right-2 w-2 h-2 bg-purple-500 rounded-full" />}
+      </div>
+      <span className={cn(
+        "text-sm truncate transition-all duration-300 ease-in-out origin-left",
+        collapsed ? "w-0 opacity-0 -translate-x-10 invisible" : "w-auto opacity-100 translate-x-0 visible"
+      )}>
+        {label}
+      </span>
+    </Button>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" className="bg-popover border-border shadow-lg">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
+});
+
+FooterButton.displayName = 'FooterButton';
+
+
 interface DashboardSidebarProps {
   onOpenChat?: () => void;
   collapsed?: boolean;
@@ -197,69 +324,6 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     navigate('/auth');
   };
 
-interface NavButtonProps {
-  item: NavItem;
-  collapsed: boolean;
-  isActive: boolean;
-  navRef: React.RefObject<HTMLDivElement | null>;
-}
-
-const NavButton = memo(({ item, collapsed, isActive, navRef }: NavButtonProps) => {
-  const base = cn(
-    "w-full h-11 px-3 rounded-md flex items-center gap-3 relative",
-    "text-sm text-left",
-    "transition-colors duration-150",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-    collapsed && "justify-center px-0",
-    isActive
-      ? "bg-primary/15 text-primary"
-      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-  );
-
-  const content = (
-    <Link
-      to={item.path}
-      aria-current={isActive ? "page" : undefined}
-      onClick={() => {
-        if (navRef.current) {
-          sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
-        }
-      }}
-      className={base}
-    >
-      {isActive && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-      )}
-
-      <div className={cn("relative flex items-center justify-center shrink-0", isActive && "scale-110")}
-      >
-        <item.icon
-          className={cn(
-            "h-5 w-5",
-            isActive ? "text-primary" : item.color || "text-muted-foreground",
-          )}
-        />
-      </div>
-
-      {!collapsed && <span className="truncate">{item.title}</span>}
-    </Link>
-  );
-
-  if (collapsed) {
-    return (
-      <Tooltip delayDuration={150}>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-          {item.title}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return content;
-});
-
-NavButton.displayName = 'NavButton';
 
 
   return (
@@ -306,35 +370,37 @@ NavButton.displayName = 'NavButton';
       </Button>
 
       {/* User Info */}
-      {!collapsed && (
-        <div className="px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              {isLoading ? (
-                <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
-              ) : (
-                <span className="text-primary font-semibold text-sm">
-                  {(userName || 'U').charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              {isLoading ? (
-                <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
-              ) : (
-                <p className="text-sm font-medium text-foreground truncate">{userName}</p>
-              )}
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                <span className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  isAdmin ? "bg-primary" : "bg-muted-foreground"
-                )} />
-                {isAdmin ? t('user.administrator') : t('user.user')}
-              </p>
-            </div>
+      <div className={cn(
+        "px-4 py-3 border-b border-border transition-all duration-300 overflow-hidden whitespace-nowrap",
+        collapsed ? "h-0 opacity-0 py-0 border-b-0" : "h-[65px] opacity-100"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+            {isLoading ? (
+              <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
+            ) : (
+              <span className="text-primary font-semibold text-sm">
+                {(userName || 'U').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            {isLoading ? (
+              <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
+            ) : (
+              <p className="text-sm font-medium text-foreground truncate">{userName}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+              <span className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                isAdmin ? "bg-primary" : "bg-muted-foreground"
+              )} />
+              {isAdmin ? t('user.administrator') : t('user.user')}
+            </p>
           </div>
         </div>
-      )}
+      </div>
+
 
       {/* Navigation */}
       <nav
@@ -365,39 +431,16 @@ NavButton.displayName = 'NavButton';
 
         {/* Chat Button */}
         {chatEnabled && onOpenChat && (
-          <>
-            {collapsed ? (
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    onClick={onOpenChat}
-                    className="w-full justify-center h-11 px-0 mt-2 text-purple-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                  >
-                    <div className="relative">
-                      <MessageCircle className="h-5 w-5" />
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
-                    </div>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-                  {t('sidebar.help')}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <Button
-                variant="ghost"
-                onClick={onOpenChat}
-                className="w-full justify-start gap-3 h-11 px-3 mt-2 text-purple-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-              >
-                <div className="relative">
-                  <MessageCircle className="h-5 w-5 shrink-0" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
-                </div>
-                <span className="text-sm">{t('sidebar.help')}</span>
-              </Button>
-            )}
-          </>
+          <div className="mt-2">
+            <FooterButton
+              collapsed={collapsed}
+              onClick={onOpenChat}
+              icon={MessageCircle}
+              label={t('sidebar.help')}
+              className="text-purple-500 hover:text-purple-400 hover:bg-purple-500/10"
+              showIndicator={true}
+            />
+          </div>
         )}
       </nav>
 
@@ -407,31 +450,13 @@ NavButton.displayName = 'NavButton';
         <LanguageSelector collapsed={collapsed} />
         
         {/* Logout Button */}
-        {collapsed ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                onClick={handleSignOut}
-                className="w-full justify-center h-11 px-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-popover border-border shadow-lg">
-              {t('auth.logout')}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="ghost"
-            onClick={handleSignOut}
-            className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="h-5 w-5 shrink-0" />
-            <span className="text-sm">{t('auth.logout')}</span>
-          </Button>
-        )}
+        <FooterButton
+          collapsed={collapsed}
+          onClick={handleSignOut}
+          icon={LogOut}
+          label={t('auth.logout')}
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        />
       </div>
     </aside>
   );
