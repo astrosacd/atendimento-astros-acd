@@ -313,6 +313,11 @@ export default function KanbanClientes() {
               <ChatwootIntegration onRefresh={loadData} />
             </TabsContent>
           )}
+          {(isAdmin || canViewPipelineAI()) && (
+            <TabsContent value="ai">
+              <KanbanAIConfig />
+            </TabsContent>
+          )}
           {(isAdmin || canManagePipelineStages()) && (
             <TabsContent value="share">
               <KanbanShareManager />
