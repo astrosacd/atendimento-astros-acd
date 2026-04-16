@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
