@@ -277,6 +277,7 @@ export function useCreateNumero() {
 export function useUpdateNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async ({
