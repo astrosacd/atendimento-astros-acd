@@ -188,7 +188,7 @@ export function KanbanBoard({
               </div>
 
               {/* Add client widget */}
-              {addingToStage === stage.id && (
+              {!isReadOnly && addingToStage === stage.id && (
                 <div className="p-2 border-b border-border bg-card/50">
                   <Popover open={comboOpen} onOpenChange={setComboOpen}>
                     <PopoverTrigger asChild>
@@ -397,38 +397,41 @@ export function KanbanBoard({
       </div>
 
       {/* Lead Form Dialog */}
-      <LeadFormDialog
-        open={!!leadFormStage}
-        onOpenChange={(open) => !open && setLeadFormStage(null)}
-        onSubmit={async (lead) => {
-          if (leadFormStage) await onAddLead(leadFormStage, lead);
-        }}
-      />
+      {!isReadOnly && (
+        <>
+          <LeadFormDialog
+            open={!!leadFormStage}
+            onOpenChange={(open) => !open && setLeadFormStage(null)}
+            onSubmit={async (lead) => {
+              if (leadFormStage) await onAddLead?.(leadFormStage, lead);
+            }}
+          />
 
-      {/* Convert Lead Dialog */}
-      <ConvertLeadDialog
-        open={!!convertingLead}
-        onOpenChange={(open) => {
-          if (!open) {
-            setConvertingLead(null);
-            setConvertTargetStageId(null);
-          }
-        }}
-        lead={convertingLead ? {
-          id: convertingLead.id,
-          lead_name: convertingLead.lead_name || '',
-          lead_phone: convertingLead.lead_phone || '',
-          lead_email: convertingLead.lead_email || '',
-          lead_produto: convertingLead.lead_produto || '',
-        } : null}
-        onConvert={async (data) => {
-          await onConvertLead(data);
-          // After successful conversion, move to Ativo stage
-          if (convertTargetStageId && convertingLead) {
-            await onMovePipelineItem(convertingLead.id, convertTargetStageId);
-          }
-        }}
-      />
+          <ConvertLeadDialog
+            open={!!convertingLead}
+            onOpenChange={(open) => {
+              if (!open) {
+                setConvertingLead(null);
+                setConvertTargetStageId(null);
+              }
+            }}
+            lead={convertingLead ? {
+              id: convertingLead.id,
+              lead_name: convertingLead.lead_name || '',
+              lead_phone: convertingLead.lead_phone || '',
+              lead_email: convertingLead.lead_email || '',
+              lead_produto: convertingLead.lead_produto || '',
+            } : null}
+            onConvert={async (data) => {
+              await onConvertLead?.(data);
+              // After successful conversion, move to Ativo stage
+              if (convertTargetStageId && convertingLead) {
+                await onMovePipelineItem?.(convertingLead.id, convertTargetStageId);
+              }
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }
