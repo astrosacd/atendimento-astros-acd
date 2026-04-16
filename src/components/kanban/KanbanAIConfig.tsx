@@ -45,7 +45,7 @@ export function KanbanAIConfig() {
         // Initialize with default if not exists
         setConfig({
           id: '',
-          provider: 'openai',
+          provider: 'lovable',
           api_key: '',
           model: 'gpt-4o',
           prompt_template: `Analise o seguinte lead e forneça um score de 0 a 100, um motivo para o score e uma sugestão de próxima ação.
@@ -149,6 +149,7 @@ Responda APENAS em formato JSON:
                 <SelectValue placeholder="Selecione o provedor" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="lovable">Lovable AI (Padrão)</SelectItem>
                 <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
                 <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
                 <SelectItem value="groq">Groq</SelectItem>
@@ -166,15 +167,24 @@ Responda APENAS em formato JSON:
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Chave de API</Label>
-          <Input
-            type="password"
-            value={config.api_key || ''}
-            onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
-            placeholder="Sua chave de API"
-          />
-        </div>
+        {config.provider !== 'lovable' && (
+          <div className="space-y-2">
+            <Label>Chave de API</Label>
+            <Input
+              type="password"
+              value={config.api_key || ''}
+              onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
+              placeholder="Sua chave de API"
+            />
+          </div>
+        )}
+
+        {config.provider === 'lovable' && (
+          <p className="text-xs text-muted-foreground bg-primary/5 p-3 rounded-md border border-primary/20">
+            O provedor Lovable AI utiliza o gateway de IA padrão do sistema. 
+            Você não precisa de uma chave de API própria.
+          </p>
+        )}
 
         <div className="space-y-2">
           <Label>Prompt Template</Label>
@@ -189,14 +199,44 @@ Responda APENAS em formato JSON:
           </p>
         </div>
 
-        <Button 
-          className="w-full" 
-          onClick={handleSave} 
-          disabled={saving}
-        >
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Salvar Configurações
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            className="w-full" 
+            onClick={handleSave} 
+            disabled={saving}
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Salvar Configurações
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => {
+              setConfig({
+                ...config,
+                provider: 'lovable',
+                model: 'gpt-4o',
+                prompt_template: `Analise o seguinte lead e forneça um score de 0 a 100, um motivo para o score e uma sugestão de próxima ação.
+Lead: {{lead_name}}
+Telefone: {{lead_phone}}
+Email: {{lead_email}}
+Notas/Conversas: {{notes}}
+
+Responda APENAS em formato JSON:
+{
+  "score": number,
+  "reason": "string",
+  "suggestion": "string"
+}`,
+                api_key: ''
+              });
+              toast.info('Configurações padrão carregadas. Não esqueça de salvar.');
+            }}
+          >
+            Restaurar Padrão Lovable
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

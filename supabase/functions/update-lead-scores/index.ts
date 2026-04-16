@@ -11,21 +11,28 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Basic security check
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  // Basic security check: Allow if CRON_SECRET matches OR if it's a valid Supabase auth token
   const authHeader = req.headers.get('Authorization')
-  if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-      status: 401, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    })
+  const cronSecret = Deno.env.get('CRON_SECRET')
+  const isCron = authHeader === `Bearer ${cronSecret}`
+  
+  if (!isCron) {
+    // If not cron, check if it's a valid user session
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader?.replace('Bearer ', '') ?? '')
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
+    }
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     // Fetch AI configuration
     const { data: aiConfig } = await supabaseClient
       .from('pipeline_ai_config')
@@ -47,15 +54,79 @@ serve(async (req) => {
     for (const lead of (leads || [])) {
       let score, reason, suggestion;
 
-      // If AI config is enabled and we have a template, this is where we would call the LLM
-      // For now, we'll maintain the simulation but acknowledge the custom prompt existance
-      if (aiConfig && aiConfig.enabled) {
-        // Logic for AI analysis would go here using aiConfig.provider, api_key, model and prompt_template
-        // This is a placeholder for actual LLM integration
-        const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')
-        score = Math.floor(Math.random() * 20) + 75 // Higher scores for AI-enabled
-        reason = aiConfig.prompt_template.includes('{{notes}}') ? "Análise baseada em prompt customizado." : "Processado por IA.";
-        suggestion = "Verificar histórico para ação específica.";
+      // If AI config is enabled and we have a template, we call the LLM
+      if (aiConfig && aiConfig.enabled && aiConfig.prompt_template) {
+        try {
+          // Prepare the prompt
+          let prompt = aiConfig.prompt_template
+            .replace('{{lead_name}}', lead.lead_name || 'N/A')
+            .replace('{{lead_phone}}', lead.lead_phone || 'N/A')
+            .replace('{{lead_email}}', lead.lead_email || 'N/A')
+            .replace('{{notes}}', lead.notes || 'Sem notas extras.');
+
+          const provider = aiConfig.provider || 'lovable'
+          let apiKey = aiConfig.api_key
+          let apiUrl = ""
+          let model = aiConfig.model || 'gpt-4o'
+
+          if (provider === 'lovable') {
+            apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions"
+            apiKey = Deno.env.get("LOVABLE_API_KEY")
+          } else if (provider === 'openai') {
+            apiUrl = "https://api.openai.com/v1/chat/completions"
+          } else if (provider === 'anthropic') {
+            apiUrl = "https://api.anthropic.com/v1/messages"
+          } else if (provider === 'groq') {
+            apiUrl = "https://api.groq.com/openai/v1/chat/completions"
+          }
+
+          if (apiKey && apiUrl) {
+            console.log(`Requesting AI analysis for lead ${lead.id} using ${provider}`)
+            
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                ...(provider === 'anthropic' ? { 'anthropic-version': '2023-06-01' } : {})
+              },
+              body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                ...(provider === 'anthropic' ? { 
+                  system: "Responda APENAS em formato JSON: { \"score\": number, \"reason\": \"string\", \"suggestion\": \"string\" }",
+                  messages: [{ role: 'user', content: prompt }]
+                } : {})
+              })
+            })
+
+            const aiData = await response.json()
+            const content = provider === 'anthropic' 
+              ? aiData.content[0].text 
+              : aiData.choices[0].message.content
+
+            // Parse result
+            try {
+              const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim()
+              const result = JSON.parse(cleanContent)
+              score = result.score
+              reason = result.reason
+              suggestion = result.suggestion
+            } catch (e) {
+              console.error("Failed to parse AI response:", content)
+              throw new Error("Invalid AI response format")
+            }
+          } else {
+            throw new Error(`Configuração incompleta para o provedor ${provider}`)
+          }
+        } catch (aiError) {
+          console.error(`AI analysis failed for lead ${lead.id}:`, aiError.message)
+          // Fallback to simulation if AI fails
+          const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')
+          score = Math.floor(Math.random() * 20) + 75
+          reason = `Processado via fallback. Erro na IA: ${aiError.message}`
+          suggestion = "Verificar histórico para ação específica."
+        }
       } else {
         // Logic replicated from KanbanClientes.tsx
         const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')

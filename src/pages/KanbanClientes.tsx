@@ -57,7 +57,7 @@ export default function KanbanClientes() {
     canManagePipelineStages, 
     canManagePipelineAutomations,
     canViewPipelineAI,
-    canManagePipelineAI,
+    
     canManagePipelineChatwoot,
     canSharePipeline
   } = usePermissions();
@@ -229,8 +229,16 @@ export default function KanbanClientes() {
   const updateAllAIScores = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.rpc('update_all_lead_scores');
-      if (error) throw error;
+      // First try to invoke the Edge Function for actual AI analysis if configured
+      const { error: functionError } = await supabase.functions.invoke('update-lead-scores');
+
+      // Fallback or secondary update using RPC if needed
+      if (functionError) {
+        console.warn('Edge function error, falling back to RPC simulation:', functionError);
+        const { error: rpcError } = await supabase.rpc('update_all_lead_scores');
+        if (rpcError) throw rpcError;
+      }
+      
       toast.success('Scores de todos os clientes atualizados com sucesso');
       await loadData();
     } catch (err) {
