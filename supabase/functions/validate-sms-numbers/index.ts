@@ -35,8 +35,16 @@ function normalizeNumeroCompra(raw: string): string {
 async function updateBaserowConsultaDate(config: BaserowConfig, rowId: number) {
   const url = `${config.api_url}/api/database/rows/table/${config.table_id}/${rowId}/?user_field_names=true`;
   const now = new Date();
-  // Format for Baserow date field (YYYY-MM-DD HH:MM:SS) or ISO
-  const dateStr = now.toISOString();
+  const dateStr = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Fortaleza',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(now).replace(',', '');
 
   try {
     const response = await fetch(url, {
