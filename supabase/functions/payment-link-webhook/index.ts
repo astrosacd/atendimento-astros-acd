@@ -26,18 +26,20 @@ serve(async (req) => {
       const paymentStatus = session.payment_status;
       const checkoutSessionId = session.id;
       const paymentIntentId = session.payment_intent;
+      const paymentLinkId = session.payment_link;
       
-      console.log(`[webhook] Stripe Checkout Session: ${checkoutSessionId}, status: ${paymentStatus}`);
+      console.log(`[webhook] Stripe Checkout Session: ${checkoutSessionId}, link: ${paymentLinkId}, status: ${paymentStatus}`);
 
       if (paymentStatus === "paid") {
+        // Try to update by payment_link ID (which is stored in external_reference)
         const { error } = await supabase
           .from("payment_links")
           .update({
             status: "paid",
-            mp_payment_id: paymentIntentId || checkoutSessionId, // We use mp_payment_id for both for simplicity in the UI
+            mp_payment_id: paymentIntentId || checkoutSessionId,
             paid_at: new Date().toISOString(),
           })
-          .eq("external_reference", checkoutSessionId)
+          .eq("external_reference", paymentLinkId)
           .eq("provider", "stripe");
 
         if (error) console.error("[webhook] Error updating Stripe link:", error);
