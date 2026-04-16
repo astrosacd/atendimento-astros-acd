@@ -49,9 +49,11 @@ export default function GeradorLinkPagamento() {
     currency?: string;
   } | null>(null);
 
-  // MP status checking
-  const [mpQueryId, setMpQueryId] = useState('');
-  const [mpQueryResult, setMpQueryResult] = useState<any>(null);
+  // Payment status checking
+  const [queryId, setQueryId] = useState('');
+  const [queryProvider, setQueryProvider] = useState<'mercadopago' | 'stripe'>('mercadopago');
+  const [queryResult, setQueryResult] = useState<any>(null);
+  const [showNotFoundDialog, setShowNotFoundDialog] = useState(false);
 
   // Share token dialog
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -229,19 +231,32 @@ export default function GeradorLinkPagamento() {
     onError: (err: any) => toast.error(err.message || 'Erro ao verificar pagamentos'),
   });
 
-  // Query a specific MP payment ID
-  const queryMpMutation = useMutation({
-    mutationFn: async (paymentId: string) => {
+  // Query a specific payment ID (MP or Stripe)
+  const queryPaymentMutation = useMutation({
+    mutationFn: async ({ paymentId, prov }: { paymentId: string; prov: 'mercadopago' | 'stripe' }) => {
+      const bodyPayload = prov === 'stripe'
+        ? { stripe_payment_id: paymentId }
+        : { mp_payment_id: paymentId };
       const res = await supabase.functions.invoke('check-payment-link-status', {
-        body: { mp_payment_id: paymentId },
+        body: bodyPayload,
       });
       if (res.error) throw new Error(res.error.message);
+      if (res.data?.not_found || res.data?.error) {
+        throw new Error(res.data.error || 'Código não encontrado ou não existe');
+      }
       return res.data;
     },
     onSuccess: (data: any) => {
-      setMpQueryResult(data);
+      setQueryResult(data);
     },
-    onError: (err: any) => toast.error(err.message || 'Erro ao consultar pagamento'),
+    onError: (err: any) => {
+      setQueryResult(null);
+      if (err.message?.includes('não encontrado') || err.message?.includes('não existe')) {
+        setShowNotFoundDialog(true);
+      } else {
+        toast.error(err.message || 'Erro ao consultar pagamento');
+      }
+    },
   });
 
   const handleGenerate = () => {
@@ -262,20 +277,20 @@ export default function GeradorLinkPagamento() {
   };
 
   const copyLink = async (url: string) => {
+    const textToCopy = `Segue Link de Pagamento:\n${url}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('Link copiado!');
+      await navigator.clipboard.writeText(textToCopy);
+      toast.success('Link copiado com texto!');
     } catch {
-      // Fallback for environments where clipboard API fails
       const textArea = document.createElement('textarea');
-      textArea.value = url;
+      textArea.value = textToCopy;
       textArea.style.position = 'fixed';
       textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      toast.success('Link copiado!');
+      toast.success('Link copiado com texto!');
     }
   };
 
