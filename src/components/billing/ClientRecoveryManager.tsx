@@ -334,6 +334,16 @@ export const ClientRecoveryManager = () => {
     return { count, lastDate, lastChannel };
   };
 
+  // Check if the client has a WhatsApp error (number doesn't exist)
+  const hasWhatsAppError = (clienteId: string) => {
+    return recoveryHistory.some(r => 
+      r.cliente_id === clienteId && 
+      r.canal === 'whatsapp' &&
+      r.status === 'error' && 
+      r.error_message?.toLowerCase().includes('não existe')
+    );
+  };
+
   const hasPendingRecovery = (clienteId: string) => {
     return recoveryHistory.some(r => 
       r.cliente_id === clienteId && 
