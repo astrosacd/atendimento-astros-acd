@@ -180,9 +180,10 @@ export function useProposals() {
       if (error) throw error;
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       toast.success('Proposta excluída');
+      logActivity(`Excluiu uma proposta`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao excluir proposta:', error);
