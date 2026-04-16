@@ -26,6 +26,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Fetch AI configuration
+    const { data: aiConfig } = await supabaseClient
+      .from('pipeline_ai_config')
+      .select('*')
+      .eq('enabled', true)
+      .single()
+
     // Fetch all active leads from pipeline
     const { data: leads, error: fetchError } = await supabaseClient
       .from('client_pipeline')
