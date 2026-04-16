@@ -120,9 +120,9 @@ const AdminChamados = () => {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
-      logActivity(`Atualizou status do chamado ${id} para ${status}`, 'duvida');
+      logActivity(`Atualizou status do chamado ${variables.id} para ${variables.status}`, 'duvida');
       toast.success('Status atualizado com sucesso');
     },
     onError: (error) => {
@@ -152,10 +152,10 @@ const AdminChamados = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
       setNewComment("");
-      logActivity(`Comentou no chamado ${chamadoId}`, 'duvida');
+      logActivity(`Comentou no chamado ${variables.chamadoId}`, 'duvida');
       toast.success('Comentário adicionado');
     },
     onError: (error) => {
