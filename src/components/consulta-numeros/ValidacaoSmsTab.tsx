@@ -279,8 +279,7 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
 
       if (error) throw error;
 
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/validacao-sms/${data.token}`;
+      const link = `${siteUrl}/validacao-sms/${data.token}`;
 
       await copyToClipboard(link);
       toast({ title: '🔗 Link copiado!', description: `Válido por ${hours}h` });
