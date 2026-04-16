@@ -870,7 +870,7 @@ export default function Dashboard() {
         </CollapsibleSection>
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
-        {followups.length > 0 && (
+        {followups.length > 0 && canViewCharts && (
           <CollapsibleSection
             title="Follow-ups"
             icon={MessageSquare}
