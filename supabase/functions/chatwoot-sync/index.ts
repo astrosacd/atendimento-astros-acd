@@ -30,7 +30,7 @@ serve(async (req) => {
       );
     }
 
-    const { chatwoot_url, chatwoot_api_key, account_id, sync_leads, sync_conversations } = config;
+    const { chatwoot_url, chatwoot_api_key, account_id, inbox_id, sync_leads, sync_conversations } = config;
 
     if (!chatwoot_url || !chatwoot_api_key || !account_id) {
       console.log("Incomplete config:", { chatwoot_url, hasApiKey: !!chatwoot_api_key, account_id });
@@ -57,28 +57,42 @@ serve(async (req) => {
 
     // Logic updated to fetch open conversations instead of all contacts
     if (sync_leads || sync_conversations) {
-      console.log(`Fetching open conversations from: ${baseUrl}/conversations?status=open`);
-      const convsRes = await fetch(`${baseUrl}/conversations?status=open`, { headers });
-      
-      if (!convsRes.ok) {
-        const errorText = await convsRes.text();
-        console.error(`Chatwoot API error (${convsRes.status}):`, errorText);
-        throw new Error(`Erro ao buscar conversas: ${convsRes.statusText}`);
+      const statusList = ['open', 'pending'];
+      let conversations: any[] = [];
+      const openConvIds: number[] = [];
+
+      for (const status of statusList) {
+        let apiUrl = `${baseUrl}/conversations?status=${status}`;
+        if (inbox_id) {
+          apiUrl += `&inbox_id=${inbox_id}`;
+        }
+        
+        console.log(`Fetching ${status} conversations from: ${apiUrl}`);
+        const convsRes = await fetch(apiUrl, { headers });
+        
+        if (!convsRes.ok) {
+          const errorText = await convsRes.text();
+          console.error(`Chatwoot API error for ${status} (${convsRes.status}):`, errorText);
+          continue;
+        }
+        
+        const responseData = await convsRes.json();
+        const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
+        const currentConvs = Array.isArray(rawConversations) ? rawConversations : [];
+        
+        console.log(`Found ${currentConvs.length} ${status} conversations`);
+        conversations = [...conversations, ...currentConvs];
       }
-      
-      const responseData = await convsRes.json();
-      const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
-      const conversations = Array.isArray(rawConversations) ? rawConversations : [];
-      
-      console.log(`Found ${conversations.length} open conversations`);
-      const openConvIds = conversations.map((c: any) => c.id);
+
+      const allConvIds = conversations.map((c: any) => c.id);
 
       for (const conv of conversations) {
         const contact = conv.meta?.sender;
         if (!contact) continue;
 
-        // If no phone/email, we skip for now to avoid duplicates without unique keys
-        if (!contact.phone_number && !contact.email) {
+        // We now prioritize matching by chatwoot_conversation_id, so we can be more lenient with phone/email
+        // but we still want at least a name if possible.
+        if (!contact.phone_number && !contact.email && !contact.name) {
           continue;
         }
 
@@ -162,14 +176,14 @@ serve(async (req) => {
         }
       }
 
-      // 3. Logic to "remove" leads that no longer have an open conversation
-      // We'll mark them as is_lead = false if they have a chatwoot_conversation_id and it's NOT in openConvIds
-      if (openConvIds.length > 0) {
+      // 3. Logic to "remove" leads that no longer have an active conversation
+      // We'll mark them as is_lead = false if they have a chatwoot_conversation_id and it's NOT in allConvIds
+      if (allConvIds.length > 0) {
         const { error: closeError } = await supabase
           .from('client_pipeline')
           .update({ is_lead: false })
           .not('chatwoot_conversation_id', 'is', null)
-          .not('chatwoot_conversation_id', 'in', `(${openConvIds.join(',')})`);
+          .not('chatwoot_conversation_id', 'in', `(${allConvIds.join(',')})`);
         
         if (closeError) {
           console.error("Error closing finished conversations:", closeError);

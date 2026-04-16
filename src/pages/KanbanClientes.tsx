@@ -283,7 +283,7 @@ export default function KanbanClientes() {
           )}
           {(isAdmin || canManagePipelineStages()) && (
             <TabsContent value="chatwoot">
-              <ChatwootIntegration />
+              <ChatwootIntegration onRefresh={loadData} />
             </TabsContent>
           )}
           {(isAdmin || canManagePipelineStages()) && (
