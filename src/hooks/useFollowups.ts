@@ -189,9 +189,10 @@ export function useFollowups() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up clonado! Edite a data e mensagem conforme necessário.');
+      logActivity(`Clonou follow-up: ${data.manual_name || 'Cliente'}`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao clonar: ' + err.message);
