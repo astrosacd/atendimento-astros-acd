@@ -266,6 +266,7 @@ export function useCreateNumero() {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número cadastrado com sucesso');
+      logActivity(`Cadastrou novo número: ${data.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao cadastrar número: ${error.message}`);
