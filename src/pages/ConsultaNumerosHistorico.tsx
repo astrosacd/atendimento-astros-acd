@@ -136,7 +136,7 @@ export default function ConsultaNumerosHistorico() {
       headers.join(','),
       ...historyResult.data.map((entry: HistoryEntry) =>
         [
-          format(new Date(entry.created_at), 'dd/MM/yyyy HH:mm:ss'),
+          formatInTimeZone(new Date(entry.created_at), 'America/Fortaleza', 'dd/MM/yyyy HH:mm:ss'),
           entry.numero,
           getAcaoLabel(entry.acao),
           getOrigemLabel(entry.origem),
