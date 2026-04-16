@@ -116,6 +116,7 @@ export function useFollowups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up cancelado');
+      logActivity(`Cancelou um follow-up`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao cancelar: ' + err.message);
