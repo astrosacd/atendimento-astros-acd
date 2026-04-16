@@ -36,6 +36,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const linkId = body.link_id as string | undefined;
     const mpPaymentId = body.mp_payment_id as string | undefined;
+    const stripePaymentId = body.stripe_payment_id as string | undefined;
+    const queryProvider = body.query_provider as string | undefined;
 
     // Get MP access token
     const { data: configRow } = await supabase
@@ -44,32 +46,41 @@ serve(async (req) => {
       .eq("config_key", "mp_access_token")
       .single();
 
-    if (!configRow?.config_value) {
-      return new Response(JSON.stringify({ error: "Mercado Pago não configurado" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Get Stripe secret key
+    const { data: stripeConfig } = await supabase
+      .from("billing_stripe_config")
+      .select("stripe_secret_key, stripe_enabled")
+      .limit(1)
+      .single();
 
-    const mpAccessToken = configRow.config_value;
+    const mpAccessToken = configRow?.config_value || "";
+    const stripeSecretKey = stripeConfig?.stripe_secret_key || "";
 
-    // If mp_payment_id provided directly, just query it
+    // ===== Query a specific MP payment ID =====
     if (mpPaymentId) {
+      if (!mpAccessToken) {
+        return new Response(JSON.stringify({ error: "Mercado Pago não configurado", not_found: true }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${mpPaymentId}`, {
         headers: { Authorization: `Bearer ${mpAccessToken}` },
       });
       if (!mpRes.ok) {
-        return new Response(JSON.stringify({ error: "Pagamento não encontrado no Mercado Pago" }), {
+        return new Response(JSON.stringify({ error: "Código não encontrado ou não existe no Mercado Pago", not_found: true }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const mpData = await mpRes.json();
       return new Response(JSON.stringify({
+        provider: "mercadopago",
         payment_id: mpData.id,
         status: mpData.status,
         status_detail: mpData.status_detail,
         amount: mpData.transaction_amount,
+        currency: mpData.currency_id || "BRL",
         date_approved: mpData.date_approved,
         date_created: mpData.date_created,
         payer_email: mpData.payer?.email,
@@ -80,20 +91,78 @@ serve(async (req) => {
       });
     }
 
-    // Check all pending MP links or a specific one
+    // ===== Query a specific Stripe payment/session ID =====
+    if (stripePaymentId) {
+      if (!stripeSecretKey) {
+        return new Response(JSON.stringify({ error: "Stripe não configurada", not_found: true }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const normalizedKey = stripeSecretKey.replace(/^Bearer\s+/i, "").trim();
+      const stripeAuth = `Basic ${btoa(`${normalizedKey}:`)}`;
+
+      // Try as payment intent first
+      let stripeRes = await fetch(`https://api.stripe.com/v1/payment_intents/${stripePaymentId}`, {
+        headers: { Authorization: stripeAuth },
+      });
+
+      if (stripeRes.ok) {
+        const piData = await stripeRes.json();
+        return new Response(JSON.stringify({
+          provider: "stripe",
+          payment_id: piData.id,
+          status: piData.status === "succeeded" ? "approved" : piData.status === "canceled" ? "rejected" : piData.status,
+          amount: (piData.amount || 0) / 100,
+          currency: (piData.currency || "usd").toUpperCase(),
+          date_created: piData.created ? new Date(piData.created * 1000).toISOString() : null,
+          description: piData.description,
+          payment_method: piData.payment_method_types?.[0] || null,
+          payer_email: piData.receipt_email,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Try as checkout session
+      stripeRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${stripePaymentId}`, {
+        headers: { Authorization: stripeAuth },
+      });
+
+      if (stripeRes.ok) {
+        const csData = await stripeRes.json();
+        return new Response(JSON.stringify({
+          provider: "stripe",
+          payment_id: csData.id,
+          status: csData.payment_status === "paid" ? "approved" : csData.payment_status === "unpaid" ? "pending" : csData.payment_status,
+          amount: (csData.amount_total || 0) / 100,
+          currency: (csData.currency || "usd").toUpperCase(),
+          date_created: csData.created ? new Date(csData.created * 1000).toISOString() : null,
+          payer_email: csData.customer_details?.email || csData.customer_email,
+          description: null,
+          payment_method: null,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "Código não encontrado ou não existe na Stripe", not_found: true }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== Check all pending links =====
     let query = supabase
       .from("payment_links")
       .select("*")
-      .eq("provider", "mercadopago")
-      .eq("status", "pending")
-      .not("preference_id", "is", null);
+      .eq("status", "pending");
 
     if (linkId) {
       query = supabase
         .from("payment_links")
         .select("*")
-        .eq("id", linkId)
-        .eq("provider", "mercadopago");
+        .eq("id", linkId);
     }
 
     const { data: links, error: linksError } = await query;
@@ -108,41 +177,74 @@ serve(async (req) => {
     }> = [];
 
     for (const link of links || []) {
-      // For each link, search payments by preference_id
-      const searchRes = await fetch(
-        `https://api.mercadopago.com/v1/payments/search?preference_id=${link.preference_id}&sort=date_created&criteria=desc&limit=5`,
-        { headers: { Authorization: `Bearer ${mpAccessToken}` } }
-      );
-
-      if (!searchRes.ok) {
-        console.error(`[check-payment-link-status] Search failed for ${link.preference_id}`);
-        continue;
-      }
-
-      const searchData = await searchRes.json();
-      const payments = searchData.results || [];
-      
-      // Find the first approved payment
-      const approvedPayment = payments.find((p: any) => p.status === "approved");
       const isExpired = new Date(link.expires_at) < new Date();
 
-      if (approvedPayment) {
-        // Mark as paid
-        await supabase.from("payment_links").update({
-          status: "paid",
-          mp_payment_id: String(approvedPayment.id),
-          paid_at: approvedPayment.date_approved || new Date().toISOString(),
-        }).eq("id", link.id);
+      if (link.provider === "mercadopago" && mpAccessToken && link.preference_id) {
+        // Search MP payments by preference_id
+        const searchRes = await fetch(
+          `https://api.mercadopago.com/v1/payments/search?preference_id=${link.preference_id}&sort=date_created&criteria=desc&limit=5`,
+          { headers: { Authorization: `Bearer ${mpAccessToken}` } }
+        );
 
-        results.push({
-          link_id: link.id,
-          empresa: link.empresa,
-          old_status: link.status,
-          new_status: "paid",
-          mp_payment_id: String(approvedPayment.id),
-        });
-      } else if (isExpired && link.status === "pending") {
-        // Mark expired links
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const payments = searchData.results || [];
+          const approvedPayment = payments.find((p: any) => p.status === "approved");
+
+          if (approvedPayment) {
+            await supabase.from("payment_links").update({
+              status: "paid",
+              mp_payment_id: String(approvedPayment.id),
+              paid_at: approvedPayment.date_approved || new Date().toISOString(),
+            }).eq("id", link.id);
+
+            results.push({
+              link_id: link.id,
+              empresa: link.empresa,
+              old_status: link.status,
+              new_status: "paid",
+              mp_payment_id: String(approvedPayment.id),
+            });
+            continue;
+          }
+        }
+      }
+
+      if (link.provider === "stripe" && stripeSecretKey && link.external_reference) {
+        // For Stripe payment links, list checkout sessions
+        const normalizedKey = stripeSecretKey.replace(/^Bearer\s+/i, "").trim();
+        const stripeAuth = `Basic ${btoa(`${normalizedKey}:`)}`;
+
+        const sessionsRes = await fetch(
+          `https://api.stripe.com/v1/checkout/sessions?payment_link=${link.external_reference}&limit=5`,
+          { headers: { Authorization: stripeAuth } }
+        );
+
+        if (sessionsRes.ok) {
+          const sessionsData = await sessionsRes.json();
+          const paidSession = (sessionsData.data || []).find((s: any) => s.payment_status === "paid");
+
+          if (paidSession) {
+            await supabase.from("payment_links").update({
+              status: "paid",
+              mp_payment_id: paidSession.payment_intent || paidSession.id,
+              paid_at: paidSession.created ? new Date(paidSession.created * 1000).toISOString() : new Date().toISOString(),
+            }).eq("id", link.id);
+
+            results.push({
+              link_id: link.id,
+              empresa: link.empresa,
+              old_status: link.status,
+              new_status: "paid",
+              mp_payment_id: paidSession.payment_intent || paidSession.id,
+            });
+            continue;
+          }
+        }
+      }
+
+      // Mark expired
+      if (isExpired && link.status === "pending") {
         await supabase.from("payment_links").update({
           status: "expired",
         }).eq("id", link.id);
