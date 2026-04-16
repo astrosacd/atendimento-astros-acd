@@ -28,8 +28,9 @@ export default function SharedKanban() {
         return;
       }
 
-      setStages(data.stages || []);
-      setClients(data.clients || []);
+      const typedData = data as unknown as { stages: PipelineStage[], clients: PipelineClient[] };
+      setStages(typedData.stages || []);
+      setClients(typedData.clients || []);
     } catch (err) {
       console.error(err);
       setError('Erro ao carregar o quadro. Por favor, tente novamente mais tarde.');
