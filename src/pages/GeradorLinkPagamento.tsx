@@ -787,6 +787,24 @@ export default function GeradorLinkPagamento() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Not Found Dialog */}
+      <Dialog open={showNotFoundDialog} onOpenChange={setShowNotFoundDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Código Não Encontrado
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            O código informado não foi encontrado ou não existe na base do provedor selecionado. Verifique o código e tente novamente.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setShowNotFoundDialog(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
