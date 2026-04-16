@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, User, Settings, Database, Search, DollarSign, MessageSquare, Info } from "lucide-react";
+import { Clock, User, Settings, Database, Search, DollarSign, MessageSquare, Info, FileText, ListTodo, Webhook, TrendingDown, Send, Shield, LayoutDashboard, Phone, HelpCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -76,6 +76,15 @@ export function RecentActivityCard() {
       case 'config': return <Settings className="h-4 w-4" />;
       case 'lead_hunter': return <Search className="h-4 w-4" />;
       case 'numeros_aquecimento': return <Clock className="h-4 w-4" />;
+      case 'proposta': return <FileText className="h-4 w-4" />;
+      case 'tarefa': return <ListTodo className="h-4 w-4" />;
+      case 'webhook': return <Webhook className="h-4 w-4" />;
+      case 'despesa': return <TrendingDown className="h-4 w-4" />;
+      case 'followup': return <Send className="h-4 w-4" />;
+      case 'admin': return <Shield className="h-4 w-4" />;
+      case 'pipeline': return <LayoutDashboard className="h-4 w-4" />;
+      case 'contato': return <Phone className="h-4 w-4" />;
+      case 'chamado': return <HelpCircle className="h-4 w-4" />;
       default: return <Info className="h-4 w-4" />;
     }
   };

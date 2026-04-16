@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { Bot, Sparkles, ChevronDown, History, Eye, Settings, Loader2, Copy, Check, Clock, Mail, MessageSquare, Plus, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -62,6 +63,7 @@ const GROK_MODELS = [
 
 export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
   const [provider, setProvider] = useState('lovable');
   const [model, setModel] = useState('google/gemini-3-flash-preview');
   const [openaiKey, setOpenaiKey] = useState('');
@@ -239,6 +241,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       setPromptUsed(data.prompt);
       refetchHistory();
       refetchLogs();
+      logActivity(`Gerou análise de métricas com IA`, 'config', `Provedor: ${provider}`);
       toast.success('Análise gerada e notificações enviadas (se configuradas)!');
     } catch (err: any) {
       console.error('AI analysis error:', err);

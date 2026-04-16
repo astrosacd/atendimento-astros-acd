@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ export default function AdminWebhooks() {
   const navigate = useNavigate();
   const { user, isAdmin, isApproved } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
   const { t } = useTranslation();
 
   const [webhooks, setWebhooks] = useState<WebhookData[]>([]);
@@ -103,6 +105,7 @@ export default function AdminWebhooks() {
       toast({ title: t('webhooks.errorCreating'), description: error.message, variant: 'destructive' });
     } else {
       toast({ title: t('webhooks.webhookCreated') });
+      logActivity(`Criou novo webhook: ${newWebhook.name}`, 'webhook');
       setDialogOpen(false);
       setNewWebhook({ name: '', url: '', events: [], secret_key: '' });
       loadWebhooks();
@@ -118,6 +121,8 @@ export default function AdminWebhooks() {
     if (error) {
       toast({ title: t('webhooks.errorUpdating'), variant: 'destructive' });
     } else {
+      const webhook = webhooks.find(w => w.id === id);
+      logActivity(`${!currentStatus ? 'Ativou' : 'Desativou'} webhook: ${webhook?.name}`, 'webhook');
       loadWebhooks();
     }
   };
@@ -129,6 +134,8 @@ export default function AdminWebhooks() {
       toast({ title: t('webhooks.errorDeleting'), variant: 'destructive' });
     } else {
       toast({ title: t('webhooks.webhookDeleted') });
+      const webhook = webhooks.find(w => w.id === id);
+      logActivity(`Excluiu webhook: ${webhook?.name}`, 'webhook');
       loadWebhooks();
     }
   };

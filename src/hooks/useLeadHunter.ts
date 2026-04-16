@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 
 export interface LeadHunterLead {
   id: string;
@@ -152,6 +153,7 @@ export function useLeadHunterCampanhas() {
 
 export function useCreateCampanha() {
   const qc = useQueryClient();
+  const { logActivity } = useSystemActivities();
   return useMutation({
     mutationFn: async (campanha: Partial<LeadHunterCampanha>) => {
       const { data, error } = await supabase
@@ -162,9 +164,10 @@ export function useCreateCampanha() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['lead-hunter-campanhas'] });
       toast.success('Campanha criada!');
+      logActivity(`Criou campanha no Lead Hunter: ${data.nome}`, 'lead_hunter');
     },
     onError: () => toast.error('Erro ao criar campanha'),
   });
@@ -277,6 +280,7 @@ export function useLeadHunterConfig() {
 
 export function useUpdateConfig() {
   const qc = useQueryClient();
+  const { logActivity } = useSystemActivities();
   return useMutation({
     mutationFn: async (configs: Record<string, string>) => {
       for (const [key, value] of Object.entries(configs)) {
@@ -289,6 +293,7 @@ export function useUpdateConfig() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead-hunter-config'] });
       toast.success('Configurações salvas!');
+      logActivity(`Atualizou configurações do Lead Hunter`, 'config');
     },
     onError: () => toast.error('Erro ao salvar configurações'),
   });

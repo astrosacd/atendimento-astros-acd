@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, MapPin, Globe, Loader2, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useLeadHunterBuscas } from '@/hooks/useLeadHunter';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function LeadHunterBusca() {
   const { data: buscas = [], isLoading, refetch } = useLeadHunterBuscas();
+  const { logActivity } = useSystemActivities();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [campanhaId, setCampanhaId] = useState('');
@@ -27,6 +29,7 @@ export default function LeadHunterBusca() {
       });
       if (error) throw error;
       toast.success(`${data?.totalResults || 0} resultados encontrados!`);
+      logActivity(`Realizou busca no Lead Hunter: ${query}`, 'lead_hunter', location ? `Local: ${location}` : undefined);
       refetch();
     } catch (e: any) {
       toast.error(e?.message || 'Erro na busca');

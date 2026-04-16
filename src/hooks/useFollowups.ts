@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 
 export interface Followup {
   id: string;
@@ -55,6 +56,7 @@ export interface CreateFollowupData {
 export function useFollowups() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
 
   const { data: followups = [], isLoading } = useQuery({
     queryKey: ['followups'],
@@ -93,9 +95,10 @@ export function useFollowups() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, input) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up agendado com sucesso!');
+      logActivity(`Agendou follow-up: ${input.manual_name || 'Cliente'}`, 'followup', `Produto: ${input.produto}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao criar follow-up: ' + err.message);
@@ -113,6 +116,7 @@ export function useFollowups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up cancelado');
+      logActivity(`Cancelou um follow-up`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao cancelar: ' + err.message);
@@ -145,9 +149,10 @@ export function useFollowups() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up atualizado!');
+      logActivity(`Atualizou follow-up de ${variables.manual_name || 'Cliente'}`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao atualizar: ' + err.message);
@@ -184,9 +189,10 @@ export function useFollowups() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up clonado! Edite a data e mensagem conforme necessário.');
+      logActivity(`Clonou follow-up: ${data.manual_name || 'Cliente'}`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao clonar: ' + err.message);
@@ -204,6 +210,7 @@ export function useFollowups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up excluído');
+      logActivity(`Excluiu um follow-up`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao excluir: ' + err.message);
@@ -227,9 +234,10 @@ export function useFollowups() {
       const { error: fnError } = await supabase.functions.invoke('process-followups');
       if (fnError) throw fnError;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up reenviado!');
+      logActivity(`Reenviou follow-up ${id}`, 'followup');
     },
     onError: (err: any) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
@@ -252,6 +260,7 @@ export function useFollowups() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success(variables.conversion_status === 'converted' ? 'Marcado como convertido!' : 'Marcado como não convertido');
+      logActivity(`Marcou conversão: ${variables.conversion_status}`, 'followup', `ID: ${variables.id}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao marcar conversão: ' + err.message);
@@ -270,9 +279,10 @@ export function useFollowups() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up resolvido!');
+      logActivity(`Resolveu follow-up: ${variables.reason}`, 'followup', `ID: ${variables.id}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao resolver: ' + err.message);

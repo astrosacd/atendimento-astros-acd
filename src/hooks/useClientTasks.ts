@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 
 export interface ClientTask {
   id: string;
@@ -50,6 +51,7 @@ export interface TaskHistoryEntry {
 export const useClientTasks = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
 
   // Helper function to log task history
   const logTaskHistory = async (
@@ -240,6 +242,8 @@ export const useClientTasks = () => {
         description: 'A tarefa foi criada com sucesso.',
       });
 
+      logActivity(`Criou nova tarefa: ${data.title}`, 'tarefa');
+
       return data as ClientTask;
     } catch (error: any) {
       console.error('Error creating task:', error);
@@ -298,6 +302,8 @@ export const useClientTasks = () => {
         description: 'A tarefa foi atualizada com sucesso.',
       });
 
+      logActivity(`Atualizou tarefa: ${updatedTask.title}`, 'tarefa', `Status: ${updatedTask.status}`);
+
       return true;
     } catch (error: any) {
       console.error('Error updating task:', error);
@@ -338,6 +344,8 @@ export const useClientTasks = () => {
         title: 'Tarefa excluída',
         description: 'A tarefa foi excluída com sucesso.',
       });
+
+      logActivity(`Excluiu uma tarefa: ${taskData.title}`, 'tarefa');
 
       return true;
     } catch (error: any) {

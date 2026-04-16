@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User, AlertCircle, Loader2, Ban, Unlock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
@@ -77,6 +78,7 @@ export default function GerenciarUsuarios() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
@@ -300,6 +302,9 @@ export default function GerenciarUsuarios() {
         title: t('userManagement.toast.userApproved'),
         description: t('userManagement.toast.userApprovedDesc'),
       });
+      
+      const userToApprove = users.find(u => u.id === approvingUserId);
+      logActivity(`Aprovou usuário: ${userToApprove?.name || userToApprove?.email}`, 'admin', `Role: ${approveRole}`);
     },
     onError: (error) => {
       console.error('Error approving user:', error);
@@ -348,6 +353,9 @@ export default function GerenciarUsuarios() {
         title: t('userManagement.toast.userRejected'),
         description: t('userManagement.toast.userRejectedDesc'),
       });
+
+      const userToReject = users.find(u => u.id === rejectingUserId);
+      logActivity(`Recusou usuário: ${userToReject?.name || userToReject?.email}`, 'admin', `Motivo: ${rejectionReason}`);
     },
     onError: (error) => {
       console.error('Error rejecting user:', error);
@@ -392,8 +400,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const updatedUser = users.find(u => u.id === variables.userId);
+      logActivity(`Alterou cargo de ${updatedUser?.name || updatedUser?.email}`, 'admin', `Novo cargo: ${variables.newRole}`);
+      
       toast({
         title: t('userManagement.toast.success'),
         description: t('userManagement.toast.roleUpdated'),
@@ -458,8 +470,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const blockedUser = users.find(u => u.id === variables.userId);
+      logActivity(`Bloqueou usuário: ${blockedUser?.name || blockedUser?.email}`, 'admin', `Motivo: ${variables.reason}`);
+      
       setBlockDialogOpen(false);
       setBlockingUserId(null);
       setBlockingUserName('');
@@ -493,8 +509,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const unblockedUser = users.find(u => u.id === userId);
+      logActivity(`Desbloqueou usuário: ${unblockedUser?.name || unblockedUser?.email}`, 'admin');
+      
       toast({
         title: t('userManagement.toast.userUnblocked'),
         description: t('userManagement.toast.userUnblockedDesc'),

@@ -9,7 +9,16 @@ export type ActivityType =
   | 'cliente' 
   | 'config' 
   | 'lead_hunter'
-  | 'numeros_aquecimento';
+  | 'numeros_aquecimento'
+  | 'proposta'
+  | 'tarefa'
+  | 'webhook'
+  | 'despesa'
+  | 'followup'
+  | 'admin'
+  | 'pipeline'
+  | 'contato'
+  | 'chamado';
 
 export function useSystemActivities() {
   const { user } = useAuth();

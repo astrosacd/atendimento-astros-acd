@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface NumeroAquecimento {
@@ -217,6 +218,7 @@ export function useNumerosApiKeys() {
 export function useCreateNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async (data: {
@@ -260,10 +262,11 @@ export function useCreateNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número cadastrado com sucesso');
+      logActivity(`Cadastrou novo número: ${data.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao cadastrar número: ${error.message}`);
@@ -274,6 +277,7 @@ export function useCreateNumero() {
 export function useUpdateNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async ({
@@ -344,10 +348,11 @@ export function useUpdateNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (updatedNumero) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número atualizado com sucesso');
+      logActivity(`Atualizou número: ${updatedNumero.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao atualizar número: ${error.message}`);
@@ -358,6 +363,7 @@ export function useUpdateNumero() {
 export function useDeleteNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async ({ numero, motivo }: { numero: NumeroAquecimento; motivo: string }) => {
@@ -393,10 +399,11 @@ export function useDeleteNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (deletedNumero) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número excluído com sucesso');
+      logActivity(`Excluiu número: ${deletedNumero.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao excluir número: ${error.message}`);

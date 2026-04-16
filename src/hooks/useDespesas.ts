@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 
 export interface DespesaCategoria {
   id: string;
@@ -55,6 +56,7 @@ export interface DespesaStats {
 export function useDespesas() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [categorias, setCategorias] = useState<DespesaCategoria[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,6 +174,8 @@ export function useDespesas() {
       description: 'Despesa criada com sucesso!',
     });
     
+    logActivity(`Criou nova despesa: ${data.descricao}`, 'despesa', `Valor: ${data.valor} ${data.moeda}`);
+    
     await fetchDespesas();
     return true;
   };
@@ -197,6 +201,10 @@ export function useDespesas() {
       description: 'Despesa atualizada com sucesso!',
     });
     
+    if (data.descricao) {
+      logActivity(`Atualizou despesa: ${data.descricao}`, 'despesa');
+    }
+    
     await fetchDespesas();
     return true;
   };
@@ -221,6 +229,8 @@ export function useDespesas() {
       title: 'Sucesso',
       description: 'Despesa excluída com sucesso!',
     });
+    
+    logActivity(`Excluiu uma despesa`, 'despesa');
     
     await fetchDespesas();
     return true;
@@ -252,6 +262,8 @@ export function useDespesas() {
       title: 'Sucesso',
       description: 'Categoria criada com sucesso!',
     });
+    
+    logActivity(`Criou categoria de despesa: ${nome}`, 'config');
     
     await fetchCategorias();
     return true;

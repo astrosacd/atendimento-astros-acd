@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import type { Proposal, ProposalStatus } from '@/types/proposals';
 
 export function useProposals() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
 
   // Buscar todas as propostas
   const { data: rawProposals = [], isLoading, refetch } = useQuery({
@@ -133,8 +135,9 @@ export function useProposals() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      logActivity(`Criou nova proposta: ${data.title}`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao criar proposta:', error);
@@ -158,6 +161,7 @@ export function useProposals() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['proposal', data.id] });
+      logActivity(`Atualizou proposta: ${data.title}`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao atualizar proposta:', error);
@@ -176,9 +180,10 @@ export function useProposals() {
       if (error) throw error;
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       toast.success('Proposta excluída');
+      logActivity(`Excluiu uma proposta`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao excluir proposta:', error);
