@@ -168,6 +168,8 @@ export function usePermissions() {
   const canViewPipeline = () => hasPermission('view_pipeline');
   const canManagePipelineStages = () => hasPermission('manage_pipeline_stages');
   const canManagePipelineAutomations = () => hasPermission('manage_pipeline_automations');
+  const canViewPipelineAI = () => hasPermission('view_pipeline_ai');
+  const canManagePipelineAI = () => hasPermission('manage_pipeline_ai');
 
   // Lead Hunter permissions
   const canViewLeadHunter = () => hasPermission('view_lead_hunter');
