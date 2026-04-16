@@ -28,6 +28,74 @@ interface NavItem {
   gradient?: string;
 }
 
+interface NavButtonProps {
+  item: NavItem;
+  collapsed: boolean;
+  isActive: boolean;
+  navRef: React.RefObject<HTMLDivElement | null>;
+}
+
+const NavButton = memo(({ item, collapsed, isActive, navRef }: NavButtonProps) => {
+  const base = cn(
+    "w-full h-11 px-3 rounded-md flex items-center relative",
+    "text-sm text-left overflow-hidden whitespace-nowrap",
+    "transition-all duration-300 ease-in-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    collapsed ? "justify-center px-0" : "gap-3",
+    isActive
+      ? "bg-primary/15 text-primary"
+      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+  );
+
+  const content = (
+    <Link
+      to={item.path}
+      aria-current={isActive ? "page" : undefined}
+      onClick={() => {
+        if (navRef.current) {
+          sessionStorage.setItem('sidebarScroll', navRef.current.scrollTop.toString());
+        }
+      }}
+      className={base}
+    >
+      {isActive && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+      )}
+
+      <div className={cn("relative flex items-center justify-center shrink-0 w-10 transition-transform duration-300", isActive && "scale-110")}>
+        <item.icon
+          className={cn(
+            "h-5 w-5",
+            isActive ? "text-primary" : item.color || "text-muted-foreground",
+          )}
+        />
+      </div>
+
+      <span className={cn(
+        "truncate transition-all duration-300 ease-in-out origin-left",
+        collapsed ? "w-0 opacity-0 -translate-x-10 invisible" : "w-auto opacity-100 translate-x-0 visible"
+      )}>
+        {item.title}
+      </span>
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" className="bg-popover border-border shadow-lg">
+          {item.title}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
+});
+
+NavButton.displayName = 'NavButton';
+
 interface DashboardSidebarProps {
   onOpenChat?: () => void;
   collapsed?: boolean;
@@ -196,6 +264,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
     await signOut();
     navigate('/auth');
   };
+
 
 interface NavButtonProps {
   item: NavItem;
