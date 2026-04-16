@@ -280,6 +280,7 @@ export function useLeadHunterConfig() {
 
 export function useUpdateConfig() {
   const qc = useQueryClient();
+  const { logActivity } = useSystemActivities();
   return useMutation({
     mutationFn: async (configs: Record<string, string>) => {
       for (const [key, value] of Object.entries(configs)) {
