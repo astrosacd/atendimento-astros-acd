@@ -147,7 +147,7 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ error: "Código não encontrado ou não existe na Stripe", not_found: true }), {
-        status: 404,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
