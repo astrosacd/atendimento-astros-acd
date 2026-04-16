@@ -57,7 +57,7 @@ export default function KanbanClientes() {
     canManagePipelineStages, 
     canManagePipelineAutomations,
     canViewPipelineAI,
-    canManagePipelineAI,
+    
     canManagePipelineChatwoot,
     canSharePipeline
   } = usePermissions();
