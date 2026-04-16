@@ -345,6 +345,8 @@ export const useClientTasks = () => {
         description: 'A tarefa foi excluída com sucesso.',
       });
 
+      logActivity(`Excluiu uma tarefa: ${taskData.title}`, 'tarefa');
+
       return true;
     } catch (error: any) {
       console.error('Error deleting task:', error);
