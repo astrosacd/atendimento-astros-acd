@@ -848,23 +848,25 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <RevenueGoalCard currentMrr={stats.mrr} />
-            <ChurnRateCard churnRate={stats.churnRate} />
-            <RevenueByCurrencyCard brl={stats.mrr} usd={stats.mrrUsd} />
-            <ConversionFunnelCard />
-          </div>
+          {canViewCharts && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <RevenueGoalCard currentMrr={stats.mrr} />
+              <ChurnRateCard churnRate={stats.churnRate} />
+              <RevenueByCurrencyCard brl={stats.mrr} usd={stats.mrrUsd} />
+              <ConversionFunnelCard />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
-              {canViewClients && <MonthlyPurchasesCard />}
+              {canViewClients && canViewCharts && <MonthlyPurchasesCard />}
             </div>
             <div>
               <RecentActivityCard />
             </div>
           </div>
           
-          {canViewProposalsDashboard() && <ProposalsStatsCard />}
+          {canViewProposalsDashboard() && canViewCharts && <ProposalsStatsCard />}
         </CollapsibleSection>
 
         {/* ===================== ÁREA FOLLOW-UPS ===================== */}
