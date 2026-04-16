@@ -42,16 +42,13 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+  const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
   const [authCodeConfig, setAuthCodeConfig] = useState<string | null>(null);
-  const [isLoadingCode, setIsLoadingCode] = useState(true);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
-  // Verifica código de acesso
-  const codigo = searchParams.get('codigo');
-
-  // Função para buscar status do perfil (definida antes de ser usada no useEffect)
+  // Função para buscar status do perfil
   const fetchProfileStatus = async () => {
     if (!user) return;
     
@@ -68,42 +65,9 @@ export default function Auth() {
     setIsLoadingProfile(false);
   };
 
-  // Busca o código de acesso configurado no banco via função pública
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchAuthCode = async () => {
-      try {
-        const timeoutMs = 2500;
-        const rpcPromise = supabase.rpc('get_auth_access_code');
-        const timeoutPromise = new Promise<{ data: any; error: any }>((resolve) =>
-          setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), timeoutMs)
-        );
-
-        const { data, error } = await Promise.race([rpcPromise as any, timeoutPromise]);
-
-        const code = !error && typeof data === 'string' && data.trim() ? data.trim() : 'astros2024';
-        if (!cancelled) {
-          setAuthCodeConfig(code);
-          setIsLoadingCode(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setAuthCodeConfig('astros2024');
-          setIsLoadingCode(false);
-        }
-      }
-    };
-
-    fetchAuthCode();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Redirect logic for approved users
   useEffect(() => {
-    if (authLoading || isLoadingCode) return;
+    if (authLoading) return;
 
     // If user is approved, redirect immediately
     if (user && isApproved) {
@@ -123,26 +87,7 @@ export default function Auth() {
         window.clearTimeout(t);
       };
     }
-  }, [user, isApproved, authLoading, isLoadingCode, navigate, profileStatus]);
-
-  // Ainda carregando o código do banco
-  if (isLoadingCode) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-2 text-foreground">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-          <div className="text-sm">Verificando acesso…</div>
-        </div>
-      </div>
-    );
-  }
-
-  const hasValidCode = codigo === authCodeConfig;
-
-  // Se não tem código válido, joga direto pro catálogo (sem renderizar login)
-  if (!hasValidCode) {
-    return <Navigate to="/catalogo" replace />;
-  }
+  }, [user, isApproved, authLoading, navigate, profileStatus]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
