@@ -288,6 +288,8 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
       const gmailUser = configRow?.gmail_user || Deno.env.get("GMAIL_USER") || "";
       const gmailPass = configRow?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD") || "";
       const gmailSenderName = configRow?.gmail_sender_name || "";
+
+      if (gmailUser && gmailPass) {
         const dateStr = new Date().toLocaleDateString("pt-BR");
         const htmlContent = `
 <!DOCTYPE html>
