@@ -92,6 +92,7 @@ export default function Dashboard() {
   const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
+  const canViewCharts = hasPermission('view_dashboard_charts');
   const { followups } = useFollowups();
   const [roleDisplayName, setRoleDisplayName] = useState<string>('');
   const [isBackingUp, setIsBackingUp] = useState(false);
