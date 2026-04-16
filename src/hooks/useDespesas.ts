@@ -201,6 +201,10 @@ export function useDespesas() {
       description: 'Despesa atualizada com sucesso!',
     });
     
+    if (data.descricao) {
+      logActivity(`Atualizou despesa: ${data.descricao}`, 'despesa');
+    }
+    
     await fetchDespesas();
     return true;
   };
