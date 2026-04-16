@@ -15,6 +15,7 @@ import { useSiteUrl } from "@/hooks/useSiteUrl";
 const AdminChamadosConfig = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const siteUrl = useSiteUrl();
   const [showPassword, setShowPassword] = useState(false);
 
   const { data: config, isLoading } = useQuery({

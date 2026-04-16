@@ -42,7 +42,7 @@ const AdminBoasVindas = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+  const siteUrl = useSiteUrl();
   const [isSaving, setIsSaving] = useState(false);
   const [showGmailPassword, setShowGmailPassword] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
