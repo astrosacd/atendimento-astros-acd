@@ -399,10 +399,11 @@ export function useDeleteNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (deletedNumero) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número excluído com sucesso');
+      logActivity(`Excluiu número: ${deletedNumero.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao excluir número: ${error.message}`);
