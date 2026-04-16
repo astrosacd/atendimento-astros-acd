@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, User, Settings, Database, Search, DollarSign, MessageSquare, Info } from "lucide-react";
+import { Clock, User, Settings, Database, Search, DollarSign, MessageSquare, Info, FileText, ListTodo, Webhook, TrendingDown, Send, Shield, LayoutDashboard, Phone, HelpCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
