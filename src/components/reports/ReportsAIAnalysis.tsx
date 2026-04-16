@@ -241,6 +241,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
       setPromptUsed(data.prompt);
       refetchHistory();
       refetchLogs();
+      logActivity(`Gerou análise de métricas com IA`, 'config', `Provedor: ${provider}`);
       toast.success('Análise gerada e notificações enviadas (se configuradas)!');
     } catch (err: any) {
       console.error('AI analysis error:', err);
