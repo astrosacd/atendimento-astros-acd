@@ -262,7 +262,7 @@ export function useCreateNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número cadastrado com sucesso');
