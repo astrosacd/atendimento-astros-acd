@@ -8,17 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
-  Calendar, Webhook, DollarSign, Clock, AlertTriangle, TrendingDown, 
-  Bell, Download, FileText, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle, ArrowRight,
+  Webhook, DollarSign, Clock, AlertTriangle, 
+  Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
   Wallet, Phone, Headphones, ThumbsUp
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useToast } from '@/hooks/use-toast';
 import { useClientTasks, ClientTask } from '@/hooks/useClientTasks';
 import { usePermissions } from '@/hooks/usePermissions';
-import { MonitoredNumbersCard } from '@/components/dashboard/MonitoredNumbersCard';
-import { NumerosAquecimentoCard } from '@/components/dashboard/NumerosAquecimentoCard';
+// Removed unused imports
 import { NumerosAquecimentoSection } from '@/components/dashboard/NumerosAquecimentoSection';
 import { ConsultaNumerosSection } from '@/components/dashboard/ConsultaNumerosSection';
 import { NumerosAquecimentoAlertBanner } from '@/components/dashboard/NumerosAquecimentoAlertBanner';
@@ -82,10 +81,7 @@ interface ClienteStats {
   churnRate: number;
 }
 
-interface CustomRole {
-  name: string;
-  display_name: string;
-}
+// Removed unused interface
 
 export default function Dashboard() {
   const navigate = useNavigate();
