@@ -299,6 +299,14 @@ const AdminGuia = () => {
       permissionKey: "view_guia_numeros"
     },
     {
+      id: "social-media",
+      title: "Social Media",
+      icon: Share2,
+      color: "text-pink-400",
+      categories: ["social-media"],
+      permissionKey: "view_social_credentials"
+    },
+    {
       id: "gateway",
       title: "Gateway",
       icon: Store,
