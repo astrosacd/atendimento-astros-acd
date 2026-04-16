@@ -98,6 +98,7 @@ export function useFollowups() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up agendado com sucesso!');
+      logActivity(`Agendou follow-up: ${input.manual_name || 'Cliente'}`, 'followup', `Produto: ${input.produto}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao criar follow-up: ' + err.message);
