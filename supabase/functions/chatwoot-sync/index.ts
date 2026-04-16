@@ -57,21 +57,34 @@ serve(async (req) => {
 
     // Logic updated to fetch open conversations instead of all contacts
     if (sync_leads || sync_conversations) {
-      console.log(`Fetching open conversations from: ${baseUrl}/conversations?status=open`);
-      const convsRes = await fetch(`${baseUrl}/conversations?status=open`, { headers });
-      
-      if (!convsRes.ok) {
-        const errorText = await convsRes.text();
-        console.error(`Chatwoot API error (${convsRes.status}):`, errorText);
-        throw new Error(`Erro ao buscar conversas: ${convsRes.statusText}`);
+      const statusList = ['open', 'pending'];
+      let conversations: any[] = [];
+      const openConvIds: number[] = [];
+
+      for (const status of statusList) {
+        let apiUrl = `${baseUrl}/conversations?status=${status}`;
+        if (inbox_id) {
+          apiUrl += `&inbox_id=${inbox_id}`;
+        }
+        
+        console.log(`Fetching ${status} conversations from: ${apiUrl}`);
+        const convsRes = await fetch(apiUrl, { headers });
+        
+        if (!convsRes.ok) {
+          const errorText = await convsRes.text();
+          console.error(`Chatwoot API error for ${status} (${convsRes.status}):`, errorText);
+          continue;
+        }
+        
+        const responseData = await convsRes.json();
+        const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
+        const currentConvs = Array.isArray(rawConversations) ? rawConversations : [];
+        
+        console.log(`Found ${currentConvs.length} ${status} conversations`);
+        conversations = [...conversations, ...currentConvs];
       }
-      
-      const responseData = await convsRes.json();
-      const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
-      const conversations = Array.isArray(rawConversations) ? rawConversations : [];
-      
-      console.log(`Found ${conversations.length} open conversations`);
-      const openConvIds = conversations.map((c: any) => c.id);
+
+      const allConvIds = conversations.map((c: any) => c.id);
 
       for (const conv of conversations) {
         const contact = conv.meta?.sender;
