@@ -33,6 +33,7 @@ const providerLabels: Record<Provider, string> = {
 export default function GeradorLinkPagamento() {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
 
   const [empresa, setEmpresa] = useState('');
