@@ -149,9 +149,10 @@ export function useFollowups() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success('Follow-up atualizado!');
+      logActivity(`Atualizou follow-up de ${variables.manual_name || 'Cliente'}`, 'followup');
     },
     onError: (err: any) => {
       toast.error('Erro ao atualizar: ' + err.message);
