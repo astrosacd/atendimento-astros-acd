@@ -1,13 +1,51 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, TrendingUp } from "lucide-react";
+import { Target, TrendingUp, Edit2, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 interface RevenueGoalProps {
   currentMrr: number;
   goal?: number;
 }
 
-export function RevenueGoalCard({ currentMrr, goal = 50000 }: RevenueGoalProps) {
+export function RevenueGoalCard({ currentMrr, goal: initialGoal = 50000 }: RevenueGoalProps) {
+  const [goal, setGoal] = useState(initialGoal);
+  const [tempGoal, setTempGoal] = useState(initialGoal.toString());
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const savedGoal = localStorage.getItem('dashboard_revenue_goal');
+    if (savedGoal) {
+      setGoal(Number(savedGoal));
+      setTempGoal(savedGoal);
+    }
+  }, []);
+
+  const handleSave = () => {
+    const newGoal = Number(tempGoal);
+    if (isNaN(newGoal) || newGoal <= 0) {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira um valor válido para a meta.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setGoal(newGoal);
+    localStorage.setItem('dashboard_revenue_goal', newGoal.toString());
+    setIsOpen(false);
+    toast({
+      title: "Sucesso",
+      description: "Meta mensal atualizada com sucesso!",
+    });
+  };
+
   const percentage = Math.min((currentMrr / goal) * 100, 100);
   const remaining = Math.max(goal - currentMrr, 0);
 
@@ -26,7 +64,33 @@ export function RevenueGoalCard({ currentMrr, goal = 50000 }: RevenueGoalProps) 
             <Target className="h-4 w-4 text-primary" />
             Meta Mensal
           </div>
-          <span className="text-primary font-bold">{percentage.toFixed(1)}%</span>
+          <div className="flex items-center gap-2">
+            <span className="text-primary font-bold">{percentage.toFixed(1)}%</span>
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary">
+                  <Edit2 className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-60">
+                <div className="space-y-3">
+                  <h4 className="font-medium leading-none">Editar Meta</h4>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={tempGoal}
+                      onChange={(e) => setTempGoal(e.target.value)}
+                      className="h-8"
+                      placeholder="Valor da meta"
+                    />
+                    <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleSave}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
