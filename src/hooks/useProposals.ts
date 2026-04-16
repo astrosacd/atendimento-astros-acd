@@ -135,8 +135,9 @@ export function useProposals() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      logActivity(`Criou nova proposta: ${data.title}`, 'proposta');
     },
     onError: (error) => {
       console.error('Erro ao criar proposta:', error);
