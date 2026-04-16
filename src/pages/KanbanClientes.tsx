@@ -269,6 +269,11 @@ export default function KanbanClientes() {
                 <MessageSquare className="h-4 w-4" /> Chatwoot
               </TabsTrigger>
             )}
+            {(isAdmin || canViewPipelineAI()) && (
+              <TabsTrigger value="ai" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Brain className="h-4 w-4" /> Config. IA
+              </TabsTrigger>
+            )}
             {(isAdmin || canManagePipelineStages()) && (
               <TabsTrigger value="share" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Share2 className="h-4 w-4" /> Compartilhar
