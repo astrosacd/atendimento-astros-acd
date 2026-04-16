@@ -26,7 +26,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { provider, model, customPrompt, metricsData, openaiApiKey, grokApiKey, scheduled } = await req.json();
+    const payload = await req.json();
+    const { provider, model, customPrompt, metricsData, openaiApiKey, grokApiKey, scheduled } = payload;
 
     const aiProvider = provider || "lovable";
     const aiModel = model || "google/gemini-3-flash-preview";
@@ -147,7 +148,7 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
 
     // If scheduled or specifically requested, send notifications and log them
     if (scheduled) {
-      const { notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses } = await req.json().catch(() => ({}));
+      const { notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses } = payload;
       await sendScheduledNotifications(supabase, responseText, {
         notifyWhatsapp,
         notifyEmail,
