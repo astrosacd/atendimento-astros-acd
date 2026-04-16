@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,9 @@ interface ProfileStatus {
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const urlCode = searchParams.get('codigo');
+  const { t } = useTranslation(); // Note: t might be used later in the file, checking...
   const { user, isApproved, signIn, signUp, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,9 +43,32 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+  const [correctCode, setCorrectCode] = useState<string | null>(null);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(true);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
+
+  // Buscar o código de acesso correto
+  useEffect(() => {
+    const fetchCorrectCode = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_auth_access_code');
+        if (!error && data) {
+          setCorrectCode(data);
+        } else {
+          // Fallback se não encontrar no banco
+          setCorrectCode('astros2024');
+        }
+      } catch (err) {
+        setCorrectCode('astros2024');
+      } finally {
+        setIsVerifyingCode(false);
+      }
+    };
+
+    fetchCorrectCode();
+  }, []);
 
   // Função para buscar status do perfil
   const fetchProfileStatus = async () => {
@@ -286,10 +311,46 @@ export default function Auth() {
   };
 
 
-  if (authLoading) {
+  if (isVerifyingCode || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
+      </div>
+    );
+  }
+
+  // Trava de segurança: exige o código correto na URL (?codigo=...)
+  if (urlCode !== correctCode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md bg-card border-border border-2 border-destructive/20 shadow-2xl">
+          <CardHeader className="text-center space-y-4">
+            <img 
+              src="https://i.imgur.com/odbwwWW.png" 
+              alt="Astros Comunicação Digital" 
+              className="h-24 mx-auto mb-2"
+            />
+            <div className="flex justify-center">
+              <div className="bg-destructive/10 p-4 rounded-full">
+                <XCircle className="h-12 w-12 text-destructive" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold text-destructive">Acesso Restrito</CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">
+              Esta página de acesso é privada e protegida.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="bg-muted p-4 rounded-lg border border-border">
+              <p className="text-sm text-foreground font-medium">
+                Você precisa do link de acesso oficial para visualizar esta tela.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              Se você é um colaborador e não possui o link, solicite ao seu gestor.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
