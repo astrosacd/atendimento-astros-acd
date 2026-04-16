@@ -6034,6 +6034,7 @@ export type Database = {
         Returns: boolean
       }
       trigger_auto_sync_consulta_numeros: { Args: never; Returns: undefined }
+      update_all_lead_scores: { Args: never; Returns: undefined }
       update_automations_cron_schedule: {
         Args: { p_hour: number; p_minute: number }
         Returns: boolean
