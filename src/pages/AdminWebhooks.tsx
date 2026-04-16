@@ -134,6 +134,8 @@ export default function AdminWebhooks() {
       toast({ title: t('webhooks.errorDeleting'), variant: 'destructive' });
     } else {
       toast({ title: t('webhooks.webhookDeleted') });
+      const webhook = webhooks.find(w => w.id === id);
+      logActivity(`Excluiu webhook: ${webhook?.name}`, 'webhook');
       loadWebhooks();
     }
   };
