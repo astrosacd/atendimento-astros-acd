@@ -534,9 +534,10 @@ Aguardo seu retorno! 😊`;
         
         if (instance) {
           try {
-            // Format phone number
+            // Format phone number - keep as-is if it already has a country code (10+ digits)
             let phone = cliente.numero.replace(/\D/g, '');
-            if (!phone.startsWith('55')) {
+            // Only prepend 55 for Brazilian numbers (10 or 11 digits without country code)
+            if (phone.length <= 11 && !phone.startsWith('55')) {
               phone = '55' + phone;
             }
             
@@ -725,8 +726,10 @@ Aguardo seu retorno! 😊`;
           console.error('Webhook dispatch error:', e.message);
         }
 
-        // === BASEROW: Create/update lead ===
-        await createBaserowLead(supabaseUrl, evento, cliente.nome, cliente.numero);
+        // === BASEROW: Create/update lead (apenas WhatsApp) ===
+        if (channel === 'whatsapp') {
+          await createBaserowLead(supabaseUrl, evento, cliente.nome, cliente.numero);
+        }
       }
       
       return new Response(
