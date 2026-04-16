@@ -57,7 +57,9 @@ export default function KanbanClientes() {
     canManagePipelineStages, 
     canManagePipelineAutomations,
     canViewPipelineAI,
-    canManagePipelineAI
+    canManagePipelineAI,
+    canManagePipelineChatwoot,
+    canSharePipeline
   } = usePermissions();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [clients, setClients] = useState<PipelineClient[]>([]);
