@@ -67,9 +67,11 @@ serve(async (req) => {
       }
       
       const responseData = await convsRes.json();
-      const conversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
+      const rawConversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
+      const conversations = Array.isArray(rawConversations) ? rawConversations : [];
       
       console.log(`Found ${conversations.length} open conversations`);
+      const openConvIds = conversations.map((c: any) => c.id);
 
       for (const conv of conversations) {
         const contact = conv.meta?.sender;
