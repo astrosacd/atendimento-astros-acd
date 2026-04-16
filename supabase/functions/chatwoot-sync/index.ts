@@ -175,14 +175,14 @@ serve(async (req) => {
         }
       }
 
-      // 3. Logic to "remove" leads that no longer have an open conversation
-      // We'll mark them as is_lead = false if they have a chatwoot_conversation_id and it's NOT in openConvIds
-      if (openConvIds.length > 0) {
+      // 3. Logic to "remove" leads that no longer have an active conversation
+      // We'll mark them as is_lead = false if they have a chatwoot_conversation_id and it's NOT in allConvIds
+      if (allConvIds.length > 0) {
         const { error: closeError } = await supabase
           .from('client_pipeline')
           .update({ is_lead: false })
           .not('chatwoot_conversation_id', 'is', null)
-          .not('chatwoot_conversation_id', 'in', `(${openConvIds.join(',')})`);
+          .not('chatwoot_conversation_id', 'in', `(${allConvIds.join(',')})`);
         
         if (closeError) {
           console.error("Error closing finished conversations:", closeError);
