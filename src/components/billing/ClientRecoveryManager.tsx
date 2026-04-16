@@ -594,21 +594,40 @@ export const ClientRecoveryManager = () => {
                                 <p className="font-medium">{cliente.nome}</p>
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs text-muted-foreground">{cliente.numero}</p>
-                                  {hasWhatsAppError(cliente.id) && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
-                                            <Phone className="w-3 h-3" />
-                                            inválido
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>WhatsApp não existe para este número</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
+                                  {(() => {
+                                    const issueType = getPhoneIssueType(cliente.id, cliente.numero);
+                                    if (issueType === 'international') return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-1">
+                                              <Phone className="w-3 h-3" />
+                                              internacional
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Número internacional — verifique se o WhatsApp existe manualmente</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                    if (issueType === 'invalid') return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                              <Phone className="w-3 h-3" />
+                                              inválido
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>WhatsApp não existe para este número brasileiro</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                    return null;
+                                  })()}
                                 </div>
                               </div>
                             </TableCell>
@@ -777,21 +796,40 @@ export const ClientRecoveryManager = () => {
                                 <p className="font-medium">{cliente.nome}</p>
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs text-muted-foreground">{cliente.numero}</p>
-                                  {hasWhatsAppError(cliente.id) && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
-                                            <Phone className="w-3 h-3" />
-                                            inválido
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>WhatsApp não existe para este número</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
+                                  {(() => {
+                                    const issueType = getPhoneIssueType(cliente.id, cliente.numero);
+                                    if (issueType === 'international') return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-1">
+                                              <Phone className="w-3 h-3" />
+                                              internacional
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Número internacional — verifique se o WhatsApp existe manualmente</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                    if (issueType === 'invalid') return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                              <Phone className="w-3 h-3" />
+                                              inválido
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>WhatsApp não existe para este número brasileiro</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                    return null;
+                                  })()}
                                 </div>
                               </div>
                             </TableCell>
