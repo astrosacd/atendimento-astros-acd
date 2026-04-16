@@ -105,6 +105,7 @@ export default function AdminWebhooks() {
       toast({ title: t('webhooks.errorCreating'), description: error.message, variant: 'destructive' });
     } else {
       toast({ title: t('webhooks.webhookCreated') });
+      logActivity(`Criou novo webhook: ${newWebhook.name}`, 'webhook');
       setDialogOpen(false);
       setNewWebhook({ name: '', url: '', events: [], secret_key: '' });
       loadWebhooks();
