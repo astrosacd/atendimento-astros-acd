@@ -187,8 +187,7 @@ export default function GeradorLinkPagamento() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['payment-link-share-tokens'] });
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/link-pagamento/${data.token}`;
+      const link = `${siteUrl}/link-pagamento/${data.token}`;
       copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
       setShowShareDialog(false);
       setShowShareDialog(false);
