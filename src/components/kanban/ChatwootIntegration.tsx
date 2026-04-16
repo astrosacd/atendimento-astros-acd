@@ -79,7 +79,8 @@ export function ChatwootIntegration({ onRefresh }: { onRefresh?: () => void }) {
         body: { action: 'sync_all' }
       });
       if (error) throw error;
-      toast.success('Sincronização concluída com sucesso');
+      const syncedCount = data?.syncedCount || 0;
+      toast.success(`Sincronização concluída: ${syncedCount} novo(s) lead(s) importado(s)`);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Error syncing with Chatwoot:', err);
