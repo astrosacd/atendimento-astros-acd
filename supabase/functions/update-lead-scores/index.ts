@@ -11,25 +11,28 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Basic security check
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  // Basic security check: Allow if CRON_SECRET matches OR if it's a valid Supabase auth token
   const authHeader = req.headers.get('Authorization')
   const cronSecret = Deno.env.get('CRON_SECRET')
+  const isCron = authHeader === `Bearer ${cronSecret}`
   
-  // Allow if auth header matches or if it's a request from the app (using session token)
-  // For the app requests, we would check the session, but here we'll stick to CRON_SECRET or Service Role key
-  if (authHeader !== `Bearer ${cronSecret}` && !authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-      status: 401, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    })
+  if (!isCron) {
+    // If not cron, check if it's a valid user session
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(authHeader?.replace('Bearer ', '') ?? '')
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      })
+    }
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     // Fetch AI configuration
     const { data: aiConfig } = await supabaseClient
       .from('pipeline_ai_config')
