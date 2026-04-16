@@ -1301,29 +1301,33 @@ export const ClientRecoveryManager = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium mb-2 block">Canal de envio</label>
-                    <Select value={selectedChannel} onValueChange={(v: 'whatsapp' | 'email') => setSelectedChannel(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="whatsapp">
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-green-400" />
-                            WhatsApp
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="email">
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-blue-400" />
-                            Email
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">Canal de envio</label>
+                  <Select value={selectedChannel} onValueChange={(v: 'whatsapp' | 'email') => setSelectedChannel(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-green-400" />
+                          WhatsApp
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="email">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-blue-400" />
+                          Email
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {selectedClient && selectedChannel === 'whatsapp' && hasWhatsAppError(selectedClient.id) && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>O WhatsApp deste número não existe. Considere enviar por e-mail.</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
