@@ -217,6 +217,21 @@ export default function KanbanClientes() {
       setLoading(false);
     }
   };
+  
+  const updateAllAIScores = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('update_all_lead_scores');
+      if (error) throw error;
+      toast.success('Scores de todos os clientes atualizados com sucesso');
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao atualizar scores em massa');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -268,6 +283,7 @@ export default function KanbanClientes() {
               onConvertLead={convertLead}
               onRefresh={loadData}
               onUpdateAIScore={updateAIScore}
+              onUpdateAllScores={updateAllAIScores}
             />
           </TabsContent>
 
