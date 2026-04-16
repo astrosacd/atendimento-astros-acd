@@ -73,6 +73,7 @@ interface Props {
 export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
   const canManage = hasPermission('manage_social_credentials');
 
