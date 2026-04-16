@@ -570,7 +570,24 @@ export const ClientRecoveryManager = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium">{cliente.nome}</p>
-                                <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                  {hasWhatsAppError(cliente.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                            <Phone className="w-3 h-3" />
+                                            inválido
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WhatsApp não existe para este número</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -736,7 +753,24 @@ export const ClientRecoveryManager = () => {
                             <TableCell>
                               <div>
                                 <p className="font-medium">{cliente.nome}</p>
-                                <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs text-muted-foreground">{cliente.numero}</p>
+                                  {hasWhatsAppError(cliente.id) && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-1">
+                                            <Phone className="w-3 h-3" />
+                                            inválido
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WhatsApp não existe para este número</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
