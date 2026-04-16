@@ -174,6 +174,8 @@ export function useDespesas() {
       description: 'Despesa criada com sucesso!',
     });
     
+    logActivity(`Criou nova despesa: ${data.descricao}`, 'despesa', `Valor: ${data.valor} ${data.moeda}`);
+    
     await fetchDespesas();
     return true;
   };
