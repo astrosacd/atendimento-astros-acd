@@ -55,23 +55,26 @@ serve(async (req) => {
 
     let syncedCount = 0;
 
-    if (sync_leads) {
-      console.log(`Fetching contacts from: ${baseUrl}/contacts`);
-      // Fetch contacts
-      const contactsRes = await fetch(`${baseUrl}/contacts`, { headers });
+    // Logic updated to fetch open conversations instead of all contacts
+    if (sync_leads || sync_conversations) {
+      console.log(`Fetching open conversations from: ${baseUrl}/conversations?status=open`);
+      const convsRes = await fetch(`${baseUrl}/conversations?status=open`, { headers });
       
-      if (!contactsRes.ok) {
-        const errorText = await contactsRes.text();
-        console.error(`Chatwoot API error (${contactsRes.status}):`, errorText);
-        throw new Error(`Erro ao buscar contatos: ${contactsRes.statusText}`);
+      if (!convsRes.ok) {
+        const errorText = await convsRes.text();
+        console.error(`Chatwoot API error (${convsRes.status}):`, errorText);
+        throw new Error(`Erro ao buscar conversas: ${convsRes.statusText}`);
       }
       
-      const responseData = await contactsRes.json();
-      const contacts = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
+      const responseData = await convsRes.json();
+      const conversations = responseData.payload || responseData.data || (Array.isArray(responseData) ? responseData : []);
       
-      console.log(`Found ${contacts.length} contacts in current page`);
+      console.log(`Found ${conversations.length} open conversations`);
 
-      for (const contact of contacts) {
+      for (const conv of conversations) {
+        const contact = conv.meta?.sender;
+        if (!contact) continue;
+
         // If no phone/email, we skip for now to avoid duplicates without unique keys
         if (!contact.phone_number && !contact.email) {
           continue;
@@ -81,7 +84,7 @@ serve(async (req) => {
         const cleanPhone = contact.phone_number ? contact.phone_number.replace(/\D/g, '') : null;
         
         // Check if lead already exists in pipeline by phone or email
-        let query = supabase.from('client_pipeline').select('id');
+        let query = supabase.from('client_pipeline').select('*');
         
         const conditions = [];
         if (cleanPhone) conditions.push(`lead_phone.ilike.%${cleanPhone}%`);
@@ -98,8 +101,8 @@ serve(async (req) => {
           continue;
         }
 
-        if (!existing) {
-          // Insert new lead
+        if (!existing && sync_leads) {
+          // Insert new lead from open conversation
           const { error: insertError } = await supabase
             .from('client_pipeline')
             .insert({
@@ -108,7 +111,7 @@ serve(async (req) => {
               lead_name: contact.name || 'Contato Chatwoot',
               lead_phone: contact.phone_number,
               lead_email: contact.email,
-              notes: `Importado do Chatwoot (ID: ${contact.id})\nAvatar: ${contact.thumbnail || ''}`
+              notes: `Importado de conversa aberta no Chatwoot (ID Conv: ${conv.id})\nAvatar: ${contact.thumbnail || ''}`
             });
           
           if (!insertError) {
@@ -116,65 +119,30 @@ serve(async (req) => {
           } else {
             console.error(`Error inserting lead ${contact.name}:`, insertError);
           }
-        }
-      }
-    }
-
-    if (sync_conversations) {
-      console.log("Syncing conversations...");
-      const { data: pipelineItems } = await supabase
-        .from('client_pipeline')
-        .select('*')
-        .eq('is_lead', true);
-
-      if (pipelineItems) {
-        for (const item of pipelineItems) {
-          const searchVal = item.lead_phone || item.lead_email;
-          if (!searchVal) continue;
-
-          // Simple cleaning for phone to improve search
-          const queryVal = searchVal.replace(/\D/g, '');
+        } else if (existing && sync_conversations) {
+          // Sync conversation content to existing lead
+          const msgRes = await fetch(`${baseUrl}/conversations/${conv.id}/messages`, { headers });
+          if (!msgRes.ok) continue;
           
-          const contactSearchRes = await fetch(`${baseUrl}/contacts/search?q=${encodeURIComponent(queryVal)}`, { headers });
-          if (!contactSearchRes.ok) continue;
-          
-          const searchData = await contactSearchRes.json();
-          const contactsFound = searchData.payload || searchData.data || (Array.isArray(searchData) ? searchData : []);
-          const contact = contactsFound[0];
+          const msgData = await msgRes.json();
+          const messages = msgData.payload || msgData.data || (Array.isArray(msgData) ? msgData : []);
 
-          if (contact) {
-            const convRes = await fetch(`${baseUrl}/contacts/${contact.id}/conversations`, { headers });
-            if (!convRes.ok) continue;
-            
-            const convData = await convRes.json();
-            const conversations = convData.payload || convData.data || (Array.isArray(convData) ? convData : []);
+          const conversationText = messages
+            .filter((m: any) => m.message_type === 0 || m.message_type === 1)
+            .slice(-5) // Get last 5 messages
+            .map((m: any) => `${m.message_type === 0 ? 'Cliente' : 'Atendente'}: ${m.content || '[Arquivo/Imagem]'}`)
+            .join('\n');
 
-            if (conversations.length > 0) {
-              const lastConv = conversations[0];
-              const msgRes = await fetch(`${baseUrl}/conversations/${lastConv.id}/messages`, { headers });
-              if (!msgRes.ok) continue;
-              
-              const msgData = await msgRes.json();
-              const messages = msgData.payload || msgData.data || (Array.isArray(msgData) ? msgData : []);
-
-              const conversationText = messages
-                .filter((m: any) => m.message_type === 0 || m.message_type === 1)
-                .slice(0, 5)
-                .map((m: any) => `${m.message_type === 0 ? 'Cliente' : 'Atendente'}: ${m.content}`)
-                .join('\n');
-
-              if (conversationText) {
-                // Update only if conversation text is different or notes don't contain it
-                if (!item.notes?.includes(conversationText.substring(0, 100))) {
-                  await supabase
-                    .from('client_pipeline')
-                    .update({
-                      notes: `Última conversa Chatwoot:\n${conversationText}\n\n${item.notes || ''}`.substring(0, 1000),
-                      last_interaction_at: new Date().toISOString()
-                    })
-                    .eq('id', item.id);
-                }
-              }
+          if (conversationText) {
+            // Update only if conversation text is different or notes don't contain it
+            if (!existing.notes?.includes(conversationText.substring(0, 100))) {
+              await supabase
+                .from('client_pipeline')
+                .update({
+                  notes: `Conversa aberta Chatwoot (ID: ${conv.id}):\n${conversationText}\n\n${existing.notes || ''}`.substring(0, 1000),
+                  last_interaction_at: new Date().toISOString()
+                })
+                .eq('id', existing.id);
             }
           }
         }
