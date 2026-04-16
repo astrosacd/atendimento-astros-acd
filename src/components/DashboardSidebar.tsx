@@ -370,35 +370,37 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       </Button>
 
       {/* User Info */}
-      {!collapsed && (
-        <div className="px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              {isLoading ? (
-                <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
-              ) : (
-                <span className="text-primary font-semibold text-sm">
-                  {(userName || 'U').charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              {isLoading ? (
-                <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
-              ) : (
-                <p className="text-sm font-medium text-foreground truncate">{userName}</p>
-              )}
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                <span className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  isAdmin ? "bg-primary" : "bg-muted-foreground"
-                )} />
-                {isAdmin ? t('user.administrator') : t('user.user')}
-              </p>
-            </div>
+      <div className={cn(
+        "px-4 py-3 border-b border-border transition-all duration-300 overflow-hidden whitespace-nowrap",
+        collapsed ? "h-0 opacity-0 py-0 border-b-0" : "h-[65px] opacity-100"
+      )}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+            {isLoading ? (
+              <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
+            ) : (
+              <span className="text-primary font-semibold text-sm">
+                {(userName || 'U').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            {isLoading ? (
+              <div className="h-4 w-24 bg-muted rounded animate-pulse mb-1" />
+            ) : (
+              <p className="text-sm font-medium text-foreground truncate">{userName}</p>
+            )}
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+              <span className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                isAdmin ? "bg-primary" : "bg-muted-foreground"
+              )} />
+              {isAdmin ? t('user.administrator') : t('user.user')}
+            </p>
           </div>
         </div>
-      )}
+      </div>
+
 
       {/* Navigation */}
       <nav
