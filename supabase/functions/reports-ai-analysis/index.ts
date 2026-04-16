@@ -138,13 +138,19 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
     const responseText = aiData.choices?.[0]?.message?.content || "Sem resposta da IA";
 
     // Save to history
-    await supabase.from("reports_analysis_history").insert({
+    const { data: historyData, error: historyError } = await supabase.from("reports_analysis_history").insert({
       analysis_text: responseText,
       ai_provider: aiProvider,
       ai_model: requestBody.model,
       prompt_used: promptToUse,
       metrics_snapshot: metricsData || {},
-    });
+    }).select("id").single();
+
+    if (historyError) {
+      console.error("[reports-ai] History save error:", historyError);
+    }
+
+    const analysisId = historyData?.id;
 
     // If scheduled or specifically requested, send notifications and log them
     if (scheduled) {
@@ -153,7 +159,8 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
         notifyWhatsapp,
         notifyEmail,
         whatsappNumbers,
-        emailAddresses
+        emailAddresses,
+        analysisId
       });
     }
 
