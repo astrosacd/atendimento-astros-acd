@@ -89,6 +89,7 @@ export default function PropostaEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const siteUrl = useSiteUrl();
 
   const { useProposal, updateProposal } = useProposals();
   const { data: proposal, isLoading: isLoadingProposal } = useProposal(id);
