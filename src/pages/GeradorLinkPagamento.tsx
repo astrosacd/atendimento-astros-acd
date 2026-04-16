@@ -659,8 +659,7 @@ export default function GeradorLinkPagamento() {
                     <div className="space-y-2">
                       {shareTokens.map((tk: any) => {
                         const isExpired = new Date(tk.expires_at) < new Date();
-                        const baseUrl = window.location.origin;
-                        const link = `${baseUrl}/link-pagamento/${tk.token}`;
+                        const link = `${siteUrl}/link-pagamento/${tk.token}`;
                         return (
                           <div
                             key={tk.id}
