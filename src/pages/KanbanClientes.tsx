@@ -310,7 +310,7 @@ export default function KanbanClientes() {
               <AutomationRulesPanel />
             </TabsContent>
           )}
-          {(isAdmin || canManagePipelineStages()) && (
+          {(isAdmin || canManagePipelineChatwoot()) && (
             <TabsContent value="chatwoot">
               <ChatwootIntegration onRefresh={loadData} />
             </TabsContent>
@@ -320,7 +320,7 @@ export default function KanbanClientes() {
               <KanbanAIConfig />
             </TabsContent>
           )}
-          {(isAdmin || canManagePipelineStages()) && (
+          {(isAdmin || canSharePipeline()) && (
             <TabsContent value="share">
               <KanbanShareManager />
             </TabsContent>
