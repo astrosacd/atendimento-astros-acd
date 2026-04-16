@@ -6,7 +6,8 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare } from 'lucide-react';
+import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
