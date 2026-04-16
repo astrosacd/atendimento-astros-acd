@@ -260,6 +260,7 @@ export function useFollowups() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['followups'] });
       toast.success(variables.conversion_status === 'converted' ? 'Marcado como convertido!' : 'Marcado como não convertido');
+      logActivity(`Marcou conversão: ${variables.conversion_status}`, 'followup', `ID: ${variables.id}`);
     },
     onError: (err: any) => {
       toast.error('Erro ao marcar conversão: ' + err.message);
