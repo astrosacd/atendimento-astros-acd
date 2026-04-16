@@ -65,35 +65,54 @@ serve(async (req) => {
       console.log(`Found ${contacts.length} contacts in current page`);
 
       for (const contact of contacts) {
-        // Skip if no phone or email
+        console.log(`Processing contact: ${contact.name} (ID: ${contact.id}) | Phone: ${contact.phone_number} | Email: ${contact.email}`);
+
+        // If no phone/email, we can still import if they have a name, but we need a unique way to track them
+        // Let's use Chatwoot ID in the notes or a metadata field if available
+        
         if (!contact.phone_number && !contact.email) {
+          console.log(`Skipping ${contact.name} - No phone or email`);
           continue;
         }
 
-        // Check if lead already exists in pipeline
-        const { data: existing } = await supabase
-          .from('client_pipeline')
-          .select('id')
-          .or(`lead_phone.eq.${contact.phone_number},lead_email.eq.${contact.email}`)
-          .maybeSingle();
+        // Check if lead already exists in pipeline by phone or email
+        let query = supabase.from('client_pipeline').select('id');
+        
+        if (contact.phone_number && contact.email) {
+          query = query.or(`lead_phone.eq.${contact.phone_number},lead_email.eq.${contact.email}`);
+        } else if (contact.phone_number) {
+          query = query.eq('lead_phone', contact.phone_number);
+        } else if (contact.email) {
+          query = query.eq('lead_email', contact.email);
+        }
+
+        const { data: existing, error: searchError } = await query.maybeSingle();
+        
+        if (searchError) {
+          console.error("Error searching for existing lead:", searchError);
+          continue;
+        }
 
         if (!existing) {
+          console.log(`Inserting new lead: ${contact.name}`);
           // Insert new lead
           const { error: insertError } = await supabase
             .from('client_pipeline')
             .insert({
               is_lead: true,
-              lead_name: contact.name,
+              lead_name: contact.name || 'Contato Chatwoot',
               lead_phone: contact.phone_number,
               lead_email: contact.email,
-              notes: `Importado do Chatwoot (ID: ${contact.id})`
+              notes: `Importado do Chatwoot (ID: ${contact.id})\nAvatar: ${contact.thumbnail || ''}`
             });
           
           if (!insertError) {
             syncedCount++;
           } else {
-            console.error("Error inserting lead:", insertError);
+            console.error(`Error inserting lead ${contact.name}:`, insertError);
           }
+        } else {
+          console.log(`Lead ${contact.name} already exists`);
         }
       }
     }
@@ -110,6 +129,7 @@ serve(async (req) => {
           const searchVal = item.lead_phone || item.lead_email;
           if (!searchVal) continue;
 
+          console.log(`Searching conversations for: ${searchVal}`);
           const contactSearchRes = await fetch(`${baseUrl}/contacts/search?q=${encodeURIComponent(searchVal)}`, { headers });
           if (!contactSearchRes.ok) continue;
           
