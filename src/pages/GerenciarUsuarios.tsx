@@ -470,8 +470,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const blockedUser = users.find(u => u.id === variables.userId);
+      logActivity(`Bloqueou usuário: ${blockedUser?.name || blockedUser?.email}`, 'admin', `Motivo: ${variables.reason}`);
+      
       setBlockDialogOpen(false);
       setBlockingUserId(null);
       setBlockingUserName('');
