@@ -149,6 +149,7 @@ Responda APENAS em formato JSON:
                 <SelectValue placeholder="Selecione o provedor" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="lovable">Lovable AI (Padrão)</SelectItem>
                 <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
                 <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
                 <SelectItem value="groq">Groq</SelectItem>
