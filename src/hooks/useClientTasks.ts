@@ -302,6 +302,8 @@ export const useClientTasks = () => {
         description: 'A tarefa foi atualizada com sucesso.',
       });
 
+      logActivity(`Atualizou tarefa: ${updatedTask.title}`, 'tarefa', `Status: ${updatedTask.status}`);
+
       return true;
     } catch (error: any) {
       console.error('Error updating task:', error);
