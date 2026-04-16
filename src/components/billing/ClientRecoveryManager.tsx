@@ -1240,7 +1240,7 @@ export const ClientRecoveryManager = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1 pb-1">
             {isGenerating ? (
               <div className="flex flex-col items-center justify-center py-10">
                 <Sparkles className="w-8 h-8 text-purple-400 animate-pulse mb-3" />
