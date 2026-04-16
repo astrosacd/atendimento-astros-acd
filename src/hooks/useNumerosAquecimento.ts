@@ -348,10 +348,11 @@ export function useUpdateNumero() {
 
       return numero;
     },
-    onSuccess: () => {
+    onSuccess: (updatedNumero) => {
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento'] });
       queryClient.invalidateQueries({ queryKey: ['numeros-aquecimento-history'] });
       toast.success('Número atualizado com sucesso');
+      logActivity(`Atualizou número: ${updatedNumero.numero}`, 'numeros_aquecimento');
     },
     onError: (error: Error) => {
       toast.error(`Erro ao atualizar número: ${error.message}`);
