@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { copyToClipboard } from '@/utils/clipboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
