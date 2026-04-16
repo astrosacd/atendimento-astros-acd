@@ -230,6 +230,8 @@ export function useDespesas() {
       description: 'Despesa excluída com sucesso!',
     });
     
+    logActivity(`Excluiu uma despesa`, 'despesa');
+    
     await fetchDespesas();
     return true;
   };
