@@ -151,6 +151,7 @@ const categoryToPermission: Record<string, string> = {
   'agenda-visao-geral': 'view_guia_agenda',
   'agenda-config': 'view_guia_agenda',
   'link-pagamento-visao-geral': 'view_guia_link_pagamento',
+  'social-media': 'view_social_credentials',
 };
 
 const AdminGuia = () => {
