@@ -153,6 +153,7 @@ export function useLeadHunterCampanhas() {
 
 export function useCreateCampanha() {
   const qc = useQueryClient();
+  const { logActivity } = useSystemActivities();
   return useMutation({
     mutationFn: async (campanha: Partial<LeadHunterCampanha>) => {
       const { data, error } = await supabase
