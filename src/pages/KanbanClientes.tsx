@@ -257,6 +257,7 @@ export default function KanbanClientes() {
               onAddLead={addLead}
               onConvertLead={convertLead}
               onRefresh={loadData}
+              onUpdateAIScore={updateAIScore}
             />
           </TabsContent>
 
