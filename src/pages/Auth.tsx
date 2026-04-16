@@ -32,6 +32,8 @@ interface ProfileStatus {
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlCode = searchParams.get('codigo');
   const { t } = useTranslation();
   const { user, isApproved, signIn, signUp, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -41,9 +43,32 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
+  const [correctCode, setCorrectCode] = useState<string | null>(null);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(true);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
+
+  // Buscar o código de acesso correto
+  useEffect(() => {
+    const fetchCorrectCode = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_auth_access_code');
+        if (!error && data) {
+          setCorrectCode(data);
+        } else {
+          // Fallback se não encontrar no banco
+          setCorrectCode('astros2024');
+        }
+      } catch (err) {
+        setCorrectCode('astros2024');
+      } finally {
+        setIsVerifyingCode(false);
+      }
+    };
+
+    fetchCorrectCode();
+  }, []);
 
   // Função para buscar status do perfil
   const fetchProfileStatus = async () => {
