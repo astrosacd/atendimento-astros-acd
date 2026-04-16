@@ -311,10 +311,46 @@ export default function Auth() {
   };
 
 
-  if (authLoading) {
+  if (isVerifyingCode || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-primary">Carregando...</div>
+      </div>
+    );
+  }
+
+  // Trava de segurança: exige o código correto na URL (?codigo=...)
+  if (urlCode !== correctCode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md bg-card border-border border-2 border-destructive/20 shadow-2xl">
+          <CardHeader className="text-center space-y-4">
+            <img 
+              src="https://i.imgur.com/odbwwWW.png" 
+              alt="Astros Comunicação Digital" 
+              className="h-24 mx-auto mb-2"
+            />
+            <div className="flex justify-center">
+              <div className="bg-destructive/10 p-4 rounded-full">
+                <XCircle className="h-12 w-12 text-destructive" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold text-destructive">Acesso Restrito</CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">
+              Esta página de acesso é privada e protegida.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="bg-muted p-4 rounded-lg border border-border">
+              <p className="text-sm text-foreground font-medium">
+                Você precisa do link de acesso oficial para visualizar esta tela.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              Se você é um colaborador e não possui o link, solicite ao seu gestor.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
