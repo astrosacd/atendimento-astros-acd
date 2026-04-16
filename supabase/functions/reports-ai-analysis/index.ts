@@ -271,6 +271,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               recipient: phone,
               status: sendStatus,
               error_message: sendStatus === "error" ? sendBody.substring(0, 500) : null,
+              analysis_id: overrides?.analysisId,
             }).then(() => {}).catch(() => {});
 
             console.log(`[reports-ai] WhatsApp to ${phone}: ${sendStatus}`);
