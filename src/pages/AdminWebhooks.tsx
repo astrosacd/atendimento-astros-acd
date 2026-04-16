@@ -121,6 +121,8 @@ export default function AdminWebhooks() {
     if (error) {
       toast({ title: t('webhooks.errorUpdating'), variant: 'destructive' });
     } else {
+      const webhook = webhooks.find(w => w.id === id);
+      logActivity(`${!currentStatus ? 'Ativou' : 'Desativou'} webhook: ${webhook?.name}`, 'webhook');
       loadWebhooks();
     }
   };
