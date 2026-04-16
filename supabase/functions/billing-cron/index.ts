@@ -76,25 +76,41 @@ const validateEmail = (email: string): { valid: boolean; reason?: string } => {
   return { valid: true };
 };
 
-const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: string } => {
+const validateWhatsAppNumber = (numero: string): { valid: boolean; reason?: string; international?: boolean } => {
   if (!numero || numero.trim() === '') {
     return { valid: false, reason: 'Número de WhatsApp não informado' };
   }
   const cleanNumber = numero.replace(/\D/g, '');
-  // Brazilian numbers: 10-11 digits (with DDD) or 12-13 digits (with country code)
-  if (cleanNumber.length < 10 || cleanNumber.length > 13) {
+  
+  // Minimum length check
+  if (cleanNumber.length < 7) {
     return { valid: false, reason: `Número WhatsApp inválido (${cleanNumber.length} dígitos): ${numero}` };
   }
-  // Check if it's a valid Brazilian mobile number (starts with 9 after DDD)
-  const numberWithoutCountry = cleanNumber.startsWith('55') ? cleanNumber.slice(2) : cleanNumber;
-  if (numberWithoutCountry.length >= 10) {
-    const ddd = numberWithoutCountry.slice(0, 2);
-    const dddNum = parseInt(ddd, 10);
-    if (dddNum < 11 || dddNum > 99) {
-      return { valid: false, reason: `DDD inválido (${ddd}): ${numero}` };
+
+  // Check if it's a Brazilian number
+  const isBrazilian = cleanNumber.startsWith('55') 
+    ? (cleanNumber.length === 12 || cleanNumber.length === 13)
+    : (cleanNumber.length === 10 || cleanNumber.length === 11);
+
+  if (isBrazilian) {
+    // Validate Brazilian number format
+    const numberWithoutCountry = cleanNumber.startsWith('55') ? cleanNumber.slice(2) : cleanNumber;
+    if (numberWithoutCountry.length >= 10) {
+      const ddd = numberWithoutCountry.slice(0, 2);
+      const dddNum = parseInt(ddd, 10);
+      if (dddNum < 11 || dddNum > 99) {
+        return { valid: false, reason: `DDD inválido (${ddd}): ${numero}` };
+      }
     }
+    return { valid: true };
   }
-  return { valid: true };
+
+  // International number - accept but flag
+  if (cleanNumber.length >= 7 && cleanNumber.length <= 15) {
+    return { valid: true, international: true };
+  }
+
+  return { valid: false, reason: `Número WhatsApp inválido (${cleanNumber.length} dígitos): ${numero}` };
 };
 
 const validateCPFCNPJ = (doc: string): { valid: boolean; reason?: string } => {

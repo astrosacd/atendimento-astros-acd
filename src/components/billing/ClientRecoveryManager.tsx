@@ -1382,12 +1382,22 @@ export const ClientRecoveryManager = () => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  {selectedClient && selectedChannel === 'whatsapp' && hasWhatsAppError(selectedClient.id) && (
-                    <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>O WhatsApp deste número não existe. Considere enviar por e-mail.</span>
-                    </div>
-                  )}
+                  {selectedClient && selectedChannel === 'whatsapp' && (() => {
+                    const issueType = getPhoneIssueType(selectedClient.id, selectedClient.numero);
+                    if (issueType === 'international') return (
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>Número internacional — o envio pode falhar. Verifique se o WhatsApp existe antes de enviar.</span>
+                      </div>
+                    );
+                    if (issueType === 'invalid') return (
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>O WhatsApp deste número não existe. Considere enviar por e-mail.</span>
+                      </div>
+                    );
+                    return null;
+                  })()}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
