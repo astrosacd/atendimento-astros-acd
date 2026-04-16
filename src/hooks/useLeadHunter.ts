@@ -164,9 +164,10 @@ export function useCreateCampanha() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['lead-hunter-campanhas'] });
       toast.success('Campanha criada!');
+      logActivity(`Criou campanha no Lead Hunter: ${data.nome}`, 'lead_hunter');
     },
     onError: () => toast.error('Erro ao criar campanha'),
   });
