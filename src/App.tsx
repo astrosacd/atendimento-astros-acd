@@ -89,7 +89,7 @@ function AppRoutes() {
       <Route path="/" element={
         user && isApproved 
           ? <ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>
-          : <Navigate to="/catalogo" replace />
+          : <Navigate to="/auth" replace />
       } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
       
