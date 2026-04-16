@@ -6,9 +6,10 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap, MessageSquare, Share2 } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare, Share2, Brain } from 'lucide-react';
 import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
 import { KanbanShareManager } from '@/components/kanban/KanbanShareManager';
+import { KanbanAIConfig } from '@/components/kanban/KanbanAIConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -52,7 +53,14 @@ export interface PipelineClient {
 
 export default function KanbanClientes() {
   const { isAdmin } = useAuth();
-  const { canManagePipelineStages, canManagePipelineAutomations } = usePermissions();
+  const { 
+    canManagePipelineStages, 
+    canManagePipelineAutomations,
+    canViewPipelineAI,
+    canManagePipelineAI,
+    canManagePipelineChatwoot,
+    canSharePipeline
+  } = usePermissions();
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [clients, setClients] = useState<PipelineClient[]>([]);
   const [allClients, setAllClients] = useState<any[]>([]);
@@ -258,12 +266,17 @@ export default function KanbanClientes() {
                 <Zap className="h-4 w-4" /> Automações
               </TabsTrigger>
             )}
-            {(isAdmin || canManagePipelineStages()) && (
+            {(isAdmin || canManagePipelineChatwoot()) && (
               <TabsTrigger value="chatwoot" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <MessageSquare className="h-4 w-4" /> Chatwoot
               </TabsTrigger>
             )}
-            {(isAdmin || canManagePipelineStages()) && (
+            {(isAdmin || canViewPipelineAI()) && (
+              <TabsTrigger value="ai" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Brain className="h-4 w-4" /> Config. IA
+              </TabsTrigger>
+            )}
+            {(isAdmin || canSharePipeline()) && (
               <TabsTrigger value="share" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Share2 className="h-4 w-4" /> Compartilhar
               </TabsTrigger>
@@ -297,12 +310,17 @@ export default function KanbanClientes() {
               <AutomationRulesPanel />
             </TabsContent>
           )}
-          {(isAdmin || canManagePipelineStages()) && (
+          {(isAdmin || canManagePipelineChatwoot()) && (
             <TabsContent value="chatwoot">
               <ChatwootIntegration onRefresh={loadData} />
             </TabsContent>
           )}
-          {(isAdmin || canManagePipelineStages()) && (
+          {(isAdmin || canViewPipelineAI()) && (
+            <TabsContent value="ai">
+              <KanbanAIConfig />
+            </TabsContent>
+          )}
+          {(isAdmin || canSharePipeline()) && (
             <TabsContent value="share">
               <KanbanShareManager />
             </TabsContent>

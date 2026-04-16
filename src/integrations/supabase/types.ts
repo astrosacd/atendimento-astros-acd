@@ -4421,6 +4421,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_ai_config: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          model: string
+          prompt_template: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          prompt_template?: string
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          prompt_template?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pipeline_chatwoot_config: {
         Row: {
           account_id: string | null

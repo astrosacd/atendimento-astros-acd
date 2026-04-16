@@ -168,6 +168,10 @@ export function usePermissions() {
   const canViewPipeline = () => hasPermission('view_pipeline');
   const canManagePipelineStages = () => hasPermission('manage_pipeline_stages');
   const canManagePipelineAutomations = () => hasPermission('manage_pipeline_automations');
+  const canViewPipelineAI = () => hasPermission('view_pipeline_ai');
+  const canManagePipelineAI = () => hasPermission('manage_pipeline_ai');
+  const canManagePipelineChatwoot = () => hasPermission('manage_pipeline_chatwoot');
+  const canSharePipeline = () => hasPermission('share_pipeline');
 
   // Lead Hunter permissions
   const canViewLeadHunter = () => hasPermission('view_lead_hunter');
@@ -298,6 +302,10 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    canViewPipelineAI,
+    canManagePipelineAI,
+    canManagePipelineChatwoot,
+    canSharePipeline,
     // Lead Hunter
     canViewLeadHunter,
     canManageLeadHunterLeads,
