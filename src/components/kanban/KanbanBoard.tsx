@@ -38,7 +38,9 @@ interface KanbanBoardProps {
   onUpdateAIScore: (pipelineId: string) => Promise<void>;
 }
 
-export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh }: KanbanBoardProps) {
+export function KanbanBoard({ 
+  stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
+}: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string>('');
