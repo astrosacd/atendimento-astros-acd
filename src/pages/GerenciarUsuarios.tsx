@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, UserPlus, Shield, Eye, Check, X, Clock, Trash2, MessageSquare, History, CreditCard, Send, Mail, Calendar, User, AlertCircle, Loader2, Ban, Unlock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSystemActivities } from '@/hooks/useSystemActivities';
 import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
