@@ -268,7 +268,7 @@ export default function ConsultaNumerosHistorico() {
                       {historyResult?.data?.map((entry: HistoryEntry) => (
                         <TableRow key={entry.id}>
                           <TableCell className="text-sm whitespace-nowrap">
-                            {format(new Date(entry.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                            {formatInTimeZone(new Date(entry.created_at), 'America/Fortaleza', "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
                           </TableCell>
                           <TableCell className="font-mono">{entry.numero}</TableCell>
                           <TableCell>
@@ -376,7 +376,7 @@ export default function ConsultaNumerosHistorico() {
           <DialogHeader>
             <DialogTitle>Detalhes do Registro</DialogTitle>
             <DialogDescription>
-              {selectedEntry && format(new Date(selectedEntry.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+              {selectedEntry && formatInTimeZone(new Date(selectedEntry.created_at), 'America/Fortaleza', "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
             </DialogDescription>
           </DialogHeader>
           {selectedEntry && (
