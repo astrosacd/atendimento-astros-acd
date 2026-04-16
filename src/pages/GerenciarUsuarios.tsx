@@ -400,8 +400,12 @@ export default function GerenciarUsuarios() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
+      const updatedUser = users.find(u => u.id === variables.userId);
+      logActivity(`Alterou cargo de ${updatedUser?.name || updatedUser?.email}`, 'admin', `Novo cargo: ${variables.newRole}`);
+      
       toast({
         title: t('userManagement.toast.success'),
         description: t('userManagement.toast.roleUpdated'),
