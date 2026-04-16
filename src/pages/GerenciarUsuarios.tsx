@@ -78,6 +78,7 @@ export default function GerenciarUsuarios() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
