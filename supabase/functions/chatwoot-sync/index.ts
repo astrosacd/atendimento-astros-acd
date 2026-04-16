@@ -90,8 +90,9 @@ serve(async (req) => {
         const contact = conv.meta?.sender;
         if (!contact) continue;
 
-        // If no phone/email, we skip for now to avoid duplicates without unique keys
-        if (!contact.phone_number && !contact.email) {
+        // We now prioritize matching by chatwoot_conversation_id, so we can be more lenient with phone/email
+        // but we still want at least a name if possible.
+        if (!contact.phone_number && !contact.email && !contact.name) {
           continue;
         }
 
