@@ -140,7 +140,24 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.paymentlink'), icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
       ]
     },
-...
+    {
+      id: 'clients',
+      title: t('sidebar.groups.clients'),
+      items: [
+        { title: t('sidebar.search'), icon: Search, path: '/consultar', color: 'text-info', gradient: 'from-blue-500 to-indigo-500' },
+        { title: t('sidebar.register'), icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
+        { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
+        { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
+      ]
+    },
+    {
+      id: 'telephony',
+      title: t('sidebar.groups.telephony'),
+      items: [
+        { title: t('sidebar.numberStatus'), icon: Smartphone, path: '/admin/numeros', adminOnly: !canViewNumeros(), color: 'text-lime-500', gradient: 'from-lime-500 to-green-500' },
+        { title: t('sidebar.numberQuery'), icon: Database, path: '/admin/consulta-numeros', adminOnly: !canViewConsultaNumeros(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
+      ]
+    },
     {
       id: 'finance',
       title: t('sidebar.groups.finance'),
