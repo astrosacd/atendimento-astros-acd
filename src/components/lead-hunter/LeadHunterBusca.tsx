@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 
 export default function LeadHunterBusca() {
   const { data: buscas = [], isLoading, refetch } = useLeadHunterBuscas();
+  const { logActivity } = useSystemActivities();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [campanhaId, setCampanhaId] = useState('');
