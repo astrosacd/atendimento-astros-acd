@@ -623,8 +623,8 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                             </Dialog>
                           </div>
                           
-                          <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-4 text-sm text-muted-foreground">
-                            <ReactMarkdown>{item.analysis_text}</ReactMarkdown>
+                          <div className="text-sm text-muted-foreground line-clamp-3">
+                            {item.analysis_text.replace(/[#*`]/g, '').substring(0, 300)}...
                           </div>
                         </div>
 
