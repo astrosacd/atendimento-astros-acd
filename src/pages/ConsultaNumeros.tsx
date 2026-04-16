@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Upload, Mail, Eye, MessageSquare } from 'lucide-react';
+import { Search, Edit, History, Download, Settings, Key, Webhook, BookOpen, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle, Plus, Loader2, X, Tag, Mail, Eye, MessageSquare } from 'lucide-react';
 import { ValidacaoSmsTab } from '@/components/consulta-numeros/ValidacaoSmsTab';
 import { MonitoredStatusDisplay } from '@/components/consulta-numeros/MonitoredStatusDisplay';
 import {
@@ -120,6 +120,33 @@ export default function ConsultaNumeros() {
   // Validation helpers
   const isValidNumber = (value: string) => /^\d*$/.test(value);
   const isValidEmail = (value: string) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  // Helper to format date and time from Baserow
+  const formatBaserowDate = (value: any, fieldName?: string) => {
+    if (!value) return '-';
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value.toString();
+      
+      const valueStr = value.toString();
+      // Se for um campo de data conhecido por ter hora ou se o valor contiver 'T' (ISO com hora)
+      const hasTime = (fieldName?.toLowerCase().includes('data_') || fieldName?.toLowerCase().includes('_em') || valueStr.includes('T'));
+      
+      if (hasTime) {
+        return date.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      }
+      return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+      return value.toString();
+    }
+  };
 
   // Trigger sync from Baserow to local cache (full sync including deletions)
   const handleSyncFromBaserow = async () => {
@@ -1490,7 +1517,7 @@ export default function ConsultaNumeros() {
                                     ) : field.type === 'boolean' ? (
                                       rawValue ? 'Sim' : 'Não'
                                     ) : field.type === 'date' ? (
-                                      rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                      formatBaserowDate(rawValue, field.name)
                                     ) : showTooltip ? (
                                       <TooltipProvider>
                                         <Tooltip>
@@ -1503,7 +1530,7 @@ export default function ConsultaNumeros() {
                                         </Tooltip>
                                       </TooltipProvider>
                                     ) : (
-                                      displayValue?.toString() || '-'
+                                      formatBaserowDate(displayValue || rawValue, field.name)
                                     )}
                                   </TableCell>
                                 );
@@ -1575,9 +1602,9 @@ export default function ConsultaNumeros() {
                                             ) : field.type === 'boolean' ? (
                                               rawValue ? 'Sim' : 'Não'
                                             ) : field.type === 'date' ? (
-                                              rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                                              formatBaserowDate(rawValue, field.name)
                                             ) : (
-                                              displayValue?.toString() || '-'
+                                              formatBaserowDate(displayValue || rawValue, field.name)
                                             )}
                                           </p>
                                         </div>
@@ -1754,9 +1781,9 @@ export default function ConsultaNumeros() {
                       ) : field.type === 'boolean' ? (
                         rawValue ? 'Sim' : 'Não'
                       ) : field.type === 'date' ? (
-                        rawValue ? new Date(rawValue).toLocaleDateString('pt-BR') : '-'
+                        formatBaserowDate(rawValue, field.name)
                       ) : (
-                        displayValue?.toString() || '-'
+                        formatBaserowDate(displayValue || rawValue, field.name)
                       )}
                     </p>
                   </div>
