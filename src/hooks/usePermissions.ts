@@ -300,6 +300,8 @@ export function usePermissions() {
     canViewPipeline,
     canManagePipelineStages,
     canManagePipelineAutomations,
+    canViewPipelineAI,
+    canManagePipelineAI,
     // Lead Hunter
     canViewLeadHunter,
     canManageLeadHunterLeads,
