@@ -263,6 +263,8 @@ export function useDespesas() {
       description: 'Categoria criada com sucesso!',
     });
     
+    logActivity(`Criou categoria de despesa: ${nome}`, 'config');
+    
     await fetchCategorias();
     return true;
   };
