@@ -125,12 +125,26 @@ export default function ConsultaNumeros() {
   const formatBaserowDate = (value: any, fieldName?: string) => {
     if (!value) return '-';
     try {
-      const date = new Date(value);
-      if (isNaN(date.getTime())) return value.toString();
-      
       const valueStr = value.toString();
-      // Se for um campo de data conhecido por ter hora ou se o valor contiver 'T' (ISO com hora)
-      const hasTime = (fieldName?.toLowerCase().includes('data_') || fieldName?.toLowerCase().includes('_em') || valueStr.includes('T'));
+      
+      // If it already looks like Brazilian format (DD/MM/YYYY), return it as is
+      if (/^\d{2}\/\d{2}\/\d{4}/.test(valueStr)) return valueStr;
+
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return valueStr;
+      
+      const fieldLower = fieldName?.toLowerCase() || '';
+      // We want time if:
+      // 1. Field name suggests it (data_, _em, horario, ultima_consulta)
+      // 2. Value itself contains 'T' (ISO) or ':' (time)
+      const hasTime = (
+        fieldLower.includes('data_') || 
+        fieldLower.includes('_em') || 
+        fieldLower.includes('horario') ||
+        fieldLower.includes('consulta') ||
+        valueStr.includes('T') ||
+        (valueStr.includes(':') && valueStr.length > 5)
+      );
       
       if (hasTime) {
         return date.toLocaleString('pt-BR', {
@@ -144,7 +158,7 @@ export default function ConsultaNumeros() {
       }
       return date.toLocaleDateString('pt-BR');
     } catch (e) {
-      return value.toString();
+      return value?.toString() || '-';
     }
   };
 
@@ -1029,7 +1043,10 @@ export default function ConsultaNumeros() {
               displayVal = maskValue(displayVal?.toString(), field.name);
             }
             
-            return `"${(displayVal || '').toString().replace(/"/g, '""')}"`;
+            // Format date fields
+            const formattedVal = formatBaserowDate(displayVal, field.name);
+            
+            return `"${(formattedVal || '').toString().replace(/"/g, '""')}"`;
           })
         ].join(',')
       ),
