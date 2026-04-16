@@ -508,41 +508,53 @@ export default function GeradorLinkPagamento() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Consultar código MP */}
+                {/* Consultar código de pagamento */}
                 {hasPermission('check_payment_link_status') && (
-                  <div className="mb-4 flex gap-2">
-                    <Input
-                      placeholder="Consultar código MP (ex: 12345678)"
-                      value={mpQueryId}
-                      onChange={(e) => setMpQueryId(e.target.value)}
-                      className="max-w-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={queryMpMutation.isPending || !mpQueryId.trim()}
-                      onClick={() => queryMpMutation.mutate(mpQueryId.trim())}
-                      className="gap-2"
-                    >
-                      {queryMpMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      Consultar
-                    </Button>
+                  <div className="mb-4 space-y-2">
+                    <div className="flex gap-2">
+                      <Select value={queryProvider} onValueChange={(v) => setQueryProvider(v as 'mercadopago' | 'stripe')}>
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                          <SelectItem value="stripe">Stripe</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder={queryProvider === 'stripe' ? 'ID Stripe (ex: pi_xxx ou cs_xxx)' : 'Código MP (ex: 12345678)'}
+                        value={queryId}
+                        onChange={(e) => setQueryId(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={queryPaymentMutation.isPending || !queryId.trim()}
+                        onClick={() => queryPaymentMutation.mutate({ paymentId: queryId.trim(), prov: queryProvider })}
+                        className="gap-2"
+                      >
+                        {queryPaymentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Consultar
+                      </Button>
+                    </div>
                   </div>
                 )}
 
-                {mpQueryResult && (
+                {queryResult && (
                   <div className="mb-4 p-3 rounded-lg border bg-muted/30 text-sm space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">Resultado da Consulta MP</span>
-                      <Button variant="ghost" size="sm" onClick={() => setMpQueryResult(null)}>✕</Button>
+                      <span className="font-semibold">Resultado da Consulta ({queryResult.provider === 'stripe' ? 'Stripe' : 'Mercado Pago'})</span>
+                      <Button variant="ghost" size="sm" onClick={() => setQueryResult(null)}>✕</Button>
                     </div>
-                    <p><strong>ID:</strong> {mpQueryResult.payment_id}</p>
-                    <p><strong>Status:</strong> <Badge variant={mpQueryResult.status === 'approved' ? 'default' : 'secondary'}>{mpQueryResult.status}</Badge></p>
-                    <p><strong>Valor:</strong> R$ {Number(mpQueryResult.amount || 0).toFixed(2)}</p>
-                    {mpQueryResult.payer_email && <p><strong>Pagador:</strong> {mpQueryResult.payer_email}</p>}
-                    {mpQueryResult.payment_method && <p><strong>Método:</strong> {mpQueryResult.payment_method}</p>}
-                    {mpQueryResult.date_approved && <p><strong>Aprovado em:</strong> {format(new Date(mpQueryResult.date_approved), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
-                    {mpQueryResult.description && <p><strong>Descrição:</strong> {mpQueryResult.description}</p>}
+                    <p><strong>ID:</strong> {queryResult.payment_id}</p>
+                    <p><strong>Status:</strong> <Badge variant={queryResult.status === 'approved' ? 'default' : 'secondary'}>{queryResult.status}</Badge></p>
+                    <p><strong>Valor:</strong> {queryResult.currency || 'BRL'} {Number(queryResult.amount || 0).toFixed(2)}</p>
+                    {queryResult.payer_email && <p><strong>Pagador:</strong> {queryResult.payer_email}</p>}
+                    {queryResult.payment_method && <p><strong>Método:</strong> {queryResult.payment_method}</p>}
+                    {queryResult.date_approved && <p><strong>Aprovado em:</strong> {format(new Date(queryResult.date_approved), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+                    {queryResult.date_created && <p><strong>Criado em:</strong> {format(new Date(queryResult.date_created), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+                    {queryResult.description && <p><strong>Descrição:</strong> {queryResult.description}</p>}
                   </div>
                 )}
 
