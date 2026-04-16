@@ -1347,12 +1347,17 @@ export type Database = {
           converted_at: string | null
           id: string
           is_lead: boolean | null
+          last_ai_update: string | null
+          last_interaction_at: string | null
           lead_email: string | null
           lead_name: string | null
           lead_phone: string | null
           lead_produto: string | null
+          lead_score: number | null
+          lead_score_reason: string | null
           moved_at: string
           moved_by: string | null
+          next_action_suggestion: string | null
           notes: string | null
           stage_id: string | null
         }
@@ -1361,12 +1366,17 @@ export type Database = {
           converted_at?: string | null
           id?: string
           is_lead?: boolean | null
+          last_ai_update?: string | null
+          last_interaction_at?: string | null
           lead_email?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           lead_produto?: string | null
+          lead_score?: number | null
+          lead_score_reason?: string | null
           moved_at?: string
           moved_by?: string | null
+          next_action_suggestion?: string | null
           notes?: string | null
           stage_id?: string | null
         }
@@ -1375,12 +1385,17 @@ export type Database = {
           converted_at?: string | null
           id?: string
           is_lead?: boolean | null
+          last_ai_update?: string | null
+          last_interaction_at?: string | null
           lead_email?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           lead_produto?: string | null
+          lead_score?: number | null
+          lead_score_reason?: string | null
           moved_at?: string
           moved_by?: string | null
+          next_action_suggestion?: string | null
           notes?: string | null
           stage_id?: string | null
         }
