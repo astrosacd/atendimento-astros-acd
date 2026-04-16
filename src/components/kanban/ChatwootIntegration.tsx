@@ -179,8 +179,8 @@ export function ChatwootIntegration() {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Importar Contatos como Leads</Label>
-                <p className="text-sm text-muted-foreground">Cria leads automaticamente a partir de novos contatos</p>
+                <Label>Importar Leads de Chats Abertos</Label>
+                <p className="text-sm text-muted-foreground">Cria leads automaticamente a partir de conversas em aberto</p>
               </div>
               <Switch
                 checked={config.sync_leads}
