@@ -34,7 +34,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlCode = searchParams.get('codigo');
-  const { t } = useTranslation();
+  const { t } = useTranslation(); // Note: t might be used later in the file, checking...
   const { user, isApproved, signIn, signUp, signOut, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
