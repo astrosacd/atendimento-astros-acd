@@ -534,10 +534,11 @@ Aguardo seu retorno! 😊`;
         
         if (instance) {
           try {
-            // Format phone number - keep as-is if it already has a country code (10+ digits)
+            // Format phone number
             let phone = cliente.numero.replace(/\D/g, '');
-            // Only prepend 55 for Brazilian numbers (10 or 11 digits without country code)
-            if (phone.length <= 11 && !phone.startsWith('55')) {
+            // Only prepend 55 if it looks like a local Brazilian number without country code
+            // (10 or 11 digits and doesn't start with '55' or '1')
+            if (phone.length >= 10 && phone.length <= 11 && !phone.startsWith('55') && !phone.startsWith('1')) {
               phone = '55' + phone;
             }
             
