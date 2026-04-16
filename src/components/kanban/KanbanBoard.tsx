@@ -37,10 +37,11 @@ interface KanbanBoardProps {
   onConvertLead?: (data: any) => Promise<void>;
   onRefresh: () => void;
   onUpdateAIScore?: (pipelineId: string) => Promise<void>;
+  onUpdateAllScores?: () => Promise<void>;
 }
 
 export function KanbanBoard({ 
-  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
+  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore, onUpdateAllScores 
 }: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
@@ -137,9 +138,20 @@ export function KanbanBoard({
             className="pl-9 bg-secondary border-border"
           />
         </div>
-        <Button variant="ghost" size="sm" onClick={onRefresh}>
+        <Button variant="ghost" size="sm" onClick={onRefresh} title="Atualizar dados">
           <RefreshCw className="h-4 w-4" />
         </Button>
+        {!isReadOnly && onUpdateAllScores && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onUpdateAllScores} 
+            title="Atualizar Scores de IA (Todos)"
+            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+        )}
         <span className="text-xs text-muted-foreground">
           {registeredCount} clientes · {leadsCount} leads · {allClients.length} total
         </span>
