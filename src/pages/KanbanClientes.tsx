@@ -6,9 +6,10 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap, MessageSquare, Share2 } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare, Share2, Brain } from 'lucide-react';
 import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
 import { KanbanShareManager } from '@/components/kanban/KanbanShareManager';
+import { KanbanAIConfig } from '@/components/kanban/KanbanAIConfig';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
