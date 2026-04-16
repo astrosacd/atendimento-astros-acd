@@ -37,6 +37,7 @@ export default function AdminWebhooks() {
   const navigate = useNavigate();
   const { user, isAdmin, isApproved } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
   const { t } = useTranslation();
 
   const [webhooks, setWebhooks] = useState<WebhookData[]>([]);
