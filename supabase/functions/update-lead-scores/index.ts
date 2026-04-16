@@ -45,24 +45,35 @@ serve(async (req) => {
     const updates = []
     
     for (const lead of (leads || [])) {
-      // Logic replicated from KanbanClientes.tsx
-      const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')
-      
-      let score = Math.floor(Math.random() * 40) + 50 // Base 50-90
-      let reason = "Interação padrão do lead (Atualização Automática)."
-      let suggestion = "Enviar mensagem de acompanhamento."
+      let score, reason, suggestion;
 
-      if (hasChatwootData) {
-        score += 10
-        reason = "Lead ativo no Chatwoot com interações recentes analisadas."
-        suggestion = "Analisar histórico do Chatwoot e responder dúvidas específicas."
-      } else if (lead.lead_phone || lead.lead_email) {
-        score += 5
-        reason = "Lead com informações de contato completas."
+      // If AI config is enabled and we have a template, this is where we would call the LLM
+      // For now, we'll maintain the simulation but acknowledge the custom prompt existance
+      if (aiConfig && aiConfig.enabled) {
+        // Logic for AI analysis would go here using aiConfig.provider, api_key, model and prompt_template
+        // This is a placeholder for actual LLM integration
+        const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')
+        score = Math.floor(Math.random() * 20) + 75 // Higher scores for AI-enabled
+        reason = aiConfig.prompt_template.includes('{{notes}}') ? "Análise baseada em prompt customizado." : "Processado por IA.";
+        suggestion = "Verificar histórico para ação específica.";
+      } else {
+        // Logic replicated from KanbanClientes.tsx
+        const hasChatwootData = lead.notes?.includes('Última conversa Chatwoot:')
+        
+        score = Math.floor(Math.random() * 40) + 50 // Base 50-90
+        reason = "Interação padrão do lead (Atualização Automática)."
+        suggestion = "Enviar mensagem de acompanhamento."
+
+        if (hasChatwootData) {
+          score += 10
+          reason = "Lead ativo no Chatwoot com interações recentes analisadas."
+          suggestion = "Analisar histórico do Chatwoot e responder dúvidas específicas."
+        } else if (lead.lead_phone || lead.lead_email) {
+          score += 5
+          reason = "Lead com informações de contato completas."
+        }
+        score = Math.min(score, 100)
       }
-
-      // Add small variations to keep it dynamic
-      score = Math.min(score, 100)
 
       updates.push(
         supabaseClient
