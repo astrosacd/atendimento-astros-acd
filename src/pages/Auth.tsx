@@ -42,7 +42,6 @@ export default function Auth() {
   const [userResponse, setUserResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
-  const [rejectedEmail, setRejectedEmail] = useState<string | null>(null);
   const [authCodeConfig, setAuthCodeConfig] = useState<string | null>(null);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
