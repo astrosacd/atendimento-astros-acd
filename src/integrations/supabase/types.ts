@@ -5313,6 +5313,9 @@ export type Database = {
           custom_prompt: string | null
           email_recipients: string[] | null
           frequency: string | null
+          gmail_app_password: string | null
+          gmail_sender_name: string | null
+          gmail_user: string | null
           grok_api_key: string | null
           id: string
           is_active: boolean | null
@@ -5332,6 +5335,9 @@ export type Database = {
           custom_prompt?: string | null
           email_recipients?: string[] | null
           frequency?: string | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
           grok_api_key?: string | null
           id?: string
           is_active?: boolean | null
@@ -5351,6 +5357,9 @@ export type Database = {
           custom_prompt?: string | null
           email_recipients?: string[] | null
           frequency?: string | null
+          gmail_app_password?: string | null
+          gmail_sender_name?: string | null
+          gmail_user?: string | null
           grok_api_key?: string | null
           id?: string
           is_active?: boolean | null
