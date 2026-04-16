@@ -56,6 +56,7 @@ export interface DespesaStats {
 export function useDespesas() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useSystemActivities();
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [categorias, setCategorias] = useState<DespesaCategoria[]>([]);
   const [isLoading, setIsLoading] = useState(true);
