@@ -157,15 +157,17 @@ export default function ConsultaNumeros() {
       
       if (hasTime) {
         return date.toLocaleString('pt-BR', {
+          timeZone: 'America/Fortaleza',
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit'
+          second: '2-digit',
+          hour12: false
         });
       }
-      return date.toLocaleDateString('pt-BR');
+      return date.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
     } catch (e) {
       return value?.toString() || '-';
     }
