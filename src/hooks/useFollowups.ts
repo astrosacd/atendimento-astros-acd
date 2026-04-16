@@ -56,6 +56,7 @@ export interface CreateFollowupData {
 export function useFollowups() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logActivity } = useSystemActivities();
 
   const { data: followups = [], isLoading } = useQuery({
     queryKey: ['followups'],
