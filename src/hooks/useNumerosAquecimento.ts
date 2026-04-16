@@ -218,6 +218,7 @@ export function useNumerosApiKeys() {
 export function useCreateNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async (data: {
