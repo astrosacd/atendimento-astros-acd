@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { MessageSquare, Save, Loader2, RefreshCw } from 'lucide-react';
 
-export function ChatwootIntegration() {
+export function ChatwootIntegration({ onRefresh }: { onRefresh?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState({
@@ -80,6 +80,7 @@ export function ChatwootIntegration() {
       });
       if (error) throw error;
       toast.success('Sincronização concluída com sucesso');
+      if (onRefresh) onRefresh();
     } catch (err) {
       console.error('Error syncing with Chatwoot:', err);
       toast.error('Erro ao sincronizar com Chatwoot. Verifique as credenciais.');
