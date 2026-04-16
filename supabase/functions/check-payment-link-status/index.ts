@@ -69,7 +69,7 @@ serve(async (req) => {
       });
       if (!mpRes.ok) {
         return new Response(JSON.stringify({ error: "Código não encontrado ou não existe no Mercado Pago", not_found: true }), {
-          status: 404,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
