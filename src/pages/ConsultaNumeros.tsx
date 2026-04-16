@@ -775,6 +775,9 @@ export default function ConsultaNumeros() {
 
     // Apply the typed query and reset to first page.
     setAppliedSearchQuery(nextQuery);
+    if (nextQuery) {
+      logActivity(`Consultou o número: ${nextQuery}`, 'consulta');
+    }
 
     // If already on page 1 and query didn't change, force a refetch.
     if (currentPage === 1 && nextQuery === appliedSearchQuery) {
