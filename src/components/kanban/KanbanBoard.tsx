@@ -29,17 +29,18 @@ interface KanbanBoardProps {
   clients: PipelineClient[];
   allClients: any[];
   loading: boolean;
-  onMoveClient: (clienteId: string, stageId: string) => Promise<void>;
-  onMovePipelineItem: (pipelineId: string, stageId: string) => Promise<void>;
-  onRemoveClient: (pipelineId: string) => Promise<void>;
-  onAddLead: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
-  onConvertLead: (data: any) => Promise<void>;
+  isReadOnly?: boolean;
+  onMoveClient?: (clienteId: string, stageId: string) => Promise<void>;
+  onMovePipelineItem?: (pipelineId: string, stageId: string) => Promise<void>;
+  onRemoveClient?: (pipelineId: string) => Promise<void>;
+  onAddLead?: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
+  onConvertLead?: (data: any) => Promise<void>;
   onRefresh: () => void;
-  onUpdateAIScore: (pipelineId: string) => Promise<void>;
+  onUpdateAIScore?: (pipelineId: string) => Promise<void>;
 }
 
 export function KanbanBoard({ 
-  stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
+  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
 }: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
