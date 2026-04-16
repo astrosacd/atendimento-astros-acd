@@ -126,7 +126,10 @@ async function createMercadoPagoLink(params: {
   feePercent: number;
   expiresAt: string;
   now: string;
+  linkId: string;
 }) {
+  const externalReference = `PL-${params.linkId}`;
+
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
@@ -136,11 +139,16 @@ async function createMercadoPagoLink(params: {
     body: JSON.stringify({
       items: [
         {
+          id: params.linkId,
           title: params.empresa,
+          description: `Pagamento - ${params.empresa}`,
+          category_id: "services",
           quantity: 1,
           unit_price: params.finalValue,
+          currency_id: "BRL",
         },
       ],
+      external_reference: externalReference,
       expires: true,
       expiration_date_from: params.now,
       expiration_date_to: params.expiresAt,
@@ -163,6 +171,7 @@ async function createMercadoPagoLink(params: {
   return {
     paymentUrl: data.init_point,
     referenceId: data.id,
+    externalReference,
   };
 }
 
