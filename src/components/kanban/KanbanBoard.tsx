@@ -29,17 +29,18 @@ interface KanbanBoardProps {
   clients: PipelineClient[];
   allClients: any[];
   loading: boolean;
-  onMoveClient: (clienteId: string, stageId: string) => Promise<void>;
-  onMovePipelineItem: (pipelineId: string, stageId: string) => Promise<void>;
-  onRemoveClient: (pipelineId: string) => Promise<void>;
-  onAddLead: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
-  onConvertLead: (data: any) => Promise<void>;
+  isReadOnly?: boolean;
+  onMoveClient?: (clienteId: string, stageId: string) => Promise<void>;
+  onMovePipelineItem?: (pipelineId: string, stageId: string) => Promise<void>;
+  onRemoveClient?: (pipelineId: string) => Promise<void>;
+  onAddLead?: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
+  onConvertLead?: (data: any) => Promise<void>;
   onRefresh: () => void;
-  onUpdateAIScore: (pipelineId: string) => Promise<void>;
+  onUpdateAIScore?: (pipelineId: string) => Promise<void>;
 }
 
 export function KanbanBoard({ 
-  stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
+  stages, clients, allClients, loading, isReadOnly = false, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh, onUpdateAIScore 
 }: KanbanBoardProps) {
   const [search, setSearch] = useState('');
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
@@ -72,6 +73,7 @@ export function KanbanBoard({
   };
 
   const handleAddClient = async (stageId: string) => {
+    if (isReadOnly || !onMoveClient) return;
     if (!selectedClient) return;
     setMovingClient(selectedClient);
     await onMoveClient(selectedClient, stageId);
@@ -161,30 +163,32 @@ export function KanbanBoard({
                   <span className="font-semibold text-sm text-foreground">{stage.name}</span>
                   <Badge variant="secondary" className="text-xs px-1.5 py-0">{stageClients.length}</Badge>
                 </div>
-                <div className="flex gap-0.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    title="Adicionar lead"
-                    onClick={() => setLeadFormStage(stage.id)}
-                  >
-                    <UserRoundPlus className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    title="Adicionar cliente existente"
-                    onClick={() => setAddingToStage(addingToStage === stage.id ? null : stage.id)}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {!isReadOnly && (
+                  <div className="flex gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      title="Adicionar lead"
+                      onClick={() => setLeadFormStage(stage.id)}
+                    >
+                      <UserRoundPlus className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      title="Adicionar cliente existente"
+                      onClick={() => setAddingToStage(addingToStage === stage.id ? null : stage.id)}
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Add client widget */}
-              {addingToStage === stage.id && (
+              {!isReadOnly && addingToStage === stage.id && (
                 <div className="p-2 border-b border-border bg-card/50">
                   <Popover open={comboOpen} onOpenChange={setComboOpen}>
                     <PopoverTrigger asChild>
@@ -286,53 +290,55 @@ export function KanbanBoard({
                               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{pc.lead_email}</p>
                             )}
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-card border-border">
-                              <DropdownMenuItem
-                                onClick={() => onUpdateAIScore(pc.id)}
-                                className="text-xs gap-2 text-blue-600 dark:text-blue-400"
-                              >
-                                <BrainCircuit className="h-3 w-3" />
-                                Atualizar Score IA
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {stages.filter(s => s.id !== stage.id).map(s => (
+                          {!isReadOnly && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreVertical className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border">
                                 <DropdownMenuItem
-                                  key={s.id}
-                                  onClick={() => handleMoveItem(pc, s.id, s.name)}
-                                  className="text-xs gap-2"
+                                  onClick={() => onUpdateAIScore?.(pc.id)}
+                                  className="text-xs gap-2 text-blue-600 dark:text-blue-400"
                                 >
-                                  <ArrowRight className="h-3 w-3" />
-                                  Mover para {s.name}
+                                  <BrainCircuit className="h-3 w-3" />
+                                  Atualizar Score IA
                                 </DropdownMenuItem>
-                              ))}
-                              {isLead && (
-                                <>
-                                  <DropdownMenuSeparator />
+                                <DropdownMenuSeparator />
+                                {stages.filter(s => s.id !== stage.id).map(s => (
                                   <DropdownMenuItem
-                                    onClick={() => setConvertingLead(pc)}
-                                    className="text-xs gap-2 text-primary"
+                                    key={s.id}
+                                    onClick={() => handleMoveItem(pc, s.id, s.name)}
+                                    className="text-xs gap-2"
                                   >
-                                    <ArrowRightCircle className="h-3 w-3" />
-                                    Cadastrar como cliente
+                                    <ArrowRight className="h-3 w-3" />
+                                    Mover para {s.name}
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => onRemoveClient(pc.id)}
-                                className="text-xs gap-2 text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                Remover do pipeline
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                ))}
+                                {isLead && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setConvertingLead(pc)}
+                                      className="text-xs gap-2 text-primary"
+                                    >
+                                      <ArrowRightCircle className="h-3 w-3" />
+                                      Cadastrar como cliente
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => onRemoveClient?.(pc.id)}
+                                  className="text-xs gap-2 text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Remover do pipeline
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
 
                         {pc.next_action_suggestion && (
@@ -391,38 +397,41 @@ export function KanbanBoard({
       </div>
 
       {/* Lead Form Dialog */}
-      <LeadFormDialog
-        open={!!leadFormStage}
-        onOpenChange={(open) => !open && setLeadFormStage(null)}
-        onSubmit={async (lead) => {
-          if (leadFormStage) await onAddLead(leadFormStage, lead);
-        }}
-      />
+      {!isReadOnly && (
+        <>
+          <LeadFormDialog
+            open={!!leadFormStage}
+            onOpenChange={(open) => !open && setLeadFormStage(null)}
+            onSubmit={async (lead) => {
+              if (leadFormStage) await onAddLead?.(leadFormStage, lead);
+            }}
+          />
 
-      {/* Convert Lead Dialog */}
-      <ConvertLeadDialog
-        open={!!convertingLead}
-        onOpenChange={(open) => {
-          if (!open) {
-            setConvertingLead(null);
-            setConvertTargetStageId(null);
-          }
-        }}
-        lead={convertingLead ? {
-          id: convertingLead.id,
-          lead_name: convertingLead.lead_name || '',
-          lead_phone: convertingLead.lead_phone || '',
-          lead_email: convertingLead.lead_email || '',
-          lead_produto: convertingLead.lead_produto || '',
-        } : null}
-        onConvert={async (data) => {
-          await onConvertLead(data);
-          // After successful conversion, move to Ativo stage
-          if (convertTargetStageId && convertingLead) {
-            await onMovePipelineItem(convertingLead.id, convertTargetStageId);
-          }
-        }}
-      />
+          <ConvertLeadDialog
+            open={!!convertingLead}
+            onOpenChange={(open) => {
+              if (!open) {
+                setConvertingLead(null);
+                setConvertTargetStageId(null);
+              }
+            }}
+            lead={convertingLead ? {
+              id: convertingLead.id,
+              lead_name: convertingLead.lead_name || '',
+              lead_phone: convertingLead.lead_phone || '',
+              lead_email: convertingLead.lead_email || '',
+              lead_produto: convertingLead.lead_produto || '',
+            } : null}
+            onConvert={async (data) => {
+              await onConvertLead?.(data);
+              // After successful conversion, move to Ativo stage
+              if (convertTargetStageId && convertingLead) {
+                await onMovePipelineItem?.(convertingLead.id, convertTargetStageId);
+              }
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

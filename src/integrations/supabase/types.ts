@@ -4487,6 +4487,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_temporary_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          label: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          label?: string | null
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          label?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plano_ferramentas: {
         Row: {
           created_at: string
@@ -5923,6 +5953,10 @@ export type Database = {
           job_name: string
           schedule: string
         }[]
+      }
+      get_pipeline_data_by_token: {
+        Args: { link_token: string }
+        Returns: Json
       }
       get_proposal_by_share_token: {
         Args: { p_share_token: string }

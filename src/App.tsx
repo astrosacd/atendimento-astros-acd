@@ -63,6 +63,7 @@ import CredenciaisPublica from "./pages/public/CredenciaisPublica";
 import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
+import SharedKanban from "./pages/public/SharedKanban";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -168,6 +169,7 @@ function AppRoutes() {
       <Route path="/link-pagamento/:token" element={<LinkPagamentoPublico />} />
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
+      <Route path="/public/pipeline/:token" element={<SharedKanban />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
