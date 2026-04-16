@@ -279,6 +279,18 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           description: `Expira em: ${expiresAt}`,
         });
       });
+      
+      // Propostas
+      (proposalsRes.data || []).forEach((p: any) => {
+        allEvents.push({
+          id: `proposal-${p.id}`,
+          type: 'proposal',
+          date: p.created_at,
+          title: `Proposta: ${p.title || 'Sem título'}`,
+          description: `Status: ${p.status || 'Pendente'}`,
+          status: p.status,
+        });
+      });
 
       setEvents(allEvents);
     } catch (err) {
