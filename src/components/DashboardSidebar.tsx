@@ -351,7 +351,14 @@ NavButton.displayName = 'NavButton';
               index > 0 && <div className="my-3 mx-2 border-t border-border" />
             )}
             {group.items.map((item) => (
-              <NavButton key={item.path} item={item} />
+              <NavButton 
+                key={item.path} 
+                item={item} 
+                collapsed={collapsed}
+                isActive={location.pathname === item.path}
+                navRef={navRef}
+              />
+
             ))}
           </div>
         ))}
