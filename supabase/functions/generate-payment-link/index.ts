@@ -126,7 +126,10 @@ async function createMercadoPagoLink(params: {
   feePercent: number;
   expiresAt: string;
   now: string;
+  linkId: string;
 }) {
+  const externalReference = `PL-${params.linkId}`;
+
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
@@ -136,11 +139,16 @@ async function createMercadoPagoLink(params: {
     body: JSON.stringify({
       items: [
         {
+          id: params.linkId,
           title: params.empresa,
+          description: `Pagamento - ${params.empresa}`,
+          category_id: "services",
           quantity: 1,
           unit_price: params.finalValue,
+          currency_id: "BRL",
         },
       ],
+      external_reference: externalReference,
       expires: true,
       expiration_date_from: params.now,
       expiration_date_to: params.expiresAt,
@@ -163,6 +171,7 @@ async function createMercadoPagoLink(params: {
   return {
     paymentUrl: data.init_point,
     referenceId: data.id,
+    externalReference,
   };
 }
 
@@ -300,6 +309,10 @@ serve(async (req) => {
     let configSource = "Módulo Cobrança";
     let paymentUrl = "";
     let referenceId: string | null = null;
+    let mpExternalReference: string | null = null;
+
+    // Generate a unique link ID for external_reference
+    const linkId = crypto.randomUUID();
 
     if (provider === "mercadopago") {
       if (!billingConfig.mercadoPago.enabled || !billingConfig.mercadoPago.accessToken) {
@@ -322,10 +335,12 @@ serve(async (req) => {
         feePercent,
         expiresAt,
         now: now.toISOString(),
+        linkId,
       });
 
       paymentUrl = result.paymentUrl;
       referenceId = result.referenceId;
+      mpExternalReference = result.externalReference;
     } else {
       if (!billingConfig.stripe.enabled || !billingConfig.stripe.secretKey) {
         return new Response(JSON.stringify({ error: "Stripe não configurada em Cobrança → Pagamentos" }), {
@@ -360,6 +375,7 @@ serve(async (req) => {
     const valorComTaxa = calculateValueWithFee(valorOriginal, feePercent);
 
     const { error: historyError } = await supabase.from("payment_links").insert({
+      id: linkId,
       empresa,
       provider,
       provider_label: providerLabel,
@@ -369,7 +385,7 @@ serve(async (req) => {
       taxa_percentual: feePercent,
       payment_url: paymentUrl,
       preference_id: provider === "mercadopago" ? referenceId : null,
-      external_reference: provider === "stripe" ? referenceId : null,
+      external_reference: provider === "mercadopago" ? mpExternalReference : referenceId,
       expires_at: expiresAt,
       created_by: auth.userId,
       created_by_email: auth.userEmail,

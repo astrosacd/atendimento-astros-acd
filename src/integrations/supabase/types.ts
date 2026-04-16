@@ -5404,6 +5404,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reports_notification_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient: string
+          status?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          status?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string | null

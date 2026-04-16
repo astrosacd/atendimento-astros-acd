@@ -49,9 +49,11 @@ export default function GeradorLinkPagamento() {
     currency?: string;
   } | null>(null);
 
-  // MP status checking
-  const [mpQueryId, setMpQueryId] = useState('');
-  const [mpQueryResult, setMpQueryResult] = useState<any>(null);
+  // Payment status checking
+  const [queryId, setQueryId] = useState('');
+  const [queryProvider, setQueryProvider] = useState<'mercadopago' | 'stripe'>('mercadopago');
+  const [queryResult, setQueryResult] = useState<any>(null);
+  const [showNotFoundDialog, setShowNotFoundDialog] = useState(false);
 
   // Share token dialog
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -229,19 +231,32 @@ export default function GeradorLinkPagamento() {
     onError: (err: any) => toast.error(err.message || 'Erro ao verificar pagamentos'),
   });
 
-  // Query a specific MP payment ID
-  const queryMpMutation = useMutation({
-    mutationFn: async (paymentId: string) => {
+  // Query a specific payment ID (MP or Stripe)
+  const queryPaymentMutation = useMutation({
+    mutationFn: async ({ paymentId, prov }: { paymentId: string; prov: 'mercadopago' | 'stripe' }) => {
+      const bodyPayload = prov === 'stripe'
+        ? { stripe_payment_id: paymentId }
+        : { mp_payment_id: paymentId };
       const res = await supabase.functions.invoke('check-payment-link-status', {
-        body: { mp_payment_id: paymentId },
+        body: bodyPayload,
       });
       if (res.error) throw new Error(res.error.message);
+      if (res.data?.not_found || res.data?.error) {
+        throw new Error(res.data.error || 'Código não encontrado ou não existe');
+      }
       return res.data;
     },
     onSuccess: (data: any) => {
-      setMpQueryResult(data);
+      setQueryResult(data);
     },
-    onError: (err: any) => toast.error(err.message || 'Erro ao consultar pagamento'),
+    onError: (err: any) => {
+      setQueryResult(null);
+      if (err.message?.includes('não encontrado') || err.message?.includes('não existe')) {
+        setShowNotFoundDialog(true);
+      } else {
+        toast.error(err.message || 'Erro ao consultar pagamento');
+      }
+    },
   });
 
   const handleGenerate = () => {
@@ -262,20 +277,20 @@ export default function GeradorLinkPagamento() {
   };
 
   const copyLink = async (url: string) => {
+    const textToCopy = `Segue Link de Pagamento:\n${url}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('Link copiado!');
+      await navigator.clipboard.writeText(textToCopy);
+      toast.success('Link copiado com texto!');
     } catch {
-      // Fallback for environments where clipboard API fails
       const textArea = document.createElement('textarea');
-      textArea.value = url;
+      textArea.value = textToCopy;
       textArea.style.position = 'fixed';
       textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      toast.success('Link copiado!');
+      toast.success('Link copiado com texto!');
     }
   };
 
@@ -493,41 +508,53 @@ export default function GeradorLinkPagamento() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Consultar código MP */}
+                {/* Consultar código de pagamento */}
                 {hasPermission('check_payment_link_status') && (
-                  <div className="mb-4 flex gap-2">
-                    <Input
-                      placeholder="Consultar código MP (ex: 12345678)"
-                      value={mpQueryId}
-                      onChange={(e) => setMpQueryId(e.target.value)}
-                      className="max-w-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={queryMpMutation.isPending || !mpQueryId.trim()}
-                      onClick={() => queryMpMutation.mutate(mpQueryId.trim())}
-                      className="gap-2"
-                    >
-                      {queryMpMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      Consultar
-                    </Button>
+                  <div className="mb-4 space-y-2">
+                    <div className="flex gap-2">
+                      <Select value={queryProvider} onValueChange={(v) => setQueryProvider(v as 'mercadopago' | 'stripe')}>
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                          <SelectItem value="stripe">Stripe</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder={queryProvider === 'stripe' ? 'ID Stripe (ex: pi_xxx ou cs_xxx)' : 'Código MP (ex: 12345678)'}
+                        value={queryId}
+                        onChange={(e) => setQueryId(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={queryPaymentMutation.isPending || !queryId.trim()}
+                        onClick={() => queryPaymentMutation.mutate({ paymentId: queryId.trim(), prov: queryProvider })}
+                        className="gap-2"
+                      >
+                        {queryPaymentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        Consultar
+                      </Button>
+                    </div>
                   </div>
                 )}
 
-                {mpQueryResult && (
+                {queryResult && (
                   <div className="mb-4 p-3 rounded-lg border bg-muted/30 text-sm space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">Resultado da Consulta MP</span>
-                      <Button variant="ghost" size="sm" onClick={() => setMpQueryResult(null)}>✕</Button>
+                      <span className="font-semibold">Resultado da Consulta ({queryResult.provider === 'stripe' ? 'Stripe' : 'Mercado Pago'})</span>
+                      <Button variant="ghost" size="sm" onClick={() => setQueryResult(null)}>✕</Button>
                     </div>
-                    <p><strong>ID:</strong> {mpQueryResult.payment_id}</p>
-                    <p><strong>Status:</strong> <Badge variant={mpQueryResult.status === 'approved' ? 'default' : 'secondary'}>{mpQueryResult.status}</Badge></p>
-                    <p><strong>Valor:</strong> R$ {Number(mpQueryResult.amount || 0).toFixed(2)}</p>
-                    {mpQueryResult.payer_email && <p><strong>Pagador:</strong> {mpQueryResult.payer_email}</p>}
-                    {mpQueryResult.payment_method && <p><strong>Método:</strong> {mpQueryResult.payment_method}</p>}
-                    {mpQueryResult.date_approved && <p><strong>Aprovado em:</strong> {format(new Date(mpQueryResult.date_approved), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
-                    {mpQueryResult.description && <p><strong>Descrição:</strong> {mpQueryResult.description}</p>}
+                    <p><strong>ID:</strong> {queryResult.payment_id}</p>
+                    <p><strong>Status:</strong> <Badge variant={queryResult.status === 'approved' ? 'default' : 'secondary'}>{queryResult.status}</Badge></p>
+                    <p><strong>Valor:</strong> {queryResult.currency || 'BRL'} {Number(queryResult.amount || 0).toFixed(2)}</p>
+                    {queryResult.payer_email && <p><strong>Pagador:</strong> {queryResult.payer_email}</p>}
+                    {queryResult.payment_method && <p><strong>Método:</strong> {queryResult.payment_method}</p>}
+                    {queryResult.date_approved && <p><strong>Aprovado em:</strong> {format(new Date(queryResult.date_approved), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+                    {queryResult.date_created && <p><strong>Criado em:</strong> {format(new Date(queryResult.date_created), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+                    {queryResult.description && <p><strong>Descrição:</strong> {queryResult.description}</p>}
                   </div>
                 )}
 
@@ -757,6 +784,24 @@ export default function GeradorLinkPagamento() {
               )}
               Gerar e Copiar Link
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Not Found Dialog */}
+      <Dialog open={showNotFoundDialog} onOpenChange={setShowNotFoundDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Código Não Encontrado
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            O código informado não foi encontrado ou não existe na base do provedor selecionado. Verifique o código e tente novamente.
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setShowNotFoundDialog(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

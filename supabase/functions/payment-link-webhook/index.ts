@@ -57,8 +57,7 @@ serve(async (req) => {
 
     if (!configRows?.config_value) {
       console.error("[payment-link-webhook] No MP access token configured");
-      return new Response(JSON.stringify({ error: "MP token not configured" }), {
-        status: 500,
+      return new Response(JSON.stringify({ ok: true, message: "MP token not configured, skipping" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -74,56 +73,75 @@ serve(async (req) => {
     if (!mpResponse.ok) {
       const errText = await mpResponse.text();
       console.error(`[payment-link-webhook] MP API error [${mpResponse.status}]:`, errText);
-      return new Response(JSON.stringify({ error: "Failed to query MP API" }), {
-        status: 500,
+      return new Response(JSON.stringify({ ok: true, message: "MP API query failed, will retry" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const mpData = await mpResponse.json();
     const mpStatus = mpData.status; // approved, pending, rejected, etc.
-    const preferenceId = mpData.preference_id || mpData.collector?.id;
+    const preferenceId = mpData.preference_id;
     const externalReference = mpData.external_reference;
 
-    console.log(`[payment-link-webhook] Payment ${paymentId} status: ${mpStatus}, preference: ${preferenceId}`);
+    console.log(`[payment-link-webhook] Payment ${paymentId} status: ${mpStatus}, preference: ${preferenceId}, external_ref: ${externalReference}`);
 
-    // Try to find the payment link by preference_id
-    let updateQuery = supabase
-      .from("payment_links")
-      .update({
-        mp_payment_id: paymentId,
-        status: mpStatus === "approved" ? "paid" : mpStatus === "rejected" ? "rejected" : "pending",
-        paid_at: mpStatus === "approved" ? new Date().toISOString() : null,
-      });
+    // Try to find the payment link by preference_id or external_reference
+    const newStatus = mpStatus === "approved" ? "paid" : mpStatus === "rejected" ? "rejected" : "pending";
+    const updatePayload: any = {
+      mp_payment_id: paymentId,
+      status: newStatus,
+      paid_at: mpStatus === "approved" ? new Date().toISOString() : null,
+    };
 
-    // Match by preference_id (most reliable)
+    let updated = false;
+
+    // Match by preference_id first (most reliable for MP)
     if (preferenceId) {
-      const { data: updated, error } = await updateQuery
+      const { data, error } = await supabase
+        .from("payment_links")
+        .update(updatePayload)
         .eq("preference_id", String(preferenceId))
         .eq("provider", "mercadopago")
         .select("id, empresa")
         .maybeSingle();
 
-      if (error) {
-        console.error("[payment-link-webhook] Update error:", error);
-      } else if (updated) {
-        console.log(`[payment-link-webhook] Updated link "${updated.empresa}" to ${mpStatus}`);
-      } else {
-        console.log(`[payment-link-webhook] No link found for preference ${preferenceId}`);
+      if (!error && data) {
+        console.log(`[payment-link-webhook] Updated link "${data.empresa}" to ${newStatus}`);
+        updated = true;
       }
+    }
+
+    // Fallback: match by external_reference
+    if (!updated && externalReference) {
+      const { data, error } = await supabase
+        .from("payment_links")
+        .update(updatePayload)
+        .eq("external_reference", String(externalReference))
+        .select("id, empresa")
+        .maybeSingle();
+
+      if (!error && data) {
+        console.log(`[payment-link-webhook] Updated link "${data.empresa}" via external_reference to ${newStatus}`);
+        updated = true;
+      }
+    }
+
+    if (!updated) {
+      console.log(`[payment-link-webhook] No matching link found`);
     }
 
     return new Response(JSON.stringify({ 
       ok: true, 
       payment_id: paymentId,
       status: mpStatus,
+      updated,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("[payment-link-webhook] Error:", error);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
+    // Always return 200 to MP so it doesn't retry indefinitely
+    return new Response(JSON.stringify({ ok: true, message: "Internal error but acknowledged" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
