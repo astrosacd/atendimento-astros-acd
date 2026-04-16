@@ -4418,6 +4418,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_chatwoot_config: {
+        Row: {
+          account_id: string | null
+          chatwoot_api_key: string | null
+          chatwoot_url: string | null
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          inbox_id: string | null
+          sync_conversations: boolean | null
+          sync_leads: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          chatwoot_api_key?: string | null
+          chatwoot_url?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          inbox_id?: string | null
+          sync_conversations?: boolean | null
+          sync_leads?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          chatwoot_api_key?: string | null
+          chatwoot_url?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          inbox_id?: string | null
+          sync_conversations?: boolean | null
+          sync_leads?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pipeline_stages: {
         Row: {
           color: string | null
