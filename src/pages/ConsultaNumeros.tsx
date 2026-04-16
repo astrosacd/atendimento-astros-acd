@@ -1530,7 +1530,7 @@ export default function ConsultaNumeros() {
                                         </Tooltip>
                                       </TooltipProvider>
                                     ) : (
-                                      displayValue?.toString() || '-'
+                                      formatBaserowDate(displayValue || rawValue, field.name)
                                     )}
                                   </TableCell>
                                 );
@@ -1604,7 +1604,7 @@ export default function ConsultaNumeros() {
                                             ) : field.type === 'date' ? (
                                               formatBaserowDate(rawValue, field.name)
                                             ) : (
-                                              displayValue?.toString() || '-'
+                                              formatBaserowDate(displayValue || rawValue, field.name)
                                             )}
                                           </p>
                                         </div>
@@ -1783,7 +1783,7 @@ export default function ConsultaNumeros() {
                       ) : field.type === 'date' ? (
                         formatBaserowDate(rawValue, field.name)
                       ) : (
-                        displayValue?.toString() || '-'
+                        formatBaserowDate(displayValue || rawValue, field.name)
                       )}
                     </p>
                   </div>
