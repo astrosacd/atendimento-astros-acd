@@ -29,6 +29,7 @@ export default function LeadHunterBusca() {
       });
       if (error) throw error;
       toast.success(`${data?.totalResults || 0} resultados encontrados!`);
+      logActivity(`Realizou busca no Lead Hunter: ${query}`, 'lead_hunter', location ? `Local: ${location}` : undefined);
       refetch();
     } catch (e: any) {
       toast.error(e?.message || 'Erro na busca');
