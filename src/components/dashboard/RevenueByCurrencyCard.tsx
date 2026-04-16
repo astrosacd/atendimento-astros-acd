@@ -56,11 +56,11 @@ export function RevenueByCurrencyCard({ brl, usd }: RevenueByCurrencyProps) {
         <div className="grid grid-cols-2 gap-4 mt-2">
           <div className="text-center">
             <p className="text-[10px] uppercase text-muted-foreground">Total BRL</p>
-            <p className="text-sm font-bold text-green-600">{formatCurrency(brl, 'BRL')}</p>
+            <p className="text-sm font-bold text-primary">{formatCurrency(brl, 'BRL')}</p>
           </div>
           <div className="text-center border-l">
             <p className="text-[10px] uppercase text-muted-foreground">Total USD</p>
-            <p className="text-sm font-bold text-blue-600">{formatCurrency(usd, 'USD')}</p>
+            <p className="text-sm font-bold text-info">{formatCurrency(usd, 'USD')}</p>
           </div>
         </div>
       </CardContent>

@@ -1,11 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { FileText, Search, CreditCard, PlusCircle } from "lucide-react";
+import { Search, CreditCard, PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 
 export function QuickActions() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   const actions = [
     {

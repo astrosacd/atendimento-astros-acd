@@ -29,6 +29,12 @@ import { DespesasSummaryCard } from '@/components/dashboard/DespesasSummaryCard'
 import { FollowupsChart } from '@/components/followups/FollowupsChart';
 import { useFollowups } from '@/hooks/useFollowups';
 import { Badge } from '@/components/ui/badge';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
+import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCard';
+import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
+import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
+import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -73,6 +79,7 @@ interface ClienteStats {
   clientesRegistroSemValor: number;
   recuperacaoPendentes: number;
   billingSkipped: number;
+  churnRate: number;
 }
 
 interface CustomRole {
@@ -124,6 +131,7 @@ export default function Dashboard() {
     clientesRegistroSemValor: 0,
     recuperacaoPendentes: 0,
     billingSkipped: 0,
+    churnRate: 0,
   });
 
   useEffect(() => {
@@ -288,8 +296,20 @@ export default function Dashboard() {
       let tarefasConcluidas = 0;
       let recoveryPending = 0;
       let billingSkippedCount = 0;
+      let churnRate = 0;
 
       if (isAdmin) {
+        // Calculate Churn Rate (last 30 days)
+        const { data: cancellations } = await supabase
+          .from('client_history')
+          .select('id')
+          .eq('action', 'update')
+          .contains('changed_fields', ['cobranca_ativa'])
+          .gte('created_at', thirtyDaysAgo.toISOString());
+        
+        const canceledCount = cancellations?.length || 0;
+        churnRate = clientesRecorrentes > 0 ? (canceledCount / (clientesRecorrentes + canceledCount)) * 100 : 0;
+
         const { count: pending } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
@@ -383,6 +403,7 @@ export default function Dashboard() {
         clientesRegistroSemValor,
         recuperacaoPendentes: recoveryPending || 0,
         billingSkipped: billingSkippedCount,
+        churnRate,
       });
     };
 
@@ -689,6 +710,8 @@ export default function Dashboard() {
           )}
         </div>
 
+        <QuickActions />
+
         {priorityAlerts.length > 0 && (
           <section className="mb-8 space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -828,7 +851,22 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {canViewClients && <MonthlyPurchasesCard />}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <RevenueGoalCard currentMrr={stats.mrr} />
+            <ChurnRateCard churnRate={stats.churnRate} />
+            <RevenueByCurrencyCard brl={stats.mrr} usd={stats.mrrUsd} />
+            <ConversionFunnelCard />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2">
+              {canViewClients && <MonthlyPurchasesCard />}
+            </div>
+            <div>
+              <RecentActivityCard />
+            </div>
+          </div>
+          
           {canViewProposalsDashboard() && <ProposalsStatsCard />}
         </CollapsibleSection>
 
