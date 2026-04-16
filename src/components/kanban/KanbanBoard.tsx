@@ -15,9 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { 
   RefreshCw, Search, UserPlus, MoreVertical, ArrowRight, Trash2,
-  Package, Calendar, DollarSign, Check, ChevronsUpDown, UserRoundPlus, ArrowRightCircle
+  Package, Calendar, DollarSign, Check, ChevronsUpDown, UserRoundPlus, ArrowRightCircle,
+  BrainCircuit, Sparkles, MessageSquarePlus, Activity
 } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { LeadFormDialog } from './LeadFormDialog';
 import { ConvertLeadDialog } from './ConvertLeadDialog';
@@ -33,6 +35,7 @@ interface KanbanBoardProps {
   onAddLead: (stageId: string, lead: { name: string; phone: string; email: string; produto: string }) => Promise<void>;
   onConvertLead: (data: any) => Promise<void>;
   onRefresh: () => void;
+  onUpdateAIScore: (pipelineId: string) => Promise<void>;
 }
 
 export function KanbanBoard({ stages, clients, allClients, loading, onMoveClient, onMovePipelineItem, onRemoveClient, onAddLead, onConvertLead, onRefresh }: KanbanBoardProps) {
