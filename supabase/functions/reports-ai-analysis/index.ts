@@ -339,6 +339,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
                 channel: "email",
                 recipient: email,
                 status: "sent",
+                analysis_id: overrides?.analysisId,
               }).then(() => {}).catch(() => {});
 
               console.log(`[reports-ai] Email sent to ${email}`);
