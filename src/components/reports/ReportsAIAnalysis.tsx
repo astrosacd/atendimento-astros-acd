@@ -84,8 +84,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   const [newEmail, setNewEmail] = useState('');
   const [configId, setConfigId] = useState<string | null>(null);
 
-  // History expand state
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  // Notifications state removed as it's not needed for UI expansion anymore
 
   const { data: history = [], refetch: refetchHistory } = useQuery({
     queryKey: ['reports-ai-history'],
@@ -606,7 +605,10 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                             )}
                           </div>
                         </div>
-                        <Badge variant={log.status === 'sent' ? 'success' : 'destructive'} className="text-[10px] uppercase">
+                        <Badge 
+                          variant={log.status === 'sent' ? 'outline' : 'destructive'} 
+                          className={`text-[10px] uppercase ${log.status === 'sent' ? 'border-success text-success bg-success/5' : ''}`}
+                        >
                           {log.status === 'sent' ? 'Enviado' : 'Erro'}
                         </Badge>
                       </div>
