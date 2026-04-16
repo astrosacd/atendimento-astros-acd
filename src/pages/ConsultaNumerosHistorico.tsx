@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Search, ArrowLeft, Download, ChevronLeft, ChevronRight, Eye, RefreshCw, User, Globe, Key, Webhook, Pencil, FileText, Trash2, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
 interface HistoryEntry {
@@ -136,7 +136,7 @@ export default function ConsultaNumerosHistorico() {
       headers.join(','),
       ...historyResult.data.map((entry: HistoryEntry) =>
         [
-          format(new Date(entry.created_at), 'dd/MM/yyyy HH:mm:ss'),
+          formatInTimeZone(new Date(entry.created_at), 'America/Fortaleza', 'dd/MM/yyyy HH:mm:ss'),
           entry.numero,
           getAcaoLabel(entry.acao),
           getOrigemLabel(entry.origem),
@@ -268,7 +268,7 @@ export default function ConsultaNumerosHistorico() {
                       {historyResult?.data?.map((entry: HistoryEntry) => (
                         <TableRow key={entry.id}>
                           <TableCell className="text-sm whitespace-nowrap">
-                            {format(new Date(entry.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                            {formatInTimeZone(new Date(entry.created_at), 'America/Fortaleza', "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
                           </TableCell>
                           <TableCell className="font-mono">{entry.numero}</TableCell>
                           <TableCell>
@@ -376,7 +376,7 @@ export default function ConsultaNumerosHistorico() {
           <DialogHeader>
             <DialogTitle>Detalhes do Registro</DialogTitle>
             <DialogDescription>
-              {selectedEntry && format(new Date(selectedEntry.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+              {selectedEntry && formatInTimeZone(new Date(selectedEntry.created_at), 'America/Fortaleza', "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
             </DialogDescription>
           </DialogHeader>
           {selectedEntry && (

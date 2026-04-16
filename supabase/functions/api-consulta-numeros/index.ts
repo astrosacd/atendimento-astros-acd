@@ -827,7 +827,16 @@ Deno.serve(async (req) => {
           // Update data_da_ultima_consulta in Baserow if searching for a specific number
           if (searchQuery && result.results && result.results.length > 0) {
             const now = new Date();
-            const dateStr = now.toISOString();
+            const dateStr = new Intl.DateTimeFormat('pt-BR', {
+              timeZone: 'America/Fortaleza',
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).format(now).replace(',', '');
             
             // Limit to first 5 matches to avoid too many requests in a single search
             const matchesToUpdate = result.results.slice(0, 5);

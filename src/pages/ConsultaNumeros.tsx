@@ -109,12 +109,21 @@ export default function ConsultaNumeros() {
   // Auto-generate data_cadastro when opening create dialog
   const generateDataCadastro = () => {
     const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    const formatter = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Fortaleza',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const getPart = (type: string) => parts.find(p => p.type === type)?.value;
+    
+    return `${getPart('day')}/${getPart('month')}/${getPart('year')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
   };
 
   // Validation helpers
@@ -148,15 +157,17 @@ export default function ConsultaNumeros() {
       
       if (hasTime) {
         return date.toLocaleString('pt-BR', {
+          timeZone: 'America/Fortaleza',
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit'
+          second: '2-digit',
+          hour12: false
         });
       }
-      return date.toLocaleDateString('pt-BR');
+      return date.toLocaleDateString('pt-BR', { timeZone: 'America/Fortaleza' });
     } catch (e) {
       return value?.toString() || '-';
     }
