@@ -363,6 +363,7 @@ export function useUpdateNumero() {
 export function useDeleteNumero() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { logActivity } = useSystemActivities();
 
   return useMutation({
     mutationFn: async ({ numero, motivo }: { numero: NumeroAquecimento; motivo: string }) => {
