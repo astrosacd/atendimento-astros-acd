@@ -364,6 +364,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               recipient: email,
               status: "error",
               error_message: `SMTP connection failed: ${smtpErr.message?.substring(0, 400)}`,
+              analysis_id: overrides?.analysisId,
             }).then(() => {}).catch(() => {});
           }
         }
