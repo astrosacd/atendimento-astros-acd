@@ -298,9 +298,9 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
     // Email notifications via Gmail SMTP
     if (notifyEmail && emailAddresses.length > 0) {
       // Use config credentials if available, otherwise fallback to environment variables
-      const gmailUser = configRow?.gmail_user || Deno.env.get("GMAIL_USER") || "";
-      const gmailPass = configRow?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD") || "";
-      const gmailSenderName = configRow?.gmail_sender_name || "";
+      const gmailUser = overrides?.gmailUser || configRow?.gmail_user || Deno.env.get("GMAIL_USER") || "";
+      const gmailPass = overrides?.gmailPass || configRow?.gmail_app_password || Deno.env.get("GMAIL_APP_PASSWORD") || "";
+      const gmailSenderName = overrides?.gmailSenderName || configRow?.gmail_sender_name || "";
 
       if (gmailUser && gmailPass) {
         const dateStr = new Date().toLocaleDateString("pt-BR");
