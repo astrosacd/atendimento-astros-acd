@@ -34,19 +34,50 @@ serve(async (req) => {
     const template = config.notify_message_template || 
       "Olá {client_name} 👋\n\nPassando para lembrar da nossa reunião:\n🗓️ {date} às {time}\n\n🔗 {meet_link}";
 
-    // Find events happening in the next X hours that haven't been notified
+    // Get date range in Brasilia time for physical meetings
     const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const todayStr = formatter.format(now);
+    const startOfToday = new Date(`${todayStr}T00:00:00.000-03:00`);
+    const endOfToday = new Date(`${todayStr}T23:59:59.999-03:00`);
+
+    // Target window for online meetings
     const targetTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
     const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
 
-    const { data: events, error: eventsError } = await supabase
+    console.log(`[calendar-notify] Checking online window: ${now.toISOString()} - ${windowEnd.toISOString()}`);
+    console.log(`[calendar-notify] Checking physical window: ${startOfToday.toISOString()} - ${endOfToday.toISOString()}`);
+
+    // Find events that haven't been notified
+    // We fetch a bit more and filter in JS to handle both types
+    const { data: allEvents, error: eventsError } = await supabase
       .from("calendar_events")
       .select("*")
       .in("status", ["scheduled", "confirmed"])
-      .eq("source", "local") // ONLY notify for locally created events
-      .is("notified_at", null) // Only events NOT yet notified
-      .gte("start_time", now.toISOString())
-      .lte("start_time", windowEnd.toISOString());
+      .eq("source", "local")
+      .is("notified_at", null)
+      .gte("start_time", startOfToday.toISOString()) // At least starting today
+      .lte("start_time", endOfToday.toISOString().replace(/\d{4}$/, "9999")); // Or further if needed, but today is enough for physical
+
+    if (eventsError) throw eventsError;
+
+    // Filter events based on their type and window
+    const events = (allEvents || []).filter(event => {
+      const startTime = new Date(event.start_time);
+      
+      if (event.meeting_type === 'physical') {
+        // Physical meetings are notified anytime today
+        return startTime >= startOfToday && startTime <= endOfToday;
+      } else {
+        // Online (default) are notified 1h before
+        return startTime >= now && startTime <= windowEnd;
+      }
+    });
 
     if (eventsError) throw eventsError;
 
@@ -87,8 +118,17 @@ serve(async (req) => {
         hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" 
       });
 
+      // Choose template based on meeting type
+      let message = template;
+      if (event.meeting_type === 'physical') {
+        message = "Olá {client_name} 👋\n\nPassando para lembrar que hoje você receberá uma visita do consultor da Artes para a reunião agendada às {time}.";
+        if (event.location) {
+          message += `\n\n📍 Local: ${event.location}`;
+        }
+      }
+
       // Replace template variables
-      const message = template
+      message = message
         .replace(/{client_name}/g, event.client_name || "Cliente")
         .replace(/{date}/g, dateStr)
         .replace(/{time}/g, timeStr)
@@ -176,7 +216,15 @@ serve(async (req) => {
         // Send WhatsApp to consultants
         const consultantPhones: string[] = event.consultant_phones || [];
         if (wantsWhatsApp && consultantPhones.length > 0 && hasWhatsApp) {
-          const consultantMessage = `📋 Lembrete de reunião:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}\n${event.meet_link ? `🔗 ${event.meet_link}` : ""}`;
+          const isPhysical = event.meeting_type === 'physical';
+          let consultantMessage = `📋 Lembrete de reunião ${isPhysical ? 'PRESENCIAL' : 'ONLINE'}:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}`;
+          
+          if (isPhysical) {
+            if (event.location) consultantMessage += `\n📍 Local: ${event.location}`;
+            if (event.reference_point) consultantMessage += `\n🚩 Ref: ${event.reference_point}`;
+          } else if (event.meet_link) {
+            consultantMessage += `\n🔗 Link: ${event.meet_link}`;
+          }
           
           for (const consultantPhone of consultantPhones) {
             const phone = consultantPhone.replace(/\D/g, "");
@@ -213,25 +261,27 @@ serve(async (req) => {
 
         // Send Email to client using SMTP
         if (wantsEmail && event.client_email) {
-          const subject = `Lembrete: ${event.title} - ${dateStr} às ${timeStr}`;
+          const isPhysical = event.meeting_type === 'physical';
+          const subject = `Lembrete: ${isPhysical ? 'Visita Presencial' : 'Reunião Online'} - ${event.title} - ${dateStr} às ${timeStr}`;
           const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0;">📅 Lembrete de Reunião</h1>
+    <h1 style="color: white; margin: 0;">📅 Lembrete de ${isPhysical ? 'Visita' : 'Reunião'}</h1>
   </div>
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb;">
     <p style="font-size: 16px; color: #374151;">Olá, <strong>${event.client_name || "Cliente"}</strong>!</p>
-    <p style="font-size: 14px; color: #6b7280;">Passando para lembrar da sua reunião agendada:</p>
+    <p style="font-size: 14px; color: #6b7280;">Passando para lembrar da sua ${isPhysical ? 'visita' : 'reunião'} agendada:</p>
     <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
       <p style="margin: 5px 0; font-size: 14px;"><strong>📌 Título:</strong> ${event.title}</p>
       <p style="margin: 5px 0; font-size: 14px;"><strong>🗓️ Data:</strong> ${dateStr} às ${timeStr}</p>
-      ${event.meet_link ? `<p style="margin: 5px 0; font-size: 14px;"><strong>🔗 Link:</strong> <a href="${event.meet_link}" style="color: #667eea;">${event.meet_link}</a></p>` : ""}
+      ${isPhysical && event.location ? `<p style="margin: 5px 0; font-size: 14px;"><strong>📍 Local:</strong> ${event.location}</p>` : ""}
+      ${!isPhysical && event.meet_link ? `<p style="margin: 5px 0; font-size: 14px;"><strong>🔗 Link:</strong> <a href="${event.meet_link}" style="color: #667eea;">${event.meet_link}</a></p>` : ""}
       ${event.description ? `<p style="margin: 5px 0; font-size: 14px;"><strong>📝 Descrição:</strong> ${event.description}</p>` : ""}
     </div>
-    ${event.meet_link ? `<div style="text-align: center; margin: 20px 0;">
+    ${!isPhysical && event.meet_link ? `<div style="text-align: center; margin: 20px 0;">
       <a href="${event.meet_link}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Clique aqui para entrar na reunião</a>
     </div>` : ""}
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
