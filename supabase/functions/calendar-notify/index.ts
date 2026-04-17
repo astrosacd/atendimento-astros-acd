@@ -118,8 +118,17 @@ serve(async (req) => {
         hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" 
       });
 
+      // Choose template based on meeting type
+      let message = template;
+      if (event.meeting_type === 'physical') {
+        message = "Olá {client_name} 👋\n\nPassando para lembrar que hoje você receberá uma visita do consultor da Artes para a reunião agendada às {time}.";
+        if (event.location) {
+          message += `\n\n📍 Local: ${event.location}`;
+        }
+      }
+
       // Replace template variables
-      const message = template
+      message = message
         .replace(/{client_name}/g, event.client_name || "Cliente")
         .replace(/{date}/g, dateStr)
         .replace(/{time}/g, timeStr)
