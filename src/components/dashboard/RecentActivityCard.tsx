@@ -140,7 +140,7 @@ export function RecentActivityCard() {
   };
 
   return (
-    <Card className="h-full flex flex-col max-h-[480px]">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-2 shrink-0">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" />
