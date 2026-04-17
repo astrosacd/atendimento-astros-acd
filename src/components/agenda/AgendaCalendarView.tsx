@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle, MapPinned } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle, MapPinned, Send, Loader2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, isToday, startOfWeek, endOfWeek, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
@@ -11,6 +11,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AgendaCalendarViewProps {
   events: CalendarEvent[];
@@ -46,8 +48,33 @@ function isFinalized(event: CalendarEvent): boolean {
 
 export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onComplete, onView, currentMonth, onMonthChange }: AgendaCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [isSendingSummary, setIsSendingSummary] = useState(false);
   const { hasPermission } = usePermissions();
   const canAccessMeetLinks = hasPermission('access_agenda_meet_links');
+
+  const handleSendSummary = async () => {
+    if (!selectedDate) return;
+    
+    setIsSendingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('calendar-physical-summary', {
+        body: { targetDate: selectedDate.toISOString() }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.sentCount > 0) {
+        toast.success(`Resumo enviado para ${data.sentCount} consultor(es)`);
+      } else {
+        toast.info('Nenhuma reunião presencial agendada para este dia.');
+      }
+    } catch (error: any) {
+      console.error('Error sending summary:', error);
+      toast.error('Erro ao enviar resumo: ' + error.message);
+    } finally {
+      setIsSendingSummary(false);
+    }
+  };
 
   // Filter out cancelled events entirely
   const visibleEvents = events.filter(e => e.status !== 'cancelled');
@@ -183,11 +210,29 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
         {/* Day detail */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {selectedDate
-                ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
-                : 'Selecione um dia'}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                {selectedDate
+                  ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
+                  : 'Selecione um dia'}
+              </CardTitle>
+              {selectedDate && selectedEvents.some(e => (e as any).meeting_type === 'physical') && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 gap-1.5 text-xs" 
+                  onClick={handleSendSummary}
+                  disabled={isSendingSummary}
+                >
+                  {isSendingSummary ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Send className="h-3 w-3" />
+                  )}
+                  Enviar Resumo
+                </Button>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {selectedEvents.length} evento{selectedEvents.length !== 1 ? 's' : ''}
             </p>

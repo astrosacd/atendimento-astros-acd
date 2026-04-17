@@ -10,6 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const { targetDate } = await req.json().catch(() => ({}));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -19,23 +20,30 @@ serve(async (req) => {
     const config: Record<string, string> = {};
     (configRows || []).forEach((r: any) => { config[r.config_key] = r.config_value; });
 
-    if (config.daily_summary_enabled !== "true") {
+    if (config.daily_summary_enabled !== "true" && !targetDate) {
       console.log("[calendar-physical-summary] Daily summary disabled");
       return new Response(JSON.stringify({ message: "Daily summary disabled" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get today's range in Brasilia time
-    const now = new Date();
-    // Adjust to Brasilia time (UTC-3)
-    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    // Get date range in Brasilia time
+    const now = targetDate ? new Date(targetDate) : new Date();
     
-    const startOfDay = new Date(brDate);
-    startOfDay.setHours(0, 0, 0, 0);
+    // Get YYYY-MM-DD in Brasilia time
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const dateStr = formatter.format(now);
     
-    const endOfDay = new Date(brDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Construct start and end of day in Brasilia time (UTC-3)
+    const startOfDay = new Date(`${dateStr}T00:00:00.000-03:00`);
+    const endOfDay = new Date(`${dateStr}T23:59:59.999-03:00`);
+
+    console.log(`[calendar-physical-summary] Target Date: ${dateStr}`);
 
     console.log(`[calendar-physical-summary] Checking meetings between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
 
@@ -84,7 +92,11 @@ serve(async (req) => {
       // Sort meetings by time
       meetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-      let message = `🚀 *Suas Reuniões Presenciais de Hoje* (${brDate.toLocaleDateString("pt-BR")})\n\n`;
+      // Format date for the message (DD/MM/YYYY)
+      const [y, m, d] = dateStr.split('-');
+      const displayDate = `${d}/${m}/${y}`;
+
+      let message = `🚀 *Suas Reuniões Presenciais de Hoje* (${displayDate})\n\n`;
       
       meetings.forEach((m, idx) => {
         const time = new Date(m.start_time).toLocaleTimeString("pt-BR", { 
