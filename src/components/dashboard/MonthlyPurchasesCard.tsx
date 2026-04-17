@@ -279,7 +279,7 @@ export function MonthlyPurchasesCard() {
 
         {/* Chart */}
         {selectedMonth === 'all' && chartData.length > 0 && (
-          <div className="h-48 mt-4">
+          <div className="h-32 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
