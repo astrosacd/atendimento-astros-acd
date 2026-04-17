@@ -64,7 +64,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
-      setMeetingType(event.meeting_type || 'online');
+      setMeetingType(event.meeting_type || '');
       setReferencePoint(event.reference_point || '');
       const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
       setNotes(cleanNotes);
