@@ -140,14 +140,14 @@ export function RecentActivityCard() {
   };
 
   return (
-    <Card className="h-full w-full flex flex-col overflow-hidden bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+    <Card className="h-full w-full flex flex-col overflow-hidden bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
       <CardHeader className="pb-2 shrink-0">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="h-5 w-5 text-purple-500" />
+          <Clock className="h-5 w-5 text-blue-500" />
           Últimas Atividades
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/20 hover:scrollbar-thumb-purple-500/40">
+      <CardContent className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500/20 hover:scrollbar-thumb-blue-500/40">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
