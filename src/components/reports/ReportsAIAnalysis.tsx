@@ -235,6 +235,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
           gmailUser: gmailUser || undefined,
           gmailPass: gmailPass || undefined,
           gmailSenderName: gmailSenderName || undefined,
+          origin: window.location.origin,
         },
       });
 
