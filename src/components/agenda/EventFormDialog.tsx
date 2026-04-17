@@ -211,10 +211,10 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
 
           <div className="border-t pt-4 space-y-3">
             <div className="space-y-2">
-              <Label>Tipo de Reunião</Label>
+              <Label>Tipo de Reunião <span className="text-destructive">*</span></Label>
               <Select value={meetingType} onValueChange={(val: 'online' | 'physical') => setMeetingType(val)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o tipo de reunião" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="online">Online (Google Meet)</SelectItem>
