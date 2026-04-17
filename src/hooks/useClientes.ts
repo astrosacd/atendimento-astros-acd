@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWebhooks } from '@/hooks/useWebhooks';
 import { useClientHistory } from '@/hooks/useClientHistory';
+import { logSystemActivity } from '@/hooks/useSystemActivities';
 import { Json } from '@/integrations/supabase/types';
 
 export type CicloCobranca = 'mensal' | 'bimestral' | 'trimestral' | 'semestral' | 'anual';
@@ -151,6 +152,7 @@ export const useClientes = () => {
       if (data) {
         await logClientChange(data.id, 'created', null, data as unknown as Json);
         triggerWebhooks('cliente.created', data);
+        void logSystemActivity(`Cadastrou cliente: ${data.nome}`, 'cliente', `Produto: ${data.produto}`);
       }
       
       return data as Cliente;
@@ -191,6 +193,7 @@ export const useClientes = () => {
           data as unknown as Json
         );
         triggerWebhooks('cliente.updated', data);
+        void logSystemActivity(`Atualizou cliente: ${data.nome}`, 'cliente');
       }
       
       return data as Cliente;
@@ -228,6 +231,7 @@ export const useClientes = () => {
       // Trigger webhooks after successful deletion
       if (clienteData) {
         triggerWebhooks('cliente.deleted', { id, ...clienteData });
+        void logSystemActivity(`Excluiu cliente: ${clienteData.nome}`, 'cliente');
       }
       
       return true;
