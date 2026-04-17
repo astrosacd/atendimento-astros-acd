@@ -324,6 +324,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
     .analysis strong { color: #1d4ed8; }
     .footer { padding: 20px; background: #f9fafb; border-top: 1px solid #edf2f7; text-align: center; font-size: 12px; color: #94a3b8; }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.2); font-size: 12px; font-weight: 600; margin-bottom: 15px; }
+    .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px; }
     hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
   </style>
 </head>
@@ -343,6 +344,13 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
           .replace(/# (.*?)\n/g, '<h1>$1</h1>')
           .replace(/\n/g, '<br>')}
       </div>
+      
+      ${overrides?.origin ? `
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${overrides.origin}/admin/relatorios" class="button">Ver Dashboard Completo</a>
+      </div>
+      ` : ''}
+
       <hr>
       <p style="font-size: 14px; color: #64748b; text-align: center;">
         Esta análise foi gerada por inteligência artificial com base nas métricas reais do seu sistema.
