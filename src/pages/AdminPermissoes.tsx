@@ -100,6 +100,11 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Lead Hunter': <Crosshair className="h-4 w-4" />,
   'Agenda': <Eye className="h-4 w-4" />,
   'Link de Pagamento': <CreditCard className="h-4 w-4" />,
+  'Aprovações': <Check className="h-4 w-4" />,
+  'Automações': <Database className="h-4 w-4" />,
+  'Chat': <MessageSquare className="h-4 w-4" />,
+  'Vendas': <BarChart3 className="h-4 w-4" />,
+  'Conexões': <Globe className="h-4 w-4" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
@@ -336,6 +341,11 @@ export default function AdminPermissoes() {
     'Lead Hunter': 'Lead Hunter',
     'Agenda': 'Agenda',
     'Link de Pagamento': 'Link de Pagamento',
+    'Aprovações': 'Aprovações',
+    'Automações': 'Automações',
+    'Chat': 'Chat',
+    'Vendas': 'Vendas',
+    'Conexões': 'Conexões',
   });
 
   const colorOptions = getColorOptions(t);
