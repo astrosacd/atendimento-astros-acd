@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
@@ -557,7 +558,15 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                     )}
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t">
+                  <div className="flex justify-between items-center pt-4 border-t gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleAnalyze} 
+                      disabled={loading || !notifyEmail || emailAddresses.length === 0}
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                      Testar Envio agora
+                    </Button>
                     <Button onClick={() => saveScheduleConfig.mutate()} disabled={saveScheduleConfig.isPending}>
                       {saveScheduleConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Salvar Configurações
@@ -651,12 +660,26 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                                       <p className="text-[10px] text-muted-foreground capitalize">{log.channel}</p>
                                     </div>
                                   </div>
-                                  <Badge 
-                                    variant={log.status === 'sent' ? 'outline' : 'destructive'} 
-                                    className={`text-[9px] px-1.5 h-4 shrink-0 ${log.status === 'sent' ? 'border-success/50 text-success bg-success/5' : ''}`}
-                                  >
-                                    {log.status === 'sent' ? 'OK' : 'Erro'}
-                                  </Badge>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge 
+                                      variant={log.status === 'sent' ? 'outline' : 'destructive'} 
+                                      className={`text-[9px] px-1.5 h-4 shrink-0 ${log.status === 'sent' ? 'border-success/50 text-success bg-success/5' : ''}`}
+                                    >
+                                      {log.status === 'sent' ? 'OK' : 'Erro'}
+                                    </Badge>
+                                    {log.error_message && (
+                                      <TooltipProvider>
+                                        <UITooltip>
+                                          <TooltipTrigger>
+                                            <Info className="h-3 w-3 text-destructive cursor-help" />
+                                          </TooltipTrigger>
+                                          <TooltipContent side="left" className="max-w-[200px] text-[10px]">
+                                            {log.error_message}
+                                          </TooltipContent>
+                                        </UITooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
