@@ -23,6 +23,31 @@ export function RecentActivityCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const cleanupOldActivities = async () => {
+      try {
+        // Keep only activities from the last 24 hours, but always preserve at least 5 most recent
+        const { data: recent } = await supabase
+          .from("system_activities")
+          .select("id, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (!recent || recent.length === 0) return;
+
+        const oldestKeptDate = recent[recent.length - 1].created_at;
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Use the older of the two cutoffs so we never delete the 5 most recent
+        const cutoff = oldestKeptDate < oneDayAgo ? oldestKeptDate : oneDayAgo;
+
+        await supabase
+          .from("system_activities")
+          .delete()
+          .lt("created_at", cutoff);
+      } catch (err) {
+        console.warn("[RecentActivity] cleanup skipped:", err);
+      }
+    };
+
     const fetchActivities = async () => {
       // 1) Fetch raw activities (no embed — system_activities has no FK to profiles)
       const { data: acts, error } = await supabase
@@ -60,7 +85,8 @@ export function RecentActivityCard() {
       setLoading(false);
     };
 
-    fetchActivities();
+    // Run cleanup once on mount, then fetch
+    cleanupOldActivities().then(() => fetchActivities());
 
     // Set up real-time subscription
     const channel = supabase
@@ -106,15 +132,22 @@ export function RecentActivityCard() {
     }
   };
 
+  // Defensive translation: any leftover english enum values still in the DB
+  const translateAction = (action: string) => {
+    return action
+      .replace(/\bnot_converted\b/gi, 'Não convertido')
+      .replace(/\bconverted\b/gi, 'Convertido');
+  };
+
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
+    <Card className="h-full flex flex-col max-h-[480px]">
+      <CardHeader className="pb-2 shrink-0">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" />
           Últimas Atividades
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -138,7 +171,7 @@ export function RecentActivityCard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground">
-                    {activity.action}
+                    {translateAction(activity.action)}
                   </p>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <span className="text-xs text-primary font-medium">
