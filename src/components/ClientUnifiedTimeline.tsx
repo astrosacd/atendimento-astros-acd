@@ -303,7 +303,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           type: 'client',
           date: c.created_at,
           title: `Cliente Cadastrado: ${c.nome}`,
-          description: `${c.produto ? `Produto: ${c.produto}` : ''}${c.email ? ` — Email: ${c.email}` : ''}${c.numero ? ` — Tel: ${c.numero}` : ''}`,
+          description: `${c.produto ? `Produto: ${c.produto}` : ''}${c.email ? ` — Email: ${c.email}` : ''}${c.numero ? ` — Tel: ${c.numero}` : ''}${c.tags?.length ? ` — Tags: ${c.tags.join(', ')}` : ''}`,
           status: 'Ativo',
         });
       }
