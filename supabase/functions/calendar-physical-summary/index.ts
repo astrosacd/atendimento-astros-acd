@@ -10,6 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const { targetDate } = await req.json().catch(() => ({}));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -19,15 +20,15 @@ serve(async (req) => {
     const config: Record<string, string> = {};
     (configRows || []).forEach((r: any) => { config[r.config_key] = r.config_value; });
 
-    if (config.daily_summary_enabled !== "true") {
+    if (config.daily_summary_enabled !== "true" && !targetDate) {
       console.log("[calendar-physical-summary] Daily summary disabled");
       return new Response(JSON.stringify({ message: "Daily summary disabled" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get today's range in Brasilia time
-    const now = new Date();
+    // Get date range in Brasilia time
+    const now = targetDate ? new Date(targetDate) : new Date();
     // Adjust to Brasilia time (UTC-3)
     const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
     
