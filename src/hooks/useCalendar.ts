@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logSystemActivity } from '@/hooks/useSystemActivities';
 import { toast } from 'sonner';
 
 export interface CalendarEvent {
@@ -81,9 +82,10 @@ export function useCreateCalendarEvent() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Evento criado com sucesso!');
+      void logSystemActivity(`Criou evento na agenda: ${data?.title || 'Sem título'}`, 'config');
     },
     onError: (error) => {
       toast.error('Erro ao criar evento: ' + error.message);
@@ -105,9 +107,10 @@ export function useUpdateCalendarEvent() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Evento atualizado com sucesso!');
+      void logSystemActivity(`Atualizou evento na agenda: ${data?.title || 'Sem título'}`, 'config');
     },
     onError: (error) => {
       toast.error('Erro ao atualizar evento: ' + error.message);
@@ -129,6 +132,7 @@ export function useDeleteCalendarEvent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       toast.success('Evento excluído com sucesso!');
+      void logSystemActivity('Excluiu um evento da agenda', 'config');
     },
     onError: (error) => {
       toast.error('Erro ao excluir evento: ' + error.message);
