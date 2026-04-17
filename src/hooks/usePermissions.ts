@@ -46,6 +46,7 @@ export function usePermissions() {
   const canManageApi = () => hasPermission('manage_api');
   const canViewLogs = () => hasPermission('view_logs');
   const canManageSettings = () => hasPermission('manage_settings');
+  const canManageIntegrations = () => hasPermission('manage_integrations');
   const canViewDivulgador = () => hasPermission('view_divulgador');
   const canManageDivulgadorConfig = () => hasPermission('manage_divulgador_config');
   const canManageDivulgadorCampaigns = () => hasPermission('manage_divulgador_campaigns');
@@ -70,6 +71,8 @@ export function usePermissions() {
   const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
   const canViewValidacaoSms = () => hasPermission('view_validacao_sms');
   const canShareValidacaoSms = () => hasPermission('share_validacao_sms');
+  const canManageConsultaNumerosReminders = () => hasPermission('manage_consulta_numeros_reminders');
+  const canViewConsultaNumerosReminderLogs = () => hasPermission('view_consulta_numeros_reminder_logs');
 
   // Chamados permissions
   const canViewChamados = () => hasPermission('view_chamados');
@@ -96,6 +99,8 @@ export function usePermissions() {
   const canManageGatewayOrders = () => hasPermission('manage_gateway_orders');
   const canManageGatewaySettings = () => hasPermission('manage_gateway_settings');
   const canViewGatewayReports = () => hasPermission('view_gateway_reports');
+  const canViewGatewayEvents = () => hasPermission('view_gateway_events');
+  const canViewGatewayCouponUsages = () => hasPermission('view_gateway_coupon_usages');
 
   // Cobrança permissions
   const canViewCobrancaMetricas = () => hasPermission('view_cobranca_metricas');
@@ -120,6 +125,7 @@ export function usePermissions() {
   // Social Media credentials
   const canViewSocialCredentials = () => hasPermission('view_social_credentials');
   const canManageSocialCredentials = () => hasPermission('manage_social_credentials');
+  const canShareSocialCredentials = () => hasPermission('share_social_credentials');
 
   // WhatsApp Groups
   const canCreateWhatsAppGroups = () => hasPermission('create_whatsapp_groups');
@@ -197,6 +203,19 @@ export function usePermissions() {
   const canCheckPaymentLinkStatus = () => hasPermission('check_payment_link_status');
   const canManagePaymentLinkWebhook = () => hasPermission('manage_payment_link_webhook');
 
+  // New modules
+  const canViewApprovals = () => hasPermission('view_approvals');
+  const canManageApprovals = () => hasPermission('manage_approvals');
+  const canViewAutomations = () => hasPermission('view_automations');
+  const canManageAutomations = () => hasPermission('manage_automations');
+  const canViewAutomationLogs = () => hasPermission('view_automation_logs');
+  const canViewChat = () => hasPermission('view_chat');
+  const canManageChat = () => hasPermission('manage_chat');
+  const canViewSalesForecast = () => hasPermission('view_sales_forecast');
+  const canManageSalesForecast = () => hasPermission('manage_sales_forecast');
+  const canViewWhatsappInstances = () => hasPermission('view_whatsapp_instances');
+  const canManageWhatsappInstances = () => hasPermission('manage_whatsapp_instances');
+
   return {
     permissions,
     hasPermission,
@@ -213,6 +232,7 @@ export function usePermissions() {
     canManageApi,
     canViewLogs,
     canManageSettings,
+    canManageIntegrations,
     canViewDivulgador,
     canManageDivulgadorConfig,
     canManageDivulgadorCampaigns,
@@ -233,6 +253,8 @@ export function usePermissions() {
     canViewConsultaNumeros,
     canViewValidacaoSms,
     canShareValidacaoSms,
+    canManageConsultaNumerosReminders,
+    canViewConsultaNumerosReminderLogs,
     canViewChamados,
     canManageChamados,
     canManageChamadosConfig,
@@ -253,6 +275,8 @@ export function usePermissions() {
     canManageGatewayOrders,
     canManageGatewaySettings,
     canViewGatewayReports,
+    canViewGatewayEvents,
+    canViewGatewayCouponUsages,
     // Cobrança
     canViewCobrancaMetricas,
     canViewCobrancaRecuperacao,
@@ -317,6 +341,7 @@ export function usePermissions() {
     // Social Media
     canViewSocialCredentials,
     canManageSocialCredentials,
+    canShareSocialCredentials,
     // WhatsApp Groups
     canCreateWhatsAppGroups,
     canFinalizeWhatsAppGroups,
@@ -333,5 +358,17 @@ export function usePermissions() {
     canSharePaymentLinks,
     canCheckPaymentLinkStatus,
     canManagePaymentLinkWebhook,
+    // New modules
+    canViewApprovals,
+    canManageApprovals,
+    canViewAutomations,
+    canManageAutomations,
+    canViewAutomationLogs,
+    canViewChat,
+    canManageChat,
+    canViewSalesForecast,
+    canManageSalesForecast,
+    canViewWhatsappInstances,
+    canManageWhatsappInstances,
   };
 }
