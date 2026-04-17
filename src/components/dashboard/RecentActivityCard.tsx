@@ -132,15 +132,22 @@ export function RecentActivityCard() {
     }
   };
 
+  // Defensive translation: any leftover english enum values still in the DB
+  const translateAction = (action: string) => {
+    return action
+      .replace(/\bnot_converted\b/gi, 'Não convertido')
+      .replace(/\bconverted\b/gi, 'Convertido');
+  };
+
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
+    <Card className="h-full flex flex-col max-h-[480px]">
+      <CardHeader className="pb-2 shrink-0">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" />
           Últimas Atividades
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -164,7 +171,7 @@ export function RecentActivityCard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground">
-                    {activity.action}
+                    {translateAction(activity.action)}
                   </p>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <span className="text-xs text-primary font-medium">
