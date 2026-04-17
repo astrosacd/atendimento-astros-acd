@@ -6022,6 +6022,7 @@ export type Database = {
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_calendar_notify: { Args: never; Returns: undefined }
+      execute_calendar_physical_summary: { Args: never; Returns: undefined }
       execute_calendar_sync: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
