@@ -379,7 +379,8 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
               await smtpClient.send({
                 from: gmailSenderName ? `${gmailSenderName} <${gmailUser}>` : gmailUser,
                 to: email,
-                subject: `📊 Relatório de IA - Análise Automática - ${dateStr}`,
+                subject: `Relatório de IA - Análise Automática - ${dateStr}`,
+                content: "Visualize este e-mail em um cliente compatível com HTML para ver o relatório formatado.",
                 html: htmlContent,
               });
 
