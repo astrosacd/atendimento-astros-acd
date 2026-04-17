@@ -186,11 +186,15 @@ export default function Dashboard() {
       // Calculate total value
       const totalValor = clientes?.reduce((acc, c) => acc + (c.valor || 0), 0) || 0;
 
-      // Calculate upcoming renewals (next 7 days)
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Calculate upcoming renewals (next 7 days) - timezone-safe string comparison
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+      const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const renovacoesProximas = clientes?.filter(c => {
-        const renovacao = new Date(c.data_renovacao);
-        return renovacao >= today && renovacao <= nextWeek;
+        if (!c.data_renovacao) return false;
+        // data_renovacao is stored as 'YYYY-MM-DD' string; compare lexicographically (timezone-safe)
+        const renovacaoStr = String(c.data_renovacao).slice(0, 10);
+        return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       }).length || 0;
 
       // Count recurrent vs registration clients (only count registro clients with value > 0)
