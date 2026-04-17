@@ -2,7 +2,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Video, MapPin, StickyNote, CloudDownload, Mail, Phone } from 'lucide-react';
+import { Clock, User, Video, MapPin, StickyNote, Mail, Phone, Calendar as CalendarIcon, MapPinned } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
@@ -33,6 +33,10 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
 
   if (!event) return null;
 
+  const isGoogle = (event as any).source === 'google';
+  const meetingType = (event as any).meeting_type || 'online';
+  const referencePoint = (event as any).reference_point;
+  
   const cleanNotes = getCleanNotes(event.notes);
   const startDate = new Date(event.start_time);
   const endDate = new Date(event.end_time);
@@ -42,11 +46,11 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CloudDownload className="h-5 w-5 text-blue-500" />
+            <CalendarIcon className="h-5 w-5 text-primary" />
             {event.title}
           </DialogTitle>
           <DialogDescription>
-            Evento importado do Google Calendar (somente visualização)
+            {isGoogle ? 'Evento importado do Google Calendar' : 'Detalhes do agendamento'}
           </DialogDescription>
         </DialogHeader>
 
@@ -55,9 +59,14 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
             <Badge variant="outline" className={statusConfig[event.status]?.color}>
               {statusConfig[event.status]?.label || event.status}
             </Badge>
-            <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-300">
-              Google Calendar
+            <Badge variant="secondary">
+              {meetingType === 'physical' ? 'Presencial' : 'Online'}
             </Badge>
+            {isGoogle && (
+              <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-300">
+                Google Calendar
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -78,7 +87,7 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
             {event.client_name && (
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span>{event.client_name}</span>
+                <span><span className="font-medium text-foreground">Cliente:</span> {event.client_name}</span>
               </div>
             )}
 
@@ -96,7 +105,7 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
               </div>
             )}
 
-            {event.meet_link && canAccessMeetLinks && (
+            {meetingType === 'online' && event.meet_link && canAccessMeetLinks && (
               <a href={event.meet_link} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-primary hover:underline">
                 <Video className="h-4 w-4" /> Entrar no Meet
@@ -106,7 +115,16 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
             {event.location && (
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{event.location}</span>
+                <span>
+                  <span className="font-medium text-foreground">{meetingType === 'physical' ? 'Endereço:' : 'Local:'}</span> {event.location}
+                </span>
+              </div>
+            )}
+
+            {meetingType === 'physical' && referencePoint && (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPinned className="h-4 w-4 text-muted-foreground" />
+                <span><span className="font-medium text-foreground">Ponto de Referência:</span> {referencePoint}</span>
               </div>
             )}
 
@@ -114,7 +132,7 @@ export function EventViewDialog({ open, onOpenChange, event }: EventViewDialogPr
               <div className="p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-1.5 mb-1">
                   <StickyNote className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">Observações</p>
+                  <p className="text-sm font-medium">Observações Internas</p>
                 </div>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{cleanNotes}</p>
               </div>
