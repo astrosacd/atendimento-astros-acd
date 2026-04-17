@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
-  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink
+  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client';
   date: string;
   title: string;
   description: string;
@@ -43,6 +43,7 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   automation: { icon: Zap, color: 'text-teal-500', label: 'Automação' },
   license: { icon: Award, color: 'text-lime-500', label: 'Licença' },
   share_link: { icon: ExternalLink, color: 'text-sky-500', label: 'Link Compartilhado' },
+  client: { icon: User, color: 'text-blue-500', label: 'Cadastro' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -78,6 +79,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         licensesRes,
         shareLinksRes,
         proposalsRes,
+        clientDataRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -95,6 +97,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('licencas_entregues').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('social_credential_share_links').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('proposals').select('*').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('clientes').select('*').eq('id', clienteId).single(),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -291,6 +294,19 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           status: p.status,
         });
       });
+      
+      // Client Base Info
+      if (clientDataRes.data) {
+        const c = clientDataRes.data;
+        allEvents.push({
+          id: `client-base-${c.id}`,
+          type: 'client',
+          date: c.created_at,
+          title: `Cliente Cadastrado: ${c.nome}`,
+          description: `${c.produto ? `Produto: ${c.produto}` : ''}${c.email ? ` — Email: ${c.email}` : ''}${c.numero ? ` — Tel: ${c.numero}` : ''}${c.tags?.length ? ` — Tags: ${c.tags.join(', ')}` : ''}`,
+          status: 'Ativo',
+        });
+      }
 
       setEvents(allEvents);
     } catch (err) {
@@ -311,7 +327,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
 
   const getStatusBadgeVariant = (status?: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
     if (!status) return 'secondary';
-    if (['paid', 'sent', 'completed', 'converted', 'resolved', 'created'].includes(status)) return 'default';
+    if (['paid', 'sent', 'completed', 'converted', 'resolved', 'created', 'Ativo', 'registrado'].includes(status)) return 'default';
     if (['error', 'failed', 'overdue', 'deleted', 'cancelled'].includes(status)) return 'destructive';
     return 'outline';
   };
