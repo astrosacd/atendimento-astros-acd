@@ -305,63 +305,23 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
 
       if (gmailUser && gmailPass) {
         const dateStr = new Date().toLocaleDateString("pt-BR");
-        const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Relatório de IA</title>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 0; padding: 0; background-color: #f4f7fa; }
-    .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    .header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 40px 20px; text-align: center; color: white; }
-    .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-    .header p { margin: 10px 0 0; opacity: 0.9; font-size: 16px; }
-    .content { padding: 40px; }
-    .analysis { font-size: 16px; color: #374151; }
-    .analysis h1, .analysis h2, .analysis h3 { color: #111827; margin-top: 24px; }
-    .analysis strong { color: #1d4ed8; }
-    .footer { padding: 20px; background: #f9fafb; border-top: 1px solid #edf2f7; text-align: center; font-size: 12px; color: #94a3b8; }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.2); font-size: 12px; font-weight: 600; margin-bottom: 15px; }
-    .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px; }
-    hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="badge">Relatório Automatizado</div>
-      <h1>Análise de Métricas IA</h1>
-      <p>Dashboard de Performance • ${dateStr}</p>
-    </div>
-    <div class="content">
-      <div class="analysis">
-        ${analysis
+        const dashboardUrl = overrides?.origin ? `${overrides.origin}/admin/relatorios` : '';
+        const analysisHtml = analysis
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/### (.*?)\n/g, '<h3>$1</h3>')
           .replace(/## (.*?)\n/g, '<h2>$1</h2>')
           .replace(/# (.*?)\n/g, '<h1>$1</h1>')
-          .replace(/\n/g, '<br>')}
-      </div>
-      
-      ${overrides?.origin ? `
-      <div style="text-align: center; margin-top: 30px;">
-        <a href="${overrides.origin}/admin/relatorios" class="button">Ver Dashboard Completo</a>
-      </div>
-      ` : ''}
+          .replace(/\n/g, '<br>');
 
-      <hr>
-      <p style="font-size: 14px; color: #64748b; text-align: center;">
-        Esta análise foi gerada por inteligência artificial com base nas métricas reais do seu sistema.
-      </p>
-    </div>
-    <div class="footer">
-      &copy; ${new Date().getFullYear()} Sistema de Gestão. Todos os direitos reservados.
-    </div>
-  </div>
-</body>
-</html>`;
+        const buttonBlock = dashboardUrl
+          ? `<div style="text-align:center;margin-top:30px;"><a href="${dashboardUrl}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">Ver Dashboard Completo</a></div>`
+          : '';
+
+        // Build as a single line to avoid quoted-printable soft line break artifacts (=20, =\n)
+        const rawHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Relatório de IA</title></head><body style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#1a1a1a;margin:0;padding:0;background-color:#f4f7fa;"><div style="max-width:600px;margin:20px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.05);"><div style="background:linear-gradient(135deg,#0ea5e9 0%,#2563eb 100%);padding:40px 20px;text-align:center;color:#ffffff;"><div style="display:inline-block;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.2);font-size:12px;font-weight:600;margin-bottom:15px;">Relatório Automatizado</div><h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-0.5px;color:#ffffff;">Análise de Métricas IA</h1><p style="margin:10px 0 0;opacity:0.9;font-size:16px;color:#ffffff;">Dashboard de Performance • ${dateStr}</p></div><div style="padding:40px;"><div style="font-size:16px;color:#374151;">${analysisHtml}</div>${buttonBlock}<hr style="border:0;border-top:1px solid #e2e8f0;margin:30px 0;"><p style="font-size:14px;color:#64748b;text-align:center;">Esta análise foi gerada por inteligência artificial com base nas métricas reais do seu sistema.</p></div><div style="padding:20px;background:#f9fafb;border-top:1px solid #edf2f7;text-align:center;font-size:12px;color:#94a3b8;">&copy; ${new Date().getFullYear()} Sistema de Gestão. Todos os direitos reservados.</div></div></body></html>`;
+
+        // Remove trailing whitespace on any line and collapse to prevent =20 artifacts
+        const htmlContent = rawHtml.replace(/[ \t]+$/gm, '').replace(/\s+\n/g, '\n');
 
         let smtpClient: SMTPClient | null = null;
         try {
