@@ -90,9 +90,9 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
             <div className="flex flex-wrap gap-1 mt-2">
               {pastUnresolvedEvents.slice(0, 5).map(ev => (
                 <button
-                  key={ev.id}
-                  onClick={() => setSelectedDate(new Date(ev.start_time))}
-                  className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                   key={ev.id}
+                   onClick={() => setSelectedDate(new Date(ev.start_time))}
+                   className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                 >
                   {format(new Date(ev.start_time), 'dd/MM')} - {ev.title}
                 </button>
@@ -159,7 +159,12 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
                       {dayEvents.slice(0, 2).map(ev => (
                         <div
                           key={ev.id}
-                          className="text-[10px] px-1 py-0.5 rounded truncate bg-primary/10 text-primary"
+                          className={cn(
+                            "text-[10px] px-1 py-0.5 rounded truncate",
+                            (ev as any).meeting_type === 'physical' 
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+                              : "bg-primary/10 text-primary"
+                          )}
                         >
                           {format(new Date(ev.start_time), 'HH:mm')} {ev.title}
                         </div>
@@ -195,6 +200,7 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
                 const cleanNotes = getCleanNotes(ev.notes);
                 const imported = isGoogleImported(ev);
                 const finalized = isFinalized(ev);
+                const isPhysical = (ev as any).meeting_type === 'physical';
                 return (
                   <div key={ev.id} className="p-3 border rounded-lg space-y-2">
                     <div className="flex items-start justify-between">
@@ -250,6 +256,11 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
                         <CloudDownload className="h-3 w-3" /> Importado do Google Calendar
                       </div>
                     )}
+                    {isPhysical && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        <MapPinned className="h-3 w-3" /> Reunião Presencial
+                      </div>
+                    )}
                     {ev.description && (
                       <p className="text-xs text-muted-foreground">{ev.description}</p>
                     )}
@@ -258,7 +269,7 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
                         <User className="h-3 w-3" /> {ev.client_name}
                       </div>
                     )}
-                    {ev.meet_link && canAccessMeetLinks && (
+                    {ev.meet_link && canAccessMeetLinks && !isPhysical && (
                       <a href={ev.meet_link} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-primary hover:underline">
                         <Video className="h-3 w-3" /> Entrar no Meet
@@ -266,7 +277,7 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
                     )}
                     {ev.location && (
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {ev.location}
+                        <MapPin className="h-3 w-3" /> {isPhysical ? 'Endereço: ' : ''}{ev.location}
                       </div>
                     )}
                     {cleanNotes && (
