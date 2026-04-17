@@ -34,19 +34,50 @@ serve(async (req) => {
     const template = config.notify_message_template || 
       "Olá {client_name} 👋\n\nPassando para lembrar da nossa reunião:\n🗓️ {date} às {time}\n\n🔗 {meet_link}";
 
-    // Find events happening in the next X hours that haven't been notified
+    // Get date range in Brasilia time for physical meetings
     const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const todayStr = formatter.format(now);
+    const startOfToday = new Date(`${todayStr}T00:00:00.000-03:00`);
+    const endOfToday = new Date(`${todayStr}T23:59:59.999-03:00`);
+
+    // Target window for online meetings
     const targetTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
     const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
 
-    const { data: events, error: eventsError } = await supabase
+    console.log(`[calendar-notify] Checking online window: ${now.toISOString()} - ${windowEnd.toISOString()}`);
+    console.log(`[calendar-notify] Checking physical window: ${startOfToday.toISOString()} - ${endOfToday.toISOString()}`);
+
+    // Find events that haven't been notified
+    // We fetch a bit more and filter in JS to handle both types
+    const { data: allEvents, error: eventsError } = await supabase
       .from("calendar_events")
       .select("*")
       .in("status", ["scheduled", "confirmed"])
-      .eq("source", "local") // ONLY notify for locally created events
-      .is("notified_at", null) // Only events NOT yet notified
-      .gte("start_time", now.toISOString())
-      .lte("start_time", windowEnd.toISOString());
+      .eq("source", "local")
+      .is("notified_at", null)
+      .gte("start_time", startOfToday.toISOString()) // At least starting today
+      .lte("start_time", endOfToday.toISOString().replace(/\d{4}$/, "9999")); // Or further if needed, but today is enough for physical
+
+    if (eventsError) throw eventsError;
+
+    // Filter events based on their type and window
+    const events = (allEvents || []).filter(event => {
+      const startTime = new Date(event.start_time);
+      
+      if (event.meeting_type === 'physical') {
+        // Physical meetings are notified anytime today
+        return startTime >= startOfToday && startTime <= endOfToday;
+      } else {
+        // Online (default) are notified 1h before
+        return startTime >= now && startTime <= windowEnd;
+      }
+    });
 
     if (eventsError) throw eventsError;
 
