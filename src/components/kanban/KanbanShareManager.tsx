@@ -93,13 +93,16 @@ export function KanbanShareManager() {
   };
 
   const copyLink = (token: string) => {
-    const url = `${window.location.origin}/public/pipeline/${token}`;
+    const baseUrl = (typeof siteUrl === 'string' ? siteUrl : (siteUrl as any)?.url) || window.location.origin;
+    const url = `${baseUrl.replace(/\/+$/, '')}/public/pipeline/${token}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado para a área de transferência!');
   };
 
   const openLink = (token: string) => {
-    window.open(`/public/pipeline/${token}`, '_blank');
+    const baseUrl = (typeof siteUrl === 'string' ? siteUrl : (siteUrl as any)?.url) || window.location.origin;
+    const url = `${baseUrl.replace(/\/+$/, '')}/public/pipeline/${token}`;
+    window.open(url, '_blank');
   };
 
   return (
