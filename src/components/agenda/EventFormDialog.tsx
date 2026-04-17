@@ -64,6 +64,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
+      setMeetingType(event.meeting_type || 'online');
+      setReferencePoint(event.reference_point || '');
       const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
       setNotes(cleanNotes);
       setConsultantPhones(((event as any).consultant_phones || []).join(', '));
@@ -81,19 +83,18 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink('');
       setLocation('');
       setStatus('scheduled');
+      setMeetingType('online');
+      setReferencePoint('');
       setNotes('');
       setConsultantPhones('');
     }
   }, [open, event]);
 
-  // Auto-update endTime when startTime changes (only for new events or if end was in sync)
   const handleStartTimeChange = (newStart: string) => {
     const oldEnd = endTime;
     const oldExpectedEnd = addOneHour(startTime);
     setStartTime(newStart);
     
-    // Auto-adjust end time if it was exactly 1h after old start (user didn't manually change it)
-    // Or if the new start would make end invalid
     if (oldEnd === oldExpectedEnd || isEndBeforeMinimum(newStart, oldEnd)) {
       setEndTime(addOneHour(newStart));
     }
@@ -119,6 +120,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       end_time: endDateTime,
       meet_link: event ? (meetLink.trim() || null) : null,
       location: location.trim() || null,
+      meeting_type: meetingType,
+      reference_point: meetingType === 'physical' ? referencePoint.trim() : null,
       status,
       notes: notes.trim() || null,
       consultant_phones: consultantPhonesArray.length > 0 ? consultantPhonesArray : [],
@@ -286,7 +289,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
               value={consultantPhones}
               onChange={(e) => setConsultantPhones(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Números dos consultores que receberão o link do Meet. Separe com vírgula.</p>
+            <p className="text-xs text-muted-foreground">Números dos consultores que receberão as notificações. Separe com vírgula.</p>
           </div>
         </div>
 
