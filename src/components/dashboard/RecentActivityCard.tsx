@@ -23,6 +23,31 @@ export function RecentActivityCard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const cleanupOldActivities = async () => {
+      try {
+        // Keep only activities from the last 24 hours, but always preserve at least 5 most recent
+        const { data: recent } = await supabase
+          .from("system_activities")
+          .select("id, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (!recent || recent.length === 0) return;
+
+        const oldestKeptDate = recent[recent.length - 1].created_at;
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Use the older of the two cutoffs so we never delete the 5 most recent
+        const cutoff = oldestKeptDate < oneDayAgo ? oldestKeptDate : oneDayAgo;
+
+        await supabase
+          .from("system_activities")
+          .delete()
+          .lt("created_at", cutoff);
+      } catch (err) {
+        console.warn("[RecentActivity] cleanup skipped:", err);
+      }
+    };
+
     const fetchActivities = async () => {
       // 1) Fetch raw activities (no embed — system_activities has no FK to profiles)
       const { data: acts, error } = await supabase
@@ -60,7 +85,8 @@ export function RecentActivityCard() {
       setLoading(false);
     };
 
-    fetchActivities();
+    // Run cleanup once on mount, then fetch
+    cleanupOldActivities().then(() => fetchActivities());
 
     // Set up real-time subscription
     const channel = supabase
