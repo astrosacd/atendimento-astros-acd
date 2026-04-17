@@ -44,7 +44,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const [meetLink, setMeetLink] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('scheduled');
-  const [meetingType, setMeetingType] = useState<'online' | 'physical'>('online');
+  const [meetingType, setMeetingType] = useState<'online' | 'physical' | ''>('');
   const [referencePoint, setReferencePoint] = useState('');
   const [notes, setNotes] = useState('');
   const [consultantPhones, setConsultantPhones] = useState('');
