@@ -142,9 +142,9 @@ export default function Agenda() {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
       await recordHistory(editingEvent.id, data.title || editingEvent.title, 'edited', '');
       
-      const googleEventId = (editingEvent as any).google_event_id;
+      const googleEventId = editingEvent.google_event_id;
 
-      // Se mudou para online e ainda não tem link do Meet, tenta criar
+      // Se mudou para online e ainda não tem link do Meet nem ID do Google, tenta criar
       if (googleEnabled && data.meeting_type === 'online' && !editingEvent.meet_link && !googleEventId) {
         createMeetLink(data, editingEvent.id);
       } 
