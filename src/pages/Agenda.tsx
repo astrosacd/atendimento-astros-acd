@@ -141,7 +141,13 @@ export default function Agenda() {
     if (editingEvent) {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
       await recordHistory(editingEvent.id, data.title || editingEvent.title, 'edited', '');
-      if (googleEnabled && (editingEvent as any).google_event_id) {
+      
+      // Se for online e ainda não tiver link do Meet, tenta criar
+      if (googleEnabled && data.meeting_type === 'online' && !editingEvent.meet_link) {
+        createMeetLink(data, editingEvent.id);
+      } 
+      // Se já tiver um ID de evento do Google, sincroniza a atualização
+      else if (googleEnabled && (editingEvent as any).google_event_id) {
         try {
           await supabase.functions.invoke('calendar-sync-google', {
             body: { action: 'update', eventId: editingEvent.id },
@@ -154,7 +160,8 @@ export default function Agenda() {
       const result = await createEvent.mutateAsync(data);
       if (result?.id) {
         await recordHistory(result.id, data.title, 'created', '');
-        if (googleEnabled) {
+        // Só cria no Google Calendar se for do tipo Online
+        if (googleEnabled && data.meeting_type === 'online') {
           createMeetLink(data, result.id);
         }
       }
