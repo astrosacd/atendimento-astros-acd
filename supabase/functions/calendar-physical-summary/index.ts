@@ -92,7 +92,11 @@ serve(async (req) => {
       // Sort meetings by time
       meetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-      let message = `🚀 *Suas Reuniões Presenciais de Hoje* (${brDate.toLocaleDateString("pt-BR")})\n\n`;
+      // Format date for the message (DD/MM/YYYY)
+      const [y, m, d] = dateStr.split('-');
+      const displayDate = `${d}/${m}/${y}`;
+
+      let message = `🚀 *Suas Reuniões Presenciais de Hoje* (${displayDate})\n\n`;
       
       meetings.forEach((m, idx) => {
         const time = new Date(m.start_time).toLocaleTimeString("pt-BR", { 
