@@ -48,8 +48,33 @@ function isFinalized(event: CalendarEvent): boolean {
 
 export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onComplete, onView, currentMonth, onMonthChange }: AgendaCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [isSendingSummary, setIsSendingSummary] = useState(false);
   const { hasPermission } = usePermissions();
   const canAccessMeetLinks = hasPermission('access_agenda_meet_links');
+
+  const handleSendSummary = async () => {
+    if (!selectedDate) return;
+    
+    setIsSendingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('calendar-physical-summary', {
+        body: { targetDate: selectedDate.toISOString() }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.sentCount > 0) {
+        toast.success(`Resumo enviado para ${data.sentCount} consultor(es)`);
+      } else {
+        toast.info('Nenhuma reunião presencial agendada para este dia.');
+      }
+    } catch (error: any) {
+      console.error('Error sending summary:', error);
+      toast.error('Erro ao enviar resumo: ' + error.message);
+    } finally {
+      setIsSendingSummary(false);
+    }
+  };
 
   // Filter out cancelled events entirely
   const visibleEvents = events.filter(e => e.status !== 'cancelled');
