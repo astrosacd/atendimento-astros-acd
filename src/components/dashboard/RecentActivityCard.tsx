@@ -11,8 +11,10 @@ interface Activity {
   resource_type: string;
   details: string | null;
   created_at: string;
+  user_id: string | null;
   profiles: {
-    display_name: string | null;
+    name: string | null;
+    email: string | null;
   } | null;
 }
 
@@ -22,24 +24,39 @@ export function RecentActivityCard() {
 
   useEffect(() => {
     const fetchActivities = async () => {
-      const { data, error } = await supabase
+      // 1) Fetch raw activities (no embed — system_activities has no FK to profiles)
+      const { data: acts, error } = await supabase
         .from("system_activities")
-        .select(`
-          id, 
-          action, 
-          resource_type, 
-          details, 
-          created_at,
-          profiles:user_id (
-            display_name
-          )
-        `)
+        .select("id, action, resource_type, details, created_at, user_id")
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (!error && data) {
-        setActivities(data as any);
+      if (error) {
+        console.error("[RecentActivity] fetch error:", error);
+        setLoading(false);
+        return;
       }
+
+      // 2) Fetch profile names for the unique user_ids
+      const userIds = Array.from(
+        new Set((acts || []).map((a: any) => a.user_id).filter(Boolean))
+      );
+      let profilesMap: Record<string, { name: string | null; email: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, name, email")
+          .in("user_id", userIds);
+        (profs || []).forEach((p: any) => {
+          profilesMap[p.user_id] = { name: p.name, email: p.email };
+        });
+      }
+
+      const merged: Activity[] = (acts || []).map((a: any) => ({
+        ...a,
+        profiles: a.user_id ? profilesMap[a.user_id] || null : null,
+      }));
+      setActivities(merged);
       setLoading(false);
     };
 
@@ -125,7 +142,7 @@ export function RecentActivityCard() {
                   </p>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <span className="text-xs text-primary font-medium">
-                      {activity.profiles?.display_name || 'Sistema'}
+                      {activity.profiles?.name || activity.profiles?.email || 'Sistema'}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                       <span className="capitalize">{activity.resource_type.replace('_', ' ')}</span>
