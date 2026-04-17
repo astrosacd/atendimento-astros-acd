@@ -131,13 +131,15 @@ export default function ConsultarCliente() {
       });
       setResults(filtered);
     } else if (filter === 'renovacao-proxima') {
-      // Filter clients with renewal in next 7 days
+      // Filter clients with renewal in next 7 days - timezone-safe string comparison
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+      const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const filtered = data.filter(cliente => {
-        const renewalDate = new Date(cliente.data_renovacao);
-        return renewalDate >= today && renewalDate <= nextWeek;
+        if (!cliente.data_renovacao) return false;
+        const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+        return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
       });
       setResults(filtered);
     }
