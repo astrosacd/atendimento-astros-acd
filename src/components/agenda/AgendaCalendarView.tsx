@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle, MapPinned } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, isToday, startOfWeek, endOfWeek, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
