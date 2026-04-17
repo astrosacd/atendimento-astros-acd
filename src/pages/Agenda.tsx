@@ -141,7 +141,31 @@ export default function Agenda() {
     if (editingEvent) {
       await updateEvent.mutateAsync({ id: editingEvent.id, ...data });
       await recordHistory(editingEvent.id, data.title || editingEvent.title, 'edited', '');
-      if (googleEnabled && (editingEvent as any).google_event_id) {
+      
+      const googleEventId = editingEvent.google_event_id;
+
+      // Se mudou para online e ainda não tem link do Meet nem ID do Google, tenta criar
+      if (googleEnabled && data.meeting_type === 'online' && !editingEvent.meet_link && !googleEventId) {
+        createMeetLink(data, editingEvent.id);
+      } 
+      // Se mudou para presencial mas já tinha um ID de evento do Google, remove de lá
+      else if (googleEnabled && googleEventId && data.meeting_type === 'physical') {
+        try {
+          await supabase.functions.invoke('calendar-sync-google', {
+            body: { action: 'delete', eventId: editingEvent.id },
+          });
+          // Limpa as referências do Google no banco local
+          await updateEvent.mutateAsync({ 
+            id: editingEvent.id, 
+            meet_link: null, 
+            google_event_id: null 
+          });
+        } catch (e) {
+          console.error('Google sync delete error:', e);
+        }
+      }
+      // Se já tiver um ID de evento do Google e continua sendo online, sincroniza a atualização
+      else if (googleEnabled && googleEventId) {
         try {
           await supabase.functions.invoke('calendar-sync-google', {
             body: { action: 'update', eventId: editingEvent.id },
@@ -154,7 +178,8 @@ export default function Agenda() {
       const result = await createEvent.mutateAsync(data);
       if (result?.id) {
         await recordHistory(result.id, data.title, 'created', '');
-        if (googleEnabled) {
+        // Só cria no Google Calendar se for do tipo Online
+        if (googleEnabled && data.meeting_type === 'online') {
           createMeetLink(data, result.id);
         }
       }

@@ -19,6 +19,7 @@ export interface CalendarEvent {
   reference_point: string | null;
   status: string;
   notes: string | null;
+  google_event_id?: string | null;
   consultant_phones?: string[];
   created_by: string | null;
   created_at: string;

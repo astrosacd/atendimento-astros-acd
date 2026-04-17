@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
       .select("*")
       .is("google_event_id", null)
       .eq("source", "local")
+      .neq("meeting_type", "physical")
       .gte("start_time", new Date(Date.now() - 7 * 86400000).toISOString());
 
     let pushed = 0;
