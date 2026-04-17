@@ -44,6 +44,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const [meetLink, setMeetLink] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('scheduled');
+  const [meetingType, setMeetingType] = useState<'online' | 'physical'>('online');
+  const [referencePoint, setReferencePoint] = useState('');
   const [notes, setNotes] = useState('');
   const [consultantPhones, setConsultantPhones] = useState('');
 
@@ -124,7 +126,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   };
 
   const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
-  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0;
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && (meetingType === 'online' || location.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,7 +207,20 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            {event?.meet_link && (
+            <div className="space-y-2">
+              <Label>Tipo de Reunião</Label>
+              <Select value={meetingType} onValueChange={(val: 'online' | 'physical') => setMeetingType(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="online">Online (Google Meet)</SelectItem>
+                  <SelectItem value="physical">Presencial (Visita ao Cliente)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {meetingType === 'online' && event?.meet_link && (
               <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                 <Label className="text-green-700 dark:text-green-400 text-xs font-medium">Link do Google Meet (gerado automaticamente)</Label>
                 <a href={event.meet_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline block mt-1">
@@ -213,10 +228,26 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
                 </a>
               </div>
             )}
+            
             <div className="space-y-2">
-              <Label>Local</Label>
-              <Input placeholder="Local da reunião (opcional)" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <Label>{meetingType === 'physical' ? 'Endereço da Visita *' : 'Local / Link'}</Label>
+              <Input 
+                placeholder={meetingType === 'physical' ? "Endereço completo do estabelecimento" : "Local da reunião (opcional)"} 
+                value={location} 
+                onChange={(e) => setLocation(e.target.value)} 
+              />
             </div>
+
+            {meetingType === 'physical' && (
+              <div className="space-y-2">
+                <Label>Ponto de Referência</Label>
+                <Input 
+                  placeholder="Próximo a..." 
+                  value={referencePoint} 
+                  onChange={(e) => setReferencePoint(e.target.value)} 
+                />
+              </div>
+            )}
           </div>
 
           {event && (
