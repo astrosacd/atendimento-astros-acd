@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle, MapPinned } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, User, Video, MapPin, MoreHorizontal, Pencil, Trash2, XCircle, CheckCircle2, StickyNote, Eye, CloudDownload, AlertTriangle, MapPinned, Send, Loader2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, isToday, startOfWeek, endOfWeek, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { type CalendarEvent } from '@/hooks/useCalendar';
@@ -11,6 +11,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AgendaCalendarViewProps {
   events: CalendarEvent[];
