@@ -154,12 +154,15 @@ ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${
 
     // If scheduled or specifically requested, send notifications and log them
     if (scheduled) {
-      const { notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses } = payload;
+      const { notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses, gmailUser, gmailPass, gmailSenderName } = payload;
       await sendScheduledNotifications(supabase, responseText, {
         notifyWhatsapp,
         notifyEmail,
         whatsappNumbers,
         emailAddresses,
+        gmailUser,
+        gmailPass,
+        gmailSenderName,
         analysisId
       });
     }
