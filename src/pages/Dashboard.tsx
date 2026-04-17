@@ -861,11 +861,11 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
+            <div className="flex min-h-0">
               {canViewClients && canViewCharts && <MonthlyPurchasesCard />}
             </div>
-            <div>
+            <div className="flex min-h-0 lg:h-full">
               <RecentActivityCard />
             </div>
           </div>
