@@ -29,14 +29,21 @@ serve(async (req) => {
 
     // Get date range in Brasilia time
     const now = targetDate ? new Date(targetDate) : new Date();
-    // Adjust to Brasilia time (UTC-3)
-    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
     
-    const startOfDay = new Date(brDate);
-    startOfDay.setHours(0, 0, 0, 0);
+    // Get YYYY-MM-DD in Brasilia time
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const dateStr = formatter.format(now);
     
-    const endOfDay = new Date(brDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Construct start and end of day in Brasilia time (UTC-3)
+    const startOfDay = new Date(`${dateStr}T00:00:00.000-03:00`);
+    const endOfDay = new Date(`${dateStr}T23:59:59.999-03:00`);
+
+    console.log(`[calendar-physical-summary] Target Date: ${dateStr}`);
 
     console.log(`[calendar-physical-summary] Checking meetings between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
 
