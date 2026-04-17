@@ -558,7 +558,15 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                     )}
                   </div>
 
-                  <div className="flex justify-end pt-4 border-t">
+                  <div className="flex justify-between items-center pt-4 border-t gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleAnalyze} 
+                      disabled={loading || !notifyEmail || emailAddresses.length === 0}
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Mail className="h-4 w-4 mr-2" />}
+                      Testar Envio agora
+                    </Button>
                     <Button onClick={() => saveScheduleConfig.mutate()} disabled={saveScheduleConfig.isPending}>
                       {saveScheduleConfig.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Salvar Configurações
