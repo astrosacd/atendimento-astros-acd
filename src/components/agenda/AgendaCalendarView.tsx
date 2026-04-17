@@ -210,11 +210,29 @@ export function AgendaCalendarView({ events, onEdit, onDelete, onCancel, onCompl
         {/* Day detail */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {selectedDate
-                ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
-                : 'Selecione um dia'}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                {selectedDate
+                  ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR })
+                  : 'Selecione um dia'}
+              </CardTitle>
+              {selectedDate && selectedEvents.some(e => (e as any).meeting_type === 'physical') && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 gap-1.5 text-xs" 
+                  onClick={handleSendSummary}
+                  disabled={isSendingSummary}
+                >
+                  {isSendingSummary ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Send className="h-3 w-3" />
+                  )}
+                  Enviar Resumo
+                </Button>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {selectedEvents.length} evento{selectedEvents.length !== 1 ? 's' : ''}
             </p>
