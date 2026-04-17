@@ -216,7 +216,7 @@ export function MonthlyPurchasesCard() {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+    <Card className="h-full w-full flex flex-col overflow-hidden bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
       <CardHeader className="pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -250,36 +250,36 @@ export function MonthlyPurchasesCard() {
       </CardHeader>
       <CardContent className="pt-0">
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className="bg-background/50 rounded-lg p-3 border border-purple-500/10">
-            <p className="text-xs text-muted-foreground mb-1">Total (BRL)</p>
-            <p className="text-xl font-bold text-purple-500">{formatCurrency(totals.totalBrl)}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+          <div className="bg-background/50 rounded-lg p-2 border border-purple-500/10">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Total (BRL)</p>
+            <p className="text-lg font-bold text-purple-500">{formatCurrency(totals.totalBrl)}</p>
           </div>
           {totals.totalUsd > 0 && (
-            <div className="bg-background/50 rounded-lg p-3 border border-purple-500/10">
-              <p className="text-xs text-muted-foreground mb-1">Total (USD)</p>
-              <p className="text-xl font-bold text-purple-500">{formatCurrencyUsd(totals.totalUsd)}</p>
+            <div className="bg-background/50 rounded-lg p-2 border border-purple-500/10">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Total (USD)</p>
+              <p className="text-lg font-bold text-purple-500">{formatCurrencyUsd(totals.totalUsd)}</p>
             </div>
           )}
-          <div className="bg-background/50 rounded-lg p-3 border border-purple-500/10">
-            <p className="text-xs text-muted-foreground mb-1">Qtd. Vendas</p>
-            <p className="text-xl font-bold text-foreground">{totals.quantidade}</p>
+          <div className="bg-background/50 rounded-lg p-2 border border-purple-500/10">
+            <p className="text-[10px] text-muted-foreground mb-0.5">Qtd. Vendas</p>
+            <p className="text-lg font-bold text-foreground">{totals.quantidade}</p>
           </div>
           {selectedMonth === 'all' && bestMonth && (
-            <div className="bg-background/50 rounded-lg p-3 border border-green-500/20">
-              <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+            <div className="bg-background/50 rounded-lg p-2 border border-green-500/20">
+              <p className="text-[10px] text-muted-foreground mb-0.5 flex items-center gap-1">
                 <TrendingUp className="h-3 w-3 text-green-500" />
                 Melhor mês
               </p>
-              <p className="text-sm font-semibold text-green-500">{bestMonth.mes}</p>
-              <p className="text-xs text-muted-foreground">{formatCurrency(bestMonth.totalBrl)}</p>
+              <p className="text-xs font-semibold text-green-500">{bestMonth.mes}</p>
+              <p className="text-[10px] text-muted-foreground">{formatCurrency(bestMonth.totalBrl)}</p>
             </div>
           )}
         </div>
 
         {/* Chart */}
         {selectedMonth === 'all' && chartData.length > 0 && (
-          <div className="h-48 mt-4">
+          <div className="h-32 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
