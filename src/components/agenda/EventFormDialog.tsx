@@ -44,7 +44,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const [meetLink, setMeetLink] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('scheduled');
-  const [meetingType, setMeetingType] = useState<'online' | 'physical'>('online');
+  const [meetingType, setMeetingType] = useState<'online' | 'physical' | ''>('');
   const [referencePoint, setReferencePoint] = useState('');
   const [notes, setNotes] = useState('');
   const [consultantPhones, setConsultantPhones] = useState('');
@@ -64,7 +64,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
-      setMeetingType(event.meeting_type || 'online');
+      setMeetingType(event.meeting_type || '');
       setReferencePoint(event.reference_point || '');
       const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
       setNotes(cleanNotes);
@@ -83,7 +83,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink('');
       setLocation('');
       setStatus('scheduled');
-      setMeetingType('online');
+      setMeetingType('');
       setReferencePoint('');
       setNotes('');
       setConsultantPhones('');
@@ -103,7 +103,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const endTimeWarning = isEndBeforeMinimum(startTime, endTime);
 
   const handleSubmit = () => {
-    if (!title.trim() || !startDate || !startTime || !endTime) return;
+    if (!title.trim() || !startDate || !startTime || !endTime || meetingType === '') return;
 
     const startDateTime = new Date(`${startDate}T${startTime}:00-03:00`).toISOString();
     const endDateTime = new Date(`${startDate}T${endTime}:00-03:00`).toISOString();
@@ -129,7 +129,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   };
 
   const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
-  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && (meetingType === 'online' || location.trim());
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && meetingType !== '' && (meetingType === 'online' || location.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -211,10 +211,10 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
 
           <div className="border-t pt-4 space-y-3">
             <div className="space-y-2">
-              <Label>Tipo de Reunião</Label>
+              <Label>Tipo de Reunião <span className="text-destructive">*</span></Label>
               <Select value={meetingType} onValueChange={(val: 'online' | 'physical') => setMeetingType(val)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o tipo de reunião" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="online">Online (Google Meet)</SelectItem>
