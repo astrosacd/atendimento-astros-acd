@@ -83,7 +83,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink('');
       setLocation('');
       setStatus('scheduled');
-      setMeetingType('online');
+      setMeetingType('');
       setReferencePoint('');
       setNotes('');
       setConsultantPhones('');
