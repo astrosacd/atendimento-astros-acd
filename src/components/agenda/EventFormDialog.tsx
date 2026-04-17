@@ -129,7 +129,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   };
 
   const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
-  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && (meetingType === 'online' || location.trim());
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && meetingType !== '' && (meetingType === 'online' || location.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
