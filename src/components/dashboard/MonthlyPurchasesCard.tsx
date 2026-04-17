@@ -216,7 +216,7 @@ export function MonthlyPurchasesCard() {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+    <Card className="h-full w-full flex flex-col overflow-hidden bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
       <CardHeader className="pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
