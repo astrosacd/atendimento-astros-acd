@@ -103,7 +103,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const endTimeWarning = isEndBeforeMinimum(startTime, endTime);
 
   const handleSubmit = () => {
-    if (!title.trim() || !startDate || !startTime || !endTime) return;
+    if (!title.trim() || !startDate || !startTime || !endTime || meetingType === '') return;
 
     const startDateTime = new Date(`${startDate}T${startTime}:00-03:00`).toISOString();
     const endDateTime = new Date(`${startDate}T${endTime}:00-03:00`).toISOString();
