@@ -24,8 +24,10 @@ export function KanbanShareManager() {
   const [creating, setCreating] = useState(false);
   const [label, setLabel] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const siteUrl = useSiteUrl();
 
   const loadLinks = useCallback(async () => {
+
     setLoading(true);
     try {
       const { data, error } = await supabase
