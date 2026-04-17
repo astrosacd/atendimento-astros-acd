@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Share2, Copy, Trash2, Calendar, Link as LinkIcon, Loader2, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSiteUrl } from '@/hooks/useSiteUrl';
 
 interface ShareLink {
   id: string;
@@ -23,8 +24,10 @@ export function KanbanShareManager() {
   const [creating, setCreating] = useState(false);
   const [label, setLabel] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const siteUrl = useSiteUrl();
 
   const loadLinks = useCallback(async () => {
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -90,13 +93,16 @@ export function KanbanShareManager() {
   };
 
   const copyLink = (token: string) => {
-    const url = `${window.location.origin}/public/pipeline/${token}`;
+    const baseUrl = (typeof siteUrl === 'string' ? siteUrl : (siteUrl as any)?.url) || window.location.origin;
+    const url = `${baseUrl.replace(/\/+$/, '')}/public/pipeline/${token}`;
     navigator.clipboard.writeText(url);
     toast.success('Link copiado para a área de transferência!');
   };
 
   const openLink = (token: string) => {
-    window.open(`/public/pipeline/${token}`, '_blank');
+    const baseUrl = (typeof siteUrl === 'string' ? siteUrl : (siteUrl as any)?.url) || window.location.origin;
+    const url = `${baseUrl.replace(/\/+$/, '')}/public/pipeline/${token}`;
+    window.open(url, '_blank');
   };
 
   return (
