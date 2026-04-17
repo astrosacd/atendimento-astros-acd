@@ -181,13 +181,15 @@ export default function ConsultarCliente() {
         if (renewalDate >= today) return false;
       }
       
-      // Renovação próxima filter (clients renewing in next 7 days)
+      // Renovação próxima filter (clients renewing in next 7 days) - timezone-safe
       if (filterRenovacaoProxima) {
+        if (!cliente.data_renovacao) return false;
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const renewalDate = new Date(cliente.data_renovacao);
-        if (renewalDate < today || renewalDate > nextWeek) return false;
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const nextWeekDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+        const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
+        const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+        if (renovacaoStr < todayStr || renovacaoStr > nextWeekStr) return false;
       }
       
       // Client type filter
