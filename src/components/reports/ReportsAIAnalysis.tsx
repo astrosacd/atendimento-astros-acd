@@ -232,6 +232,9 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
           notifyEmail,
           whatsappNumbers,
           emailAddresses,
+          gmailUser: gmailUser || undefined,
+          gmailPass: gmailPass || undefined,
+          gmailSenderName: gmailSenderName || undefined,
         },
       });
 
