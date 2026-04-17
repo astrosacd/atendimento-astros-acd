@@ -15,8 +15,11 @@ export interface CalendarEvent {
   end_time: string;
   meet_link: string | null;
   location: string | null;
+  meeting_type: 'online' | 'physical';
+  reference_point: string | null;
   status: string;
   notes: string | null;
+  consultant_phones?: string[];
   created_by: string | null;
   created_at: string;
   updated_at: string;

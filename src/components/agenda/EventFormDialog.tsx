@@ -44,6 +44,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   const [meetLink, setMeetLink] = useState('');
   const [location, setLocation] = useState('');
   const [status, setStatus] = useState('scheduled');
+  const [meetingType, setMeetingType] = useState<'online' | 'physical'>('online');
+  const [referencePoint, setReferencePoint] = useState('');
   const [notes, setNotes] = useState('');
   const [consultantPhones, setConsultantPhones] = useState('');
 
@@ -62,6 +64,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink(event.meet_link || '');
       setLocation(event.location || '');
       setStatus(event.status);
+      setMeetingType(event.meeting_type || 'online');
+      setReferencePoint(event.reference_point || '');
       const cleanNotes = (event.notes || '').split('\n').filter(l => !l.startsWith('[NOTIFICADO')).join('\n').trim();
       setNotes(cleanNotes);
       setConsultantPhones(((event as any).consultant_phones || []).join(', '));
@@ -79,19 +83,18 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       setMeetLink('');
       setLocation('');
       setStatus('scheduled');
+      setMeetingType('online');
+      setReferencePoint('');
       setNotes('');
       setConsultantPhones('');
     }
   }, [open, event]);
 
-  // Auto-update endTime when startTime changes (only for new events or if end was in sync)
   const handleStartTimeChange = (newStart: string) => {
     const oldEnd = endTime;
     const oldExpectedEnd = addOneHour(startTime);
     setStartTime(newStart);
     
-    // Auto-adjust end time if it was exactly 1h after old start (user didn't manually change it)
-    // Or if the new start would make end invalid
     if (oldEnd === oldExpectedEnd || isEndBeforeMinimum(newStart, oldEnd)) {
       setEndTime(addOneHour(newStart));
     }
@@ -117,6 +120,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
       end_time: endDateTime,
       meet_link: event ? (meetLink.trim() || null) : null,
       location: location.trim() || null,
+      meeting_type: meetingType,
+      reference_point: meetingType === 'physical' ? referencePoint.trim() : null,
       status,
       notes: notes.trim() || null,
       consultant_phones: consultantPhonesArray.length > 0 ? consultantPhonesArray : [],
@@ -124,7 +129,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   };
 
   const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
-  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0;
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && (meetingType === 'online' || location.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,7 +210,20 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
           </div>
 
           <div className="border-t pt-4 space-y-3">
-            {event?.meet_link && (
+            <div className="space-y-2">
+              <Label>Tipo de Reunião</Label>
+              <Select value={meetingType} onValueChange={(val: 'online' | 'physical') => setMeetingType(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="online">Online (Google Meet)</SelectItem>
+                  <SelectItem value="physical">Presencial (Visita ao Cliente)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {meetingType === 'online' && event?.meet_link && (
               <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                 <Label className="text-green-700 dark:text-green-400 text-xs font-medium">Link do Google Meet (gerado automaticamente)</Label>
                 <a href={event.meet_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline block mt-1">
@@ -213,10 +231,26 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
                 </a>
               </div>
             )}
+            
             <div className="space-y-2">
-              <Label>Local</Label>
-              <Input placeholder="Local da reunião (opcional)" value={location} onChange={(e) => setLocation(e.target.value)} />
+              <Label>{meetingType === 'physical' ? 'Endereço da Visita *' : 'Local / Link'}</Label>
+              <Input 
+                placeholder={meetingType === 'physical' ? "Endereço completo do estabelecimento" : "Local da reunião (opcional)"} 
+                value={location} 
+                onChange={(e) => setLocation(e.target.value)} 
+              />
             </div>
+
+            {meetingType === 'physical' && (
+              <div className="space-y-2">
+                <Label>Ponto de Referência</Label>
+                <Input 
+                  placeholder="Próximo a..." 
+                  value={referencePoint} 
+                  onChange={(e) => setReferencePoint(e.target.value)} 
+                />
+              </div>
+            )}
           </div>
 
           {event && (
@@ -255,7 +289,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
               value={consultantPhones}
               onChange={(e) => setConsultantPhones(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Números dos consultores que receberão o link do Meet. Separe com vírgula.</p>
+            <p className="text-xs text-muted-foreground">Números dos consultores que receberão as notificações. Separe com vírgula.</p>
           </div>
         </div>
 

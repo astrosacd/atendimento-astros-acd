@@ -1,0 +1,162 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get config
+    const { data: configRows } = await supabase.from("calendar_config").select("*");
+    const config: Record<string, string> = {};
+    (configRows || []).forEach((r: any) => { config[r.config_key] = r.config_value; });
+
+    if (config.daily_summary_enabled !== "true") {
+      console.log("[calendar-physical-summary] Daily summary disabled");
+      return new Response(JSON.stringify({ message: "Daily summary disabled" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get today's range in Brasilia time
+    const now = new Date();
+    // Adjust to Brasilia time (UTC-3)
+    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    
+    const startOfDay = new Date(brDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(brDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    console.log(`[calendar-physical-summary] Checking meetings between ${startOfDay.toISOString()} and ${endOfDay.toISOString()}`);
+
+    const { data: events, error: eventsError } = await supabase
+      .from("calendar_events")
+      .select("*")
+      .eq("meeting_type", "physical")
+      .in("status", ["scheduled", "confirmed"])
+      .gte("start_time", startOfDay.toISOString())
+      .lte("start_time", endOfDay.toISOString());
+
+    if (eventsError) throw eventsError;
+
+    if (!events?.length) {
+      console.log("[calendar-physical-summary] No physical meetings today");
+      return new Response(JSON.stringify({ message: "No physical meetings today" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Group by consultant phone
+    const consultantMeetings: Record<string, any[]> = {};
+    events.forEach(event => {
+      const phones = event.consultant_phones || [];
+      phones.forEach((phone: string) => {
+        const cleanPhone = phone.replace(/\D/g, "");
+        if (!cleanPhone) return;
+        if (!consultantMeetings[cleanPhone]) consultantMeetings[cleanPhone] = [];
+        consultantMeetings[cleanPhone].push(event);
+      });
+    });
+
+    // Get active WhatsApp instances
+    const { data: whatsappInstances } = await supabase
+      .from("calendar_notification_whatsapp_instances")
+      .select("*")
+      .eq("is_active", true);
+
+    if (!whatsappInstances?.length) {
+      console.error("[calendar-physical-summary] No active WhatsApp instances found");
+      throw new Error("No active WhatsApp instances found");
+    }
+
+    let sentCount = 0;
+    for (const [phone, meetings] of Object.entries(consultantMeetings)) {
+      // Sort meetings by time
+      meetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+      let message = `🚀 *Suas Reuniões Presenciais de Hoje* (${brDate.toLocaleDateString("pt-BR")})\n\n`;
+      
+      meetings.forEach((m, idx) => {
+        const time = new Date(m.start_time).toLocaleTimeString("pt-BR", { 
+          hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' 
+        });
+        message += `📍 *${idx + 1}. ${m.title}*\n`;
+        message += `⏰ Horário: ${time}\n`;
+        message += `👤 Cliente: ${m.client_name || 'N/A'}\n`;
+        message += `🏠 Endereço: ${m.location || 'Não informado'}\n`;
+        if (m.reference_point) message += `🚩 Referência: ${m.reference_point}\n`;
+        message += `\n`;
+      });
+
+      message += `Boa sorte em suas visitas! 💪`;
+
+      // Send via first available instance
+      let sentToConsultant = false;
+      for (const instance of whatsappInstances) {
+        try {
+          const sendUrl = `${instance.api_url}/message/sendText/${instance.instance_name}`;
+          const res = await fetch(sendUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: instance.api_key },
+            body: JSON.stringify({ number: phone, text: message }),
+          });
+
+          if (res.ok) {
+            console.log(`[calendar-physical-summary] Summary sent to ${phone} via ${instance.instance_name}`);
+            sentCount++;
+            sentToConsultant = true;
+            
+            // Log notification
+            await supabase.from("calendar_notification_logs").insert({
+              channel: "whatsapp",
+              recipient_type: "consultant_summary",
+              recipient_contact: phone,
+              message_sent: message,
+              status: "sent",
+              whatsapp_instance_id: instance.id,
+            });
+            
+            break; 
+          } else {
+            const errText = await res.text();
+            console.error(`[calendar-physical-summary] Instance ${instance.instance_name} failed:`, errText);
+          }
+        } catch (e) {
+          console.error(`[calendar-physical-summary] Error sending summary to ${phone} via ${instance.instance_name}:`, e);
+        }
+      }
+      
+      if (!sentToConsultant) {
+        await supabase.from("calendar_notification_logs").insert({
+          channel: "whatsapp",
+          recipient_type: "consultant_summary",
+          recipient_contact: phone,
+          message_sent: message,
+          status: "error",
+          error_message: "Failed to send via any active instance",
+        });
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, sentCount, consultantCount: Object.keys(consultantMeetings).length }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error: any) {
+    console.error("[calendar-physical-summary] Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

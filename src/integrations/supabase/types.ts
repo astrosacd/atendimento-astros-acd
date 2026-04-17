@@ -527,8 +527,10 @@ export type Database = {
           id: string
           location: string | null
           meet_link: string | null
+          meeting_type: string | null
           notes: string | null
           notified_at: string | null
+          reference_point: string | null
           source: string
           start_time: string
           status: string
@@ -548,8 +550,10 @@ export type Database = {
           id?: string
           location?: string | null
           meet_link?: string | null
+          meeting_type?: string | null
           notes?: string | null
           notified_at?: string | null
+          reference_point?: string | null
           source?: string
           start_time: string
           status?: string
@@ -569,8 +573,10 @@ export type Database = {
           id?: string
           location?: string | null
           meet_link?: string | null
+          meeting_type?: string | null
           notes?: string | null
           notified_at?: string | null
+          reference_point?: string | null
           source?: string
           start_time?: string
           status?: string
@@ -6016,6 +6022,7 @@ export type Database = {
       execute_auto_remarketing: { Args: never; Returns: undefined }
       execute_billing_cron: { Args: never; Returns: undefined }
       execute_calendar_notify: { Args: never; Returns: undefined }
+      execute_calendar_physical_summary: { Args: never; Returns: undefined }
       execute_calendar_sync: { Args: never; Returns: undefined }
       execute_consulta_numeros_reminder: { Args: never; Returns: undefined }
       execute_divulgador_cron: { Args: never; Returns: undefined }
