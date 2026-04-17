@@ -121,7 +121,7 @@ serve(async (req) => {
       // Choose template based on meeting type
       let message = template;
       if (event.meeting_type === 'physical') {
-        message = "Olá {client_name} 👋\n\nPassando para lembrar que hoje você receberá uma visita do consultor da Artes para a reunião agendada às {time}.";
+        message = "Olá {client_name} 👋\n\nPassando para lembrar que hoje você receberá uma visita do(a) consultor(a) da Astros para a reunião agendada às {time}.";
         if (event.location) {
           message += `\n\n📍 Local: ${event.location}`;
         }
