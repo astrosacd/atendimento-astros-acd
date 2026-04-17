@@ -303,18 +303,53 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
         const dateStr = new Date().toLocaleDateString("pt-BR");
         const htmlContent = `
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;">
-  <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:25px;border-radius:10px 10px 0 0;text-align:center;">
-    <h1 style="color:white;margin:0;">📊 Relatório de IA</h1>
-    <p style="color:rgba(255,255,255,0.8);margin:5px 0 0;">Análise Automática de Métricas - ${dateStr}</p>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de IA</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 0; padding: 0; background-color: #f4f7fa; }
+    .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .header { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 40px 20px; text-align: center; color: white; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { margin: 10px 0 0; opacity: 0.9; font-size: 16px; }
+    .content { padding: 40px; }
+    .analysis { font-size: 16px; color: #374151; }
+    .analysis h1, .analysis h2, .analysis h3 { color: #111827; margin-top: 24px; }
+    .analysis strong { color: #1d4ed8; }
+    .footer { padding: 20px; background: #f9fafb; border-top: 1px solid #edf2f7; text-align: center; font-size: 12px; color: #94a3b8; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.2); font-size: 12px; font-weight: 600; margin-bottom: 15px; }
+    hr { border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">Relatório Automatizado</div>
+      <h1>Análise de Métricas IA</h1>
+      <p>Dashboard de Performance • ${dateStr}</p>
+    </div>
+    <div class="content">
+      <div class="analysis">
+        ${analysis
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+          .replace(/## (.*?)\n/g, '<h2>$1</h2>')
+          .replace(/# (.*?)\n/g, '<h1>$1</h1>')
+          .replace(/\n/g, '<br>')}
+      </div>
+      <hr>
+      <p style="font-size: 14px; color: #64748b; text-align: center;">
+        Esta análise foi gerada por inteligência artificial com base nas métricas reais do seu sistema.
+      </p>
+    </div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} Sistema de Gestão. Todos os direitos reservados.
+    </div>
   </div>
-  <div style="background:#f9fafb;padding:25px;border-radius:0 0 10px 10px;border:1px solid #e5e7eb;">
-    <div style="white-space:pre-wrap;font-size:14px;color:#374151;line-height:1.6;">${analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
-    <p style="font-size:11px;color:#9ca3af;text-align:center;">Gerado automaticamente pelo sistema</p>
-  </div>
-</body></html>`;
+</body>
+</html>`;
 
         let smtpClient: SMTPClient | null = null;
         try {
