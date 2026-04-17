@@ -651,12 +651,26 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
                                       <p className="text-[10px] text-muted-foreground capitalize">{log.channel}</p>
                                     </div>
                                   </div>
-                                  <Badge 
-                                    variant={log.status === 'sent' ? 'outline' : 'destructive'} 
-                                    className={`text-[9px] px-1.5 h-4 shrink-0 ${log.status === 'sent' ? 'border-success/50 text-success bg-success/5' : ''}`}
-                                  >
-                                    {log.status === 'sent' ? 'OK' : 'Erro'}
-                                  </Badge>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge 
+                                      variant={log.status === 'sent' ? 'outline' : 'destructive'} 
+                                      className={`text-[9px] px-1.5 h-4 shrink-0 ${log.status === 'sent' ? 'border-success/50 text-success bg-success/5' : ''}`}
+                                    >
+                                      {log.status === 'sent' ? 'OK' : 'Erro'}
+                                    </Badge>
+                                    {log.error_message && (
+                                      <TooltipProvider>
+                                        <UITooltip>
+                                          <TooltipTrigger>
+                                            <Info className="h-3 w-3 text-destructive cursor-help" />
+                                          </TooltipTrigger>
+                                          <TooltipContent side="left" className="max-w-[200px] text-[10px]">
+                                            {log.error_message}
+                                          </TooltipContent>
+                                        </UITooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
