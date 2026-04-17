@@ -187,18 +187,18 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
   try {
     let notifyWhatsapp, notifyEmail, whatsappNumbers, emailAddresses;
 
+    const { data: configRow } = await supabase
+      .from("reports_analysis_config")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
     if (overrides?.notifyWhatsapp !== undefined || overrides?.notifyEmail !== undefined) {
       notifyWhatsapp = overrides.notifyWhatsapp;
       notifyEmail = overrides.notifyEmail;
       whatsappNumbers = overrides.whatsappNumbers || [];
       emailAddresses = overrides.emailAddresses || [];
     } else {
-      const { data: configRow } = await supabase
-        .from("reports_analysis_config")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-        
       if (!configRow) {
         console.warn("[reports-ai] No reports_analysis_config found, skipping notifications");
         return;
@@ -211,6 +211,7 @@ async function sendScheduledNotifications(supabase: any, analysis: string, overr
     }
 
     console.log(`[reports-ai] Notification config: whatsapp=${notifyWhatsapp} (${whatsappNumbers.length} numbers), email=${notifyEmail} (${emailAddresses.length} emails)`);
+
 
     // WhatsApp notifications
     if (notifyWhatsapp && whatsappNumbers.length > 0) {
