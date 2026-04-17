@@ -47,7 +47,14 @@ export function RevenueByCurrencyCard({ brl, usd }: RevenueByCurrencyProps) {
               </Pie>
               <Tooltip 
                 formatter={(value: number, name: string) => [formatCurrency(value, name as string), name]}
-                contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--popover))', 
+                  borderColor: 'hsl(var(--border))', 
+                  borderRadius: '8px',
+                  color: 'hsl(var(--popover-foreground))'
+                }}
+                itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
               />
               <Legend verticalAlign="bottom" height={36}/>
             </PieChart>
