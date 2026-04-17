@@ -6,10 +6,11 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { KanbanStageManager } from '@/components/kanban/KanbanStageManager';
 import { AutomationRulesPanel } from '@/components/kanban/AutomationRulesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Columns3, Settings2, Zap, MessageSquare, Share2, Brain } from 'lucide-react';
+import { Columns3, Settings2, Zap, MessageSquare, Share2, Brain, Sparkles } from 'lucide-react';
 import { ChatwootIntegration } from '@/components/kanban/ChatwootIntegration';
 import { KanbanShareManager } from '@/components/kanban/KanbanShareManager';
 import { KanbanAIConfig } from '@/components/kanban/KanbanAIConfig';
+import { SalesForecastCard } from '@/components/dashboard/SalesForecastCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -264,6 +265,9 @@ export default function KanbanClientes() {
             <TabsTrigger value="kanban" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Columns3 className="h-4 w-4" /> Kanban
             </TabsTrigger>
+            <TabsTrigger value="forecast" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+              <Sparkles className="h-4 w-4" /> Previsão IA
+            </TabsTrigger>
             {(isAdmin || canManagePipelineStages()) && (
               <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Settings2 className="h-4 w-4" /> Etapas
@@ -306,6 +310,10 @@ export default function KanbanClientes() {
               onUpdateAIScore={updateAIScore}
               onUpdateAllScores={updateAllAIScores}
             />
+          </TabsContent>
+
+          <TabsContent value="forecast">
+            <SalesForecastCard />
           </TabsContent>
 
           {(isAdmin || canManagePipelineStages()) && (
