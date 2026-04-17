@@ -5600,6 +5600,75 @@ export type Database = {
           },
         ]
       }
+      sales_forecasts: {
+        Row: {
+          cold_leads: number
+          confidence_pct: number
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          hot_leads: number
+          id: string
+          opportunities: Json | null
+          period_end: string
+          period_start: string
+          pipeline_value_brl: number
+          pipeline_value_usd: number
+          predicted_revenue_brl: number
+          predicted_revenue_usd: number
+          raw_analysis: Json | null
+          reasoning: string | null
+          recommended_actions: Json | null
+          risks: Json | null
+          total_leads: number
+          warm_leads: number
+        }
+        Insert: {
+          cold_leads?: number
+          confidence_pct?: number
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          hot_leads?: number
+          id?: string
+          opportunities?: Json | null
+          period_end: string
+          period_start: string
+          pipeline_value_brl?: number
+          pipeline_value_usd?: number
+          predicted_revenue_brl?: number
+          predicted_revenue_usd?: number
+          raw_analysis?: Json | null
+          reasoning?: string | null
+          recommended_actions?: Json | null
+          risks?: Json | null
+          total_leads?: number
+          warm_leads?: number
+        }
+        Update: {
+          cold_leads?: number
+          confidence_pct?: number
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          hot_leads?: number
+          id?: string
+          opportunities?: Json | null
+          period_end?: string
+          period_start?: string
+          pipeline_value_brl?: number
+          pipeline_value_usd?: number
+          predicted_revenue_brl?: number
+          predicted_revenue_usd?: number
+          raw_analysis?: Json | null
+          reasoning?: string | null
+          recommended_actions?: Json | null
+          risks?: Json | null
+          total_leads?: number
+          warm_leads?: number
+        }
+        Relationships: []
+      }
       sms_validation_logs: {
         Row: {
           baserow_row_id: string | null
