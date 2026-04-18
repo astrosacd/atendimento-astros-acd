@@ -60,6 +60,11 @@ export function AgendaConfigPanel() {
   const [notifyCronEnabled, setNotifyCronEnabled] = useState(false);
   const [notifyCronInterval, setNotifyCronInterval] = useState('15');
 
+  // Daily Summary (Consultor Presencial)
+  const [dailySummaryEnabled, setDailySummaryEnabled] = useState(false);
+  const [dailySummaryHour, setDailySummaryHour] = useState('8');
+  const [dailySummaryMinute, setDailySummaryMinute] = useState('0');
+
   // Independent Gmail config
   const [notifyGmailUser, setNotifyGmailUser] = useState('');
   const [notifyGmailPassword, setNotifyGmailPassword] = useState('');
@@ -111,6 +116,9 @@ export function AgendaConfigPanel() {
       setNotifyCronInterval(config.notify_cron_interval || '15');
       setNotifyGmailUser(config.notify_gmail_user || '');
       setNotifyGmailPassword(config.notify_gmail_password || '');
+      setDailySummaryEnabled(config.daily_summary_enabled === 'true');
+      setDailySummaryHour(config.daily_summary_hour_brasilia || '8');
+      setDailySummaryMinute(config.daily_summary_minute || '0');
     }
   }, [config]);
 
@@ -134,6 +142,9 @@ export function AgendaConfigPanel() {
       notify_cron_interval: notifyCronInterval,
       notify_gmail_user: notifyGmailUser,
       notify_gmail_password: notifyGmailPassword,
+      daily_summary_enabled: dailySummaryEnabled ? 'true' : 'false',
+      daily_summary_hour_brasilia: dailySummaryHour,
+      daily_summary_minute: dailySummaryMinute,
     });
 
     // Manage sync cron
@@ -156,6 +167,20 @@ export function AgendaConfigPanel() {
       }
     } catch (e) {
       console.error('Notify cron update error:', e);
+    }
+
+    // Manage daily physical summary cron
+    try {
+      if (dailySummaryEnabled) {
+        await (supabase.rpc as any)('update_calendar_physical_summary_cron', {
+          p_hour_brasilia: parseInt(dailySummaryHour),
+          p_minute: parseInt(dailySummaryMinute),
+        });
+      } else {
+        await (supabase.rpc as any)('disable_calendar_physical_summary_cron');
+      }
+    } catch (e) {
+      console.error('Daily summary cron update error:', e);
     }
   };
 
