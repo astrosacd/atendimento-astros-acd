@@ -70,6 +70,14 @@ export function ClientAIInsights({ clienteId, clienteName }: ClientAIInsightsPro
         setChurn(data.analysis as ChurnAnalysis);
         toast.success('Análise de churn concluída');
       }
+
+      // Log AI generation
+      await supabase.from('client_ai_logs').insert({
+        cliente_id: clienteId,
+        user_id: user?.id,
+        mode,
+        model,
+      });
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Erro ao consultar IA');
