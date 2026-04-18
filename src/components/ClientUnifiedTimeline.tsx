@@ -313,6 +313,17 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         });
       }
 
+      // AI Logs
+      (aiLogsRes.data || []).forEach((a: any) => {
+        allEvents.push({
+          id: `ai-log-${a.id}`,
+          type: 'ai_log',
+          date: a.created_at,
+          title: `Insight de IA gerado (${a.mode === 'summary' ? 'Briefing' : 'Análise de Churn'})`,
+          description: `Modelo: ${a.model}`,
+        });
+      });
+
       setEvents(allEvents);
     } catch (err) {
       console.error('Error loading timeline:', err);
