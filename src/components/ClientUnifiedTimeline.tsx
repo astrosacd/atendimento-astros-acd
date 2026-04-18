@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log';
   date: string;
   title: string;
   description: string;
