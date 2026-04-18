@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
@@ -8,7 +9,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -45,6 +45,7 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   license: { icon: Award, color: 'text-lime-500', label: 'Licença' },
   share_link: { icon: ExternalLink, color: 'text-sky-500', label: 'Link Compartilhado' },
   client: { icon: User, color: 'text-blue-500', label: 'Cadastro' },
+  ai_log: { icon: Sparkles, color: 'text-primary', label: 'Insight IA' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
