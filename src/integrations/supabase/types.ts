@@ -6015,6 +6015,10 @@ export type Database = {
       }
       disable_automations_cron: { Args: never; Returns: boolean }
       disable_calendar_notify_cron: { Args: never; Returns: boolean }
+      disable_calendar_physical_summary_cron: {
+        Args: never
+        Returns: undefined
+      }
       disable_calendar_sync_cron: { Args: never; Returns: boolean }
       disable_consulta_numeros_reminder_cron: { Args: never; Returns: boolean }
       disable_divulgador_cron: { Args: never; Returns: boolean }
@@ -6182,6 +6186,10 @@ export type Database = {
       update_calendar_notify_cron: {
         Args: { p_interval_minutes: number }
         Returns: boolean
+      }
+      update_calendar_physical_summary_cron: {
+        Args: { p_hour_brasilia: number; p_minute?: number }
+        Returns: undefined
       }
       update_calendar_sync_cron: {
         Args: { p_interval_minutes: number }
