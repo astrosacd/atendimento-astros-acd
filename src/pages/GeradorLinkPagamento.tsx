@@ -64,6 +64,7 @@ export default function GeradorLinkPagamento() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareExpiry, setShareExpiry] = useState('1');
   const [shareProviders, setShareProviders] = useState<Provider[]>(['mercadopago', 'stripe']);
+  const [shareAllowStatusCheck, setShareAllowStatusCheck] = useState(false);
 
   const { data: providerConfig } = useQuery({
     queryKey: ['payment-link-provider-config'],
