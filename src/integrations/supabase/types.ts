@@ -4377,6 +4377,7 @@ export type Database = {
       }
       payment_link_share_tokens: {
         Row: {
+          allow_status_check: boolean
           allowed_providers: string[]
           created_at: string
           created_by: string | null
@@ -4386,6 +4387,7 @@ export type Database = {
           token: string
         }
         Insert: {
+          allow_status_check?: boolean
           allowed_providers?: string[]
           created_at?: string
           created_by?: string | null
@@ -4395,6 +4397,7 @@ export type Database = {
           token?: string
         }
         Update: {
+          allow_status_check?: boolean
           allowed_providers?: string[]
           created_at?: string
           created_by?: string | null
