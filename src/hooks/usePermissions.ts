@@ -143,6 +143,7 @@ export function usePermissions() {
   const canViewClientFiles = () => hasPermission('view_client_files');
   const canViewClientPurchases = () => hasPermission('view_client_purchases');
   const canViewClientPayments = () => hasPermission('view_client_payments');
+  const canViewClientAI = () => hasPermission('view_client_ai');
 
   // Agenda history
   const canViewAgendaHistory = () => hasPermission('view_agenda_history');
@@ -301,6 +302,7 @@ export function usePermissions() {
     canViewClientFiles,
     canViewClientPurchases,
     canViewClientPayments,
+    canViewClientAI,
     canViewAgendaHistory,
     // Propostas
     canViewProposals,

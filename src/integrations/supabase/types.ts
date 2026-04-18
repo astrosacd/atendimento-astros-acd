@@ -1047,6 +1047,47 @@ export type Database = {
           },
         ]
       }
+      client_ai_logs: {
+        Row: {
+          cliente_id: string
+          completion_tokens: number | null
+          created_at: string
+          id: string
+          mode: string
+          model: string
+          prompt_tokens: number | null
+          user_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          completion_tokens?: number | null
+          created_at?: string
+          id?: string
+          mode: string
+          model: string
+          prompt_tokens?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          completion_tokens?: number | null
+          created_at?: string
+          id?: string
+          mode?: string
+          model?: string
+          prompt_tokens?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ai_logs_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_files: {
         Row: {
           cliente_id: string | null

@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
-  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User
+  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
+  Sparkles
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log';
   date: string;
   title: string;
   description: string;
@@ -44,9 +45,11 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   license: { icon: Award, color: 'text-lime-500', label: 'Licença' },
   share_link: { icon: ExternalLink, color: 'text-sky-500', label: 'Link Compartilhado' },
   client: { icon: User, color: 'text-blue-500', label: 'Cadastro' },
+  ai_log: { icon: Sparkles, color: 'text-primary', label: 'Insight IA' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
+  const { canViewClientAI } = usePermissions();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -80,6 +83,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         shareLinksRes,
         proposalsRes,
         clientDataRes,
+        aiLogsRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -98,6 +102,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('social_credential_share_links').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('proposals').select('*').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('clientes').select('*').eq('id', clienteId).single(),
+        canViewClientAI() ? supabase.from('client_ai_logs').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
       ]);
 
       const allEvents: TimelineEvent[] = [];
@@ -307,6 +312,22 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           status: 'Ativo',
         });
       }
+
+      // AI Logs
+      (aiLogsRes.data || []).forEach((a: any) => {
+        const modeLabels: Record<string, string> = { 
+          summary: 'Briefing', 
+          churn: 'Análise de Churn',
+          'recovery-message': 'Mensagem de Recuperação'
+        };
+        allEvents.push({
+          id: `ai-log-${a.id}`,
+          type: 'ai_log',
+          date: a.created_at,
+          title: `Insight de IA gerado (${modeLabels[a.mode] || a.mode})`,
+          description: `Modelo: ${a.model}`,
+        });
+      });
 
       setEvents(allEvents);
     } catch (err) {

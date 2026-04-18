@@ -70,7 +70,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
-  const { canViewSocialCredentials, canCreateWhatsAppGroups } = usePermissions();
+  const { canViewSocialCredentials, canCreateWhatsAppGroups, canViewClientAI } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -720,18 +720,20 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  onClick={() => {
-                                    setAiClienteId(cliente.id);
-                                    setAiClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-amber-500"
-                                  title="Insights de IA (Briefing & Churn)"
-                                >
-                                  <Sparkles className="h-4 w-4" />
-                                </Button>
+                                {canViewClientAI() && (
+                                  <Button
+                                    onClick={() => {
+                                      setAiClienteId(cliente.id);
+                                      setAiClienteName(cliente.nome);
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-amber-500"
+                                    title="Insights de IA (Briefing & Churn)"
+                                  >
+                                    <Sparkles className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </>
                             )}
                             {canViewSocialCredentials() && (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ const RISCO_CONFIG = {
 };
 
 export function ClientAIInsights({ clienteId, clienteName }: ClientAIInsightsProps) {
+  const { user } = useAuth();
   const [model, setModel] = useState('google/gemini-2.5-flash');
   const [summary, setSummary] = useState<string>('');
   const [churn, setChurn] = useState<ChurnAnalysis | null>(null);
@@ -68,6 +70,14 @@ export function ClientAIInsights({ clienteId, clienteName }: ClientAIInsightsPro
         setChurn(data.analysis as ChurnAnalysis);
         toast.success('Análise de churn concluída');
       }
+
+      // Log AI generation
+      await supabase.from('client_ai_logs').insert({
+        cliente_id: clienteId,
+        user_id: user?.id,
+        mode,
+        model,
+      });
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || 'Erro ao consultar IA');

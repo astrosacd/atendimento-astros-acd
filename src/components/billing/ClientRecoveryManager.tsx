@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { RecoveryWebhooksManager } from '@/components/billing/RecoveryWebhooksManager';
 import { 
@@ -72,6 +73,7 @@ interface RecoveryAttempt {
 
 export const ClientRecoveryManager = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [overdueClients, setOverdueClients] = useState<Cliente[]>([]);
   const [registroClients, setRegistroClients] = useState<Cliente[]>([]);
   const [recoveryHistory, setRecoveryHistory] = useState<RecoveryAttempt[]>([]);
@@ -213,6 +215,14 @@ export const ClientRecoveryManager = () => {
         toast({
           title: 'Mensagem gerada com IA',
           description: 'A mensagem foi personalizada automaticamente.',
+        });
+
+        // Log AI generation
+        await supabase.from('client_ai_logs').insert({
+          cliente_id: cliente.id,
+          user_id: user?.id,
+          mode: 'recovery-message',
+          model: 'lovable-ai-default', // The edge function decides the model
         });
       }
     } catch (error: any) {
