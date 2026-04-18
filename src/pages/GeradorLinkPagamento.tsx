@@ -19,7 +19,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Link2, Copy, ExternalLink, Loader2, Clock, Trash2, Share2, History,
-  DollarSign, Building2, Plus, RefreshCw, Search, CheckCircle2, XCircle, AlertCircle
+  DollarSign, Building2, Plus, RefreshCw, Search, CheckCircle2, XCircle, AlertCircle,
+  Webhook, Info
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -298,6 +299,9 @@ export default function GeradorLinkPagamento() {
 
   const canGenerate = hasPermission('generate_payment_links');
   const canShare = hasPermission('share_payment_links');
+  const canViewWebhook = hasPermission('manage_payment_link_webhook');
+
+  const webhookUrl = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/payment-link-webhook`;
 
   return (
     <DashboardLayout>
@@ -332,6 +336,12 @@ export default function GeradorLinkPagamento() {
               <TabsTrigger value="acessos" className="gap-2">
                 <Share2 className="h-4 w-4" />
                 Acessos Temporários
+              </TabsTrigger>
+            )}
+            {canViewWebhook && (
+              <TabsTrigger value="webhook" className="gap-2">
+                <Webhook className="h-4 w-4" />
+                Webhook IPN
               </TabsTrigger>
             )}
           </TabsList>
@@ -707,6 +717,78 @@ export default function GeradorLinkPagamento() {
                       })}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {canViewWebhook && (
+            <TabsContent value="webhook">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Webhook className="h-4 w-4 text-primary" />
+                    Webhook IPN — Notificações Automáticas
+                  </CardTitle>
+                  <CardDescription>
+                    Configure esta URL no painel do seu provedor de pagamento para que o status dos links seja atualizado automaticamente quando o pagamento for confirmado.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <div className="text-sm text-foreground">
+                        <p className="font-semibold mb-1">URL do Webhook (mesma para Mercado Pago e Stripe)</p>
+                        <p className="text-muted-foreground text-xs">
+                          Esta URL recebe as notificações de pagamento de ambos os provedores. Cole-a no campo de webhook/IPN do painel correspondente.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input value={webhookUrl} readOnly className="font-mono text-xs bg-background" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => copyToClipboard(webhookUrl).then(() => toast.success('URL do webhook copiada!')).catch(() => toast.error('Erro ao copiar'))}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      Como configurar no Mercado Pago
+                    </h3>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground pl-1">
+                      <li>Acesse <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" className="text-primary underline">Mercado Pago Developers → Suas integrações</a></li>
+                      <li>Selecione sua aplicação</li>
+                      <li>Vá até <strong>Webhooks → Configurar notificações</strong></li>
+                      <li>Cole a URL acima no campo <strong>URL de produção</strong></li>
+                      <li>Marque o evento <strong>Pagamentos (payment)</strong></li>
+                      <li>Salve e teste o webhook</li>
+                    </ol>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      Como configurar no Stripe
+                    </h3>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground pl-1">
+                      <li>Acesse <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-primary underline">Stripe Dashboard → Developers → Webhooks</a></li>
+                      <li>Clique em <strong>Add endpoint</strong></li>
+                      <li>Cole a URL acima no campo <strong>Endpoint URL</strong></li>
+                      <li>Em "Events to send", selecione <strong>checkout.session.completed</strong> e <strong>checkout.session.async_payment_succeeded</strong></li>
+                      <li>Clique em <strong>Add endpoint</strong> para salvar</li>
+                    </ol>
+                  </div>
+
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    <strong className="text-foreground">⚠️ Atenção:</strong> Esta URL é sensível. Apenas usuários com a permissão "Gerenciar Webhook de Pagamento" conseguem visualizá-la. Não a compartilhe fora do painel oficial do provedor.
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
