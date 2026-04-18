@@ -720,18 +720,20 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  onClick={() => {
-                                    setAiClienteId(cliente.id);
-                                    setAiClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-amber-500"
-                                  title="Insights de IA (Briefing & Churn)"
-                                >
-                                  <Sparkles className="h-4 w-4" />
-                                </Button>
+                                {canViewClientAI() && (
+                                  <Button
+                                    onClick={() => {
+                                      setAiClienteId(cliente.id);
+                                      setAiClienteName(cliente.nome);
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-amber-500"
+                                    title="Insights de IA (Briefing & Churn)"
+                                  >
+                                    <Sparkles className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </>
                             )}
                             {canViewSocialCredentials() && (
