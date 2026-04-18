@@ -514,12 +514,65 @@ export function AgendaConfigPanel() {
         </Card>
       )}
 
+      {/* Resumo Diário do Consultor (Presencial) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-lg">Resumo Diário do Consultor</CardTitle>
+          </div>
+          <CardDescription>
+            Envia uma mensagem de WhatsApp para o(a) consultor(a) com a lista de visitas presenciais agendadas para o dia, em um horário pré-definido.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Label>Envio automático ativo</Label>
+              <Badge variant="outline" className="text-[10px]">{dailySummaryEnabled ? 'Ativo' : 'Inativo'}</Badge>
+            </div>
+            <Switch checked={dailySummaryEnabled} onCheckedChange={setDailySummaryEnabled} />
+          </div>
+
+          {dailySummaryEnabled && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Hora (Brasília)</Label>
+                  <Select value={dailySummaryHour} onValueChange={setDailySummaryHour}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}h</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Minuto</Label>
+                  <Select value={dailySummaryMinute} onValueChange={setDailySummaryMinute}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">:00</SelectItem>
+                      <SelectItem value="15">:15</SelectItem>
+                      <SelectItem value="30">:30</SelectItem>
+                      <SelectItem value="45">:45</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg flex items-start gap-2">
+                <Info className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-purple-700 dark:text-purple-400">
+                  O sistema irá disparar o resumo todos os dias às <strong>{String(dailySummaryHour).padStart(2,'0')}:{String(dailySummaryMinute).padStart(2,'0')}</strong> (horário de Brasília) para os telefones cadastrados no campo "Consultores" de cada visita presencial.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={updateConfig.isPending}>
-          {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar Configurações
-        </Button>
-      </div>
     </div>
   );
 }
