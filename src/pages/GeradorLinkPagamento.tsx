@@ -338,6 +338,12 @@ export default function GeradorLinkPagamento() {
                 Acessos Temporários
               </TabsTrigger>
             )}
+            {canViewWebhook && (
+              <TabsTrigger value="webhook" className="gap-2">
+                <Webhook className="h-4 w-4" />
+                Webhook IPN
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="gerar" className="space-y-4">
