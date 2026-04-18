@@ -695,6 +695,12 @@ export default function GeradorLinkPagamento() {
                                     {providerLabels[item]}
                                   </Badge>
                                 ))}
+                                {tk.allow_status_check && (
+                                  <Badge variant="secondary" className="text-[10px] gap-1">
+                                    <Search className="h-2.5 w-2.5" />
+                                    Consulta liberada
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
