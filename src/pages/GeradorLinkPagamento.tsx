@@ -870,6 +870,22 @@ export default function GeradorLinkPagamento() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="rounded-lg border p-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={shareAllowStatusCheck}
+                  onCheckedChange={(checked) => setShareAllowStatusCheck(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Permitir consulta manual de status</p>
+                  <p className="text-xs text-muted-foreground">
+                    Se ativado, quem usar o link também poderá consultar o status de pagamentos pelo ID (Mercado Pago ou Stripe). Útil para usuários que precisam verificar se um pagamento foi confirmado sem ter conta no CRM.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowShareDialog(false)}>Cancelar</Button>
@@ -879,7 +895,11 @@ export default function GeradorLinkPagamento() {
                   toast.error('Selecione pelo menos um provedor');
                   return;
                 }
-                createShareTokenMutation.mutate({ expiryHours: parseInt(shareExpiry), allowedProviders: shareProviders });
+                createShareTokenMutation.mutate({
+                  expiryHours: parseInt(shareExpiry),
+                  allowedProviders: shareProviders,
+                  allowStatusCheck: shareAllowStatusCheck,
+                });
               }}
               disabled={createShareTokenMutation.isPending}
               className="gap-2"
