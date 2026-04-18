@@ -302,6 +302,7 @@ export function usePermissions() {
     canViewClientFiles,
     canViewClientPurchases,
     canViewClientPayments,
+    canViewClientAI,
     canViewAgendaHistory,
     // Propostas
     canViewProposals,
