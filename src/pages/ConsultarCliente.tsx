@@ -727,7 +727,7 @@ export default function ConsultarCliente() {
                                   }}
                                   variant="ghost"
                                   size="sm"
-                                  className="text-muted-foreground hover:text-primary"
+                                  className="text-muted-foreground hover:text-amber-500"
                                   title="Insights de IA (Briefing & Churn)"
                                 >
                                   <Sparkles className="h-4 w-4" />
