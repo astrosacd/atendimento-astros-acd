@@ -735,9 +735,9 @@ export default function GeradorLinkPagamento() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-4 space-y-2">
                     <div className="flex items-start gap-2">
-                      <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                      <Info className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                       <div className="text-sm space-y-2">
                         <p className="font-semibold text-foreground">Por que preciso configurar este webhook?</p>
                         <p className="text-muted-foreground">
