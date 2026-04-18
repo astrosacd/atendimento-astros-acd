@@ -64,6 +64,7 @@ export default function GeradorLinkPagamento() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareExpiry, setShareExpiry] = useState('1');
   const [shareProviders, setShareProviders] = useState<Provider[]>(['mercadopago', 'stripe']);
+  const [shareAllowStatusCheck, setShareAllowStatusCheck] = useState(false);
 
   const { data: providerConfig } = useQuery({
     queryKey: ['payment-link-provider-config'],
@@ -174,7 +175,7 @@ export default function GeradorLinkPagamento() {
 
   // Create share token mutation
   const createShareTokenMutation = useMutation({
-    mutationFn: async ({ expiryHours, allowedProviders }: { expiryHours: number; allowedProviders: Provider[] }) => {
+    mutationFn: async ({ expiryHours, allowedProviders, allowStatusCheck }: { expiryHours: number; allowedProviders: Provider[]; allowStatusCheck: boolean }) => {
       const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
         .from('payment_link_share_tokens')
@@ -183,6 +184,7 @@ export default function GeradorLinkPagamento() {
           created_by_email: user?.email,
           expires_at: expiresAt,
           allowed_providers: allowedProviders,
+          allow_status_check: allowStatusCheck,
         })
         .select()
         .single();
@@ -194,7 +196,7 @@ export default function GeradorLinkPagamento() {
       const link = `${siteUrl}/link-pagamento/${data.token}`;
       copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
       setShowShareDialog(false);
-      setShowShareDialog(false);
+      setShareAllowStatusCheck(false);
     },
     onError: (err: any) => toast.error(err.message || 'Erro ao gerar link temporário'),
   });
@@ -693,6 +695,12 @@ export default function GeradorLinkPagamento() {
                                     {providerLabels[item]}
                                   </Badge>
                                 ))}
+                                {tk.allow_status_check && (
+                                  <Badge variant="secondary" className="text-[10px] gap-1">
+                                    <Search className="h-2.5 w-2.5" />
+                                    Consulta liberada
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
@@ -868,6 +876,22 @@ export default function GeradorLinkPagamento() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="rounded-lg border p-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={shareAllowStatusCheck}
+                  onCheckedChange={(checked) => setShareAllowStatusCheck(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Permitir consulta manual de status</p>
+                  <p className="text-xs text-muted-foreground">
+                    Se ativado, quem usar o link também poderá consultar o status de pagamentos pelo ID (Mercado Pago ou Stripe). Útil para usuários que precisam verificar se um pagamento foi confirmado sem ter conta no CRM.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowShareDialog(false)}>Cancelar</Button>
@@ -877,7 +901,11 @@ export default function GeradorLinkPagamento() {
                   toast.error('Selecione pelo menos um provedor');
                   return;
                 }
-                createShareTokenMutation.mutate({ expiryHours: parseInt(shareExpiry), allowedProviders: shareProviders });
+                createShareTokenMutation.mutate({
+                  expiryHours: parseInt(shareExpiry),
+                  allowedProviders: shareProviders,
+                  allowStatusCheck: shareAllowStatusCheck,
+                });
               }}
               disabled={createShareTokenMutation.isPending}
               className="gap-2"
