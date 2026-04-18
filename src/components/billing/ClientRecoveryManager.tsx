@@ -216,6 +216,14 @@ export const ClientRecoveryManager = () => {
           title: 'Mensagem gerada com IA',
           description: 'A mensagem foi personalizada automaticamente.',
         });
+
+        // Log AI generation
+        await supabase.from('client_ai_logs').insert({
+          cliente_id: cliente.id,
+          user_id: user?.id,
+          mode: 'recovery-message',
+          model: 'lovable-ai-default', // The edge function decides the model
+        });
       }
     } catch (error: any) {
       toast({
