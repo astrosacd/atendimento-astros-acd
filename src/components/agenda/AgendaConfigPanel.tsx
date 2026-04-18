@@ -573,6 +573,11 @@ export function AgendaConfigPanel() {
       </Card>
 
       <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={updateConfig.isPending}>
+          {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          Salvar Configurações
+        </Button>
+      </div>
     </div>
   );
 }
