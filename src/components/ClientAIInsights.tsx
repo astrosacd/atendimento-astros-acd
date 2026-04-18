@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Brain, AlertTriangle, Loader2, RefreshCw, FileText, TrendingDown } from 'lucide-react';
+import { Sparkles, Brain, AlertTriangle, Loader2, FileText, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 
@@ -37,10 +37,10 @@ const MODELOS = [
 ];
 
 const RISCO_CONFIG = {
-  baixo: { color: 'bg-emerald-500', label: 'Baixo Risco', icon: '✅' },
-  medio: { color: 'bg-yellow-500', label: 'Risco Médio', icon: '⚠️' },
-  alto: { color: 'bg-orange-500', label: 'Alto Risco', icon: '🔥' },
-  critico: { color: 'bg-red-600', label: 'Risco Crítico', icon: '🚨' },
+  baixo: { color: 'bg-success text-success-foreground', label: 'Baixo Risco', icon: '✅' },
+  medio: { color: 'bg-warning text-warning-foreground', label: 'Risco Médio', icon: '⚠️' },
+  alto: { color: 'bg-orange-500 text-white', label: 'Alto Risco', icon: '🔥' },
+  critico: { color: 'bg-destructive text-destructive-foreground', label: 'Risco Crítico', icon: '🚨' },
 };
 
 export function ClientAIInsights({ clienteId, clienteName }: ClientAIInsightsProps) {
