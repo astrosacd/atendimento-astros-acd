@@ -175,7 +175,7 @@ export default function GeradorLinkPagamento() {
 
   // Create share token mutation
   const createShareTokenMutation = useMutation({
-    mutationFn: async ({ expiryHours, allowedProviders }: { expiryHours: number; allowedProviders: Provider[] }) => {
+    mutationFn: async ({ expiryHours, allowedProviders, allowStatusCheck }: { expiryHours: number; allowedProviders: Provider[]; allowStatusCheck: boolean }) => {
       const expiresAt = new Date(Date.now() + expiryHours * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
         .from('payment_link_share_tokens')
@@ -184,6 +184,7 @@ export default function GeradorLinkPagamento() {
           created_by_email: user?.email,
           expires_at: expiresAt,
           allowed_providers: allowedProviders,
+          allow_status_check: allowStatusCheck,
         })
         .select()
         .single();
@@ -195,7 +196,7 @@ export default function GeradorLinkPagamento() {
       const link = `${siteUrl}/link-pagamento/${data.token}`;
       copyToClipboard(link).then(() => toast.success('Link de acesso temporário copiado!')).catch(() => toast.error('Erro ao copiar'));
       setShowShareDialog(false);
-      setShowShareDialog(false);
+      setShareAllowStatusCheck(false);
     },
     onError: (err: any) => toast.error(err.message || 'Erro ao gerar link temporário'),
   });
