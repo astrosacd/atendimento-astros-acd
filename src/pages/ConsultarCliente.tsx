@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +34,7 @@ import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
+import { ClientAIInsights } from '@/components/ClientAIInsights';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -62,6 +63,8 @@ export default function ConsultarCliente() {
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
   const [timelineClienteId, setTimelineClienteId] = useState<string | null>(null);
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
+  const [aiClienteId, setAiClienteId] = useState<string | null>(null);
+  const [aiClienteName, setAiClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
@@ -717,6 +720,18 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  onClick={() => {
+                                    setAiClienteId(cliente.id);
+                                    setAiClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-primary"
+                                  title="Insights de IA (Briefing & Churn)"
+                                >
+                                  <Sparkles className="h-4 w-4" />
+                                </Button>
                               </>
                             )}
                             {canViewSocialCredentials() && (
@@ -927,6 +942,23 @@ export default function ConsultarCliente() {
             <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
               {timelineClienteId && (
                 <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* AI Insights Dialog */}
+        <Dialog open={!!aiClienteId} onOpenChange={() => setAiClienteId(null)}>
+          <DialogContent className="!bg-card border border-border max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
+            <DialogHeader className="px-6 pt-6">
+              <DialogTitle>Insights de IA</DialogTitle>
+              <DialogDescription>
+                Briefing automático para reuniões e análise de risco de churn
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
+              {aiClienteId && (
+                <ClientAIInsights clienteId={aiClienteId} clienteName={aiClienteName} />
               )}
             </div>
           </DialogContent>
