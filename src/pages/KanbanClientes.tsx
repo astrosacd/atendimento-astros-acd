@@ -265,9 +265,11 @@ export default function KanbanClientes() {
             <TabsTrigger value="kanban" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
               <Columns3 className="h-4 w-4" /> Kanban
             </TabsTrigger>
-            <TabsTrigger value="forecast" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <Sparkles className="h-4 w-4" /> Previsão IA
-            </TabsTrigger>
+            {(isAdmin || canViewPipelineAI()) && (
+              <TabsTrigger value="forecast" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+                <Sparkles className="h-4 w-4" /> Previsão IA
+              </TabsTrigger>
+            )}
             {(isAdmin || canManagePipelineStages()) && (
               <TabsTrigger value="stages" className="gap-1.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 <Settings2 className="h-4 w-4" /> Etapas
