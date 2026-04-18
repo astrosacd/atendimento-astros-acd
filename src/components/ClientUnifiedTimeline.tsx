@@ -49,6 +49,7 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
+  const { canViewClientAI } = usePermissions();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -82,6 +83,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         shareLinksRes,
         proposalsRes,
         clientDataRes,
+        aiLogsRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -100,6 +102,7 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('social_credential_share_links').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('proposals').select('*').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('clientes').select('*').eq('id', clienteId).single(),
+        canViewClientAI() ? supabase.from('client_ai_logs').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
       ]);
 
       const allEvents: TimelineEvent[] = [];
