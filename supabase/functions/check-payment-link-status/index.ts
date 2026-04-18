@@ -16,28 +16,49 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate JWT
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !userData.user) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const body = await req.json().catch(() => ({}));
     const linkId = body.link_id as string | undefined;
     const mpPaymentId = body.mp_payment_id as string | undefined;
     const stripePaymentId = body.stripe_payment_id as string | undefined;
     const queryProvider = body.query_provider as string | undefined;
+    const shareToken = body.share_token as string | undefined;
+
+    // Auth: either valid JWT OR a valid share_token with allow_status_check = true
+    let authorized = false;
+
+    if (shareToken) {
+      const { data: tokenData } = await supabase.rpc("validate_payment_link_token", {
+        p_token: shareToken,
+      });
+      if (tokenData?.valid && tokenData?.allow_status_check === true) {
+        // Share-token sessions can ONLY query a specific payment ID, never bulk-check all links
+        if (!mpPaymentId && !stripePaymentId) {
+          return new Response(JSON.stringify({ error: "Operação não permitida neste acesso temporário" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        authorized = true;
+      }
+    }
+
+    if (!authorized) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !userData.user) {
+        return new Response(JSON.stringify({ error: "Não autorizado" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Get MP access token
     const { data: configRow } = await supabase
