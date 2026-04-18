@@ -45,6 +45,7 @@ const RISCO_CONFIG = {
 };
 
 export function ClientAIInsights({ clienteId, clienteName }: ClientAIInsightsProps) {
+  const { user } = useAuth();
   const [model, setModel] = useState('google/gemini-2.5-flash');
   const [summary, setSummary] = useState<string>('');
   const [churn, setChurn] = useState<ChurnAnalysis | null>(null);
