@@ -315,11 +315,16 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
 
       // AI Logs
       (aiLogsRes.data || []).forEach((a: any) => {
+        const modeLabels: Record<string, string> = { 
+          summary: 'Briefing', 
+          churn: 'Análise de Churn',
+          'recovery-message': 'Mensagem de Recuperação'
+        };
         allEvents.push({
           id: `ai-log-${a.id}`,
           type: 'ai_log',
           date: a.created_at,
-          title: `Insight de IA gerado (${a.mode === 'summary' ? 'Briefing' : 'Análise de Churn'})`,
+          title: `Insight de IA gerado (${modeLabels[a.mode] || a.mode})`,
           description: `Modelo: ${a.model}`,
         });
       });
