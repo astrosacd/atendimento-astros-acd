@@ -299,6 +299,9 @@ export default function GeradorLinkPagamento() {
 
   const canGenerate = hasPermission('generate_payment_links');
   const canShare = hasPermission('share_payment_links');
+  const canViewWebhook = hasPermission('manage_payment_link_webhook');
+
+  const webhookUrl = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/payment-link-webhook`;
 
   return (
     <DashboardLayout>
