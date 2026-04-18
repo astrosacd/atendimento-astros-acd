@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   History, CreditCard, Mail, FileText, CheckSquare, ShoppingBag, 
   File, RefreshCw, ChevronDown, AlertTriangle, Send, MessageSquare,
-  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User
+  Clock, ArrowUpDown, Image, Key, Columns3, Zap, Users, Award, ExternalLink, User,
+  Sparkles
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
