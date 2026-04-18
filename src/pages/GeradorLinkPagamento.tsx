@@ -735,6 +735,30 @@ export default function GeradorLinkPagamento() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                      <div className="text-sm space-y-2">
+                        <p className="font-semibold text-foreground">Por que preciso configurar este webhook?</p>
+                        <p className="text-muted-foreground">
+                          Sem este webhook configurado, o CRM <strong>não saberá automaticamente</strong> quando um cliente pagar um link. Os links ficariam com status "pendente" mesmo após a confirmação do pagamento, exigindo que você verifique manualmente cada um.
+                        </p>
+                        <p className="text-muted-foreground">
+                          Com o webhook ativo, assim que o <strong>Mercado Pago (IPN)</strong> ou a <strong>Stripe</strong> recebem o pagamento, eles disparam uma notificação instantânea para esta URL. O CRM então:
+                        </p>
+                        <ul className="list-disc list-inside text-muted-foreground space-y-1 pl-2">
+                          <li>Atualiza o status do link para <strong>"Pago"</strong> automaticamente</li>
+                          <li>Registra a data/hora exata do pagamento</li>
+                          <li>Salva o ID da transação para auditoria</li>
+                          <li>Permite que dashboards e relatórios reflitam a venda em tempo real</li>
+                        </ul>
+                        <p className="text-muted-foreground">
+                          Em resumo: é o que faz o sistema funcionar de forma <strong>automática e em tempo real</strong>, sem retrabalho manual.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
                     <div className="flex items-start gap-2">
                       <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
