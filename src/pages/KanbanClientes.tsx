@@ -314,9 +314,11 @@ export default function KanbanClientes() {
             />
           </TabsContent>
 
-          <TabsContent value="forecast">
-            <SalesForecastCard />
-          </TabsContent>
+          {(isAdmin || canViewPipelineAI()) && (
+            <TabsContent value="forecast">
+              <SalesForecastCard />
+            </TabsContent>
+          )}
 
           {(isAdmin || canManagePipelineStages()) && (
             <TabsContent value="stages">
