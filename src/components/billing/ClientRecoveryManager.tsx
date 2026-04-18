@@ -73,6 +73,7 @@ interface RecoveryAttempt {
 
 export const ClientRecoveryManager = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [overdueClients, setOverdueClients] = useState<Cliente[]>([]);
   const [registroClients, setRegistroClients] = useState<Cliente[]>([]);
   const [recoveryHistory, setRecoveryHistory] = useState<RecoveryAttempt[]>([]);
