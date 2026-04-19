@@ -33,8 +33,8 @@ serve(async (req) => {
       if (tokenData?.valid && tokenData?.allow_status_check === true) {
         // Share-token sessions can ONLY query a specific payment ID, never bulk-check all links
         if (!mpPaymentId && !stripePaymentId) {
-          return new Response(JSON.stringify({ error: "Operação não permitida neste acesso temporário" }), {
-            status: 403,
+          return new Response(JSON.stringify({ error: "Operação não permitida neste acesso temporário", not_found: true }), {
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -80,8 +80,8 @@ serve(async (req) => {
     // ===== Query a specific MP payment ID =====
     if (mpPaymentId) {
       if (!mpAccessToken) {
-        return new Response(JSON.stringify({ error: "Mercado Pago não configurado", not_found: true }), {
-          status: 400,
+        return new Response(JSON.stringify({ error: "Mercado Pago ainda não está configurado no sistema. Entre em contato com o administrador.", not_found: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -89,7 +89,10 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${mpAccessToken}` },
       });
       if (!mpRes.ok) {
-        return new Response(JSON.stringify({ error: "Código não encontrado ou não existe no Mercado Pago", not_found: true }), {
+        const errorMsg = mpRes.status === 404
+          ? `Nenhum pagamento encontrado com o ID "${mpPaymentId}" no Mercado Pago. Verifique se o código está correto.`
+          : `Não foi possível consultar este pagamento no Mercado Pago (erro ${mpRes.status}). Verifique o ID e tente novamente.`;
+        return new Response(JSON.stringify({ error: errorMsg, not_found: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -115,8 +118,8 @@ serve(async (req) => {
     // ===== Query a specific Stripe payment/session ID =====
     if (stripePaymentId) {
       if (!stripeSecretKey) {
-        return new Response(JSON.stringify({ error: "Stripe não configurada", not_found: true }), {
-          status: 400,
+        return new Response(JSON.stringify({ error: "Stripe ainda não está configurado no sistema. Entre em contato com o administrador.", not_found: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -167,7 +170,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ error: "Código não encontrado ou não existe na Stripe", not_found: true }), {
+      return new Response(JSON.stringify({ error: `Nenhum pagamento encontrado com o ID "${stripePaymentId}" na Stripe. Verifique se o código está correto (ex: pi_xxx ou cs_xxx).`, not_found: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
