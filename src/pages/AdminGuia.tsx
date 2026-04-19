@@ -153,6 +153,8 @@ const categoryToPermission: Record<string, string> = {
   'agenda-config': 'view_guia_agenda',
   'link-pagamento-visao-geral': 'view_guia_link_pagamento',
   'social-media': 'view_social_credentials',
+  'aprovacoes-visao-geral': 'view_guia_aprovacoes',
+  'automacoes-visao-geral': 'view_guia_automacoes',
 };
 
 const AdminGuia = () => {
@@ -370,6 +372,22 @@ const AdminGuia = () => {
       color: "text-slate-400",
       categories: ["chat", "dashboard", "logs-atividade", "restauracao", "notificacoes", "backup", "troubleshooting"],
       permissionKey: "view_guia_avancado"
+    },
+    {
+      id: "aprovacoes-grupo",
+      title: "Aprovações",
+      icon: CheckCircle2,
+      color: "text-emerald-400",
+      categories: ["aprovacoes-visao-geral"],
+      permissionKey: "view_guia_aprovacoes"
+    },
+    {
+      id: "automacoes-grupo",
+      title: "Automações",
+      icon: Zap,
+      color: "text-teal-400",
+      categories: ["automacoes-visao-geral"],
+      permissionKey: "view_guia_automacoes"
     }
   ];
 
@@ -4746,6 +4764,70 @@ Menu lateral → **Link de Pagamento**`
         "Use descrições claras para o cliente saber do que se trata",
         "Links de pagamento são independentes do sistema de cobrança automática",
         "CPF/CNPJ válido é necessário para geração de boleto"
+      ]
+    },
+    {
+      id: "aprovacoes-visao-geral",
+      title: "Sistema de Aprovações",
+      icon: CheckCircle2,
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
+      description: "Gerencie o fluxo de aprovação de solicitações críticas",
+      steps: [
+        {
+          title: "Como funciona o módulo",
+          content: `O módulo de **Aprovações** centraliza solicitações que precisam de autorização:
+          
+1. Usuários solicitam ações específicas
+2. Administradores visualizam solicitações pendentes
+3. Ações são aprovadas ou rejeitadas com justificativa
+4. O histórico completo fica registrado para auditoria`
+        },
+        {
+          title: "Acessar Aprovações",
+          content: `Acesse **Aprovações** no menu lateral:
+          
+- **Pendentes**: Solicitações aguardando decisão
+- **Histórico**: Registro de todas as decisões tomadas
+- **Filtros**: Por tipo de solicitação, usuário ou data`
+        }
+      ],
+      tips: [
+        "Apenas administradores podem aprovar solicitações",
+        "Sempre adicione uma observação ao rejeitar uma solicitação",
+        "O sistema gera logs automáticos para cada decisão"
+      ]
+    },
+    {
+      id: "automacoes-visao-geral",
+      title: "Regras de Automação",
+      icon: Zap,
+      color: "text-teal-400",
+      bgColor: "bg-teal-500/10",
+      description: "Crie regras para automatizar processos repetitivos",
+      steps: [
+        {
+          title: "O que são Automações?",
+          content: `As **Automações** permitem disparar ações baseadas em gatilhos:
+          
+- **Gatilho**: O que inicia a automação (ex: novo cliente, mudança de etapa no pipeline)
+- **Condição**: Filtros para a regra (ex: apenas se o valor for > 1000)
+- **Ação**: O que o sistema deve fazer (ex: enviar WhatsApp, criar tarefa)`
+        },
+        {
+          title: "Configurar uma regra",
+          content: `1. Acesse **Automações** no menu lateral
+2. Clique em **Nova Regra**
+3. Defina o nome e descrição
+4. Selecione o **Gatilho**
+5. Configure as **Ações**
+6. Ative a regra`
+        }
+      ],
+      tips: [
+        "Teste suas regras com clientes de teste antes de ativar",
+        "Monitore os logs de execução para garantir que tudo funciona",
+        "Evite criar regras conflitantes para o mesmo gatilho"
       ]
     }
   ];
