@@ -1799,7 +1799,6 @@ const AdminCobranca = () => {
                       <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
                         <span className="text-xs">Cartão de Crédito</span>
                         <Switch
-                          size="sm"
                           checked={config.mp_allow_credit_card !== 'false'}
                           onCheckedChange={(c) => setConfig({ ...config, mp_allow_credit_card: c ? 'true' : 'false' })}
                         />
@@ -1807,7 +1806,6 @@ const AdminCobranca = () => {
                       <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
                         <span className="text-xs">PIX</span>
                         <Switch
-                          size="sm"
                           checked={config.mp_allow_pix !== 'false'}
                           onCheckedChange={(c) => setConfig({ ...config, mp_allow_pix: c ? 'true' : 'false' })}
                         />
@@ -1815,7 +1813,6 @@ const AdminCobranca = () => {
                       <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
                         <span className="text-xs">Boleto</span>
                         <Switch
-                          size="sm"
                           checked={config.mp_allow_boleto !== 'false'}
                           onCheckedChange={(c) => setConfig({ ...config, mp_allow_boleto: c ? 'true' : 'false' })}
                         />
