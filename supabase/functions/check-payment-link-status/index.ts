@@ -170,7 +170,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ error: "Código não encontrado ou não existe na Stripe", not_found: true }), {
+      return new Response(JSON.stringify({ error: `Nenhum pagamento encontrado com o ID "${stripePaymentId}" na Stripe. Verifique se o código está correto (ex: pi_xxx ou cs_xxx).`, not_found: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
