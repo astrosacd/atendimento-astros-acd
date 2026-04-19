@@ -8,7 +8,13 @@ const corsHeaders = {
 
 type PublicGatewaySettings = {
   stripe: { enabled: boolean };
-  mercadopago: { enabled: boolean };
+  mercadopago: { 
+    enabled: boolean;
+    allow_credit_card?: boolean;
+    allow_pix?: boolean;
+    allow_boleto?: boolean;
+    immediate_payment?: boolean;
+  };
   checkout: {
     countdown_enabled?: boolean;
     countdown_minutes?: number;
