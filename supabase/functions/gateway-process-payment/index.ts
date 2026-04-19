@@ -100,32 +100,55 @@ serve(async (req) => {
         }
       }
 
+      // Excluded methods based on settings
+      const excludedMethods = [];
+      const mpConfig = gatewaySettings.mercadopago || {};
+      
+      if (mpConfig.immediate_payment) {
+        excludedMethods.push({ id: "ticket" }); // ticket = boleto
+        excludedMethods.push({ id: "atm" });
+      } else {
+        if (mpConfig.allow_boleto === false) excludedMethods.push({ id: "ticket" });
+      }
+      
+      const excludedTypes = [];
+      if (mpConfig.allow_credit_card === false) excludedTypes.push({ id: "credit_card" }, { id: "debit_card" });
+      if (mpConfig.allow_pix === false) excludedMethods.push({ id: "pix" });
+
       // Create Mercado Pago preference
+      const preferenceBody: any = {
+        items: [
+          {
+            title: order.product?.name || "Produto",
+            quantity: 1,
+            unit_price: order.total,
+            currency_id: order.currency,
+          },
+        ],
+        payer,
+        external_reference: orderId,
+        back_urls: {
+          success: mpConfig.success_url || `${origin}/sucesso`,
+          failure: `${origin}/p/${order.product?.public_slug || ""}`,
+          pending: mpConfig.success_url || `${origin}/sucesso`,
+        },
+        auto_return: "approved",
+        notification_url: `${supabaseUrl}/functions/v1/gateway-payment-webhook`,
+        statement_descriptor: mpConfig.statement_descriptor || undefined,
+        payment_methods: {
+          excluded_payment_methods: excludedMethods,
+          excluded_payment_types: excludedTypes,
+          installments: 12,
+        },
+      };
+
       const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${mpAccessToken}`,
         },
-        body: JSON.stringify({
-          items: [
-            {
-              title: order.product?.name || "Produto",
-              quantity: 1,
-              unit_price: order.total,
-              currency_id: order.currency,
-            },
-          ],
-          payer,
-          external_reference: orderId,
-          back_urls: {
-            success: `${origin}/sucesso`,
-            failure: `${origin}/p/${order.product?.public_slug || ""}`,
-            pending: `${origin}/sucesso`,
-          },
-          auto_return: "approved",
-          notification_url: `${supabaseUrl}/functions/v1/gateway-payment-webhook`,
-        }),
+        body: JSON.stringify(preferenceBody),
       });
 
       const mpData = await mpResponse.json();

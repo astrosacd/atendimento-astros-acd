@@ -79,7 +79,13 @@ export default function Checkout() {
       if (error) throw error;
       return data as {
         stripe?: { enabled?: boolean };
-        mercadopago?: { enabled?: boolean };
+        mercadopago?: { 
+          enabled?: boolean;
+          allow_credit_card?: boolean;
+          allow_pix?: boolean;
+          allow_boleto?: boolean;
+          immediate_payment?: boolean;
+        };
         checkout?: {
           countdown_enabled?: boolean;
           countdown_minutes?: number;
@@ -562,7 +568,13 @@ export default function Checkout() {
                           {availableGateways[0] === 'mercadopago' ? 'Mercado Pago' : 'Stripe'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {availableGateways[0] === 'mercadopago' ? 'Pix, Cartão, Boleto' : 'Cartão Internacional'}
+                          {availableGateways[0] === 'mercadopago' 
+                            ? [
+                                gatewaySettings?.mercadopago?.allow_pix !== false ? 'Pix' : null,
+                                gatewaySettings?.mercadopago?.allow_credit_card !== false ? 'Cartão' : null,
+                                (gatewaySettings?.mercadopago?.allow_boleto !== false && !gatewaySettings?.mercadopago?.immediate_payment) ? 'Boleto' : null
+                              ].filter(Boolean).join(', ')
+                            : 'Cartão Internacional'}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1.5 shadow-md">
@@ -588,7 +600,13 @@ export default function Checkout() {
                           </div>
                           <div>
                             <p className="font-bold">Mercado Pago</p>
-                            <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[
+                                gatewaySettings?.mercadopago?.allow_pix !== false ? 'Pix' : null,
+                                gatewaySettings?.mercadopago?.allow_credit_card !== false ? 'Cartão' : null,
+                                (gatewaySettings?.mercadopago?.allow_boleto !== false && !gatewaySettings?.mercadopago?.immediate_payment) ? 'Boleto' : null
+                              ].filter(Boolean).join(', ')}
+                            </p>
                           </div>
                           {paymentGateway === 'mercadopago' && (
                             <div className="absolute -top-2 -right-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1 shadow-md">

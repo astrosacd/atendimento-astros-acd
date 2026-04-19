@@ -252,8 +252,21 @@ const generatePaymentLink = async (
       return `${brDate.getUTCFullYear()}-${pad(brDate.getUTCMonth() + 1)}-${pad(brDate.getUTCDate())}T${pad(brDate.getUTCHours())}:${pad(brDate.getUTCMinutes())}:${pad(brDate.getUTCSeconds())}.000-03:00`;
     };
     
+    // Excluded methods based on settings
+    const excludedMethods = [];
+    if (config.mp_immediate_payment === 'true') {
+      excludedMethods.push({ id: "ticket" }); // ticket = boleto
+      excludedMethods.push({ id: "atm" });
+    } else {
+      if (config.mp_allow_boleto === 'false') excludedMethods.push({ id: "ticket" });
+    }
+    
+    const excludedTypes = [];
+    if (config.mp_allow_credit_card === 'false') excludedTypes.push({ id: "credit_card" }, { id: "debit_card" });
+    if (config.mp_allow_pix === 'false') excludedMethods.push({ id: "pix" });
+
     // Payload EXATO conforme n8n - SEM payer
-    const preferenceBody = {
+    const preferenceBody: any = {
       items: [{
         title: cliente.produto,
         quantity: 1,
@@ -262,7 +275,26 @@ const generatePaymentLink = async (
       expires: true,
       expiration_date_from: formatDateBR(startDate),
       expiration_date_to: formatDateBR(expiresAt),
+      statement_descriptor: config.mp_statement_descriptor || undefined,
+      payment_methods: {
+        excluded_payment_methods: excludedMethods,
+        excluded_payment_types: excludedTypes,
+        installments: 12,
+      },
+      metadata: {
+        cliente_id: cliente.id,
+        source: 'billing-cron'
+      }
     };
+
+    if (config.mp_success_url) {
+      preferenceBody.back_urls = {
+        success: config.mp_success_url,
+        pending: config.mp_success_url,
+        failure: config.mp_success_url,
+      };
+      preferenceBody.auto_return = "approved";
+    }
 
     console.log(`🔗 LINK DE PAGAMENTO - Cliente ID: ${cliente.id}`);
     console.log(`   Valor original: R$ ${cliente.valor.toFixed(2)}`);
