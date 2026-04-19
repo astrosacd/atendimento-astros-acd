@@ -166,6 +166,13 @@ export default function GeradorLinkPagamento() {
           valor_da_venda: valorVenda.replace(',', '.'),
           validade_horas: parseInt(validadeHoras),
           provider,
+          // Mercado Pago advanced options (will only be used if provider is mercadopago)
+          statement_descriptor: statementDescriptor,
+          allow_boleto: allowBoleto,
+          allow_pix: allowPix,
+          allow_credit_card: allowCreditCard,
+          success_url: successUrl,
+          immediate_payment: immediatePayment,
         },
       });
       if (res.error) throw new Error(res.error.message || 'Erro ao gerar link');
