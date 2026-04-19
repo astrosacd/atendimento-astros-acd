@@ -80,8 +80,8 @@ serve(async (req) => {
     // ===== Query a specific MP payment ID =====
     if (mpPaymentId) {
       if (!mpAccessToken) {
-        return new Response(JSON.stringify({ error: "Mercado Pago não configurado", not_found: true }), {
-          status: 400,
+        return new Response(JSON.stringify({ error: "Mercado Pago ainda não está configurado no sistema. Entre em contato com o administrador.", not_found: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
