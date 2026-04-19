@@ -484,7 +484,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
                 />
                 <Label>Habilitar Mercado Pago</Label>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Access Token</Label>
                 <Input
                   type="password"
@@ -493,7 +493,75 @@ Se precisar de ajuda, é só responder esta mensagem!`
                   placeholder="APP_USR-..."
                 />
               </div>
-              <Button onClick={handleSaveMercadopago} disabled={isUpdating}>
+
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-sm font-semibold">Configurações Avançadas</Label>
+                
+                <div className="space-y-2 mt-2">
+                  <Label>Soft Descriptor (Fatura do Cartão)</Label>
+                  <Input
+                    placeholder="Ex: MINHAEMPRESA"
+                    maxLength={16}
+                    value={mercadopago.statement_descriptor || ''}
+                    onChange={(e) => setMercadopago(prev => ({ ...prev, statement_descriptor: e.target.value.toUpperCase() }))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    O nome que aparecerá na fatura do cartão do cliente (máx 16 caracteres).
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <Label className="text-xs font-medium">Métodos de Pagamento Permitidos</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                      <span className="text-xs">Cartão de Crédito</span>
+                      <Switch
+                        checked={mercadopago.allow_credit_card}
+                        onCheckedChange={(c) => setMercadopago(prev => ({ ...prev, allow_credit_card: c }))}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                      <span className="text-xs">PIX</span>
+                      <Switch
+                        checked={mercadopago.allow_pix}
+                        onCheckedChange={(c) => setMercadopago(prev => ({ ...prev, allow_pix: c }))}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                      <span className="text-xs">Boleto</span>
+                      <Switch
+                        checked={mercadopago.allow_boleto}
+                        onCheckedChange={(c) => setMercadopago(prev => ({ ...prev, allow_boleto: c }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <Label>URL de Sucesso (Redirecionamento)</Label>
+                  <Input
+                    placeholder="https://seusite.com/obrigado"
+                    value={mercadopago.success_url || ''}
+                    onChange={(e) => setMercadopago(prev => ({ ...prev, success_url: e.target.value }))}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Para onde o cliente será enviado após pagar.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-background border mt-2">
+                  <div className="space-y-0.5">
+                    <span className="text-sm font-medium">Pagamento Imediato (Cartão/PIX)</span>
+                    <p className="text-[10px] text-muted-foreground">Desativa boleto e outros métodos lentos</p>
+                  </div>
+                  <Switch
+                    checked={mercadopago.immediate_payment}
+                    onCheckedChange={(c) => setMercadopago(prev => ({ ...prev, immediate_payment: c }))}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handleSaveMercadopago} disabled={isUpdating} className="w-full">
                 <Save className="h-4 w-4 mr-2" /> Salvar Mercado Pago
               </Button>
             </CardContent>
