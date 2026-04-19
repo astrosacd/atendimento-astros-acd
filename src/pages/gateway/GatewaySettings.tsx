@@ -103,7 +103,16 @@ Se precisar de ajuda, é só responder esta mensagem!`
   });
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
-    if (settings.mercadopago) setMercadopago(settings.mercadopago);
+    if (settings.mercadopago) setMercadopago({
+      enabled: settings.mercadopago.enabled ?? false,
+      access_token: settings.mercadopago.access_token || '',
+      statement_descriptor: settings.mercadopago.statement_descriptor || '',
+      allow_boleto: settings.mercadopago.allow_boleto ?? true,
+      allow_pix: settings.mercadopago.allow_pix ?? true,
+      allow_credit_card: settings.mercadopago.allow_credit_card ?? true,
+      success_url: settings.mercadopago.success_url || '',
+      immediate_payment: settings.mercadopago.immediate_payment ?? false
+    });
     
     if (settings.abandoned_cart) setAbandonedCart(settings.abandoned_cart);
     if (settings.checkout) setCheckout(settings.checkout);
