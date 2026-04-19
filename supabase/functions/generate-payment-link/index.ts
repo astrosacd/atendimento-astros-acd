@@ -94,7 +94,17 @@ async function loadBillingConfig(supabase: ReturnType<typeof createClient>) {
     supabase
       .from("billing_config")
       .select("config_key, config_value")
-      .in("config_key", ["mp_access_token", "mp_taxa_cartao", "mp_link_enabled"]),
+      .in("config_key", [
+        "mp_access_token", 
+        "mp_taxa_cartao", 
+        "mp_link_enabled",
+        "mp_statement_descriptor",
+        "mp_allow_credit_card",
+        "mp_allow_pix",
+        "mp_allow_boleto",
+        "mp_success_url",
+        "mp_immediate_payment"
+      ]),
     supabase.from("billing_stripe_config").select("stripe_enabled, stripe_secret_key, stripe_tax_percent").limit(1).single(),
   ]);
 
@@ -107,6 +117,12 @@ async function loadBillingConfig(supabase: ReturnType<typeof createClient>) {
     enabled: getConfig("mp_link_enabled") === "true",
     accessToken: getConfig("mp_access_token"),
     feePercent: parseCurrency(getConfig("mp_taxa_cartao")) || 0,
+    statementDescriptor: getConfig("mp_statement_descriptor"),
+    allowCreditCard: getConfig("mp_allow_credit_card") !== "false",
+    allowPix: getConfig("mp_allow_pix") !== "false",
+    allowBoleto: getConfig("mp_allow_boleto") !== "false",
+    successUrl: getConfig("mp_success_url"),
+    immediatePayment: getConfig("mp_immediate_payment") === "true",
   };
 
   const stripe = {
