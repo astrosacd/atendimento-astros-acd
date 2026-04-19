@@ -22,7 +22,16 @@ export default function GatewaySettings() {
     fee_fixed_usd: 0.30,
     exchange_spread: 4.0
   });
-  const [mercadopago, setMercadopago] = useState({ enabled: false, access_token: '' });
+  const [mercadopago, setMercadopago] = useState({ 
+    enabled: false, 
+    access_token: '',
+    statement_descriptor: '',
+    allow_boleto: true,
+    allow_pix: true,
+    allow_credit_card: true,
+    success_url: '',
+    immediate_payment: false
+  });
   
   const defaultAbandonedCartTemplate = `Olá {{nome}}!
 
