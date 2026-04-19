@@ -562,7 +562,13 @@ export default function Checkout() {
                           {availableGateways[0] === 'mercadopago' ? 'Mercado Pago' : 'Stripe'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {availableGateways[0] === 'mercadopago' ? 'Pix, Cartão, Boleto' : 'Cartão Internacional'}
+                          {availableGateways[0] === 'mercadopago' 
+                            ? [
+                                gatewaySettings?.mercadopago?.allow_pix !== false ? 'Pix' : null,
+                                gatewaySettings?.mercadopago?.allow_credit_card !== false ? 'Cartão' : null,
+                                (gatewaySettings?.mercadopago?.allow_boleto !== false && !gatewaySettings?.mercadopago?.immediate_payment) ? 'Boleto' : null
+                              ].filter(Boolean).join(', ')
+                            : 'Cartão Internacional'}
                         </p>
                       </div>
                       <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1.5 shadow-md">
