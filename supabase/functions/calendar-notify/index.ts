@@ -229,6 +229,9 @@ serve(async (req) => {
           }
         }
 
+        // Delay between client block and consultant block to avoid WhatsApp throttling
+        await sleep(BLOCK_DELAY_MS);
+
         // Send WhatsApp to consultants
         const consultantPhones: string[] = event.consultant_phones || [];
         if (wantsWhatsApp && consultantPhones.length > 0 && hasWhatsApp) {
@@ -272,6 +275,8 @@ serve(async (req) => {
                 console.error(`[calendar-notify] Consultant send error:`, e.message);
               }
             }
+            // Delay between consultant phones
+            await sleep(BLOCK_DELAY_MS);
           }
         }
 
