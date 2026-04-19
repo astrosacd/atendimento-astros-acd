@@ -387,6 +387,12 @@ serve(async (req) => {
         expiresAt,
         now: now.toISOString(),
         linkId,
+        statementDescriptor: billingConfig.mercadoPago.statementDescriptor,
+        allowCreditCard: billingConfig.mercadoPago.allowCreditCard,
+        allowPix: billingConfig.mercadoPago.allowPix,
+        allowBoleto: billingConfig.mercadoPago.allowBoleto,
+        successUrl: billingConfig.mercadoPago.successUrl,
+        immediatePayment: billingConfig.mercadoPago.immediatePayment,
       });
 
       paymentUrl = result.paymentUrl;
