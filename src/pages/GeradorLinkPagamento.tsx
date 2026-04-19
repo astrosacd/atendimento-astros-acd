@@ -425,84 +425,7 @@ export default function GeradorLinkPagamento() {
                           placeholder={provider === 'stripe' ? 'Ex: 50.00' : 'Ex: 150,00'}
                           required
                         />
-                    </div>
-
-                    <div className="space-y-4 pt-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex items-center gap-2 p-0 h-auto hover:bg-transparent text-primary"
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                      >
-                        <Settings className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
-                        {showAdvanced ? 'Ocultar Opções Avançadas' : 'Ver Opções Avançadas'}
-                      </Button>
-
-                      {showAdvanced && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/30 border border-dashed border-primary/30 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <div className="space-y-2">
-                            <Label htmlFor="statement">Soft Descriptor (Fatura do Cartão)</Label>
-                            <Input
-                              id="statement"
-                              value={statementDescriptor}
-                              onChange={(e) => setStatementDescriptor(e.target.value.toUpperCase())}
-                              placeholder="Ex: MINHAEMPRESA"
-                              maxLength={16}
-                            />
-                            <p className="text-[10px] text-muted-foreground">Como aparecerá na fatura do cliente.</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="success_url">URL de Sucesso (Redirecionamento)</Label>
-                            <Input
-                              id="success_url"
-                              value={successUrl}
-                              onChange={(e) => setSuccessUrl(e.target.value)}
-                              placeholder="https://seusite.com/obrigado"
-                            />
-                            <p className="text-[10px] text-muted-foreground">Onde o cliente cairá após pagar.</p>
-                          </div>
-                          <div className="space-y-3">
-                            <Label className="text-sm">Métodos de Pagamento</Label>
-                            <div className="flex flex-wrap gap-4 pt-1">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id="allow_cc" 
-                                  checked={allowCreditCard} 
-                                  onCheckedChange={(c) => setAllowCreditCard(!!c)} 
-                                />
-                                <Label htmlFor="allow_cc" className="text-xs cursor-pointer">Cartão</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id="allow_pix" 
-                                  checked={allowPix} 
-                                  onCheckedChange={(c) => setAllowPix(!!c)} 
-                                />
-                                <Label htmlFor="allow_pix" className="text-xs cursor-pointer">PIX</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id="allow_boleto" 
-                                  checked={allowBoleto} 
-                                  onCheckedChange={(c) => setAllowBoleto(!!c)} 
-                                />
-                                <Label htmlFor="allow_boleto" className="text-xs cursor-pointer">Boleto</Label>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between p-2 rounded border bg-background/50">
-                            <div className="space-y-0.5">
-                              <Label className="text-xs">Pagamento Imediato</Label>
-                              <p className="text-[10px] text-muted-foreground">Apenas Cartão/PIX</p>
-                            </div>
-                            <Switch 
-                              checked={immediatePayment} 
-                              onCheckedChange={setImmediatePayment} 
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="validade">Validade do Link</Label>
                         <Select value={validadeHoras} onValueChange={setValidadeHoras}>
@@ -521,6 +444,171 @@ export default function GeradorLinkPagamento() {
                         </Select>
                       </div>
                     </div>
+
+                    {/* Advanced Options - Mercado Pago only */}
+                    {provider === 'mercadopago' && (
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvanced(!showAdvanced)}
+                          className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border transition-all ${
+                            showAdvanced
+                              ? 'bg-primary/5 border-primary/40'
+                              : 'bg-muted/30 border-border hover:bg-muted/50 hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-1.5 rounded-md ${showAdvanced ? 'bg-primary/15' : 'bg-muted'}`}>
+                              <Settings className={`h-4 w-4 ${showAdvanced ? 'text-primary' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-foreground">Opções Avançadas do Mercado Pago</p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Personalize fatura, métodos aceitos e redirecionamento
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">
+                            {showAdvanced ? 'Recolher' : 'Expandir'}
+                          </Badge>
+                        </button>
+
+                        {showAdvanced && (
+                          <div className="mt-3 rounded-lg border border-border bg-card overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                            {/* Identificação & Pós-Pagamento */}
+                            <div className="p-4 border-b border-border">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="h-1 w-1 rounded-full bg-primary" />
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                  Identificação & Pós-Pagamento
+                                </h4>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="statement" className="text-xs font-medium">
+                                    Soft Descriptor (Fatura do Cartão)
+                                  </Label>
+                                  <Input
+                                    id="statement"
+                                    value={statementDescriptor}
+                                    onChange={(e) => setStatementDescriptor(e.target.value.toUpperCase())}
+                                    placeholder="Ex: MINHAEMPRESA"
+                                    maxLength={16}
+                                    className="font-mono text-sm"
+                                  />
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Nome que aparecerá na fatura do cartão (máx 16 caracteres)
+                                  </p>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="success_url" className="text-xs font-medium">
+                                    URL de Sucesso (Redirecionamento)
+                                  </Label>
+                                  <Input
+                                    id="success_url"
+                                    type="url"
+                                    value={successUrl}
+                                    onChange={(e) => setSuccessUrl(e.target.value)}
+                                    placeholder="https://seusite.com/obrigado"
+                                    className="text-sm"
+                                  />
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Onde o cliente será redirecionado após pagar
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Métodos de Pagamento */}
+                            <div className="p-4 border-b border-border bg-muted/20">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="h-1 w-1 rounded-full bg-primary" />
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                  Métodos de Pagamento Aceitos
+                                </h4>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <label
+                                  htmlFor="allow_cc"
+                                  className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-all ${
+                                    allowCreditCard ? 'bg-primary/5 border-primary/40' : 'bg-background border-border hover:border-primary/20'
+                                  }`}
+                                >
+                                  <Checkbox
+                                    id="allow_cc"
+                                    checked={allowCreditCard}
+                                    onCheckedChange={(c) => setAllowCreditCard(!!c)}
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">Cartão</p>
+                                    <p className="text-[10px] text-muted-foreground">Crédito / Débito</p>
+                                  </div>
+                                </label>
+                                <label
+                                  htmlFor="allow_pix"
+                                  className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-all ${
+                                    allowPix ? 'bg-primary/5 border-primary/40' : 'bg-background border-border hover:border-primary/20'
+                                  }`}
+                                >
+                                  <Checkbox
+                                    id="allow_pix"
+                                    checked={allowPix}
+                                    onCheckedChange={(c) => setAllowPix(!!c)}
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">PIX</p>
+                                    <p className="text-[10px] text-muted-foreground">Instantâneo</p>
+                                  </div>
+                                </label>
+                                <label
+                                  htmlFor="allow_boleto"
+                                  className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-all ${
+                                    allowBoleto && !immediatePayment
+                                      ? 'bg-primary/5 border-primary/40'
+                                      : 'bg-background border-border hover:border-primary/20'
+                                  } ${immediatePayment ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  <Checkbox
+                                    id="allow_boleto"
+                                    checked={allowBoleto && !immediatePayment}
+                                    disabled={immediatePayment}
+                                    onCheckedChange={(c) => setAllowBoleto(!!c)}
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">Boleto</p>
+                                    <p className="text-[10px] text-muted-foreground">1-3 dias úteis</p>
+                                  </div>
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Comportamento */}
+                            <div className="p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="h-1 w-1 rounded-full bg-primary" />
+                                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                  Comportamento
+                                </h4>
+                              </div>
+                              <div className="flex items-center justify-between p-3 rounded-md border border-border bg-background">
+                                <div className="space-y-0.5 pr-3">
+                                  <Label className="text-sm font-medium cursor-pointer">
+                                    Forçar Pagamento Imediato
+                                  </Label>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Bloqueia boleto e métodos lentos. Aceita apenas Cartão e PIX.
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={immediatePayment}
+                                  onCheckedChange={setImmediatePayment}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <Button
                       onClick={handleGenerate}
                       disabled={generateMutation.isPending}
