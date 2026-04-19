@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SalesForecastCard } from '@/components/dashboard/SalesForecastCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,8 +125,6 @@ interface MetricsData {
   totalValueBrl: number;
   totalValueUsd: number;
   previousTotalValue: number;
-  projectedValueBrl: number;
-  projectedValueUsd: number;
   clientsWithPending: number;
   avgResponseTime: number;
 }
@@ -197,8 +196,6 @@ const AdminCobranca = () => {
     totalValueBrl: 0,
     totalValueUsd: 0,
     previousTotalValue: 0,
-    projectedValueBrl: 0,
-    projectedValueUsd: 0,
     clientsWithPending: 0,
     avgResponseTime: 0,
   });
@@ -721,19 +718,12 @@ const AdminCobranca = () => {
       const today = new Date().toISOString().split('T')[0];
       const clientsWithPending = clientesAtivos.filter(c => c.data_renovacao < today).length;
 
-      // Projected value (active clients renewing this month) - separated by currency
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      // Projected value (removed redundant calculation, using SalesForecastCard instead)
+      const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       const clientesRenovando = clientesAtivos.filter(c => 
-        c.data_renovacao >= today && c.data_renovacao <= endOfMonth
+        c.data_renovacao >= today && c.data_renovacao <= endOfMonthDate
       );
 
-      const projectedValueBrl = clientesRenovando
-        .filter(c => (c.moeda || 'BRL') !== 'USD')
-        .reduce((sum, c) => sum + (c.valor || 0), 0);
-
-      const projectedValueUsd = clientesRenovando
-        .filter(c => c.moeda === 'USD')
-        .reduce((sum, c) => sum + (c.valor || 0), 0);
 
       setMetrics({
         successRate: currentSuccessRate,
@@ -741,8 +731,6 @@ const AdminCobranca = () => {
         totalValueBrl: totalValueBrl,
         totalValueUsd: totalValueUsd,
         previousTotalValue: totalValueBrl * 0.95, // Approximate
-        projectedValueBrl: projectedValueBrl,
-        projectedValueUsd: projectedValueUsd,
         clientsWithPending: clientsWithPending,
         avgResponseTime: 2.5, // Placeholder
       });
@@ -1322,32 +1310,9 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Previsão do Mês */}
-              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Previsão do Mês</p>
-                      <p className="text-3xl font-bold text-purple-400">
-                        R$ {metrics.projectedValueBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                      {metrics.projectedValueUsd > 0 && (
-                        <p className="text-sm text-emerald-400 mt-2">
-                          + $ {metrics.projectedValueUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
-                        </p>
-                      )}
-                      {metrics.projectedValueUsd === 0 && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Renovações previstas
-                        </p>
-                      )}
-                    </div>
-                    <div className="p-3 rounded-xl bg-purple-500/20">
-                      <TrendingUp className="w-6 h-6 text-purple-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Previsão IA do Pipeline (Centralizada) */}
+              <SalesForecastCard />
+
 
               {/* Pendentes */}
               <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
