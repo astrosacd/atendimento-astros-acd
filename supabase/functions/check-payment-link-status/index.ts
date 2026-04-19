@@ -33,8 +33,8 @@ serve(async (req) => {
       if (tokenData?.valid && tokenData?.allow_status_check === true) {
         // Share-token sessions can ONLY query a specific payment ID, never bulk-check all links
         if (!mpPaymentId && !stripePaymentId) {
-          return new Response(JSON.stringify({ error: "Operação não permitida neste acesso temporário" }), {
-            status: 403,
+          return new Response(JSON.stringify({ error: "Operação não permitida neste acesso temporário", not_found: true }), {
+            status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
