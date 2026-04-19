@@ -600,7 +600,13 @@ export default function Checkout() {
                           </div>
                           <div>
                             <p className="font-bold">Mercado Pago</p>
-                            <p className="text-xs text-muted-foreground">Pix, Cartão, Boleto</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[
+                                gatewaySettings?.mercadopago?.allow_pix !== false ? 'Pix' : null,
+                                gatewaySettings?.mercadopago?.allow_credit_card !== false ? 'Cartão' : null,
+                                (gatewaySettings?.mercadopago?.allow_boleto !== false && !gatewaySettings?.mercadopago?.immediate_payment) ? 'Boleto' : null
+                              ].filter(Boolean).join(', ')}
+                            </p>
                           </div>
                           {paymentGateway === 'mercadopago' && (
                             <div className="absolute -top-2 -right-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1 shadow-md">
