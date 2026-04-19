@@ -9,7 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 export default function AdminIA() {
   const { t } = useTranslation();
-  const { canViewSalesForecast, canManageSalesForecast, canViewPipelineAI, canManagePipelineAI } = usePermissions();
+  const { canViewSalesForecast, canViewPipelineAI, canManagePipelineAI } = usePermissions();
 
   return (
     <DashboardLayout>

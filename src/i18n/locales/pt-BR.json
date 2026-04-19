@@ -1688,7 +1688,7 @@
       "serverError": "Erro ao conectar com o servidor.",
       "failedToCreate": "Falha ao criar usuário. Tente novamente."
     }
-  }
+  },
   "ia": {
     "title": "Inteligência Artificial",
     "subtitle": "Gerencie as ferramentas de IA preditiva e automação do seu pipeline.",
