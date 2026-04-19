@@ -20,10 +20,11 @@ import { ptBR } from 'date-fns/locale';
 import {
   Link2, Copy, ExternalLink, Loader2, Clock, Trash2, Share2, History,
   DollarSign, Building2, Plus, RefreshCw, Search, CheckCircle2, XCircle, AlertCircle,
-  Webhook, Info
+  Webhook, Info, Settings
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 
 type Provider = 'mercadopago' | 'stripe';
 
