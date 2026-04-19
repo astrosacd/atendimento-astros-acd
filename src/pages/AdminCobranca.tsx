@@ -714,15 +714,10 @@ const AdminCobranca = () => {
         return sum + (c.valor || 0);
       }, 0);
 
-      // Clients with pending (overdue) - only active billing clients
-      const today = new Date().toISOString().split('T')[0];
-      const clientsWithPending = clientesAtivos.filter(c => c.data_renovacao < today).length;
+      // Metrics for the dashboard
+      const todayDate = new Date().toISOString().split('T')[0];
+      const clientsWithPending = clientesAtivos.filter(c => c.data_renovacao < todayDate).length;
 
-      // Projected value (removed redundant calculation, using SalesForecastCard instead)
-      const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      const clientesRenovando = clientesAtivos.filter(c => 
-        c.data_renovacao >= today && c.data_renovacao <= endOfMonthDate
-      );
 
 
       setMetrics({
