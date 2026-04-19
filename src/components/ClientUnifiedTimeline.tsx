@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface TimelineEvent {
   id: string;
-  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log';
+  type: 'history' | 'billing' | 'payment' | 'followup' | 'proposal' | 'task' | 'purchase' | 'file' | 'recovery' | 'whatsapp_group' | 'logo' | 'credential' | 'pipeline' | 'automation' | 'license' | 'share_link' | 'client' | 'ai_log' | 'ticket' | 'appointment' | 'sale' | 'sms_validation';
   date: string;
   title: string;
   description: string;
@@ -46,6 +46,10 @@ const TYPE_CONFIG: Record<TimelineEvent['type'], { icon: React.ElementType; colo
   share_link: { icon: ExternalLink, color: 'text-sky-500', label: 'Link Compartilhado' },
   client: { icon: User, color: 'text-blue-500', label: 'Cadastro' },
   ai_log: { icon: Sparkles, color: 'text-primary', label: 'Insight IA' },
+  ticket: { icon: MessageSquare, color: 'text-orange-500', label: 'Chamado' },
+  appointment: { icon: Clock, color: 'text-blue-400', label: 'Agendamento' },
+  sale: { icon: ShoppingCart, color: 'text-emerald-500', label: 'Venda' },
+  sms_validation: { icon: Zap, color: 'text-amber-400', label: 'Validação SMS' },
 };
 
 export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedTimelineProps) {
@@ -84,6 +88,10 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         proposalsRes,
         clientDataRes,
         aiLogsRes,
+        ticketsRes,
+        appointmentsRes,
+        salesRes,
+        smsLogsRes,
       ] = await Promise.all([
         supabase.from('client_history').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('billing_logs').select('*').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(50),
@@ -103,7 +111,31 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
         supabase.from('proposals').select('*').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(50),
         supabase.from('clientes').select('*').eq('id', clienteId).single(),
         canViewClientAI() ? supabase.from('client_ai_logs').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+        supabase.from('chamados').select('*').or(`email.eq.${clienteId},contato.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('calendar_events').select('*').or(`client_email.eq.${clienteId},client_phone.eq.${clienteId}`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('gateway_orders').select('*').eq('customer_email', clienteId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('sms_validation_logs').select('*').eq('numero', clienteId).order('created_at', { ascending: false }).limit(50),
       ]);
+
+      const clientInfo = clientDataRes.data;
+      const clientEmail = clientInfo?.email;
+      const clientPhone = clientInfo?.numero;
+
+      // Re-fetch some by email/phone if we have them
+      if (clientEmail || clientPhone) {
+        const [extraTickets, extraAppointments, extraSales, extraSms] = await Promise.all([
+          clientEmail ? supabase.from('chamados').select('*').eq('email', clientEmail).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+          clientEmail ? supabase.from('calendar_events').select('*').eq('client_email', clientEmail).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+          clientEmail ? supabase.from('gateway_orders').select('*').eq('customer_email', clientEmail).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+          clientPhone ? supabase.from('sms_validation_logs').select('*').eq('numero', clientPhone).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+        ]);
+        
+        // Merge or replace results
+        if (extraTickets.data) ticketsRes.data = extraTickets.data;
+        if (extraAppointments.data) appointmentsRes.data = extraAppointments.data;
+        if (extraSales.data) salesRes.data = extraSales.data;
+        if (extraSms.data) smsLogsRes.data = extraSms.data;
+      }
 
       const allEvents: TimelineEvent[] = [];
 
@@ -326,6 +358,54 @@ export function ClientUnifiedTimeline({ clienteId, clienteName }: ClientUnifiedT
           date: a.created_at,
           title: `Insight de IA gerado (${modeLabels[a.mode] || a.mode})`,
           description: `Modelo: ${a.model}`,
+        });
+      });
+
+      // Chamados
+      (ticketsRes.data || []).forEach((t: any) => {
+        allEvents.push({
+          id: `ticket-${t.id}`,
+          type: 'ticket',
+          date: t.created_at,
+          title: `Chamado: ${t.codigo}`,
+          description: `${t.motivo} — ${t.status}`,
+          status: t.status,
+        });
+      });
+
+      // Agendamentos
+      (appointmentsRes.data || []).forEach((a: any) => {
+        allEvents.push({
+          id: `appointment-${a.id}`,
+          type: 'appointment',
+          date: a.start_time,
+          title: `Agenda: ${a.title}`,
+          description: `${new Date(a.start_time).toLocaleTimeString('pt-BR')} — ${a.status}`,
+          status: a.status,
+        });
+      });
+
+      // Sales
+      (salesRes.data || []).forEach((s: any) => {
+        allEvents.push({
+          id: `sale-${s.id}`,
+          type: 'sale',
+          date: s.created_at,
+          title: `Venda: Pedido #${s.id.slice(0, 8)}`,
+          description: `${s.currency === 'BRL' ? 'R$' : '$'} ${Number(s.total).toFixed(2)} — ${s.status}`,
+          status: s.status,
+        });
+      });
+
+      // SMS Logs
+      (smsLogsRes.data || []).forEach((sms: any) => {
+        allEvents.push({
+          id: `sms-${sms.id}`,
+          type: 'sms_validation',
+          date: sms.created_at,
+          title: 'Validação SMS',
+          description: `${sms.resultado} — ${sms.motivo || ''}`,
+          status: sms.resultado === 'sucesso' ? 'default' : 'destructive',
         });
       });
 
