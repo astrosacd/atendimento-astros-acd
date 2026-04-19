@@ -88,6 +88,10 @@ serve(async (req) => {
     }
 
     let sentCount = 0;
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const BLOCK_DELAY_MS = 3000;
+    let consultantIndex = 0;
+    const totalConsultants = Object.keys(consultantMeetings).length;
     for (const [phone, meetings] of Object.entries(consultantMeetings)) {
       // Sort meetings by time
       meetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -157,6 +161,12 @@ serve(async (req) => {
           status: "error",
           error_message: "Failed to send via any active instance",
         });
+      }
+
+      consultantIndex++;
+      // Delay between consultants to avoid WhatsApp throttling (skip last)
+      if (consultantIndex < totalConsultants) {
+        await sleep(BLOCK_DELAY_MS);
       }
     }
 

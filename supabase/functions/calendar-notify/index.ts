@@ -46,6 +46,21 @@ serve(async (req) => {
     const startOfToday = new Date(`${todayStr}T00:00:00.000-03:00`);
     const endOfToday = new Date(`${todayStr}T23:59:59.999-03:00`);
 
+    // Determine current Brasilia hour - physical reminders only fire from 08:00 onwards
+    const brasiliaHourFmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      hour12: false,
+    });
+    const currentBrasiliaHour = parseInt(brasiliaHourFmt.format(now), 10);
+    const PHYSICAL_START_HOUR = 8;
+    const physicalAllowed = currentBrasiliaHour >= PHYSICAL_START_HOUR;
+    console.log(`[calendar-notify] Brasilia hour=${currentBrasiliaHour}, physicalAllowed=${physicalAllowed}`);
+
+    // Delay helper to avoid WhatsApp blocks (3s between blocks)
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const BLOCK_DELAY_MS = 3000;
+
     // Target window for online meetings
     const targetTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
     const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
@@ -71,7 +86,8 @@ serve(async (req) => {
       const startTime = new Date(event.start_time);
       
       if (event.meeting_type === 'physical') {
-        // Physical meetings are notified anytime today
+        // Physical meetings are notified anytime today, but ONLY after 08:00 Brasilia
+        if (!physicalAllowed) return false;
         return startTime >= startOfToday && startTime <= endOfToday;
       } else {
         // Online (default) are notified 1h before
@@ -213,6 +229,9 @@ serve(async (req) => {
           }
         }
 
+        // Delay between client block and consultant block to avoid WhatsApp throttling
+        await sleep(BLOCK_DELAY_MS);
+
         // Send WhatsApp to consultants
         const consultantPhones: string[] = event.consultant_phones || [];
         if (wantsWhatsApp && consultantPhones.length > 0 && hasWhatsApp) {
@@ -256,6 +275,8 @@ serve(async (req) => {
                 console.error(`[calendar-notify] Consultant send error:`, e.message);
               }
             }
+            // Delay between consultant phones
+            await sleep(BLOCK_DELAY_MS);
           }
         }
 
@@ -353,6 +374,9 @@ serve(async (req) => {
           error_message: err.message,
         });
       }
+
+      // Delay between distinct events to spread out the load
+      await sleep(BLOCK_DELAY_MS);
     }
 
     console.log(`[calendar-notify] Done: ${sent} sent, ${errors} errors`);
