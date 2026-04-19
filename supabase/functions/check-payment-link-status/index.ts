@@ -89,7 +89,10 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${mpAccessToken}` },
       });
       if (!mpRes.ok) {
-        return new Response(JSON.stringify({ error: "Código não encontrado ou não existe no Mercado Pago", not_found: true }), {
+        const errorMsg = mpRes.status === 404
+          ? `Nenhum pagamento encontrado com o ID "${mpPaymentId}" no Mercado Pago. Verifique se o código está correto.`
+          : `Não foi possível consultar este pagamento no Mercado Pago (erro ${mpRes.status}). Verifique o ID e tente novamente.`;
+        return new Response(JSON.stringify({ error: errorMsg, not_found: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
