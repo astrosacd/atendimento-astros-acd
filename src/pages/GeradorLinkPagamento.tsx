@@ -43,6 +43,16 @@ export default function GeradorLinkPagamento() {
   const [valorVenda, setValorVenda] = useState('');
   const [validadeHoras, setValidadeHoras] = useState('24');
   const [provider, setProvider] = useState<Provider>('mercadopago');
+  
+  // Advanced options
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [statementDescriptor, setStatementDescriptor] = useState('');
+  const [allowBoleto, setAllowBoleto] = useState(true);
+  const [allowPix, setAllowPix] = useState(true);
+  const [allowCreditCard, setAllowCreditCard] = useState(true);
+  const [successUrl, setSuccessUrl] = useState('');
+  const [immediatePayment, setImmediatePayment] = useState(false);
+
   const [generatedLink, setGeneratedLink] = useState<{
     provider_label: string;
     config_source: string;
