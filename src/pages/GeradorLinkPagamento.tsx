@@ -424,7 +424,84 @@ export default function GeradorLinkPagamento() {
                           placeholder={provider === 'stripe' ? 'Ex: 50.00' : 'Ex: 150,00'}
                           required
                         />
-                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex items-center gap-2 p-0 h-auto hover:bg-transparent text-primary"
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                      >
+                        <Settings className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} />
+                        {showAdvanced ? 'Ocultar Opções Avançadas' : 'Ver Opções Avançadas'}
+                      </Button>
+
+                      {showAdvanced && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/30 border border-dashed border-primary/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="space-y-2">
+                            <Label htmlFor="statement">Soft Descriptor (Fatura do Cartão)</Label>
+                            <Input
+                              id="statement"
+                              value={statementDescriptor}
+                              onChange={(e) => setStatementDescriptor(e.target.value.toUpperCase())}
+                              placeholder="Ex: MINHAEMPRESA"
+                              maxLength={16}
+                            />
+                            <p className="text-[10px] text-muted-foreground">Como aparecerá na fatura do cliente.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="success_url">URL de Sucesso (Redirecionamento)</Label>
+                            <Input
+                              id="success_url"
+                              value={successUrl}
+                              onChange={(e) => setSuccessUrl(e.target.value)}
+                              placeholder="https://seusite.com/obrigado"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Onde o cliente cairá após pagar.</p>
+                          </div>
+                          <div className="space-y-3">
+                            <Label className="text-sm">Métodos de Pagamento</Label>
+                            <div className="flex flex-wrap gap-4 pt-1">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="allow_cc" 
+                                  checked={allowCreditCard} 
+                                  onCheckedChange={(c) => setAllowCreditCard(!!c)} 
+                                />
+                                <Label htmlFor="allow_cc" className="text-xs cursor-pointer">Cartão</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="allow_pix" 
+                                  checked={allowPix} 
+                                  onCheckedChange={(c) => setAllowPix(!!c)} 
+                                />
+                                <Label htmlFor="allow_pix" className="text-xs cursor-pointer">PIX</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="allow_boleto" 
+                                  checked={allowBoleto} 
+                                  onCheckedChange={(c) => setAllowBoleto(!!c)} 
+                                />
+                                <Label htmlFor="allow_boleto" className="text-xs cursor-pointer">Boleto</Label>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded border bg-background/50">
+                            <div className="space-y-0.5">
+                              <Label className="text-xs">Pagamento Imediato</Label>
+                              <p className="text-[10px] text-muted-foreground">Apenas Cartão/PIX</p>
+                            </div>
+                            <Switch 
+                              checked={immediatePayment} 
+                              onCheckedChange={setImmediatePayment} 
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
                       <div className="space-y-2">
                         <Label htmlFor="validade">Validade do Link</Label>
                         <Select value={validadeHoras} onValueChange={setValidadeHoras}>
