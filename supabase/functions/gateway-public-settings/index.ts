@@ -64,7 +64,13 @@ serve(async (req) => {
 
     const result: PublicGatewaySettings = {
       stripe: { enabled: raw.stripe?.enabled === true },
-      mercadopago: { enabled: raw.mercadopago?.enabled === true },
+      mercadopago: { 
+        enabled: raw.mercadopago?.enabled === true,
+        allow_credit_card: raw.mercadopago?.allow_credit_card !== false,
+        allow_pix: raw.mercadopago?.allow_pix !== false,
+        allow_boleto: raw.mercadopago?.allow_boleto !== false,
+        immediate_payment: raw.mercadopago?.immediate_payment === true,
+      },
       checkout: {
         countdown_enabled: raw.checkout?.countdown_enabled === true,
         countdown_minutes: typeof raw.checkout?.countdown_minutes === "number" ? raw.checkout.countdown_minutes : undefined,
