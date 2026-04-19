@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -138,7 +138,7 @@ const defaultMessages: Record<string, string> = {
   message_d_mais_30: 'Olá {nome}! ATENÇÃO: Sua renovação do plano {plano} - {produto} está pendente há 30 dias. Valor: R$ {valor}. Regularize para evitar o cancelamento do serviço!',
 };
 
-const CHART_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+
 
 const AdminCobranca = () => {
   const { toast } = useToast();
