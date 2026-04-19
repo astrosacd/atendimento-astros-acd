@@ -118,8 +118,8 @@ serve(async (req) => {
     // ===== Query a specific Stripe payment/session ID =====
     if (stripePaymentId) {
       if (!stripeSecretKey) {
-        return new Response(JSON.stringify({ error: "Stripe não configurada", not_found: true }), {
-          status: 400,
+        return new Response(JSON.stringify({ error: "Stripe ainda não está configurado no sistema. Entre em contato com o administrador.", not_found: true }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
