@@ -374,6 +374,9 @@ serve(async (req) => {
           error_message: err.message,
         });
       }
+
+      // Delay between distinct events to spread out the load
+      await sleep(BLOCK_DELAY_MS);
     }
 
     console.log(`[calendar-notify] Done: ${sent} sent, ${errors} errors`);
