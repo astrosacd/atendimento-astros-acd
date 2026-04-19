@@ -1768,6 +1768,83 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
+              {/* Mercado Pago Advanced Settings */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-gray-400" />
+                    Opções do Link de Pagamento
+                  </CardTitle>
+                  <CardDescription>
+                    Personalize o comportamento dos links gerados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Soft Descriptor (Fatura do Cartão)</Label>
+                    <Input
+                      placeholder="Ex: MINHAEMPRESA"
+                      maxLength={16}
+                      value={config.mp_statement_descriptor || ''}
+                      onChange={(e) => setConfig({ ...config, mp_statement_descriptor: e.target.value.toUpperCase() })}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      O nome que aparecerá na fatura do cartão do cliente (máx 16 caracteres).
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-sm font-medium">Métodos de Pagamento Permitidos</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                        <span className="text-xs">Cartão de Crédito</span>
+                        <Switch
+                          checked={config.mp_allow_credit_card !== 'false'}
+                          onCheckedChange={(c) => setConfig({ ...config, mp_allow_credit_card: c ? 'true' : 'false' })}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                        <span className="text-xs">PIX</span>
+                        <Switch
+                          checked={config.mp_allow_pix !== 'false'}
+                          onCheckedChange={(c) => setConfig({ ...config, mp_allow_pix: c ? 'true' : 'false' })}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                        <span className="text-xs">Boleto</span>
+                        <Switch
+                          checked={config.mp_allow_boleto !== 'false'}
+                          onCheckedChange={(c) => setConfig({ ...config, mp_allow_boleto: c ? 'true' : 'false' })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <Label>URL de Sucesso (Redirecionamento)</Label>
+                    <Input
+                      placeholder="https://seusite.com/obrigado"
+                      value={config.mp_success_url || ''}
+                      onChange={(e) => setConfig({ ...config, mp_success_url: e.target.value })}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Para onde o cliente será enviado após pagar.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border mt-2">
+                    <div className="space-y-0.5">
+                      <span className="text-sm font-medium">Pagamento Imediato (Cartão/PIX)</span>
+                      <p className="text-[10px] text-muted-foreground">Desativa boleto e outros métodos lentos</p>
+                    </div>
+                    <Switch
+                      checked={config.mp_immediate_payment === 'true'}
+                      onCheckedChange={(c) => setConfig({ ...config, mp_immediate_payment: c ? 'true' : 'false' })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* PIX Config */}
               <Card className="border-border/50">
                 <CardHeader>

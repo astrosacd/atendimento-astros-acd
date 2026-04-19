@@ -94,7 +94,17 @@ async function loadBillingConfig(supabase: ReturnType<typeof createClient>) {
     supabase
       .from("billing_config")
       .select("config_key, config_value")
-      .in("config_key", ["mp_access_token", "mp_taxa_cartao", "mp_link_enabled"]),
+      .in("config_key", [
+        "mp_access_token", 
+        "mp_taxa_cartao", 
+        "mp_link_enabled",
+        "mp_statement_descriptor",
+        "mp_allow_credit_card",
+        "mp_allow_pix",
+        "mp_allow_boleto",
+        "mp_success_url",
+        "mp_immediate_payment"
+      ]),
     supabase.from("billing_stripe_config").select("stripe_enabled, stripe_secret_key, stripe_tax_percent").limit(1).single(),
   ]);
 
@@ -107,6 +117,12 @@ async function loadBillingConfig(supabase: ReturnType<typeof createClient>) {
     enabled: getConfig("mp_link_enabled") === "true",
     accessToken: getConfig("mp_access_token"),
     feePercent: parseCurrency(getConfig("mp_taxa_cartao")) || 0,
+    statementDescriptor: getConfig("mp_statement_descriptor"),
+    allowCreditCard: getConfig("mp_allow_credit_card") !== "false",
+    allowPix: getConfig("mp_allow_pix") !== "false",
+    allowBoleto: getConfig("mp_allow_boleto") !== "false",
+    successUrl: getConfig("mp_success_url"),
+    immediatePayment: getConfig("mp_immediate_payment") === "true",
   };
 
   const stripe = {
@@ -127,8 +143,65 @@ async function createMercadoPagoLink(params: {
   expiresAt: string;
   now: string;
   linkId: string;
+  statementDescriptor?: string;
+  allowCreditCard?: boolean;
+  allowPix?: boolean;
+  allowBoleto?: boolean;
+  successUrl?: string;
+  immediatePayment?: boolean;
 }) {
   const externalReference = `PL-${params.linkId}`;
+  
+  const excludedMethods = [];
+  if (params.immediatePayment) {
+    excludedMethods.push({ id: "ticket" }); // ticket = boleto
+    excludedMethods.push({ id: "atm" });
+  } else {
+    if (!params.allowBoleto) excludedMethods.push({ id: "ticket" });
+  }
+  
+  const excludedTypes = [];
+  if (!params.allowCreditCard) excludedTypes.push({ id: "credit_card" }, { id: "debit_card" });
+  if (!params.allowPix) excludedMethods.push({ id: "pix" });
+
+  const body: any = {
+    items: [
+      {
+        id: params.linkId,
+        title: params.empresa,
+        description: `Pagamento - ${params.empresa}`,
+        category_id: "services",
+        quantity: 1,
+        unit_price: params.finalValue,
+        currency_id: "BRL",
+      },
+    ],
+    external_reference: externalReference,
+    expires: true,
+    expiration_date_from: params.now,
+    expiration_date_to: params.expiresAt,
+    statement_descriptor: params.statementDescriptor || undefined,
+    payment_methods: {
+      excluded_payment_methods: excludedMethods,
+      excluded_payment_types: excludedTypes,
+      installments: 12,
+    },
+    metadata: {
+      source_module: "cobranca",
+      provider: "mercadopago",
+      fee_percent: params.feePercent,
+      original_value: params.baseValue,
+    },
+  };
+
+  if (params.successUrl) {
+    body.back_urls = {
+      success: params.successUrl,
+      pending: params.successUrl,
+      failure: params.successUrl,
+    };
+    body.auto_return = "approved";
+  }
 
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
@@ -136,29 +209,7 @@ async function createMercadoPagoLink(params: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${params.accessToken}`,
     },
-    body: JSON.stringify({
-      items: [
-        {
-          id: params.linkId,
-          title: params.empresa,
-          description: `Pagamento - ${params.empresa}`,
-          category_id: "services",
-          quantity: 1,
-          unit_price: params.finalValue,
-          currency_id: "BRL",
-        },
-      ],
-      external_reference: externalReference,
-      expires: true,
-      expiration_date_from: params.now,
-      expiration_date_to: params.expiresAt,
-      metadata: {
-        source_module: "cobranca",
-        provider: "mercadopago",
-        fee_percent: params.feePercent,
-        original_value: params.baseValue,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -336,6 +387,12 @@ serve(async (req) => {
         expiresAt,
         now: now.toISOString(),
         linkId,
+        statementDescriptor: billingConfig.mercadoPago.statementDescriptor,
+        allowCreditCard: billingConfig.mercadoPago.allowCreditCard,
+        allowPix: billingConfig.mercadoPago.allowPix,
+        allowBoleto: billingConfig.mercadoPago.allowBoleto,
+        successUrl: billingConfig.mercadoPago.successUrl,
+        immediatePayment: billingConfig.mercadoPago.immediatePayment,
       });
 
       paymentUrl = result.paymentUrl;
