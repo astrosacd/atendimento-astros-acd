@@ -162,6 +162,12 @@ serve(async (req) => {
           error_message: "Failed to send via any active instance",
         });
       }
+
+      consultantIndex++;
+      // Delay between consultants to avoid WhatsApp throttling (skip last)
+      if (consultantIndex < totalConsultants) {
+        await sleep(BLOCK_DELAY_MS);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, sentCount, consultantCount: Object.keys(consultantMeetings).length }), {
