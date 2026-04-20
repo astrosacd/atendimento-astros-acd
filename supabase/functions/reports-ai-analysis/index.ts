@@ -36,6 +36,104 @@ serve(async (req) => {
     // Build metrics message with at-risk clients
     let metricsMessage = `Dados do negócio para análise:\n\n${JSON.stringify(metricsData, null, 2)}`;
 
+    // ============================================================
+    // PRÉ-PROCESSAMENTO: Agrupar cadastros que pertencem ao mesmo cliente
+    // Regra: agrupa SOMENTE quando CPF/CNPJ + e-mail + telefone forem
+    // EXATAMENTE iguais (após normalização). Se algum dos 3 estiver vazio
+    // em qualquer um dos cadastros, NÃO agrupa.
+    // Não altera nada no banco — só enriquece o contexto enviado à IA.
+    // ============================================================
+    try {
+      const { data: allClientesRaw } = await supabase
+        .from("clientes")
+        .select("id, nome, cpf, email, numero, produto, valor, moeda, ciclo_cobranca, data_renovacao, cobranca_ativa, plano");
+
+      if (allClientesRaw && allClientesRaw.length > 0) {
+        const normalizeDigits = (v: any) => (v ? String(v).replace(/\D/g, "").trim() : "");
+        const normalizeEmail = (v: any) => (v ? String(v).toLowerCase().trim() : "");
+
+        const groupsMap = new Map<string, any[]>();
+        for (const c of allClientesRaw) {
+          const cpf = normalizeDigits(c.cpf);
+          const email = normalizeEmail(c.email);
+          const numero = normalizeDigits(c.numero);
+          // Só considera para agrupamento se TODOS os 3 estiverem preenchidos
+          if (!cpf || !email || !numero) continue;
+          const key = `${cpf}|${email}|${numero}`;
+          if (!groupsMap.has(key)) groupsMap.set(key, []);
+          groupsMap.get(key)!.push(c);
+        }
+
+        // Filtra apenas grupos com 2+ cadastros (cliente único multi-produto)
+        const CICLO_MESES: Record<string, number> = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
+        const consolidatedGroups: any[] = [];
+        for (const [, cadastros] of groupsMap) {
+          if (cadastros.length < 2) continue;
+          const principal = cadastros[0];
+          const mrrConsolidado = cadastros
+            .filter((c: any) => c.cobranca_ativa)
+            .reduce((acc: number, c: any) => {
+              const meses = CICLO_MESES[c.ciclo_cobranca] || 1;
+              return acc + (Number(c.valor) || 0) / meses;
+            }, 0);
+          const valorTotalAtivo = cadastros
+            .filter((c: any) => c.cobranca_ativa)
+            .reduce((acc: number, c: any) => acc + (Number(c.valor) || 0), 0);
+
+          consolidatedGroups.push({
+            nome: principal.nome,
+            cpf_cnpj: principal.cpf,
+            email: principal.email,
+            telefone: principal.numero,
+            quantidade_cadastros: cadastros.length,
+            mrr_consolidado: Number(mrrConsolidado.toFixed(2)),
+            valor_total_ativo: Number(valorTotalAtivo.toFixed(2)),
+            moeda_principal: principal.moeda || "BRL",
+            produtos: cadastros.map((c: any) => ({
+              produto: c.produto,
+              valor: c.valor,
+              moeda: c.moeda,
+              ciclo_cobranca: c.ciclo_cobranca,
+              data_renovacao: c.data_renovacao,
+              plano: c.plano,
+              cobranca_ativa: c.cobranca_ativa,
+            })),
+          });
+        }
+
+        if (consolidatedGroups.length > 0) {
+          // Ordena por MRR consolidado decrescente
+          consolidatedGroups.sort((a, b) => b.mrr_consolidado - a.mrr_consolidado);
+
+          metricsMessage += `
+
+============================================================
+🔗 CLIENTES AGRUPADOS (mesmo CPF/CNPJ + e-mail + telefone)
+============================================================
+Os cadastros abaixo foram pré-agrupados automaticamente porque possuem
+EXATAMENTE o mesmo CPF/CNPJ, e-mail e telefone. Trate cada grupo como
+UM ÚNICO CLIENTE com múltiplos produtos/assinaturas — NÃO sugira
+deduplicação ou "problema de organização" para esses casos. Eles são
+compras legítimas em datas diferentes do mesmo cliente.
+
+Use o "mrr_consolidado" para análises de risco, prioridade e LTV real.
+Quando se referir ao cliente nas recomendações, use o nome consolidado
+e mencione os produtos juntos (ex: "Ruberlanio — 3 produtos ativos,
+MRR R$ 1.184").
+
+Total de clientes consolidados detectados: ${consolidatedGroups.length}
+
+${JSON.stringify(consolidatedGroups, null, 2)}
+============================================================`;
+
+          console.log(`[reports-ai] Pré-processamento: ${consolidatedGroups.length} clientes consolidados detectados`);
+        }
+      }
+    } catch (groupErr: any) {
+      // Não bloqueia a análise se o agrupamento falhar
+      console.error("[reports-ai] Erro no pré-processamento de agrupamento:", groupErr.message);
+    }
+
     // If scheduled, fetch fresh data
     if (scheduled) {
       const { data: clientes } = await supabase
