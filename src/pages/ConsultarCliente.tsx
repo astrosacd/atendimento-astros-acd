@@ -79,7 +79,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
-  const { canViewSocialCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph } = usePermissions();
+  const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -760,32 +760,32 @@ export default function ConsultarCliente() {
                               </>
                             )}
                             {canViewSocialCredentials() && (
-                              <>
-                                <Button
-                                  onClick={() => {
-                                    setSocialClienteId(cliente.id);
-                                    setSocialClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-pink-500"
-                                  title="Social Media"
-                                >
-                                  <Lock className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  onClick={() => {
-                                    setServerClienteId(cliente.id);
-                                    setServerClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-blue-500"
-                                  title="Ferramentas / Servidores do cliente"
-                                >
-                                  <Server className="h-4 w-4" />
-                                </Button>
-                              </>
+                              <Button
+                                onClick={() => {
+                                  setSocialClienteId(cliente.id);
+                                  setSocialClienteName(cliente.nome);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-pink-500"
+                                title="Social Media"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canViewServerCredentials() && (
+                              <Button
+                                onClick={() => {
+                                  setServerClienteId(cliente.id);
+                                  setServerClienteName(cliente.nome);
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-blue-500"
+                                title="Ferramentas / Servidores do cliente"
+                              >
+                                <Server className="h-4 w-4" />
+                              </Button>
                             )}
                             {(isAdmin || canCreateWhatsAppGroups()) && (
                               <Button

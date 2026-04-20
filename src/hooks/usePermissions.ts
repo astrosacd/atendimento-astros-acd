@@ -127,6 +127,12 @@ export function usePermissions() {
   const canManageSocialCredentials = () => hasPermission('manage_social_credentials');
   const canShareSocialCredentials = () => hasPermission('share_social_credentials');
 
+  // Server / Tool credentials (Evolution, Chatwoot, n8n, VPS, etc.)
+  const canViewServerCredentials = () => hasPermission('view_server_credentials');
+  const canManageServerCredentials = () => hasPermission('manage_server_credentials');
+  const canShareServerCredentials = () => hasPermission('share_server_credentials');
+  const canManageServerToolTypes = () => hasPermission('manage_server_tool_types');
+
   // WhatsApp Groups
   const canCreateWhatsAppGroups = () => hasPermission('create_whatsapp_groups');
   const canFinalizeWhatsAppGroups = () => hasPermission('finalize_whatsapp_groups');
@@ -272,6 +278,7 @@ export function usePermissions() {
     canViewGuiaNumeros,
     canViewGuiaAvancado,
     canViewGuiaChamados,
+    canViewGuiaServidores: () => hasPermission('view_guia_servidores'),
     canViewGateway,
     canManageGatewayProducts,
     canManageGatewayOrders,
@@ -346,6 +353,11 @@ export function usePermissions() {
     canViewSocialCredentials,
     canManageSocialCredentials,
     canShareSocialCredentials,
+    // Server / Tool credentials
+    canViewServerCredentials,
+    canManageServerCredentials,
+    canShareServerCredentials,
+    canManageServerToolTypes,
     // WhatsApp Groups
     canCreateWhatsAppGroups,
     canFinalizeWhatsAppGroups,
