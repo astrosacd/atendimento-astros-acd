@@ -129,7 +129,8 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
   };
 
   const consultantPhonesArray = consultantPhones.split(',').map(p => p.trim()).filter(Boolean);
-  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && meetingType !== '' && (meetingType === 'online' || location.trim());
+  const physicalFieldsOk = meetingType !== 'physical' || (location.trim() && referencePoint.trim());
+  const isValid = title.trim() && description.trim() && startDate && startTime && endTime && !endTimeWarning && clientName.trim() && clientEmail.trim() && clientPhone.trim() && notes.trim() && consultantPhonesArray.length > 0 && meetingType !== '' && (meetingType === 'online' || location.trim()) && physicalFieldsOk;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
