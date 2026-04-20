@@ -198,20 +198,32 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // Clientes ativos no início do mês (criados antes e com renovação >= início do mês)
-      const clientesAtivosInicio = clientes.filter(c => {
+      // Agrupamento por CPF ou Nome para considerar "Empresa" ao invés de "Produto"
+      // Clientes ativos no início do mês (tinham pelo menos uma assinatura ativa)
+      const ativosInicio = new Set(clientes.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
+        // Estava ativo no início do mês: criado antes e renovação após o início
         return createdAt < monthStart && renovacao >= monthStart;
+      }).map(c => c.cpf || c.nome));
+
+      const clientesAtivosInicioCount = ativosInicio.size;
+
+      // Clientes que "saíram" no mês (não têm nenhuma assinatura ativa no fim do mês mas tinham no início)
+      const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
+        // Busca todas as assinaturas deste cliente
+        const assinaturasDoCliente = clientes.filter(c => (c.cpf || c.nome) === identificador);
+        
+        // Verifica se TODAS as assinaturas dele venceram no mês ou antes e nenhuma renovou após o fim do mês
+        const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
+          const renovacao = parseISO(c.data_renovacao);
+          return renovacao >= monthEnd;
+        });
+
+        return !temAssinaturaAtivaNoFim;
       }).length;
 
-      // Clientes que "saíram" no mês (renovação passou durante o mês e não renovaram)
-      const clientesPerdidos = clientes.filter(c => {
-        const renovacao = parseISO(c.data_renovacao);
-        return renovacao >= monthStart && renovacao <= monthEnd && renovacao < today;
-      }).length;
-
-      const taxaChurn = clientesAtivosInicio > 0 ? (clientesPerdidos / clientesAtivosInicio) * 100 : 0;
+      const taxaChurn = clientesAtivosInicioCount > 0 ? (perdidosNoMes / clientesAtivosInicioCount) * 100 : 0;
 
       months.push({
         month: monthKey,
