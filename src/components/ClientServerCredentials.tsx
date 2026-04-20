@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -24,7 +24,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   Plus, Eye, EyeOff, Pencil, Trash2, Server, Link2, Copy, Check,
-  Bot, Workflow,
+  Bot, Workflow, Cog, Database, Cloud, Globe, Settings,
+  type LucideIcon,
 } from 'lucide-react';
 import { buildCredentialNotes, parseCredentialNotes } from '@/utils/clientCredentials';
 
@@ -41,6 +42,15 @@ interface ServerCredential {
   updated_at: string;
 }
 
+interface ServerToolType {
+  id: string;
+  value: string;
+  label: string;
+  icon: string;
+  is_system: boolean;
+  created_by: string | null;
+}
+
 interface Props {
   clienteId: string;
   clienteName: string;
@@ -48,15 +58,11 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-const SERVER_PLATFORMS = [
-  { value: 'evolution', label: 'Evolution', icon: Bot, color: 'text-primary' },
-  { value: 'chatwoot', label: 'Chatwoot', icon: Bot, color: 'text-primary' },
-  { value: 'n8n', label: 'n8n', icon: Workflow, color: 'text-primary' },
-  { value: 'servidor', label: 'Servidor / VPS', icon: Server, color: 'text-primary' },
-  { value: 'outro-servidor', label: 'Outro servidor', icon: Server, color: 'text-muted-foreground' },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Bot, Workflow, Server, Cog, Database, Cloud, Globe, Settings,
+};
 
-const SERVER_PLATFORM_VALUES = new Set(SERVER_PLATFORMS.map(p => p.value));
+const ICON_OPTIONS = Object.keys(ICON_MAP);
 
 export function ClientServerCredentials({ clienteId, clienteName, open, onOpenChange }: Props) {
   const { user } = useAuth();
@@ -74,6 +80,13 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Manage Tool Types
+  const [showToolTypesDialog, setShowToolTypesDialog] = useState(false);
+  const [newToolValue, setNewToolValue] = useState('');
+  const [newToolLabel, setNewToolLabel] = useState('');
+  const [newToolIcon, setNewToolIcon] = useState('Server');
+  const [deleteToolId, setDeleteToolId] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     platform: 'evolution',
     login: '',
@@ -81,6 +94,23 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
     url: '',
     notes: '',
   });
+
+  // Load tool types from DB
+  const { data: toolTypes = [], isLoading: loadingTypes } = useQuery({
+    queryKey: ['server-tool-types'],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_server_tool_types' as any)
+        .select('*')
+        .order('is_system', { ascending: false })
+        .order('label', { ascending: true });
+      if (error) throw error;
+      return (data || []) as unknown as ServerToolType[];
+    },
+  });
+
+  const platformValues = useMemo(() => new Set(toolTypes.map(t => t.value)), [toolTypes]);
 
   const { data: allCredentials = [], isLoading } = useQuery({
     queryKey: ['social-credentials', clienteId],
@@ -96,8 +126,8 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
     },
   });
 
-  // Only server-tool credentials
-  const credentials = allCredentials.filter(c => SERVER_PLATFORM_VALUES.has(c.platform));
+  // Only server-tool credentials (whose platform exists in tool types)
+  const credentials = allCredentials.filter(c => platformValues.has(c.platform));
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -150,8 +180,54 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
     onError: (err: any) => toast.error(err.message),
   });
 
+  const createToolTypeMutation = useMutation({
+    mutationFn: async () => {
+      const value = newToolValue.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const label = newToolLabel.trim();
+      if (!value || !label) throw new Error('Preencha o nome da ferramenta');
+      const { error } = await supabase
+        .from('client_server_tool_types' as any)
+        .insert({
+          value,
+          label,
+          icon: newToolIcon,
+          is_system: false,
+          created_by: user?.id,
+        } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['server-tool-types'] });
+      toast.success('Ferramenta cadastrada!');
+      setNewToolValue('');
+      setNewToolLabel('');
+      setNewToolIcon('Server');
+    },
+    onError: (err: any) => {
+      if (err.code === '23505') toast.error('Já existe uma ferramenta com esse identificador');
+      else toast.error(err.message);
+    },
+  });
+
+  const deleteToolTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('client_server_tool_types' as any)
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['server-tool-types'] });
+      toast.success('Ferramenta removida');
+      setDeleteToolId(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const resetForm = () => {
-    setForm({ platform: 'evolution', login: '', password: '', url: '', notes: '' });
+    const defaultPlatform = toolTypes[0]?.value || 'evolution';
+    setForm({ platform: defaultPlatform, login: '', password: '', url: '', notes: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -204,7 +280,14 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
   };
 
   const getPlatformInfo = (value: string) => {
-    return SERVER_PLATFORMS.find(p => p.value === value) || SERVER_PLATFORMS[SERVER_PLATFORMS.length - 1];
+    const found = toolTypes.find(p => p.value === value);
+    if (found) return found;
+    return { id: '', value, label: value, icon: 'Server', is_system: false, created_by: null } as ServerToolType;
+  };
+
+  const renderIcon = (iconName: string, className?: string) => {
+    const Icon = ICON_MAP[iconName] || Server;
+    return <Icon className={className} />;
   };
 
   const normalizeUrl = (url: string) => {
@@ -225,7 +308,10 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
           </DialogHeader>
 
           {canManage && (
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShowToolTypesDialog(true)}>
+                <Cog className="h-4 w-4 mr-1" /> Ferramentas
+              </Button>
               <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
                 <Link2 className="h-4 w-4 mr-1" /> Gerar Link
               </Button>
@@ -235,7 +321,7 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
             </div>
           )}
 
-          {isLoading ? (
+          {isLoading || loadingTypes ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}
             </div>
@@ -253,7 +339,6 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
             <div className="space-y-3">
               {credentials.map(cred => {
                 const platform = getPlatformInfo(cred.platform);
-                const Icon = platform.icon;
                 const isVisible = visiblePasswords.has(cred.id);
                 const { url, notes } = parseCredentialNotes(cred.notes);
                 const accessUrl = normalizeUrl(url);
@@ -262,7 +347,7 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
+                          {renderIcon(platform.icon, 'h-5 w-5 shrink-0 text-primary')}
                           <div className="min-w-0 flex-1">
                             <span className="font-medium text-sm">{platform.label}</span>
                             <p className="text-xs text-muted-foreground truncate">Login: {cred.login}</p>
@@ -326,16 +411,27 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Tipo de ferramenta</Label>
+              <div className="flex items-center justify-between">
+                <Label>Tipo de ferramenta</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setShowToolTypesDialog(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Cadastrar nova
+                </Button>
+              </div>
               <Select value={form.platform} onValueChange={v => setForm(f => ({ ...f, platform: v }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SERVER_PLATFORMS.map(p => (
+                  {toolTypes.map(p => (
                     <SelectItem key={p.value} value={p.value}>
                       <span className="flex items-center gap-2">
-                        <p.icon className={`h-4 w-4 ${p.color}`} />
+                        {renderIcon(p.icon, 'h-4 w-4 text-primary')}
                         {p.label}
                       </span>
                     </SelectItem>
@@ -395,7 +491,124 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Manage Tool Types Dialog */}
+      <Dialog open={showToolTypesDialog} onOpenChange={setShowToolTypesDialog}>
+        <DialogContent className="w-[95vw] max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cog className="h-5 w-5 text-primary" />
+              Ferramentas cadastradas
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border p-3 space-y-3 bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Cadastre uma nova ferramenta para reutilizar nas credenciais dos clientes.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome de exibição</Label>
+                  <Input
+                    placeholder="Ex: Portainer"
+                    value={newToolLabel}
+                    onChange={e => setNewToolLabel(e.target.value)}
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Identificador</Label>
+                  <Input
+                    placeholder="Ex: portainer"
+                    value={newToolValue}
+                    onChange={e => setNewToolValue(e.target.value)}
+                    maxLength={50}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ícone</Label>
+                <Select value={newToolIcon} onValueChange={setNewToolIcon}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ICON_OPTIONS.map(name => (
+                      <SelectItem key={name} value={name}>
+                        <span className="flex items-center gap-2">
+                          {renderIcon(name, 'h-4 w-4 text-primary')}
+                          {name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={() => createToolTypeMutation.mutate()}
+                disabled={!newToolLabel || !newToolValue || createToolTypeMutation.isPending}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {createToolTypeMutation.isPending ? 'Cadastrando...' : 'Cadastrar ferramenta'}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Existentes</Label>
+              {toolTypes.map(t => (
+                <div key={t.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {renderIcon(t.icon, 'h-4 w-4 text-primary shrink-0')}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{t.label}</p>
+                      <p className="text-xs text-muted-foreground truncate">{t.value}</p>
+                    </div>
+                  </div>
+                  {t.is_system ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                      sistema
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive shrink-0"
+                      onClick={() => setDeleteToolId(t.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Tool Type Confirmation */}
+      <AlertDialog open={!!deleteToolId} onOpenChange={() => setDeleteToolId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover ferramenta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Credenciais já cadastradas com este tipo continuarão existindo, mas o tipo deixará de aparecer no seletor.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteToolId && deleteToolTypeMutation.mutate(deleteToolId)}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Credential Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -447,21 +660,25 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
                 <div className="flex gap-2">
                   <Input value={generatedLink} readOnly className="text-xs" />
                   <Button size="icon" variant="outline" onClick={copyLink}>
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Quem acessar este link poderá ver as credenciais (sociais e ferramentas) deste cliente em modo somente leitura.
+                  Compartilhe este link com quem precisa acessar as credenciais. O link expirará automaticamente.
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fechar</Button>
-            {!generatedLink && (
-              <Button onClick={generateShareLink}>
-                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
-              </Button>
+            {!generatedLink ? (
+              <>
+                <Button variant="outline" onClick={() => setShowShareDialog(false)}>Cancelar</Button>
+                <Button onClick={generateShareLink}>
+                  <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => setShowShareDialog(false)}>Fechar</Button>
             )}
           </DialogFooter>
         </DialogContent>
