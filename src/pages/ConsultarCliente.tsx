@@ -73,7 +73,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
-  const { canViewSocialCredentials, canCreateWhatsAppGroups, canViewClientAI } = usePermissions();
+  const { canViewSocialCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -723,18 +723,20 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  onClick={() => {
-                                    setGraphClienteId(cliente.id);
-                                    setGraphClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-cyan-500"
-                                  title="Grafo de Conexões 360°"
-                                >
-                                  <Network className="h-4 w-4" />
-                                </Button>
+                                {canViewClientGraph() && (
+                                  <Button
+                                    onClick={() => {
+                                      setGraphClienteId(cliente.id);
+                                      setGraphClienteName(cliente.nome);
+                                    }}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-cyan-500"
+                                    title="Mapa de Conexões 360°"
+                                  >
+                                    <Network className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 {canViewClientAI() && (
                                   <Button
                                     onClick={() => {
