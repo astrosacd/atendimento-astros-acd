@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 interface CreateLeadRequest {
-  module: 'proposals' | 'followups' | 'recovery' | 'billing';
+  module: 'proposals' | 'followups' | 'recovery' | 'billing' | 'agenda';
   event: string;
   lead_name: string;
   lead_phone: string;
@@ -37,6 +37,10 @@ const EVENT_ALIASES: Record<ModuleName, Record<string, string>> = {
   recovery: {
     'recovery.novo_registro': 'recovery.registro',
     'recovery.inadimplencia': 'recovery.inadimplente',
+  },
+  agenda: {
+    'agenda.online': 'agenda.online',
+    'agenda.presencial': 'agenda.presencial',
   },
 };
 
@@ -89,7 +93,7 @@ serve(async (req: Request) => {
     }
 
     // Validate module
-    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery' && module !== 'billing') {
+    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery' && module !== 'billing' && module !== 'agenda') {
       return new Response(JSON.stringify({ error: "Invalid module" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
