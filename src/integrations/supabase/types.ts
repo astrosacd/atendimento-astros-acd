@@ -1647,6 +1647,39 @@ export type Database = {
         }
         Relationships: []
       }
+      client_server_tool_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          icon: string
+          id: string
+          is_system: boolean
+          label: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          icon?: string
+          id?: string
+          is_system?: boolean
+          label: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          icon?: string
+          id?: string
+          is_system?: boolean
+          label?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       client_social_credentials: {
         Row: {
           cliente_id: string
