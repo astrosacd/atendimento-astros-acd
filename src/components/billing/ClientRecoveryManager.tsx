@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 
 interface Cliente {
   id: string;
@@ -345,21 +346,7 @@ export const ClientRecoveryManager = () => {
   };
 
   // Check if a number is international (not Brazilian)
-  const isInternationalNumber = (numero: string) => {
-    if (!numero) return false;
-    const clean = numero.replace(/\D/g, '');
-    
-    // Brazilian numbers start with 55 and have 12-13 digits
-    if (clean.startsWith('55') && (clean.length === 12 || clean.length === 13)) return false;
-    
-    // Local Brazilian numbers (without 55) have 10-11 digits and don't start with '1' (US/Canada DDI)
-    if (!clean.startsWith('55') && (clean.length === 10 || clean.length === 11) && !clean.startsWith('1')) {
-      return false;
-    }
-    
-    // If it's outside the standard Brazilian formats or starts with a different country code, it's international
-    return true;
-  };
+  const isInternationalNumber = (numero: string) => isInternationalPhoneNumber(numero);
 
   // Check if the client has a WhatsApp error (number doesn't exist)
   const hasWhatsAppError = (clienteId: string) => {
