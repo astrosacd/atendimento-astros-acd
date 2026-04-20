@@ -23,21 +23,17 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
-  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Instagram, Facebook, Twitter, Youtube, Globe, Link2, Copy, Check,
+  Plus, Eye, EyeOff, Pencil, Trash2, Lock, Link2, Copy, Check,
   Upload, Image, Download, X,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const PLATFORMS = [
-  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-500' },
-  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'text-blue-600' },
-  { value: 'twitter', label: 'Twitter / X', icon: Twitter, color: 'text-sky-500' },
-  { value: 'threads', label: 'Threads', icon: Globe, color: 'text-foreground' },
-  { value: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
-  { value: 'tiktok', label: 'TikTok', icon: Globe, color: 'text-foreground' },
-  { value: 'linkedin', label: 'LinkedIn', icon: Globe, color: 'text-blue-700' },
-  { value: 'outro', label: 'Outro', icon: Globe, color: 'text-muted-foreground' },
-];
+import {
+  buildCredentialNotes,
+  getClientCredentialPlatform,
+  isServerCredentialPlatform,
+  parseCredentialNotes,
+  CLIENT_CREDENTIAL_PLATFORMS,
+} from '@/utils/clientCredentials';
 
 interface SocialCredential {
   id: string;
@@ -95,6 +91,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
     platform: 'instagram',
     login: '',
     password: '',
+    url: '',
     notes: '',
   });
 
@@ -138,7 +135,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
             platform: form.platform,
             login: form.login,
             encrypted_password: form.password,
-            notes: form.notes || null,
+            notes: buildCredentialNotes(form.url, form.notes),
             updated_by: user?.id,
           } as any)
           .eq('id', editingId);
@@ -151,7 +148,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
             platform: form.platform,
             login: form.login,
             encrypted_password: form.password,
-            notes: form.notes || null,
+            notes: buildCredentialNotes(form.url, form.notes),
             created_by: user?.id,
           } as any);
         if (error) throw error;
@@ -195,7 +192,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
   });
 
   const resetForm = () => {
-    setForm({ platform: 'instagram', login: '', password: '', notes: '' });
+    setForm({ platform: 'instagram', login: '', password: '', url: '', notes: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -280,11 +277,13 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
   };
 
   const startEdit = (cred: SocialCredential) => {
+    const { url, notes } = parseCredentialNotes(cred.notes);
     setForm({
       platform: cred.platform,
       login: cred.login,
       password: cred.encrypted_password,
-      notes: cred.notes || '',
+      url,
+      notes,
     });
     setEditingId(cred.id);
     setShowForm(true);
@@ -299,8 +298,113 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
     });
   };
 
-  const getPlatformInfo = (value: string) =>
-    PLATFORMS.find(p => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
+  const getPlatformInfo = (value: string) => getClientCredentialPlatform(value);
+
+  const socialCredentials = credentials.filter((cred) => !isServerCredentialPlatform(cred.platform));
+  const serverCredentials = credentials.filter((cred) => isServerCredentialPlatform(cred.platform));
+  const selectedPlatformIsServer = isServerCredentialPlatform(form.platform);
+
+  const normalizeCredentialUrl = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
+
+  const renderCredentialSection = (
+    sectionTitle: string,
+    sectionDescription: string,
+    items: SocialCredential[],
+    emptyMessage: string,
+  ) => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">{sectionTitle}</h3>
+          <p className="text-xs text-muted-foreground">{sectionDescription}</p>
+        </div>
+        <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          {items.length}
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <Card>
+          <CardContent className="py-6 text-center text-muted-foreground">
+            <Lock className="h-7 w-7 mx-auto mb-2 opacity-50" />
+            <p>{emptyMessage}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {items.map((cred) => {
+            const platform = getPlatformInfo(cred.platform);
+            const Icon = platform.icon;
+            const isVisible = visiblePasswords.has(cred.id);
+            const { url, notes } = parseCredentialNotes(cred.notes);
+            const accessUrl = normalizeCredentialUrl(url);
+
+            return (
+              <Card key={cred.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{platform.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">Login: {cred.login}</p>
+                        {url && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            URL:{' '}
+                            <a
+                              href={accessUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline underline-offset-2"
+                            >
+                              {url}
+                            </a>
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs text-muted-foreground">Senha:</span>
+                          <span className="text-xs font-mono">
+                            {isVisible ? cred.encrypted_password : '••••••••'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => togglePasswordVisibility(cred.id)}
+                          >
+                            {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                        {notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">📝 {notes}</p>
+                        )}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(cred)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(cred.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -309,7 +413,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
-              Credenciais Social Media — {clienteName}
+              Credenciais do Cliente — {clienteName}
             </DialogTitle>
           </DialogHeader>
 
@@ -337,7 +441,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
 
               {isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2].map(i => <Skeleton key={i} className="h-16" />)}
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16" />)}
                 </div>
               ) : credentials.length === 0 ? (
                 <Card>
@@ -350,59 +454,19 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  {credentials.map(cred => {
-                    const platform = getPlatformInfo(cred.platform);
-                    const Icon = platform.icon;
-                    const isVisible = visiblePasswords.has(cred.id);
-
-                    return (
-                      <Card key={cred.id}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-medium text-sm">{platform.label}</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  Login: {cred.login}
-                                </p>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span className="text-xs text-muted-foreground">Senha:</span>
-                                  <span className="text-xs font-mono">
-                                    {isVisible ? cred.encrypted_password : '••••••••'}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5"
-                                    onClick={() => togglePasswordVisibility(cred.id)}
-                                  >
-                                    {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                  </Button>
-                                </div>
-                                {cred.notes && (
-                                  <p className="text-xs text-muted-foreground mt-1 italic">📝 {cred.notes}</p>
-                                )}
-                              </div>
-                            </div>
-                            {canManage && (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(cred)}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(cred.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                <div className="space-y-5">
+                  {renderCredentialSection(
+                    'Social Media',
+                    'Instagram, Facebook, YouTube e outras contas sociais.',
+                    socialCredentials,
+                    'Nenhuma credencial de social media cadastrada.',
+                  )}
+                  {renderCredentialSection(
+                    'Servidores e ferramentas',
+                    'Evolution, Chatwoot, n8n, VPS e outros acessos técnicos.',
+                    serverCredentials,
+                    'Nenhuma credencial de servidor cadastrada.',
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -516,13 +580,13 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Plataforma</Label>
+              <Label>Tipo de acesso</Label>
               <Select value={form.platform} onValueChange={v => setForm(f => ({ ...f, platform: v }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PLATFORMS.map(p => (
+                  {CLIENT_CREDENTIAL_PLATFORMS.map(p => (
                     <SelectItem key={p.value} value={p.value}>
                       <span className="flex items-center gap-2">
                         <p.icon className={`h-4 w-4 ${p.color}`} />
@@ -534,12 +598,22 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Login (e-mail ou usuário)</Label>
+              <Label>{selectedPlatformIsServer ? 'Login / usuário técnico' : 'Login (e-mail ou usuário)'}</Label>
               <Input
                 value={form.login}
                 onChange={e => setForm(f => ({ ...f, login: e.target.value }))}
-                placeholder="usuario@email.com ou @usuario"
+                placeholder={selectedPlatformIsServer ? 'admin, root, suporte@...' : 'usuario@email.com ou @usuario'}
                 maxLength={200}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>URL de acesso {selectedPlatformIsServer ? '(recomendado)' : '(opcional)'}</Label>
+              <Input
+                type="url"
+                value={form.url}
+                onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+                placeholder={selectedPlatformIsServer ? 'https://painel.cliente.com' : 'https://instagram.com/cliente'}
+                maxLength={300}
               />
             </div>
             <div className="space-y-2">
@@ -548,7 +622,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                 type="text"
                 value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder="Senha da conta"
+                placeholder={selectedPlatformIsServer ? 'Senha do painel / servidor' : 'Senha da conta'}
                 maxLength={200}
               />
             </div>
@@ -557,7 +631,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
               <Textarea
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Ex: conta principal, perfil da empresa..."
+                placeholder={selectedPlatformIsServer ? 'Ex: ambiente do cliente, porta, observações técnicas...' : 'Ex: conta principal, perfil da empresa...'}
                 maxLength={500}
                 rows={2}
               />
@@ -653,7 +727,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Quem acessar este link poderá ver as credenciais deste cliente (somente leitura).
+                  Quem acessar este link poderá ver as credenciais sociais e de servidores deste cliente em modo somente leitura.
                 </p>
               </div>
             )}
