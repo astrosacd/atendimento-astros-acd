@@ -34,6 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface ApiKey {
   id: string;
@@ -184,7 +185,7 @@ const AdminApiKeys = () => {
   };
 
   const copyToClipboard = (text: string, keyId: string) => {
-    navigator.clipboard.writeText(text);
+    __copyToClipboard(text);
     setCopiedKey(keyId);
     setTimeout(() => setCopiedKey(null), 2000);
     toast({ title: "Copiado!" });

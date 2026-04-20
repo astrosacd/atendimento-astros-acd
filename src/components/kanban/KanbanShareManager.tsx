@@ -9,6 +9,7 @@ import { Share2, Copy, Trash2, Calendar, Link as LinkIcon, Loader2, ExternalLink
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSiteUrl } from '@/hooks/useSiteUrl';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface ShareLink {
   id: string;
@@ -95,7 +96,7 @@ export function KanbanShareManager() {
   const copyLink = (token: string) => {
     const baseUrl = (typeof siteUrl === 'string' ? siteUrl : (siteUrl as any)?.url) || window.location.origin;
     const url = `${baseUrl.replace(/\/+$/, '')}/public/pipeline/${token}`;
-    navigator.clipboard.writeText(url);
+    __copyToClipboard(url);
     toast.success('Link copiado para a área de transferência!');
   };
 

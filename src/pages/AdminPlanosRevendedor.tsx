@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
   Plus, 
   Package, 
   Settings, 
@@ -221,7 +222,7 @@ const AdminPlanosRevendedor = () => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    __copyToClipboard(text);
   };
 
   const planoFerramentas = selectedPlano 

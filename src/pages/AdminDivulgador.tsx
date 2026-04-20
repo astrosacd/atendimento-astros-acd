@@ -51,6 +51,7 @@ import { CronConfigCard } from '@/components/divulgador/CronConfigCard';
 import { InactiveParticipantsManager } from '@/components/divulgador/InactiveParticipantsManager';
 import { AllParticipantsManager } from '@/components/divulgador/AllParticipantsManager';
 import { PollResultsHistory } from '@/components/divulgador/PollResultsHistory';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 export default function AdminDivulgador() {
   const navigate = useNavigate();
@@ -736,7 +737,7 @@ export default function AdminDivulgador() {
       });
       if (error) throw error;
       if (data?.inviteLink) {
-        navigator.clipboard.writeText(data.inviteLink);
+        __copyToClipboard(data.inviteLink);
         toast.success('Link gerado e copiado!');
         queryClient.invalidateQueries({ queryKey: ['divulgador-groups'] });
       } else {
@@ -1480,7 +1481,7 @@ export default function AdminDivulgador() {
                             size="icon"
                             className="h-6 w-6 shrink-0"
                             onClick={() => {
-                              navigator.clipboard.writeText(webhookStatus.expectedUrl);
+                              __copyToClipboard(webhookStatus.expectedUrl);
                               toast.success('URL copiada!');
                             }}
                           >
@@ -1780,7 +1781,7 @@ export default function AdminDivulgador() {
                             </TableCell>
                             <TableCell>
                               {group.invite_link ? (
-                                <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(group.invite_link); toast.success('Link copiado!'); }}>
+                                <Button variant="ghost" size="sm" onClick={() => { __copyToClipboard(group.invite_link); toast.success('Link copiado!'); }}>
                                   <Copy className="h-3 w-3 mr-1" />Copiar
                                 </Button>
                               ) : (

@@ -5,13 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen, ExternalLink, Copy, Code, Webhook, Key, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 const AdminChamadosGuia = () => {
   const navigate = useNavigate();
   const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    __copyToClipboard(text);
     toast.success('Copiado!');
   };
 

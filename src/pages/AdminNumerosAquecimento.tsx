@@ -61,6 +61,7 @@ import {
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { toast } from 'sonner';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 // Color map for status badges
 const statusColorMap: Record<string, string> = {
@@ -1843,7 +1844,7 @@ function ApiKeyCard({
           size="icon" 
           className="h-8 w-8"
           onClick={() => {
-            navigator.clipboard.writeText(apiKey.api_key);
+            __copyToClipboard(apiKey.api_key);
             toast.success('API Key copiada');
           }}
         >
@@ -1861,7 +1862,7 @@ function CurlBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    __copyToClipboard(code);
     setCopied(true);
     toast.success('Curl copiado!');
     setTimeout(() => setCopied(false), 2000);
@@ -1904,7 +1905,7 @@ function ApiDocumentation() {
             size="icon"
             className="absolute top-2 right-2 h-7 w-7 bg-background/80 hover:bg-background border-border/50"
             onClick={() => {
-              navigator.clipboard.writeText(baseUrl);
+              __copyToClipboard(baseUrl);
               toast.success('URL copiada!');
             }}
           >

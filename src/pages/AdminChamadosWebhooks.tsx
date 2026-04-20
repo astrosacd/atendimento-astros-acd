@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Webhook, Plus, Trash2, Eye, EyeOff, RefreshCw, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 const EVENTOS = [
   { value: 'chamado.criado', label: 'Chamado Criado' },
@@ -283,7 +284,7 @@ const AdminChamadosWebhooks = () => {
                                 size="icon"
                                 className="h-6 w-6"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(webhook.secret_key);
+                                  __copyToClipboard(webhook.secret_key);
                                   toast.success('Secret copiado!');
                                 }}
                               >

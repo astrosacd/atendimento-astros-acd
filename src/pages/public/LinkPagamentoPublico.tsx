@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
   Link2, Copy, ExternalLink, Loader2, ShieldX, Clock, Search, Plus, XCircle
 } from 'lucide-react';
 
@@ -138,7 +139,7 @@ export default function LinkPagamentoPublico() {
   };
 
   const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
+    __copyToClipboard(url);
     toast.success('Link copiado!');
   };
 
