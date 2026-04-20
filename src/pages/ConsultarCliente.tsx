@@ -780,7 +780,7 @@ export default function ConsultarCliente() {
                                   }}
                                   variant="ghost"
                                   size="sm"
-                                  className="text-muted-foreground hover:text-primary"
+                                  className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
                                   title="Ferramentas / Servidores do cliente"
                                 >
                                   <Server className="h-4 w-4" />
