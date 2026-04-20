@@ -303,13 +303,13 @@ export default function Dashboard() {
         // Calculate Churn Rate (last 30 days) - Customer Centric (Unique CPF/Nome)
         const { data: allHistory } = await supabase
           .from('client_history')
-          .select('client_id, created_at')
+          .select('cliente_id, created_at')
           .eq('action', 'update')
           .contains('changed_fields', ['cobranca_ativa'])
           .gte('created_at', thirtyDaysAgo.toISOString());
         
         // Get unique clients who canceled at least one subscription
-        const uniqueCanceledIds = new Set(allHistory?.map(h => h.client_id));
+        const uniqueCanceledIds = new Set(allHistory?.map(h => h.cliente_id));
         
         // Of those, find who has NO active subscriptions now
         let lostCustomersCount = 0;
