@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +40,7 @@ import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
 import { ClientConnectionGraph } from '@/components/ClientConnectionGraph';
 import { ClientAIInsights } from '@/components/ClientAIInsights';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
+import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
@@ -73,6 +74,8 @@ export default function ConsultarCliente() {
   const [aiClienteName, setAiClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
+  const [serverClienteId, setServerClienteId] = useState<string | null>(null);
+  const [serverClienteName, setServerClienteName] = useState<string>('');
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
@@ -757,18 +760,32 @@ export default function ConsultarCliente() {
                               </>
                             )}
                             {canViewSocialCredentials() && (
-                              <Button
-                                onClick={() => {
-                                  setSocialClienteId(cliente.id);
-                                  setSocialClienteName(cliente.nome);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-pink-500"
-                                title="Credenciais do Cliente"
-                              >
-                                <Lock className="h-4 w-4" />
-                              </Button>
+                              <>
+                                <Button
+                                  onClick={() => {
+                                    setSocialClienteId(cliente.id);
+                                    setSocialClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-pink-500"
+                                  title="Social Media"
+                                >
+                                  <Lock className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    setServerClienteId(cliente.id);
+                                    setServerClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-primary"
+                                  title="Ferramentas / Servidores do cliente"
+                                >
+                                  <Server className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                             {(isAdmin || canCreateWhatsAppGroups()) && (
                               <Button
@@ -1099,6 +1116,14 @@ export default function ConsultarCliente() {
           clienteName={socialClienteName}
           open={!!socialClienteId}
           onOpenChange={() => setSocialClienteId(null)}
+        />
+
+        {/* Server / Tools Credentials */}
+        <ClientServerCredentials
+          clienteId={serverClienteId || ''}
+          clienteName={serverClienteName}
+          open={!!serverClienteId}
+          onOpenChange={() => setServerClienteId(null)}
         />
 
         {/* WhatsApp Group Creation */}
