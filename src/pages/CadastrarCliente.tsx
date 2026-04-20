@@ -798,6 +798,35 @@ export default function CadastrarCliente() {
                   </p>
                 )}
               </div>
+
+              {dupCheck.hasAnyDuplicate && (
+                <div className="space-y-3 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                        Atenção: cliente possivelmente duplicado
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Encontramos cadastro(s) com os mesmos dados. Confira se realmente deseja criar um novo cadastro:
+                      </p>
+                    </div>
+                  </div>
+                  <DuplicateClientWarning matches={dupCheck.allMatches()} />
+                  <label className="flex items-start gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={duplicateAcknowledged}
+                      onChange={(e) => setDuplicateAcknowledged(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-border accent-amber-500 cursor-pointer"
+                    />
+                    <span className="text-foreground">
+                      Estou ciente e quero criar um <strong>novo cadastro</strong> mesmo assim.
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <div className="flex justify-center gap-4">
                 <Button 
                   onClick={handleConfirm}
@@ -806,7 +835,7 @@ export default function CadastrarCliente() {
                       ? 'bg-amber-500 text-white hover:bg-amber-600' 
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}
-                  disabled={isLoading || isUploading}
+                  disabled={isLoading || isUploading || (dupCheck.hasAnyDuplicate && !duplicateAcknowledged)}
                 >
                   <Check className="w-4 h-4 mr-2" />
                   {isLoading || isUploading ? 'Salvando...' : 'Confirmar'}
