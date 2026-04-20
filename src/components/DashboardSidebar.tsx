@@ -366,15 +366,17 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         )}
       </div>
 
-      {/* Toggle Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleToggle}
-        className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-card shadow-md hover:bg-muted transition-colors z-30"
-      >
-        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-      </Button>
+      {/* Toggle Button - escondido em mobile */}
+      {!isMobile && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleToggle}
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-card shadow-md hover:bg-muted transition-colors z-30"
+        >
+          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </Button>
+      )}
 
       {/* User Info */}
       <div className={cn(
