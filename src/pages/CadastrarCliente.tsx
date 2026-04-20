@@ -84,6 +84,8 @@ export default function CadastrarCliente() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
     const fetchTags = async () => {
