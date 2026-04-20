@@ -12,6 +12,9 @@ import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCPFOrCNPJ, formatPhone } from '@/utils/formatters';
+import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 import {
   Sheet,
   SheetContent,

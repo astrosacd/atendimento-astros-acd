@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { isInternationalPhoneNumber } from '@/utils/phoneInternational';
 
 interface Cliente {
   id: string;
