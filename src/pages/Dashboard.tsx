@@ -300,16 +300,32 @@ export default function Dashboard() {
       let churnRate = 0;
 
       if (isAdmin) {
-        // Calculate Churn Rate (last 30 days)
-        const { data: cancellations } = await supabase
+        // Calculate Churn Rate (last 30 days) - Customer Centric (Unique CPF/Nome)
+        const { data: allHistory } = await supabase
           .from('client_history')
-          .select('id')
+          .select('cliente_id, created_at')
           .eq('action', 'update')
           .contains('changed_fields', ['cobranca_ativa'])
           .gte('created_at', thirtyDaysAgo.toISOString());
         
-        const canceledCount = cancellations?.length || 0;
-        churnRate = clientesRecorrentes > 0 ? (canceledCount / (clientesRecorrentes + canceledCount)) * 100 : 0;
+        // Get unique clients who canceled at least one subscription
+        const uniqueCanceledIds = new Set(allHistory?.map(h => h.cliente_id));
+        
+        // Of those, find who has NO active subscriptions now
+        let lostCustomersCount = 0;
+        for (const clientId of uniqueCanceledIds) {
+          const clientData = clientes?.find(c => c.id === clientId);
+          if (clientData) {
+            const identifier = clientData.cpf || clientData.nome;
+            const hasOtherActive = clientes?.some(c => (c.cpf || c.nome) === identifier && c.cobranca_ativa === true);
+            if (!hasOtherActive) {
+              lostCustomersCount++;
+            }
+          }
+        }
+        
+        const uniqueActiveCount = new Set(clientes?.filter(c => c.cobranca_ativa === true).map(c => c.cpf || c.nome)).size;
+        churnRate = uniqueActiveCount > 0 ? (lostCustomersCount / (uniqueActiveCount + lostCustomersCount)) * 100 : 0;
 
         const { count: pending } = await supabase
           .from('profiles')

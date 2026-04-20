@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface ClienteData {
   id: string;
   nome: string;
+  cpf: string | null;
   created_at: string;
   data_renovacao: string;
   valor: number;
@@ -81,8 +82,8 @@ export default function AdminRelatorios() {
     try {
       // Busca clientes recorrentes, clientes registro e histórico de compras
       const [clientesRecorrentesRes, clientesRegistroRes, clientesSemValorRes, purchasesRes, ordersRes, eventsRes] = await Promise.all([
-        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
-        supabase.from('clientes').select('id, nome, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
+        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', true),
+        supabase.from('clientes').select('id, nome, cpf, created_at, data_renovacao, valor, ciclo_cobranca, moeda, plano').eq('cobranca_ativa', false).gt('valor', 0),
         supabase.from('clientes').select('id', { count: 'exact', head: true }).eq('cobranca_ativa', false).or('valor.is.null,valor.eq.0'),
         supabase.from('client_purchases').select('valor, moeda, cliente_id'),
         supabase.from('gateway_orders').select('id, created_at, status, total, currency').gte('created_at', dataInicio),
@@ -198,20 +199,32 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      // Clientes ativos no início do mês (criados antes e com renovação >= início do mês)
-      const clientesAtivosInicio = clientes.filter(c => {
+      // Agrupamento por CPF ou Nome para considerar "Empresa" ao invés de "Produto"
+      // Clientes ativos no início do mês (tinham pelo menos uma assinatura ativa)
+      const ativosInicio = new Set(clientes.filter(c => {
         const createdAt = parseISO(c.created_at);
         const renovacao = parseISO(c.data_renovacao);
+        // Estava ativo no início do mês: criado antes e renovação após o início
         return createdAt < monthStart && renovacao >= monthStart;
+      }).map(c => c.cpf || c.nome));
+
+      const clientesAtivosInicioCount = ativosInicio.size;
+
+      // Clientes que "saíram" no mês (não têm nenhuma assinatura ativa no fim do mês mas tinham no início)
+      const perdidosNoMes = Array.from(ativosInicio).filter(identificador => {
+        // Busca todas as assinaturas deste cliente
+        const assinaturasDoCliente = clientes.filter(c => (c.cpf || c.nome) === identificador);
+        
+        // Verifica se TODAS as assinaturas dele venceram no mês ou antes e nenhuma renovou após o fim do mês
+        const temAssinaturaAtivaNoFim = assinaturasDoCliente.some(c => {
+          const renovacao = parseISO(c.data_renovacao);
+          return renovacao >= monthEnd;
+        });
+
+        return !temAssinaturaAtivaNoFim;
       }).length;
 
-      // Clientes que "saíram" no mês (renovação passou durante o mês e não renovaram)
-      const clientesPerdidos = clientes.filter(c => {
-        const renovacao = parseISO(c.data_renovacao);
-        return renovacao >= monthStart && renovacao <= monthEnd && renovacao < today;
-      }).length;
-
-      const taxaChurn = clientesAtivosInicio > 0 ? (clientesPerdidos / clientesAtivosInicio) * 100 : 0;
+      const taxaChurn = clientesAtivosInicioCount > 0 ? (perdidosNoMes / clientesAtivosInicioCount) * 100 : 0;
 
       months.push({
         month: monthKey,
@@ -383,10 +396,10 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      const novos = clientes.filter(c => {
+      const novos = new Set(clientes.filter(c => {
         const createdAt = parseISO(c.created_at);
         return createdAt >= monthStart && createdAt <= monthEnd;
-      }).length;
+      }).map(c => c.cpf || c.nome)).size;
 
       months.push({
         month: monthKey,
