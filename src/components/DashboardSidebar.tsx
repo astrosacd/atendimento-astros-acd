@@ -164,7 +164,7 @@ interface DashboardSidebarProps {
   isMobile?: boolean;
 }
 
-export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange, mobileOpen = false, onMobileClose, isMobile = false }: DashboardSidebarProps) {
+export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange, mobileOpen = false, onMobileClose: _onMobileClose, isMobile = false }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
