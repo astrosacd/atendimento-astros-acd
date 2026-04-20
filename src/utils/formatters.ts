@@ -1,5 +1,6 @@
 // Format CPF: 000.000.000-00
-export const formatCPF = (value: string): string => {
+export const formatCPF = (value: string | null | undefined): string => {
+  if (!value) return '';
   const digits = value.replace(/\D/g, '').slice(0, 11);
   
   if (digits.length <= 3) return digits;
@@ -9,7 +10,8 @@ export const formatCPF = (value: string): string => {
 };
 
 // Format CNPJ: 00.000.000/0000-00
-export const formatCNPJ = (value: string): string => {
+export const formatCNPJ = (value: string | null | undefined): string => {
+  if (!value) return '';
   const digits = value.replace(/\D/g, '').slice(0, 14);
   
   if (digits.length <= 2) return digits;
@@ -20,7 +22,8 @@ export const formatCNPJ = (value: string): string => {
 };
 
 // Auto-detect and format CPF or CNPJ
-export const formatCPFOrCNPJ = (value: string): string => {
+export const formatCPFOrCNPJ = (value: string | null | undefined): string => {
+  if (!value) return '';
   const digits = value.replace(/\D/g, '');
   
   if (digits.length <= 11) {
@@ -92,7 +95,8 @@ export const parseCurrency = (value: string): number => {
 };
 
 // Format phone with DDI support: (DDI) (DD) 00000-0000
-export const formatPhone = (value: string): string => {
+export const formatPhone = (value: string | null | undefined): string => {
+  if (!value) return '';
   const digits = value.replace(/\D/g, '');
   
   if (!digits) return '';
@@ -152,6 +156,7 @@ export const formatPhone = (value: string): string => {
 };
 
 // Remove formatting and get raw digits
-export const unformat = (value: string): string => {
+export const unformat = (value: string | null | undefined): string => {
+  if (!value) return '';
   return value.replace(/\D/g, '');
 };

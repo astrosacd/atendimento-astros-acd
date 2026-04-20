@@ -23,8 +23,8 @@ const clienteSchema = z.object({
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
   produto: z.string().min(2, 'Produto é obrigatório'),
   data_renovacao: z.string().min(1, 'Data de renovação é obrigatória'),
-  email: z.string().email('Email inválido'),
-  cpf: z.string().min(11, 'CPF/CNPJ deve ter pelo menos 11 dígitos'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  cpf: z.string().optional().or(z.literal('')),
   plano: z.string().optional(),
   valor: z.number().positive('Valor deve ser maior que zero'),
   moeda: z.enum(['BRL', 'USD'], { required_error: 'Moeda é obrigatória' }),
@@ -34,8 +34,8 @@ const clienteVitalicioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
   produto: z.string().min(2, 'Produto é obrigatório'),
-  email: z.string().email('Email inválido'),
-  cpf: z.string().min(11, 'CPF/CNPJ deve ter pelo menos 11 dígitos'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  cpf: z.string().optional().or(z.literal('')),
   valor: z.number().min(0, 'Valor deve ser zero ou maior'),
   moeda: z.enum(['BRL', 'USD']).optional(),
 });
@@ -456,7 +456,6 @@ export default function CadastrarCliente() {
                     value={formatCPFOrCNPJ(formData.cpf)}
                     onChange={(e) => setFormData({ ...formData, cpf: unformat(e.target.value) })}
                     className="bg-secondary border-border text-foreground h-11"
-                    required
                   />
                 </div>
 
@@ -469,7 +468,6 @@ export default function CadastrarCliente() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="bg-secondary border-border text-foreground h-11"
-                    required
                   />
                 </div>
 
@@ -481,7 +479,6 @@ export default function CadastrarCliente() {
                     value={formData.produto}
                     onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
                     className="bg-secondary border-border text-foreground h-11"
-                    required
                   />
                 </div>
 
