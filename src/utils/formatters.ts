@@ -95,7 +95,8 @@ export const parseCurrency = (value: string): number => {
 };
 
 // Format phone with DDI support: (DDI) (DD) 00000-0000
-export const formatPhone = (value: string): string => {
+export const formatPhone = (value: string | null | undefined): string => {
+  if (!value) return '';
   const digits = value.replace(/\D/g, '');
   
   if (!digits) return '';
