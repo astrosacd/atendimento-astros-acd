@@ -161,7 +161,7 @@ function AppRoutes() {
       <Route path="/lead-hunter" element={<ProtectedRoute permission="view_lead_hunter"><LeadHunter /></ProtectedRoute>} />
       <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
       <Route path="/link-pagamento" element={<ProtectedRoute permission="view_payment_links"><GeradorLinkPagamento /></ProtectedRoute>} />
-      <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_clients"><GrafoClientes /></ProtectedRoute>} />
+      <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_client_graph"><GrafoClientes /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
