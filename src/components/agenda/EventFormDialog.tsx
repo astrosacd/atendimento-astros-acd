@@ -244,7 +244,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSave, isSaving }:
 
             {meetingType === 'physical' && (
               <div className="space-y-2">
-                <Label>Ponto de Referência</Label>
+                <Label>Ponto de Referência <span className="text-destructive">*</span></Label>
                 <Input 
                   placeholder="Próximo a..." 
                   value={referencePoint} 
