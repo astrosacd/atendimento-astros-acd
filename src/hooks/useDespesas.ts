@@ -97,15 +97,21 @@ export function useDespesas() {
     }
     
     // Update status for overdue expenses
+    // Only mark as "atrasado" if the due date is strictly BEFORE yesterday
+    // (i.e., more than 1 day past due) to give a small tolerance grace period.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const updatedData = (data || []).map(d => {
       const status = d.status as Despesa['status'];
       if (status === 'pendente') {
-        const vencimento = new Date(d.data_vencimento);
+        // Parse YYYY-MM-DD as local date (avoid UTC timezone shift)
+        const [y, m, day] = (d.data_vencimento as string).split('-').map(Number);
+        const vencimento = new Date(y, (m || 1) - 1, day || 1);
         vencimento.setHours(0, 0, 0, 0);
-        if (vencimento < today) {
+        // Diff in days: positive means past due
+        const diffDays = Math.floor((today.getTime() - vencimento.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > 1) {
           return { ...d, status: 'atrasado' as const } as Despesa;
         }
       }
