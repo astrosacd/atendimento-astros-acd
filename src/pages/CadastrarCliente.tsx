@@ -18,6 +18,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
+import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
+import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
+import { AlertTriangle } from 'lucide-react';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
