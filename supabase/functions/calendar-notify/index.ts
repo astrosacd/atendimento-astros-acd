@@ -351,6 +351,39 @@ serve(async (req) => {
           }
         }
 
+        // Trigger Baserow lead creation (Client only)
+        try {
+          const baserowEvent = event.meeting_type === 'physical' ? 'agenda.presencial' : 'agenda.online';
+          const cleanPhone = (event.client_phone || '').replace(/\D/g, '');
+          if (cleanPhone) {
+            console.log(`[calendar-notify] 📦 Triggering Baserow lead creation for event: ${baserowEvent}`);
+            const baserowResp = await fetch(`${supabaseUrl}/functions/v1/baserow-create-lead`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                module: 'agenda',
+                event: baserowEvent,
+                lead_name: event.client_name || 'Cliente Agenda',
+                lead_phone: cleanPhone,
+                lead_date: dateStr,
+                lead_produto: event.title || 'Reunião Agenda',
+              }),
+            });
+
+            const baserowText = await baserowResp.text();
+            if (!baserowResp.ok) {
+              console.error(`[calendar-notify] ❌ Baserow error ${baserowResp.status}: ${baserowText}`);
+            } else {
+              console.log(`[calendar-notify] ✅ Baserow response (${baserowEvent}): ${baserowText}`);
+            }
+          }
+        } catch (baserowErr: any) {
+          console.error('[calendar-notify] ⚠️ Baserow lead creation failed (non-blocking):', baserowErr.message);
+        }
+
         if (clientWhatsAppSatisfied && clientEmailSatisfied) {
           await supabase.from("calendar_events").update({
             notified_at: new Date().toISOString(),
