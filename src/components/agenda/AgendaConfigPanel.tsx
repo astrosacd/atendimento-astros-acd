@@ -221,18 +221,42 @@ export function AgendaConfigPanel() {
   const handleSaveBaserow = async () => {
     setIsSavingBaserow(true);
     try {
-      const { error } = await supabase
+      // Check if row exists first
+      const { data: existing } = await supabase
         .from('baserow_integrations')
-        .upsert({
-          module: 'agenda',
-          is_enabled: baserowEnabled,
-          api_url: baserowApiUrl,
-          api_token: baserowToken,
-          table_id: baserowTableId,
-          events: baserowEvents,
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq('module', 'agenda');
+        .select('id')
+        .eq('module', 'agenda')
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        // Update existing row
+        const { error: updateError } = await supabase
+          .from('baserow_integrations')
+          .update({
+            is_enabled: baserowEnabled,
+            api_url: baserowApiUrl,
+            api_token: baserowToken,
+            table_id: baserowTableId,
+            events: baserowEvents,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq('module', 'agenda');
+        error = updateError;
+      } else {
+        // Insert new row
+        const { error: insertError } = await supabase
+          .from('baserow_integrations')
+          .insert({
+            module: 'agenda',
+            is_enabled: baserowEnabled,
+            api_url: baserowApiUrl,
+            api_token: baserowToken,
+            table_id: baserowTableId,
+            events: baserowEvents,
+          } as any);
+        error = insertError;
+      }
       
       if (error) throw error;
       
