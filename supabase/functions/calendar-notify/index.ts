@@ -246,6 +246,16 @@ serve(async (req) => {
             consultantMessage += `\n🔗 Link: ${event.meet_link}`;
           }
 
+          // Internal notes (visible only to consultant)
+          const cleanNotes = (event.notes || '')
+            .split('\n')
+            .filter((l: string) => !l.startsWith('[NOTIFICADO'))
+            .join('\n')
+            .trim();
+          if (cleanNotes) {
+            consultantMessage += `\n\n📝 *Observações internas:*\n${cleanNotes}`;
+          }
+
           for (const consultantPhone of consultantPhones) {
             const phone = consultantPhone.replace(/\D/g, "");
             if (!phone) continue;

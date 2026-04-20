@@ -111,6 +111,12 @@ serve(async (req) => {
         message += `👤 Cliente: ${m.client_name || 'N/A'}\n`;
         message += `🏠 Endereço: ${m.location || 'Não informado'}\n`;
         if (m.reference_point) message += `🚩 Referência: ${m.reference_point}\n`;
+        const cleanNotes = (m.notes || '')
+          .split('\n')
+          .filter((l: string) => !l.startsWith('[NOTIFICADO'))
+          .join('\n')
+          .trim();
+        if (cleanNotes) message += `📝 Observações internas: ${cleanNotes}\n`;
         message += `\n`;
       });
 
