@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Key, Plus, Trash2, Eye, EyeOff, RefreshCw, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 const PERMISSIONS = [
   { value: 'read', label: 'Leitura', description: 'Listar e consultar chamados' },
@@ -168,7 +169,7 @@ const AdminChamadosApiKeys = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          navigator.clipboard.writeText(newApiKey);
+                          __copyToClipboard(newApiKey);
                           toast.success('API key copiada!');
                         }}
                       >
@@ -298,7 +299,7 @@ const AdminChamadosApiKeys = () => {
                               size="icon"
                               className="h-6 w-6"
                               onClick={() => {
-                                navigator.clipboard.writeText(key.api_key);
+                                __copyToClipboard(key.api_key);
                                 toast.success('API key copiada!');
                               }}
                             >

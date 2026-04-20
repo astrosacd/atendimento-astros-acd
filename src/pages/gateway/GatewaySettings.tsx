@@ -10,6 +10,7 @@ import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
 import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone } from 'lucide-react';
 import { toast } from 'sonner';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 export default function GatewaySettings() {
   const { settings, isLoading, updateSetting, isUpdating } = useGatewaySettings();
@@ -189,7 +190,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
       toast.error('Configure a URL do site acima para copiar o link completo.');
       return;
     }
-    navigator.clipboard.writeText(catalogUrl);
+    __copyToClipboard(catalogUrl);
     toast.success('Link do catálogo copiado!');
   };
 
@@ -215,7 +216,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
       return;
     }
     const loginUrl = `${normalizedBase}/auth?codigo=${encodeURIComponent(savedCode)}`;
-    navigator.clipboard.writeText(loginUrl);
+    __copyToClipboard(loginUrl);
     toast.success('Link de acesso ao painel copiado!');
   };
 
@@ -411,7 +412,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText('https://udxaxemoozddkwpitngq.supabase.co/functions/v1/gateway-payment-webhook');
+                      __copyToClipboard('https://udxaxemoozddkwpitngq.supabase.co/functions/v1/gateway-payment-webhook');
                       toast.success('URL do webhook copiada!');
                     }}
                     className="shrink-0"

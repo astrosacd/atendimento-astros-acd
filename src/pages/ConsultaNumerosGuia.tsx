@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, BookOpen, Database, Key, Webhook, Shield, Code, CheckCircle2, AlertCircle, Info, Copy, ExternalLink, Bell } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 export default function ConsultaNumerosGuia() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    __copyToClipboard(text);
     toast({ title: 'Copiado!' });
   };
 

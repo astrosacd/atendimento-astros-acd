@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Settings, Mail, Clock, Save, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { useSiteUrl } from "@/hooks/useSiteUrl";
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 const AdminChamadosConfig = () => {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ const AdminChamadosConfig = () => {
     try {
       // Clipboard API (requer contexto seguro/HTTPS em alguns navegadores)
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(publicUrl);
+        await __copyToClipboard(publicUrl);
         toast.success('URL copiada!');
         return;
       }

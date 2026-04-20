@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Search, Copy, ShoppingCart, Package, Sparkles, ArrowRight, Star } from 'lucide-react';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface Product {
   id: string;
@@ -90,7 +91,7 @@ export default function Catalogo() {
     const path = `/p/${slug}`;
     const base = siteBaseUrlSetting || '';
     const url = base ? `${base}${path}` : `${window.location.origin}${path}`;
-    navigator.clipboard.writeText(url);
+    __copyToClipboard(url);
     toast.success('Link copiado!');
   };
 

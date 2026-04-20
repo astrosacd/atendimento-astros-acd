@@ -15,6 +15,7 @@ import { useCurrencyConversion } from '@/hooks/useCurrencyConversion';
 import { Plus, Pencil, Trash2, Copy, Link2, Image, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 
 export default function GatewayProducts() {
@@ -168,7 +169,7 @@ export default function GatewayProducts() {
       return;
     }
     const url = `${base}/p/${publicSlug}`;
-    navigator.clipboard.writeText(url);
+    __copyToClipboard(url);
     toast.success('Link copiado!');
   };
 

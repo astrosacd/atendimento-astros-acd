@@ -22,6 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Webhook, Copy, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface WebhookData {
   id: string;
@@ -141,7 +142,7 @@ export default function AdminWebhooks() {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+    __copyToClipboard(text);
     toast({ title: t('webhooks.copied') });
   };
 

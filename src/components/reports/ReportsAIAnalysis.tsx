@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface ReportsAIAnalysisProps {
   metricsData: {
@@ -257,7 +258,7 @@ export function ReportsAIAnalysis({ metricsData }: ReportsAIAnalysisProps) {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(analysis);
+    __copyToClipboard(analysis);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

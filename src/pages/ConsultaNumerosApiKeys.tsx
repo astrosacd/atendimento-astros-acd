@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR, enUS, es } from 'date-fns/locale';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 interface ApiKey {
   id: string;
@@ -132,7 +133,7 @@ export default function ConsultaNumerosApiKeys() {
   };
 
   const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
+    __copyToClipboard(key);
     toast({ title: t('numberQuery.apiKeys.keyCopied') });
   };
 

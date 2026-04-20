@@ -58,6 +58,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { ProposalStatus, SignatureContent } from '@/types/proposals';
+import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
 const sectionTypeConfig: Record<SectionType, { label: string; icon: string }> = {
   cover: { label: 'Capa', icon: 'Layout' },
@@ -330,7 +331,7 @@ export default function PropostaEditor() {
     const url = `${siteUrl}/proposta/${proposal.id}?token=${proposal.share_token}`;
     
     try {
-      await navigator.clipboard.writeText(url);
+      await __copyToClipboard(url);
       toast.success('Link copiado!');
     } catch (error) {
       // Fallback para navegadores que não suportam clipboard API
