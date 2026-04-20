@@ -345,8 +345,20 @@ export const ClientRecoveryManager = () => {
     return { count, lastDate, lastChannel };
   };
 
-  // Check if a number is international (not Brazilian)
-  const isInternationalNumber = (numero: string) => isInternationalPhoneNumber(numero);
+  // Billing data often stores Brazilian WhatsApp numbers already normalized with country code 55,
+  // including legacy 8-digit mobile formats. In this module, only treat as international when it is
+  // clearly outside the Brazilian format instead of over-flagging valid Brazilian contacts.
+  const isInternationalNumber = (numero: string) => {
+    const digits = numero.replace(/\D/g, '');
+
+    if (!digits) return false;
+
+    if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+      return false;
+    }
+
+    return isInternationalPhoneNumber(numero);
+  };
 
   // Check if the client has a WhatsApp error (number doesn't exist)
   const hasWhatsAppError = (clienteId: string) => {
