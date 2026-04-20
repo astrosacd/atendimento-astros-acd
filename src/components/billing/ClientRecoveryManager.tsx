@@ -348,16 +348,65 @@ export const ClientRecoveryManager = () => {
   const isInternationalNumber = (numero: string) => {
     if (!numero) return false;
     const clean = numero.replace(/\D/g, '');
-    
-    // Brazilian numbers start with 55 and have 12-13 digits
-    if (clean.startsWith('55') && (clean.length === 12 || clean.length === 13)) return false;
-    
-    // Local Brazilian numbers (without 55) have 10-11 digits and don't start with '1' (US/Canada DDI)
-    if (!clean.startsWith('55') && (clean.length === 10 || clean.length === 11) && !clean.startsWith('1')) {
+
+    // Valid Brazilian DDDs (area codes)
+    const validBrDDDs = new Set([
+      '11','12','13','14','15','16','17','18','19', // SP
+      '21','22','24', // RJ
+      '27','28', // ES
+      '31','32','33','34','35','37','38', // MG
+      '41','42','43','44','45','46', // PR
+      '47','48','49', // SC
+      '51','53','54','55', // RS
+      '61', // DF
+      '62','64', // GO
+      '63', // TO
+      '65','66', // MT
+      '67', // MS
+      '68', // AC
+      '69', // RO
+      '71','73','74','75','77', // BA
+      '79', // SE
+      '81','87', // PE
+      '82', // AL
+      '83', // PB
+      '84', // RN
+      '85','88', // CE
+      '86','89', // PI
+      '91','93','94', // PA
+      '92','97', // AM
+      '95', // RR
+      '96', // AP
+      '98','99', // MA
+    ]);
+
+    const isValidBrazilianLocal = (digits: string): boolean => {
+      // Mobile: 11 digits, valid DDD, 3rd digit must be 9 (DDD + 9XXXXXXXX)
+      if (digits.length === 11) {
+        const ddd = digits.slice(0, 2);
+        return validBrDDDs.has(ddd) && digits[2] === '9';
+      }
+      // Landline: 10 digits, valid DDD, 3rd digit must be 2-5 (DDD + [2-5]XXXXXXX)
+      if (digits.length === 10) {
+        const ddd = digits.slice(0, 2);
+        return validBrDDDs.has(ddd) && /[2-5]/.test(digits[2]);
+      }
+      return false;
+    };
+
+    // Brazilian numbers with DDI 55: 12-13 digits, valid local part after 55
+    if (clean.startsWith('55') && (clean.length === 12 || clean.length === 13)) {
+      if (isValidBrazilianLocal(clean.slice(2))) return false;
+      // Starts with 55 but not a valid BR pattern → likely international (e.g. Russia +7, etc. won't match here anyway)
+      return true;
+    }
+
+    // Local format without DDI 55: must match valid Brazilian mobile/landline pattern
+    if ((clean.length === 10 || clean.length === 11) && isValidBrazilianLocal(clean)) {
       return false;
     }
-    
-    // If it's outside the standard Brazilian formats or starts with a different country code, it's international
+
+    // Anything else → international (foreign DDI, non-Brazilian pattern, etc.)
     return true;
   };
 
