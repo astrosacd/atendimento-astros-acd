@@ -159,9 +159,12 @@ interface DashboardSidebarProps {
   onOpenChat?: () => void;
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+  isMobile?: boolean;
 }
 
-export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange }: DashboardSidebarProps) {
+export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedChange, mobileOpen = false, onMobileClose, isMobile = false }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
@@ -330,8 +333,10 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
 
   return (
     <aside className={cn(
-      "fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col transition-[width] duration-300 z-20",
-      collapsed ? "w-[68px]" : "w-60"
+      "fixed left-0 top-0 h-full bg-card border-r border-border flex flex-col transition-all duration-300 z-40",
+      isMobile ? "w-[260px]" : (collapsed ? "w-[68px]" : "w-60"),
+      isMobile && !mobileOpen && "-translate-x-full",
+      isMobile && mobileOpen && "translate-x-0 shadow-2xl"
     )}>
       {/* Top accent line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
@@ -339,7 +344,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       {/* Header */}
       <div className={cn(
         "p-4 border-b border-border flex items-center",
-        collapsed ? "justify-center" : "justify-between"
+        collapsed && !isMobile ? "justify-center" : "justify-between"
       )}>
         {!collapsed ? (
           <div className="flex items-center gap-3">
