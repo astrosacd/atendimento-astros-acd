@@ -55,26 +55,13 @@ export function useClientConnectionGraph(clienteId: string | null) {
 
     (async () => {
       try {
-        const [
-          clienteRes,
-          comprasRes,
-          propostasRes,
-          pagamentosRes,
-          cobrancasRes,
-          tarefasRes,
-          chamadosRes,
-          followupsRes,
-        ] = await Promise.all([
-          supabase.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda').eq('id', clienteId).maybeSingle(),
-          supabase.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(20),
-          supabase.from('proposals').select('id, title, status, total_value, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
-          supabase.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(20),
-          supabase.from('billing_logs').select('id, message_type, status, channel, sent_at').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(20),
-          supabase.from('client_tasks').select('id, title, status, priority, due_date, codigo').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20),
-          // chamados é por email (não tem cliente_id direto)
-          Promise.resolve({ data: [], error: null }),
-          supabase.from('client_followups').select('id, produto, status, channel, scheduled_at').eq('cliente_id', clienteId).order('scheduled_at', { ascending: false }).limit(20),
-        ]);
+        const clienteRes: any = await supabase.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda').eq('id', clienteId).maybeSingle();
+        const comprasRes: any = await supabase.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(20);
+        const propostasRes: any = await supabase.from('proposals').select('id, title, status, total_value, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20);
+        const pagamentosRes: any = await supabase.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(20);
+        const cobrancasRes: any = await supabase.from('billing_logs').select('id, message_type, status, channel, sent_at').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(20);
+        const tarefasRes: any = await supabase.from('client_tasks').select('id, title, status, priority, due_date, codigo').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20);
+        const followupsRes: any = await supabase.from('client_followups').select('id, produto, status, channel, scheduled_at').eq('cliente_id', clienteId).order('scheduled_at', { ascending: false }).limit(20);
 
         if (cancelled) return;
 
