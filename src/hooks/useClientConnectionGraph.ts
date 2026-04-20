@@ -55,13 +55,14 @@ export function useClientConnectionGraph(clienteId: string | null) {
 
     (async () => {
       try {
-        const clienteRes: any = await supabase.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda').eq('id', clienteId).maybeSingle();
-        const comprasRes: any = await supabase.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(20);
-        const propostasRes: any = await supabase.from('proposals').select('id, title, status, total_value, created_at').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20);
-        const pagamentosRes: any = await supabase.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(20);
-        const cobrancasRes: any = await supabase.from('billing_logs').select('id, message_type, status, channel, sent_at').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(20);
-        const tarefasRes: any = await supabase.from('client_tasks').select('id, title, status, priority, due_date, codigo').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20);
-        const followupsRes: any = await supabase.from('client_followups').select('id, produto, status, channel, scheduled_at').eq('cliente_id', clienteId).order('scheduled_at', { ascending: false }).limit(20);
+        const sb: any = supabase;
+        const clienteRes: any = await sb.from('clientes').select('id, nome, cpf, email, numero, produto, valor, moeda').eq('id', clienteId).maybeSingle();
+        const comprasRes: any = await sb.from('client_purchases').select('id, produto, valor, moeda, data_compra').eq('cliente_id', clienteId).order('data_compra', { ascending: false }).limit(20);
+        const propostasRes: any = await sb.from('proposals').select('id, title, status, total_value, created_at').eq('client_id', clienteId).order('created_at', { ascending: false }).limit(20);
+        const pagamentosRes: any = await sb.from('client_payments').select('id, amount, status, payment_type, paid_at, billing_date').eq('cliente_id', clienteId).order('billing_date', { ascending: false }).limit(20);
+        const cobrancasRes: any = await sb.from('billing_logs').select('id, message_type, status, channel, sent_at').eq('cliente_id', clienteId).order('sent_at', { ascending: false }).limit(20);
+        const tarefasRes: any = await sb.from('client_tasks').select('id, title, status, priority, due_date, codigo').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(20);
+        const followupsRes: any = await sb.from('client_followups').select('id, produto, status, channel, scheduled_at').eq('cliente_id', clienteId).order('scheduled_at', { ascending: false }).limit(20);
 
         if (cancelled) return;
 
@@ -75,7 +76,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
         // Buscar chamados pelo email
         let chamados: any[] = [];
         if (cliente.email) {
-          const { data: chamadosData } = await supabase
+          const { data: chamadosData } = await sb
             .from('chamados')
             .select('id, codigo, motivo, status, prioridade, created_at')
             .eq('email', cliente.email)
@@ -90,7 +91,7 @@ export function useClientConnectionGraph(clienteId: string | null) {
           const orParts: string[] = [];
           if (cliente.email) orParts.push(`client_email.eq.${cliente.email}`);
           if (cliente.numero) orParts.push(`client_phone.eq.${cliente.numero}`);
-          const { data: eventosData } = await supabase
+          const { data: eventosData } = await sb
             .from('calendar_events')
             .select('id, title, status, start_time, meeting_type')
             .or(orParts.join(','))
