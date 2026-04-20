@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface ClienteData {
   id: string;
   nome: string;
+  cpf: string | null;
   created_at: string;
   data_renovacao: string;
   valor: number;
