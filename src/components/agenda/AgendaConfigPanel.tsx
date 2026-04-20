@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Bell, Calendar, Info, ExternalLink, HelpCircle, RefreshCw, Plus, Trash2, MessageSquare, Mail, History } from 'lucide-react';
+import { Save, Loader2, Bell, Calendar, Info, ExternalLink, HelpCircle, RefreshCw, Plus, Trash2, MessageSquare, Mail, History, Database, Eye, EyeOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCalendarConfig, useUpdateCalendarConfig } from '@/hooks/useCalendar';
 import { supabase } from '@/integrations/supabase/client';
