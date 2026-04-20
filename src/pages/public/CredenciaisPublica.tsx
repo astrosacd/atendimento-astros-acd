@@ -6,21 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Eye, EyeOff, Lock, Instagram, Facebook, Twitter, Youtube, Globe, ShieldX, Clock, Download, Image,
+  Eye, EyeOff, Lock, ShieldX, Clock, Download, Image,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const PLATFORMS = [
-  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-500' },
-  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'text-blue-600' },
-  { value: 'twitter', label: 'Twitter / X', icon: Twitter, color: 'text-sky-500' },
-  { value: 'threads', label: 'Threads', icon: Globe, color: 'text-foreground' },
-  { value: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
-  { value: 'tiktok', label: 'TikTok', icon: Globe, color: 'text-foreground' },
-  { value: 'linkedin', label: 'LinkedIn', icon: Globe, color: 'text-blue-700' },
-  { value: 'outro', label: 'Outro', icon: Globe, color: 'text-muted-foreground' },
-];
+import { getClientCredentialPlatform, parseCredentialNotes } from '@/utils/clientCredentials';
 
 interface Credential {
   id: string;
@@ -74,8 +64,7 @@ export default function CredenciaisPublica() {
     })();
   }, [token]);
 
-  const getPlatformInfo = (value: string) =>
-    PLATFORMS.find(p => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
+  const getPlatformInfo = (value: string) => getClientCredentialPlatform(value);
 
   const togglePassword = (id: string) => {
     setVisiblePasswords(prev => {
@@ -137,7 +126,7 @@ export default function CredenciaisPublica() {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-lg">
             <Lock className="h-5 w-5 text-primary" />
-            Credenciais — {clientName}
+            Credenciais do Cliente — {clientName}
           </CardTitle>
           {expiresAt && (
             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
@@ -155,6 +144,7 @@ export default function CredenciaisPublica() {
               const platform = getPlatformInfo(cred.platform);
               const Icon = platform.icon;
               const isVisible = visiblePasswords.has(cred.id);
+              const { url, notes } = parseCredentialNotes(cred.notes);
 
               return (
                 <Card key={cred.id} className="border">
@@ -164,6 +154,11 @@ export default function CredenciaisPublica() {
                       <div className="min-w-0 flex-1">
                         <span className="font-medium text-sm">{platform.label}</span>
                         <p className="text-xs text-muted-foreground truncate">Login: {cred.login}</p>
+                        {url && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            URL: <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">{url}</a>
+                          </p>
+                        )}
                         <div className="flex items-center gap-1 mt-0.5">
                           <span className="text-xs text-muted-foreground">Senha:</span>
                           <span className="text-xs font-mono">
@@ -178,8 +173,8 @@ export default function CredenciaisPublica() {
                             {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                           </Button>
                         </div>
-                        {cred.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">📝 {cred.notes}</p>
+                        {notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">📝 {notes}</p>
                         )}
                       </div>
                     </div>
