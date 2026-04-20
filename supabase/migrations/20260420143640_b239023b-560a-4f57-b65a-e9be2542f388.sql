@@ -1,0 +1,1 @@
+DELETE FROM public.client_server_tool_types WHERE value = 'servidor' AND is_system = true;
