@@ -267,6 +267,8 @@ export default function CadastrarCliente() {
     setClienteType(null);
     setShowSuccess(false);
     setCountryCode('BR');
+    setDuplicateAcknowledged(false);
+    dupCheck.reset();
   };
 
   const formatFileSize = (bytes: number) => {
