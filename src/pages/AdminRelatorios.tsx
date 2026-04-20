@@ -396,10 +396,10 @@ export default function AdminRelatorios() {
       const monthKey = format(monthDate, 'yyyy-MM');
       const monthLabel = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-      const novos = clientes.filter(c => {
+      const novos = new Set(clientes.filter(c => {
         const createdAt = parseISO(c.created_at);
         return createdAt >= monthStart && createdAt <= monthEnd;
-      }).length;
+      }).map(c => c.cpf || c.nome)).size;
 
       months.push({
         month: monthKey,
