@@ -405,7 +405,7 @@ Instruções:
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="geral" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:w-auto lg:inline-grid h-auto">
             <TabsTrigger value="geral" className="gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">{t('chatConfig.general')}</span>

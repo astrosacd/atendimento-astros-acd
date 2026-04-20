@@ -1293,16 +1293,18 @@ export default function AdminDivulgador() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 h-auto p-1">
-            <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
-            <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.campaigns')}</span></TabsTrigger>
-            <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.groups')}</span></TabsTrigger>
-            <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.messages')}</span></TabsTrigger>
-            <TabsTrigger value="polls" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.polls')}</span></TabsTrigger>
-            <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.welcome')}</span></TabsTrigger>
-            <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.participants')}</span></TabsTrigger>
-            <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.logs')}</span></TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-2 px-2 pb-1">
+            <TabsList className="inline-grid grid-cols-8 w-max min-w-full h-auto p-1">
+              <TabsTrigger value="instances" className="gap-2 py-2"><Wifi className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span></TabsTrigger>
+              <TabsTrigger value="campaigns" className="gap-2 py-2"><Target className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.campaigns')}</span></TabsTrigger>
+              <TabsTrigger value="groups" className="gap-2 py-2"><Users className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.groups')}</span></TabsTrigger>
+              <TabsTrigger value="messages" className="gap-2 py-2"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.messages')}</span></TabsTrigger>
+              <TabsTrigger value="polls" className="gap-2 py-2"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.polls')}</span></TabsTrigger>
+              <TabsTrigger value="welcome" className="gap-2 py-2"><Sparkles className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.welcome')}</span></TabsTrigger>
+              <TabsTrigger value="participants" className="gap-2 py-2"><UserMinus className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.participants')}</span></TabsTrigger>
+              <TabsTrigger value="logs" className="gap-2 py-2"><FileText className="h-4 w-4" /><span className="hidden sm:inline">{t('broadcaster.logs')}</span></TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* TAB: INSTÂNCIAS WHATSAPP */}
           <TabsContent value="instances" className="space-y-6">
