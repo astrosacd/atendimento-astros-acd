@@ -181,7 +181,7 @@ export default function CadastrarCliente() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
@@ -211,7 +211,15 @@ export default function CadastrarCliente() {
       });
       return;
     }
-    
+
+    // Final duplicate check before showing confirmation
+    await Promise.all([
+      formData.cpf ? dupCheck.checkField('cpf', formData.cpf) : Promise.resolve(),
+      formData.email ? dupCheck.checkField('email', formData.email) : Promise.resolve(),
+      formData.numero ? dupCheck.checkField('numero', formData.numero) : Promise.resolve(),
+    ]);
+
+    setDuplicateAcknowledged(false);
     setShowConfirmation(true);
   };
 
