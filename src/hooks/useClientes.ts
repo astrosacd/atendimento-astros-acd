@@ -24,8 +24,8 @@ export interface Cliente {
   numero: string;
   produto: string;
   data_renovacao: string;
-  email: string;
-  cpf: string;
+  email: string | null;
+  cpf: string | null;
   plano: string | null;
   valor: number;
   moeda: Moeda;
@@ -43,8 +43,8 @@ export interface ClienteInput {
   numero: string;
   produto: string;
   data_renovacao: string;
-  email: string;
-  cpf: string;
+  email?: string;
+  cpf?: string;
   plano?: string;
   valor: number;
   moeda?: Moeda;
