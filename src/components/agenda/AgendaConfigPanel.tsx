@@ -74,6 +74,15 @@ export function AgendaConfigPanel() {
   const [newInstanceKey, setNewInstanceKey] = useState('');
   const [newInstanceName, setNewInstanceName] = useState('');
 
+  // Baserow integration state
+  const [baserowEnabled, setBaserowEnabled] = useState(false);
+  const [baserowApiUrl, setBaserowApiUrl] = useState('');
+  const [baserowToken, setBaserowToken] = useState('');
+  const [baserowTableId, setBaserowTableId] = useState('');
+  const [baserowEvents, setBaserowEvents] = useState<string[]>(['agenda.online', 'agenda.presencial']);
+  const [showBaserowToken, setShowBaserowToken] = useState(false);
+  const [isSavingBaserow, setIsSavingBaserow] = useState(false);
+
   const { data: whatsappInstances = [], refetch: refetchInstances } = useQuery({
     queryKey: ['calendar-notification-whatsapp-instances'],
     queryFn: async () => {
@@ -99,6 +108,20 @@ export function AgendaConfigPanel() {
     },
   });
 
+  // Baserow config query
+  const { data: baserowConfig } = useQuery({
+    queryKey: ['baserow-config-agenda'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baserow_integrations')
+        .select('*')
+        .eq('module', 'agenda')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     if (config) {
       setGoogleEnabled(config.google_calendar_enabled === 'true');
@@ -121,6 +144,16 @@ export function AgendaConfigPanel() {
       setDailySummaryMinute(config.daily_summary_minute || '0');
     }
   }, [config]);
+
+  useEffect(() => {
+    if (baserowConfig) {
+      setBaserowEnabled(baserowConfig.is_enabled ?? false);
+      setBaserowApiUrl(baserowConfig.api_url || '');
+      setBaserowToken(baserowConfig.api_token || '');
+      setBaserowTableId(baserowConfig.table_id || '');
+      setBaserowEvents(baserowConfig.events || ['agenda.online', 'agenda.presencial']);
+    }
+  }, [baserowConfig]);
 
   const handleSave = async () => {
     const newAutoSync = autoSyncEnabled && googleEnabled;
@@ -181,6 +214,33 @@ export function AgendaConfigPanel() {
       }
     } catch (e) {
       console.error('Daily summary cron update error:', e);
+    }
+  };
+
+  const handleSaveBaserow = async () => {
+    setIsSavingBaserow(true);
+    try {
+      const { error } = await supabase
+        .from('baserow_integrations')
+        .upsert({
+          module: 'agenda',
+          is_enabled: baserowEnabled,
+          api_url: baserowApiUrl,
+          api_token: baserowToken,
+          table_id: baserowTableId,
+          events: baserowEvents,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('module', 'agenda');
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ['baserow-config-agenda'] });
+      toast.success('Configuração Baserow salva!');
+    } catch (err: any) {
+      toast.error('Erro ao salvar Baserow: ' + err.message);
+    } finally {
+      setIsSavingBaserow(false);
     }
   };
 
@@ -400,103 +460,199 @@ export function AgendaConfigPanel() {
                       <SelectContent>
                         <SelectItem value="1">A cada 1 minuto</SelectItem>
                         <SelectItem value="5">A cada 5 minutos</SelectItem>
-                        <SelectItem value="10">A cada 10 minutos</SelectItem>
                         <SelectItem value="15">A cada 15 minutos</SelectItem>
                         <SelectItem value="30">A cada 30 minutos</SelectItem>
                         <SelectItem value="60">A cada 1 hora</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">O sistema verifica eventos próximos e envia a notificação. Cada evento recebe apenas uma notificação.</p>
                   </div>
                 )}
-              </div>
-
-              {/* WhatsApp Instances */}
-              <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-emerald-500" />
-                  <Label className="text-base font-medium">WhatsApp (Evolution API)</Label>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">Configure uma ou mais instâncias de WhatsApp independentes para envio de notificações da agenda.</p>
-
-                {whatsappInstances.map((inst) => (
-                  <div key={inst.id} className="flex items-center gap-2 p-2.5 border rounded-lg mb-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{inst.instance_name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{inst.api_url}</p>
-                      {inst.last_used_at && (
-                        <p className="text-[10px] text-muted-foreground">
-                          Último uso: {format(new Date(inst.last_used_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      )}
-                    </div>
-                    <Switch
-                      checked={inst.is_active}
-                      onCheckedChange={(checked) => handleToggleInstance(inst.id, checked)}
-                    />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteInstance(inst.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  <Input placeholder="URL da API" value={newInstanceUrl} onChange={(e) => setNewInstanceUrl(e.target.value)} className="text-xs" />
-                  <Input placeholder="API Key" value={newInstanceKey} onChange={(e) => setNewInstanceKey(e.target.value)} className="text-xs" />
-                  <div className="flex gap-1">
-                    <Input placeholder="Nome da instância" value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} className="text-xs" />
-                    <Button size="icon" variant="outline" className="shrink-0" onClick={handleAddInstance}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Gmail Config */}
-              <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Mail className="h-4 w-4 text-blue-500" />
-                  <Label className="text-base font-medium">Email (Gmail)</Label>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">Configure as credenciais de email independentes para envio de notificações da agenda.</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Endereço Gmail</Label>
-                    <Input placeholder="seuemail@gmail.com" value={notifyGmailUser} onChange={(e) => setNotifyGmailUser(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">Senha de App</Label>
-                    <Input type="password" placeholder="Senha de aplicativo" value={notifyGmailPassword} onChange={(e) => setNotifyGmailPassword(e.target.value)} />
-                  </div>
-                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Notification History */}
-      {notifyEnabled && notificationLogs.length > 0 && (
+      {/* WhatsApp Instances Manager */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-green-500" />
+            <CardTitle className="text-lg">Instâncias WhatsApp</CardTitle>
+          </div>
+          <CardDescription>Adicione as instâncias da Evolution API para envio dos lembretes</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Input placeholder="URL da API" value={newInstanceUrl} onChange={(e) => setNewInstanceUrl(e.target.value)} />
+            <Input placeholder="API Key" value={newInstanceKey} onChange={(e) => setNewInstanceKey(e.target.value)} />
+            <div className="flex gap-2">
+              <Input placeholder="Nome da Instância" value={newInstanceName} onChange={(e) => setNewInstanceName(e.target.value)} />
+              <Button onClick={handleAddInstance} size="icon"><Plus className="h-4 w-4" /></Button>
+            </div>
+          </div>
+
+          <div className="border rounded-lg divide-y">
+            {whatsappInstances.length === 0 ? (
+              <p className="p-4 text-sm text-center text-muted-foreground">Nenhuma instância cadastrada</p>
+            ) : (
+              whatsappInstances.map((inst) => (
+                <div key={inst.id} className="p-3 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{inst.instance_name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{inst.api_url}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch checked={inst.is_active} onCheckedChange={(checked) => handleToggleInstance(inst.id, checked)} />
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteInstance(inst.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gmail Config Manager */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-red-500" />
+            <CardTitle className="text-lg">E-mail (Gmail/SMTP)</CardTitle>
+          </div>
+          <CardDescription>Configure o envio de e-mails para os clientes</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Gmail User</Label>
+              <Input placeholder="seuemail@gmail.com" value={notifyGmailUser} onChange={(e) => setNotifyGmailUser(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>App Password</Label>
+              <Input type="password" placeholder="Senha de app do Google" value={notifyGmailPassword} onChange={(e) => setNotifyGmailPassword(e.target.value)} />
+            </div>
+          </div>
+          <div className="p-3 bg-muted/50 rounded-lg flex items-start gap-2">
+            <HelpCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-[11px] text-muted-foreground">
+              Para o Gmail, você precisa criar uma "Senha de App" nas configurações de segurança da sua conta Google (2FA obrigatório).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Baserow Integration Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                Integração Baserow
+              </CardTitle>
+              <CardDescription>
+                Crie leads automaticamente no Baserow quando notificações da agenda forem enviadas para o cliente.
+              </CardDescription>
+            </div>
+            <Switch checked={baserowEnabled} onCheckedChange={setBaserowEnabled} />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+            <p>📦 Quando uma notificação for enviada para o cliente, o sistema cria automaticamente 2 linhas no Baserow:</p>
+            <p>• Uma com o número no formato <code className="bg-muted px-1 rounded">@s.whatsapp.net</code></p>
+            <p>• Outra com o número no formato <code className="bg-muted px-1 rounded">+número</code></p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>URL da API Baserow</Label>
+            <Input
+              placeholder="https://baserow.seudominio.com"
+              value={baserowApiUrl}
+              onChange={e => setBaserowApiUrl(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Token da API</Label>
+              <div className="relative">
+                <Input
+                  type={showBaserowToken ? 'text' : 'password'}
+                  placeholder="Token"
+                  value={baserowToken}
+                  onChange={e => setBaserowToken(e.target.value)}
+                />
+                <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowBaserowToken(!showBaserowToken)}>
+                  {showBaserowToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>ID da Tabela</Label>
+              <Input
+                placeholder="533"
+                value={baserowTableId}
+                onChange={e => setBaserowTableId(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Eventos que criam leads</Label>
+            <div className="flex flex-wrap gap-2">
+              {['agenda.online', 'agenda.presencial'].map(evt => (
+                <Badge
+                  key={evt}
+                  variant={baserowEvents.includes(evt) ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setBaserowEvents(prev =>
+                      prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                    );
+                  }}
+                >
+                  {evt === 'agenda.online' ? 'Reunião Online' : 'Reunião Presencial'} ({evt})
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <Button 
+            onClick={handleSaveBaserow} 
+            disabled={isSavingBaserow}
+            className="w-full bg-primary"
+          >
+            {isSavingBaserow ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Salvar Configuração Baserow
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* History Log Manager */}
+      {notificationLogs.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-lg">Histórico de Envios</CardTitle>
+              <History className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-lg">Histórico de Notificações</CardTitle>
             </div>
-            <CardDescription>Últimas notificações enviadas</CardDescription>
+            <CardDescription>Últimos envios realizados</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="space-y-3">
               {notificationLogs.map((log) => (
-                <div key={log.id} className="flex items-center gap-3 p-2.5 border rounded-lg text-xs">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${log.status === 'sent' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  <div className="flex-1 min-w-0">
+                <div key={log.id} className="text-xs border rounded-lg p-2 flex items-start justify-between">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {log.channel === 'whatsapp' ? '📱 WhatsApp' : '📧 Email'}
+                      <Badge variant={log.status === 'sent' ? 'default' : 'destructive'} className="text-[10px]">
+                        {log.status === 'sent' ? 'Enviado' : 'Erro'}
                       </Badge>
                       <Badge variant="outline" className="text-[10px]">
-                        {log.recipient_type === 'client' ? '👤 Cliente' : '📋 Consultor'}
+                        {log.channel === 'whatsapp' ? <MessageSquare className="h-3 w-3 mr-1" /> : <Mail className="h-3 w-3 mr-1" />}
+                        {log.channel}
                       </Badge>
                       <span className="text-muted-foreground">
                         {log.recipient_name || log.recipient_contact}
@@ -575,7 +731,7 @@ export function AgendaConfigPanel() {
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateConfig.isPending}>
           {updateConfig.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Salvar Configurações
+          Salvar Configurações Gerais
         </Button>
       </div>
     </div>
