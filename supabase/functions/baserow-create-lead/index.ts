@@ -38,6 +38,10 @@ const EVENT_ALIASES: Record<ModuleName, Record<string, string>> = {
     'recovery.novo_registro': 'recovery.registro',
     'recovery.inadimplencia': 'recovery.inadimplente',
   },
+  agenda: {
+    'agenda.online': 'agenda.online',
+    'agenda.presencial': 'agenda.presencial',
+  },
 };
 
 function getEquivalentEvents(module: ModuleName, event: string): string[] {
