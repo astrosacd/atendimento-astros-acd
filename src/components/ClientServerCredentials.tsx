@@ -69,7 +69,9 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
   const { hasPermission } = usePermissions();
   const siteUrl = useSiteUrl();
   const queryClient = useQueryClient();
-  const canManage = hasPermission('manage_social_credentials');
+  const canManage = hasPermission('manage_server_credentials');
+  const canShare = hasPermission('share_server_credentials');
+  const canManageToolTypes = hasPermission('manage_server_tool_types');
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -307,17 +309,23 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
             </DialogTitle>
           </DialogHeader>
 
-          {canManage && (
+          {(canManage || canShare || canManageToolTypes) && (
             <div className="flex flex-wrap justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => setShowToolTypesDialog(true)}>
-                <Cog className="h-4 w-4 mr-1" /> Ferramentas
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
-                <Link2 className="h-4 w-4 mr-1" /> Gerar Link
-              </Button>
-              <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> Nova Credencial
-              </Button>
+              {canManageToolTypes && (
+                <Button size="sm" variant="outline" onClick={() => setShowToolTypesDialog(true)}>
+                  <Cog className="h-4 w-4 mr-1" /> Ferramentas
+                </Button>
+              )}
+              {canShare && (
+                <Button size="sm" variant="outline" onClick={() => { setGeneratedLink(null); setCopied(false); setShowShareDialog(true); }}>
+                  <Link2 className="h-4 w-4 mr-1" /> Gerar Link
+                </Button>
+              )}
+              {canManage && (
+                <Button size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Nova Credencial
+                </Button>
+              )}
             </div>
           )}
 

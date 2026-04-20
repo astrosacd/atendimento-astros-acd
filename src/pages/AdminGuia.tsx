@@ -60,6 +60,7 @@ import {
   Calendar,
   Link,
   Columns,
+  Cog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +154,9 @@ const categoryToPermission: Record<string, string> = {
   'agenda-config': 'view_guia_agenda',
   'link-pagamento-visao-geral': 'view_guia_link_pagamento',
   'social-media': 'view_social_credentials',
+  'servidores-credenciais': 'view_guia_servidores',
+  'servidores-ferramentas': 'view_guia_servidores',
+  'servidores-compartilhamento': 'view_guia_servidores',
   'aprovacoes-visao-geral': 'view_guia_aprovacoes',
   'automacoes-visao-geral': 'view_guia_automacoes',
 };
@@ -308,6 +312,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["social-media"],
       permissionKey: "view_social_credentials"
+    },
+    {
+      id: "servidores",
+      title: "Servidores e Ferramentas",
+      icon: Database,
+      color: "text-blue-400",
+      categories: ["servidores-credenciais", "servidores-ferramentas", "servidores-compartilhamento"],
+      permissionKey: "view_guia_servidores"
     },
     {
       id: "gateway",
@@ -2492,6 +2504,118 @@ Ou acesse diretamente: **/admin/consulta-numeros/guia**`
         "Sempre defina um tempo de expiração curto para links compartilhados por segurança.",
         "As senhas são armazenadas de forma criptografada na base de dados.",
         "Você pode fazer o download das logos diretamente pela aba 'Logos' no modal."
+      ]
+    },
+    {
+      id: "servidores-credenciais",
+      title: "Credenciais de Servidores e Ferramentas",
+      icon: Database,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Cofre dedicado para acessos de servidores e ferramentas técnicas do cliente (Evolution, Chatwoot, n8n, VPS, Portainer, etc.).",
+      steps: [
+        {
+          title: "O que é o módulo de Servidores e Ferramentas?",
+          content: `O módulo **Ferramentas / Servidores do cliente** é um cofre **separado** das credenciais de Social Media, focado em **infraestrutura técnica**:
+
+- **Acessos de ferramentas**: Evolution API, Chatwoot, n8n, Portainer, Coolify, etc.
+- **Servidores e VPS**: Acessos SSH/painéis administrativos.
+- **URL opcional**: Cada credencial pode ter uma URL de acesso (painel/login).
+- **Notas**: Campo livre para observações técnicas (porta, comandos, contexto).
+- **Ícone Server azul**: Localizado ao lado do ícone de Social Media na linha do cliente em **Clientes → Consultar**.
+
+> Diferente do Social Media, este módulo **não exige logos** — é puramente para credenciais técnicas reutilizáveis pela equipe.`
+        },
+        {
+          title: "Como cadastrar uma credencial",
+          content: `1. Vá em **Clientes → Consultar**.
+2. Clique no ícone **Server (azul)** ao lado do cliente.
+3. Clique em **+ Nova Credencial**.
+4. Selecione o **Tipo de Ferramenta** (Evolution, Chatwoot, n8n, ou um tipo personalizado).
+5. Preencha **Login**, **Senha**, **URL** (opcional) e **Notas**.
+6. Salve.
+
+Cada credencial é exibida com seu **ícone correspondente** (Bot, Workflow, Server, Database, etc.) para identificação visual rápida.`
+        }
+      ],
+      tips: [
+        "Use o campo URL para acessar o painel da ferramenta diretamente da página de credenciais.",
+        "O botão de **copiar** funciona tanto no app standalone quanto dentro do Chatwoot (iframe).",
+        "Senhas ficam ocultas por padrão — clique no ícone de olho para revelar."
+      ]
+    },
+    {
+      id: "servidores-ferramentas",
+      title: "Gerenciar Tipos de Ferramentas",
+      icon: Cog,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Cadastre tipos reutilizáveis de ferramentas para não precisar repetir manualmente em cada cliente.",
+      steps: [
+        {
+          title: "Por que cadastrar tipos de ferramentas?",
+          content: `Em vez de digitar manualmente "Portainer", "Coolify" ou outras ferramentas para cada cliente, você cadastra o **tipo** **uma única vez** e ele aparece automaticamente como opção em **todos os clientes**.
+
+O sistema já vem com tipos padrão como **Evolution API**, **Chatwoot** e **n8n**.`
+        },
+        {
+          title: "Como cadastrar um novo tipo",
+          content: `1. Abra o modal de **Ferramentas / Servidores** de qualquer cliente.
+2. Clique no botão **Ferramentas** (ícone de engrenagem).
+3. Clique em **+ Novo Tipo**.
+4. Preencha:
+   - **Identificador** (ex: \`portainer\`) — usado internamente.
+   - **Rótulo** (ex: \`Portainer\`) — exibido na interface.
+   - **Ícone** — escolha entre Bot, Workflow, Server, Cog, Database, Cloud, Globe, Settings.
+5. Salve.
+
+A nova ferramenta passa a aparecer no dropdown de **todos os clientes** instantaneamente.`
+        },
+        {
+          title: "Removendo tipos personalizados",
+          content: `Você pode **excluir tipos personalizados** que criou. Tipos do **sistema** (Evolution, Chatwoot, n8n) não podem ser removidos.
+
+Excluir um tipo **não apaga** as credenciais já cadastradas com ele — apenas remove a opção do dropdown para novos cadastros.`
+        }
+      ],
+      tips: [
+        "Padronize os identificadores em minúsculas e sem espaços (ex: \`portainer\`, \`coolify\`).",
+        "Use o ícone Database para bancos de dados, Cloud para serviços cloud, Server para VPS/servidores.",
+        "Você precisa da permissão **Gerenciar Tipos de Ferramentas** para acessar esta seção."
+      ]
+    },
+    {
+      id: "servidores-compartilhamento",
+      title: "Compartilhar Credenciais de Servidores",
+      icon: Link,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      description: "Gere links temporários para compartilhar credenciais técnicas com terceiros sem precisar de login no sistema.",
+      steps: [
+        {
+          title: "Como gerar um link de compartilhamento",
+          content: `1. Abra o modal de **Ferramentas / Servidores** do cliente.
+2. Clique em **Gerar Link**.
+3. Defina o **tempo de expiração** (1h, 6h, 24h, 7 dias).
+4. Clique em **Gerar** e depois no botão de **copiar** (funciona dentro do Chatwoot também).
+5. Envie o link para quem precisa do acesso.
+
+A página pública mostra **todas as credenciais técnicas** do cliente (login, URL e senha mascarada com botão de revelar/copiar).`
+        },
+        {
+          title: "Segurança e expiração",
+          content: `- Cada link tem um **token único** e **expira automaticamente** no tempo definido.
+- Após expirar, qualquer tentativa de acesso retorna **"Link inválido ou expirado"**.
+- O link **não exige autenticação** — qualquer pessoa com a URL e dentro do prazo pode ver as credenciais.
+- Use sempre o **menor tempo possível** de expiração para reduzir risco.
+
+> Tipos personalizados de ferramentas (ex: Portainer) aparecem com **nome e ícone corretos** na página pública.`
+        }
+      ],
+      tips: [
+        "Para compartilhar com clientes, prefira expiração de 24h. Para parceiros recorrentes, 7 dias.",
+        "Você precisa da permissão **Compartilhar Credenciais de Servidores** para gerar links.",
+        "O link sempre usa HTTPS e os botões de copiar funcionam em qualquer iframe (Chatwoot, etc.)."
       ]
     },
     {
