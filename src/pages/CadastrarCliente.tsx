@@ -509,7 +509,7 @@ export default function CadastrarCliente() {
                           <SelectItem value="Plano Starter">Plano Starter</SelectItem>
                           <SelectItem value="Plano Pro">Plano Pro</SelectItem>
                           <SelectItem value="Plano Agência">Plano Agência</SelectItem>
-                          <SelectItem value="Nenhum">Nenhum</SelectItem>
+                          <SelectItem value="Individual">Individual</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
