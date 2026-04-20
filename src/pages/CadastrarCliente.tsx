@@ -468,7 +468,6 @@ export default function CadastrarCliente() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="bg-secondary border-border text-foreground h-11"
-                    required
                   />
                 </div>
 
