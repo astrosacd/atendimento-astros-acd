@@ -93,7 +93,7 @@ serve(async (req: Request) => {
     }
 
     // Validate module
-    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery' && module !== 'billing') {
+    if (module !== 'proposals' && module !== 'followups' && module !== 'recovery' && module !== 'billing' && module !== 'agenda') {
       return new Response(JSON.stringify({ error: "Invalid module" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
