@@ -18,6 +18,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
+import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
+import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
+import { AlertTriangle } from 'lucide-react';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
@@ -81,6 +84,8 @@ export default function CadastrarCliente() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -176,7 +181,7 @@ export default function CadastrarCliente() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
@@ -206,7 +211,15 @@ export default function CadastrarCliente() {
       });
       return;
     }
-    
+
+    // Final duplicate check before showing confirmation
+    await Promise.all([
+      formData.cpf ? dupCheck.checkField('cpf', formData.cpf) : Promise.resolve(),
+      formData.email ? dupCheck.checkField('email', formData.email) : Promise.resolve(),
+      formData.numero ? dupCheck.checkField('numero', formData.numero) : Promise.resolve(),
+    ]);
+
+    setDuplicateAcknowledged(false);
     setShowConfirmation(true);
   };
 
@@ -254,6 +267,8 @@ export default function CadastrarCliente() {
     setClienteType(null);
     setShowSuccess(false);
     setCountryCode('BR');
+    setDuplicateAcknowledged(false);
+    dupCheck.reset();
   };
 
   const formatFileSize = (bytes: number) => {
@@ -443,9 +458,11 @@ export default function CadastrarCliente() {
                     onChange={(phoneWithDDI, code) => {
                       setFormData({ ...formData, numero: phoneWithDDI });
                       setCountryCode(code);
+                      dupCheck.debouncedCheck('numero', phoneWithDDI);
                     }}
                     required
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.numero} compact />
                 </div>
 
                 <div className="space-y-2 col-span-2">
@@ -454,9 +471,14 @@ export default function CadastrarCliente() {
                     id="cpf"
                     placeholder="000.000.000-00"
                     value={formatCPFOrCNPJ(formData.cpf)}
-                    onChange={(e) => setFormData({ ...formData, cpf: unformat(e.target.value) })}
+                    onChange={(e) => {
+                      const raw = unformat(e.target.value);
+                      setFormData({ ...formData, cpf: raw });
+                      dupCheck.debouncedCheck('cpf', raw);
+                    }}
                     className="bg-secondary border-border text-foreground h-11"
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.cpf} compact />
                 </div>
 
                 <div className="space-y-2 col-span-2">
@@ -466,9 +488,13 @@ export default function CadastrarCliente() {
                     type="email"
                     placeholder="Digite o email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      dupCheck.debouncedCheck('email', e.target.value);
+                    }}
                     className="bg-secondary border-border text-foreground h-11"
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.email} compact />
                 </div>
 
                 <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
@@ -772,6 +798,35 @@ export default function CadastrarCliente() {
                   </p>
                 )}
               </div>
+
+              {dupCheck.hasAnyDuplicate && (
+                <div className="space-y-3 rounded-xl border-2 border-amber-500/50 bg-amber-500/10 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                        Atenção: cliente possivelmente duplicado
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Encontramos cadastro(s) com os mesmos dados. Confira se realmente deseja criar um novo cadastro:
+                      </p>
+                    </div>
+                  </div>
+                  <DuplicateClientWarning matches={dupCheck.allMatches()} />
+                  <label className="flex items-start gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={duplicateAcknowledged}
+                      onChange={(e) => setDuplicateAcknowledged(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-border accent-amber-500 cursor-pointer"
+                    />
+                    <span className="text-foreground">
+                      Estou ciente e quero criar um <strong>novo cadastro</strong> mesmo assim.
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <div className="flex justify-center gap-4">
                 <Button 
                   onClick={handleConfirm}
@@ -780,7 +835,7 @@ export default function CadastrarCliente() {
                       ? 'bg-amber-500 text-white hover:bg-amber-600' 
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}
-                  disabled={isLoading || isUploading}
+                  disabled={isLoading || isUploading || (dupCheck.hasAnyDuplicate && !duplicateAcknowledged)}
                 >
                   <Check className="w-4 h-4 mr-2" />
                   {isLoading || isUploading ? 'Salvando...' : 'Confirmar'}
