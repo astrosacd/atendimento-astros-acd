@@ -75,44 +75,46 @@ export function AgendaHistoryTab() {
           </div>
         ) : (
           <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead>Evento</TableHead>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Motivo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((item) => {
-                  const actionInfo = ACTION_MAP[item.action] || { label: item.action, color: 'bg-muted text-muted-foreground', icon: null };
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`gap-1 ${actionInfo.color} border-0`}>
-                          {actionInfo.icon}
-                          {actionInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        {item.event_title || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
-                        {item.user_email || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm max-w-[250px] truncate">
-                        {item.reason || '—'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto -mx-2 px-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Ação</TableHead>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>Motivo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((item) => {
+                    const actionInfo = ACTION_MAP[item.action] || { label: item.action, color: 'bg-muted text-muted-foreground', icon: null };
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {format(new Date(item.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`gap-1 ${actionInfo.color} border-0`}>
+                            {actionInfo.icon}
+                            {actionInfo.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate">
+                          {item.event_title || '—'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
+                          {item.user_email || '—'}
+                        </TableCell>
+                        <TableCell className="text-sm max-w-[250px] truncate">
+                          {item.reason || '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>

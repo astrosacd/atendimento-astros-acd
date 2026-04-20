@@ -116,79 +116,81 @@ export function DespesasTable({
     <>
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {despesas.map((despesa) => (
-                <TableRow key={despesa.id}>
-                  <TableCell className="font-medium">{despesa.descricao}</TableCell>
-                  <TableCell>
-                    {despesa.categoria ? (
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: despesa.categoria.cor || '#6366f1' }}
-                        />
-                        <span className="text-sm">{despesa.categoria.nome}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    {formatCurrency(despesa.valor, despesa.moeda)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {formatDate(despesa.data_vencimento)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{getTipoBadge(despesa.tipo)}</TableCell>
-                  <TableCell>{getStatusBadge(despesa.status)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {despesa.status !== 'pago' && despesa.status !== 'cancelado' && (
-                          <DropdownMenuItem onClick={() => onMarkAsPaid(despesa.id)}>
-                            <CheckCircle className="h-4 w-4 mr-2 text-primary" />
-                            Marcar como Pago
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => onEdit(despesa)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setDeleteId(despesa.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto -mx-2 px-2">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {despesas.map((despesa) => (
+                  <TableRow key={despesa.id}>
+                    <TableCell className="font-medium">{despesa.descricao}</TableCell>
+                    <TableCell>
+                      {despesa.categoria ? (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: despesa.categoria.cor || '#6366f1' }}
+                          />
+                          <span className="text-sm">{despesa.categoria.nome}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(despesa.valor, despesa.moeda)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {formatDate(despesa.data_vencimento)}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getTipoBadge(despesa.tipo)}</TableCell>
+                    <TableCell>{getStatusBadge(despesa.status)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {despesa.status !== 'pago' && despesa.status !== 'cancelado' && (
+                            <DropdownMenuItem onClick={() => onMarkAsPaid(despesa.id)}>
+                              <CheckCircle className="h-4 w-4 mr-2 text-primary" />
+                              Marcar como Pago
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => onEdit(despesa)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => setDeleteId(despesa.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

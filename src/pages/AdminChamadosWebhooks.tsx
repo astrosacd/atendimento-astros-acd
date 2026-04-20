@@ -235,90 +235,92 @@ const AdminChamadosWebhooks = () => {
                 Nenhum webhook configurado
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Eventos</TableHead>
-                    <TableHead>Secret</TableHead>
-                    <TableHead>Último Disparo</TableHead>
-                    <TableHead>Ativo</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {webhooks?.map((webhook) => (
-                    <TableRow key={webhook.id}>
-                      <TableCell className="font-medium">{webhook.nome}</TableCell>
-                      <TableCell className="font-mono text-xs max-w-[200px] truncate">
-                        {webhook.url}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {webhook.eventos?.map((e: string) => (
-                            <Badge key={e} variant="secondary" className="text-xs">
-                              {e.split('.')[1]}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {webhook.secret_key ? (
-                          <div className="flex items-center gap-1">
-                            <span className="font-mono text-xs">
-                              {showSecrets[webhook.id] ? webhook.secret_key.slice(0, 20) + '...' : '••••••••'}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => setShowSecrets(prev => ({ ...prev, [webhook.id]: !prev[webhook.id] }))}
-                            >
-                              {showSecrets[webhook.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                navigator.clipboard.writeText(webhook.secret_key);
-                                toast.success('Secret copiado!');
-                              }}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {webhook.last_triggered_at 
-                          ? format(new Date(webhook.last_triggered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                          : '-'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={webhook.is_active}
-                          onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: webhook.id, is_active: checked })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => deleteMutation.mutate(webhook.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>URL</TableHead>
+                      <TableHead>Eventos</TableHead>
+                      <TableHead>Secret</TableHead>
+                      <TableHead>Último Disparo</TableHead>
+                      <TableHead>Ativo</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {webhooks?.map((webhook) => (
+                      <TableRow key={webhook.id}>
+                        <TableCell className="font-medium">{webhook.nome}</TableCell>
+                        <TableCell className="font-mono text-xs max-w-[200px] truncate">
+                          {webhook.url}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {webhook.eventos?.map((e: string) => (
+                              <Badge key={e} variant="secondary" className="text-xs">
+                                {e.split('.')[1]}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {webhook.secret_key ? (
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-xs">
+                                {showSecrets[webhook.id] ? webhook.secret_key.slice(0, 20) + '...' : '••••••••'}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setShowSecrets(prev => ({ ...prev, [webhook.id]: !prev[webhook.id] }))}
+                              >
+                                {showSecrets[webhook.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(webhook.secret_key);
+                                  toast.success('Secret copiado!');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {webhook.last_triggered_at 
+                            ? format(new Date(webhook.last_triggered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                            : '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={webhook.is_active}
+                            onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: webhook.id, is_active: checked })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(webhook.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

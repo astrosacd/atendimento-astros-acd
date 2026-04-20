@@ -895,80 +895,82 @@ export function ReminderConfigTab() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora (Brasília)</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Qtd Números</TableHead>
-                  <TableHead>Erro</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.length === 0 ? (
+            <div className="overflow-x-auto -mx-2 px-2">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Nenhum envio registrado
-                    </TableCell>
+                    <TableHead>Data/Hora (Brasília)</TableHead>
+                    <TableHead>Canal</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Qtd Números</TableHead>
+                    <TableHead>Erro</TableHead>
                   </TableRow>
-                ) : (
-                  logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm">
-                        {formatInTimeZone(new Date(log.sent_at), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            log.channel === 'whatsapp'
-                              ? 'default'
-                              : log.channel === 'gmail'
-                                ? 'secondary'
-                                : 'outline'
-                          }
-                        >
-                          {log.channel === 'whatsapp'
-                            ? 'WhatsApp'
-                            : log.channel === 'gmail'
-                              ? 'Email'
-                              : 'Cron'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            log.status === 'success'
-                              ? 'default'
-                              : log.status === 'no_numbers'
-                                ? 'secondary'
-                                : log.status === 'triggered'
-                                  ? 'outline'
-                                  : log.status === 'error'
-                                    ? 'destructive'
-                                    : 'outline'
-                          }
-                        >
-                          {log.status === 'success'
-                            ? 'Sucesso'
-                            : log.status === 'no_numbers'
-                              ? 'Sem números'
-                              : log.status === 'triggered'
-                                ? 'Executado (cron)'
-                                : log.status === 'error'
-                                  ? 'Erro'
-                                  : log.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{log.numbers_count}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                        {log.error_message || '-'}
+                </TableHeader>
+                <TableBody>
+                  {logs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        Nenhum envio registrado
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    logs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-sm">
+                          {formatInTimeZone(new Date(log.sent_at), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.channel === 'whatsapp'
+                                ? 'default'
+                                : log.channel === 'gmail'
+                                  ? 'secondary'
+                                  : 'outline'
+                            }
+                          >
+                            {log.channel === 'whatsapp'
+                              ? 'WhatsApp'
+                              : log.channel === 'gmail'
+                                ? 'Email'
+                                : 'Cron'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.status === 'success'
+                                ? 'default'
+                                : log.status === 'no_numbers'
+                                  ? 'secondary'
+                                  : log.status === 'triggered'
+                                    ? 'outline'
+                                    : log.status === 'error'
+                                      ? 'destructive'
+                                      : 'outline'
+                            }
+                          >
+                            {log.status === 'success'
+                              ? 'Sucesso'
+                              : log.status === 'no_numbers'
+                                ? 'Sem números'
+                                : log.status === 'triggered'
+                                  ? 'Executado (cron)'
+                                  : log.status === 'error'
+                                    ? 'Erro'
+                                    : log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.numbers_count}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                          {log.error_message || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

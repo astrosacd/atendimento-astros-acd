@@ -268,83 +268,85 @@ export default function ConsultaNumerosApiKeys() {
               </div>
             ) : (
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Chave</TableHead>
-                      <TableHead>Permissões</TableHead>
-                      <TableHead>Último Uso</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {apiKeys.map((key) => (
-                      <TableRow key={key.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{key.nome}</p>
-                            {key.descricao && (
-                              <p className="text-xs text-muted-foreground">{key.descricao}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              {key.api_key.substring(0, 12)}...
-                            </code>
-                            <Button variant="ghost" size="sm" onClick={() => handleCopyKey(key.api_key)}>
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {key.permissions.map((p) => (
-                              <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {key.last_used_at 
-                            ? format(new Date(key.last_used_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                            : 'Nunca'}
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={key.is_active}
-                            onCheckedChange={(checked) => toggleMutation.mutate({ id: key.id, is_active: checked })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir chave de API?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. A chave "{key.nome}" será permanentemente excluída.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMutation.mutate(key.id)}>
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
+                <div className="overflow-x-auto -mx-2 px-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Chave</TableHead>
+                        <TableHead>Permissões</TableHead>
+                        <TableHead>Último Uso</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[100px]">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {apiKeys.map((key) => (
+                        <TableRow key={key.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{key.nome}</p>
+                              {key.descricao && (
+                                <p className="text-xs text-muted-foreground">{key.descricao}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs bg-muted px-2 py-1 rounded">
+                                {key.api_key.substring(0, 12)}...
+                              </code>
+                              <Button variant="ghost" size="sm" onClick={() => handleCopyKey(key.api_key)}>
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {key.permissions.map((p) => (
+                                <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {key.last_used_at 
+                              ? format(new Date(key.last_used_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                              : 'Nunca'}
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={key.is_active}
+                              onCheckedChange={(checked) => toggleMutation.mutate({ id: key.id, is_active: checked })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir chave de API?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. A chave "{key.nome}" será permanentemente excluída.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteMutation.mutate(key.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </CardContent>

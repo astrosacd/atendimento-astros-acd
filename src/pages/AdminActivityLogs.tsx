@@ -777,94 +777,96 @@ const AdminActivityLogs = () => {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-[180px]">Data/Hora</TableHead>
-                    <TableHead className="w-[120px]">Ação</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Campos Alterados</TableHead>
-                    <TableHead className="w-[80px] text-center">Detalhes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                      </TableCell>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[180px]">Data/Hora</TableHead>
+                      <TableHead className="w-[120px]">Ação</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Campos Alterados</TableHead>
+                      <TableHead className="w-[80px] text-center">Detalhes</TableHead>
                     </TableRow>
-                  ) : filteredLogs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                        Nenhum registro encontrado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredLogs.map((log) => (
-                      <TableRow key={log.id} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-sm">
-                          {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          {getActionBadge(log.action, log)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {log.changed_by_email?.startsWith('API REST') ? (
-                              <>
-                                <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
-                                  API
-                                </Badge>
-                                <span className="text-sm text-muted-foreground">
-                                  {log.changed_by_email.replace('API REST (', '').replace(')', '')}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <User className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {log.changed_by_email || 'Sistema'}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">
-                            {log.new_data?.nome || log.previous_data?.nome || '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {log.changed_fields?.slice(0, 3).map((field, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {getFieldLabel(field)}
-                              </Badge>
-                            ))}
-                            {log.changed_fields && log.changed_fields.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{log.changed_fields.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openLogDetails(log)}
-                            className="h-8 w-8"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10">
+                          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : filteredLogs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                          Nenhum registro encontrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredLogs.map((log) => (
+                        <TableRow key={log.id} className="hover:bg-muted/30">
+                          <TableCell className="font-mono text-sm">
+                            {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            {getActionBadge(log.action, log)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {log.changed_by_email?.startsWith('API REST') ? (
+                                <>
+                                  <Badge variant="secondary" className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
+                                    API
+                                  </Badge>
+                                  <span className="text-sm text-muted-foreground">
+                                    {log.changed_by_email.replace('API REST (', '').replace(')', '')}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <User className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm">
+                                    {log.changed_by_email || 'Sistema'}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-medium">
+                              {log.new_data?.nome || log.previous_data?.nome || '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {log.changed_fields?.slice(0, 3).map((field, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {getFieldLabel(field)}
+                                </Badge>
+                              ))}
+                              {log.changed_fields && log.changed_fields.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{log.changed_fields.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openLogDetails(log)}
+                              className="h-8 w-8"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>

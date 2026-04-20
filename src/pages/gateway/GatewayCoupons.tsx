@@ -242,70 +242,72 @@ export default function GatewayCoupons() {
 
       <Card className="border-border/50">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Desconto</TableHead>
-                <TableHead>Validade</TableHead>
-                <TableHead>Usos</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {coupons.length === 0 ? (
+          <div className="overflow-x-auto -mx-2 px-2">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhum cupom cadastrado
-                  </TableCell>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Desconto</TableHead>
+                  <TableHead>Validade</TableHead>
+                  <TableHead>Usos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ) : (
-                coupons.map((coupon) => (
-                  <TableRow key={coupon.id}>
-                    <TableCell className="font-mono font-bold">{coupon.code}</TableCell>
-                    <TableCell>{formatDiscount(coupon)}</TableCell>
-                    <TableCell>
-                      {coupon.starts_at || coupon.expires_at ? (
-                        <span className="text-sm">
-                          {formatDate(coupon.starts_at)} - {formatDate(coupon.expires_at)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Sem limite</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {coupon.usage_count}/{coupon.max_uses_global || '∞'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={coupon.status === 'active' ? 'default' : 'secondary'}>
-                        {coupon.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(coupon)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(coupon.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {coupons.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      Nenhum cupom cadastrado
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  coupons.map((coupon) => (
+                    <TableRow key={coupon.id}>
+                      <TableCell className="font-mono font-bold">{coupon.code}</TableCell>
+                      <TableCell>{formatDiscount(coupon)}</TableCell>
+                      <TableCell>
+                        {coupon.starts_at || coupon.expires_at ? (
+                          <span className="text-sm">
+                            {formatDate(coupon.starts_at)} - {formatDate(coupon.expires_at)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Sem limite</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.usage_count}/{coupon.max_uses_global || '∞'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={coupon.status === 'active' ? 'default' : 'secondary'}>
+                          {coupon.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(coupon)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(coupon.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

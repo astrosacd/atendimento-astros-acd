@@ -317,58 +317,60 @@ export function MonitoredStatusDisplay({ baserowFields, onEditRow, onViewRow }: 
               </div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {monitoredNumbers.map((row: any) => {
-                      const statusValue = getStatusValue(row);
-                      return (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-mono">{getNumeroValue(row)}</TableCell>
-                          <TableCell>{getNomeValue(row)}</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              style={{ 
-                                borderColor: `var(--${getStatusColor(statusValue)}-500, #888)`,
-                                backgroundColor: `var(--${getStatusColor(statusValue)}-500, #888)20`
-                              }}
-                            >
-                              {statusValue}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleViewRow(row)}
-                                title="Visualizar"
+                <div className="overflow-x-auto -mx-2 px-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Número</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monitoredNumbers.map((row: any) => {
+                        const statusValue = getStatusValue(row);
+                        return (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-mono">{getNumeroValue(row)}</TableCell>
+                            <TableCell>{getNomeValue(row)}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="outline"
+                                style={{ 
+                                  borderColor: `var(--${getStatusColor(statusValue)}-500, #888)`,
+                                  backgroundColor: `var(--${getStatusColor(statusValue)}-500, #888)20`
+                                }}
                               >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditRow(row)}
-                                title="Editar"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                {statusValue}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleViewRow(row)}
+                                  title="Visualizar"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditRow(row)}
+                                  title="Editar"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 

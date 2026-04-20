@@ -558,64 +558,66 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
               </div>
             )}
             <ScrollArea className="h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {!isPublicAccess && <TableHead className="w-[40px]"></TableHead>}
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    {!isPublicAccess && <TableHead>Nome</TableHead>}
-                    {!isPublicAccess && <TableHead>ID</TableHead>}
-                    {!isPublicAccess && <TableHead className="w-[40px]">Obs</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((r, idx) => (
-                    <TableRow key={idx} className={r.status === 'bloqueado' ? 'opacity-70' : ''}>
-                      {!isPublicAccess && (
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedNumbers.has(r.numero)}
-                            onCheckedChange={() => toggleNumberSelection(r.numero)}
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell>{getStatusIcon(r.status)}</TableCell>
-                      <TableCell className="font-mono text-sm">{r.numero}</TableCell>
-                      <TableCell>{getStatusBadge(r.status)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                        {r.motivo || '-'}
-                      </TableCell>
-                      {!isPublicAccess && <TableCell className="text-sm">{r.nome || '-'}</TableCell>}
-                      {!isPublicAccess && (
-                        <TableCell className="text-sm text-muted-foreground">
-                          {r.baserow_id || '-'}
-                        </TableCell>
-                      )}
-                      {!isPublicAccess && (
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setObsDialogData({
-                                numero: r.numero,
-                                observacoes: r.observacoes || 'Sem observação',
-                              });
-                              setObsDialogOpen(true);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </TableCell>
-                      )}
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {!isPublicAccess && <TableHead className="w-[40px]"></TableHead>}
+                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      {!isPublicAccess && <TableHead>Nome</TableHead>}
+                      {!isPublicAccess && <TableHead>ID</TableHead>}
+                      {!isPublicAccess && <TableHead className="w-[40px]">Obs</TableHead>}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((r, idx) => (
+                      <TableRow key={idx} className={r.status === 'bloqueado' ? 'opacity-70' : ''}>
+                        {!isPublicAccess && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedNumbers.has(r.numero)}
+                              onCheckedChange={() => toggleNumberSelection(r.numero)}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell>{getStatusIcon(r.status)}</TableCell>
+                        <TableCell className="font-mono text-sm">{r.numero}</TableCell>
+                        <TableCell>{getStatusBadge(r.status)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                          {r.motivo || '-'}
+                        </TableCell>
+                        {!isPublicAccess && <TableCell className="text-sm">{r.nome || '-'}</TableCell>}
+                        {!isPublicAccess && (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {r.baserow_id || '-'}
+                          </TableCell>
+                        )}
+                        {!isPublicAccess && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setObsDialogData({
+                                  numero: r.numero,
+                                  observacoes: r.observacoes || 'Sem observação',
+                                });
+                                setObsDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>
@@ -647,38 +649,40 @@ export function ValidacaoSmsTab({ isPublicAccess = false }: ValidacaoSmsTabProps
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Resultado</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentLogs.map((log: any) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-mono text-sm">{log.numero}</TableCell>
-                      <TableCell>
-                        {log.resultado === 'apto' ? (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Apto</Badge>
-                        ) : (
-                          <Badge variant="destructive">Bloqueado</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                        {log.motivo || '-'}
-                      </TableCell>
-                      <TableCell className="text-sm">{log.user_email || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(log.created_at).toLocaleString('pt-BR')}
-                      </TableCell>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Resultado</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Data</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recentLogs.map((log: any) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-mono text-sm">{log.numero}</TableCell>
+                        <TableCell>
+                          {log.resultado === 'apto' ? (
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/30">Apto</Badge>
+                          ) : (
+                            <Badge variant="destructive">Bloqueado</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
+                          {log.motivo || '-'}
+                        </TableCell>
+                        <TableCell className="text-sm">{log.user_email || '-'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(log.created_at).toLocaleString('pt-BR')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>

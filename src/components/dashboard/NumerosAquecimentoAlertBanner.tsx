@@ -136,44 +136,46 @@ export function NumerosAquecimentoAlertBanner() {
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Tempo</TableHead>
-                  <TableHead>Observações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {numbers.map((numero) => {
-                  const status = numero.status;
-                  return (
-                    <TableRow key={numero.id}>
-                      <TableCell className="font-medium">{numero.numero}</TableCell>
-                      <TableCell>{numero.modelo?.nome || '-'}</TableCell>
-                      <TableCell>
-                        {status && (
-                          <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
-                            {status.nome}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {getTimeSinceActivity(numero)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {numero.observacoes || '-'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto -mx-2 px-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Modelo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Tempo</TableHead>
+                    <TableHead>Observações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {numbers.map((numero) => {
+                    const status = numero.status;
+                    return (
+                      <TableRow key={numero.id}>
+                        <TableCell className="font-medium">{numero.numero}</TableCell>
+                        <TableCell>{numero.modelo?.nome || '-'}</TableCell>
+                        <TableCell>
+                          {status && (
+                            <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
+                              {status.nome}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {getTimeSinceActivity(numero)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {numero.observacoes || '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </ScrollArea>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setShowDetails(false)}>

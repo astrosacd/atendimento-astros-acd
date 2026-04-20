@@ -520,48 +520,50 @@ export default function ConsultaNumerosConfig() {
                   </p>
 
                   <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome do Campo</TableHead>
-                          <TableHead className="w-[120px]">Mascarado</TableHead>
-                          <TableHead className="w-[80px]">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {maskedFields.length === 0 ? (
+                    <div className="overflow-x-auto -mx-2 px-2">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                              Nenhum campo configurado
-                            </TableCell>
+                            <TableHead>Nome do Campo</TableHead>
+                            <TableHead className="w-[120px]">Mascarado</TableHead>
+                            <TableHead className="w-[80px]">Ações</TableHead>
                           </TableRow>
-                        ) : (
-                          maskedFields.map((field) => (
-                            <TableRow key={field.id}>
-                              <TableCell className="font-medium">{field.field_name}</TableCell>
-                              <TableCell>
-                                <Switch
-                                  checked={field.is_masked}
-                                  onCheckedChange={(checked) => 
-                                    toggleMaskedMutation.mutate({ id: field.id, is_masked: checked })
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => deleteFieldMutation.mutate(field.id)}
-                                  disabled={deleteFieldMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                        </TableHeader>
+                        <TableBody>
+                          {maskedFields.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                Nenhum campo configurado
                               </TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
+                          ) : (
+                            maskedFields.map((field) => (
+                              <TableRow key={field.id}>
+                                <TableCell className="font-medium">{field.field_name}</TableCell>
+                                <TableCell>
+                                  <Switch
+                                    checked={field.is_masked}
+                                    onCheckedChange={(checked) => 
+                                      toggleMaskedMutation.mutate({ id: field.id, is_masked: checked })
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => deleteFieldMutation.mutate(field.id)}
+                                    disabled={deleteFieldMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
 
                   <div className="p-4 bg-muted/50 rounded-lg space-y-2">
@@ -617,56 +619,58 @@ export default function ConsultaNumerosConfig() {
                   </div>
 
                   <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tag</TableHead>
-                          <TableHead className="w-[100px]">Cor</TableHead>
-                          <TableHead className="w-[80px]">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {obsTags.length === 0 ? (
+                    <div className="overflow-x-auto -mx-2 px-2">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                              Nenhuma tag configurada
-                            </TableCell>
+                            <TableHead>Tag</TableHead>
+                            <TableHead className="w-[100px]">Cor</TableHead>
+                            <TableHead className="w-[80px]">Ações</TableHead>
                           </TableRow>
-                        ) : (
-                          obsTags.map((tag) => (
-                            <TableRow key={tag.id}>
-                              <TableCell>
-                                <span
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                  style={{
-                                    backgroundColor: tag.cor,
-                                    color: '#fff',
-                                  }}
-                                >
-                                  {tag.nome}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <div
-                                  className="w-6 h-6 rounded border"
-                                  style={{ backgroundColor: tag.cor }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => deleteObsTagMutation.mutate(tag.id)}
-                                  disabled={deleteObsTagMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                        </TableHeader>
+                        <TableBody>
+                          {obsTags.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                                Nenhuma tag configurada
                               </TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
+                          ) : (
+                            obsTags.map((tag) => (
+                              <TableRow key={tag.id}>
+                                <TableCell>
+                                  <span
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                    style={{
+                                      backgroundColor: tag.cor,
+                                      color: '#fff',
+                                    }}
+                                  >
+                                    {tag.nome}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div
+                                    className="w-6 h-6 rounded border"
+                                    style={{ backgroundColor: tag.cor }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => deleteObsTagMutation.mutate(tag.id)}
+                                    disabled={deleteObsTagMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
 
                   <div className="p-4 bg-muted/50 rounded-lg space-y-2">

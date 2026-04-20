@@ -508,79 +508,81 @@ export default function GatewayProducts() {
 
       <Card className="border-border/50">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produto</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Preço BRL</TableHead>
-                <TableHead>Preço USD</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.length === 0 ? (
+          <div className="overflow-x-auto -mx-2 px-2">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhum produto cadastrado
-                  </TableCell>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Preço BRL</TableHead>
+                  <TableHead>Preço USD</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ) : (
-                products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt="" className="h-10 w-10 object-cover rounded" />
-                        ) : (
-                          <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                            <Image className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        )}
-                        <span className="font-medium">{product.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{product.category?.name || '-'}</TableCell>
-                    <TableCell>{formatCurrency(product.price_brl)}</TableCell>
-                    <TableCell>{formatCurrency(product.price_usd, 'USD')}</TableCell>
-                    <TableCell>
-                      <Badge variant={product.status === 'active' ? 'default' : 'secondary'}>
-                        {product.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => copyLink(product.public_slug)}
-                          title="Copiar link"
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(product)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(product.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {products.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt="" className="h-10 w-10 object-cover rounded" />
+                          ) : (
+                            <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                              <Image className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="font-medium">{product.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{product.category?.name || '-'}</TableCell>
+                      <TableCell>{formatCurrency(product.price_brl)}</TableCell>
+                      <TableCell>{formatCurrency(product.price_usd, 'USD')}</TableCell>
+                      <TableCell>
+                        <Badge variant={product.status === 'active' ? 'default' : 'secondary'}>
+                          {product.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyLink(product.public_slug)}
+                            title="Copiar link"
+                          >
+                            <Link2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(product)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(product.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

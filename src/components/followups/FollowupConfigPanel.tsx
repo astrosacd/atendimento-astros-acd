@@ -723,34 +723,36 @@ export function FollowupConfigPanel({ open, onOpenChange }: { open: boolean; onO
                 {webhookLogs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">Nenhum log encontrado</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Evento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Resultado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {webhookLogs.map(log => (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-xs">
-                            {format(new Date(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px]">{log.evento}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs">{log.response_status || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant={log.success ? 'default' : 'destructive'} className="text-[10px]">
-                              {log.success ? 'OK' : 'Erro'}
-                            </Badge>
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-2 px-2">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Evento</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Resultado</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {webhookLogs.map(log => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-xs">
+                              {format(new Date(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px]">{log.evento}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{log.response_status || '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={log.success ? 'default' : 'destructive'} className="text-[10px]">
+                                {log.success ? 'OK' : 'Erro'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </DialogContent>
             </Dialog>

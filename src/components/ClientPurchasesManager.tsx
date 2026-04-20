@@ -226,50 +226,52 @@ export function ClientPurchasesManager({ clienteId, clienteNome }: ClientPurchas
                 {formatCurrency(totalValue, 'BRL')}
               </span>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchases.map((purchase) => (
-                  <TableRow key={purchase.id}>
-                    <TableCell className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {format(new Date(purchase.data_compra), 'dd/MM/yyyy', { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{purchase.produto}</p>
-                        {purchase.descricao && (
-                          <p className="text-xs text-muted-foreground">{purchase.descricao}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1 font-medium text-amber-500">
-                        <DollarSign className="h-4 w-4" />
-                        {formatCurrency(purchase.valor, purchase.moeda)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeletePurchase(purchase.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto -mx-2 px-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {purchases.map((purchase) => (
+                    <TableRow key={purchase.id}>
+                      <TableCell className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {format(new Date(purchase.data_compra), 'dd/MM/yyyy', { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{purchase.produto}</p>
+                          {purchase.descricao && (
+                            <p className="text-xs text-muted-foreground">{purchase.descricao}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-1 font-medium text-amber-500">
+                          <DollarSign className="h-4 w-4" />
+                          {formatCurrency(purchase.valor, purchase.moeda)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeletePurchase(purchase.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </>
         )}
       </CardContent>

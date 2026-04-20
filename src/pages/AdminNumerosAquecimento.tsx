@@ -220,7 +220,7 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
