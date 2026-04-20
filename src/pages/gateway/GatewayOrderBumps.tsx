@@ -455,73 +455,75 @@ export default function GatewayOrderBumps() {
 
     <Card className="border-border/50">
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order Bump</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Preço BRL</TableHead>
-              <TableHead>Preço USD</TableHead>
-              <TableHead>Permite cupom</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrderBumps.length === 0 ? (
+        <div className="overflow-x-auto -mx-2 px-2">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  Nenhum order bump encontrado
-                </TableCell>
+                <TableHead>Order Bump</TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead>Preço BRL</TableHead>
+                <TableHead>Preço USD</TableHead>
+                <TableHead>Permite cupom</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              filteredOrderBumps.map((ob) => (
-                <TableRow key={ob.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {ob.image_url ? (
-                        <img src={ob.image_url} alt="" className="h-10 w-10 object-cover rounded" />
-                      ) : (
-                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                          <Image className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="font-medium">{ob.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{ob.title}</TableCell>
-                  <TableCell>{formatCurrency(ob.price_brl)}</TableCell>
-                  <TableCell>{formatCurrency(ob.price_usd, 'USD')}</TableCell>
-                  <TableCell>
-                    <Badge variant={(ob.allow_coupon ?? true) ? 'default' : 'secondary'}>
-                      {(ob.allow_coupon ?? true) ? 'Sim' : 'Não'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={ob.status === 'active' ? 'default' : 'secondary'}>
-                      {ob.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(ob)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(ob.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredOrderBumps.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    Nenhum order bump encontrado
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredOrderBumps.map((ob) => (
+                  <TableRow key={ob.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {ob.image_url ? (
+                          <img src={ob.image_url} alt="" className="h-10 w-10 object-cover rounded" />
+                        ) : (
+                          <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                            <Image className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <span className="font-medium">{ob.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{ob.title}</TableCell>
+                    <TableCell>{formatCurrency(ob.price_brl)}</TableCell>
+                    <TableCell>{formatCurrency(ob.price_usd, 'USD')}</TableCell>
+                    <TableCell>
+                      <Badge variant={(ob.allow_coupon ?? true) ? 'default' : 'secondary'}>
+                        {(ob.allow_coupon ?? true) ? 'Sim' : 'Não'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={ob.status === 'active' ? 'default' : 'secondary'}>
+                        {ob.status === 'active' ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(ob)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(ob.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
     </div>

@@ -257,89 +257,91 @@ const AdminChamadosApiKeys = () => {
                 Nenhuma API key configurada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>API Key</TableHead>
-                    <TableHead>Permissões</TableHead>
-                    <TableHead>Último Uso</TableHead>
-                    <TableHead>Ativa</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {apiKeys?.map((key) => (
-                    <TableRow key={key.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{key.nome}</p>
-                          {key.descricao && (
-                            <p className="text-xs text-muted-foreground">{key.descricao}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <span className="font-mono text-xs">
-                            {showKeys[key.id] ? key.api_key : key.api_key.slice(0, 12) + '...'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => setShowKeys(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
-                          >
-                            {showKeys[key.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => {
-                              navigator.clipboard.writeText(key.api_key);
-                              toast.success('API key copiada!');
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {key.permissions?.map((p: string) => (
-                            <Badge key={p} variant="secondary" className="text-xs">
-                              {p}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {key.last_used_at 
-                          ? format(new Date(key.last_used_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                          : 'Nunca'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={key.is_active}
-                          onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: key.id, is_active: checked })}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => deleteMutation.mutate(key.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>API Key</TableHead>
+                      <TableHead>Permissões</TableHead>
+                      <TableHead>Último Uso</TableHead>
+                      <TableHead>Ativa</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {apiKeys?.map((key) => (
+                      <TableRow key={key.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{key.nome}</p>
+                            {key.descricao && (
+                              <p className="text-xs text-muted-foreground">{key.descricao}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-xs">
+                              {showKeys[key.id] ? key.api_key : key.api_key.slice(0, 12) + '...'}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setShowKeys(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
+                            >
+                              {showKeys[key.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText(key.api_key);
+                                toast.success('API key copiada!');
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {key.permissions?.map((p: string) => (
+                              <Badge key={p} variant="secondary" className="text-xs">
+                                {p}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {key.last_used_at 
+                            ? format(new Date(key.last_used_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                            : 'Nunca'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={key.is_active}
+                            onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: key.id, is_active: checked })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deleteMutation.mutate(key.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

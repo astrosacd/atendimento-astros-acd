@@ -236,61 +236,63 @@ export function InactiveParticipantsManager() {
               </Button>
             </div>
             <ScrollArea className="h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedParticipants.length === participants.length && participants.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>{t('broadcaster.number')}</TableHead>
-                    <TableHead>{t('broadcaster.name')}</TableHead>
-                    <TableHead>{t('broadcaster.group')}</TableHead>
-                    <TableHead>{t('broadcaster.lastMessage')}</TableHead>
-                    <TableHead>{t('broadcaster.inactivity')}</TableHead>
-                    <TableHead>{t('broadcaster.messages')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {participants.map((p: any) => {
-                    const inactivity = getInactivityInfo(p);
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedParticipants.includes(p.id)}
-                            onCheckedChange={() => toggleSelect(p.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
-                        <TableCell>{p.name || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {p.last_message_at
-                            ? format(new Date(p.last_message_at), 'dd/MM/yyyy HH:mm', { locale: getDateLocale() })
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`flex items-center gap-1 ${inactivity.color}`}>
-                            <Clock className="h-3 w-3" />
-                            {inactivity.text}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <MessageSquare className="h-3 w-3" />
-                            {p.message_count || 0}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedParticipants.length === participants.length && participants.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>{t('broadcaster.number')}</TableHead>
+                      <TableHead>{t('broadcaster.name')}</TableHead>
+                      <TableHead>{t('broadcaster.group')}</TableHead>
+                      <TableHead>{t('broadcaster.lastMessage')}</TableHead>
+                      <TableHead>{t('broadcaster.inactivity')}</TableHead>
+                      <TableHead>{t('broadcaster.messages')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {participants.map((p: any) => {
+                      const inactivity = getInactivityInfo(p);
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedParticipants.includes(p.id)}
+                              onCheckedChange={() => toggleSelect(p.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
+                          <TableCell>{p.name || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {p.last_message_at
+                              ? format(new Date(p.last_message_at), 'dd/MM/yyyy HH:mm', { locale: getDateLocale() })
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`flex items-center gap-1 ${inactivity.color}`}>
+                              <Clock className="h-3 w-3" />
+                              {inactivity.text}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <MessageSquare className="h-3 w-3" />
+                              {p.message_count || 0}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </>
         )}

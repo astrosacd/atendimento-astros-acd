@@ -174,34 +174,36 @@ export default function LeadHunterConfig() {
             {instances.length === 0 ? (
               <p className="text-center text-muted-foreground py-6">Nenhuma instância configurada</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {instances.map(inst => (
-                    <TableRow key={inst.id}>
-                      <TableCell className="font-medium">{inst.instance_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{inst.api_url}</TableCell>
-                      <TableCell>
-                        <Badge variant={inst.is_active ? 'default' : 'secondary'}>
-                          {inst.is_active ? 'Ativa' : 'Inativa'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => deleteInstance.mutate(inst.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
+              <div className="overflow-x-auto -mx-2 px-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>URL</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {instances.map(inst => (
+                      <TableRow key={inst.id}>
+                        <TableCell className="font-medium">{inst.instance_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{inst.api_url}</TableCell>
+                        <TableCell>
+                          <Badge variant={inst.is_active ? 'default' : 'secondary'}>
+                            {inst.is_active ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => deleteInstance.mutate(inst.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

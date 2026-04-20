@@ -285,76 +285,78 @@ export default function ConsultaNumerosWebhooks() {
               </div>
             ) : (
               <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('common.name')}</TableHead>
-                      <TableHead>URL</TableHead>
-                      <TableHead>{t('numberQueryWebhooks.table.events')}</TableHead>
-                      <TableHead>{t('numberQueryWebhooks.table.lastTrigger')}</TableHead>
-                      <TableHead>{t('common.status')}</TableHead>
-                      <TableHead className="w-[120px]">{t('common.actions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {webhooks.map((webhook) => (
-                      <TableRow key={webhook.id}>
-                        <TableCell className="font-medium">{webhook.nome}</TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded truncate block max-w-[200px]">
-                            {webhook.url}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {webhook.eventos.map((e) => (
-                              <Badge key={e} variant="secondary" className="text-xs">{e}</Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {webhook.last_triggered_at
-                            ? format(new Date(webhook.last_triggered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                            : t('numberQueryWebhooks.never')}
-                        </TableCell>
-                        <TableCell>
-                          <Switch
-                            checked={webhook.is_active}
-                            onCheckedChange={(checked) => toggleMutation.mutate({ id: webhook.id, is_active: checked })}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleEdit(webhook)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>{t('numberQueryWebhooks.deleteTitle')}</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    {t('numberQueryWebhooks.deleteDescription', { name: webhook.nome })}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteMutation.mutate(webhook.id)}>
-                                    {t('common.delete')}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto -mx-2 px-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('common.name')}</TableHead>
+                        <TableHead>URL</TableHead>
+                        <TableHead>{t('numberQueryWebhooks.table.events')}</TableHead>
+                        <TableHead>{t('numberQueryWebhooks.table.lastTrigger')}</TableHead>
+                        <TableHead>{t('common.status')}</TableHead>
+                        <TableHead className="w-[120px]">{t('common.actions')}</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {webhooks.map((webhook) => (
+                        <TableRow key={webhook.id}>
+                          <TableCell className="font-medium">{webhook.nome}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded truncate block max-w-[200px]">
+                              {webhook.url}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {webhook.eventos.map((e) => (
+                                <Badge key={e} variant="secondary" className="text-xs">{e}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {webhook.last_triggered_at
+                              ? format(new Date(webhook.last_triggered_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                              : t('numberQueryWebhooks.never')}
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={webhook.is_active}
+                              onCheckedChange={(checked) => toggleMutation.mutate({ id: webhook.id, is_active: checked })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(webhook)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('numberQueryWebhooks.deleteTitle')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      {t('numberQueryWebhooks.deleteDescription', { name: webhook.nome })}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteMutation.mutate(webhook.id)}>
+                                      {t('common.delete')}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </CardContent>

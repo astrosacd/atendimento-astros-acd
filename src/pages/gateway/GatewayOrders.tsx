@@ -88,79 +88,81 @@ export default function GatewayOrders() {
 
       <Card className="border-border/50">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Gateway</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.length === 0 ? (
+          <div className="overflow-x-auto -mx-2 px-2">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    Nenhum pedido encontrado
-                  </TableCell>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Gateway</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ) : (
-                filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{order.customer_name}</p>
-                        <p className="text-sm text-muted-foreground">{order.customer_email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.product?.name || '-'}</TableCell>
-                    <TableCell className="font-semibold">
-                      {formatCurrency(order.total, order.currency)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {order.payment_gateway === 'stripe' ? 'Stripe' : 
-                         order.payment_gateway === 'mercadopago' ? 'Mercado Pago' : '-'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(order.status)}
-                        {order.abandoned_email_sent && order.status === 'pending' && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="secondary" className="gap-1 text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
-                                  <Mail className="h-3 w-3" />
-                                  Enviado
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Email de recuperação de carrinho abandonado já foi enviado</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSelectedOrder(order)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Nenhum pedido encontrado
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{order.customer_name}</p>
+                          <p className="text-sm text-muted-foreground">{order.customer_email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{order.product?.name || '-'}</TableCell>
+                      <TableCell className="font-semibold">
+                        {formatCurrency(order.total, order.currency)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {order.payment_gateway === 'stripe' ? 'Stripe' : 
+                           order.payment_gateway === 'mercadopago' ? 'Mercado Pago' : '-'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(order.status)}
+                          {order.abandoned_email_sent && order.status === 'pending' && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="secondary" className="gap-1 text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
+                                    <Mail className="h-3 w-3" />
+                                    Enviado
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Email de recuperação de carrinho abandonado já foi enviado</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

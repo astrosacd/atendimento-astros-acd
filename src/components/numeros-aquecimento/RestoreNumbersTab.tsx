@@ -238,70 +238,72 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
               />
             </div>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Modelo Original</TableHead>
-                <TableHead>Status Original</TableHead>
-                <TableHead>Motivo da Exclusão</TableHead>
-                <TableHead>Excluído Por</TableHead>
-                <TableHead>Data Exclusão</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+          <div className="overflow-x-auto -mx-2 px-2">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Carregando...
-                  </TableCell>
+                  <TableHead>Número</TableHead>
+                  <TableHead>Modelo Original</TableHead>
+                  <TableHead>Status Original</TableHead>
+                  <TableHead>Motivo da Exclusão</TableHead>
+                  <TableHead>Excluído Por</TableHead>
+                  <TableHead>Data Exclusão</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
-              ) : filteredDeletedNumbers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <Trash2 className="h-8 w-8 text-muted-foreground/50" />
-                      {searchQuery.trim() ? 'Nenhum número encontrado' : 'Nenhum número excluído para restaurar'}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredDeletedNumbers.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.numero_valor}</TableCell>
-                    <TableCell>
-                      {record.dados_anteriores?.modelo?.nome || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {record.dados_anteriores?.status?.nome ? (
-                        <Badge variant="secondary">{record.dados_anteriores.status.nome}</Badge>
-                      ) : '-'}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {record.dados_anteriores?.motivo_exclusao || '-'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {record.usuario_email || '-'}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(record.created_at).toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenRestoreDialog(record)}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Restaurar
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Carregando...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredDeletedNumbers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <div className="flex flex-col items-center gap-2">
+                        <Trash2 className="h-8 w-8 text-muted-foreground/50" />
+                        {searchQuery.trim() ? 'Nenhum número encontrado' : 'Nenhum número excluído para restaurar'}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDeletedNumbers.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.numero_valor}</TableCell>
+                      <TableCell>
+                        {record.dados_anteriores?.modelo?.nome || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {record.dados_anteriores?.status?.nome ? (
+                          <Badge variant="secondary">{record.dados_anteriores.status.nome}</Badge>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {record.dados_anteriores?.motivo_exclusao || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {record.usuario_email || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(record.created_at).toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenRestoreDialog(record)}
+                        >
+                          <RotateCcw className="h-4 w-4 mr-1" />
+                          Restaurar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -325,42 +325,44 @@ export function AllParticipantsManager() {
           </p>
         ) : (
           <ScrollArea className="h-[400px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('broadcaster.number')}</TableHead>
-                  <TableHead>{t('broadcaster.name')}</TableHead>
-                  <TableHead>{t('broadcaster.group')}</TableHead>
-                  <TableHead>{t('broadcaster.entry')}</TableHead>
-                  <TableHead>{t('broadcaster.lastMsg')}</TableHead>
-                  <TableHead>{t('broadcaster.status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredParticipants.map((p: any) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
-                    <TableCell>{p.name || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy HH:mm', { locale: getDateLocale() }) : '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {p.last_message_at ? format(new Date(p.last_message_at), 'dd/MM/yy HH:mm', { locale: getDateLocale() }) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {p.is_admin && <Badge variant="default" className="text-xs">{t('broadcaster.admin')}</Badge>}
-                        {p.is_inactive && <Badge variant="destructive" className="text-xs">{t('broadcaster.inactive')}</Badge>}
-                        {!p.is_admin && !p.is_inactive && <Badge variant="secondary" className="text-xs">{t('broadcaster.member')}</Badge>}
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto -mx-2 px-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('broadcaster.number')}</TableHead>
+                    <TableHead>{t('broadcaster.name')}</TableHead>
+                    <TableHead>{t('broadcaster.group')}</TableHead>
+                    <TableHead>{t('broadcaster.entry')}</TableHead>
+                    <TableHead>{t('broadcaster.lastMsg')}</TableHead>
+                    <TableHead>{t('broadcaster.status')}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredParticipants.map((p: any) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono text-sm">{p.whatsapp_number}</TableCell>
+                      <TableCell>{p.name || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{p.divulgador_groups?.name || '-'}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {p.joined_at ? format(new Date(p.joined_at), 'dd/MM/yy HH:mm', { locale: getDateLocale() }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {p.last_message_at ? format(new Date(p.last_message_at), 'dd/MM/yy HH:mm', { locale: getDateLocale() }) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {p.is_admin && <Badge variant="default" className="text-xs">{t('broadcaster.admin')}</Badge>}
+                          {p.is_inactive && <Badge variant="destructive" className="text-xs">{t('broadcaster.inactive')}</Badge>}
+                          {!p.is_admin && !p.is_inactive && <Badge variant="secondary" className="text-xs">{t('broadcaster.member')}</Badge>}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </ScrollArea>
         )}
       </CardContent>
