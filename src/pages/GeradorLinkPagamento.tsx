@@ -302,7 +302,7 @@ export default function GeradorLinkPagamento() {
   const copyLink = async (url: string) => {
     const textToCopy = `Segue Link de Pagamento:\n${url}`;
     try {
-      await __copyToClipboard(textToCopy);
+      await copyToClipboard(textToCopy);
       toast.success('Link copiado com texto!');
     } catch {
       const textArea = document.createElement('textarea');
