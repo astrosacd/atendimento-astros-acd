@@ -765,7 +765,7 @@ export default function ConsultarCliente() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-muted-foreground hover:text-pink-500"
-                                title="Credenciais Social Media"
+                                title="Credenciais do Cliente"
                               >
                                 <Lock className="h-4 w-4" />
                               </Button>

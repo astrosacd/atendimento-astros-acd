@@ -32,8 +32,8 @@ const VALID_BR_DDDS = new Set([
 
 /**
  * Returns true when the local part of a Brazilian phone is structurally valid:
- *  - 11 digits: DDD + 9 + 8 digits (mobile)
- *  - 10 digits: DDD + [2-5] + 7 digits (landline)
+ *  - 11 digits: DDD + 9 + 8 digits (current mobile)
+ *  - 10 digits: DDD + [2-9] + 7 digits (landline or legacy mobile already normalized)
  */
 const isValidBrazilianLocal = (digits: string): boolean => {
   if (digits.length === 11) {
@@ -42,7 +42,7 @@ const isValidBrazilianLocal = (digits: string): boolean => {
   }
   if (digits.length === 10) {
     const ddd = digits.slice(0, 2);
-    return VALID_BR_DDDS.has(ddd) && /[2-5]/.test(digits[2]);
+    return VALID_BR_DDDS.has(ddd) && /[2-9]/.test(digits[2]);
   }
   return false;
 };
