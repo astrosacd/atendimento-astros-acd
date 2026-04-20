@@ -1887,7 +1887,7 @@ export type Database = {
         Row: {
           ciclo_cobranca: string
           cobranca_ativa: boolean
-          cpf: string
+          cpf: string | null
           created_at: string
           created_by: string | null
           data_d_mais_1: string | null
@@ -1896,7 +1896,7 @@ export type Database = {
           data_d_mais_30: string | null
           data_d_menos_3: string | null
           data_renovacao: string
-          email: string
+          email: string | null
           id: string
           moeda: string
           nome: string
@@ -1911,7 +1911,7 @@ export type Database = {
         Insert: {
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
-          cpf: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_d_mais_1?: string | null
@@ -1920,7 +1920,7 @@ export type Database = {
           data_d_mais_30?: string | null
           data_d_menos_3?: string | null
           data_renovacao: string
-          email: string
+          email?: string | null
           id?: string
           moeda?: string
           nome: string
@@ -1935,7 +1935,7 @@ export type Database = {
         Update: {
           ciclo_cobranca?: string
           cobranca_ativa?: boolean
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           data_d_mais_1?: string | null
@@ -1944,7 +1944,7 @@ export type Database = {
           data_d_mais_30?: string | null
           data_d_menos_3?: string | null
           data_renovacao?: string
-          email?: string
+          email?: string | null
           id?: string
           moeda?: string
           nome?: string
