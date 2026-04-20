@@ -153,6 +153,9 @@ const categoryToPermission: Record<string, string> = {
   'agenda-config': 'view_guia_agenda',
   'link-pagamento-visao-geral': 'view_guia_link_pagamento',
   'social-media': 'view_social_credentials',
+  'servidores-credenciais': 'view_guia_servidores',
+  'servidores-ferramentas': 'view_guia_servidores',
+  'servidores-compartilhamento': 'view_guia_servidores',
   'aprovacoes-visao-geral': 'view_guia_aprovacoes',
   'automacoes-visao-geral': 'view_guia_automacoes',
 };
@@ -308,6 +311,14 @@ const AdminGuia = () => {
       color: "text-pink-400",
       categories: ["social-media"],
       permissionKey: "view_social_credentials"
+    },
+    {
+      id: "servidores",
+      title: "Servidores e Ferramentas",
+      icon: Database,
+      color: "text-blue-400",
+      categories: ["servidores-credenciais", "servidores-ferramentas", "servidores-compartilhamento"],
+      permissionKey: "view_guia_servidores"
     },
     {
       id: "gateway",
