@@ -972,7 +972,7 @@ export default function ConsultarCliente() {
             <DialogHeader className="px-6 pt-6">
               <DialogTitle className="text-foreground font-display flex items-center gap-2">
                 <Network className="h-5 w-5 text-cyan-500" />
-                Grafo de Conexões 360°
+                Mapa de Conexões 360°
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 Todas as conexões e relações de {graphClienteName}

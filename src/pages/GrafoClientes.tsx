@@ -42,7 +42,7 @@ export default function GrafoClientes() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Network className="h-6 w-6 text-primary" />
-              Grafo de Conexões 360°
+              Mapa de Conexões 360°
             </h1>
             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5" />
