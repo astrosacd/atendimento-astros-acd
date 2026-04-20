@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +34,7 @@ import { ClientFilesManager } from '@/components/ClientFilesManager';
 import { ClientPurchasesManager } from '@/components/ClientPurchasesManager';
 import { useTranslation } from 'react-i18next';
 import { ClientUnifiedTimeline } from '@/components/ClientUnifiedTimeline';
+import { ClientConnectionGraph } from '@/components/ClientConnectionGraph';
 import { ClientAIInsights } from '@/components/ClientAIInsights';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
@@ -63,6 +64,8 @@ export default function ConsultarCliente() {
   const [purchasesClienteName, setPurchasesClienteName] = useState<string>('');
   const [timelineClienteId, setTimelineClienteId] = useState<string | null>(null);
   const [timelineClienteName, setTimelineClienteName] = useState<string>('');
+  const [graphClienteId, setGraphClienteId] = useState<string | null>(null);
+  const [graphClienteName, setGraphClienteName] = useState<string>('');
   const [aiClienteId, setAiClienteId] = useState<string | null>(null);
   const [aiClienteName, setAiClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
@@ -720,6 +723,18 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  onClick={() => {
+                                    setGraphClienteId(cliente.id);
+                                    setGraphClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-cyan-500"
+                                  title="Grafo de Conexões 360°"
+                                >
+                                  <Network className="h-4 w-4" />
+                                </Button>
                                 {canViewClientAI() && (
                                   <Button
                                     onClick={() => {
@@ -944,6 +959,26 @@ export default function ConsultarCliente() {
             <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
               {timelineClienteId && (
                 <ClientUnifiedTimeline clienteId={timelineClienteId} clienteName={timelineClienteName} />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Connection Graph Dialog */}
+        <Dialog open={!!graphClienteId} onOpenChange={() => setGraphClienteId(null)}>
+          <DialogContent className="!bg-card border border-border max-w-[95vw] w-[95vw] max-h-[95vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
+            <DialogHeader className="px-6 pt-6">
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <Network className="h-5 w-5 text-cyan-500" />
+                Grafo de Conexões 360°
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Todas as conexões e relações de {graphClienteName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
+              {graphClienteId && (
+                <ClientConnectionGraph clienteId={graphClienteId} height={650} />
               )}
             </div>
           </DialogContent>
