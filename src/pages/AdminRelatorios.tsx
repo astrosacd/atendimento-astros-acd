@@ -332,7 +332,12 @@ export default function AdminRelatorios() {
     const planos: Record<string, { clientes: ClienteData[], valorTotal: number, count: number }> = {};
 
     clientes.forEach(c => {
-      const plano = c.plano || 'Sem plano';
+      // Normalizar planos: null, undefined, 'Nenhum' ou 'Sem plano' viram 'Individual'
+      let plano = c.plano;
+      if (!plano || plano === 'Nenhum' || plano === 'Sem plano') {
+        plano = 'Individual';
+      }
+      
       if (!planos[plano]) {
         planos[plano] = { clientes: [], valorTotal: 0, count: 0 };
       }
