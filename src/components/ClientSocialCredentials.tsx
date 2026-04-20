@@ -727,7 +727,7 @@ export function ClientSocialCredentials({ clienteId, clienteName, open, onOpenCh
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Quem acessar este link poderá ver as credenciais deste cliente (somente leitura).
+                  Quem acessar este link poderá ver as credenciais sociais e de servidores deste cliente em modo somente leitura.
                 </p>
               </div>
             )}
