@@ -789,7 +789,24 @@ export default function ConsultarCliente() {
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <p className="text-muted-foreground">ID: <span className="text-foreground">{cliente.id.slice(0, 8)}...</span></p>
-                          <p className="text-muted-foreground">{t('clients.phone')}: <span className="text-foreground">{formatPhone(cliente.numero)}</span></p>
+                          <p className="text-muted-foreground">
+                            {t('clients.phone')}:{' '}
+                            <span className="text-foreground">{formatPhone(cliente.numero)}</span>
+                            {isInternationalPhoneNumber(cliente.numero) && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-1 py-0.5">
+                                      🌐 internacional
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Número internacional — verifique manualmente o WhatsApp/canal</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </p>
                           <p className="text-muted-foreground">{t('clients.email')}: <span className="text-foreground">{cliente.email}</span></p>
                           <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{formatCPFOrCNPJ(cliente.cpf)}</span></p>
                           <p className="text-muted-foreground">{t('clients.product')}: <span className="text-foreground">{cliente.produto}</span></p>
