@@ -456,9 +456,11 @@ export default function CadastrarCliente() {
                     onChange={(phoneWithDDI, code) => {
                       setFormData({ ...formData, numero: phoneWithDDI });
                       setCountryCode(code);
+                      dupCheck.debouncedCheck('numero', phoneWithDDI);
                     }}
                     required
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.numero} compact />
                 </div>
 
                 <div className="space-y-2 col-span-2">
@@ -467,9 +469,14 @@ export default function CadastrarCliente() {
                     id="cpf"
                     placeholder="000.000.000-00"
                     value={formatCPFOrCNPJ(formData.cpf)}
-                    onChange={(e) => setFormData({ ...formData, cpf: unformat(e.target.value) })}
+                    onChange={(e) => {
+                      const raw = unformat(e.target.value);
+                      setFormData({ ...formData, cpf: raw });
+                      dupCheck.debouncedCheck('cpf', raw);
+                    }}
                     className="bg-secondary border-border text-foreground h-11"
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.cpf} compact />
                 </div>
 
                 <div className="space-y-2 col-span-2">
@@ -479,9 +486,13 @@ export default function CadastrarCliente() {
                     type="email"
                     placeholder="Digite o email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      dupCheck.debouncedCheck('email', e.target.value);
+                    }}
                     className="bg-secondary border-border text-foreground h-11"
                   />
+                  <DuplicateClientWarning matches={dupCheck.duplicates.email} compact />
                 </div>
 
                 <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
