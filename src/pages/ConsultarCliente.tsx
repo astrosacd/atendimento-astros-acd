@@ -964,6 +964,26 @@ export default function ConsultarCliente() {
           </DialogContent>
         </Dialog>
 
+        {/* Connection Graph Dialog */}
+        <Dialog open={!!graphClienteId} onOpenChange={() => setGraphClienteId(null)}>
+          <DialogContent className="!bg-card border border-border max-w-[95vw] w-[95vw] max-h-[95vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
+            <DialogHeader className="px-6 pt-6">
+              <DialogTitle className="text-foreground font-display flex items-center gap-2">
+                <Network className="h-5 w-5 text-cyan-500" />
+                Grafo de Conexões 360°
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Todas as conexões e relações de {graphClienteName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
+              {graphClienteId && (
+                <ClientConnectionGraph clienteId={graphClienteId} height={650} />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* AI Insights Dialog */}
         <Dialog open={!!aiClienteId} onOpenChange={() => setAiClienteId(null)}>
           <DialogContent className="!bg-card border border-border max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
