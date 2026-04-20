@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Eye, EyeOff, Lock, ShieldX, Clock, Download, Image,
+  Eye, EyeOff, Lock, ShieldX, Clock, Download, Image, Copy, Check,
+  Bot, Workflow, Server, Cog, Database, Cloud, Globe, Settings,
+  type LucideIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getClientCredentialPlatform, parseCredentialNotes } from '@/utils/clientCredentials';
+import { copyToClipboard } from '@/utils/clipboard';
+import { toast } from 'sonner';
 
 interface Credential {
   id: string;
@@ -18,6 +22,12 @@ interface Credential {
   login: string;
   encrypted_password: string;
   notes: string | null;
+}
+
+interface ToolType {
+  value: string;
+  label: string;
+  icon: string;
 }
 
 interface Logo {
@@ -29,15 +39,21 @@ interface Logo {
   description: string | null;
 }
 
+const ICON_MAP: Record<string, LucideIcon> = {
+  Bot, Workflow, Server, Cog, Database, Cloud, Globe, Settings,
+};
+
 export default function CredenciaisPublica() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [toolTypes, setToolTypes] = useState<ToolType[]>([]);
   const [logos, setLogos] = useState<Logo[]>([]);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -53,6 +69,7 @@ export default function CredenciaisPublica() {
         } else {
           setClientName(result.client_name);
           setCredentials(result.credentials || []);
+          setToolTypes(result.tool_types || []);
           setLogos(result.logos || []);
           setExpiresAt(result.expires_at);
         }
@@ -64,7 +81,22 @@ export default function CredenciaisPublica() {
     })();
   }, [token]);
 
-  const getPlatformInfo = (value: string) => getClientCredentialPlatform(value);
+  const toolTypeMap = useMemo(() => {
+    const map = new Map<string, ToolType>();
+    toolTypes.forEach(t => map.set(t.value, t));
+    return map;
+  }, [toolTypes]);
+
+  // Returns label/icon/color. Tool types take precedence over hardcoded social platforms.
+  const getPlatformInfo = (value: string) => {
+    const tool = toolTypeMap.get(value);
+    if (tool) {
+      const Icon = ICON_MAP[tool.icon] || Server;
+      return { label: tool.label, Icon, color: 'text-primary' };
+    }
+    const social = getClientCredentialPlatform(value);
+    return { label: social.label, Icon: social.icon, color: social.color };
+  };
 
   const togglePassword = (id: string) => {
     setVisiblePasswords(prev => {
@@ -72,6 +104,18 @@ export default function CredenciaisPublica() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const handleCopy = async (key: string, value: string, label: string) => {
+    if (!value) return;
+    try {
+      await copyToClipboard(value);
+      setCopiedKey(key);
+      toast.success(`${label} copiado!`);
+      setTimeout(() => setCopiedKey(prev => (prev === key ? null : prev)), 1500);
+    } catch {
+      toast.error('Não foi possível copiar');
+    }
   };
 
   const getLogoPublicUrl = (filePath: string) => {
@@ -142,37 +186,92 @@ export default function CredenciaisPublica() {
           ) : (
             credentials.map(cred => {
               const platform = getPlatformInfo(cred.platform);
-              const Icon = platform.icon;
+              const Icon = platform.Icon;
               const isVisible = visiblePasswords.has(cred.id);
               const { url, notes } = parseCredentialNotes(cred.notes);
+              const accessUrl = url
+                ? (/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`)
+                : '';
 
               return (
                 <Card key={cred.id} className="border">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Icon className={`h-5 w-5 shrink-0 ${platform.color}`} />
-                      <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-3">
+                      <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${platform.color}`} />
+                      <div className="min-w-0 flex-1 space-y-1">
                         <span className="font-medium text-sm">{platform.label}</span>
-                        <p className="text-xs text-muted-foreground truncate">Login: {cred.login}</p>
+
+                        {/* Login row */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">Login:</span>
+                          <span className="text-xs truncate flex-1">{cred.login}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 shrink-0"
+                            onClick={() => handleCopy(`login-${cred.id}`, cred.login, 'Login')}
+                            title="Copiar login"
+                          >
+                            {copiedKey === `login-${cred.id}`
+                              ? <Check className="h-3 w-3 text-primary" />
+                              : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </div>
+
+                        {/* URL row */}
                         {url && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            URL: <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">{url}</a>
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground shrink-0">URL:</span>
+                            <a
+                              href={accessUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-primary underline underline-offset-2 truncate flex-1"
+                            >
+                              {url}
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 shrink-0"
+                              onClick={() => handleCopy(`url-${cred.id}`, url, 'URL')}
+                              title="Copiar URL"
+                            >
+                              {copiedKey === `url-${cred.id}`
+                                ? <Check className="h-3 w-3 text-primary" />
+                                : <Copy className="h-3 w-3" />}
+                            </Button>
+                          </div>
                         )}
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-xs text-muted-foreground">Senha:</span>
-                          <span className="text-xs font-mono">
+
+                        {/* Password row */}
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground shrink-0">Senha:</span>
+                          <span className="text-xs font-mono flex-1 truncate">
                             {isVisible ? cred.encrypted_password : '••••••••'}
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5"
+                            className="h-5 w-5 shrink-0"
                             onClick={() => togglePassword(cred.id)}
+                            title={isVisible ? 'Ocultar senha' : 'Mostrar senha'}
                           >
                             {isVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 shrink-0"
+                            onClick={() => handleCopy(`pwd-${cred.id}`, cred.encrypted_password, 'Senha')}
+                            title="Copiar senha"
+                          >
+                            {copiedKey === `pwd-${cred.id}`
+                              ? <Check className="h-3 w-3 text-primary" />
+                              : <Copy className="h-3 w-3" />}
+                          </Button>
                         </div>
+
                         {notes && (
                           <p className="text-xs text-muted-foreground mt-1 italic">📝 {notes}</p>
                         )}
