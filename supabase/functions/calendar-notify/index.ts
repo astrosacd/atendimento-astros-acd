@@ -242,13 +242,10 @@ serve(async (req) => {
         if (wantsWhatsApp && !isPhysical && consultantPhones.length > 0 && hasWhatsApp) {
           let consultantMessage = `📋 Lembrete de reunião ONLINE:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}`;
           
-          if (isPhysical) {
-            if (event.location) consultantMessage += `\n📍 Local: ${event.location}`;
-            if (event.reference_point) consultantMessage += `\n🚩 Ref: ${event.reference_point}`;
-          } else if (event.meet_link) {
+          if (event.meet_link) {
             consultantMessage += `\n🔗 Link: ${event.meet_link}`;
           }
-          
+
           for (const consultantPhone of consultantPhones) {
             const phone = consultantPhone.replace(/\D/g, "");
             if (!phone) continue;
