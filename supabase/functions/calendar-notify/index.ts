@@ -233,18 +233,19 @@ serve(async (req) => {
         await sleep(BLOCK_DELAY_MS);
 
         // Send WhatsApp to consultants
+        // IMPORTANT: For PHYSICAL meetings, the consultant receives a single grouped daily summary
+        // via the `calendar-physical-summary` function. To avoid duplicate messages, we skip
+        // individual consultant reminders here for physical events. Online meetings still notify
+        // the consultant individually since there is no daily summary for them.
         const consultantPhones: string[] = event.consultant_phones || [];
-        if (wantsWhatsApp && consultantPhones.length > 0 && hasWhatsApp) {
-          const isPhysical = event.meeting_type === 'physical';
-          let consultantMessage = `📋 Lembrete de reunião ${isPhysical ? 'PRESENCIAL' : 'ONLINE'}:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}`;
+        const isPhysical = event.meeting_type === 'physical';
+        if (wantsWhatsApp && !isPhysical && consultantPhones.length > 0 && hasWhatsApp) {
+          let consultantMessage = `📋 Lembrete de reunião ONLINE:\n\n📌 ${event.title}\n👤 Cliente: ${event.client_name || "N/A"}\n🗓️ ${dateStr} às ${timeStr}`;
           
-          if (isPhysical) {
-            if (event.location) consultantMessage += `\n📍 Local: ${event.location}`;
-            if (event.reference_point) consultantMessage += `\n🚩 Ref: ${event.reference_point}`;
-          } else if (event.meet_link) {
+          if (event.meet_link) {
             consultantMessage += `\n🔗 Link: ${event.meet_link}`;
           }
-          
+
           for (const consultantPhone of consultantPhones) {
             const phone = consultantPhone.replace(/\D/g, "");
             if (!phone) continue;
