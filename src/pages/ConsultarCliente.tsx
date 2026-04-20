@@ -723,6 +723,18 @@ export default function ConsultarCliente() {
                                 >
                                   <ListTree className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  onClick={() => {
+                                    setGraphClienteId(cliente.id);
+                                    setGraphClienteName(cliente.nome);
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-cyan-500"
+                                  title="Grafo de Conexões 360°"
+                                >
+                                  <Network className="h-4 w-4" />
+                                </Button>
                                 {canViewClientAI() && (
                                   <Button
                                     onClick={() => {
