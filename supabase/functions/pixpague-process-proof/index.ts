@@ -264,12 +264,19 @@ serve(async (req) => {
     let ocrStatus: string = 'pending';
     if (ocr.status === 'skipped') ocrStatus = 'skipped';
     else if (ocr.status === 'error') ocrStatus = 'error';
+    else if (ocr.status === 'invalid' || ocr.isReceipt === false) ocrStatus = 'invalid';
     else if (isDuplicate) ocrStatus = 'duplicate';
-    else if (ocr.amount != null && declaredAmount != null) {
+    else if (ocr.amount == null && ocr.transactionId == null) {
+      // IA disse "success" mas não extraiu nada útil → não é comprovante real
+      ocrStatus = 'invalid';
+    } else if (ocr.amount != null && declaredAmount != null) {
       ocrStatus = Math.abs(ocr.amount - Number(declaredAmount)) < 0.01 ? 'success' : 'mismatch';
+    } else if (ocr.amount == null && declaredAmount != null) {
+      // Não conseguiu ler o valor mas tem ID → divergente, requer revisão manual
+      ocrStatus = 'mismatch';
     } else if (ocr.status === 'success') ocrStatus = 'success';
 
-    console.log('[pixpague] Final ocrStatus:', ocrStatus);
+    console.log('[pixpague] Final ocrStatus:', ocrStatus, '| isReceipt:', ocr.isReceipt, '| reason:', ocr.reason);
 
     // Update payment record
     const updateData: any = { ocr_status: ocrStatus };
