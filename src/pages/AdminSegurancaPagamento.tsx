@@ -46,7 +46,10 @@ export default function AdminSegurancaPagamento() {
     ocr_enabled: true,
     duplicate_check: true,
     whatsapp_notifications: false,
-    ai_provider: 'gemini'
+    ai_provider: 'lovable',
+    ai_model: 'google/gemini-2.5-flash',
+    openai_api_key: '',
+    groq_api_key: '',
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
@@ -495,26 +498,78 @@ export default function AdminSegurancaPagamento() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                      <Label>Provedor de IA</Label>
-                      <select 
+                <div className="space-y-4 p-4 rounded-lg border bg-card">
+                  <div>
+                    <Label className="text-base">Provedor de IA</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Escolha qual IA será usada para analisar os comprovantes. Lovable AI é grátis (sem API key).
+                    </p>
+                    <select 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      value={config.ai_provider || 'lovable'}
+                      onChange={(e) => setConfig({...config, ai_provider: e.target.value})}
+                    >
+                      <option value="lovable">Lovable AI (Padrão - Sem API Key)</option>
+                      <option value="openai">OpenAI (GPT-4o / GPT-5)</option>
+                      <option value="groq">Groq (Llama Vision)</option>
+                    </select>
+                  </div>
+
+                  {config.ai_provider === 'lovable' && (
+                    <div>
+                      <Label>Modelo Lovable AI</Label>
+                      <select
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={config.ai_provider}
-                        onChange={(e) => setConfig({...config, ai_provider: e.target.value})}
+                        value={config.ai_model || 'google/gemini-2.5-flash'}
+                        onChange={(e) => setConfig({...config, ai_model: e.target.value})}
                       >
-                        <option value="gemini">Google Gemini (Recomendado)</option>
-                        <option value="gpt4">OpenAI GPT-4o</option>
+                        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
+                        <option value="google/gemini-2.5-pro">Gemini 2.5 Pro (Mais preciso)</option>
+                        <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Mais rápido)</option>
+                        <option value="openai/gpt-5-mini">GPT-5 Mini</option>
+                        <option value="openai/gpt-5">GPT-5 (Premium)</option>
                       </select>
-                   </div>
-                   <div className="space-y-2">
-                      <Label>Números para Notificação (separados por vírgula)</Label>
-                      <Input 
-                        placeholder="Ex: 5511999999999, 5511888888888"
-                        value={config.approver_phones || ''}
-                        onChange={(e) => setConfig({...config, approver_phones: e.target.value})}
+                    </div>
+                  )}
+
+                  {config.ai_provider === 'openai' && (
+                    <div>
+                      <Label>OpenAI API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={config.openai_api_key || ''}
+                        onChange={(e) => setConfig({...config, openai_api_key: e.target.value})}
                       />
-                   </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Obtenha em platform.openai.com/api-keys. Será usado o modelo gpt-4o.
+                      </p>
+                    </div>
+                  )}
+
+                  {config.ai_provider === 'groq' && (
+                    <div>
+                      <Label>Groq API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="gsk_..."
+                        value={config.groq_api_key || ''}
+                        onChange={(e) => setConfig({...config, groq_api_key: e.target.value})}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Obtenha em console.groq.com. Será usado llama-3.2-90b-vision-preview.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Números para Notificação WhatsApp (separados por vírgula)</Label>
+                  <Input 
+                    placeholder="Ex: 5511999999999, 5511888888888"
+                    value={config.approver_phones || ''}
+                    onChange={(e) => setConfig({...config, approver_phones: e.target.value})}
+                  />
                 </div>
 
                 <div className="pt-4 border-t flex justify-end">

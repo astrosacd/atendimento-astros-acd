@@ -19,12 +19,13 @@ interface OcrResult {
 async function runOcr(
   proofUrl: string,
   provider: string,
+  model: string,
   lovableKey: string | null,
-  geminiKey: string | null,
   openaiKey: string | null,
+  groqKey: string | null,
 ): Promise<OcrResult> {
   try {
-    console.log('[OCR] Starting OCR. Provider:', provider, 'proofUrl:', proofUrl);
+    console.log('[OCR] Starting OCR. Provider:', provider, 'Model:', model);
     const imageResponse = await fetch(proofUrl);
     if (!imageResponse.ok) {
       console.error('[OCR] Failed to fetch proof image:', imageResponse.status);
@@ -32,7 +33,6 @@ async function runOcr(
     }
     const blob = await imageResponse.blob();
     const buf = await blob.arrayBuffer();
-    // Use chunked base64 conversion to avoid stack overflow on large images
     const bytes = new Uint8Array(buf);
     let binary = '';
     const chunkSize = 8192;
@@ -53,88 +53,35 @@ Responda APENAS um JSON válido no formato:
 
 Se não encontrar algum campo, use null. NÃO invente valores.`;
 
-    // 1) PRIMARY: Lovable AI Gateway (no extra key needed) — uses google/gemini-2.5-flash with vision
-    if (lovableKey) {
-      console.log('[OCR] Trying Lovable AI Gateway (gemini-2.5-flash)...');
+    const parseJsonResponse = (txt: string): OcrResult | null => {
+      const jsonMatch = txt.match(/\{[\s\S]*?\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : txt;
       try {
-        const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'text', text: prompt },
-                { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } },
-              ],
-            }],
-          }),
-        });
-        if (!r.ok) {
-          const errText = await r.text();
-          console.error('[OCR] Lovable AI error:', r.status, errText);
-        } else {
-          const j = await r.json();
-          const txt = j.choices?.[0]?.message?.content;
-          console.log('[OCR] Lovable AI raw response:', txt);
-          if (txt) {
-            // Extract JSON from response (sometimes wrapped in code blocks)
-            const jsonMatch = txt.match(/\{[\s\S]*?\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : txt;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              return {
-                amount: parsed.amount != null ? Number(parsed.amount) : null,
-                transactionId: parsed.transactionId || null,
-                status: 'success',
-                raw: txt,
-              };
-            } catch (parseErr) {
-              console.error('[OCR] JSON parse error:', parseErr, 'text was:', txt);
-            }
-          }
-        }
-      } catch (e) {
-        console.error('[OCR] Lovable AI call failed:', e);
-      }
-    }
-
-    // 2) Fallback: Direct Gemini key (if user provides their own)
-    if (provider === 'gemini' && geminiKey) {
-      console.log('[OCR] Falling back to direct Gemini API...');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mime, data: base64 } }] }],
-          generationConfig: { response_mime_type: 'application/json' },
-        }),
-      });
-      const j = await r.json();
-      const txt = j.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (txt) {
-        const parsed = JSON.parse(txt);
+        const parsed = JSON.parse(jsonStr);
         return {
           amount: parsed.amount != null ? Number(parsed.amount) : null,
           transactionId: parsed.transactionId || null,
           status: 'success',
+          raw: txt,
         };
+      } catch (e) {
+        console.error('[OCR] JSON parse error:', e, 'raw:', txt);
+        return null;
       }
-    }
+    };
 
-    // 3) Fallback: OpenAI
-    if (provider === 'openai' && openaiKey) {
-      console.log('[OCR] Falling back to OpenAI...');
+    // === Provider: OpenAI (user-supplied key) ===
+    if (provider === 'openai') {
+      if (!openaiKey) {
+        console.warn('[OCR] OpenAI selected but no API key provided.');
+        return { amount: null, transactionId: null, status: 'skipped', raw: 'OpenAI key missing' };
+      }
+      console.log('[OCR] Using OpenAI gpt-4o...');
       const r = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           response_format: { type: 'json_object' },
           messages: [{
             role: 'user',
@@ -145,15 +92,90 @@ Se não encontrar algum campo, use null. NÃO invente valores.`;
           }],
         }),
       });
+      if (!r.ok) {
+        const err = await r.text();
+        console.error('[OCR] OpenAI error:', r.status, err);
+        return { amount: null, transactionId: null, status: 'error', raw: err };
+      }
       const j = await r.json();
       const txt = j.choices?.[0]?.message?.content;
       if (txt) {
-        const parsed = JSON.parse(txt);
-        return {
-          amount: parsed.amount != null ? Number(parsed.amount) : null,
-          transactionId: parsed.transactionId || null,
-          status: 'success',
-        };
+        const parsed = parseJsonResponse(txt);
+        if (parsed) return parsed;
+      }
+    }
+
+    // === Provider: Groq (user-supplied key) ===
+    if (provider === 'groq') {
+      if (!groqKey) {
+        console.warn('[OCR] Groq selected but no API key provided.');
+        return { amount: null, transactionId: null, status: 'skipped', raw: 'Groq key missing' };
+      }
+      console.log('[OCR] Using Groq llama-3.2-90b-vision-preview...');
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.2-90b-vision-preview',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } },
+            ],
+          }],
+        }),
+      });
+      if (!r.ok) {
+        const err = await r.text();
+        console.error('[OCR] Groq error:', r.status, err);
+        return { amount: null, transactionId: null, status: 'error', raw: err };
+      }
+      const j = await r.json();
+      const txt = j.choices?.[0]?.message?.content;
+      if (txt) {
+        const parsed = parseJsonResponse(txt);
+        if (parsed) return parsed;
+      }
+    }
+
+    // === Provider: Lovable AI (default — no key from user) ===
+    if (provider === 'lovable' || !provider) {
+      if (!lovableKey) {
+        console.warn('[OCR] Lovable AI key not configured.');
+        return { amount: null, transactionId: null, status: 'skipped', raw: 'Lovable AI key missing' };
+      }
+      const useModel = model || 'google/gemini-2.5-flash';
+      console.log('[OCR] Using Lovable AI Gateway with model:', useModel);
+      const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: useModel,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } },
+            ],
+          }],
+        }),
+      });
+      if (!r.ok) {
+        const err = await r.text();
+        console.error('[OCR] Lovable AI error:', r.status, err);
+        if (r.status === 429) return { amount: null, transactionId: null, status: 'error', raw: 'Limite Lovable AI atingido. Aguarde ou troque para OpenAI/Groq.' };
+        if (r.status === 402) return { amount: null, transactionId: null, status: 'error', raw: 'Créditos Lovable AI esgotados. Adicione créditos ou troque para OpenAI/Groq.' };
+        return { amount: null, transactionId: null, status: 'error', raw: err };
+      }
+      const j = await r.json();
+      const txt = j.choices?.[0]?.message?.content;
+      if (txt) {
+        const parsed = parseJsonResponse(txt);
+        if (parsed) return parsed;
       }
     }
 
@@ -191,20 +213,21 @@ serve(async (req) => {
       ? (typeof cfgRow.config_value === 'string' ? JSON.parse(cfgRow.config_value) : cfgRow.config_value)
       : {
           ocr_enabled: true, duplicate_check: true, whatsapp_notifications: false,
-          approver_phones: '', ai_provider: 'gemini',
+          approver_phones: '', ai_provider: 'lovable', ai_model: 'google/gemini-2.5-flash',
         };
 
-    console.log('[pixpague] Config:', cfg);
+    console.log('[pixpague] Config:', { ...cfg, openai_api_key: cfg.openai_api_key ? '***' : '', groq_api_key: cfg.groq_api_key ? '***' : '' });
 
     // Run OCR if enabled
     let ocr: OcrResult = { amount: null, transactionId: null, status: 'skipped' };
     if (cfg.ocr_enabled !== false) {
       ocr = await runOcr(
         proofUrl,
-        cfg.ai_provider || 'gemini',
+        cfg.ai_provider || 'lovable',
+        cfg.ai_model || 'google/gemini-2.5-flash',
         Deno.env.get('LOVABLE_API_KEY') || null,
-        Deno.env.get('GEMINI_API_KEY') || null,
-        Deno.env.get('OPENAI_API_KEY') || null,
+        cfg.openai_api_key || null,
+        cfg.groq_api_key || null,
       );
     }
 
