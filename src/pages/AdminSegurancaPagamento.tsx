@@ -56,45 +56,48 @@ export default function AdminSegurancaPagamento() {
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  const fetchPayments = async () => {
-    setIsLoading(true);
-    try {
-      // Show all PIX manual payments (pending_approval, paid, rejected) + any with OCR data
-      const { data, error } = await supabase
-        .from('client_payments')
-        .select('*, cliente:clientes(nome)')
-        .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
-        .order('created_at', { ascending: false });
+  // Approval dialog state — used when OCR sinaliza duplicado/divergente
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    payment: any | null;
+    action: 'approve' | 'reject';
+    reason: string;
+  }>({ open: false, payment: null, action: 'approve', reason: '' });
 
-      if (error) throw error;
-      setPayments(data || []);
-    } catch (error: any) {
-      console.error('Error fetching payments:', error);
-      toast({
-        title: 'Erro ao buscar pagamentos',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent']);
 
-  const handleApproval = async (paymentId: string, action: 'approve' | 'reject') => {
+  const performApproval = async (
+    paymentId: string,
+    action: 'approve' | 'reject',
+    reason?: string
+  ) => {
     setApprovingId(paymentId);
     try {
       const { data, error } = await supabase.functions.invoke('approve-pixpague-payment', {
-        body: { paymentId, action },
+        body: {
+          paymentId,
+          action,
+          approvalReason: action === 'approve' ? reason : undefined,
+          rejectionReason: action === 'reject' ? reason : undefined,
+        },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
+
+      const receiptInfo = (data as any)?.receipt;
+      const receiptMsg =
+        action === 'approve'
+          ? receiptInfo?.sent
+            ? 'Cliente renovado e recibo enviado.'
+            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}`
+          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.';
 
       toast({
         title: action === 'approve' ? '✅ Pagamento aprovado' : '🚫 Pagamento rejeitado',
-        description: action === 'approve'
-          ? 'Cliente renovado e recibo enviado.'
-          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.',
+        description: receiptMsg,
+        variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
       await fetchPayments();
     } catch (e: any) {
       toast({
@@ -105,6 +108,16 @@ export default function AdminSegurancaPagamento() {
     } finally {
       setApprovingId(null);
     }
+  };
+
+  const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
+    const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
+    // Para casos suspeitos (aprovação) OU rejeição → sempre pedir motivo via Dialog
+    if (isSuspicious || action === 'reject') {
+      setApprovalDialog({ open: true, payment, action, reason: '' });
+      return;
+    }
+    await performApproval(payment.id, action);
   };
 
   const fetchConfig = async () => {
