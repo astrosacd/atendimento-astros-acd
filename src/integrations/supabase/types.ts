@@ -1338,6 +1338,10 @@ export type Database = {
       client_payments: {
         Row: {
           amount: number
+          approval_override: boolean | null
+          approval_reason: string | null
+          approved_by: string | null
+          approved_by_email: string | null
           billing_date: string
           cliente_id: string | null
           comprovante_url: string | null
@@ -1356,6 +1360,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approval_override?: boolean | null
+          approval_reason?: string | null
+          approved_by?: string | null
+          approved_by_email?: string | null
           billing_date: string
           cliente_id?: string | null
           comprovante_url?: string | null
@@ -1374,6 +1382,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approval_override?: boolean | null
+          approval_reason?: string | null
+          approved_by?: string | null
+          approved_by_email?: string | null
           billing_date?: string
           cliente_id?: string | null
           comprovante_url?: string | null
