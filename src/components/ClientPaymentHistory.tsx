@@ -55,6 +55,7 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showEarlyPayment, setShowEarlyPayment] = useState(false);
   const [earlyPaymentAmount, setEarlyPaymentAmount] = useState('');
+  const [earlyPaymentProof, setEarlyPaymentProof] = useState<File | null>(null);
   const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
   const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
 
@@ -96,12 +97,13 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     const amount = parseFloat(earlyPaymentAmount);
     if (!amount || amount <= 0) return;
     setEarlyPaymentLoading(true);
-    const success = await registerEarlyPayment(clienteId, amount);
+    const success = await registerEarlyPayment(clienteId, amount, earlyPaymentProof || undefined);
     if (success) {
       await loadPayments();
       onPaymentUpdate?.();
       setShowEarlyPayment(false);
       setEarlyPaymentAmount('');
+      setEarlyPaymentProof(null);
     }
     setEarlyPaymentLoading(false);
   };
