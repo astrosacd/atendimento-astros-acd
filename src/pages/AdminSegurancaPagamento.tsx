@@ -356,6 +356,7 @@ export default function AdminSegurancaPagamento() {
                       <option value="success">IA: Validado</option>
                       <option value="duplicate">IA: Duplicado</option>
                       <option value="mismatch">IA: Divergente</option>
+                      <option value="invalid">IA: Não é Comprovante</option>
                       <option value="error">IA: Erro</option>
                     </select>
                   </div>
