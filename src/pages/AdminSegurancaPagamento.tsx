@@ -408,8 +408,22 @@ export default function AdminSegurancaPagamento() {
                             <TableCell className="text-sm whitespace-nowrap">
                               {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="font-medium max-w-[160px] truncate">
-                              {payment.cliente?.nome || 'N/A'}
+                            <TableCell className="max-w-[220px]">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-sm truncate">
+                                  {payment.cliente?.nome || 'N/A'}
+                                </span>
+                                {payment.cliente?.email && (
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    {payment.cliente.email}
+                                  </span>
+                                )}
+                                {payment.cliente?.numero && (
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    📱 {payment.cliente.numero}
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col">
