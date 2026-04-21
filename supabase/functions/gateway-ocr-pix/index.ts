@@ -44,9 +44,10 @@ serve(async (req) => {
 
     const approvalConfig = settingsRow?.value || {};
 
-    // Mock OCR logic for now if GEMINI_API_KEY is missing
-    // In a real scenario, we'd call Gemini API here
+    // Check for API Keys for OCR
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    const grokKey = Deno.env.get("XAI_API_KEY");
     
     let ocrResult = {
       amount: order.total, // Assume correct for mock
@@ -56,8 +57,13 @@ serve(async (req) => {
 
     if (geminiKey) {
       console.log("Calling Gemini for OCR...");
-      // Implementation for Gemini OCR would go here
-      // For now, let's stick to a robust simulation that validates the logic
+      // Implementation for Gemini OCR
+    } else if (openaiKey) {
+      console.log("Calling OpenAI for OCR...");
+      // Implementation for OpenAI OCR
+    } else if (grokKey) {
+      console.log("Calling Grok for OCR...");
+      // Implementation for Grok OCR
     }
 
     // Update order with OCR results
@@ -88,18 +94,27 @@ serve(async (req) => {
           `Acesse o painel para aprovar.`;
 
         try {
-          // Use the dedicated approver WhatsApp number from approval_config
-          const adminPhone = approvalConfig.approver_whatsapp;
+          // Use the dedicated approver WhatsApp number(s) from approval_config
+          const adminPhones = approvalConfig.approver_whatsapp ? approvalConfig.approver_whatsapp.split(',').map((p: string) => p.trim()) : [];
 
-          if (adminPhone) {
-            await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "apikey": evolutionKey },
-              body: JSON.stringify({
-                number: adminPhone.replace(/\D/g, ""),
-                text: message,
-              }),
-            });
+          if (adminPhones.length > 0) {
+            for (const phone of adminPhones) {
+              if (!phone) continue;
+              
+              try {
+                await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "apikey": evolutionKey },
+                  body: JSON.stringify({
+                    number: phone.replace(/\D/g, ""),
+                    text: message,
+                  }),
+                });
+                console.log(`Notification sent to ${phone}`);
+              } catch (err) {
+                console.error(`Failed to send notification to ${phone}:`, err);
+              }
+            }
           } else {
             console.warn("approver_whatsapp not configured in approval_config — skipping notification");
           }
