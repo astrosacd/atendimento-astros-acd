@@ -107,6 +107,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     workflow: 'admin_only',
     ocr_enabled: true,
     whatsapp_notifications: true,
+    approver_whatsapp: '',
     duplicate_id_check: true,
     required_proof: true
   });
