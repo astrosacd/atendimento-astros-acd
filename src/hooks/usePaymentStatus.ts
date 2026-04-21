@@ -288,7 +288,7 @@ export function usePaymentStatus() {
       }
 
       // Insert payment record as already paid
-      const { error: insertError } = await supabase
+      const { data: insertedPayment, error: insertError } = await supabase
         .from('client_payments')
         .insert({
           cliente_id: clienteId,
@@ -299,9 +299,44 @@ export function usePaymentStatus() {
           paid_at: paidAt,
           billing_date: new Date().toISOString().split('T')[0],
           comprovante_url: comprovanteUrl,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Trigger PixPague processing (OCR + duplicate check + WhatsApp notify)
+      // Only if proof was uploaded — runs in background, won't block UI
+      if (comprovanteUrl && insertedPayment?.id) {
+        supabase.functions.invoke('pixpague-process-proof', {
+          body: {
+            paymentId: insertedPayment.id,
+            proofUrl: comprovanteUrl,
+            declaredAmount: amount,
+          },
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('PixPague processing error:', error);
+          } else if (data?.ocr_status === 'duplicate') {
+            toast({
+              title: '🚫 Atenção: Comprovante Duplicado',
+              description: 'A IA detectou que este ID de transação já foi usado em outro pagamento. Verifique antes de confirmar com o cliente.',
+              variant: 'destructive',
+            });
+          } else if (data?.ocr_status === 'mismatch') {
+            toast({
+              title: '⚠️ Valor Divergente',
+              description: `IA leu R$ ${data.ocr_amount?.toFixed(2)} no comprovante, mas você digitou R$ ${amount.toFixed(2)}.`,
+              variant: 'destructive',
+            });
+          } else if (data?.ocr_status === 'success') {
+            toast({
+              title: '✅ Comprovante validado pela IA',
+              description: 'Valor e ID da transação conferem.',
+            });
+          }
+        });
+      }
 
       // Get client data to calculate renewal from CURRENT renewal date (not today)
       const { data: cliente, error: clienteError } = await supabase
