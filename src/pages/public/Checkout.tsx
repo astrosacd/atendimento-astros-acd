@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle, Timer, Lock, Sparkles, Zap } from 'lucide-react';
+import { Loader2, Package, ShoppingCart, CreditCard, Shield, Check, Tag, ArrowLeft, AlertTriangle, Timer, Lock, Sparkles, Zap, Copy, ExternalLink, Upload } from 'lucide-react';
 import { formatCPF } from '@/utils/formatters';
 
 interface Product {
