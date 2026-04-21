@@ -322,7 +322,8 @@ export default function AdminSegurancaPagamento() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                {/* Desktop / wide screens: tabela tradicional */}
+                <div className="hidden lg:block rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -363,10 +364,10 @@ export default function AdminSegurancaPagamento() {
                               isPending ? 'bg-amber-500/5' : ''
                             }
                           >
-                            <TableCell className="text-sm">
+                            <TableCell className="text-sm whitespace-nowrap">
                               {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium max-w-[160px] truncate">
                               {payment.cliente?.nome || 'N/A'}
                             </TableCell>
                             <TableCell>
@@ -392,8 +393,9 @@ export default function AdminSegurancaPagamento() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
+                                {/* Em telas xl mostramos botões Aprovar/Rejeitar; abaixo disso, vão para o menu "..." */}
                                 {isPending && (
-                                  <>
+                                  <div className="hidden xl:flex items-center gap-1">
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -414,17 +416,36 @@ export default function AdminSegurancaPagamento() {
                                       <XCircle className="h-3.5 w-3.5 mr-1" />
                                       Rejeitar
                                     </Button>
-                                  </>
+                                  </div>
                                 )}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isProcessing}>
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
+                                    {isPending && (
+                                      <div className="xl:hidden">
+                                        <DropdownMenuItem
+                                          onClick={() => handleApproval(payment.id, 'approve')}
+                                          className="text-emerald-500 focus:text-emerald-500"
+                                        >
+                                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                                          Aprovar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleApproval(payment.id, 'reject')}
+                                          className="text-destructive focus:text-destructive"
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Rejeitar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                      </div>
+                                    )}
                                     {payment.comprovante_url && (
                                       <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
                                         <Eye className="h-4 w-4 mr-2" />
@@ -445,6 +466,119 @@ export default function AdminSegurancaPagamento() {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Mobile / tablet: cards empilhados */}
+                <div className="lg:hidden space-y-3">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground py-10">
+                      <Clock className="h-4 w-4 animate-spin" />
+                      Carregando transações...
+                    </div>
+                  ) : filteredPayments.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      Nenhuma transação encontrada.
+                    </div>
+                  ) : (
+                    filteredPayments.map((payment) => {
+                      const isPending = payment.status === 'pending_approval';
+                      const isProcessing = approvingId === payment.id;
+                      return (
+                        <div
+                          key={payment.id}
+                          className={`rounded-lg border p-4 space-y-3 ${
+                            payment.ocr_status === 'duplicate' ? 'bg-destructive/5 border-destructive/20' :
+                            isPending ? 'bg-amber-500/5 border-amber-500/20' : 'bg-card'
+                          }`}
+                        >
+                          {/* Header: cliente + data */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm truncate">
+                                {payment.cliente?.nome || 'N/A'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end shrink-0">
+                              <span className="font-bold text-base">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
+                              </span>
+                              {payment.ocr_amount && payment.ocr_amount !== payment.amount && (
+                                <span className="text-[10px] text-amber-500 font-medium">
+                                  IA leu: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.ocr_amount)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Badges */}
+                          <div className="flex flex-wrap gap-2">
+                            {getStatusBadge(payment.ocr_status)}
+                            {getPaymentStatusBadge(payment.status)}
+                          </div>
+
+                          {/* ID Transação */}
+                          {payment.pix_transaction_id && (
+                            <div className="text-[10px] text-muted-foreground">
+                              <span className="font-medium">ID:</span>{' '}
+                              <span className="font-mono break-all">{payment.pix_transaction_id}</span>
+                            </div>
+                          )}
+
+                          {/* Ações */}
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {isPending && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                  onClick={() => handleApproval(payment.id, 'approve')}
+                                  disabled={isProcessing}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                  Aprovar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleApproval(payment.id, 'reject')}
+                                  disabled={isProcessing}
+                                >
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                                  Rejeitar
+                                </Button>
+                              </>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isProcessing}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {payment.comprovante_url && (
+                                  <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Ver Comprovante
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem>
+                                  <Smartphone className="h-4 w-4 mr-2" />
+                                  Notificar Cliente
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </CardContent>
             </Card>
