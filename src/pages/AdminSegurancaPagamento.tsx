@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AdminSegurancaPagamento() {
   const { toast } = useToast();
@@ -58,7 +59,6 @@ export default function AdminSegurancaPagamento() {
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
-      // Show all PIX manual payments (pending_approval, paid, rejected) + any with OCR data
       const { data, error } = await supabase
         .from('client_payments')
         .select('*, cliente:clientes(nome)')
@@ -79,21 +79,49 @@ export default function AdminSegurancaPagamento() {
     }
   };
 
-  const handleApproval = async (paymentId: string, action: 'approve' | 'reject') => {
+
+  // Approval dialog state — used when OCR sinaliza duplicado/divergente
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    payment: any | null;
+    action: 'approve' | 'reject';
+    reason: string;
+  }>({ open: false, payment: null, action: 'approve', reason: '' });
+
+  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent']);
+
+  const performApproval = async (
+    paymentId: string,
+    action: 'approve' | 'reject',
+    reason?: string
+  ) => {
     setApprovingId(paymentId);
     try {
       const { data, error } = await supabase.functions.invoke('approve-pixpague-payment', {
-        body: { paymentId, action },
+        body: {
+          paymentId,
+          action,
+          approvalReason: action === 'approve' ? reason : undefined,
+          rejectionReason: action === 'reject' ? reason : undefined,
+        },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
+
+      const receiptInfo = (data as any)?.receipt;
+      const receiptMsg =
+        action === 'approve'
+          ? receiptInfo?.sent
+            ? 'Cliente renovado e recibo enviado.'
+            : `Cliente renovado, mas o envio do recibo falhou${receiptInfo?.error ? `: ${receiptInfo.error}` : '.'}`
+          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.';
 
       toast({
         title: action === 'approve' ? '✅ Pagamento aprovado' : '🚫 Pagamento rejeitado',
-        description: action === 'approve'
-          ? 'Cliente renovado e recibo enviado.'
-          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.',
+        description: receiptMsg,
+        variant: action === 'approve' && !receiptInfo?.sent ? 'destructive' : 'default',
       });
+      setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
       await fetchPayments();
     } catch (e: any) {
       toast({
@@ -104,6 +132,16 @@ export default function AdminSegurancaPagamento() {
     } finally {
       setApprovingId(null);
     }
+  };
+
+  const handleApproval = async (payment: any, action: 'approve' | 'reject') => {
+    const isSuspicious = SUSPICIOUS.has(payment.ocr_status);
+    // Para casos suspeitos (aprovação) OU rejeição → sempre pedir motivo via Dialog
+    if (isSuspicious || action === 'reject') {
+      setApprovalDialog({ open: true, payment, action, reason: '' });
+      return;
+    }
+    await performApproval(payment.id, action);
   };
 
   const fetchConfig = async () => {
@@ -400,7 +438,7 @@ export default function AdminSegurancaPagamento() {
                                       size="sm"
                                       variant="outline"
                                       className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                      onClick={() => handleApproval(payment.id, 'approve')}
+                                      onClick={() => handleApproval(payment, 'approve')}
                                       disabled={isProcessing}
                                     >
                                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -410,7 +448,7 @@ export default function AdminSegurancaPagamento() {
                                       size="sm"
                                       variant="outline"
                                       className="h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
-                                      onClick={() => handleApproval(payment.id, 'reject')}
+                                      onClick={() => handleApproval(payment, 'reject')}
                                       disabled={isProcessing}
                                     >
                                       <XCircle className="h-3.5 w-3.5 mr-1" />
@@ -430,14 +468,14 @@ export default function AdminSegurancaPagamento() {
                                     {isPending && (
                                       <div className="xl:hidden">
                                         <DropdownMenuItem
-                                          onClick={() => handleApproval(payment.id, 'approve')}
+                                          onClick={() => handleApproval(payment, 'approve')}
                                           className="text-emerald-500 focus:text-emerald-500"
                                         >
                                           <CheckCircle2 className="h-4 w-4 mr-2" />
                                           Aprovar
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                          onClick={() => handleApproval(payment.id, 'reject')}
+                                          onClick={() => handleApproval(payment, 'reject')}
                                           className="text-destructive focus:text-destructive"
                                         >
                                           <XCircle className="h-4 w-4 mr-2" />
@@ -535,7 +573,7 @@ export default function AdminSegurancaPagamento() {
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                  onClick={() => handleApproval(payment.id, 'approve')}
+                                  onClick={() => handleApproval(payment, 'approve')}
                                   disabled={isProcessing}
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -545,7 +583,7 @@ export default function AdminSegurancaPagamento() {
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleApproval(payment.id, 'reject')}
+                                  onClick={() => handleApproval(payment, 'reject')}
                                   disabled={isProcessing}
                                 >
                                   <XCircle className="h-3.5 w-3.5 mr-1" />
@@ -725,6 +763,140 @@ export default function AdminSegurancaPagamento() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Approval Dialog — exige justificativa para aprovações de pagamentos suspeitos
+          (duplicado/divergente) e também para qualquer rejeição. */}
+      <Dialog
+        open={approvalDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {approvalDialog.action === 'approve' ? (
+                <>
+                  <ShieldAlert className="h-5 w-5 text-amber-500" />
+                  Confirmar aprovação com alerta
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  Rejeitar pagamento
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialog.action === 'approve' && approvalDialog.payment?.ocr_status === 'duplicate' && (
+                <>
+                  A IA detectou que o <strong>ID da transação PIX já foi usado anteriormente</strong>.
+                  Aprovar mesmo assim pode encobrir uma fraude. Explique abaixo o motivo da decisão.
+                </>
+              )}
+              {approvalDialog.action === 'approve' &&
+                (approvalDialog.payment?.ocr_status === 'mismatch' || approvalDialog.payment?.ocr_status === 'divergent') && (
+                <>
+                  O <strong>valor do comprovante não bate</strong> com o valor declarado pelo cliente.
+                  Por que está aprovando mesmo assim?
+                </>
+              )}
+              {approvalDialog.action === 'reject' && (
+                <>Descreva brevemente o motivo da rejeição (será registrado no histórico).</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Resumo do pagamento */}
+          {approvalDialog.payment && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-medium">{approvalDialog.payment.cliente?.nome || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor declarado:</span>
+                <span className="font-semibold">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approvalDialog.payment.amount)}
+                </span>
+              </div>
+              {approvalDialog.payment.ocr_amount && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">IA leu no comprovante:</span>
+                  <span className="font-semibold text-amber-500">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approvalDialog.payment.ocr_amount)}
+                  </span>
+                </div>
+              )}
+              {approvalDialog.payment.pix_transaction_id && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground shrink-0">ID Transação:</span>
+                  <span className="font-mono text-[11px] truncate">{approvalDialog.payment.pix_transaction_id}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="approval-reason">
+              {approvalDialog.action === 'approve' ? 'Motivo da aprovação' : 'Motivo da rejeição'}
+              {approvalDialog.action === 'approve' && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+            </Label>
+            <Textarea
+              id="approval-reason"
+              placeholder={
+                approvalDialog.action === 'approve'
+                  ? 'Ex: Cliente enviou comprovante errado por engano, confirmei o pagamento via extrato bancário...'
+                  : 'Ex: Comprovante adulterado, ID já utilizado em outro pedido...'
+              }
+              value={approvalDialog.reason}
+              onChange={(e) => setApprovalDialog((prev) => ({ ...prev, reason: e.target.value }))}
+              rows={4}
+              maxLength={500}
+            />
+            <p className="text-[10px] text-muted-foreground text-right">
+              {approvalDialog.reason.length}/500
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' })}
+              disabled={approvingId === approvalDialog.payment?.id}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
+              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason)}
+              disabled={
+                approvingId === approvalDialog.payment?.id ||
+                (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5)
+              }
+            >
+              {approvingId === approvalDialog.payment?.id ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : approvalDialog.action === 'approve' ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Confirmar aprovação
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Confirmar rejeição
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
