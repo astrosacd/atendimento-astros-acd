@@ -678,21 +678,19 @@ export default function ConsultarCliente() {
                             )}
                             {isAdmin && (
                               <>
-                                {/* Payment button - only for Mensal clients */}
-                                {cliente.cobranca_ativa !== false && (
-                                  <Button
-                                    onClick={() => {
-                                      setPaymentClienteId(cliente.id);
-                                      setPaymentClienteName(cliente.nome);
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-300"
-                                    title="Ver pagamentos"
-                                  >
-                                    <CreditCard className="h-4 w-4" />
-                                  </Button>
-                                )}
+                                 {/* Payment button - for all clients, explicitly mentioning PixPague */}
+                                 <Button
+                                   onClick={() => {
+                                     setPaymentClienteId(cliente.id);
+                                     setPaymentClienteName(cliente.nome);
+                                   }}
+                                   variant="ghost"
+                                   size="sm"
+                                   className="text-muted-foreground hover:text-emerald-500"
+                                   title="Pagamentos / PixPague"
+                                 >
+                                   <CreditCard className="h-4 w-4" />
+                                 </Button>
                                 {/* Purchases button - only for Registro clients */}
                                 {cliente.cobranca_ativa === false && (
                                   <Button

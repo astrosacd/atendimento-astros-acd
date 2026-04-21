@@ -263,10 +263,29 @@ export function usePaymentStatus() {
   };
 
   // Register early payment (before billing date) - renewal counts from billing date, not payment date
-  const registerEarlyPayment = async (clienteId: string, amount: number): Promise<boolean> => {
+  const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File): Promise<boolean> => {
     try {
       const paidAt = new Date().toISOString();
       const paymentId = `manual_early_${Date.now()}`;
+      let comprovanteUrl = null;
+
+      // Upload proof if provided
+      if (comprovante) {
+        const fileExt = comprovante.name.split('.').pop();
+        const fileName = `${clienteId}_${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, comprovante);
+
+        if (uploadError) {
+          console.error('Error uploading proof:', uploadError);
+        } else if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('payment-proofs')
+            .getPublicUrl(uploadData.path);
+          comprovanteUrl = publicUrl;
+        }
+      }
 
       // Insert payment record as already paid
       const { error: insertError } = await supabase
@@ -279,6 +298,7 @@ export function usePaymentStatus() {
           status: 'paid',
           paid_at: paidAt,
           billing_date: new Date().toISOString().split('T')[0],
+          comprovante_url: comprovanteUrl,
         });
 
       if (insertError) throw insertError;
@@ -317,7 +337,7 @@ export function usePaymentStatus() {
 
       toast({
         title: 'Pagamento antecipado registrado',
-        description: 'Recibo enviado e renovação calculada a partir do vencimento',
+        description: 'Comprovante salvo, recibo enviado e renovação calculada',
       });
 
       return true;
