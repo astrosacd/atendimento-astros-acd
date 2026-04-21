@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePaymentStatus } from '@/hooks/usePaymentStatus';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   CreditCard, 
   CheckCircle, 
@@ -58,6 +59,7 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [earlyPaymentProof, setEarlyPaymentProof] = useState<File | null>(null);
   const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
   const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
+  const { canRegisterPixpaguePayment } = usePermissions();
 
   useEffect(() => {
     if (isOpen && clienteId) {
@@ -290,8 +292,8 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
               </span>
             </div>
 
-            {/* Early Payment Button / Form */}
-            {!showEarlyPayment ? (
+            {/* Early Payment Button / Form — restricted by permission */}
+            {!canRegisterPixpaguePayment() ? null : !showEarlyPayment ? (
               <Button
                 variant="outline"
                 size="sm"

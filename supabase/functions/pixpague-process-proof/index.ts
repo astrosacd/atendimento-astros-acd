@@ -139,8 +139,9 @@ Se não encontrar algum campo, use null. NÃO invente valores.`;
       }
     }
 
-    // === Provider: Lovable AI (default — no key from user) ===
-    if (provider === 'lovable' || !provider) {
+    // === Provider: Lovable AI (default — also handles legacy "gemini"/"google" values) ===
+    const isLovable = !provider || ['lovable', 'gemini', 'google', 'lovable-ai'].includes(provider.toLowerCase());
+    if (isLovable) {
       if (!lovableKey) {
         console.warn('[OCR] Lovable AI key not configured.');
         return { amount: null, transactionId: null, status: 'skipped', raw: 'Lovable AI key missing' };

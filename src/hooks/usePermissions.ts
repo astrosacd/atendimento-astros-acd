@@ -225,6 +225,7 @@ export function usePermissions() {
   const canManageWhatsappInstances = () => hasPermission('manage_whatsapp_instances');
 
   const canViewPaymentSecurity = () => hasPermission('view_payment_security');
+  const canRegisterPixpaguePayment = () => hasPermission('register_pixpague_payment');
 
   return {
     permissions,
@@ -389,5 +390,6 @@ export function usePermissions() {
     canViewWhatsappInstances,
     canManageWhatsappInstances,
     canViewPaymentSecurity,
+    canRegisterPixpaguePayment,
   };
 }
