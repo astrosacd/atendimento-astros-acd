@@ -12,7 +12,9 @@ const corsHeaders = {
 interface OcrResult {
   amount: number | null;
   transactionId: string | null;
-  status: 'success' | 'error' | 'skipped';
+  status: 'success' | 'error' | 'skipped' | 'invalid';
+  isReceipt?: boolean;
+  reason?: string;
   raw?: string;
 }
 
@@ -43,25 +45,32 @@ async function runOcr(
     const mime = blob.type || 'image/jpeg';
     console.log('[OCR] Image fetched. size:', bytes.length, 'mime:', mime);
 
-    const prompt = `Você é um especialista em comprovantes de PIX brasileiros. Analise a imagem do comprovante de pagamento e extraia:
+    const prompt = `Você é um especialista em comprovantes de PIX brasileiros. PRIMEIRO determine se a imagem É REALMENTE um comprovante de pagamento PIX (deve conter elementos típicos como: valor pago, data, nome do banco, ID da transação, beneficiário, etc).
 
+Se NÃO for um comprovante de PIX válido (ex: foto aleatória, screenshot de outra coisa, imagem em branco, meme, paisagem, etc), responda:
+{"isReceipt": false, "amount": null, "transactionId": null, "reason": "descreva brevemente o que a imagem realmente mostra"}
+
+Se FOR um comprovante de PIX válido, extraia:
 1. **valor pago** (numérico decimal, sem R$, sem símbolos, ex: 49.90)
 2. **ID da transação / Código E2E** (string longa alfanumérica, geralmente começa com "E" e tem ~32 caracteres)
 
 Responda APENAS um JSON válido no formato:
-{"amount": 49.90, "transactionId": "E12345..."}
+{"isReceipt": true, "amount": 49.90, "transactionId": "E12345..."}
 
-Se não encontrar algum campo, use null. NÃO invente valores.`;
+Se for comprovante mas não encontrar algum campo, use null para esse campo. NÃO invente valores.`;
 
     const parseJsonResponse = (txt: string): OcrResult | null => {
       const jsonMatch = txt.match(/\{[\s\S]*?\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : txt;
       try {
         const parsed = JSON.parse(jsonStr);
+        const isReceipt = parsed.isReceipt !== false; // default true if not specified (legacy)
         return {
           amount: parsed.amount != null ? Number(parsed.amount) : null,
           transactionId: parsed.transactionId || null,
-          status: 'success',
+          status: isReceipt ? 'success' : 'invalid',
+          isReceipt,
+          reason: parsed.reason || undefined,
           raw: txt,
         };
       } catch (e) {
@@ -255,12 +264,19 @@ serve(async (req) => {
     let ocrStatus: string = 'pending';
     if (ocr.status === 'skipped') ocrStatus = 'skipped';
     else if (ocr.status === 'error') ocrStatus = 'error';
+    else if (ocr.status === 'invalid' || ocr.isReceipt === false) ocrStatus = 'invalid';
     else if (isDuplicate) ocrStatus = 'duplicate';
-    else if (ocr.amount != null && declaredAmount != null) {
+    else if (ocr.amount == null && ocr.transactionId == null) {
+      // IA disse "success" mas não extraiu nada útil → não é comprovante real
+      ocrStatus = 'invalid';
+    } else if (ocr.amount != null && declaredAmount != null) {
       ocrStatus = Math.abs(ocr.amount - Number(declaredAmount)) < 0.01 ? 'success' : 'mismatch';
+    } else if (ocr.amount == null && declaredAmount != null) {
+      // Não conseguiu ler o valor mas tem ID → divergente, requer revisão manual
+      ocrStatus = 'mismatch';
     } else if (ocr.status === 'success') ocrStatus = 'success';
 
-    console.log('[pixpague] Final ocrStatus:', ocrStatus);
+    console.log('[pixpague] Final ocrStatus:', ocrStatus, '| isReceipt:', ocr.isReceipt, '| reason:', ocr.reason);
 
     // Update payment record
     const updateData: any = { ocr_status: ocrStatus };

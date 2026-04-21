@@ -88,7 +88,7 @@ export default function AdminSegurancaPagamento() {
     reason: string;
   }>({ open: false, payment: null, action: 'approve', reason: '' });
 
-  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent']);
+  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
   const performApproval = async (
     paymentId: string,
@@ -222,6 +222,8 @@ export default function AdminSegurancaPagamento() {
       case 'divergent':
       case 'mismatch':
         return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
+      case 'invalid':
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Não é Comprovante</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
       case 'rejected_manual':
@@ -354,6 +356,7 @@ export default function AdminSegurancaPagamento() {
                       <option value="success">IA: Validado</option>
                       <option value="duplicate">IA: Duplicado</option>
                       <option value="mismatch">IA: Divergente</option>
+                      <option value="invalid">IA: Não é Comprovante</option>
                       <option value="error">IA: Erro</option>
                     </select>
                   </div>
@@ -799,6 +802,13 @@ export default function AdminSegurancaPagamento() {
                 <>
                   O <strong>valor do comprovante não bate</strong> com o valor declarado pelo cliente.
                   Por que está aprovando mesmo assim?
+                </>
+              )}
+              {approvalDialog.action === 'approve' && approvalDialog.payment?.ocr_status === 'invalid' && (
+                <>
+                  A IA detectou que <strong>a imagem enviada não é um comprovante de PIX válido</strong>
+                  (pode ser uma foto aleatória, screenshot, imagem em branco, etc).
+                  Aprovar mesmo assim é <strong>altamente arriscado</strong>. Explique o motivo.
                 </>
               )}
               {approvalDialog.action === 'reject' && (
