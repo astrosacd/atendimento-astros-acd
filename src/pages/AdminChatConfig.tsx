@@ -68,9 +68,9 @@ const aiProviders = [
     requiresApiKey: true 
   },
   { 
-    name: 'Groq', 
-    value: 'groq', 
-    description: 'Requer API Key da Groq',
+    name: 'Google Gemini', 
+    value: 'google', 
+    description: 'Requer API Key do Google AI Studio',
     requiresApiKey: true 
   },
 ];
