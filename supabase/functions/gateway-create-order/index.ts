@@ -16,6 +16,7 @@ type CreateOrderBody = {
   customerCpf?: string | null;
   paymentGateway: "stripe" | "mercadopago" | "pix";
   currency: "BRL" | "USD";
+  proofUrl?: string | null;
 };
 
 // SECURITY: Rate limiting to prevent abuse
