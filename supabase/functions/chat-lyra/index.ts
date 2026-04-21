@@ -308,6 +308,58 @@ async function callGroq(messages: any[], config: AIConfig): Promise<string> {
   return data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
 }
 
+async function callGemini(messages: any[], config: AIConfig): Promise<string> {
+  if (!config.googleApiKey) {
+    throw new Error("Google API Key não configurada. Configure a chave no painel de administração.");
+  }
+
+  // Google Gemini API expects a slightly different format, but we can use their OpenAI-compatible endpoint
+  // or the native one. Let's use the native one for better compatibility.
+  const model = config.model || "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.googleApiKey}`;
+
+  // Convert messages to Gemini format
+  const contents = messages.map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
+  // Add system prompt as the first message if it's not already there
+  if (config.systemPrompt) {
+    contents.unshift({
+      role: 'user',
+      parts: [{ text: `INSTRUÇÕES DO SISTEMA: ${config.systemPrompt}\n\nPor favor, siga estas instruções em todas as suas respostas.` }]
+    });
+    contents.push({
+      role: 'model',
+      parts: [{ text: "Entendido. Seguirei todas as instruções do sistema e as diretrizes da Lyra." }]
+    });
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini error:", response.status, errorText);
+    throw new Error(`Erro ao processar mensagem com Gemini: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui processar sua mensagem.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
