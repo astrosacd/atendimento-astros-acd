@@ -313,7 +313,14 @@ export default function GatewayOrders() {
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground mb-2">Ações de Aprovação</p>
+                <p className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                  <span>Ações de Aprovação</span>
+                  <Badge variant="outline" className="text-[10px] uppercase">
+                    {approvalConfig.workflow === 'admin_only' ? 'Admin' : 
+                     approvalConfig.workflow === 'admin_manager' ? 'Admin/Gerente' : 
+                     'Admin/Gerente/Finan.'}
+                  </Badge>
+                </p>
                 <div className="flex gap-2">
                   <Button 
                     className="flex-1 bg-green-600 hover:bg-green-700" 
