@@ -456,6 +456,9 @@ serve(async (req) => {
           if (item.config_key === 'chat_groq_api_key' && item.config_value) {
             aiConfig.groqApiKey = item.config_value;
           }
+          if (item.config_key === 'chat_google_api_key' && item.config_value) {
+            aiConfig.googleApiKey = item.config_value;
+          }
           if (item.config_key === 'chat_role_restriction_enabled') {
             aiConfig.roleRestrictionEnabled = item.config_value === 'true';
           }
