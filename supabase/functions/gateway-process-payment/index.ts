@@ -227,6 +227,11 @@ serve(async (req) => {
 
       redirectUrl = stripeData.url;
       console.log(`Stripe payment created for order ${orderId}, redirect: ${redirectUrl}`);
+    } else if (gateway === "pix") {
+      // For manual PIX, we already have the proof and the order is created.
+      // Just redirect to success page.
+      redirectUrl = `${origin}/sucesso`;
+      console.log(`PIX Manual payment completed for order ${orderId}`);
     }
 
     return new Response(
