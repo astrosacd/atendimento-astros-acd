@@ -86,6 +86,13 @@ export default function Checkout() {
           allow_boleto?: boolean;
           immediate_payment?: boolean;
         };
+        pix_manual?: {
+          enabled?: boolean;
+          pix_key?: string;
+          receiver_name?: string;
+          instructions?: string;
+          qr_code_url?: string | null;
+        };
         checkout?: {
           countdown_enabled?: boolean;
           countdown_minutes?: number;
