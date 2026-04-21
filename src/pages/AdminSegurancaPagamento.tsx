@@ -97,9 +97,9 @@ export default function AdminSegurancaPagamento() {
         .from('billing_config')
         .upsert({
           config_key: 'pixpague_config',
-          config_value: config,
+          config_value: JSON.stringify(config),
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'config_key' });
 
       if (error) throw error;
       toast({
