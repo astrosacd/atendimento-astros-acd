@@ -50,13 +50,16 @@ export default function AdminSegurancaPagamento() {
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
+      // Show all PIX manual payments (pending_approval, paid, rejected) + any with OCR data
       const { data, error } = await supabase
         .from('client_payments')
         .select('*, cliente:clientes(nome)')
-        .not('pix_transaction_id', 'is', null)
+        .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -70,6 +73,33 @@ export default function AdminSegurancaPagamento() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleApproval = async (paymentId: string, action: 'approve' | 'reject') => {
+    setApprovingId(paymentId);
+    try {
+      const { data, error } = await supabase.functions.invoke('approve-pixpague-payment', {
+        body: { paymentId, action },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast({
+        title: action === 'approve' ? '✅ Pagamento aprovado' : '🚫 Pagamento rejeitado',
+        description: action === 'approve'
+          ? 'Cliente renovado e recibo enviado.'
+          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.',
+      });
+      await fetchPayments();
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao processar aprovação',
+        description: e?.message || 'Falha desconhecida',
+        variant: 'destructive',
+      });
+    } finally {
+      setApprovingId(null);
     }
   };
 
