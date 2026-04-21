@@ -1119,24 +1119,34 @@ Se precisar de ajuda, é só responder esta mensagem!`
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                  <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      OCR Automático com IA
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Extrai valor e ID da transação do comprovante e cruza com os dados digitados.
-                      <br />
-                      <span className="text-[10px] text-amber-600 font-medium">
-                        Requer GEMINI_API_KEY, OPENAI_API_KEY ou XAI_API_KEY nos segredos do projeto.
-                      </span>
-                    </p>
+                <div className="p-3 border rounded-lg bg-muted/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-primary" />
+                        OCR Automático com IA
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Extrai valor e ID da transação do comprovante e cruza com os dados digitados para evitar fraudes.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={approvalConfig.ocr_enabled}
+                      onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, ocr_enabled: checked }))}
+                    />
                   </div>
-                  <Switch
-                    checked={approvalConfig.ocr_enabled}
-                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, ocr_enabled: checked }))}
-                  />
+                  
+                  {approvalConfig.ocr_enabled && (
+                    <div className="pt-2 border-t space-y-3">
+                      <div className="flex items-start gap-2 p-2 rounded bg-amber-500/10 text-amber-700 text-[11px] border border-amber-500/20">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold">Configuração Necessária</p>
+                          <p>Para funcionar, você precisa adicionar a chave <strong>GEMINI_API_KEY</strong> nos segredos do projeto (Configurações → Segredos).</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
