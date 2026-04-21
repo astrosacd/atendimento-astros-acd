@@ -64,10 +64,13 @@ Se for comprovante mas não encontrar algum campo, use null para esse campo. NÃ
       const jsonStr = jsonMatch ? jsonMatch[0] : txt;
       try {
         const parsed = JSON.parse(jsonStr);
+        const isReceipt = parsed.isReceipt !== false; // default true if not specified (legacy)
         return {
           amount: parsed.amount != null ? Number(parsed.amount) : null,
           transactionId: parsed.transactionId || null,
-          status: 'success',
+          status: isReceipt ? 'success' : 'invalid',
+          isReceipt,
+          reason: parsed.reason || undefined,
           raw: txt,
         };
       } catch (e) {
