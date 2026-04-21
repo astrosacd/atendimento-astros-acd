@@ -262,32 +262,47 @@ export function usePaymentStatus() {
     }
   };
 
-  // Register early payment (before billing date) - renewal counts from billing date, not payment date
+  // Register early payment (before billing date)
+  // ⚠️ NEW FLOW: Always requires proof + admin approval. Does NOT auto-renew or auto-send receipt.
+  // Renewal + receipt happen later via "approve-pixpague-payment" edge function (Segurança de Pagamento module).
   const registerEarlyPayment = async (clienteId: string, amount: number, comprovante?: File): Promise<boolean> => {
     try {
-      const paidAt = new Date().toISOString();
-      const paymentId = `manual_early_${Date.now()}`;
-      let comprovanteUrl = null;
-
-      // Upload proof if provided
-      if (comprovante) {
-        const fileExt = comprovante.name.split('.').pop();
-        const fileName = `${clienteId}_${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('payment-proofs')
-          .upload(fileName, comprovante);
-
-        if (uploadError) {
-          console.error('Error uploading proof:', uploadError);
-        } else if (uploadData) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(uploadData.path);
-          comprovanteUrl = publicUrl;
-        }
+      // Enforce proof requirement
+      if (!comprovante) {
+        toast({
+          title: 'Comprovante obrigatório',
+          description: 'É necessário anexar o comprovante PIX para enviar o pagamento para aprovação.',
+          variant: 'destructive',
+        });
+        return false;
       }
 
-      // Insert payment record as already paid
+      const paymentId = `manual_early_${Date.now()}`;
+      let comprovanteUrl: string | null = null;
+
+      // Upload proof
+      const fileExt = comprovante.name.split('.').pop();
+      const fileName = `${clienteId}_${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(fileName, comprovante);
+
+      if (uploadError || !uploadData) {
+        console.error('Error uploading proof:', uploadError);
+        toast({
+          title: 'Erro ao enviar comprovante',
+          description: uploadError?.message || 'Falha no upload do arquivo.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(uploadData.path);
+      comprovanteUrl = publicUrl;
+
+      // Insert payment record as PENDING APPROVAL (not paid yet)
       const { data: insertedPayment, error: insertError } = await supabase
         .from('client_payments')
         .insert({
@@ -295,19 +310,19 @@ export function usePaymentStatus() {
           payment_id: paymentId,
           payment_type: 'pix_manual',
           amount,
-          status: 'paid',
-          paid_at: paidAt,
+          status: 'pending_approval',
+          paid_at: null,
           billing_date: new Date().toISOString().split('T')[0],
           comprovante_url: comprovanteUrl,
+          ocr_status: 'pending',
         })
         .select('id')
         .single();
 
       if (insertError) throw insertError;
 
-      // Trigger PixPague processing (OCR + duplicate check + WhatsApp notify)
-      // Only if proof was uploaded — runs in background, won't block UI
-      if (comprovanteUrl && insertedPayment?.id) {
+      // Trigger PixPague processing (OCR + duplicate check + WhatsApp notify) — non-blocking
+      if (insertedPayment?.id) {
         supabase.functions.invoke('pixpague-process-proof', {
           body: {
             paymentId: insertedPayment.id,
@@ -319,8 +334,8 @@ export function usePaymentStatus() {
             console.error('PixPague processing error:', error);
           } else if (data?.ocr_status === 'duplicate') {
             toast({
-              title: '🚫 Atenção: Comprovante Duplicado',
-              description: 'A IA detectou que este ID de transação já foi usado em outro pagamento. Verifique antes de confirmar com o cliente.',
+              title: '🚫 Comprovante Duplicado',
+              description: 'A IA detectou que este ID de transação já foi usado. Verifique no módulo Segurança de Pagamento antes de aprovar.',
               variant: 'destructive',
             });
           } else if (data?.ocr_status === 'mismatch') {
@@ -332,47 +347,15 @@ export function usePaymentStatus() {
           } else if (data?.ocr_status === 'success') {
             toast({
               title: '✅ Comprovante validado pela IA',
-              description: 'Valor e ID da transação conferem.',
+              description: 'Aguardando aprovação manual no módulo Segurança de Pagamento.',
             });
           }
         });
       }
 
-      // Get client data to calculate renewal from CURRENT renewal date (not today)
-      const { data: cliente, error: clienteError } = await supabase
-        .from('clientes')
-        .select('data_renovacao, ciclo_cobranca')
-        .eq('id', clienteId)
-        .single();
-
-      if (!clienteError && cliente) {
-        // For early payments: always renew from the CURRENT billing date, not from today
-        const renewalDate = new Date(cliente.data_renovacao);
-        const cycleMonths: Record<string, number> = {
-          mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12,
-        };
-        const months = cycleMonths[cliente.ciclo_cobranca] || 1;
-        renewalDate.setMonth(renewalDate.getMonth() + months);
-        const newRenewalDate = renewalDate.toISOString().split('T')[0];
-
-        await supabase
-          .from('clientes')
-          .update({ data_renovacao: newRenewalDate })
-          .eq('id', clienteId);
-      }
-
-      // Send receipt
-      try {
-        await supabase.functions.invoke('send-receipt', {
-          body: { clienteId, paymentId, paidAt },
-        });
-      } catch (e) {
-        console.error('Erro ao enviar recibo:', e);
-      }
-
       toast({
-        title: 'Pagamento antecipado registrado',
-        description: 'Comprovante salvo, recibo enviado e renovação calculada',
+        title: '📨 Enviado para aprovação',
+        description: 'O pagamento ficará pendente até ser aprovado em "Segurança de Pagamento". A renovação e o recibo serão processados após aprovação.',
       });
 
       return true;
