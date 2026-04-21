@@ -56,6 +56,30 @@ export default function AdminSegurancaPagamento() {
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
+  const fetchPayments = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_payments')
+        .select('*, cliente:clientes(nome)')
+        .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (error: any) {
+      console.error('Error fetching payments:', error);
+      toast({
+        title: 'Erro ao buscar pagamentos',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   // Approval dialog state — used when OCR sinaliza duplicado/divergente
   const [approvalDialog, setApprovalDialog] = useState<{
     open: boolean;
