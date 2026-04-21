@@ -340,6 +340,14 @@ serve(async (req) => {
         .eq("id", coupon.id);
     }
 
+    // If it's a PIX order with a proof, trigger OCR automatically
+    if (body.paymentGateway === 'pix' && body.proofUrl) {
+      console.log("Triggering automatic OCR for PIX order:", order.id);
+      supabase.functions.invoke('gateway-ocr-pix', {
+        body: { orderId: order.id }
+      }).catch(err => console.error("Auto OCR failed:", err));
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
