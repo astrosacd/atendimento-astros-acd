@@ -306,12 +306,14 @@ export default function AdminSegurancaPagamento() {
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                      <option value="all">Todos Status</option>
-                      <option value="success">Validados</option>
-                      <option value="duplicate">Duplicados</option>
-                      <option value="divergent">Divergentes</option>
-                      <option value="pending">Pendentes</option>
-                      <option value="error">Erros</option>
+                      <option value="all">Todos</option>
+                      <option value="pending_approval">⏳ Aguardando Aprovação{pendingApprovalCount > 0 ? ` (${pendingApprovalCount})` : ''}</option>
+                      <option value="paid">Aprovados</option>
+                      <option value="rejected">Rejeitados</option>
+                      <option value="success">IA: Validado</option>
+                      <option value="duplicate">IA: Duplicado</option>
+                      <option value="mismatch">IA: Divergente</option>
+                      <option value="error">IA: Erro</option>
                     </select>
                   </div>
                 </div>
