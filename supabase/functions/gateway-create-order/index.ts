@@ -14,7 +14,7 @@ type CreateOrderBody = {
   customerEmail: string;
   customerPhone?: string;
   customerCpf?: string | null;
-  paymentGateway: "stripe" | "mercadopago";
+  paymentGateway: "stripe" | "mercadopago" | "pix";
   currency: "BRL" | "USD";
 };
 
