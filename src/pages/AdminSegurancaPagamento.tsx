@@ -328,13 +328,14 @@ export default function AdminSegurancaPagamento() {
                         <TableHead>Valor</TableHead>
                         <TableHead>ID Transação</TableHead>
                         <TableHead>Status IA</TableHead>
+                        <TableHead>Status Pagamento</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-10">
+                          <TableCell colSpan={7} className="text-center py-10">
                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                               <Clock className="h-4 w-4 animate-spin" />
                               Carregando transações...
@@ -343,13 +344,22 @@ export default function AdminSegurancaPagamento() {
                         </TableRow>
                       ) : filteredPayments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                             Nenhuma transação encontrada.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredPayments.map((payment) => (
-                          <TableRow key={payment.id} className={payment.ocr_status === 'duplicate' ? 'bg-destructive/5' : ''}>
+                        filteredPayments.map((payment) => {
+                          const isPending = payment.status === 'pending_approval';
+                          const isProcessing = approvingId === payment.id;
+                          return (
+                          <TableRow 
+                            key={payment.id} 
+                            className={
+                              payment.ocr_status === 'duplicate' ? 'bg-destructive/5' :
+                              isPending ? 'bg-amber-500/5' : ''
+                            }
+                          >
                             <TableCell className="text-sm">
                               {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
@@ -369,36 +379,66 @@ export default function AdminSegurancaPagamento() {
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-[10px] max-w-[150px] truncate">
-                              {payment.pix_transaction_id}
+                              {payment.pix_transaction_id || '—'}
                             </TableCell>
                             <TableCell>
                               {getStatusBadge(payment.ocr_status)}
                             </TableCell>
+                            <TableCell>
+                              {getPaymentStatusBadge(payment.status)}
+                            </TableCell>
                             <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {payment.comprovante_url && (
-                                    <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      Ver Comprovante
+                              <div className="flex items-center justify-end gap-1">
+                                {isPending && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                      onClick={() => handleApproval(payment.id, 'approve')}
+                                      disabled={isProcessing}
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Aprovar
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleApproval(payment.id, 'reject')}
+                                      disabled={isProcessing}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                                      Rejeitar
+                                    </Button>
+                                  </>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {payment.comprovante_url && (
+                                      <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Ver Comprovante
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem>
+                                      <Smartphone className="h-4 w-4 mr-2" />
+                                      Notificar Cliente
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem>
-                                    <Smartphone className="h-4 w-4 mr-2" />
-                                    Notificar Cliente
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ))
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
