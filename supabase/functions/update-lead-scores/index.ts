@@ -76,34 +76,42 @@ serve(async (req) => {
             apiUrl = "https://api.openai.com/v1/chat/completions"
           } else if (provider === 'anthropic') {
             apiUrl = "https://api.anthropic.com/v1/messages"
-          } else if (provider === 'groq') {
-            apiUrl = "https://api.groq.com/openai/v1/chat/completions"
+          } else if (provider === 'gemini') {
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
           }
 
           if (apiKey && apiUrl) {
             console.log(`Requesting AI analysis for lead ${lead.id} using ${provider}`)
             
+            const isGemini = provider === 'gemini'
             const response = await fetch(apiUrl, {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                ...(isGemini ? {} : { 'Authorization': `Bearer ${apiKey}` }),
                 'Content-Type': 'application/json',
                 ...(provider === 'anthropic' ? { 'anthropic-version': '2023-06-01' } : {})
               },
-              body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'user', content: prompt }],
-                ...(provider === 'anthropic' ? { 
-                  system: "Responda APENAS em formato JSON: { \"score\": number, \"reason\": \"string\", \"suggestion\": \"string\" }",
-                  messages: [{ role: 'user', content: prompt }]
-                } : {})
-              })
+              body: JSON.stringify(
+                isGemini ? {
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0.7 }
+                } : {
+                  model: model,
+                  messages: [{ role: 'user', content: prompt }],
+                  ...(provider === 'anthropic' ? { 
+                    system: "Responda APENAS em formato JSON: { \"score\": number, \"reason\": \"string\", \"suggestion\": \"string\" }",
+                    messages: [{ role: 'user', content: prompt }]
+                  } : {})
+                }
+              )
             })
 
             const aiData = await response.json()
-            const content = provider === 'anthropic' 
-              ? aiData.content[0].text 
-              : aiData.choices[0].message.content
+            const content = isGemini 
+              ? aiData.candidates[0].content.parts[0].text
+              : (provider === 'anthropic' 
+                ? aiData.content[0].text 
+                : aiData.choices[0].message.content)
 
             // Parse result
             try {

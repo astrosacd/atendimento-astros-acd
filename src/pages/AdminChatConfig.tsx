@@ -68,9 +68,9 @@ const aiProviders = [
     requiresApiKey: true 
   },
   { 
-    name: 'Groq', 
-    value: 'groq', 
-    description: 'Requer API Key da Groq',
+    name: 'Google Gemini', 
+    value: 'google', 
+    description: 'Requer API Key do Google AI Studio',
     requiresApiKey: true 
   },
 ];
@@ -95,6 +95,12 @@ const modelsByProvider: Record<string, { name: string; value: string; descriptio
     { name: 'Llama 3.1 8B', value: 'llama-3.1-8b-instant', description: 'Ultra rápido' },
     { name: 'Mixtral 8x7B', value: 'mixtral-8x7b-32768', description: 'Bom equilíbrio' },
     { name: 'Gemma2 9B', value: 'gemma2-9b-it', description: 'Compacto e eficiente' },
+  ],
+  google: [
+    { name: 'Gemini 2.5 Flash (Recomendado)', value: 'gemini-2.0-flash', description: 'Rápido e eficiente' },
+    { name: 'Gemini 2.5 Pro', value: 'gemini-2.0-pro-exp-02-05', description: 'Mais poderoso, melhor para tarefas complexas' },
+    { name: 'Gemini 1.5 Flash', value: 'gemini-1.5-flash', description: 'Ultra rápido' },
+    { name: 'Gemini 1.5 Pro', value: 'gemini-1.5-pro', description: 'Muito inteligente' },
   ],
 };
 
@@ -140,6 +146,7 @@ Instruções:
     chat_ai_model: 'google/gemini-2.5-flash',
     chat_openai_api_key: '',
     chat_groq_api_key: '',
+    chat_google_api_key: '',
     // Role-based access settings
     chat_role_restriction_enabled: false,
     chat_role_topics: '{}',
@@ -149,6 +156,7 @@ Instruções:
   const [quickReplies, setQuickReplies] = useState<{ trigger: string; response: string }[]>([]);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [showGroqKey, setShowGroqKey] = useState(false);
+  const [showGoogleKey, setShowGoogleKey] = useState(false);
   const [roleTopics, setRoleTopics] = useState<RoleTopicConfig>({});
 
   // Fetch custom roles
@@ -245,6 +253,7 @@ Instruções:
           chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
           chat_openai_api_key: configMap.chat_openai_api_key || '',
           chat_groq_api_key: configMap.chat_groq_api_key || '',
+          chat_google_api_key: configMap.chat_google_api_key || '',
           chat_role_restriction_enabled: configMap.chat_role_restriction_enabled === 'true',
           chat_role_topics: configMap.chat_role_topics || '{}',
           chat_denial_message: configMap.chat_denial_message || 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso. Entre em contato com um administrador se precisar de mais informações.',
@@ -291,6 +300,7 @@ Instruções:
         { config_key: 'chat_ai_model', config_value: config.chat_ai_model },
         { config_key: 'chat_openai_api_key', config_value: config.chat_openai_api_key },
         { config_key: 'chat_groq_api_key', config_value: config.chat_groq_api_key },
+        { config_key: 'chat_google_api_key', config_value: config.chat_google_api_key },
         { config_key: 'chat_role_restriction_enabled', config_value: config.chat_role_restriction_enabled ? 'true' : 'false' },
         { config_key: 'chat_role_topics', config_value: JSON.stringify(roleTopics) },
         { config_key: 'chat_denial_message', config_value: config.chat_denial_message },
@@ -859,6 +869,52 @@ Instruções:
                       Obtenha sua API Key em{' '}
                       <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                         console.groq.com/keys
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {config.chat_ai_provider === 'google' && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm border-teal-500/30">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
+                      <Key className="h-5 w-5 text-teal-500" />
+                    </div>
+                    <div>
+                      <CardTitle>API Key do Google Gemini</CardTitle>
+                      <CardDescription>Configure sua chave de API do Google AI Studio</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="google-key">Google API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="google-key"
+                        type={showGoogleKey ? 'text' : 'password'}
+                        value={config.chat_google_api_key}
+                        onChange={(e) => setConfig({ ...config, chat_google_api_key: e.target.value })}
+                        placeholder="AIza..."
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowGoogleKey(!showGoogleKey)}
+                      >
+                        {showGoogleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha sua API Key em{' '}
+                      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        aistudio.google.com/app/apikey
                       </a>
                     </p>
                   </div>
