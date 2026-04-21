@@ -398,6 +398,17 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                           {payment.receipt_number}
                                         </p>
                                       )}
+                                      {payment.comprovante_url && (
+                                        <a 
+                                          href={payment.comprovante_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-400 hover:underline flex items-center gap-1 mt-0.5"
+                                        >
+                                          <FileText className="w-3 h-3" />
+                                          Ver Comprovante
+                                        </a>
+                                      )}
                                       {payment.paid_at && (
                                         <p className="text-xs text-emerald-400">
                                           Pago em {formatDateTime(payment.paid_at)}
