@@ -44,87 +44,159 @@ serve(async (req) => {
 
     const approvalConfig = settingsRow?.value || {};
 
-    // Check for API Keys for OCR
+    // AI API Keys
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    const grokKey = Deno.env.get("XAI_API_KEY");
     
     let ocrResult = {
-      amount: order.total, // Assume correct for mock
-      transactionId: `TX-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      status: 'success' as const
+      amount: order.total,
+      transactionId: order.pix_transaction_id || '',
+      status: 'pending' as const,
+      extracted_date: null as string | null
     };
 
-    if (geminiKey) {
-      console.log("Calling Gemini for OCR...");
-      // Implementation for Gemini OCR
-    } else if (openaiKey) {
-      console.log("Calling OpenAI for OCR...");
-      // Implementation for OpenAI OCR
-    } else if (grokKey) {
-      console.log("Calling Grok for OCR...");
-      // Implementation for Grok OCR
+    if (geminiKey && order.proof_url) {
+      console.log("Calling Gemini for real OCR...");
+      try {
+        // Fetch the image
+        const imageResponse = await fetch(order.proof_url);
+        const imageBlob = await imageResponse.blob();
+        const buffer = await imageBlob.arrayBuffer();
+        const base64Image = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+        
+        const prompt = `Você é um especialista em recibos de PIX brasileiros. Extraia as seguintes informações da imagem do comprovante de forma precisa:
+1. Valor total pago (em formato numérico decimal, ex: 150.00)
+2. ID da Transação / Código E2E (um código longo alfanumérico que geralmente começa com 'E' e tem cerca de 32 caracteres)
+3. Data e hora da transação (ISO format se possível)
+
+Responda APENAS um objeto JSON válido no formato:
+{
+  "amount": 150.00,
+  "transactionId": "E123456789...",
+  "date": "2024-01-01T10:00:00Z"
+}`;
+
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: imageBlob.type || "image/jpeg",
+                    data: base64Image
+                  }
+                }
+              ]
+            }],
+            generationConfig: {
+              response_mime_type: "application/json",
+            }
+          })
+        });
+
+        const result = await response.json();
+        const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (content) {
+          const parsed = JSON.parse(content);
+          ocrResult.amount = parseFloat(parsed.amount) || order.total;
+          ocrResult.transactionId = parsed.transactionId || '';
+          ocrResult.extracted_date = parsed.date || null;
+          ocrResult.status = 'success';
+          console.log("Gemini OCR successful:", ocrResult);
+        }
+      } catch (err) {
+        console.error("Gemini OCR failed:", err);
+        ocrResult.status = 'error';
+      }
+    } else {
+      console.warn("No Gemini key or proof URL found, skipping real OCR.");
+    }
+
+    // Check for duplicate transaction ID in the database (server-side check)
+    let isDuplicate = false;
+    if (ocrResult.transactionId) {
+      const { data: duplicateOrders } = await supabase
+        .from("gateway_orders")
+        .select("id")
+        .eq("pix_transaction_id", ocrResult.transactionId)
+        .neq("id", orderId)
+        .neq("status", "rejected");
+      
+      if (duplicateOrders && duplicateOrders.length > 0) {
+        isDuplicate = true;
+        console.warn(`Duplicate transaction ID found: ${ocrResult.transactionId}`);
+      }
     }
 
     // Update order with OCR results
+    const ocr_status = isDuplicate ? 'duplicate' : 
+                      (Math.abs(ocrResult.amount - order.total) < 0.01 ? 'success' : 'mismatch');
+
     const { error: updateError } = await supabase
       .from("gateway_orders")
       .update({
         ocr_amount: ocrResult.amount,
-        pix_transaction_id: order.pix_transaction_id || ocrResult.transactionId,
-        ocr_status: Math.abs(ocrResult.amount - order.total) < 0.01 ? 'success' : 'mismatch',
+        pix_transaction_id: ocrResult.transactionId || order.pix_transaction_id,
+        ocr_status: ocr_status,
         updated_at: new Date().toISOString()
       })
       .eq("id", orderId);
 
     if (updateError) throw updateError;
 
-    // Send WhatsApp notification to Admin if enabled
+    // Send WhatsApp notification if enabled
     if (approvalConfig.whatsapp_notifications) {
       const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
       const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
       const evolutionInstance = Deno.env.get("EVOLUTION_INSTANCE");
 
       if (evolutionUrl && evolutionKey && evolutionInstance) {
+        let ocrText = '🔍 OCR: ';
+        if (ocr_status === 'success') ocrText += '✅ Validado';
+        else if (ocr_status === 'mismatch') ocrText += '⚠️ Valor Divergente (IA leu R$ ' + ocrResult.amount.toFixed(2) + ')';
+        else if (ocr_status === 'duplicate') ocrText += '🚫 ID DUPLICADO (FRAUDE!)';
+        else ocrText += '❓ Não processado';
+
         const message = `🔔 *Novo PIX Pendente*\n\n` +
           `👤 Cliente: ${order.customer_name}\n` +
           `📦 Produto: ${order.product?.name || 'N/A'}\n` +
-          `💰 Valor: R$ ${order.total.toFixed(2)}\n` +
-          `🔍 OCR: ${ocrResult.amount === order.total ? '✅ Validado' : '⚠️ Divergência'}\n\n` +
+          `💰 Valor Digitado: R$ ${order.total.toFixed(2)}\n` +
+          `${ocrText}\n\n` +
+          `🆔 ID Transação: ${ocrResult.transactionId || 'Não detectado'}\n\n` +
           `Acesse o painel para aprovar.`;
 
-        try {
-          // Use the dedicated approver WhatsApp number(s) from approval_config
-          const adminPhones = approvalConfig.approver_whatsapp ? approvalConfig.approver_whatsapp.split(',').map((p: string) => p.trim()) : [];
+        const adminPhones = approvalConfig.approver_whatsapp ? 
+                           approvalConfig.approver_whatsapp.split(',').map((p: string) => p.trim()) : [];
 
-          if (adminPhones.length > 0) {
-            for (const phone of adminPhones) {
-              if (!phone) continue;
-              
-              try {
-                await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", "apikey": evolutionKey },
-                  body: JSON.stringify({
-                    number: phone.replace(/\D/g, ""),
-                    text: message,
-                  }),
-                });
-                console.log(`Notification sent to ${phone}`);
-              } catch (err) {
-                console.error(`Failed to send notification to ${phone}:`, err);
-              }
-            }
-          } else {
-            console.warn("approver_whatsapp not configured in approval_config — skipping notification");
+        for (const phone of adminPhones) {
+          if (!phone) continue;
+          try {
+            await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "apikey": evolutionKey },
+              body: JSON.stringify({
+                number: phone.replace(/\D/g, ""),
+                text: message,
+              }),
+            });
+          } catch (err) {
+            console.error(`Failed to send notification to ${phone}:`, err);
           }
-        } catch (notifyErr) {
-          console.error("Failed to send WhatsApp notification:", notifyErr);
         }
       }
     }
 
-    return new Response(JSON.stringify({ success: true, ocr: ocrResult }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      ocr: ocrResult, 
+      is_duplicate: isDuplicate,
+      ocr_status: ocr_status 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
