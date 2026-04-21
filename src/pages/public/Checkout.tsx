@@ -70,6 +70,12 @@ export default function Checkout() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pixManualData, setPixManualData] = useState<{
+    pix_key?: string;
+    receiver_name?: string;
+    instructions?: string;
+  } | null>(null);
 
   // Fetch enabled payment gateways and checkout settings (public-safe)
   const { data: gatewaySettings, isLoading: gatewayLoading } = useQuery({
