@@ -763,6 +763,140 @@ export default function AdminSegurancaPagamento() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Approval Dialog — exige justificativa para aprovações de pagamentos suspeitos
+          (duplicado/divergente) e também para qualquer rejeição. */}
+      <Dialog
+        open={approvalDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' });
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {approvalDialog.action === 'approve' ? (
+                <>
+                  <ShieldAlert className="h-5 w-5 text-amber-500" />
+                  Confirmar aprovação com alerta
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  Rejeitar pagamento
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialog.action === 'approve' && approvalDialog.payment?.ocr_status === 'duplicate' && (
+                <>
+                  A IA detectou que o <strong>ID da transação PIX já foi usado anteriormente</strong>.
+                  Aprovar mesmo assim pode encobrir uma fraude. Explique abaixo o motivo da decisão.
+                </>
+              )}
+              {approvalDialog.action === 'approve' &&
+                (approvalDialog.payment?.ocr_status === 'mismatch' || approvalDialog.payment?.ocr_status === 'divergent') && (
+                <>
+                  O <strong>valor do comprovante não bate</strong> com o valor declarado pelo cliente.
+                  Por que está aprovando mesmo assim?
+                </>
+              )}
+              {approvalDialog.action === 'reject' && (
+                <>Descreva brevemente o motivo da rejeição (será registrado no histórico).</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Resumo do pagamento */}
+          {approvalDialog.payment && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-medium">{approvalDialog.payment.cliente?.nome || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor declarado:</span>
+                <span className="font-semibold">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approvalDialog.payment.amount)}
+                </span>
+              </div>
+              {approvalDialog.payment.ocr_amount && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">IA leu no comprovante:</span>
+                  <span className="font-semibold text-amber-500">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approvalDialog.payment.ocr_amount)}
+                  </span>
+                </div>
+              )}
+              {approvalDialog.payment.pix_transaction_id && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground shrink-0">ID Transação:</span>
+                  <span className="font-mono text-[11px] truncate">{approvalDialog.payment.pix_transaction_id}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="approval-reason">
+              {approvalDialog.action === 'approve' ? 'Motivo da aprovação' : 'Motivo da rejeição'}
+              {approvalDialog.action === 'approve' && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+            </Label>
+            <Textarea
+              id="approval-reason"
+              placeholder={
+                approvalDialog.action === 'approve'
+                  ? 'Ex: Cliente enviou comprovante errado por engano, confirmei o pagamento via extrato bancário...'
+                  : 'Ex: Comprovante adulterado, ID já utilizado em outro pedido...'
+              }
+              value={approvalDialog.reason}
+              onChange={(e) => setApprovalDialog((prev) => ({ ...prev, reason: e.target.value }))}
+              rows={4}
+              maxLength={500}
+            />
+            <p className="text-[10px] text-muted-foreground text-right">
+              {approvalDialog.reason.length}/500
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setApprovalDialog({ open: false, payment: null, action: 'approve', reason: '' })}
+              disabled={approvingId === approvalDialog.payment?.id}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
+              onClick={() => approvalDialog.payment && performApproval(approvalDialog.payment.id, approvalDialog.action, approvalDialog.reason)}
+              disabled={
+                approvingId === approvalDialog.payment?.id ||
+                (approvalDialog.action === 'approve' && approvalDialog.reason.trim().length < 5)
+              }
+            >
+              {approvingId === approvalDialog.payment?.id ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Processando...
+                </>
+              ) : approvalDialog.action === 'approve' ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Confirmar aprovação
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Confirmar rejeição
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
