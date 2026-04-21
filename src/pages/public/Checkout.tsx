@@ -64,7 +64,7 @@ export default function Checkout() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerCpf, setCustomerCpf] = useState('');
-  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'mercadopago' | null>(null);
+  const [paymentGateway, setPaymentGateway] = useState<'stripe' | 'mercadopago' | 'pix' | null>(null);
   const [currency, setCurrency] = useState<'BRL' | 'USD'>('BRL');
   const [selectedOrderBumps, setSelectedOrderBumps] = useState<string[]>([]);
   const [couponCode, setCouponCode] = useState('');
