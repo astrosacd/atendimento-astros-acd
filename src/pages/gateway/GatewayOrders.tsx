@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGatewayOrders, GatewayOrder } from '@/hooks/useGateway';
-import { Eye, RefreshCw, Mail, CheckCircle, XCircle, FileText, AlertTriangle, Search } from 'lucide-react';
+import { Eye, RefreshCw, Mail, CheckCircle, XCircle, FileText, AlertTriangle, Search, ExternalLink } from 'lucide-react';
 import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
