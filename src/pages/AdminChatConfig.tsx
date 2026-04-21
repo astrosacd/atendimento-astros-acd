@@ -253,6 +253,7 @@ Instruções:
           chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
           chat_openai_api_key: configMap.chat_openai_api_key || '',
           chat_groq_api_key: configMap.chat_groq_api_key || '',
+          chat_google_api_key: configMap.chat_google_api_key || '',
           chat_role_restriction_enabled: configMap.chat_role_restriction_enabled === 'true',
           chat_role_topics: configMap.chat_role_topics || '{}',
           chat_denial_message: configMap.chat_denial_message || 'Desculpe, não tenho permissão para responder sobre esse assunto com base no seu perfil de acesso. Entre em contato com um administrador se precisar de mais informações.',
