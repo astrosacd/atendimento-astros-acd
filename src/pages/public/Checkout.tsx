@@ -332,6 +332,34 @@ export default function Checkout() {
     });
     
     try {
+      let proofUrl = null;
+      
+      if (paymentGateway === 'pix') {
+        if (!selectedFile) {
+          toast.error('O comprovante é obrigatório para pagamento via PIX');
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Upload proof to storage
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(filePath, selectedFile);
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(filePath);
+        
+        proofUrl = publicUrl;
+        console.log("Proof uploaded:", proofUrl);
+      }
+      
       const { data: orderData, error: createOrderError } = await supabase.functions.invoke('gateway-create-order', {
         body: {
           productId: product?.id,
@@ -343,6 +371,7 @@ export default function Checkout() {
           customerCpf: paymentGateway === 'mercadopago' ? customerCpf.replace(/\D/g, '') : null,
           paymentGateway,
           currency,
+          proofUrl,
         },
       });
 
