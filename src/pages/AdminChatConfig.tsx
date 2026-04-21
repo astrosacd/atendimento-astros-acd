@@ -876,6 +876,52 @@ Instruções:
               </Card>
             )}
 
+            {config.chat_ai_provider === 'google' && (
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm border-teal-500/30">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
+                      <Key className="h-5 w-5 text-teal-500" />
+                    </div>
+                    <div>
+                      <CardTitle>API Key do Google Gemini</CardTitle>
+                      <CardDescription>Configure sua chave de API do Google AI Studio</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="google-key">Google API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="google-key"
+                        type={showGoogleKey ? 'text' : 'password'}
+                        value={config.chat_google_api_key}
+                        onChange={(e) => setConfig({ ...config, chat_google_api_key: e.target.value })}
+                        placeholder="AIza..."
+                        className="pr-10 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowGoogleKey(!showGoogleKey)}
+                      >
+                        {showGoogleKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha sua API Key em{' '}
+                      <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        aistudio.google.com/app/apikey
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Modelo */}
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader>
