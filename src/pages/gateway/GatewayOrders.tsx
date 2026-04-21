@@ -216,19 +216,25 @@ export default function GatewayOrders() {
                     <div className={`mt-2 p-2 rounded-md border text-xs flex items-center gap-2 ${
                       selectedOrder.ocr_status === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-700' :
                       selectedOrder.ocr_status === 'mismatch' ? 'bg-amber-500/10 border-amber-500/20 text-amber-700' :
+                      selectedOrder.ocr_status === 'duplicate' ? 'bg-destructive/10 border-destructive/20 text-destructive' :
                       'bg-muted border-border text-muted-foreground'
                     }`}>
                       {selectedOrder.ocr_status === 'success' ? <CheckCircle className="h-3 w-3" /> : 
                        selectedOrder.ocr_status === 'mismatch' ? <AlertTriangle className="h-3 w-3" /> :
+                       selectedOrder.ocr_status === 'duplicate' ? <AlertTriangle className="h-3 w-3 animate-pulse" /> :
                        <Search className="h-3 w-3" />}
                       <div>
-                        <span className="font-semibold uppercase">{selectedOrder.ocr_status === 'success' ? 'Validado por IA' : 
-                                                                  selectedOrder.ocr_status === 'mismatch' ? 'Atenção: Divergência' : 'OCR Pendente'}</span>
+                        <span className="font-semibold uppercase">
+                          {selectedOrder.ocr_status === 'success' ? 'Validado por IA' : 
+                           selectedOrder.ocr_status === 'mismatch' ? 'Atenção: Divergência' : 
+                           selectedOrder.ocr_status === 'duplicate' ? 'FRAUDE DETECTADA: ID DUPLICADO' :
+                           'OCR Pendente'}
+                        </span>
                         {selectedOrder.ocr_amount && (
                           <p>Valor extraído: {formatCurrency(selectedOrder.ocr_amount, selectedOrder.currency)}</p>
                         )}
                         {selectedOrder.pix_transaction_id && (
-                          <p className="truncate">ID Transação: {selectedOrder.pix_transaction_id}</p>
+                          <p className="truncate font-mono">ID: {selectedOrder.pix_transaction_id}</p>
                         )}
                       </div>
                     </div>
