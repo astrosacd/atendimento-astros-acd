@@ -433,6 +433,7 @@ serve(async (req) => {
           'chat_ai_provider',
           'chat_openai_api_key',
           'chat_groq_api_key',
+          'chat_google_api_key',
           'chat_role_restriction_enabled',
           'chat_role_topics',
           'chat_denial_message'
