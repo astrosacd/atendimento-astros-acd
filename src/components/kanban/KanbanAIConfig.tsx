@@ -153,6 +153,7 @@ Responda APENAS em formato JSON:
                 <SelectItem value="openai">OpenAI (ChatGPT)</SelectItem>
                 <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
                 <SelectItem value="groq">Groq</SelectItem>
+                <SelectItem value="gemini">Google Gemini</SelectItem>
               </SelectContent>
             </Select>
           </div>
