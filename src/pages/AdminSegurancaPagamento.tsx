@@ -50,13 +50,16 @@ export default function AdminSegurancaPagamento() {
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
+      // Show all PIX manual payments (pending_approval, paid, rejected) + any with OCR data
       const { data, error } = await supabase
         .from('client_payments')
         .select('*, cliente:clientes(nome)')
-        .not('pix_transaction_id', 'is', null)
+        .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -70,6 +73,33 @@ export default function AdminSegurancaPagamento() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleApproval = async (paymentId: string, action: 'approve' | 'reject') => {
+    setApprovingId(paymentId);
+    try {
+      const { data, error } = await supabase.functions.invoke('approve-pixpague-payment', {
+        body: { paymentId, action },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast({
+        title: action === 'approve' ? '✅ Pagamento aprovado' : '🚫 Pagamento rejeitado',
+        description: action === 'approve'
+          ? 'Cliente renovado e recibo enviado.'
+          : 'Pagamento marcado como rejeitado. Cliente NÃO foi renovado.',
+      });
+      await fetchPayments();
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao processar aprovação',
+        description: e?.message || 'Falha desconhecida',
+        variant: 'destructive',
+      });
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -130,11 +160,17 @@ export default function AdminSegurancaPagamento() {
   };
 
   const filteredPayments = payments.filter(p => {
-    const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          p.pix_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || p.ocr_status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'pending_approval') matchesStatus = p.status === 'pending_approval';
+    else if (statusFilter === 'paid') matchesStatus = p.status === 'paid';
+    else if (statusFilter === 'rejected') matchesStatus = p.status === 'rejected';
+    else if (statusFilter !== 'all') matchesStatus = p.ocr_status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const pendingApprovalCount = payments.filter(p => p.status === 'pending_approval').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -143,13 +179,29 @@ export default function AdminSegurancaPagamento() {
       case 'duplicate':
         return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Duplicado</Badge>;
       case 'divergent':
+      case 'mismatch':
         return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
+      case 'rejected_manual':
+        return <Badge variant="destructive">Rejeitado</Badge>;
       case 'error':
         return <Badge variant="destructive">Erro na IA</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{status || '—'}</Badge>;
+    }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending_approval':
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse">⏳ Aguardando Aprovação</Badge>;
+      case 'paid':
+        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Aprovado</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejeitado</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -254,12 +306,14 @@ export default function AdminSegurancaPagamento() {
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                      <option value="all">Todos Status</option>
-                      <option value="success">Validados</option>
-                      <option value="duplicate">Duplicados</option>
-                      <option value="divergent">Divergentes</option>
-                      <option value="pending">Pendentes</option>
-                      <option value="error">Erros</option>
+                      <option value="all">Todos</option>
+                      <option value="pending_approval">⏳ Aguardando Aprovação{pendingApprovalCount > 0 ? ` (${pendingApprovalCount})` : ''}</option>
+                      <option value="paid">Aprovados</option>
+                      <option value="rejected">Rejeitados</option>
+                      <option value="success">IA: Validado</option>
+                      <option value="duplicate">IA: Duplicado</option>
+                      <option value="mismatch">IA: Divergente</option>
+                      <option value="error">IA: Erro</option>
                     </select>
                   </div>
                 </div>
@@ -274,13 +328,14 @@ export default function AdminSegurancaPagamento() {
                         <TableHead>Valor</TableHead>
                         <TableHead>ID Transação</TableHead>
                         <TableHead>Status IA</TableHead>
+                        <TableHead>Status Pagamento</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-10">
+                          <TableCell colSpan={7} className="text-center py-10">
                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                               <Clock className="h-4 w-4 animate-spin" />
                               Carregando transações...
@@ -289,13 +344,22 @@ export default function AdminSegurancaPagamento() {
                         </TableRow>
                       ) : filteredPayments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                             Nenhuma transação encontrada.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredPayments.map((payment) => (
-                          <TableRow key={payment.id} className={payment.ocr_status === 'duplicate' ? 'bg-destructive/5' : ''}>
+                        filteredPayments.map((payment) => {
+                          const isPending = payment.status === 'pending_approval';
+                          const isProcessing = approvingId === payment.id;
+                          return (
+                          <TableRow 
+                            key={payment.id} 
+                            className={
+                              payment.ocr_status === 'duplicate' ? 'bg-destructive/5' :
+                              isPending ? 'bg-amber-500/5' : ''
+                            }
+                          >
                             <TableCell className="text-sm">
                               {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
@@ -315,36 +379,66 @@ export default function AdminSegurancaPagamento() {
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-[10px] max-w-[150px] truncate">
-                              {payment.pix_transaction_id}
+                              {payment.pix_transaction_id || '—'}
                             </TableCell>
                             <TableCell>
                               {getStatusBadge(payment.ocr_status)}
                             </TableCell>
+                            <TableCell>
+                              {getPaymentStatusBadge(payment.status)}
+                            </TableCell>
                             <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {payment.comprovante_url && (
-                                    <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      Ver Comprovante
+                              <div className="flex items-center justify-end gap-1">
+                                {isPending && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                                      onClick={() => handleApproval(payment.id, 'approve')}
+                                      disabled={isProcessing}
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Aprovar
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleApproval(payment.id, 'reject')}
+                                      disabled={isProcessing}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                                      Rejeitar
+                                    </Button>
+                                  </>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {payment.comprovante_url && (
+                                      <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Ver Comprovante
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem>
+                                      <Smartphone className="h-4 w-4 mr-2" />
+                                      Notificar Cliente
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem>
-                                    <Smartphone className="h-4 w-4 mr-2" />
-                                    Notificar Cliente
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ))
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>

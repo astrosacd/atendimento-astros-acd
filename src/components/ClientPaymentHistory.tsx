@@ -320,24 +320,34 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                       className="bg-secondary/50 border-border"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Comprovante (opcional)</Label>
+                   <div className="space-y-1">
+                    <Label className="text-xs">
+                      Comprovante <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       type="file"
                       accept="image/*,application/pdf"
                       onChange={(e) => setEarlyPaymentProof(e.target.files?.[0] || null)}
                       className="bg-secondary/50 border-border text-xs h-9 pt-1"
                     />
+                    {!earlyPaymentProof && (
+                      <p className="text-[11px] text-amber-400">
+                        Obrigatório — será analisado pela IA antes da aprovação
+                      </p>
+                    )}
                   </div>
+                </div>
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-[11px] text-amber-300">
+                  ⚠️ O pagamento ficará <strong>pendente de aprovação</strong>. A renovação e o recibo só serão processados após validação no módulo <strong>Segurança de Pagamento</strong>.
                 </div>
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={handleEarlyPayment}
-                    disabled={earlyPaymentLoading || !earlyPaymentAmount}
+                    disabled={earlyPaymentLoading || !earlyPaymentAmount || !earlyPaymentProof}
                   >
-                    {earlyPaymentLoading ? 'Registrando...' : 'Confirmar e enviar recibo'}
+                    {earlyPaymentLoading ? 'Enviando...' : 'Enviar para aprovação'}
                   </Button>
                   <Button
                     size="sm"
