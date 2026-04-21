@@ -88,15 +88,8 @@ serve(async (req) => {
           `Acesse o painel para aprovar.`;
 
         try {
-          // You would need a phone number for the admin here. 
-          // For now, I'll use a placeholder or check if there's an admin phone in settings
-          const { data: adminSettings } = await supabase
-            .from("gateway_settings")
-            .select("value")
-            .eq("key", "success_page")
-            .single();
-          
-          const adminPhone = adminSettings?.value?.support_whatsapp_number;
+          // Use the dedicated approver WhatsApp number from approval_config
+          const adminPhone = approvalConfig.approver_whatsapp;
 
           if (adminPhone) {
             await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
@@ -107,6 +100,8 @@ serve(async (req) => {
                 text: message,
               }),
             });
+          } else {
+            console.warn("approver_whatsapp not configured in approval_config — skipping notification");
           }
         } catch (notifyErr) {
           console.error("Failed to send WhatsApp notification:", notifyErr);

@@ -107,6 +107,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     workflow: 'admin_only',
     ocr_enabled: true,
     whatsapp_notifications: true,
+    approver_whatsapp: '',
     duplicate_id_check: true,
     required_proof: true
   });
@@ -353,30 +354,30 @@ Se precisar de ajuda, é só responder esta mensagem!`
       <h2 className="text-lg font-semibold">Configurações</h2>
 
       <Tabs defaultValue="gateways" className="space-y-4">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="gateways" className="gap-2">
+        <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1 p-1">
+          <TabsTrigger value="gateways" className="gap-2 flex-shrink-0">
             <CreditCard className="h-4 w-4" />
-            Gateways
+            <span className="hidden sm:inline">Gateways</span>
           </TabsTrigger>
-          <TabsTrigger value="checkout" className="gap-2">
+          <TabsTrigger value="checkout" className="gap-2 flex-shrink-0">
             <Timer className="h-4 w-4" />
-            Checkout
+            <span className="hidden sm:inline">Checkout</span>
           </TabsTrigger>
-          <TabsTrigger value="success" className="gap-2">
+          <TabsTrigger value="success" className="gap-2 flex-shrink-0">
             <CheckCircle2 className="h-4 w-4" />
-            Sucesso
+            <span className="hidden sm:inline">Sucesso</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
+          <TabsTrigger value="notifications" className="gap-2 flex-shrink-0">
             <Bell className="h-4 w-4" />
-            Compras Aprovadas
+            <span className="hidden sm:inline">Compras Aprovadas</span>
           </TabsTrigger>
-          <TabsTrigger value="abandoned" className="gap-2">
+          <TabsTrigger value="abandoned" className="gap-2 flex-shrink-0">
             <ShoppingCart className="h-4 w-4" />
-            Carrinho Abandonado
+            <span className="hidden sm:inline">Carrinho Abandonado</span>
           </TabsTrigger>
-          <TabsTrigger value="approval" className="gap-2">
+          <TabsTrigger value="approval" className="gap-2 flex-shrink-0">
             <ShieldCheck className="h-4 w-4" />
-            Fluxo de Aprovação
+            <span className="hidden sm:inline">Fluxo de Aprovação</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1166,20 +1167,37 @@ Se precisar de ajuda, é só responder esta mensagem!`
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                  <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-green-500" />
-                      Notificação WhatsApp para Admin
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Envia um alerta para o administrador quando houver um PIX pendente de aprovação.
-                    </p>
+                <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-green-500" />
+                        Notificação WhatsApp para Aprovador
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Envia um alerta para o número abaixo quando houver um PIX pendente de aprovação.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={approvalConfig.whatsapp_notifications}
+                      onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, whatsapp_notifications: checked }))}
+                    />
                   </div>
-                  <Switch
-                    checked={approvalConfig.whatsapp_notifications}
-                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, whatsapp_notifications: checked }))}
-                  />
+                  {approvalConfig.whatsapp_notifications && (
+                    <div className="space-y-1.5 pt-2 border-t">
+                      <Label htmlFor="approver_whatsapp" className="text-xs">Número do WhatsApp do Aprovador (com DDI)</Label>
+                      <Input
+                        id="approver_whatsapp"
+                        type="tel"
+                        placeholder="Ex: 5511999998888"
+                        value={approvalConfig.approver_whatsapp || ''}
+                        onChange={(e) => setApprovalConfig(prev => ({ ...prev, approver_whatsapp: e.target.value.replace(/\D/g, '') }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground italic">
+                        Apenas números, incluindo código do país (55 para Brasil) e DDD. Ex: 5511999998888.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
