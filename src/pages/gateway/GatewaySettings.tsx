@@ -1127,6 +1127,10 @@ Se precisar de ajuda, é só responder esta mensagem!`
                     </Label>
                     <p className="text-xs text-muted-foreground">
                       Extrai valor e ID da transação do comprovante e cruza com os dados digitados.
+                      <br />
+                      <span className="text-[10px] text-amber-600 font-medium">
+                        Requer GEMINI_API_KEY, OPENAI_API_KEY ou XAI_API_KEY nos segredos do projeto.
+                      </span>
                     </p>
                   </div>
                   <Switch
@@ -1185,16 +1189,16 @@ Se precisar de ajuda, é só responder esta mensagem!`
                   </div>
                   {approvalConfig.whatsapp_notifications && (
                     <div className="space-y-1.5 pt-2 border-t">
-                      <Label htmlFor="approver_whatsapp" className="text-xs">Número do WhatsApp do Aprovador (com DDI)</Label>
+                      <Label htmlFor="approver_whatsapp" className="text-xs">Número(s) do WhatsApp do Aprovador (com DDI)</Label>
                       <Input
                         id="approver_whatsapp"
-                        type="tel"
-                        placeholder="Ex: 5511999998888"
+                        type="text"
+                        placeholder="Ex: 5511999998888, 5511999997777"
                         value={approvalConfig.approver_whatsapp || ''}
-                        onChange={(e) => setApprovalConfig(prev => ({ ...prev, approver_whatsapp: e.target.value.replace(/\D/g, '') }))}
+                        onChange={(e) => setApprovalConfig(prev => ({ ...prev, approver_whatsapp: e.target.value.replace(/[^0-9,]/g, '') }))}
                       />
                       <p className="text-[11px] text-muted-foreground italic">
-                        Apenas números, incluindo código do país (55 para Brasil) e DDD. Ex: 5511999998888.
+                        Para múltiplos números, separe por vírgula. Apenas números e vírgulas, incluindo código do país (55 para Brasil) e DDD.
                       </p>
                     </div>
                   )}

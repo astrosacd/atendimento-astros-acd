@@ -88,18 +88,27 @@ serve(async (req) => {
           `Acesse o painel para aprovar.`;
 
         try {
-          // Use the dedicated approver WhatsApp number from approval_config
-          const adminPhone = approvalConfig.approver_whatsapp;
+          // Use the dedicated approver WhatsApp number(s) from approval_config
+          const adminPhones = approvalConfig.approver_whatsapp ? approvalConfig.approver_whatsapp.split(',').map((p: string) => p.trim()) : [];
 
-          if (adminPhone) {
-            await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "apikey": evolutionKey },
-              body: JSON.stringify({
-                number: adminPhone.replace(/\D/g, ""),
-                text: message,
-              }),
-            });
+          if (adminPhones.length > 0) {
+            for (const phone of adminPhones) {
+              if (!phone) continue;
+              
+              try {
+                await fetch(`${evolutionUrl}/message/sendText/${evolutionInstance}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "apikey": evolutionKey },
+                  body: JSON.stringify({
+                    number: phone.replace(/\D/g, ""),
+                    text: message,
+                  }),
+                });
+                console.log(`Notification sent to ${phone}`);
+              } catch (err) {
+                console.error(`Failed to send notification to ${phone}:`, err);
+              }
+            }
           } else {
             console.warn("approver_whatsapp not configured in approval_config — skipping notification");
           }
