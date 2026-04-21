@@ -43,15 +43,19 @@ async function runOcr(
     const mime = blob.type || 'image/jpeg';
     console.log('[OCR] Image fetched. size:', bytes.length, 'mime:', mime);
 
-    const prompt = `Você é um especialista em comprovantes de PIX brasileiros. Analise a imagem do comprovante de pagamento e extraia:
+    const prompt = `Você é um especialista em comprovantes de PIX brasileiros. PRIMEIRO determine se a imagem É REALMENTE um comprovante de pagamento PIX (deve conter elementos típicos como: valor pago, data, nome do banco, ID da transação, beneficiário, etc).
 
+Se NÃO for um comprovante de PIX válido (ex: foto aleatória, screenshot de outra coisa, imagem em branco, meme, paisagem, etc), responda:
+{"isReceipt": false, "amount": null, "transactionId": null, "reason": "descreva brevemente o que a imagem realmente mostra"}
+
+Se FOR um comprovante de PIX válido, extraia:
 1. **valor pago** (numérico decimal, sem R$, sem símbolos, ex: 49.90)
 2. **ID da transação / Código E2E** (string longa alfanumérica, geralmente começa com "E" e tem ~32 caracteres)
 
 Responda APENAS um JSON válido no formato:
-{"amount": 49.90, "transactionId": "E12345..."}
+{"isReceipt": true, "amount": 49.90, "transactionId": "E12345..."}
 
-Se não encontrar algum campo, use null. NÃO invente valores.`;
+Se for comprovante mas não encontrar algum campo, use null para esse campo. NÃO invente valores.`;
 
     const parseJsonResponse = (txt: string): OcrResult | null => {
       const jsonMatch = txt.match(/\{[\s\S]*?\}/);
