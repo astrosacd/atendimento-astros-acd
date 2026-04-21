@@ -1343,9 +1343,12 @@ export type Database = {
           comprovante_url: string | null
           created_at: string
           id: string
+          ocr_amount: number | null
+          ocr_status: string | null
           paid_at: string | null
           payment_id: string
           payment_type: string
+          pix_transaction_id: string | null
           preference_id: string | null
           receipt_number: string | null
           status: string
@@ -1358,9 +1361,12 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           id?: string
+          ocr_amount?: number | null
+          ocr_status?: string | null
           paid_at?: string | null
           payment_id: string
           payment_type: string
+          pix_transaction_id?: string | null
           preference_id?: string | null
           receipt_number?: string | null
           status?: string
@@ -1373,9 +1379,12 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           id?: string
+          ocr_amount?: number | null
+          ocr_status?: string | null
           paid_at?: string | null
           payment_id?: string
           payment_type?: string
+          pix_transaction_id?: string | null
           preference_id?: string | null
           receipt_number?: string | null
           status?: string
