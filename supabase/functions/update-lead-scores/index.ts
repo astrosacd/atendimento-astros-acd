@@ -76,8 +76,8 @@ serve(async (req) => {
             apiUrl = "https://api.openai.com/v1/chat/completions"
           } else if (provider === 'anthropic') {
             apiUrl = "https://api.anthropic.com/v1/messages"
-          } else if (provider === 'groq') {
-            apiUrl = "https://api.groq.com/openai/v1/chat/completions"
+          } else if (provider === 'gemini') {
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
           }
 
           if (apiKey && apiUrl) {
