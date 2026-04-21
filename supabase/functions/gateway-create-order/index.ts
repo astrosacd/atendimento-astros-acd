@@ -14,8 +14,9 @@ type CreateOrderBody = {
   customerEmail: string;
   customerPhone?: string;
   customerCpf?: string | null;
-  paymentGateway: "stripe" | "mercadopago";
+  paymentGateway: "stripe" | "mercadopago" | "pix";
   currency: "BRL" | "USD";
+  proofUrl?: string | null;
 };
 
 // SECURITY: Rate limiting to prevent abuse
@@ -125,7 +126,7 @@ serve(async (req) => {
     }
 
     // Validate payment gateway
-    if (!['stripe', 'mercadopago'].includes(body.paymentGateway)) {
+    if (!['stripe', 'mercadopago', 'pix'].includes(body.paymentGateway)) {
       return new Response(
         JSON.stringify({ error: "Gateway de pagamento inválido" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -285,6 +286,7 @@ serve(async (req) => {
           currency,
           status: "pending",
           payment_gateway: body.paymentGateway,
+          proof_url: body.proofUrl || null,
           abandoned_email_sent: false,
         },
       ])
@@ -336,6 +338,14 @@ serve(async (req) => {
           total_discount_given: Number(coupon.total_discount_given || 0) + discountAmount,
         })
         .eq("id", coupon.id);
+    }
+
+    // If it's a PIX order with a proof, trigger OCR automatically
+    if (body.paymentGateway === 'pix' && body.proofUrl) {
+      console.log("Triggering automatic OCR for PIX order:", order.id);
+      supabase.functions.invoke('gateway-ocr-pix', {
+        body: { orderId: order.id }
+      }).catch(err => console.error("Auto OCR failed:", err));
     }
 
     return new Response(
