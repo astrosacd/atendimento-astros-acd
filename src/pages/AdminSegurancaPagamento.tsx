@@ -222,6 +222,8 @@ export default function AdminSegurancaPagamento() {
       case 'divergent':
       case 'mismatch':
         return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
+      case 'invalid':
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Não é Comprovante</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
       case 'rejected_manual':
