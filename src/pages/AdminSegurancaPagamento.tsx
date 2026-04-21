@@ -438,7 +438,7 @@ export default function AdminSegurancaPagamento() {
                                       size="sm"
                                       variant="outline"
                                       className="h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                      onClick={() => handleApproval(payment.id, 'approve')}
+                                      onClick={() => handleApproval(payment, 'approve')}
                                       disabled={isProcessing}
                                     >
                                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -448,7 +448,7 @@ export default function AdminSegurancaPagamento() {
                                       size="sm"
                                       variant="outline"
                                       className="h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
-                                      onClick={() => handleApproval(payment.id, 'reject')}
+                                      onClick={() => handleApproval(payment, 'reject')}
                                       disabled={isProcessing}
                                     >
                                       <XCircle className="h-3.5 w-3.5 mr-1" />
@@ -468,14 +468,14 @@ export default function AdminSegurancaPagamento() {
                                     {isPending && (
                                       <div className="xl:hidden">
                                         <DropdownMenuItem
-                                          onClick={() => handleApproval(payment.id, 'approve')}
+                                          onClick={() => handleApproval(payment, 'approve')}
                                           className="text-emerald-500 focus:text-emerald-500"
                                         >
                                           <CheckCircle2 className="h-4 w-4 mr-2" />
                                           Aprovar
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                          onClick={() => handleApproval(payment.id, 'reject')}
+                                          onClick={() => handleApproval(payment, 'reject')}
                                           className="text-destructive focus:text-destructive"
                                         >
                                           <XCircle className="h-4 w-4 mr-2" />
@@ -573,7 +573,7 @@ export default function AdminSegurancaPagamento() {
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 h-8 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                                  onClick={() => handleApproval(payment.id, 'approve')}
+                                  onClick={() => handleApproval(payment, 'approve')}
                                   disabled={isProcessing}
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
@@ -583,7 +583,7 @@ export default function AdminSegurancaPagamento() {
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 h-8 border-destructive/30 text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleApproval(payment.id, 'reject')}
+                                  onClick={() => handleApproval(payment, 'reject')}
                                   disabled={isProcessing}
                                 >
                                   <XCircle className="h-3.5 w-3.5 mr-1" />
