@@ -288,8 +288,9 @@ serve(async (req) => {
       .update(updateData)
       .eq('id', paymentId);
 
-    // Send WhatsApp notification if enabled
-    if (cfg.whatsapp_notifications && cfg.approver_phones && (ocrStatus === 'duplicate' || ocrStatus === 'mismatch' || ocrStatus === 'success')) {
+    // Send WhatsApp notification if enabled — notify for ALL statuses (including invalid/error/pending)
+    // so admins are alerted immediately, even when proof is fake/wrong/unreadable.
+    if (cfg.whatsapp_notifications && cfg.approver_phones) {
       const { data: instance } = await supabase
         .from('billing_whatsapp_instances')
         .select('api_url, api_key, instance_name')
@@ -298,9 +299,10 @@ serve(async (req) => {
         .single();
 
       if (instance) {
+        // Fetch payment + client + submitter info for full traceability
         const { data: payment } = await supabase
           .from('client_payments')
-          .select('amount, cliente:clientes(nome, produto)')
+          .select('amount, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto)')
           .eq('id', paymentId)
           .single();
 
@@ -308,15 +310,30 @@ serve(async (req) => {
         let icon = '✅';
         let label = 'Validado';
         if (ocrStatus === 'mismatch') { icon = '⚠️'; label = `DIVERGENTE (IA leu R$ ${ocr.amount?.toFixed(2)})`; }
-        if (ocrStatus === 'duplicate') { icon = '🚫'; label = 'ID DUPLICADO — POSSÍVEL FRAUDE'; }
+        else if (ocrStatus === 'duplicate') { icon = '🚫'; label = 'ID DUPLICADO — POSSÍVEL FRAUDE'; }
+        else if (ocrStatus === 'invalid') { icon = '❌'; label = 'COMPROVANTE INVÁLIDO (não é PIX)'; }
+        else if (ocrStatus === 'error') { icon = '⚠️'; label = 'ERRO ao processar OCR'; }
+        else if (ocrStatus === 'skipped') { icon = '📨'; label = 'OCR desativado — revisão manual'; }
+        else if (ocrStatus === 'pending') { icon = '⏳'; label = 'Aguardando processamento'; }
+
+        const submitterLine = payment?.submitted_by_name || payment?.submitted_by_email
+          ? `\n🧑‍💼 Enviado por: ${payment?.submitted_by_name || ''}${payment?.submitted_by_email ? ` (${payment.submitted_by_email})` : ''}`
+          : '';
+
+        const reasonLine = (ocrStatus === 'invalid' && ocr.reason)
+          ? `\n📝 Motivo: ${ocr.reason}`
+          : '';
 
         const message = `${icon} *PixPague — Pagamento Recebido*\n\n` +
           `👤 Cliente: ${cliente?.nome || 'N/A'}\n` +
           `📦 Produto: ${cliente?.produto || 'N/A'}\n` +
           `💰 Valor digitado: R$ ${Number(declaredAmount || payment?.amount || 0).toFixed(2)}\n` +
-          `🔍 Status: ${label}\n` +
-          (ocr.transactionId ? `🆔 TX: ${ocr.transactionId}\n` : '') +
-          (isDuplicate ? `\n⚠️ Esse ID já foi usado em outro pagamento!` : '');
+          `🔍 Status: ${label}` +
+          (ocr.transactionId ? `\n🆔 TX: ${ocr.transactionId}` : '') +
+          reasonLine +
+          submitterLine +
+          (isDuplicate ? `\n\n⚠️ Esse ID já foi usado em outro pagamento!` : '') +
+          `\n\n👉 Acesse "Segurança de Pagamento" para revisar.`;
 
         const phones = String(cfg.approver_phones).split(',').map((p: string) => p.trim()).filter(Boolean);
         for (const phone of phones) {
@@ -326,11 +343,16 @@ serve(async (req) => {
               headers: { 'Content-Type': 'application/json', 'apikey': instance.api_key },
               body: JSON.stringify({ number: phone.replace(/\D/g, ''), text: message }),
             });
+            console.log(`[pixpague] WhatsApp notification sent to ${phone} for status: ${ocrStatus}`);
           } catch (e) {
             console.error(`WhatsApp send failed for ${phone}:`, e);
           }
         }
+      } else {
+        console.warn('[pixpague] No active WhatsApp instance found — skipping notification.');
       }
+    } else {
+      console.log('[pixpague] WhatsApp notification skipped. enabled:', cfg.whatsapp_notifications, 'phones:', !!cfg.approver_phones);
     }
 
     return new Response(JSON.stringify({
