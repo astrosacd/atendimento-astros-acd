@@ -107,9 +107,11 @@ serve(async (req) => {
             })
 
             const aiData = await response.json()
-            const content = provider === 'anthropic' 
-              ? aiData.content[0].text 
-              : aiData.choices[0].message.content
+            const content = isGemini 
+              ? aiData.candidates[0].content.parts[0].text
+              : (provider === 'anthropic' 
+                ? aiData.content[0].text 
+                : aiData.choices[0].message.content)
 
             // Parse result
             try {
