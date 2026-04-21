@@ -655,7 +655,108 @@ export default function Checkout() {
                           )}
                         </label>
                       )}
+                      {gatewaySettings?.pix_manual?.enabled && (
+                        <label 
+                          htmlFor="pix"
+                          className={`relative flex flex-col items-center gap-3 p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 text-center ${
+                            paymentGateway === 'pix' ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-md scale-[1.02]' : 'border-border/50 hover:border-primary/50 hover:shadow-md'
+                          }`}
+                        >
+                          <RadioGroupItem value="pix" id="pix" className="sr-only" />
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
+                            <Zap className="h-7 w-7 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-bold">PIX Direto</p>
+                            <p className="text-xs text-muted-foreground">Manual com Comprovante</p>
+                          </div>
+                          {paymentGateway === 'pix' && (
+                            <div className="absolute -top-2 -right-2 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-full p-1 shadow-md">
+                              <Check className="h-3.5 w-3.5" />
+                            </div>
+                          )}
+                        </label>
+                      )}
                     </RadioGroup>
+                  )}
+                  
+                  {paymentGateway === 'pix' && (
+                    <div className="mt-6 p-6 rounded-2xl border border-primary/20 bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Zap className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-primary">Pagamento via PIX</p>
+                          <p className="text-xs text-muted-foreground">Pague agora e anexe o comprovante</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div className="p-3 bg-background rounded-lg border border-border/50">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Chave PIX</Label>
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono font-bold select-all">{pixManualData?.pix_key || '...' }</span>
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 px-2"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(pixManualData?.pix_key || '');
+                                  toast.success('Chave PIX copiada!');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="p-3 bg-background rounded-lg border border-border/50">
+                            <Label className="text-[10px] uppercase text-muted-foreground">Recebedor</Label>
+                            <p className="font-bold text-sm">{pixManualData?.receiver_name || '...'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col justify-center items-center p-4 bg-background rounded-xl border-2 border-dashed border-border group hover:border-primary/50 transition-colors cursor-pointer relative">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSelectedFile(file);
+                                toast.success('Comprovante selecionado!');
+                              }
+                            }}
+                          />
+                          {selectedFile ? (
+                            <div className="text-center">
+                              <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <Check className="h-6 w-6" />
+                              </div>
+                              <p className="text-xs font-medium text-green-600 truncate max-w-[150px]">{selectedFile.name}</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">Clique para alterar</p>
+                            </div>
+                          ) : (
+                            <div className="text-center space-y-2">
+                              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                                <ExternalLink className="h-6 w-6" />
+                              </div>
+                              <p className="text-xs font-bold text-foreground">Anexar Comprovante</p>
+                              <p className="text-[10px] text-muted-foreground">Obrigatório para PIX Direto</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <p className="text-[11px] text-amber-700 leading-relaxed italic">
+                          {pixManualData?.instructions || 'Faça o PIX para a chave acima e anexe o comprovante para que nosso sistema possa validar seu pagamento automaticamente.'}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </section>
               )}
