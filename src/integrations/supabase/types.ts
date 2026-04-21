@@ -3575,6 +3575,7 @@ export type Database = {
       gateway_orders: {
         Row: {
           abandoned_email_sent: boolean
+          approval_flow_step: string | null
           approved_by: string | null
           coupon_id: string | null
           created_at: string
@@ -3601,6 +3602,7 @@ export type Database = {
         }
         Insert: {
           abandoned_email_sent?: boolean
+          approval_flow_step?: string | null
           approved_by?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -3627,6 +3629,7 @@ export type Database = {
         }
         Update: {
           abandoned_email_sent?: boolean
+          approval_flow_step?: string | null
           approved_by?: string | null
           coupon_id?: string | null
           created_at?: string
@@ -6150,6 +6153,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_approve_order: { Args: { user_uuid: string }; Returns: boolean }
       check_profile_safe_update: { Args: never; Returns: boolean }
       create_password_reset_token: {
         Args: {
@@ -6261,6 +6265,10 @@ export type Database = {
       }
       get_sms_result_share: { Args: { p_token: string }; Returns: Json }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
+      has_custom_role: {
+        Args: { role_name: string; user_uuid: string }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {
