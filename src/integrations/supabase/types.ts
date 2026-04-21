@@ -1356,6 +1356,9 @@ export type Database = {
           preference_id: string | null
           receipt_number: string | null
           status: string
+          submitted_by: string | null
+          submitted_by_email: string | null
+          submitted_by_name: string | null
           updated_at: string
         }
         Insert: {
@@ -1378,6 +1381,9 @@ export type Database = {
           preference_id?: string | null
           receipt_number?: string | null
           status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -1400,6 +1406,9 @@ export type Database = {
           preference_id?: string | null
           receipt_number?: string | null
           status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
           updated_at?: string
         }
         Relationships: [

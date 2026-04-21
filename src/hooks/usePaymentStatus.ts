@@ -280,6 +280,18 @@ export function usePaymentStatus() {
       const paymentId = `manual_early_${Date.now()}`;
       let comprovanteUrl: string | null = null;
 
+      // Capture the system user who is submitting this payment (for Segurança de Pagamento traceability)
+      const { data: { user: submitter } } = await supabase.auth.getUser();
+      let submittedByName: string | null = null;
+      if (submitter?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', submitter.id)
+          .maybeSingle();
+        submittedByName = profile?.name ?? null;
+      }
+
       // Upload proof
       const fileExt = comprovante.name.split('.').pop();
       const fileName = `${clienteId}_${Date.now()}.${fileExt}`;
@@ -315,6 +327,9 @@ export function usePaymentStatus() {
           billing_date: new Date().toISOString().split('T')[0],
           comprovante_url: comprovanteUrl,
           ocr_status: 'pending',
+          submitted_by: submitter?.id ?? null,
+          submitted_by_email: submitter?.email ?? null,
+          submitted_by_name: submittedByName,
         })
         .select('id')
         .single();

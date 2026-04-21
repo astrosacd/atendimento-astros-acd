@@ -408,8 +408,8 @@ export default function AdminSegurancaPagamento() {
                             <TableCell className="text-sm whitespace-nowrap">
                               {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="max-w-[220px]">
-                              <div className="flex flex-col">
+                            <TableCell className="max-w-[260px]">
+                              <div className="flex flex-col gap-0.5">
                                 <span className="font-medium text-sm truncate">
                                   {payment.cliente?.nome || 'N/A'}
                                 </span>
@@ -422,6 +422,21 @@ export default function AdminSegurancaPagamento() {
                                   <span className="text-[11px] text-muted-foreground truncate">
                                     📱 {payment.cliente.numero}
                                   </span>
+                                )}
+                                {(payment.submitted_by_name || payment.submitted_by_email) && (
+                                  <div className="mt-1 pt-1 border-t border-border/50">
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wide">Enviado por</span>
+                                    <div className="flex flex-col">
+                                      <span className="text-[11px] font-medium text-primary truncate">
+                                        👤 {payment.submitted_by_name || payment.submitted_by_email}
+                                      </span>
+                                      {payment.submitted_by_name && payment.submitted_by_email && (
+                                        <span className="text-[10px] text-muted-foreground truncate">
+                                          {payment.submitted_by_email}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             </TableCell>
@@ -589,6 +604,23 @@ export default function AdminSegurancaPagamento() {
                             <div className="text-[10px] text-muted-foreground">
                               <span className="font-medium">ID:</span>{' '}
                               <span className="font-mono break-all">{payment.pix_transaction_id}</span>
+                            </div>
+                          )}
+
+                          {/* Usuário do sistema que enviou */}
+                          {(payment.submitted_by_name || payment.submitted_by_email) && (
+                            <div className="rounded-md bg-primary/5 border border-primary/10 p-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">
+                                Enviado por
+                              </p>
+                              <p className="text-xs font-medium text-primary truncate">
+                                👤 {payment.submitted_by_name || payment.submitted_by_email}
+                              </p>
+                              {payment.submitted_by_name && payment.submitted_by_email && (
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {payment.submitted_by_email}
+                                </p>
+                              )}
                             </div>
                           )}
 
