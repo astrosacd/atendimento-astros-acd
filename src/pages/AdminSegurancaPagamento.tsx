@@ -46,7 +46,10 @@ export default function AdminSegurancaPagamento() {
     ocr_enabled: true,
     duplicate_check: true,
     whatsapp_notifications: false,
-    ai_provider: 'gemini'
+    ai_provider: 'lovable',
+    ai_model: 'google/gemini-2.5-flash',
+    openai_api_key: '',
+    groq_api_key: '',
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
