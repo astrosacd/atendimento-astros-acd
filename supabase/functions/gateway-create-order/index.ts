@@ -286,6 +286,7 @@ serve(async (req) => {
           currency,
           status: "pending",
           payment_gateway: body.paymentGateway,
+          proof_url: body.proofUrl || null,
           abandoned_email_sent: false,
         },
       ])
