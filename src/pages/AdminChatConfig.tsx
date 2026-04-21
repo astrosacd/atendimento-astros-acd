@@ -146,6 +146,7 @@ Instruções:
     chat_ai_model: 'google/gemini-2.5-flash',
     chat_openai_api_key: '',
     chat_groq_api_key: '',
+    chat_google_api_key: '',
     // Role-based access settings
     chat_role_restriction_enabled: false,
     chat_role_topics: '{}',
