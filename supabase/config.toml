@@ -119,7 +119,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-receipt]
-verify_jwt = true
+verify_jwt = false
 
 [functions.client-recovery]
 verify_jwt = true
