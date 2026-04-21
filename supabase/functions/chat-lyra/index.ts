@@ -518,6 +518,9 @@ serve(async (req) => {
         case 'groq':
           assistantResponse = await callGroq(messages, aiConfig);
           break;
+        case 'google':
+          assistantResponse = await callGemini(messages, aiConfig);
+          break;
         case 'lovable':
         default:
           assistantResponse = await callLovableAI(messages, aiConfig);
