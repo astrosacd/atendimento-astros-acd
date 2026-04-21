@@ -6,7 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -648,8 +656,8 @@ export default function ConsultarCliente() {
                               </Badge>
                             )}
                           </div>
-                          <div className="flex gap-1">
-                            {/* Quick edit button */}
+                          <div className="flex items-center gap-1">
+                            {/* Quick edit button - sempre visível */}
                             {isAdmin && (
                               <Button
                                 onClick={() => handleOpenEdit(cliente)}
@@ -661,156 +669,176 @@ export default function ConsultarCliente() {
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
-                            {/* Files button - only for Registro clients */}
-                            {cliente.cobranca_ativa === false && (
-                              <Button
-                                onClick={() => {
-                                  setFilesClienteId(cliente.id);
-                                  setFilesClienteName(cliente.nome);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-amber-500"
-                                title="Ver arquivos"
-                              >
-                                <File className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {isAdmin && (
-                              <>
-                                 {/* Payment button - for all clients, explicitly mentioning PixPague */}
-                                 <Button
-                                   onClick={() => {
-                                     setPaymentClienteId(cliente.id);
-                                     setPaymentClienteName(cliente.nome);
-                                   }}
-                                   variant="ghost"
-                                   size="sm"
-                                   className="text-muted-foreground hover:text-emerald-500"
-                                   title="Pagamentos / PixPague"
-                                 >
-                                   <CreditCard className="h-4 w-4" />
-                                 </Button>
-                                 {isAdmin && canViewPaymentSecurity() && (
-                                   <Button
-                                     onClick={() => navigate('/admin/seguranca-pagamento')}
-                                     variant="ghost"
-                                     size="sm"
-                                     className="text-muted-foreground hover:text-emerald-500"
-                                     title="Módulo de Segurança de Pagamento"
-                                   >
-                                     <ShieldCheck className="h-4 w-4" />
-                                   </Button>
-                                 )}
-                                {/* Purchases button - only for Registro clients */}
-                                {cliente.cobranca_ativa === false && (
-                                  <Button
-                                    onClick={() => {
-                                      setPurchasesClienteId(cliente.id);
-                                      setPurchasesClienteName(cliente.nome);
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-amber-500"
-                                    title="Ver histórico de compras"
-                                  >
-                                    <ShoppingBag className="h-4 w-4" />
-                                  </Button>
-                                )}
+
+                            {/* Histórico - sempre visível */}
+                            <Button
+                              onClick={() => handleViewHistory(cliente)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-info"
+                              title="Ver histórico"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+
+                            {/* Menu de ações expansível */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                                 <Button
-                                  onClick={() => handleViewHistory(cliente)}
                                   variant="ghost"
                                   size="sm"
-                                  className="text-muted-foreground hover:text-info"
-                                  title="Ver histórico"
+                                  className="text-muted-foreground hover:text-foreground gap-1.5 h-8 px-2.5 ml-1 border border-border/40 hover:border-border hover:bg-muted/50"
+                                  title="Mais ações"
                                 >
-                                  <History className="h-4 w-4" />
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="text-xs font-medium hidden sm:inline">Ações</span>
                                 </Button>
-                                <Button
-                                  onClick={() => {
-                                    setTimelineClienteId(cliente.id);
-                                    setTimelineClienteName(cliente.nome);
-                                  }}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-violet-500"
-                                  title="Timeline completa"
-                                >
-                                  <ListTree className="h-4 w-4" />
-                                </Button>
-                                {canViewClientGraph() && (
-                                  <Button
-                                    onClick={() => {
-                                      setGraphClienteId(cliente.id);
-                                      setGraphClienteName(cliente.nome);
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-cyan-500"
-                                    title="Mapa de Conexões 360°"
-                                  >
-                                    <Network className="h-4 w-4" />
-                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-60">
+                                {/* Grupo: Pagamento */}
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+                                      Pagamento
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setPaymentClienteId(cliente.id);
+                                        setPaymentClienteName(cliente.nome);
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <CreditCard className="h-4 w-4 text-emerald-500" />
+                                      <span>Pagamentos / PixPague</span>
+                                    </DropdownMenuItem>
+                                    {canViewPaymentSecurity() && (
+                                      <DropdownMenuItem
+                                        onClick={() => navigate('/admin/seguranca-pagamento')}
+                                        className="gap-2"
+                                      >
+                                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                                        <span>Segurança de Pagamento</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {cliente.cobranca_ativa === false && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setPurchasesClienteId(cliente.id);
+                                          setPurchasesClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <ShoppingBag className="h-4 w-4 text-amber-500" />
+                                        <span>Histórico de compras</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
-                                {canViewClientAI() && (
-                                  <Button
-                                    onClick={() => {
-                                      setAiClienteId(cliente.id);
-                                      setAiClienteName(cliente.nome);
-                                    }}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground hover:text-amber-500"
-                                    title="Insights de IA (Briefing & Churn)"
-                                  >
-                                    <Sparkles className="h-4 w-4" />
-                                  </Button>
+
+                                {/* Grupo: Análise & Inteligência */}
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+                                      Análise
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setTimelineClienteId(cliente.id);
+                                        setTimelineClienteName(cliente.nome);
+                                      }}
+                                      className="gap-2"
+                                    >
+                                      <ListTree className="h-4 w-4 text-violet-500" />
+                                      <span>Timeline completa</span>
+                                    </DropdownMenuItem>
+                                    {canViewClientGraph() && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setGraphClienteId(cliente.id);
+                                          setGraphClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Network className="h-4 w-4 text-cyan-500" />
+                                        <span>Mapa de Conexões 360°</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canViewClientAI() && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setAiClienteId(cliente.id);
+                                          setAiClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Sparkles className="h-4 w-4 text-amber-500" />
+                                        <span>Insights de IA</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
                                 )}
-                              </>
-                            )}
-                            {canViewSocialCredentials() && (
-                              <Button
-                                onClick={() => {
-                                  setSocialClienteId(cliente.id);
-                                  setSocialClienteName(cliente.nome);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-pink-500"
-                                title="Social Media"
-                              >
-                                <Lock className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {canViewServerCredentials() && (
-                              <Button
-                                onClick={() => {
-                                  setServerClienteId(cliente.id);
-                                  setServerClienteName(cliente.nome);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-blue-500"
-                                title="Ferramentas / Servidores do cliente"
-                              >
-                                <Server className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {(isAdmin || canCreateWhatsAppGroups()) && (
-                              <Button
-                                onClick={() => {
-                                  setGroupClienteId(cliente.id);
-                                  setGroupClienteName(cliente.nome);
-                                  setGroupClienteNumero(cliente.numero);
-                                }}
-                                variant="ghost"
-                                size="sm"
-                                className="text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-300"
-                                title="Criar Grupo WhatsApp"
-                              >
-                                <Users className="h-4 w-4" />
-                              </Button>
-                            )}
+
+                                {/* Grupo: Recursos & Credenciais */}
+                                {(cliente.cobranca_ativa === false || canViewSocialCredentials() || canViewServerCredentials() || isAdmin || canCreateWhatsAppGroups()) && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
+                                      Recursos
+                                    </DropdownMenuLabel>
+                                    {cliente.cobranca_ativa === false && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setFilesClienteId(cliente.id);
+                                          setFilesClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <File className="h-4 w-4 text-amber-500" />
+                                        <span>Arquivos</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canViewSocialCredentials() && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSocialClienteId(cliente.id);
+                                          setSocialClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Lock className="h-4 w-4 text-pink-500" />
+                                        <span>Social Media</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canViewServerCredentials() && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setServerClienteId(cliente.id);
+                                          setServerClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Server className="h-4 w-4 text-blue-500" />
+                                        <span>Ferramentas / Servidores</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(isAdmin || canCreateWhatsAppGroups()) && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setGroupClienteId(cliente.id);
+                                          setGroupClienteName(cliente.nome);
+                                          setGroupClienteNumero(cliente.numero);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <Users className="h-4 w-4 text-emerald-600" />
+                                        <span>Criar Grupo WhatsApp</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
