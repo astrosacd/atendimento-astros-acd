@@ -125,7 +125,7 @@ serve(async (req) => {
     }
 
     // Validate payment gateway
-    if (!['stripe', 'mercadopago'].includes(body.paymentGateway)) {
+    if (!['stripe', 'mercadopago', 'pix'].includes(body.paymentGateway)) {
       return new Response(
         JSON.stringify({ error: "Gateway de pagamento inválido" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
