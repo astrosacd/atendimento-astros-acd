@@ -119,14 +119,19 @@ export default function Checkout() {
   const availableGateways = [
     ...(mercadopagoEnabled ? ['mercadopago'] : []),
     ...(stripeEnabled ? ['stripe'] : []),
-  ] as ('stripe' | 'mercadopago')[];
+    ...(gatewaySettings?.pix_manual?.enabled ? ['pix'] : []),
+  ] as ('stripe' | 'mercadopago' | 'pix')[];
 
   // Auto-select gateway when settings load
   useEffect(() => {
     if (!paymentGateway && availableGateways.length > 0) {
       setPaymentGateway(availableGateways[0]);
     }
-  }, [availableGateways, paymentGateway]);
+    
+    if (gatewaySettings?.pix_manual) {
+      setPixManualData(gatewaySettings.pix_manual);
+    }
+  }, [gatewaySettings, paymentGateway]);
 
   // Countdown timer state
   const [countdown, setCountdown] = useState<number | null>(null);
