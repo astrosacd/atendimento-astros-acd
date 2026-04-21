@@ -156,6 +156,7 @@ Instruções:
   const [quickReplies, setQuickReplies] = useState<{ trigger: string; response: string }[]>([]);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [showGroqKey, setShowGroqKey] = useState(false);
+  const [showGoogleKey, setShowGoogleKey] = useState(false);
   const [roleTopics, setRoleTopics] = useState<RoleTopicConfig>({});
 
   // Fetch custom roles
