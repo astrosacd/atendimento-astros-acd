@@ -12,7 +12,9 @@ const corsHeaders = {
 interface OcrResult {
   amount: number | null;
   transactionId: string | null;
-  status: 'success' | 'error' | 'skipped';
+  status: 'success' | 'error' | 'skipped' | 'invalid';
+  isReceipt?: boolean;
+  reason?: string;
   raw?: string;
 }
 
