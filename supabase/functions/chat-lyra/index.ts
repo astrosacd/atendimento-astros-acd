@@ -71,6 +71,7 @@ interface AIConfig {
   systemPrompt: string;
   openaiApiKey?: string;
   groqApiKey?: string;
+  googleApiKey?: string;
   roleRestrictionEnabled: boolean;
   roleTopics: Record<string, string[]>;
   denialMessage: string;
