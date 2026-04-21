@@ -321,36 +321,20 @@ export function usePaymentStatus() {
 
       if (insertError) throw insertError;
 
-      // Trigger PixPague processing (OCR + duplicate check + WhatsApp notify) — non-blocking
+      // Dispara processamento PixPague em BACKGROUND (servidor segura a tarefa
+      // mesmo se o cliente fechar a página). Aguardamos só o "ack" do trigger.
       if (insertedPayment?.id) {
-        supabase.functions.invoke('pixpague-process-proof', {
-          body: {
-            paymentId: insertedPayment.id,
-            proofUrl: comprovanteUrl,
-            declaredAmount: amount,
-          },
-        }).then(({ data, error }) => {
-          if (error) {
-            console.error('PixPague processing error:', error);
-          } else if (data?.ocr_status === 'duplicate') {
-            toast({
-              title: '🚫 Comprovante Duplicado',
-              description: 'A IA detectou que este ID de transação já foi usado. Verifique no módulo Segurança de Pagamento antes de aprovar.',
-              variant: 'destructive',
-            });
-          } else if (data?.ocr_status === 'mismatch') {
-            toast({
-              title: '⚠️ Valor Divergente',
-              description: `IA leu R$ ${data.ocr_amount?.toFixed(2)} no comprovante, mas você digitou R$ ${amount.toFixed(2)}.`,
-              variant: 'destructive',
-            });
-          } else if (data?.ocr_status === 'success') {
-            toast({
-              title: '✅ Comprovante validado pela IA',
-              description: 'Aguardando aprovação manual no módulo Segurança de Pagamento.',
-            });
-          }
-        });
+        try {
+          await supabase.functions.invoke('pixpague-trigger-processing', {
+            body: {
+              paymentId: insertedPayment.id,
+              proofUrl: comprovanteUrl,
+              declaredAmount: amount,
+            },
+          });
+        } catch (err) {
+          console.error('Erro ao agendar processamento PixPague:', err);
+        }
       }
 
       toast({
