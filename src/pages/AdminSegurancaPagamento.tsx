@@ -1,0 +1,447 @@
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  ShieldCheck, Search, Filter, AlertTriangle, CheckCircle2, 
+  Clock, XCircle, MoreHorizontal, Eye, ExternalLink, Settings,
+  AlertCircle, ShieldAlert, FileSearch, Smartphone, RefreshCw
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+
+export default function AdminSegurancaPagamento() {
+  const { toast } = useToast();
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [config, setConfig] = useState<any>({
+    ocr_enabled: true,
+    duplicate_check: true,
+    whatsapp_notifications: false,
+    ai_provider: 'gemini'
+  });
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
+
+  const fetchPayments = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_payments')
+        .select('*, cliente:clientes(nome)')
+        .not('pix_transaction_id', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (error: any) {
+      console.error('Error fetching payments:', error);
+      toast({
+        title: 'Erro ao buscar pagamentos',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .eq('config_key', 'pixpague_config')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data) {
+        setConfig(typeof data.config_value === 'string' ? JSON.parse(data.config_value) : data.config_value);
+      }
+    } catch (error: any) {
+      console.error('Error fetching config:', error);
+    }
+  };
+
+  const saveConfig = async () => {
+    setIsSavingConfig(true);
+    try {
+      const { error } = await supabase
+        .from('billing_config')
+        .upsert({
+          config_key: 'pixpague_config',
+          config_value: config,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      toast({
+        title: 'Configuração salva',
+        description: 'As regras de segurança do PixPague foram atualizadas.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+    fetchConfig();
+  }, []);
+
+  const stats = {
+    total: payments.length,
+    duplicates: payments.filter(p => p.ocr_status === 'duplicate').length,
+    divergent: payments.filter(p => p.ocr_status === 'divergent').length,
+    verified: payments.filter(p => p.ocr_status === 'success').length,
+  };
+
+  const filteredPayments = payments.filter(p => {
+    const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         p.pix_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || p.ocr_status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Validado</Badge>;
+      case 'duplicate':
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Duplicado</Badge>;
+      case 'divergent':
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
+      case 'error':
+        return <Badge variant="destructive">Erro na IA</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display text-gradient flex items-center gap-2">
+              <ShieldCheck className="h-8 w-8 text-primary" />
+              Segurança de Pagamento
+            </h1>
+            <p className="text-muted-foreground">
+              Análise de comprovantes, detecção de duplicidade e prevenção de fraudes (PixPague)
+            </p>
+          </div>
+          <div className="flex gap-2">
+             <Button variant="outline" onClick={fetchPayments} disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Sincronizar
+             </Button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <FileSearch className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-muted-foreground">Total Analisado</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/20">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.verified}</p>
+                <p className="text-xs text-muted-foreground">Validados</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-destructive/5 to-transparent border-destructive/20">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.duplicates}</p>
+                <p className="text-xs text-muted-foreground">Duplicados (Fraudes)</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.divergent}</p>
+                <p className="text-xs text-muted-foreground">Valores Divergentes</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="transactions" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="transactions">Transações PIX</TabsTrigger>
+            <TabsTrigger value="config">Configurações PixPague</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="transactions" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Histórico de Verificação</CardTitle>
+                    <CardDescription>Acompanhe todos os comprovantes processados pela IA</CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Buscar cliente ou ID..." 
+                        className="pl-9 w-full sm:w-[250px]"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <select 
+                      className="h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">Todos Status</option>
+                      <option value="success">Validados</option>
+                      <option value="duplicate">Duplicados</option>
+                      <option value="divergent">Divergentes</option>
+                      <option value="pending">Pendentes</option>
+                      <option value="error">Erros</option>
+                    </select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>ID Transação</TableHead>
+                        <TableHead>Status IA</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-10">
+                            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                              <Clock className="h-4 w-4 animate-spin" />
+                              Carregando transações...
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredPayments.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                            Nenhuma transação encontrada.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredPayments.map((payment) => (
+                          <TableRow key={payment.id} className={payment.ocr_status === 'duplicate' ? 'bg-destructive/5' : ''}>
+                            <TableCell className="text-sm">
+                              {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {payment.cliente?.nome || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.amount)}
+                                </span>
+                                {payment.ocr_amount && payment.ocr_amount !== payment.amount && (
+                                  <span className="text-[10px] text-amber-500 font-medium">
+                                    IA leu: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(payment.ocr_amount)}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-mono text-[10px] max-w-[150px] truncate">
+                              {payment.pix_transaction_id}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(payment.ocr_status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {payment.comprovante_url && (
+                                    <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Ver Comprovante
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem>
+                                    <Smartphone className="h-4 w-4 mr-2" />
+                                    Notificar Cliente
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="config">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações PixPague</CardTitle>
+                <CardDescription>Defina como o sistema deve analisar os comprovantes e o que fazer em caso de suspeita</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Análise Automática (OCR)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Utiliza Inteligência Artificial para ler o conteúdo do comprovante enviado pelo cliente.
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={config.ocr_enabled}
+                      onCheckedChange={(checked) => setConfig({...config, ocr_enabled: checked})}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Bloqueio de Duplicidade</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Alerta e sinaliza transações que utilizam um ID de transação já processado anteriormente.
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={config.duplicate_check}
+                      onCheckedChange={(checked) => setConfig({...config, duplicate_check: checked})}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Notificações WhatsApp para Aprovadores</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Envia um alerta para os números configurados quando um comprovante for suspeito ou validado.
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={config.whatsapp_notifications}
+                      onCheckedChange={(checked) => setConfig({...config, whatsapp_notifications: checked})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <Label>Provedor de IA</Label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        value={config.ai_provider}
+                        onChange={(e) => setConfig({...config, ai_provider: e.target.value})}
+                      >
+                        <option value="gemini">Google Gemini (Recomendado)</option>
+                        <option value="gpt4">OpenAI GPT-4o</option>
+                      </select>
+                   </div>
+                   <div className="space-y-2">
+                      <Label>Números para Notificação (separados por vírgula)</Label>
+                      <Input 
+                        placeholder="Ex: 5511999999999, 5511888888888"
+                        value={config.approver_phones || ''}
+                        onChange={(e) => setConfig({...config, approver_phones: e.target.value})}
+                      />
+                   </div>
+                </div>
+
+                <div className="pt-4 border-t flex justify-end">
+                  <Button onClick={saveConfig} disabled={isSavingConfig}>
+                    {isSavingConfig ? <Clock className="h-4 w-4 mr-2 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                    Salvar Configurações
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-6 p-4 rounded-lg bg-blue-500/5 border border-blue-500/20 flex gap-3">
+              <AlertCircle className="h-5 w-5 text-blue-500 shrink-0" />
+              <div className="text-sm text-muted-foreground">
+                <p className="font-semibold text-blue-500 mb-1">Dica de Segurança</p>
+                O PixPague é uma camada de proteção adicional. Sempre confira o extrato bancário (Cora/Inter/etc) para confirmação definitiva do recebimento dos fundos, especialmente em casos sinalizados como duplicados pela IA.
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
+  );
+}

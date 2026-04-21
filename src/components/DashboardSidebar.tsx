@@ -168,7 +168,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewPipeline, canViewAgenda, canViewPaymentLinks, canViewSalesForecast } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewPipeline, canViewAgenda, canViewPaymentLinks, canViewSalesForecast, canViewPaymentSecurity } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
@@ -298,6 +298,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.expenses'), icon: Receipt, path: '/despesas', adminOnly: !canViewDespesas(), color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
         { title: t('sidebar.reports'), icon: BarChart3, path: '/admin/relatorios', adminOnly: !canViewReports(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
         { title: t('sidebar.billing'), icon: CreditCard, path: '/admin/cobranca', adminOnly: !canManageBilling(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+        { title: 'Segurança de Pagamento', icon: ShieldCheck, path: '/admin/seguranca-pagamento', adminOnly: !canViewPaymentSecurity(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
       ]
     },
     {

@@ -45,6 +45,7 @@ import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import AdminIA from "./pages/AdminIA";
+import AdminSegurancaPagamento from "./pages/AdminSegurancaPagamento";
 import Tarefas from "./pages/Tarefas";
 import Propostas from "./pages/Propostas";
 import PropostaEditor from "./pages/PropostaEditor";
@@ -111,6 +112,7 @@ function AppRoutes() {
       <Route path="/admin/logs" element={<ProtectedRoute permission="view_logs"><AdminAuditLogs /></ProtectedRoute>} />
       <Route path="/admin/activity" element={<ProtectedRoute permission="view_logs"><AdminActivityLogs /></ProtectedRoute>} />
       <Route path="/admin/cobranca" element={<ProtectedRoute permission="manage_billing"><AdminCobranca /></ProtectedRoute>} />
+      <Route path="/admin/seguranca-pagamento" element={<ProtectedRoute permission="view_payment_security"><AdminSegurancaPagamento /></ProtectedRoute>} />
       <Route path="/admin/chat" element={<ProtectedRoute permission="manage_settings"><AdminChatConfig /></ProtectedRoute>} />
       <Route path="/admin/permissoes" element={<ProtectedRoute permission="manage_permissions"><AdminPermissoes /></ProtectedRoute>} />
       <Route path="/admin/guia" element={<ProtectedRoute permission="view_guia"><AdminGuia /></ProtectedRoute>} />

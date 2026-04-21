@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck } from 'lucide-react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { exportToCSV } from '@/utils/exportClientes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,7 +79,7 @@ export default function ConsultarCliente() {
   const [groupClienteId, setGroupClienteId] = useState<string | null>(null);
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
-  const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph } = usePermissions();
+  const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -691,6 +691,17 @@ export default function ConsultarCliente() {
                                  >
                                    <CreditCard className="h-4 w-4" />
                                  </Button>
+                                 {isAdmin && canViewPaymentSecurity() && (
+                                   <Button
+                                     onClick={() => navigate('/admin/seguranca-pagamento')}
+                                     variant="ghost"
+                                     size="sm"
+                                     className="text-muted-foreground hover:text-emerald-500"
+                                     title="Módulo de Segurança de Pagamento"
+                                   >
+                                     <ShieldCheck className="h-4 w-4" />
+                                   </Button>
+                                 )}
                                 {/* Purchases button - only for Registro clients */}
                                 {cliente.cobranca_ativa === false && (
                                   <Button
