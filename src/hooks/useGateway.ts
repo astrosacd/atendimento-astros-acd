@@ -78,7 +78,7 @@ export interface GatewayOrder {
   pix_transaction_id?: string | null;
   proof_url?: string | null;
   ocr_amount?: number | null;
-  ocr_status?: 'pending' | 'success' | 'mismatch' | 'error' | null;
+  ocr_status?: 'pending' | 'success' | 'mismatch' | 'error' | 'duplicate' | null;
   approved_by?: string | null;
   rejection_reason?: string | null;
   approval_flow_step?: 'pending' | 'manager' | 'finance' | 'completed' | null;
