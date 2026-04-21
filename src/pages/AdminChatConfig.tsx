@@ -96,6 +96,12 @@ const modelsByProvider: Record<string, { name: string; value: string; descriptio
     { name: 'Mixtral 8x7B', value: 'mixtral-8x7b-32768', description: 'Bom equilíbrio' },
     { name: 'Gemma2 9B', value: 'gemma2-9b-it', description: 'Compacto e eficiente' },
   ],
+  google: [
+    { name: 'Gemini 2.5 Flash (Recomendado)', value: 'gemini-2.0-flash', description: 'Rápido e eficiente' },
+    { name: 'Gemini 2.5 Pro', value: 'gemini-2.0-pro-exp-02-05', description: 'Mais poderoso, melhor para tarefas complexas' },
+    { name: 'Gemini 1.5 Flash', value: 'gemini-1.5-flash', description: 'Ultra rápido' },
+    { name: 'Gemini 1.5 Pro', value: 'gemini-1.5-pro', description: 'Muito inteligente' },
+  ],
 };
 
 interface AITopic {
