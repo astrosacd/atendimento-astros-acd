@@ -3443,6 +3443,51 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_order_approvals: {
+        Row: {
+          approved_by: string
+          created_at: string | null
+          id: string
+          new_status: string | null
+          notes: string | null
+          order_id: string
+          previous_status: string | null
+        }
+        Insert: {
+          approved_by: string
+          created_at?: string | null
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          order_id: string
+          previous_status?: string | null
+        }
+        Update: {
+          approved_by?: string
+          created_at?: string | null
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          order_id?: string
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gateway_order_approvals_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gateway_order_approvals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "gateway_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gateway_order_bumps: {
         Row: {
           allow_coupon: boolean
@@ -3530,6 +3575,7 @@ export type Database = {
       gateway_orders: {
         Row: {
           abandoned_email_sent: boolean
+          approved_by: string | null
           coupon_id: string | null
           created_at: string
           currency: string
@@ -3539,10 +3585,15 @@ export type Database = {
           customer_phone: string | null
           discount_amount: number
           id: string
+          ocr_amount: number | null
+          ocr_status: string | null
           order_bump_id: string | null
           payment_gateway: string | null
           payment_id: string | null
+          pix_transaction_id: string | null
           product_id: string | null
+          proof_url: string | null
+          rejection_reason: string | null
           status: string
           subtotal: number
           total: number
@@ -3550,6 +3601,7 @@ export type Database = {
         }
         Insert: {
           abandoned_email_sent?: boolean
+          approved_by?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
@@ -3559,10 +3611,15 @@ export type Database = {
           customer_phone?: string | null
           discount_amount?: number
           id?: string
+          ocr_amount?: number | null
+          ocr_status?: string | null
           order_bump_id?: string | null
           payment_gateway?: string | null
           payment_id?: string | null
+          pix_transaction_id?: string | null
           product_id?: string | null
+          proof_url?: string | null
+          rejection_reason?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -3570,6 +3627,7 @@ export type Database = {
         }
         Update: {
           abandoned_email_sent?: boolean
+          approved_by?: string | null
           coupon_id?: string | null
           created_at?: string
           currency?: string
@@ -3579,16 +3637,28 @@ export type Database = {
           customer_phone?: string | null
           discount_amount?: number
           id?: string
+          ocr_amount?: number | null
+          ocr_status?: string | null
           order_bump_id?: string | null
           payment_gateway?: string | null
           payment_id?: string | null
+          pix_transaction_id?: string | null
           product_id?: string | null
+          proof_url?: string | null
+          rejection_reason?: string | null
           status?: string
           subtotal?: number
           total?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "gateway_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gateway_orders_coupon_id_fkey"
             columns: ["coupon_id"]
