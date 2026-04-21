@@ -1340,6 +1340,7 @@ export type Database = {
           amount: number
           billing_date: string
           cliente_id: string | null
+          comprovante_url: string | null
           created_at: string
           id: string
           paid_at: string | null
@@ -1354,6 +1355,7 @@ export type Database = {
           amount: number
           billing_date: string
           cliente_id?: string | null
+          comprovante_url?: string | null
           created_at?: string
           id?: string
           paid_at?: string | null
@@ -1368,6 +1370,7 @@ export type Database = {
           amount?: number
           billing_date?: string
           cliente_id?: string | null
+          comprovante_url?: string | null
           created_at?: string
           id?: string
           paid_at?: string | null
