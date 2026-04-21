@@ -31,6 +31,7 @@ interface Payment {
   billing_date: string;
   created_at: string;
   receipt_number: string | null;
+  comprovante_url?: string | null;
 }
 
 interface ClientPaymentHistoryProps {
