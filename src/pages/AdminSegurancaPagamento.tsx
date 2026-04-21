@@ -173,13 +173,29 @@ export default function AdminSegurancaPagamento() {
       case 'duplicate':
         return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Duplicado</Badge>;
       case 'divergent':
+      case 'mismatch':
         return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
+      case 'rejected_manual':
+        return <Badge variant="destructive">Rejeitado</Badge>;
       case 'error':
         return <Badge variant="destructive">Erro na IA</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{status || '—'}</Badge>;
+    }
+  };
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending_approval':
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse">⏳ Aguardando Aprovação</Badge>;
+      case 'paid':
+        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Aprovado</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejeitado</Badge>;
+      default:
+        return null;
     }
   };
 
