@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -102,6 +102,13 @@ Se precisar de ajuda, é só responder esta mensagem!`
     email_subject: 'Pagamento Confirmado - {produto}',
     email_template: 'Olá {nome},\n\nSeu pagamento foi confirmado com sucesso!\n\nProduto: {produto}\nValor: R$ {valor}\n\nObrigado pela compra!\n\nAtenciosamente,\nEquipe de Vendas'
   });
+  const [approvalConfig, setApprovalConfig] = useState({
+    workflow: 'admin_only',
+    ocr_enabled: true,
+    whatsapp_notifications: true,
+    duplicate_id_check: true,
+    required_proof: true
+  });
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
@@ -119,6 +126,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     if (settings.checkout) setCheckout(settings.checkout);
     if (settings.success_page) setSuccessPage(settings.success_page);
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
+    if (settings.approval_config) setApprovalConfig(settings.approval_config);
     if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
   }, [settings]);
 
@@ -160,6 +168,10 @@ Se precisar de ajuda, é só responder esta mensagem!`
 
   const handleSaveSuccessPage = () => {
     updateSetting({ key: 'success_page', value: successPage });
+  };
+
+  const handleSaveApprovalConfig = () => {
+    updateSetting({ key: 'approval_config', value: approvalConfig });
   };
   const [siteBaseUrl, setSiteBaseUrl] = useState('');
   const [localSlug, setLocalSlug] = useState('');
@@ -360,6 +372,10 @@ Se precisar de ajuda, é só responder esta mensagem!`
           <TabsTrigger value="abandoned" className="gap-2">
             <ShoppingCart className="h-4 w-4" />
             Carrinho Abandonado
+          </TabsTrigger>
+          <TabsTrigger value="approval" className="gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Fluxo de Aprovação
           </TabsTrigger>
         </TabsList>
 
