@@ -88,7 +88,7 @@ export default function AdminSegurancaPagamento() {
     reason: string;
   }>({ open: false, payment: null, action: 'approve', reason: '' });
 
-  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent']);
+  const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
   const performApproval = async (
     paymentId: string,
