@@ -15,6 +15,13 @@ type PublicGatewaySettings = {
     allow_boleto?: boolean;
     immediate_payment?: boolean;
   };
+  pix_manual: {
+    enabled: boolean;
+    pix_key?: string;
+    receiver_name?: string;
+    instructions?: string;
+    qr_code_url?: string | null;
+  };
   checkout: {
     countdown_enabled?: boolean;
     countdown_minutes?: number;
@@ -47,7 +54,7 @@ serve(async (req) => {
     const { data, error } = await supabase
       .from("gateway_settings")
       .select("key, value")
-      .in("key", ["stripe", "mercadopago", "checkout", "success_page"]);
+      .in("key", ["stripe", "mercadopago", "checkout", "success_page", "pix_manual"]);
 
     if (error) {
       console.error("gateway-public-settings fetch error:", error);
@@ -70,6 +77,13 @@ serve(async (req) => {
         allow_pix: raw.mercadopago?.allow_pix !== false,
         allow_boleto: raw.mercadopago?.allow_boleto !== false,
         immediate_payment: raw.mercadopago?.immediate_payment === true,
+      },
+      pix_manual: {
+        enabled: raw.pix_manual?.enabled === true,
+        pix_key: raw.pix_manual?.pix_key,
+        receiver_name: raw.pix_manual?.receiver_name,
+        instructions: raw.pix_manual?.instructions,
+        qr_code_url: raw.pix_manual?.qr_code_url,
       },
       checkout: {
         countdown_enabled: raw.checkout?.countdown_enabled === true,
