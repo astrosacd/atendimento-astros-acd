@@ -7,13 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGatewayOrders, GatewayOrder } from '@/hooks/useGateway';
-import { Eye, RefreshCw, Mail } from 'lucide-react';
+import { Eye, RefreshCw, Mail, CheckCircle, XCircle, FileText, AlertTriangle, Search } from 'lucide-react';
+import { useGatewaySettings } from '@/hooks/useGateway';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function GatewayOrders() {
   const { orders, isLoading, updateOrder, refetch, isRefetching } = useGatewayOrders();
+  const { settings } = useGatewaySettings();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<GatewayOrder | null>(null);
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+
+  const approvalConfig = settings.approval_config || { workflow: 'admin_only', ocr_enabled: true };
 
   const filteredOrders = statusFilter === 'all' 
     ? orders 
@@ -35,6 +41,7 @@ export default function GatewayOrders() {
       pending: { variant: 'outline', label: 'Pendente' },
       paid: { variant: 'default', label: 'Pago' },
       cancelled: { variant: 'destructive', label: 'Cancelado' },
+      rejected: { variant: 'destructive', label: 'Rejeitado' },
       abandoned: { variant: 'secondary', label: 'Abandonado' },
     };
     const config = variants[status] || { variant: 'outline', label: status };
