@@ -7,13 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGatewayOrders, GatewayOrder } from '@/hooks/useGateway';
-import { Eye, RefreshCw, Mail } from 'lucide-react';
+import { Eye, RefreshCw, Mail, CheckCircle, XCircle, FileText, AlertTriangle, Search, ExternalLink } from 'lucide-react';
+import { useGatewaySettings } from '@/hooks/useGateway';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function GatewayOrders() {
   const { orders, isLoading, updateOrder, refetch, isRefetching } = useGatewayOrders();
+  const { settings } = useGatewaySettings();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<GatewayOrder | null>(null);
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+
+  const approvalConfig = settings.approval_config || { workflow: 'admin_only', ocr_enabled: true };
 
   const filteredOrders = statusFilter === 'all' 
     ? orders 
@@ -35,6 +41,7 @@ export default function GatewayOrders() {
       pending: { variant: 'outline', label: 'Pendente' },
       paid: { variant: 'default', label: 'Pago' },
       cancelled: { variant: 'destructive', label: 'Cancelado' },
+      rejected: { variant: 'destructive', label: 'Rejeitado' },
       abandoned: { variant: 'secondary', label: 'Abandonado' },
     };
     const config = variants[status] || { variant: 'outline', label: status };
@@ -184,6 +191,80 @@ export default function GatewayOrders() {
                 </div>
               </div>
 
+              {selectedOrder.proof_url && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Comprovante</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 text-xs gap-1"
+                      onClick={() => window.open(selectedOrder.proof_url!, '_blank')}
+                    >
+                      <ExternalLink className="h-3 w-3" /> Ver Original
+                    </Button>
+                  </div>
+                  <div className="relative aspect-video rounded-md border overflow-hidden bg-muted group">
+                    <img 
+                      src={selectedOrder.proof_url} 
+                      alt="Comprovante" 
+                      className="object-contain w-full h-full"
+                    />
+                  </div>
+                  
+                  {selectedOrder.ocr_status && (
+                    <div className={`mt-2 p-2 rounded-md border text-xs flex items-center gap-2 ${
+                      selectedOrder.ocr_status === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-700' :
+                      selectedOrder.ocr_status === 'mismatch' ? 'bg-amber-500/10 border-amber-500/20 text-amber-700' :
+                      'bg-muted border-border text-muted-foreground'
+                    }`}>
+                      {selectedOrder.ocr_status === 'success' ? <CheckCircle className="h-3 w-3" /> : 
+                       selectedOrder.ocr_status === 'mismatch' ? <AlertTriangle className="h-3 w-3" /> :
+                       <Search className="h-3 w-3" />}
+                      <div>
+                        <span className="font-semibold uppercase">{selectedOrder.ocr_status === 'success' ? 'Validado por IA' : 
+                                                                  selectedOrder.ocr_status === 'mismatch' ? 'Atenção: Divergência' : 'OCR Pendente'}</span>
+                        {selectedOrder.ocr_amount && (
+                          <p>Valor extraído: {formatCurrency(selectedOrder.ocr_amount, selectedOrder.currency)}</p>
+                        )}
+                        {selectedOrder.pix_transaction_id && (
+                          <p className="truncate">ID Transação: {selectedOrder.pix_transaction_id}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!selectedOrder.ocr_status && approvalConfig.ocr_enabled && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="w-full mt-2 h-8 text-xs gap-2"
+                      onClick={async () => {
+                        setIsProcessingOCR(true);
+                        toast.info("Processando OCR com IA...");
+                        try {
+                          const { data, error } = await supabase.functions.invoke('gateway-ocr-pix', {
+                            body: { orderId: selectedOrder.id }
+                          });
+                          if (error) throw error;
+                          toast.success("OCR processado!");
+                          refetch();
+                        } catch (err) {
+                          console.error(err);
+                          toast.error("Erro no OCR");
+                        } finally {
+                          setIsProcessingOCR(false);
+                        }
+                      }}
+                      disabled={isProcessingOCR}
+                    >
+                      <Search className={`h-3 w-3 ${isProcessingOCR ? 'animate-spin' : ''}`} />
+                      Processar com IA agora
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <div className="border-t pt-4">
                 <p className="text-sm text-muted-foreground mb-2">Cliente</p>
                 <div className="space-y-1">
@@ -226,31 +307,68 @@ export default function GatewayOrders() {
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground mb-2">Status</p>
-                <Select 
-                  value={selectedOrder.status} 
-                  onValueChange={(value) => {
-                    handleStatusChange(selectedOrder.id, value);
-                    setSelectedOrder({ ...selectedOrder, status: value as any });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="paid">Pago</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                    <SelectItem value="abandoned">Abandonado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <p className="text-sm text-muted-foreground mb-2">Ações de Aprovação</p>
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1 bg-green-600 hover:bg-green-700" 
+                    onClick={() => handleStatusChange(selectedOrder.id, 'paid')}
+                    disabled={selectedOrder.status === 'paid'}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Aprovar Pagamento
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1"
+                    onClick={() => {
+                      const reason = prompt("Motivo da rejeição:");
+                      if (reason) {
+                        updateOrder({ id: selectedOrder.id, status: 'rejected', rejection_reason: reason });
+                        setSelectedOrder({ ...selectedOrder, status: 'rejected', rejection_reason: reason });
+                      }
+                    }}
+                    disabled={selectedOrder.status === 'paid' || selectedOrder.status === 'rejected'}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Rejeitar
+                  </Button>
+                </div>
+                
+                {selectedOrder.rejection_reason && (
+                  <p className="mt-2 text-xs text-destructive italic">
+                    Motivo da rejeição: {selectedOrder.rejection_reason}
+                  </p>
+                )}
+                
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">Alterar Status Manualmente</p>
+                  <Select 
+                    value={selectedOrder.status} 
+                    onValueChange={(value) => {
+                      handleStatusChange(selectedOrder.id, value);
+                      setSelectedOrder({ ...selectedOrder, status: value as any });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="paid">Pago</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                      <SelectItem value="rejected">Rejeitado</SelectItem>
+                      <SelectItem value="abandoned">Abandonado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              {selectedOrder.payment_id && (
+              {(selectedOrder.payment_id || selectedOrder.pix_transaction_id) && (
                 <div className="border-t pt-4">
                   <p className="text-sm text-muted-foreground mb-2">Pagamento</p>
-                  <p className="font-mono text-sm">ID: {selectedOrder.payment_id}</p>
-                  <p className="text-sm">Gateway: {selectedOrder.payment_gateway}</p>
+                  {selectedOrder.payment_id && <p className="font-mono text-sm">ID Gateway: {selectedOrder.payment_id}</p>}
+                  {selectedOrder.pix_transaction_id && <p className="font-mono text-sm">ID PIX: {selectedOrder.pix_transaction_id}</p>}
+                  <p className="text-sm">Gateway: {selectedOrder.payment_gateway || 'Pix'}</p>
                 </div>
               )}
             </div>

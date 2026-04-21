@@ -72,9 +72,16 @@ export interface GatewayOrder {
   discount_amount: number;
   total: number;
   currency: 'BRL' | 'USD';
-  status: 'pending' | 'paid' | 'cancelled' | 'abandoned';
-  payment_gateway: 'stripe' | 'mercadopago' | null;
+  status: 'pending' | 'paid' | 'cancelled' | 'abandoned' | 'rejected';
+  payment_gateway: 'stripe' | 'mercadopago' | 'pix' | null;
   payment_id: string | null;
+  pix_transaction_id?: string | null;
+  proof_url?: string | null;
+  ocr_amount?: number | null;
+  ocr_status?: 'pending' | 'success' | 'mismatch' | 'error' | null;
+  approved_by?: string | null;
+  rejection_reason?: string | null;
+  approval_flow_step?: 'pending' | 'manager' | 'finance' | 'completed' | null;
   abandoned_email_sent: boolean;
   created_at: string;
   updated_at: string;

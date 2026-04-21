@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -102,6 +103,13 @@ Se precisar de ajuda, é só responder esta mensagem!`
     email_subject: 'Pagamento Confirmado - {produto}',
     email_template: 'Olá {nome},\n\nSeu pagamento foi confirmado com sucesso!\n\nProduto: {produto}\nValor: R$ {valor}\n\nObrigado pela compra!\n\nAtenciosamente,\nEquipe de Vendas'
   });
+  const [approvalConfig, setApprovalConfig] = useState({
+    workflow: 'admin_only',
+    ocr_enabled: true,
+    whatsapp_notifications: true,
+    duplicate_id_check: true,
+    required_proof: true
+  });
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
@@ -119,6 +127,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     if (settings.checkout) setCheckout(settings.checkout);
     if (settings.success_page) setSuccessPage(settings.success_page);
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
+    if (settings.approval_config) setApprovalConfig(settings.approval_config);
     if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
   }, [settings]);
 
@@ -160,6 +169,10 @@ Se precisar de ajuda, é só responder esta mensagem!`
 
   const handleSaveSuccessPage = () => {
     updateSetting({ key: 'success_page', value: successPage });
+  };
+
+  const handleSaveApprovalConfig = () => {
+    updateSetting({ key: 'approval_config', value: approvalConfig });
   };
   const [siteBaseUrl, setSiteBaseUrl] = useState('');
   const [localSlug, setLocalSlug] = useState('');
@@ -360,6 +373,10 @@ Se precisar de ajuda, é só responder esta mensagem!`
           <TabsTrigger value="abandoned" className="gap-2">
             <ShoppingCart className="h-4 w-4" />
             Carrinho Abandonado
+          </TabsTrigger>
+          <TabsTrigger value="approval" className="gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Fluxo de Aprovação
           </TabsTrigger>
         </TabsList>
 
@@ -1067,6 +1084,113 @@ Se precisar de ajuda, é só responder esta mensagem!`
           <Button onClick={handleSaveAbandonedCart} disabled={isUpdating} className="w-full">
             <Save className="h-4 w-4 mr-2" /> Salvar Todas as Configurações de Carrinho Abandonado
           </Button>
+        </TabsContent>
+        <TabsContent value="approval" className="space-y-4">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Configurações de Aprovação
+              </CardTitle>
+              <CardDescription>Defina quem pode aprovar pagamentos e as regras de validação</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Fluxo de Trabalho</Label>
+                  <Select 
+                    value={approvalConfig.workflow} 
+                    onValueChange={(value) => setApprovalConfig(prev => ({ ...prev, workflow: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin_only">Somente Administrador</SelectItem>
+                      <SelectItem value="admin_manager">Administrador + Gerente</SelectItem>
+                      <SelectItem value="admin_manager_finance">Administrador + Gerente + Financeiro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground italic">
+                    {approvalConfig.workflow === 'admin_only' && 'Apenas usuários com cargo de Administrador podem aprovar pedidos.'}
+                    {approvalConfig.workflow === 'admin_manager' && 'Administradores e Gerentes podem aprovar pedidos.'}
+                    {approvalConfig.workflow === 'admin_manager_finance' && 'Administradores, Gerentes e usuários do Financeiro podem aprovar pedidos.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                      OCR Automático com IA
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Extrai valor e ID da transação do comprovante e cruza com os dados digitados.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={approvalConfig.ocr_enabled}
+                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, ocr_enabled: checked }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                      Bloquear ID de Transação Duplicado
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Impede que o mesmo comprovante seja usado em múltiplos pedidos.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={approvalConfig.duplicate_id_check}
+                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, duplicate_id_check: checked }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4 text-blue-500" />
+                      Comprovante Obrigatório
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Exige o upload de uma imagem do comprovante para o pedido ser criado/enviado.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={approvalConfig.required_proof}
+                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, required_proof: checked }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-green-500" />
+                      Notificação WhatsApp para Admin
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Envia um alerta para o administrador quando houver um PIX pendente de aprovação.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={approvalConfig.whatsapp_notifications}
+                    onCheckedChange={(checked) => setApprovalConfig(prev => ({ ...prev, whatsapp_notifications: checked }))}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t flex justify-end">
+                <Button onClick={handleSaveApprovalConfig} disabled={isUpdating}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Configurações de Aprovação
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
