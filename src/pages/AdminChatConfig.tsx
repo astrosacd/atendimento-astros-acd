@@ -300,6 +300,7 @@ Instruções:
         { config_key: 'chat_ai_model', config_value: config.chat_ai_model },
         { config_key: 'chat_openai_api_key', config_value: config.chat_openai_api_key },
         { config_key: 'chat_groq_api_key', config_value: config.chat_groq_api_key },
+        { config_key: 'chat_google_api_key', config_value: config.chat_google_api_key },
         { config_key: 'chat_role_restriction_enabled', config_value: config.chat_role_restriction_enabled ? 'true' : 'false' },
         { config_key: 'chat_role_topics', config_value: JSON.stringify(roleTopics) },
         { config_key: 'chat_denial_message', config_value: config.chat_denial_message },
