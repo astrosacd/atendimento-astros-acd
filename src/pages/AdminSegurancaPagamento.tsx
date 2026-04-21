@@ -552,7 +552,17 @@ export default function AdminSegurancaPagamento() {
                               <p className="font-semibold text-sm truncate">
                                 {payment.cliente?.nome || 'N/A'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              {payment.cliente?.email && (
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  ✉️ {payment.cliente.email}
+                                </p>
+                              )}
+                              {payment.cliente?.numero && (
+                                <p className="text-[11px] text-muted-foreground truncate">
+                                  📱 {payment.cliente.numero}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                               </p>
                             </div>
