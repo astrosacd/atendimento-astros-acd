@@ -804,6 +804,13 @@ export default function AdminSegurancaPagamento() {
                   Por que está aprovando mesmo assim?
                 </>
               )}
+              {approvalDialog.action === 'approve' && approvalDialog.payment?.ocr_status === 'invalid' && (
+                <>
+                  A IA detectou que <strong>a imagem enviada não é um comprovante de PIX válido</strong>
+                  (pode ser uma foto aleatória, screenshot, imagem em branco, etc).
+                  Aprovar mesmo assim é <strong>altamente arriscado</strong>. Explique o motivo.
+                </>
+              )}
               {approvalDialog.action === 'reject' && (
                 <>Descreva brevemente o motivo da rejeição (será registrado no histórico).</>
               )}
