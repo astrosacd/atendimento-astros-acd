@@ -299,24 +299,36 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                 onClick={() => setShowEarlyPayment(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Registrar pagamento antecipado (Pix direto)
+                Registrar pagamento antecipado (PixPague)
               </Button>
             ) : (
               <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-3">
-                <p className="text-sm font-medium text-emerald-400">Pagamento antecipado via Pix</p>
+                <p className="text-sm font-medium text-emerald-400">Pagamento antecipado (PixPague)</p>
                 <p className="text-xs text-muted-foreground">
-                  A renovação será calculada a partir da data de vencimento atual, não da data do pagamento.
+                  A renovação será calculada a partir da data de vencimento atual.
                 </p>
-                <div className="space-y-1">
-                  <Label className="text-xs">Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Ex: 49.90"
-                    value={earlyPaymentAmount}
-                    onChange={(e) => setEarlyPaymentAmount(e.target.value)}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Valor (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Ex: 49.90"
+                      value={earlyPaymentAmount}
+                      onChange={(e) => setEarlyPaymentAmount(e.target.value)}
+                      className="bg-secondary/50 border-border"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Comprovante (opcional)</Label>
+                    <Input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setEarlyPaymentProof(e.target.files?.[0] || null)}
+                      className="bg-secondary/50 border-border text-xs h-9 pt-1"
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -330,7 +342,11 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => { setShowEarlyPayment(false); setEarlyPaymentAmount(''); }}
+                    onClick={() => { 
+                      setShowEarlyPayment(false); 
+                      setEarlyPaymentAmount('');
+                      setEarlyPaymentProof(null);
+                    }}
                   >
                     Cancelar
                   </Button>
