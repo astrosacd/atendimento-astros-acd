@@ -691,6 +691,17 @@ export default function ConsultarCliente() {
                                  >
                                    <CreditCard className="h-4 w-4" />
                                  </Button>
+                                 {isAdmin && canViewPaymentSecurity() && (
+                                   <Button
+                                     onClick={() => navigate('/admin/seguranca-pagamento')}
+                                     variant="ghost"
+                                     size="sm"
+                                     className="text-muted-foreground hover:text-emerald-500"
+                                     title="Módulo de Segurança de Pagamento"
+                                   >
+                                     <ShieldCheck className="h-4 w-4" />
+                                   </Button>
+                                 )}
                                 {/* Purchases button - only for Registro clients */}
                                 {cliente.cobranca_ativa === false && (
                                   <Button
