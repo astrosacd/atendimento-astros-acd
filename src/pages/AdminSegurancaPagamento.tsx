@@ -160,11 +160,17 @@ export default function AdminSegurancaPagamento() {
   };
 
   const filteredPayments = payments.filter(p => {
-    const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = p.cliente?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          p.pix_transaction_id?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || p.ocr_status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'pending_approval') matchesStatus = p.status === 'pending_approval';
+    else if (statusFilter === 'paid') matchesStatus = p.status === 'paid';
+    else if (statusFilter === 'rejected') matchesStatus = p.status === 'rejected';
+    else if (statusFilter !== 'all') matchesStatus = p.ocr_status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const pendingApprovalCount = payments.filter(p => p.status === 'pending_approval').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
