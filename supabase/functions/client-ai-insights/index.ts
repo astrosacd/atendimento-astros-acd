@@ -124,6 +124,8 @@ serve(async (req) => {
         tags: cliente.tags,
         observacao: cliente.observacao,
         cliente_desde: cliente.created_at,
+        tipo_cadastro: cliente.tipo || 'cliente',
+        excluir_metricas: cliente.excluir_metricas || false,
       },
       historico_alteracoes: historyRes.data || [],
       pagamentos: paymentsRes.data || [],
