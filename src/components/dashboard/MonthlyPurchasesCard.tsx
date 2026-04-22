@@ -45,11 +45,13 @@ export function MonthlyPurchasesCard() {
       if (purchasesError) throw purchasesError;
 
       // Fetch clientes registro (cobranca_ativa = false) with valor > 0
+      // Excluindo cadastros marcados como administrativo/parceiro/outros
       const { data: clientes, error: clientesError } = await supabase
         .from('clientes')
         .select('valor, moeda, created_at')
         .eq('cobranca_ativa', false)
-        .gt('valor', 0);
+        .gt('valor', 0)
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
       
       if (clientesError) throw clientesError;
 

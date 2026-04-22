@@ -25,10 +25,11 @@ export function FinancialSummaryCard({ stats }: FinancialSummaryCardProps) {
 
   useEffect(() => {
     const fetchRevenue = async () => {
-      // Fetch clients for MRR calculation
+      // Fetch clients for MRR calculation (excluindo cadastros marcados como administrativo/parceiro/outros)
       const { data: clientes } = await supabase
         .from('clientes')
-        .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao');
+        .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao')
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
 
       // Fetch purchases
       const { data: purchases } = await supabase
