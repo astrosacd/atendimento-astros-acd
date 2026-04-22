@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { TagInput } from '@/components/TagInput';
@@ -48,6 +49,8 @@ export default function AtualizarCliente() {
   const [newValor, setNewValor] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [newTipo, setNewTipo] = useState('cliente');
+  const [newExcluirMetricas, setNewExcluirMetricas] = useState(false);
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -113,6 +116,8 @@ export default function AtualizarCliente() {
     setNewEmail(cliente.email || '');
     setNewPlano(planoNormalizado);
     setIsOriginallyReseller(clienteIsReseller);
+    setNewTipo(cliente.tipo || 'cliente');
+    setNewExcluirMetricas(cliente.excluir_metricas || false);
     // Try to detect country code from the number
     const detectedCountry = detectCountryFromNumber(cliente.numero || '');
     setNewCountryCode(detectedCountry);
@@ -154,7 +159,19 @@ export default function AtualizarCliente() {
   const confirmUpdate = async () => {
     if (!selectedCliente) return;
     
-    const updateData: { data_renovacao?: string; observacao: string; tags: string[]; ciclo_cobranca?: CicloCobranca; moeda?: Moeda; numero?: string; valor?: number; plano?: string | null; email?: string } = {
+    const updateData: { 
+      data_renovacao?: string; 
+      observacao: string; 
+      tags: string[]; 
+      ciclo_cobranca?: CicloCobranca; 
+      moeda?: Moeda; 
+      numero?: string; 
+      valor?: number; 
+      plano?: string | null; 
+      email?: string;
+      tipo?: string;
+      excluir_metricas?: boolean;
+    } = {
       observacao: newObservacao,
       tags: newTags,
       numero: newNumero,
@@ -162,6 +179,8 @@ export default function AtualizarCliente() {
       valor: parseCurrency(newValor),
       plano: newPlano,
       moeda: newMoeda,
+      tipo: newTipo,
+      excluir_metricas: newExcluirMetricas,
     };
     
     // Só atualiza a data e ciclo se for cliente mensal
@@ -429,6 +448,51 @@ export default function AtualizarCliente() {
                     setNewCountryCode(code);
                   }}
                 />
+              </div>
+
+              {/* Classificação do Cadastro */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-update" />
+                  <Label className="text-foreground font-medium">Classificação e Métricas</Label>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo" className="text-xs text-muted-foreground uppercase tracking-wider">Tipo de Cadastro</Label>
+                    <Select
+                      value={newTipo}
+                      onValueChange={(value) => {
+                        setNewTipo(value);
+                        if (value !== 'cliente' && !newExcluirMetricas) {
+                          setNewExcluirMetricas(true);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="tipo" className="bg-secondary border-border text-foreground h-11">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="cliente">💎 Cliente</SelectItem>
+                        <SelectItem value="administrativo">⚙️ Administrativo</SelectItem>
+                        <SelectItem value="parceiro">🤝 Parceiro / Agência</SelectItem>
+                        <SelectItem value="outros">📁 Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="excluir_metricas" className="text-sm font-medium cursor-pointer">Ignorar em Métricas/IA</Label>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Não será contabilizado em faturamento e análises de IA.</p>
+                    </div>
+                    <Switch
+                      id="excluir_metricas"
+                      checked={newExcluirMetricas}
+                      onCheckedChange={(checked) => setNewExcluirMetricas(checked)}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">

@@ -1963,6 +1963,7 @@ export type Database = {
           data_d_menos_3: string | null
           data_renovacao: string
           email: string | null
+          excluir_metricas: boolean | null
           id: string
           moeda: string
           nome: string
@@ -1971,6 +1972,7 @@ export type Database = {
           plano: string | null
           produto: string
           tags: string[] | null
+          tipo: string | null
           updated_at: string
           valor: number
         }
@@ -1987,6 +1989,7 @@ export type Database = {
           data_d_menos_3?: string | null
           data_renovacao: string
           email?: string | null
+          excluir_metricas?: boolean | null
           id?: string
           moeda?: string
           nome: string
@@ -1995,6 +1998,7 @@ export type Database = {
           plano?: string | null
           produto: string
           tags?: string[] | null
+          tipo?: string | null
           updated_at?: string
           valor: number
         }
@@ -2011,6 +2015,7 @@ export type Database = {
           data_d_menos_3?: string | null
           data_renovacao?: string
           email?: string | null
+          excluir_metricas?: boolean | null
           id?: string
           moeda?: string
           nome?: string
@@ -2019,6 +2024,7 @@ export type Database = {
           plano?: string | null
           produto?: string
           tags?: string[] | null
+          tipo?: string | null
           updated_at?: string
           valor?: number
         }
