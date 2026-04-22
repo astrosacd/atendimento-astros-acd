@@ -450,6 +450,51 @@ export default function AtualizarCliente() {
                 />
               </div>
 
+              {/* Classificação do Cadastro */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-update" />
+                  <Label className="text-foreground font-medium">Classificação e Métricas</Label>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo" className="text-xs text-muted-foreground uppercase tracking-wider">Tipo de Cadastro</Label>
+                    <Select
+                      value={newTipo}
+                      onValueChange={(value) => {
+                        setNewTipo(value);
+                        if (value !== 'cliente' && !newExcluirMetricas) {
+                          setNewExcluirMetricas(true);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="tipo" className="bg-secondary border-border text-foreground h-11">
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="cliente">💎 Cliente</SelectItem>
+                        <SelectItem value="administrativo">⚙️ Administrativo</SelectItem>
+                        <SelectItem value="parceiro">🤝 Parceiro / Agência</SelectItem>
+                        <SelectItem value="outros">📁 Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="excluir_metricas" className="text-sm font-medium cursor-pointer">Ignorar em Métricas/IA</Label>
+                      <p className="text-[10px] text-muted-foreground leading-tight">Não será contabilizado em faturamento e análises de IA.</p>
+                    </div>
+                    <Switch
+                      id="excluir_metricas"
+                      checked={newExcluirMetricas}
+                      onCheckedChange={(checked) => setNewExcluirMetricas(checked)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
