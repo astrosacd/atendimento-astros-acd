@@ -51,7 +51,7 @@ export default function CentralAjuda() {
       if (data?.error) throw new Error(data.error);
       if (data?.message) {
         setAnswer(data as AnswerResult);
-        logActivity('Consultou Central de Ajuda', 'central_ajuda', question.slice(0, 80));
+        logActivity('Consultou Central de Ajuda', 'consulta', question.slice(0, 80));
       } else {
         throw new Error('Resposta vazia');
       }
