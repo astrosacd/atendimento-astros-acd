@@ -76,37 +76,67 @@ serve(async (req: Request) => {
     }
 
     // Build keyword list from question (+ optional produto) for relevance filter
-    const haystackWords = (`${question} ${produto || ""}`)
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const questionNorm = normalize(question);
+    const produtoNorm = produto ? normalize(produto) : "";
+
+    const haystackWords = `${questionNorm} ${produtoNorm}`
       .split(/\W+/)
       .filter((w) => w.length >= 4);
     const uniqueWords = Array.from(new Set(haystackWords));
 
-    const matches = (text: string) => {
+    // Detect price/value intent for boosting price fields
+    const isPriceQuestion = /\b(preco|preço|valor|custa|custo|quanto|cobra|cobranca|cobrança|centavo|centavos|reais|r\$)\b/i.test(question);
+
+    const matches = (text: string, opts?: { isPriceField?: boolean; isTitleField?: boolean }) => {
       if (!text) return 0;
-      const t = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const t = normalize(text);
       let score = 0;
-      for (const w of uniqueWords) if (t.includes(w)) score++;
+      for (const w of uniqueWords) {
+        if (t.includes(w)) {
+          // Title matches weigh much more (helps pick the right product)
+          score += opts?.isTitleField ? 5 : 1;
+        }
+      }
+      // If user is asking about price and this field is the price, give a small boost
+      if (opts?.isPriceField && isPriceQuestion && t.trim().length > 0) {
+        score += 2;
+      }
+      // Strong boost when the produto field is contained in the title
+      if (produtoNorm && opts?.isTitleField && t.includes(produtoNorm)) {
+        score += 10;
+      }
       return score;
     };
 
     const scoredInternal = (internalProducts || [])
       .map((p: any) => ({
         p,
-        score: matches(`${p.nome} ${p.descricao || ""} ${p.beneficios || ""} ${p.categoria || ""} ${p.detalhes_extras || ""}`),
+        score:
+          matches(p.nome || "", { isTitleField: true }) +
+          matches(p.categoria || "", { isTitleField: true }) +
+          matches(p.descricao || "") +
+          matches(p.beneficios || "") +
+          matches(p.detalhes_extras || "") +
+          matches(p.preco || "", { isPriceField: true }),
       }))
       .sort((a, b) => b.score - a.score);
 
     const scoredExternal = externalProducts
       .map((p: any) => ({
         p,
-        score: matches(`${p.titulo_produto || ""} ${p.content || ""}`),
+        score:
+          matches(p.titulo_produto || "", { isTitleField: true }) +
+          matches(p.content || ""),
       }))
       .sort((a, b) => b.score - a.score);
 
-    const topInternal = scoredInternal.filter((x) => x.score > 0).slice(0, 5);
-    const topExternal = scoredExternal.filter((x) => x.score > 0).slice(0, 5);
+    // Be stricter: require a stronger match to include items, and limit to top 3
+    const MIN_SCORE = 2;
+    const topInternal = scoredInternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
+    const topExternal = scoredExternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
 
     // Fallback: if nothing matched, send a slim general catalog so the model still has context
     const useFallbackInternal = topInternal.length === 0 ? scoredInternal.slice(0, 5) : topInternal;
