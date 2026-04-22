@@ -57,6 +57,7 @@ import LeadHunter from "./pages/LeadHunter";
 import Agenda from "./pages/Agenda";
 import GeradorLinkPagamento from "./pages/GeradorLinkPagamento";
 import GrafoClientes from "./pages/GrafoClientes";
+import CentralAjuda from "./pages/CentralAjuda";
 import ChamadosPublico from "./pages/public/ChamadosPublico";
 import PropostaPublica from "./pages/public/PropostaPublica";
 import Catalogo from "./pages/public/Catalogo";
@@ -164,6 +165,7 @@ function AppRoutes() {
       <Route path="/agenda" element={<ProtectedRoute permission="view_agenda"><Agenda /></ProtectedRoute>} />
       <Route path="/link-pagamento" element={<ProtectedRoute permission="view_payment_links"><GeradorLinkPagamento /></ProtectedRoute>} />
       <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_client_graph"><GrafoClientes /></ProtectedRoute>} />
+      <Route path="/central-ajuda" element={<ProtectedRoute permission="view_dashboard"><CentralAjuda /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />

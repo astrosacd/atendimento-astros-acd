@@ -260,6 +260,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.followups'), icon: CalendarClock, path: '/followups', adminOnly: !canViewFollowups(), color: 'text-violet-500', gradient: 'from-violet-500 to-purple-500' },
         { title: t('sidebar.tickets'), icon: Ticket, path: '/admin/chamados', adminOnly: !canViewChamados(), color: 'text-orange-500', gradient: 'from-orange-500 to-amber-500' },
         { title: t('sidebar.iaIntelligence'), icon: Brain, path: '/admin/ia', adminOnly: !canViewSalesForecast(), color: 'text-purple-400', gradient: 'from-purple-400 to-indigo-500' },
+        { title: 'Central de Ajuda', icon: HelpCircle, path: '/central-ajuda', color: 'text-sky-400', gradient: 'from-sky-400 to-blue-500' },
       ]
     },
     {
