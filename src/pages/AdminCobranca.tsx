@@ -687,9 +687,11 @@ const AdminCobranca = () => {
         .gte('sent_at', previousMonthStart)
         .lt('sent_at', previousMonthEnd);
 
+      // Excluindo cadastros marcados como administrativo/parceiro/outros (não contam em métricas)
       const { data: allClientes } = await supabase
         .from('clientes')
-        .select('id, valor, data_renovacao, moeda, ciclo_cobranca, cobranca_ativa');
+        .select('id, valor, data_renovacao, moeda, ciclo_cobranca, cobranca_ativa')
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
 
       // Calculate metrics
       const currentSent = currentLogs?.filter(l => l.status === 'sent').length || 0;

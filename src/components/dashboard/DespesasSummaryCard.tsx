@@ -34,10 +34,11 @@ export function DespesasSummaryCard() {
         .from('despesas')
         .select('valor, moeda, status, data_vencimento');
 
-      // Fetch clientes para MRR
+      // Fetch clientes para MRR (excluindo cadastros marcados como administrativo/parceiro/outros)
       const { data: clientes } = await supabase
         .from('clientes')
-        .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao');
+        .select('valor, moeda, cobranca_ativa, ciclo_cobranca, data_renovacao')
+        .or('excluir_metricas.is.null,excluir_metricas.eq.false');
 
       if (!despesas || !clientes) {
         setIsLoading(false);
