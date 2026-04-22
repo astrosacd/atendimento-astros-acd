@@ -381,6 +381,29 @@ export default function ConsultarCliente() {
   const uniqueProducts = [...new Set(allClientes.map(c => c.produto))];
   const uniquePlans = [...new Set(allClientes.map(c => c.plano).filter(Boolean))];
 
+  // Helper para obter o tipo do cadastro (cliente / administrativo / parceiro / outros)
+  const getTipoBadge = (tipo?: string) => {
+    const t = (tipo || 'cliente').toLowerCase();
+    switch (t) {
+      case 'administrativo':
+        return { label: '⚙️ Administrativo', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' };
+      case 'parceiro':
+        return { label: '🤝 Parceiro / Agência', className: 'bg-purple-500/10 text-purple-400 border-purple-500/30' };
+      case 'outros':
+        return { label: '📁 Outros', className: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' };
+      case 'cliente':
+      default:
+        return { label: '💎 Cliente', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+    }
+  };
+
+  // Determina se o cadastro é "não-cliente" (administrativo/parceiro/outros)
+  // Para esses tipos, restringimos as ações às essenciais (apenas pagamentos/lembretes e edição básica)
+  const isNonClientType = (cliente: Cliente) => {
+    const tipo = (cliente.tipo || 'cliente').toLowerCase();
+    return tipo !== 'cliente';
+  };
+
   return (
     <DashboardLayout>
       <div className="flex items-center justify-center p-4">
