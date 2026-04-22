@@ -713,22 +713,24 @@ export default function CadastrarCliente() {
                   <Label className="text-foreground font-medium">Classificação e Métricas</Label>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="tipo" className="text-xs text-muted-foreground uppercase tracking-wider">Tipo de Cadastro</Label>
+                    <Label htmlFor="tipo" className="text-xs text-muted-foreground uppercase tracking-wider">
+                      Tipo de Cadastro <span className="text-destructive">*</span>
+                    </Label>
                     <Select
-                      value={formData.tipo || 'cliente'}
+                      value={formData.tipo || ''}
                       onValueChange={(value) => {
                         const isExcluded = value !== 'cliente';
                         setFormData({ 
                           ...formData, 
                           tipo: value,
-                          excluir_metricas: isExcluded // Sugestão automática: se não for cliente, exclui das métricas
+                          excluir_metricas: isExcluded // Cliente: desmarca | Outros: marca automaticamente
                         });
                       }}
                     >
                       <SelectTrigger id="tipo" className="bg-secondary border-border text-foreground h-11">
-                        <SelectValue placeholder="Selecione o tipo" />
+                        <SelectValue placeholder="Selecione o tipo..." />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
                         <SelectItem value="cliente">💎 Cliente</SelectItem>
