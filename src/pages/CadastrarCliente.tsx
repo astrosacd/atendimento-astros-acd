@@ -743,12 +743,13 @@ export default function CadastrarCliente() {
 
                   <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg border border-border">
                     <div className="space-y-0.5">
-                      <Label htmlFor="excluir_metricas" className="text-sm font-medium cursor-pointer">Ignorar em Métricas/IA</Label>
+                      <Label htmlFor="excluir_metricas" className="text-sm font-medium">Ignorar em Métricas/IA</Label>
                       <p className="text-[10px] text-muted-foreground leading-tight">Não será contabilizado em faturamento e análises de IA.</p>
                     </div>
                     <Switch
                       id="excluir_metricas"
                       checked={formData.excluir_metricas}
+                      disabled={true}
                       onCheckedChange={(checked) => setFormData({ ...formData, excluir_metricas: checked })}
                     />
                   </div>
