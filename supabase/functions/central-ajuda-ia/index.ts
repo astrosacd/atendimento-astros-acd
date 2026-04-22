@@ -76,37 +76,67 @@ serve(async (req: Request) => {
     }
 
     // Build keyword list from question (+ optional produto) for relevance filter
-    const haystackWords = (`${question} ${produto || ""}`)
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const questionNorm = normalize(question);
+    const produtoNorm = produto ? normalize(produto) : "";
+
+    const haystackWords = `${questionNorm} ${produtoNorm}`
       .split(/\W+/)
       .filter((w) => w.length >= 4);
     const uniqueWords = Array.from(new Set(haystackWords));
 
-    const matches = (text: string) => {
+    // Detect price/value intent for boosting price fields
+    const isPriceQuestion = /\b(preco|preço|valor|custa|custo|quanto|cobra|cobranca|cobrança|centavo|centavos|reais|r\$)\b/i.test(question);
+
+    const matches = (text: string, opts?: { isPriceField?: boolean; isTitleField?: boolean }) => {
       if (!text) return 0;
-      const t = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const t = normalize(text);
       let score = 0;
-      for (const w of uniqueWords) if (t.includes(w)) score++;
+      for (const w of uniqueWords) {
+        if (t.includes(w)) {
+          // Title matches weigh much more (helps pick the right product)
+          score += opts?.isTitleField ? 5 : 1;
+        }
+      }
+      // If user is asking about price and this field is the price, give a small boost
+      if (opts?.isPriceField && isPriceQuestion && t.trim().length > 0) {
+        score += 2;
+      }
+      // Strong boost when the produto field is contained in the title
+      if (produtoNorm && opts?.isTitleField && t.includes(produtoNorm)) {
+        score += 10;
+      }
       return score;
     };
 
     const scoredInternal = (internalProducts || [])
       .map((p: any) => ({
         p,
-        score: matches(`${p.nome} ${p.descricao || ""} ${p.beneficios || ""} ${p.categoria || ""} ${p.detalhes_extras || ""}`),
+        score:
+          matches(p.nome || "", { isTitleField: true }) +
+          matches(p.categoria || "", { isTitleField: true }) +
+          matches(p.descricao || "") +
+          matches(p.beneficios || "") +
+          matches(p.detalhes_extras || "") +
+          matches(p.preco || "", { isPriceField: true }),
       }))
       .sort((a, b) => b.score - a.score);
 
     const scoredExternal = externalProducts
       .map((p: any) => ({
         p,
-        score: matches(`${p.titulo_produto || ""} ${p.content || ""}`),
+        score:
+          matches(p.titulo_produto || "", { isTitleField: true }) +
+          matches(p.content || ""),
       }))
       .sort((a, b) => b.score - a.score);
 
-    const topInternal = scoredInternal.filter((x) => x.score > 0).slice(0, 5);
-    const topExternal = scoredExternal.filter((x) => x.score > 0).slice(0, 5);
+    // Be stricter: require a stronger match to include items, and limit to top 3
+    const MIN_SCORE = 2;
+    const topInternal = scoredInternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
+    const topExternal = scoredExternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
 
     // Fallback: if nothing matched, send a slim general catalog so the model still has context
     const useFallbackInternal = topInternal.length === 0 ? scoredInternal.slice(0, 5) : topInternal;
@@ -151,32 +181,48 @@ serve(async (req: Request) => {
       ? "técnico e objetivo"
       : "amigável e profissional";
 
-    const systemPrompt = `Você é um assistente especialista da agência, atuando como uma "Central de Ajuda" para o operador atender clientes.
+    const systemPrompt = `Você é um assistente especialista da agência, atuando como uma "Central de Ajuda" para o operador responder clientes.
 
-OBJETIVO:
-Receber uma dúvida que o cliente fez e gerar uma RESPOSTA PRONTA PARA SER ENVIADA ao cliente via WhatsApp/Email.
+SUA MISSÃO:
+Ler a PERGUNTA EXATA do cliente e gerar uma RESPOSTA PRONTA que responda ESPECIFICAMENTE àquela pergunta — nada mais, nada menos.
 
-REGRAS OBRIGATÓRIAS:
-- Use APENAS as informações fornecidas no contexto (Base Interna e Base Externa). NÃO invente dados, preços, prazos ou políticas.
-- Se a informação não estiver no contexto, deixe isso claro de forma educada e oriente o operador a confirmar com a equipe.
+REGRAS DE FOCO (CRÍTICAS):
+1. RESPONDA APENAS O QUE FOI PERGUNTADO. Se o cliente perguntou sobre PREÇO, responda sobre PREÇO. Se perguntou sobre PRAZO, responda sobre PRAZO. NÃO traga informações de outros produtos ou tópicos não solicitados.
+2. Identifique no contexto fornecido APENAS o trecho que responde à pergunta. Ignore tudo o que não for diretamente relevante.
+3. Se houver MÚLTIPLOS produtos no contexto, escolha APENAS o que melhor corresponde ao produto/assunto da pergunta. NÃO misture produtos diferentes.
+4. NÃO faça introduções genéricas sobre o que a empresa faz. Vá direto ao ponto.
+5. Se a pergunta for sobre um valor específico (ex: "quanto custa o disparo?"), retorne APENAS o valor e a unidade (ex: "R$ 0,20 por disparo"). Não fale sobre outros serviços.
+
+REGRAS DE CONTEÚDO:
+- Use APENAS as informações do contexto (Base Interna e Base Externa). NÃO invente dados, preços, prazos ou políticas.
+- Se a informação EXATA não estiver no contexto, diga educadamente que vai confirmar com o time e retorna em instantes. NÃO chute, NÃO ofereça informação parecida de outro produto.
+- Se o contexto trouxer informação de produto DIFERENTE do que foi perguntado, IGNORE e trate como "informação não disponível".
+
+REGRAS DE FORMATO:
 - Tom de voz: ${toneLabel}.
-- Responda em português brasileiro.
-- Mensagem direta, objetiva, no máximo 5 parágrafos curtos.
-- Use formatação leve do WhatsApp (*negrito*, _itálico_) apenas quando ajudar a leitura.
-- Use emojis com moderação (no máximo 2-3).
-- Não inclua saudações exageradas; pode iniciar com um cumprimento curto usando o nome do cliente.
-- Não exponha que você é uma IA, nem mencione "base de dados" ou "contexto" na resposta final.
-- Se a pergunta envolver preço/prazo/condição que não estiver no contexto, peça ao cliente um momento para confirmar com o time responsável.`;
+- Português brasileiro.
+- Mensagem CURTA e DIRETA: idealmente 1-3 parágrafos curtos. Máximo absoluto de 5 parágrafos.
+- Formatação leve do WhatsApp (*negrito*, _itálico_) apenas quando ajudar.
+- Emojis com moderação (no máximo 2).
+- Cumprimento curto usando o nome do cliente, sem saudações exageradas.
+- NUNCA mencione "base de dados", "contexto", "informações fornecidas" ou que você é uma IA.
+- NUNCA liste produtos ou serviços que o cliente não perguntou.`;
 
     const userPrompt = `Cliente: ${safeName}
 ${safeProduto ? `Produto/Assunto relacionado: ${safeProduto}\n` : ""}
-PERGUNTA DO CLIENTE:
-"${question}"
+PERGUNTA EXATA DO CLIENTE (responda SOMENTE isto):
+"""
+${question}
+"""
 
-CONHECIMENTO DISPONÍVEL:
+CONHECIMENTO DISPONÍVEL (use APENAS o trecho que responde à pergunta acima; ignore o resto):
 ${knowledgeBase}
 
-Gere a mensagem de resposta pronta para o operador copiar e enviar ao cliente.`;
+INSTRUÇÕES FINAIS:
+1. Releia a pergunta do cliente.
+2. Identifique no conhecimento o trecho que responde EXATAMENTE àquela pergunta.
+3. Se não encontrar resposta exata, diga que vai confirmar com o time. NÃO ofereça informação de produto diferente.
+4. Gere a mensagem curta, direta e pronta para o operador copiar e colar.`;
 
     // Resolve provider
     let apiUrl: string;
