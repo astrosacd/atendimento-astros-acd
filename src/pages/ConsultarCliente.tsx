@@ -771,8 +771,8 @@ export default function ConsultarCliente() {
                                   </>
                                 )}
 
-                                {/* Grupo: Análise & Inteligência */}
-                                {isAdmin && (
+                                {/* Grupo: Análise & Inteligência - oculto para tipos não-cliente */}
+                                {isAdmin && !isNonClientType(cliente) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
