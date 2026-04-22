@@ -187,6 +187,16 @@ export default function CadastrarCliente() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação: Tipo de Cadastro é obrigatório
+    if (!formData.tipo) {
+      toast({
+        title: 'Tipo de Cadastro obrigatório',
+        description: 'Selecione o tipo de cadastro antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
     
     const dataToValidate = clienteType === 'registro'
