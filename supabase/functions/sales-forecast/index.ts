@@ -63,12 +63,12 @@ Deno.serve(async (req) => {
       supabase
         .from("client_pipeline")
         .select(
-          "id, stage_id, is_lead, lead_score, moved_at, converted_at, last_interaction_at, lead_produto, chatwoot_conversation_id, notes, cliente:clientes(id, nome, produto, valor, moeda, data_renovacao, cobranca_ativa, created_at)",
+          "id, stage_id, is_lead, lead_score, moved_at, converted_at, last_interaction_at, lead_produto, chatwoot_conversation_id, notes, cliente:clientes(id, nome, produto, valor, moeda, data_renovacao, cobranca_ativa, created_at, excluir_metricas)",
         ),
       // Closed deals last 90 days
       supabase
         .from("client_pipeline")
-        .select("converted_at, stage_id, cliente:clientes(valor, moeda, produto)")
+        .select("converted_at, stage_id, cliente:clientes(valor, moeda, produto, excluir_metricas)")
         .not("converted_at", "is", null)
         .gte("converted_at", ninetyDaysAgo),
       // Historical stage transitions (1 year) for conversion rates per stage
@@ -79,12 +79,12 @@ Deno.serve(async (req) => {
       // Proposals: status by client
       supabase
         .from("proposals")
-        .select("client_id, status, total_value, currency, created_at, signed_at")
+        .select("client_id, status, total_value, currency, created_at, signed_at, cliente:clientes(excluir_metricas)")
         .gte("created_at", ninetyDaysAgo),
       // Follow-ups scheduled / executed
       supabase
         .from("client_followups")
-        .select("cliente_id, status, scheduled_at, next_dispatch_at, conversion_status")
+        .select("cliente_id, status, scheduled_at, next_dispatch_at, conversion_status, cliente:clientes(excluir_metricas)")
         .gte("created_at", ninetyDaysAgo),
     ]);
 
@@ -92,11 +92,11 @@ Deno.serve(async (req) => {
     if (pipelineRes.error) throw pipelineRes.error;
 
     const stages = stagesRes.data ?? [];
-    const pipeline = pipelineRes.data ?? [];
-    const recentClosed = recentClosedRes.data ?? [];
+    const pipeline = (pipelineRes.data ?? []).filter((p: any) => !p.cliente?.excluir_metricas);
+    const recentClosed = (recentClosedRes.data ?? []).filter((p: any) => !p.cliente?.excluir_metricas);
     const historicalMoves = historicalMovesRes.data ?? [];
-    const proposals = proposalsRes.data ?? [];
-    const followups = followupsRes.data ?? [];
+    const proposals = (proposalsRes.data ?? []).filter((p: any) => !p.cliente?.excluir_metricas);
+    const followups = (followupsRes.data ?? []).filter((p: any) => !p.cliente?.excluir_metricas);
 
     // Build proposal map by client_id
     const proposalsByClient = new Map<string, any[]>();
