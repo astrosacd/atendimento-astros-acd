@@ -669,13 +669,26 @@ export default function ConsultarCliente() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <h3 className={`text-lg font-semibold capitalize font-display ${
                               cliente.cobranca_ativa === false ? 'text-amber-500' : 'text-info'
                             }`}>{cliente.nome}</h3>
+                            {(() => {
+                              const badge = getTipoBadge(cliente.tipo);
+                              return (
+                                <Badge variant="outline" className={`text-[10px] ${badge.className}`}>
+                                  {badge.label}
+                                </Badge>
+                              );
+                            })()}
                             {cliente.cobranca_ativa === false && (
                               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
                                 {t('clients.registrationOnly')}
+                              </Badge>
+                            )}
+                            {cliente.excluir_metricas && (
+                              <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px]" title="Este cadastro é ignorado em métricas e análises de IA">
+                                🚫 Fora das métricas
                               </Badge>
                             )}
                           </div>
