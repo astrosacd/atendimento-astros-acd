@@ -79,7 +79,7 @@ export default function CadastrarCliente() {
     tags: [],
     cobranca_ativa: true,
     ciclo_cobranca: 'mensal',
-    tipo: 'cliente',
+    tipo: '',
     excluir_metricas: false,
   });
   
