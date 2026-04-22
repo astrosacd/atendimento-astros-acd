@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Loader2, Copy, Check, HelpCircle, RefreshCw, Trash2, BookOpen } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Sparkles, Loader2, Copy, Check, HelpCircle, RefreshCw, Trash2, BookOpen, ChevronDown, FileCode, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSystemActivities } from '@/hooks/useSystemActivities';
@@ -30,6 +31,55 @@ export default function CentralAjuda() {
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AnswerResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [aiConfig, setAiConfig] = useState<{ provider: string; model: string }>({ provider: 'lovable', model: '' });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('followup_config')
+        .select('config_key, config_value')
+        .in('config_key', ['ai_provider', 'ai_model']);
+      if (data) {
+        const get = (k: string) => data.find((c: any) => c.config_key === k)?.config_value || '';
+        setAiConfig({
+          provider: get('ai_provider') || 'lovable',
+          model: get('ai_model') || '',
+        });
+      }
+    })();
+  }, []);
+
+  const SYSTEM_PROMPT_PREVIEW = `Você é um assistente especialista da agência, atuando como uma "Central de Ajuda" para o operador atender clientes.
+
+OBJETIVO:
+Receber uma dúvida que o cliente fez e gerar uma RESPOSTA PRONTA PARA SER ENVIADA ao cliente via WhatsApp/Email.
+
+REGRAS OBRIGATÓRIAS:
+- Use APENAS as informações fornecidas no contexto (Base Interna e Base Externa). NÃO invente dados, preços, prazos ou políticas.
+- Se a informação não estiver no contexto, deixe isso claro de forma educada e oriente o operador a confirmar com a equipe.
+- Tom de voz: <amigável | formal | técnico> (selecionável na interface).
+- Responda em português brasileiro.
+- Mensagem direta, objetiva, no máximo 5 parágrafos curtos.
+- Use formatação leve do WhatsApp (*negrito*, _itálico_) apenas quando ajudar a leitura.
+- Use emojis com moderação (no máximo 2-3).
+- Não inclua saudações exageradas; pode iniciar com um cumprimento curto usando o nome do cliente.
+- Não exponha que você é uma IA, nem mencione "base de dados" ou "contexto" na resposta final.
+- Se a pergunta envolver preço/prazo/condição que não estiver no contexto, peça ao cliente um momento para confirmar com o time responsável.`;
+
+  const USER_PROMPT_PREVIEW = `Cliente: <nome>
+Produto/Assunto relacionado: <produto> (se informado)
+
+PERGUNTA DO CLIENTE:
+"<pergunta digitada>"
+
+CONHECIMENTO DISPONÍVEL:
+=== BASE INTERNA (Produtos da Agência) ===
+<top 5 produtos da tabela agency_products mais relevantes à pergunta>
+
+=== BASE EXTERNA ===
+<top 5 itens da tabela base_produtos_acd do projeto externo, mesma anon key do Follow-up>
+
+Gere a mensagem de resposta pronta para o operador copiar e enviar ao cliente.`;
 
   const handleAsk = async () => {
     if (!question.trim() || question.trim().length < 3) {
@@ -288,7 +338,7 @@ export default function CentralAjuda() {
           <CardContent className="pt-6">
             <div className="flex items-start gap-3 text-sm text-muted-foreground">
               <BookOpen className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-              <div className="space-y-1">
+              <div className="space-y-1 flex-1">
                 <p className="text-foreground font-medium">Como funciona</p>
                 <p>
                   A IA consulta automaticamente a base interna de produtos da agência e a base externa
@@ -297,6 +347,69 @@ export default function CentralAjuda() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Transparência: provedor de IA + prompt usado */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Zap className="h-4 w-4 text-primary" />
+              Configuração de IA ativa
+            </CardTitle>
+            <CardDescription>
+              A Central de Ajuda reaproveita o provedor configurado no módulo Follow-up.
+              Para trocar (Lovable / OpenAI / Groq), edite em <strong>Follow-up → Configurações → IA</strong>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="default" className="text-xs">
+                Provedor: {aiConfig.provider}
+              </Badge>
+              {aiConfig.model && (
+                <Badge variant="secondary" className="text-xs">
+                  Modelo: {aiConfig.model}
+                </Badge>
+              )}
+              {!aiConfig.model && (
+                <Badge variant="outline" className="text-xs">
+                  Modelo: padrão do provedor
+                </Badge>
+              )}
+            </div>
+
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <FileCode className="h-4 w-4" />
+                  Ver prompt usado pela IA
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                    System Prompt (instruções fixas no servidor)
+                  </Label>
+                  <pre className="bg-muted/50 border rounded-md p-3 text-xs whitespace-pre-wrap font-mono text-foreground/80 max-h-72 overflow-auto">
+{SYSTEM_PROMPT_PREVIEW}
+                  </pre>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                    User Prompt (montado dinamicamente a cada consulta)
+                  </Label>
+                  <pre className="bg-muted/50 border rounded-md p-3 text-xs whitespace-pre-wrap font-mono text-foreground/80 max-h-72 overflow-auto">
+{USER_PROMPT_PREVIEW}
+                  </pre>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ℹ️ Este prompt é <strong>independente</strong> do prompt do Follow-up. O Follow-up usa um
+                  prompt de vendas/reengajamento; aqui usamos um prompt de atendimento/suporte.
+                </p>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
       </div>
