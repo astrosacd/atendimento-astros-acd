@@ -815,8 +815,8 @@ export default function ConsultarCliente() {
                                   </>
                                 )}
 
-                                {/* Grupo: Recursos & Credenciais */}
-                                {(cliente.cobranca_ativa === false || canViewSocialCredentials() || canViewServerCredentials() || isAdmin || canCreateWhatsAppGroups()) && (
+                                {/* Grupo: Recursos & Credenciais - oculto para tipos não-cliente */}
+                                {!isNonClientType(cliente) && (cliente.cobranca_ativa === false || canViewSocialCredentials() || canViewServerCredentials() || isAdmin || canCreateWhatsAppGroups()) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
