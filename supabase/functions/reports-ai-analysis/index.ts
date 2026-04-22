@@ -46,14 +46,15 @@ serve(async (req) => {
     try {
       const { data: allClientesRaw } = await supabase
         .from("clientes")
-        .select("id, nome, cpf, email, numero, produto, valor, moeda, ciclo_cobranca, data_renovacao, cobranca_ativa, plano");
+        .select("id, nome, cpf, email, numero, produto, valor, moeda, ciclo_cobranca, data_renovacao, cobranca_ativa, plano, excluir_metricas");
 
       if (allClientesRaw && allClientesRaw.length > 0) {
+        const allClientes = allClientesRaw.filter((c: any) => !c.excluir_metricas);
         const normalizeDigits = (v: any) => (v ? String(v).replace(/\D/g, "").trim() : "");
         const normalizeEmail = (v: any) => (v ? String(v).toLowerCase().trim() : "");
 
         const groupsMap = new Map<string, any[]>();
-        for (const c of allClientesRaw) {
+        for (const c of allClientes) {
           const cpf = normalizeDigits(c.cpf);
           const email = normalizeEmail(c.email);
           const numero = normalizeDigits(c.numero);
@@ -138,22 +139,23 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
     if (scheduled) {
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome, data_renovacao, valor, moeda, ciclo_cobranca, plano")
+        .select("id, nome, data_renovacao, valor, moeda, ciclo_cobranca, plano, excluir_metricas")
         .eq("cobranca_ativa", true);
 
       if (clientes) {
+        const activeClientes = clientes.filter((c: any) => !c.excluir_metricas);
         const now = new Date();
-        const atRisk = clientes.filter((c: any) => {
+        const atRisk = activeClientes.filter((c: any) => {
           const renovacao = new Date(c.data_renovacao);
           const daysUntil = Math.ceil((renovacao.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           return daysUntil <= 15 && daysUntil >= -30;
         });
 
         const CICLO_MESES: Record<string, number> = { mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 };
-        const mrrBRL = clientes
+        const mrrBRL = activeClientes
           .filter((c: any) => (c.moeda || "BRL") === "BRL")
           .reduce((acc: number, c: any) => acc + c.valor / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
-        const mrrUSD = clientes
+        const mrrUSD = activeClientes
           .filter((c: any) => c.moeda === "USD")
           .reduce((acc: number, c: any) => acc + c.valor / (CICLO_MESES[c.ciclo_cobranca] || 1), 0);
 
@@ -161,7 +163,7 @@ ${JSON.stringify(consolidatedGroups, null, 2)}
 
 MRR BRL: R$ ${mrrBRL.toFixed(2)}
 MRR USD: $ ${mrrUSD.toFixed(2)}
-Total de clientes ativos: ${clientes.length}
+Total de clientes ativos: ${activeClientes.length}
 
 Clientes em risco (renovação próxima ou atrasada):
 ${atRisk.map((c: any) => `- ${c.nome}: renovação ${c.data_renovacao}, valor ${c.moeda || "BRL"} ${c.valor}, plano: ${c.plano || "N/A"}`).join("\n")}`;
