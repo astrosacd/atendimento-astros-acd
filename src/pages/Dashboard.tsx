@@ -169,9 +169,12 @@ export default function Dashboard() {
     
     const fetchStats = async () => {
       // Fetch all clients for stats
-      const { data: clientes } = await supabase
+      const { data: allClientes } = await supabase
         .from('clientes')
         .select('*');
+
+      // Filter out clients marked to be excluded from metrics
+      const clientes = allClientes?.filter(c => !c.excluir_metricas) || [];
 
       // Fetch purchase history for registro clients
       const { data: purchases } = await supabase

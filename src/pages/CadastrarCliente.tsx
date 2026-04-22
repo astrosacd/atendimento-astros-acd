@@ -78,6 +78,8 @@ export default function CadastrarCliente() {
     tags: [],
     cobranca_ativa: true,
     ciclo_cobranca: 'mensal',
+    tipo: 'cliente',
+    excluir_metricas: false,
   });
   
   const [showConfirmation, setShowConfirmation] = useState(false);

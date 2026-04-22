@@ -36,6 +36,8 @@ export interface Cliente {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  tipo?: string;
+  excluir_metricas?: boolean;
 }
 
 export interface ClienteInput {
@@ -52,6 +54,8 @@ export interface ClienteInput {
   tags?: string[];
   cobranca_ativa?: boolean;
   ciclo_cobranca?: CicloCobranca;
+  tipo?: string;
+  excluir_metricas?: boolean;
 }
 
 export const useClientes = () => {
