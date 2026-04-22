@@ -381,6 +381,29 @@ export default function ConsultarCliente() {
   const uniqueProducts = [...new Set(allClientes.map(c => c.produto))];
   const uniquePlans = [...new Set(allClientes.map(c => c.plano).filter(Boolean))];
 
+  // Helper para obter o tipo do cadastro (cliente / administrativo / parceiro / outros)
+  const getTipoBadge = (tipo?: string) => {
+    const t = (tipo || 'cliente').toLowerCase();
+    switch (t) {
+      case 'administrativo':
+        return { label: '⚙️ Administrativo', className: 'bg-slate-500/10 text-slate-400 border-slate-500/30' };
+      case 'parceiro':
+        return { label: '🤝 Parceiro / Agência', className: 'bg-purple-500/10 text-purple-400 border-purple-500/30' };
+      case 'outros':
+        return { label: '📁 Outros', className: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30' };
+      case 'cliente':
+      default:
+        return { label: '💎 Cliente', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+    }
+  };
+
+  // Determina se o cadastro é "não-cliente" (administrativo/parceiro/outros)
+  // Para esses tipos, restringimos as ações às essenciais (apenas pagamentos/lembretes e edição básica)
+  const isNonClientType = (cliente: Cliente) => {
+    const tipo = (cliente.tipo || 'cliente').toLowerCase();
+    return tipo !== 'cliente';
+  };
+
   return (
     <DashboardLayout>
       <div className="flex items-center justify-center p-4">
@@ -646,13 +669,26 @@ export default function ConsultarCliente() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <h3 className={`text-lg font-semibold capitalize font-display ${
                               cliente.cobranca_ativa === false ? 'text-amber-500' : 'text-info'
                             }`}>{cliente.nome}</h3>
+                            {(() => {
+                              const badge = getTipoBadge(cliente.tipo);
+                              return (
+                                <Badge variant="outline" className={`text-[10px] ${badge.className}`}>
+                                  {badge.label}
+                                </Badge>
+                              );
+                            })()}
                             {cliente.cobranca_ativa === false && (
                               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs">
                                 {t('clients.registrationOnly')}
+                              </Badge>
+                            )}
+                            {cliente.excluir_metricas && (
+                              <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px]" title="Este cadastro é ignorado em métricas e análises de IA">
+                                🚫 Fora das métricas
                               </Badge>
                             )}
                           </div>
@@ -735,8 +771,8 @@ export default function ConsultarCliente() {
                                   </>
                                 )}
 
-                                {/* Grupo: Análise & Inteligência */}
-                                {isAdmin && (
+                                {/* Grupo: Análise & Inteligência - oculto para tipos não-cliente */}
+                                {isAdmin && !isNonClientType(cliente) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
@@ -779,8 +815,8 @@ export default function ConsultarCliente() {
                                   </>
                                 )}
 
-                                {/* Grupo: Recursos & Credenciais */}
-                                {(cliente.cobranca_ativa === false || canViewSocialCredentials() || canViewServerCredentials() || isAdmin || canCreateWhatsAppGroups()) && (
+                                {/* Grupo: Recursos & Credenciais - oculto para tipos não-cliente */}
+                                {!isNonClientType(cliente) && (cliente.cobranca_ativa === false || canViewSocialCredentials() || canViewServerCredentials() || isAdmin || canCreateWhatsAppGroups()) && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
