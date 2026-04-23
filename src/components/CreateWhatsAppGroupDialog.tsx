@@ -328,8 +328,8 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+        <DialogHeader className="pr-10 sm:pr-0">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Users className="h-5 w-5 text-primary" />
             Grupo WhatsApp — {clienteName}
           </DialogTitle>
