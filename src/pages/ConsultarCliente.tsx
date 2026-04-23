@@ -1215,6 +1215,22 @@ export default function ConsultarCliente() {
           onOpenChange={() => setServerClienteId(null)}
         />
 
+        {/* Upsell / Cross-sell IA */}
+        <Dialog open={!!upsellClienteId} onOpenChange={(open) => !open && setUpsellClienteId(null)}>
+          <DialogContent className="max-w-2xl bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-yellow-500" />
+                Sugestões de Upsell / Cross-sell - {upsellClienteName}
+              </DialogTitle>
+            </DialogHeader>
+            <ClientAIUpsell 
+              clienteId={upsellClienteId || ''} 
+              clienteNome={upsellClienteName} 
+            />
+          </DialogContent>
+        </Dialog>
+
         {/* WhatsApp Group Creation */}
         <CreateWhatsAppGroupDialog
           clienteId={groupClienteId || ''}
