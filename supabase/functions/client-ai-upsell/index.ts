@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     // Fetch client info, history and available products
-    const [clienteRes, historyRes, productsRes, commonProductsRes] = await Promise.all([
+    const [clienteRes, historyRes, productsRes, popularRes] = await Promise.all([
       supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle(),
       supabase
         .from("client_purchases")
@@ -45,32 +45,26 @@ serve(async (req) => {
         .eq("cliente_id", clienteId)
         .order("data_compra", { ascending: false }),
       supabase.from("gateway_products").select("*").eq("status", "active"),
-      supabase.rpc('get_common_products') // We might need to create this or use a simple query
+      supabase.from("clientes").select("produto").not("produto", "is", null).limit(100)
     ]);
-
-    // Fallback if RPC doesn't exist or is empty
-    let availableProducts = productsRes.data || [];
-    if (availableProducts.length === 0) {
-      const { data: popular } = await supabase
-        .from("clientes")
-        .select("produto")
-        .not("produto", "is", null)
-        .limit(50);
-      
-      const counts: Record<string, number> = {};
-      popular?.forEach(p => {
-        counts[p.produto] = (counts[p.produto] || 0) + 1;
-      });
-      
-      availableProducts = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([name]) => ({ name, status: 'active' }));
-    }
 
     const cliente = clienteRes.data;
     if (!cliente) {
       return json({ error: "Cliente não encontrado" }, 404);
+    }
+
+    // Prepare available products list
+    let availableProducts = productsRes.data || [];
+    if (availableProducts.length === 0 && popularRes.data) {
+      // Fallback: list of most common products in the DB
+      const counts: Record<string, number> = {};
+      popularRes.data.forEach(p => {
+        counts[p.produto] = (counts[p.produto] || 0) + 1;
+      });
+      availableProducts = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([name]) => ({ name, status: 'active', description: 'Produto popular na base' }));
     }
 
     const context = {
@@ -82,7 +76,7 @@ serve(async (req) => {
         observacao: cliente.observacao,
       },
       historico_compras: historyRes.data || [],
-      produtos_disponiveis: productsRes.data || [],
+      produtos_disponiveis: availableProducts,
     };
 
     const systemPrompt = `Você é um especialista em vendas e customer success.
@@ -95,7 +89,7 @@ Retorne APENAS um JSON válido no seguinte formato:
 {
   "suggestions": [
     {
-      "product_id": "uuid-do-produto",
+      "product_id": "uuid-ou-nome",
       "product_name": "Nome do Produto",
       "type": "upsell" | "cross-sell",
       "reason": "Explicação curta de por que este produto é ideal para este cliente agora",
@@ -152,12 +146,16 @@ Seja realista e baseie-se estritamente nos dados fornecidos. Se não houver boas
         return json({ error: "Resposta da IA em formato inválido" }, 500);
     }
 
-    // Save suggestions to database
-    await supabase.from("client_ai_upsell_suggestions").insert({
-        cliente_id: clienteId,
-        suggestions: parsedSuggestions,
-        last_analysis_at: new Date().toISOString()
-    });
+    // Save suggestions to database (optional, but we created the table so let's use it)
+    try {
+        await supabase.from("client_ai_upsell_suggestions").insert({
+            cliente_id: clienteId,
+            suggestions: parsedSuggestions,
+            last_analysis_at: new Date().toISOString()
+        });
+    } catch (dbErr) {
+        console.error("Error saving suggestions to DB:", dbErr);
+    }
 
     return json(parsedSuggestions);
 
