@@ -816,6 +816,18 @@ export default function ConsultarCliente() {
                                         <span>Insights de IA</span>
                                       </DropdownMenuItem>
                                     )}
+                                    {canViewUpsell && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setUpsellClienteId(cliente.id);
+                                          setUpsellClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                        <span>Upsell / Cross-sell IA</span>
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
 
