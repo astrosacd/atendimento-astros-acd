@@ -26,8 +26,11 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // Public client using only anon key to bypass user-specific RLS if needed for product data
+    const publicClient = createClient(supabaseUrl, supabaseAnonKey);
+
     const body = await req.json().catch(() => ({}));
-    const { clienteId, model = "google/gemini-2.0-flash" } = body as {
+    const { clienteId, model = "google/gemini-2.5-flash" } = body as {
       clienteId?: string;
       model?: string;
     };
@@ -36,16 +39,17 @@ serve(async (req) => {
       return json({ error: "clienteId é obrigatório" }, 400);
     }
 
-    // Fetch client info, history and available products
-    const [clienteRes, historyRes, productsRes, popularRes] = await Promise.all([
+    // Fetch client info, history, available products and followups
+    const [clienteRes, historyRes, productsRes, popularRes, followupsRes] = await Promise.all([
       supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle(),
       supabase
         .from("client_purchases")
         .select("produto, valor, data_compra")
         .eq("cliente_id", clienteId)
         .order("data_compra", { ascending: false }),
-      supabase.from("gateway_products").select("*").eq("status", "active"),
-      supabase.from("clientes").select("produto").not("produto", "is", null).limit(100)
+      publicClient.from("gateway_products").select("*").eq("status", "active"),
+      publicClient.from("clientes").select("produto").not("produto", "is", null).limit(100),
+      supabase.from("client_followups").select("*").eq("cliente_id", clienteId).order("created_at", { ascending: false })
     ]);
 
     const cliente = clienteRes.data;
@@ -77,10 +81,11 @@ serve(async (req) => {
       },
       historico_compras: historyRes.data || [],
       produtos_disponiveis: availableProducts,
+      historico_followups: followupsRes.data || [],
     };
 
     const systemPrompt = `Você é um especialista em vendas e customer success.
-Sua tarefa é analisar o histórico de compras de um cliente e os produtos disponíveis na plataforma para sugerir oportunidades de Upsell ou Cross-sell.
+Sua tarefa é analisar o histórico de compras e o histórico de follow-ups (conversas e tentativas de contato) de um cliente, além dos produtos disponíveis na plataforma, para sugerir oportunidades de Upsell ou Cross-sell.
 
 Upsell: Sugerir uma versão superior ou mais cara do produto que o cliente já possui.
 Cross-sell: Sugerir produtos complementares ao que o cliente já possui.
