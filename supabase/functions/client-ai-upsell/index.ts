@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     // Fetch client info, history and available products
-    const [clienteRes, historyRes, productsRes] = await Promise.all([
+    const [clienteRes, historyRes, productsRes, commonProductsRes] = await Promise.all([
       supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle(),
       supabase
         .from("client_purchases")
@@ -45,7 +45,28 @@ serve(async (req) => {
         .eq("cliente_id", clienteId)
         .order("data_compra", { ascending: false }),
       supabase.from("gateway_products").select("*").eq("status", "active"),
+      supabase.rpc('get_common_products') // We might need to create this or use a simple query
     ]);
+
+    // Fallback if RPC doesn't exist or is empty
+    let availableProducts = productsRes.data || [];
+    if (availableProducts.length === 0) {
+      const { data: popular } = await supabase
+        .from("clientes")
+        .select("produto")
+        .not("produto", "is", null)
+        .limit(50);
+      
+      const counts: Record<string, number> = {};
+      popular?.forEach(p => {
+        counts[p.produto] = (counts[p.produto] || 0) + 1;
+      });
+      
+      availableProducts = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name]) => ({ name, status: 'active' }));
+    }
 
     const cliente = clienteRes.data;
     if (!cliente) {
