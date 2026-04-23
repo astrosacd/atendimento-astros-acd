@@ -1217,8 +1217,8 @@ export default function ConsultarCliente() {
 
         {/* Upsell / Cross-sell IA */}
         <Dialog open={!!upsellClienteId} onOpenChange={(open) => !open && setUpsellClienteId(null)}>
-          <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-card border-border p-4 sm:p-6">
-            <DialogHeader className="pr-10 sm:pr-0">
+          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:w-full bg-card border-border p-0 flex flex-col overflow-hidden">
+            <DialogHeader className="p-4 sm:p-6 pb-0 sm:pb-0 pr-10 sm:pr-0">
               <DialogTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg">
                 <Sparkles className="w-5 h-5 text-yellow-500" />
                 Sugestões de Upsell - {upsellClienteName}
