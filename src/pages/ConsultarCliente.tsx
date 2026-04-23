@@ -50,6 +50,7 @@ import { ClientAIInsights } from '@/components/ClientAIInsights';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
+import { ClientAIUpsell } from '@/components/ClientAIUpsell';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -80,6 +81,8 @@ export default function ConsultarCliente() {
   const [graphClienteName, setGraphClienteName] = useState<string>('');
   const [aiClienteId, setAiClienteId] = useState<string | null>(null);
   const [aiClienteName, setAiClienteName] = useState<string>('');
+  const [upsellClienteId, setUpsellClienteId] = useState<string | null>(null);
+  const [upsellClienteName, setUpsellClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
   const [serverClienteId, setServerClienteId] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export default function ConsultarCliente() {
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
+  const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
