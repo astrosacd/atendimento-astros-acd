@@ -1115,7 +1115,7 @@ export default function ConsultarCliente() {
         {/* AI Insights Dialog */}
         <Dialog open={!!aiClienteId} onOpenChange={() => setAiClienteId(null)}>
           <DialogContent className="!bg-card border border-border max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
-            <DialogHeader className="px-6 pt-6">
+            <DialogHeader className="px-6 pt-6 pr-12 sm:pr-6">
               <DialogTitle>Insights de IA</DialogTitle>
               <DialogDescription>
                 Briefing automático para reuniões e análise de risco de churn
@@ -1217,17 +1217,19 @@ export default function ConsultarCliente() {
 
         {/* Upsell / Cross-sell IA */}
         <Dialog open={!!upsellClienteId} onOpenChange={(open) => !open && setUpsellClienteId(null)}>
-          <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-card border-border p-4 sm:p-6">
-            <DialogHeader className="pr-10 sm:pr-0">
+          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:w-full bg-card border-border p-0 flex flex-col overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pr-12 sm:pr-6">
               <DialogTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg">
                 <Sparkles className="w-5 h-5 text-yellow-500" />
                 Sugestões de Upsell - {upsellClienteName}
               </DialogTitle>
             </DialogHeader>
-            <ClientAIUpsell 
-              clienteId={upsellClienteId || ''} 
-              clienteNome={upsellClienteName} 
-            />
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2">
+              <ClientAIUpsell 
+                clienteId={upsellClienteId || ''} 
+                clienteNome={upsellClienteName} 
+              />
+            </div>
           </DialogContent>
         </Dialog>
 
