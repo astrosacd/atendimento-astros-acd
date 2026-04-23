@@ -222,11 +222,22 @@ serve(async (req: Request) => {
     }
 
     if (useFallbackExternal.length > 0) {
-      knowledgeBase += (knowledgeBase ? "\n\n" : "") + "=== BASE EXTERNA ===\n";
+      knowledgeBase += (knowledgeBase ? "\n\n" : "") + "=== BASE EXTERNA (Catálogo de Produtos) ===\n";
       knowledgeBase += useFallbackExternal
         .map(({ p }: any) => {
           const parts = [`Título: ${p.titulo_produto || "sem título"}`];
-          if (p.content) parts.push(`Conteúdo: ${String(p.content).substring(0, 1500)}`);
+          const fullContent = String(p.content || "");
+          if (fullContent) {
+            // Para perguntas de preço, destaca a seção de valores no topo
+            if (isPriceQuestion) {
+              const priceSection = extractPriceSection(fullContent);
+              if (priceSection) {
+                parts.push(`💰 INFORMAÇÕES DE PREÇO/PLANOS:\n${priceSection}`);
+              }
+            }
+            // Conteúdo completo aumentado para 4000 chars (cabe descrição + FAQ relevante)
+            parts.push(`Conteúdo completo:\n${fullContent.substring(0, 4000)}`);
+          }
           return parts.join("\n");
         })
         .join("\n---\n");
