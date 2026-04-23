@@ -165,8 +165,6 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
                       </div>
                     </div>
                   ))
-                    </div>
-                  ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground border border-dashed rounded-xl">
                     <p className="text-sm">Nenhuma sugestão relevante no momento.</p>
