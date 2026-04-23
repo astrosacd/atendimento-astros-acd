@@ -75,38 +75,91 @@ serve(async (req: Request) => {
       }
     }
 
-    // Build keyword list from question (+ optional produto) for relevance filter
+    // ---- Build keyword list & intent detection ----
     const normalize = (s: string) =>
       s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // Stopwords PT que não ajudam na busca
+    const STOPWORDS = new Set([
+      "qual", "quais", "como", "onde", "quando", "porque", "por que", "para", "pelo", "pela",
+      "esse", "essa", "isso", "aquele", "aquela", "aquilo", "este", "esta", "isto",
+      "tem", "ter", "tenho", "temos", "estao", "estar", "ser", "sao", "foi", "era",
+      "dos", "das", "uma", "uns", "umas", "com", "sem", "sob", "sobre", "entre",
+      "mais", "menos", "muito", "pouco", "tudo", "nada", "algo", "voce", "voces",
+      "minha", "meu", "seu", "sua", "nosso", "nossa", "deles", "delas",
+      "tabela", "lista", "informacao", "informacoes", "dados", "detalhe", "detalhes",
+      "favor", "obrigado", "obrigada", "ajuda", "duvida", "pergunta",
+    ]);
+
+    // Sinônimos / expansão de termos comuns na agência
+    const SYNONYMS: Record<string, string[]> = {
+      disparo: ["disparador", "disparos", "envio", "envios", "mensagem", "mensagens", "acdbot", "marketing"],
+      disparador: ["disparo", "disparos", "envio", "envios", "acdbot"],
+      preco: ["valor", "valores", "plano", "planos", "mensal", "mensais", "anual", "custa", "custo"],
+      valor: ["preco", "preços", "plano", "planos", "tabela", "custa"],
+      valores: ["preco", "preços", "planos", "tabela"],
+      plano: ["preco", "valor", "valores", "mensalidade", "assinatura"],
+      planos: ["preco", "valores", "mensalidade", "assinatura"],
+      numero: ["aquecido", "aquecimento", "blindado", "contingencia", "chip"],
+      numeros: ["aquecidos", "aquecimento", "blindados", "contingencia", "chips"],
+      aquecimento: ["aquecido", "aquecidos", "zapheat", "blindado", "maturacao"],
+      aquecido: ["aquecimento", "blindado", "zapheat"],
+      banimento: ["desbanimento", "banido", "bloqueado", "bloqueio", "ban"],
+      desbanimento: ["banimento", "banido", "desbanir", "recuperar"],
+      grupo: ["grupos", "wagroup", "comunidade"],
+      ia: ["inteligencia", "agente", "automacao", "bot"],
+      site: ["landing", "page", "pagina", "criacao"],
+      trafego: ["anuncio", "anuncios", "ads", "facebook", "google", "meta"],
+      sms: ["rcs", "mensagem"],
+    };
+
+    const expandTerms = (text: string): Set<string> => {
+      const out = new Set<string>();
+      const words = normalize(text).split(/\W+/).filter((w) => w.length >= 3 && !STOPWORDS.has(w));
+      for (const w of words) {
+        out.add(w);
+        const syns = SYNONYMS[w];
+        if (syns) syns.forEach((s) => out.add(normalize(s)));
+      }
+      return out;
+    };
 
     const questionNorm = normalize(question);
     const produtoNorm = produto ? normalize(produto) : "";
 
-    const haystackWords = `${questionNorm} ${produtoNorm}`
-      .split(/\W+/)
-      .filter((w) => w.length >= 4);
-    const uniqueWords = Array.from(new Set(haystackWords));
+    const expandedTerms = Array.from(
+      new Set([...expandTerms(question), ...expandTerms(produto || "")])
+    );
 
-    // Detect price/value intent for boosting price fields
-    const isPriceQuestion = /\b(preco|preço|valor|custa|custo|quanto|cobra|cobranca|cobrança|centavo|centavos|reais|r\$)\b/i.test(question);
+    // Detect intents
+    const isPriceQuestion = /\b(preco|preço|valor|valores|custa|custo|quanto|cobra|cobranca|cobrança|centavo|centavos|reais|r\$|tabela|plano|planos|mensalidade|assinatura)\b/i.test(question);
+    const isFAQQuestion = /\b(como|funciona|posso|consigo|onde|quando|porque|por que|preciso|tem como|funcionalidade|recurso)\b/i.test(question);
 
-    const matches = (text: string, opts?: { isPriceField?: boolean; isTitleField?: boolean }) => {
+    const matches = (text: string, opts?: { isPriceField?: boolean; isTitleField?: boolean; isContentField?: boolean }) => {
       if (!text) return 0;
       const t = normalize(text);
       let score = 0;
-      for (const w of uniqueWords) {
-        if (t.includes(w)) {
-          // Title matches weigh much more (helps pick the right product)
-          score += opts?.isTitleField ? 5 : 1;
+      for (const w of expandedTerms) {
+        if (!w) continue;
+        // Match palavra inteira (com fronteiras) vale mais que substring
+        const wholeWord = new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t);
+        if (wholeWord) {
+          score += opts?.isTitleField ? 6 : opts?.isContentField ? 2 : 1;
+        } else if (t.includes(w)) {
+          score += opts?.isTitleField ? 3 : 1;
         }
       }
-      // If user is asking about price and this field is the price, give a small boost
+      // Boost preço quando a pergunta é sobre valor
       if (opts?.isPriceField && isPriceQuestion && t.trim().length > 0) {
-        score += 2;
+        score += 5;
+      }
+      // Boost forte se conteúdo contém "preco/valor/plano" e pergunta é sobre valor
+      if (opts?.isContentField && isPriceQuestion) {
+        if (/(r\$|preco|preço|plano|valor|mensal|anual)/i.test(t)) score += 3;
       }
       // Strong boost when the produto field is contained in the title
       if (produtoNorm && opts?.isTitleField && t.includes(produtoNorm)) {
-        score += 10;
+        score += 15;
       }
       return score;
     };
@@ -117,9 +170,9 @@ serve(async (req: Request) => {
         score:
           matches(p.nome || "", { isTitleField: true }) +
           matches(p.categoria || "", { isTitleField: true }) +
-          matches(p.descricao || "") +
-          matches(p.beneficios || "") +
-          matches(p.detalhes_extras || "") +
+          matches(p.descricao || "", { isContentField: true }) +
+          matches(p.beneficios || "", { isContentField: true }) +
+          matches(p.detalhes_extras || "", { isContentField: true }) +
           matches(p.preco || "", { isPriceField: true }),
       }))
       .sort((a, b) => b.score - a.score);
@@ -129,18 +182,28 @@ serve(async (req: Request) => {
         p,
         score:
           matches(p.titulo_produto || "", { isTitleField: true }) +
-          matches(p.content || ""),
+          matches(p.content || "", { isContentField: true }),
       }))
       .sort((a, b) => b.score - a.score);
 
-    // Be stricter: require a stronger match to include items, and limit to top 3
-    const MIN_SCORE = 2;
-    const topInternal = scoredInternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
-    const topExternal = scoredExternal.filter((x) => x.score >= MIN_SCORE).slice(0, 3);
+    const MIN_SCORE = 3;
+    const topInternal = scoredInternal.filter((x) => x.score >= MIN_SCORE).slice(0, 4);
+    const topExternal = scoredExternal.filter((x) => x.score >= MIN_SCORE).slice(0, 4);
 
-    // Fallback: if nothing matched, send a slim general catalog so the model still has context
-    const useFallbackInternal = topInternal.length === 0 ? scoredInternal.slice(0, 5) : topInternal;
-    const useFallbackExternal = topExternal.length === 0 ? scoredExternal.slice(0, 5) : topExternal;
+    // Fallback: se nada bateu, manda catálogo geral mais rico para a IA escolher
+    const useFallbackInternal = topInternal.length === 0 ? scoredInternal.slice(0, 6) : topInternal;
+    const useFallbackExternal = topExternal.length === 0 ? scoredExternal.slice(0, 6) : topExternal;
+
+    // Para perguntas de preço, extrai o trecho de PRECO/PLANOS do conteúdo externo
+    const extractPriceSection = (content: string): string => {
+      if (!content) return "";
+      // Captura linhas que mencionam preço, R$, plano, mensal, anual
+      const lines = content.split(/\n+/);
+      const relevant = lines.filter((l) =>
+        /(r\$|preco|preço|plano|valor|mensal|anual|gratuito|gratis|grátis|teste)/i.test(l)
+      );
+      return relevant.slice(0, 15).join("\n");
+    };
 
     let knowledgeBase = "";
     if (useFallbackInternal.length > 0) {
