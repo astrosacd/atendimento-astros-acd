@@ -1088,6 +1088,44 @@ export type Database = {
           },
         ]
       }
+      client_ai_upsell_suggestions: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          last_analysis_at: string
+          status: string
+          suggestions: Json
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          last_analysis_at?: string
+          status?: string
+          suggestions: Json
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          last_analysis_at?: string
+          status?: string
+          suggestions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_ai_upsell_suggestions_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_files: {
         Row: {
           cliente_id: string | null
