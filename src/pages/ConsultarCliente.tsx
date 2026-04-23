@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, Eye, Download, Filter, X, History, Tag, CreditCard, File, AlertTriangle, ShoppingBag, Clock, ListTree, Lock, Edit, Users, Sparkles, Network, Server, ShieldCheck, MoreHorizontal, TrendingUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +50,7 @@ import { ClientAIInsights } from '@/components/ClientAIInsights';
 import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
+import { ClientAIUpsell } from '@/components/ClientAIUpsell';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -80,6 +81,8 @@ export default function ConsultarCliente() {
   const [graphClienteName, setGraphClienteName] = useState<string>('');
   const [aiClienteId, setAiClienteId] = useState<string | null>(null);
   const [aiClienteName, setAiClienteName] = useState<string>('');
+  const [upsellClienteId, setUpsellClienteId] = useState<string | null>(null);
+  const [upsellClienteName, setUpsellClienteName] = useState<string>('');
   const [socialClienteId, setSocialClienteId] = useState<string | null>(null);
   const [socialClienteName, setSocialClienteName] = useState<string>('');
   const [serverClienteId, setServerClienteId] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export default function ConsultarCliente() {
   const [groupClienteName, setGroupClienteName] = useState<string>('');
   const [groupClienteNumero, setGroupClienteNumero] = useState<string>('');
   const { canViewSocialCredentials, canViewServerCredentials, canCreateWhatsAppGroups, canViewClientAI, canViewClientGraph, canViewPaymentSecurity } = usePermissions();
+  const canViewUpsell = canViewClientAI; // Reusing AI permission for now
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [filterInadimplente, setFilterInadimplente] = useState(false);
   const [filterRenovacaoProxima, setFilterRenovacaoProxima] = useState(false);
@@ -812,6 +816,18 @@ export default function ConsultarCliente() {
                                         <span>Insights de IA</span>
                                       </DropdownMenuItem>
                                     )}
+                                    {canViewUpsell && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setUpsellClienteId(cliente.id);
+                                          setUpsellClienteName(cliente.nome);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                        <span>Upsell / Cross-sell IA</span>
+                                      </DropdownMenuItem>
+                                    )}
                                   </>
                                 )}
 
@@ -1198,6 +1214,22 @@ export default function ConsultarCliente() {
           open={!!serverClienteId}
           onOpenChange={() => setServerClienteId(null)}
         />
+
+        {/* Upsell / Cross-sell IA */}
+        <Dialog open={!!upsellClienteId} onOpenChange={(open) => !open && setUpsellClienteId(null)}>
+          <DialogContent className="max-w-2xl bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-yellow-500" />
+                Sugestões de Upsell / Cross-sell - {upsellClienteName}
+              </DialogTitle>
+            </DialogHeader>
+            <ClientAIUpsell 
+              clienteId={upsellClienteId || ''} 
+              clienteNome={upsellClienteName} 
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* WhatsApp Group Creation */}
         <CreateWhatsAppGroupDialog
