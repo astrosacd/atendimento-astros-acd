@@ -1115,7 +1115,7 @@ export default function ConsultarCliente() {
         {/* AI Insights Dialog */}
         <Dialog open={!!aiClienteId} onOpenChange={() => setAiClienteId(null)}>
           <DialogContent className="!bg-card border border-border max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-lg shadow-2xl z-[60]">
-            <DialogHeader className="px-6 pt-6">
+            <DialogHeader className="px-6 pt-6 pr-12 sm:pr-6">
               <DialogTitle>Insights de IA</DialogTitle>
               <DialogDescription>
                 Briefing automático para reuniões e análise de risco de churn
