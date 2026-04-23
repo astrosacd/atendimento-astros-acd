@@ -85,7 +85,7 @@ serve(async (req) => {
     };
 
     const systemPrompt = `Você é um especialista em vendas e customer success.
-Sua tarefa é analisar o histórico de compras de um cliente e os produtos disponíveis na plataforma para sugerir oportunidades de Upsell ou Cross-sell.
+Sua tarefa é analisar o histórico de compras e o histórico de follow-ups (conversas e tentativas de contato) de um cliente, além dos produtos disponíveis na plataforma, para sugerir oportunidades de Upsell ou Cross-sell.
 
 Upsell: Sugerir uma versão superior ou mais cara do produto que o cliente já possui.
 Cross-sell: Sugerir produtos complementares ao que o cliente já possui.
