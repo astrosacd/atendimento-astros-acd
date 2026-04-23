@@ -59,14 +59,14 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
   };
 
   return (
-    <Card className="w-full border-border bg-card/50 backdrop-blur-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="w-full border-border bg-card/50 backdrop-blur-sm shadow-none border-0 sm:border">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
         <div className="space-y-1">
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+          <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse shrink-0" />
             Upsell & Cross-sell IA
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Sugestões inteligentes baseadas no comportamento de compra
           </CardDescription>
         </div>
@@ -74,7 +74,7 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
           onClick={generateSuggestions} 
           disabled={isLoading}
           variant="outline"
-          className="gap-2 border-primary/30 hover:bg-primary/10"
+          className="w-full sm:w-auto gap-2 border-primary/30 hover:bg-primary/10"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
