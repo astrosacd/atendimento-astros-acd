@@ -409,6 +409,7 @@ export function ClientServerCredentials({ clienteId, clienteName, open, onOpenCh
               })}
             </div>
           )}
+            </div>
         </DialogContent>
       </Dialog>
 
