@@ -117,7 +117,7 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
               </div>
             )}
 
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-[250px] sm:h-[400px] pr-4">
               <div className="space-y-4">
                 {result.suggestions.length > 0 ? (
                   result.suggestions.map((suggestion, index) => (
@@ -125,12 +125,12 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
                       key={index} 
                       className="group relative overflow-hidden bg-background/50 border border-border rounded-xl p-4 hover:border-primary/50 transition-all"
                     >
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
                         <div className="space-y-1">
                           <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
                             {suggestion.product_name}
                           </h4>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Badge variant={suggestion.type === 'upsell' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
                               {suggestion.type}
                             </Badge>
@@ -140,9 +140,9 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
                           </div>
                         </div>
                         {suggestion.estimated_value > 0 && (
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Valor Estimado</p>
-                            <p className="font-bold text-emerald-500">
+                          <div className="sm:text-right">
+                            <p className="text-[10px] text-muted-foreground">Valor Estimado</p>
+                            <p className="font-bold text-emerald-500 text-sm">
                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(suggestion.estimated_value)}
                             </p>
                           </div>
@@ -153,16 +153,18 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
                         {suggestion.reason}
                       </p>
                       
-                      <div className="mt-4 flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1 border-emerald-500/30 hover:bg-emerald-500/10">
+                      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <Button size="sm" variant="outline" className="w-full sm:w-auto h-9 sm:h-8 text-xs gap-1 border-emerald-500/30 hover:bg-emerald-500/10">
                           <CheckCircle2 className="w-3 h-3" />
                           Aceitar
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-muted-foreground hover:text-destructive">
+                        <Button size="sm" variant="ghost" className="w-full sm:w-auto h-9 sm:h-8 text-xs gap-1 text-muted-foreground hover:text-destructive">
                           <XCircle className="w-3 h-3" />
                           Ignorar
                         </Button>
                       </div>
+                    </div>
+                  ))
                     </div>
                   ))
                 ) : (
