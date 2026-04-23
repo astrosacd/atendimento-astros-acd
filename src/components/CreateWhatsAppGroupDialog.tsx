@@ -640,6 +640,7 @@ export function CreateWhatsAppGroupDialog({ clienteId, clienteName, clienteNumer
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </DialogContent>
 
       {finalizeGroup && (
