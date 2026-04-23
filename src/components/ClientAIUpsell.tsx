@@ -153,7 +153,7 @@ export function ClientAIUpsell({ clienteId, clienteNome }: ClientAIUpsellProps) 
                         {suggestion.reason}
                       </p>
                       
-                      <div className="mt-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="mt-4 flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button size="sm" variant="outline" className="h-8 text-xs gap-1 border-emerald-500/30 hover:bg-emerald-500/10">
                           <CheckCircle2 className="w-3 h-3" />
                           Aceitar
