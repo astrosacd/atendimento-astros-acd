@@ -1385,7 +1385,7 @@ const AdminCobranca = () => {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Clientes Inadimplentes</p>
+                      <p className="text-sm text-muted-foreground mb-1">Inadimplentes</p>
                       <p className="text-3xl font-bold text-amber-400">{metrics.clientsWithPending}</p>
                       <p className="text-sm text-muted-foreground mt-2">
                         Com pagamento pendente
@@ -1393,6 +1393,26 @@ const AdminCobranca = () => {
                     </div>
                     <div className="p-3 rounded-xl bg-amber-500/20">
                       <AlertCircle className="w-6 h-6 text-amber-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tempo Médio de Resposta (New Metric) */}
+              <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border-cyan-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Média de Resposta</p>
+                      <p className="text-3xl font-bold text-cyan-400">
+                        {metrics.avgResponseTime > 0 ? `${metrics.avgResponseTime}h` : 'N/A'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Tempo de retorno/pagamento
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-cyan-500/20">
+                      <MessageSquare className="w-6 h-6 text-cyan-400" />
                     </div>
                   </div>
                 </CardContent>
