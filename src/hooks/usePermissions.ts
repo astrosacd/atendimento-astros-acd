@@ -230,6 +230,9 @@ export function usePermissions() {
   // Central de Ajuda
   const canViewCentralAjuda = () => hasPermission('view_central_ajuda');
 
+  // Gestão de Produtos Predefinidos
+  const canManagePredefinedProducts = () => hasPermission('manage_predefined_products');
+
   return {
     permissions,
     hasPermission,
@@ -396,5 +399,6 @@ export function usePermissions() {
     canRegisterPixpaguePayment,
     // Central de Ajuda
     canViewCentralAjuda,
+    canManagePredefinedProducts,
   };
 }

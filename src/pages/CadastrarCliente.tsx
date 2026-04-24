@@ -21,11 +21,12 @@ import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Package } from 'lucide-react';
+import { ProductSelector } from '@/components/kanban/ProductSelector';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
-  produto: z.string().min(2, 'Produto é obrigatório'),
+  produto: z.string().min(1, 'Produto é obrigatório'),
   data_renovacao: z.string().min(1, 'Data de renovação é obrigatória'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cpf: z.string().optional().or(z.literal('')),
@@ -37,7 +38,7 @@ const clienteSchema = z.object({
 const clienteVitalicioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
-  produto: z.string().min(2, 'Produto é obrigatório'),
+  produto: z.string().min(1, 'Produto é obrigatório'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cpf: z.string().optional().or(z.literal('')),
   valor: z.number().min(0, 'Valor deve ser zero ou maior'),
@@ -117,7 +118,8 @@ export default function CadastrarCliente() {
         ...prev, 
         cobranca_ativa: false,
         data_renovacao: new Date().toISOString().split('T')[0],
-        plano: 'Nenhum'
+        plano: 'Nenhum',
+        moeda: 'BRL'
       }));
     }
   }, [clienteType]);
@@ -240,6 +242,7 @@ export default function CadastrarCliente() {
     const cliente = await createCliente({
       ...formData,
       valor: Number(formData.valor),
+      moeda: formData.moeda || 'BRL',
     });
     
     if (cliente) {
@@ -511,13 +514,14 @@ export default function CadastrarCliente() {
                 </div>
 
                 <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
-                  <Label htmlFor="produto" className="text-foreground font-medium">Produto</Label>
-                  <Input
-                    id="produto"
-                    placeholder="Nome do produto"
-                    value={formData.produto}
-                    onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
-                    className="bg-secondary border-border text-foreground h-11"
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                  </div>
+                  <ProductSelector 
+                    value={formData.produto} 
+                    onChange={(value) => setFormData({ ...formData, produto: value })} 
+                    placeholder="Selecione o produto..."
                   />
                 </div>
 
