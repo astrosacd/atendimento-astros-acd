@@ -127,6 +127,10 @@ interface MetricsData {
   previousTotalValue: number;
   clientsWithPending: number;
   avgResponseTime: number;
+  forecastTodayBrl: number;
+  forecastTodayUsd: number;
+  forecastMonthBrl: number;
+  forecastMonthUsd: number;
 }
 
 const defaultMessages: Record<string, string> = {
@@ -198,6 +202,10 @@ const AdminCobranca = () => {
     previousTotalValue: 0,
     clientsWithPending: 0,
     avgResponseTime: 0,
+    forecastTodayBrl: 0,
+    forecastTodayUsd: 0,
+    forecastMonthBrl: 0,
+    forecastMonthUsd: 0,
   });
   const [paymentStats, setPaymentStats] = useState<{
     total: number;
@@ -720,7 +728,24 @@ const AdminCobranca = () => {
       const todayDate = new Date().toISOString().split('T')[0];
       const clientsWithPending = clientesAtivos.filter(c => c.data_renovacao < todayDate).length;
 
+      // Revenue forecast (today)
+      const forecastTodayBrl = clientesAtivos
+        .filter(c => c.data_renovacao === todayDate && (c.moeda || 'BRL') === 'BRL')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
 
+      const forecastTodayUsd = clientesAtivos
+        .filter(c => c.data_renovacao === todayDate && c.moeda === 'USD')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
+
+      // Revenue forecast (next 30 days)
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const forecastMonthBrl = clientesAtivos
+        .filter(c => c.data_renovacao >= todayDate && c.data_renovacao <= thirtyDaysFromNow && (c.moeda || 'BRL') === 'BRL')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
+
+      const forecastMonthUsd = clientesAtivos
+        .filter(c => c.data_renovacao >= todayDate && c.data_renovacao <= thirtyDaysFromNow && c.moeda === 'USD')
+        .reduce((sum, c) => sum + (c.valor || 0), 0);
 
       setMetrics({
         successRate: currentSuccessRate,
@@ -730,6 +755,10 @@ const AdminCobranca = () => {
         previousTotalValue: totalValueBrl * 0.95, // Approximate
         clientsWithPending: clientsWithPending,
         avgResponseTime: 2.5, // Placeholder
+        forecastTodayBrl,
+        forecastTodayUsd,
+        forecastMonthBrl,
+        forecastMonthUsd,
       });
     } catch (error) {
       console.error('Error loading metrics:', error);
@@ -1256,7 +1285,51 @@ const AdminCobranca = () => {
           {canViewCobrancaMetricas() && (
           <TabsContent value="metrics" className="space-y-6">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Previsto Hoje */}
+              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Previsão Recebimento (Hoje)</p>
+                      <p className="text-3xl font-bold text-purple-400">
+                        R$ {metrics.forecastTodayBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      {metrics.forecastTodayUsd > 0 && (
+                        <p className="text-sm text-emerald-400 mt-2">
+                          + $ {metrics.forecastTodayUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-3 rounded-xl bg-purple-500/20">
+                      <Clock className="w-6 h-6 text-purple-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Previsto 30 Dias */}
+              <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border-indigo-500/20">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Previsão 30 Dias</p>
+                      <p className="text-3xl font-bold text-indigo-400">
+                        R$ {metrics.forecastMonthBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      {metrics.forecastMonthUsd > 0 && (
+                        <p className="text-sm text-emerald-400 mt-2">
+                          + $ {metrics.forecastMonthUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-3 rounded-xl bg-indigo-500/20">
+                      <Calendar className="w-6 h-6 text-indigo-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Taxa de Sucesso */}
               <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
                 <CardContent className="p-5">
