@@ -172,6 +172,7 @@ export default function AtualizarCliente() {
       email?: string;
       tipo?: string;
       excluir_metricas?: boolean;
+      produto?: string;
     } = {
       observacao: newObservacao,
       tags: newTags,
@@ -182,6 +183,7 @@ export default function AtualizarCliente() {
       moeda: newMoeda,
       tipo: newTipo,
       excluir_metricas: newExcluirMetricas,
+      produto: editProduto,
     };
     
     // Só atualiza a data e ciclo se for cliente mensal
