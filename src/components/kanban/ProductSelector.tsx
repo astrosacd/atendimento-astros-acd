@@ -21,9 +21,10 @@ interface ProductSelectorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  category?: 'mensal' | 'registro' | 'pipeline';
 }
 
-export function ProductSelector({ value, onChange, placeholder = "Selecione um produto..." }: ProductSelectorProps) {
+export function ProductSelector({ value, onChange, placeholder = "Selecione um produto...", category }: ProductSelectorProps) {
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,10 +32,16 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('predefined_products')
-          .select('id, name')
+          .select('id, name, category')
           .order('name');
+        
+        if (category) {
+          query = query.eq('category', category);
+        }
+        
+        const { data, error } = await query;
         
         if (error) throw error;
         setProducts(data || []);
