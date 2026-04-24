@@ -512,13 +512,14 @@ export default function CadastrarCliente() {
                 </div>
 
                 <div className={clienteType === 'registro' ? 'space-y-2 col-span-2' : 'space-y-2'}>
-                  <Label htmlFor="produto" className="text-foreground font-medium">Produto</Label>
-                  <Input
-                    id="produto"
-                    placeholder="Nome do produto"
-                    value={formData.produto}
-                    onChange={(e) => setFormData({ ...formData, produto: e.target.value })}
-                    className="bg-secondary border-border text-foreground h-11"
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <Label htmlFor="produto" className="text-foreground font-medium">Produto <span className="text-destructive">*</span></Label>
+                  </div>
+                  <ProductSelector 
+                    value={formData.produto} 
+                    onChange={(value) => setFormData({ ...formData, produto: value })} 
+                    placeholder="Selecione o produto..."
                   />
                 </div>
 
