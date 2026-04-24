@@ -74,7 +74,7 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
                   key={product.id}
                   value={product.name}
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue);
+                    onChange(product.name);
                     setOpen(false);
                   }}
                 >
@@ -87,7 +87,7 @@ export function ProductSelector({ value, onChange, placeholder = "Selecione um p
                   {product.name}
                 </CommandItem>
               ))}
-            </Group>
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
