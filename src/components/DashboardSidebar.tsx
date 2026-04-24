@@ -311,6 +311,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.gateway'), icon: ShoppingBag, path: '/admin/gateway', adminOnly: !canViewGateway(), color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-pink-500' },
         { title: t('sidebar.reseller'), icon: Store, path: '/admin/revendedor', adminOnly: !canViewRevendedor(), color: 'text-sky-500', gradient: 'from-sky-500 to-blue-500' },
         { title: t('sidebar.tags'), icon: Tag, path: '/admin/tags', adminOnly: !canManageSettings(), color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
+        { title: 'Produtos Predefinidos', icon: Package, path: '/admin/produtos', adminOnly: !hasPermission('manage_predefined_products'), color: 'text-indigo-500', gradient: 'from-indigo-500 to-purple-500' },
         { title: t('sidebar.webhooks'), icon: Webhook, path: '/admin/webhooks', adminOnly: !canManageWebhooks(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-teal-500' },
         { title: t('sidebar.apiRest'), icon: Key, path: '/admin/api', adminOnly: !canManageApi(), color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
         { title: t('sidebar.apiLogs'), icon: FileText, path: '/admin/logs', adminOnly: !canViewLogs(), color: 'text-rose-500', gradient: 'from-rose-500 to-red-500' },
