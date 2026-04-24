@@ -297,7 +297,15 @@ export default function AtualizarCliente() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf}</span></p>
-                  <p className="text-muted-foreground">{t('clients.product')}: <span className="text-foreground">{selectedCliente.produto}</span></p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-muted-foreground">{t('clients.product')}:</p>
+                    <div className="flex-1">
+                      <ProductSelector 
+                        value={newEditProduto} 
+                        onChange={setNewEditProduto} 
+                      />
+                    </div>
+                  </div>
                 </div>
                 {!isClienteVitalicio && (
                   <p className="text-sm text-muted-foreground">
