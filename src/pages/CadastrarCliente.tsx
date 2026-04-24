@@ -21,7 +21,8 @@ import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Package } from 'lucide-react';
+import { ProductSelector } from '@/components/kanban/ProductSelector';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
