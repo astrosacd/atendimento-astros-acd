@@ -241,6 +241,7 @@ export default function CadastrarCliente() {
     const cliente = await createCliente({
       ...formData,
       valor: Number(formData.valor),
+      moeda: formData.moeda || 'BRL',
     });
     
     if (cliente) {
