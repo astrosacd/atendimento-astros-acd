@@ -55,7 +55,7 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit }: LeadFormDialogP
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Produto de interesse *</Label>
-            <ProductSelector value={produto} onChange={setProduto} placeholder="Selecione o produto ou serviço" />
+            <ProductSelector value={produto} onChange={setProduto} placeholder="Selecione o produto ou serviço" category="pipeline" />
           </div>
         </div>
         <DialogFooter>
