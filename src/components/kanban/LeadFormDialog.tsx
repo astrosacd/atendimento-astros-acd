@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserPlus } from 'lucide-react';
+import { ProductSelector } from './ProductSelector';
 
 interface LeadFormDialogProps {
   open: boolean;
@@ -53,13 +54,13 @@ export function LeadFormDialog({ open, onOpenChange, onSubmit }: LeadFormDialogP
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="E-mail do lead" className="bg-secondary border-border" />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Produto de interesse</Label>
-            <Input value={produto} onChange={e => setProduto(e.target.value)} placeholder="Produto ou serviço" className="bg-secondary border-border" />
+            <Label className="text-xs text-muted-foreground">Produto de interesse *</Label>
+            <ProductSelector value={produto} onChange={setProduto} placeholder="Selecione o produto ou serviço" />
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!name.trim() || saving}>
+          <Button onClick={handleSubmit} disabled={!name.trim() || !produto.trim() || saving}>
             {saving ? 'Salvando...' : 'Adicionar Lead'}
           </Button>
         </DialogFooter>
