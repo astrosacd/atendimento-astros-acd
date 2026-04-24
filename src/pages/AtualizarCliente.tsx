@@ -114,6 +114,7 @@ export default function AtualizarCliente() {
     setNewTags(cliente.tags || []);
     setNewCicloCobranca(cliente.ciclo_cobranca || 'mensal');
     setNewMoeda(cliente.moeda || 'BRL');
+    setNewEditProduto(cliente.produto || '');
     setNewNumero(cliente.numero || '');
     setNewEmail(cliente.email || '');
     setNewPlano(planoNormalizado);
