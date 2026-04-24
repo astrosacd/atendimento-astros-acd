@@ -120,6 +120,7 @@ function AppRoutes() {
       <Route path="/admin/guia" element={<ProtectedRoute permission="view_guia"><AdminGuia /></ProtectedRoute>} />
       <Route path="/admin/boas-vindas" element={<ProtectedRoute permission="manage_settings"><AdminBoasVindas /></ProtectedRoute>} />
       <Route path="/admin/tags" element={<ProtectedRoute permission="manage_settings"><AdminTags /></ProtectedRoute>} />
+      <Route path="/admin/produtos" element={<ProtectedRoute permission="manage_predefined_products"><AdminPredefinedProducts /></ProtectedRoute>} />
       <Route path="/admin/divulgador" element={<ProtectedRoute permission="view_divulgador"><AdminDivulgador /></ProtectedRoute>} />
       <Route path="/admin/numeros" element={<ProtectedRoute permission="view_numeros"><AdminNumerosAquecimento /></ProtectedRoute>} />
       <Route path="/admin/consulta-numeros" element={<ProtectedRoute permission="view_consulta_numeros"><ConsultaNumeros /></ProtectedRoute>} />
