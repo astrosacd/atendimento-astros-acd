@@ -522,6 +522,7 @@ export default function CadastrarCliente() {
                     value={formData.produto} 
                     onChange={(value) => setFormData({ ...formData, produto: value })} 
                     placeholder="Selecione o produto..."
+                    category={clienteType === 'registro' ? 'registro' : 'mensal'}
                   />
                 </div>
 
