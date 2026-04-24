@@ -1256,7 +1256,7 @@ const AdminCobranca = () => {
           {canViewCobrancaMetricas() && (
           <TabsContent value="metrics" className="space-y-6">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Taxa de Sucesso */}
               <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
                 <CardContent className="p-5">
@@ -1307,10 +1307,6 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
 
-              {/* Previsão IA do Pipeline (Centralizada) */}
-              <SalesForecastCard />
-
-
               {/* Pendentes */}
               <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
                 <CardContent className="p-5">
@@ -1329,6 +1325,9 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Previsão IA do Pipeline (Centralizada) */}
+            <SalesForecastCard />
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

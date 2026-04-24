@@ -147,44 +147,42 @@ export function SalesForecastCard() {
           </div>
         ) : (
           <>
-            {/* Predicted Revenue */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Top Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="p-4 rounded-lg bg-background/50 border border-border/50">
                 <p className="text-xs text-muted-foreground mb-1">Receita prevista (BRL)</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl font-bold text-foreground">
                   {formatBRL(forecast.predicted_revenue_brl)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pipeline total: {formatBRL(forecast.pipeline_value_brl)}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Total: {formatBRL(forecast.pipeline_value_brl)}
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-background/50 border border-border/50">
                 <p className="text-xs text-muted-foreground mb-1">Receita prevista (USD)</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-xl font-bold text-foreground">
                   {formatUSD(forecast.predicted_revenue_usd)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pipeline total: {formatUSD(forecast.pipeline_value_usd)}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Total: {formatUSD(forecast.pipeline_value_usd)}
                 </p>
               </div>
-            </div>
-
-            {/* Confidence */}
-            <div className="p-4 rounded-lg bg-background/50 border border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Nível de confiança</span>
-                <Badge variant="outline" className={cn('font-bold', confidenceBadge(forecast.confidence_pct))}>
-                  {forecast.confidence_pct}%
-                </Badge>
+              <div className="p-4 rounded-lg bg-background/50 border border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium">Confiança</span>
+                  <Badge variant="outline" className={cn('text-[10px] h-4 font-bold px-1', confidenceBadge(forecast.confidence_pct))}>
+                    {forecast.confidence_pct}%
+                  </Badge>
+                </div>
+                <Progress value={forecast.confidence_pct} className="h-1.5" />
+                <p className={cn('text-[10px] mt-2 leading-tight', confidenceColor(forecast.confidence_pct))}>
+                  {forecast.confidence_pct >= 75
+                    ? 'Alta confiança.'
+                    : forecast.confidence_pct >= 50
+                    ? 'Confiança média.'
+                    : 'Baixa confiança.'}
+                </p>
               </div>
-              <Progress value={forecast.confidence_pct} className="h-2" />
-              <p className={cn('text-xs mt-2', confidenceColor(forecast.confidence_pct))}>
-                {forecast.confidence_pct >= 75
-                  ? 'Alta confiança — dados consistentes.'
-                  : forecast.confidence_pct >= 50
-                  ? 'Confiança média — atenção aos riscos abaixo.'
-                  : 'Baixa confiança — pipeline frio ou dados insuficientes.'}
-              </p>
             </div>
 
             {/* Lead Distribution */}
