@@ -118,7 +118,8 @@ export default function CadastrarCliente() {
         ...prev, 
         cobranca_ativa: false,
         data_renovacao: new Date().toISOString().split('T')[0],
-        plano: 'Nenhum'
+        plano: 'Nenhum',
+        moeda: 'BRL'
       }));
     }
   }, [clienteType]);
