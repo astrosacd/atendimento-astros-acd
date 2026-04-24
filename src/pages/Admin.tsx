@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   BookOpen,
   UserPlus,
+  Package,
 } from 'lucide-react';
 
 const Admin = () => {
