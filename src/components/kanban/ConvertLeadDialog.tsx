@@ -114,7 +114,7 @@ export function ConvertLeadDialog({ open, onOpenChange, lead, onConvert }: Conve
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-muted-foreground">Produto *</Label>
-              <ProductSelector value={produto} onChange={setProduto} />
+              <ProductSelector value={produto} onChange={setProduto} category={cobrancaAtiva ? 'mensal' : 'registro'} />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Data Renovação</Label>
