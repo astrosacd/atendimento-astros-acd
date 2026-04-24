@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -18,6 +18,7 @@ import { ClientLicensesManager } from '@/components/ClientLicensesManager';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrencyInput, parseCurrency, formatCurrencyDisplay } from '@/utils/formatters';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
+import { ProductSelector } from '@/components/kanban/ProductSelector';
 import {
   AlertDialog,
   AlertDialogAction,
