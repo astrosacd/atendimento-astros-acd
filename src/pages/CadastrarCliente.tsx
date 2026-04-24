@@ -26,7 +26,7 @@ import { ProductSelector } from '@/components/kanban/ProductSelector';
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
-  produto: z.string().min(2, 'Produto é obrigatório'),
+  produto: z.string().min(1, 'Produto é obrigatório'),
   data_renovacao: z.string().min(1, 'Data de renovação é obrigatória'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cpf: z.string().optional().or(z.literal('')),
