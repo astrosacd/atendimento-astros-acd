@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ArrowRightCircle } from 'lucide-react';
+import { ProductSelector } from './ProductSelector';
 
 interface ConvertLeadDialogProps {
   open: boolean;
@@ -113,7 +114,7 @@ export function ConvertLeadDialog({ open, onOpenChange, lead, onConvert }: Conve
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-muted-foreground">Produto *</Label>
-              <Input value={produto} onChange={e => setProduto(e.target.value)} className="bg-secondary border-border" />
+              <ProductSelector value={produto} onChange={setProduto} />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Data Renovação</Label>
