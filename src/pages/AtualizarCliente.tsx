@@ -49,6 +49,7 @@ export default function AtualizarCliente() {
   const [newCountryCode, setNewCountryCode] = useState('BR');
   const [newValor, setNewValor] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newEditProduto, setNewEditProduto] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [newTipo, setNewTipo] = useState('cliente');
   const [newExcluirMetricas, setNewExcluirMetricas] = useState(false);
