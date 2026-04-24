@@ -303,6 +303,7 @@ export default function AtualizarCliente() {
                       <ProductSelector 
                         value={newEditProduto} 
                         onChange={setNewEditProduto} 
+                        category={isClienteVitalicio ? 'registro' : 'mensal'}
                       />
                     </div>
                   </div>
