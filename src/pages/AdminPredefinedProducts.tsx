@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ interface PredefinedProduct {
   id: string;
   name: string;
   description: string | null;
+  category: string;
   created_at: string;
 }
 
@@ -45,9 +47,9 @@ export default function AdminPredefinedProducts() {
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState<PredefinedProduct | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ name: "", description: "", category: "mensal" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [productToDelete, setTagToDelete] = useState<PredefinedProduct | null>(null);
+  const [productToDelete, setProductToDelete] = useState<PredefinedProduct | null>(null);
 
   const { data: products = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: ['predefined-products'],
@@ -63,17 +65,17 @@ export default function AdminPredefinedProducts() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (data: { id?: string; name: string; description: string }) => {
+    mutationFn: async (data: { id?: string; name: string; description: string; category: string }) => {
       if (data.id) {
         const { error } = await supabase
           .from('predefined_products')
-          .update({ name: data.name, description: data.description })
+          .update({ name: data.name, description: data.description, category: data.category })
           .eq('id', data.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('predefined_products')
-          .insert([{ name: data.name, description: data.description }]);
+          .insert([{ name: data.name, description: data.description, category: data.category }]);
         if (error) throw error;
       }
     },
@@ -85,7 +87,7 @@ export default function AdminPredefinedProducts() {
       });
       setCreateDialogOpen(false);
       setEditingProduct(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", category: "mensal" });
     },
     onError: (error: any) => {
       toast({
@@ -111,7 +113,7 @@ export default function AdminPredefinedProducts() {
         description: "O produto foi removido da lista predefinida.",
       });
       setDeleteDialogOpen(false);
-      setTagToDelete(null);
+      setProductToDelete(null);
     },
     onError: (error: any) => {
       toast({
@@ -128,12 +130,16 @@ export default function AdminPredefinedProducts() {
 
   const handleEdit = (product: PredefinedProduct) => {
     setEditingProduct(product);
-    setFormData({ name: product.name, description: product.description || "" });
+    setFormData({ 
+      name: product.name, 
+      description: product.description || "", 
+      category: product.category || "mensal" 
+    });
     setCreateDialogOpen(true);
   };
 
   const handleDelete = (product: PredefinedProduct) => {
-    setTagToDelete(product);
+    setProductToDelete(product);
     setDeleteDialogOpen(true);
   };
 
@@ -165,7 +171,7 @@ export default function AdminPredefinedProducts() {
           </div>
           <Button onClick={() => {
             setEditingProduct(null);
-            setFormData({ name: "", description: "" });
+            setFormData({ name: "", description: "", category: "mensal" });
             setCreateDialogOpen(true);
           }} className="bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-2" />
@@ -200,7 +206,7 @@ export default function AdminPredefinedProducts() {
           <CardHeader>
             <CardTitle>Produtos Cadastrados</CardTitle>
             <CardDescription>
-              Os nomes abaixo aparecerão como opções nos formulários de cadastro.
+              Os produtos são separados por tipo (Mensal, Registro e Pipeline).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -214,40 +220,55 @@ export default function AdminPredefinedProducts() {
                 <p>{search ? "Nenhum produto encontrado" : "Nenhum produto cadastrado ainda"}</p>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border/40 bg-card hover:border-primary/30 transition-all group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-foreground truncate">{product.name}</p>
+              <div className="grid gap-6">
+                {['mensal', 'registro', 'pipeline'].map((cat) => {
+                  const categoryProducts = filteredProducts.filter(p => p.category === cat);
+                  if (categoryProducts.length === 0 && !search) return null;
+                  
+                  return (
+                    <div key={cat} className="space-y-3">
+                      <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        {cat === 'mensal' ? 'Clientes Mensais' : cat === 'registro' ? 'Clientes Registro' : 'Pipeline / CRM'}
+                      </h3>
+                      <div className="grid gap-3">
+                        {categoryProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between p-4 rounded-xl border border-border/40 bg-card hover:border-primary/30 transition-all group"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-foreground truncate">{product.name}</p>
+                              </div>
+                              {product.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-1">{product.description}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(product)}
+                                className="h-9 w-9"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(product)}
+                                className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      {product.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">{product.description}</p>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(product)}
-                        className="h-9 w-9"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(product)}
-                        className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -259,10 +280,26 @@ export default function AdminPredefinedProducts() {
             <DialogHeader>
               <DialogTitle>{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
               <DialogDescription>
-                Este nome será usado para padronizar as métricas da IA.
+                Defina o nome e em qual módulo este produto será exibido.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Módulo do Produto</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger className="bg-secondary border-border h-11">
+                    <SelectValue placeholder="Selecione o módulo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="mensal">Clientes Mensais</SelectItem>
+                    <SelectItem value="registro">Clientes Registro</SelectItem>
+                    <SelectItem value="pipeline">Pipeline / CRM</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Nome do Produto *</Label>
                 <Input
@@ -270,7 +307,7 @@ export default function AdminPredefinedProducts() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: Disparador Start"
-                  className="bg-secondary border-border"
+                  className="bg-secondary border-border h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -280,7 +317,7 @@ export default function AdminPredefinedProducts() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Breve descrição do produto"
-                  className="bg-secondary border-border"
+                  className="bg-secondary border-border h-11"
                 />
               </div>
             </div>
@@ -290,7 +327,8 @@ export default function AdminPredefinedProducts() {
                 onClick={() => upsertMutation.mutate({ 
                   id: editingProduct?.id, 
                   name: formData.name, 
-                  description: formData.description 
+                  description: formData.description,
+                  category: formData.category
                 })}
                 disabled={!formData.name.trim() || upsertMutation.isPending}
               >
