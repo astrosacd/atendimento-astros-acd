@@ -4853,6 +4853,7 @@ export type Database = {
       }
       predefined_products: {
         Row: {
+          category: string
           created_at: string | null
           description: string | null
           id: string
@@ -4860,6 +4861,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          category?: string
           created_at?: string | null
           description?: string | null
           id?: string
@@ -4867,6 +4869,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          category?: string
           created_at?: string | null
           description?: string | null
           id?: string
