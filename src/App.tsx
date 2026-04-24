@@ -31,6 +31,7 @@ import RedefinirSenha from "./pages/RedefinirSenha";
 import AdminDivulgador from "./pages/AdminDivulgador";
 import AdminNumerosAquecimento from "./pages/AdminNumerosAquecimento";
 import AdminPlanosRevendedor from "./pages/AdminPlanosRevendedor";
+import AdminPredefinedProducts from "./pages/AdminPredefinedProducts";
 import ConsultaNumeros from "./pages/ConsultaNumeros";
 import ConsultaNumerosHistorico from "./pages/ConsultaNumerosHistorico";
 import ConsultaNumerosConfig from "./pages/ConsultaNumerosConfig";
