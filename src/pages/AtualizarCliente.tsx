@@ -183,7 +183,7 @@ export default function AtualizarCliente() {
       moeda: newMoeda,
       tipo: newTipo,
       excluir_metricas: newExcluirMetricas,
-      produto: editProduto,
+      produto: newEditProduto,
     };
     
     // Só atualiza a data e ciclo se for cliente mensal
