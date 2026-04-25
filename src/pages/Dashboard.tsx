@@ -302,6 +302,7 @@ export default function Dashboard() {
       let tarefasConcluidas = 0;
       let recoveryPending = 0;
       let billingSkippedCount = 0;
+      let billingErrorsUnresolvedCount = 0;
       let churnRate = 0;
 
       if (isAdmin) {
