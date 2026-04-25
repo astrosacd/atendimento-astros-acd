@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -461,7 +461,16 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       <div className="p-2 border-t border-border space-y-1">
         {/* Language Selector */}
         <LanguageSelector collapsed={collapsed} />
-        
+
+        {/* Profile */}
+        <FooterButton
+          collapsed={collapsed}
+          onClick={() => navigate('/perfil')}
+          icon={UserCircle}
+          label="Meu Perfil"
+          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+        />
+
         {/* Logout Button */}
         <FooterButton
           collapsed={collapsed}
