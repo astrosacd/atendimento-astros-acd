@@ -78,6 +78,7 @@ interface ClienteStats {
   clientesRegistroSemValor: number;
   recuperacaoPendentes: number;
   billingSkipped: number;
+  billingErrorsUnresolved: number;
   churnRate: number;
 }
 
