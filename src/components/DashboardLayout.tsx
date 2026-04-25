@@ -6,6 +6,7 @@ import { Menu } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useLoginTracker } from '@/hooks/useLoginTracker';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +18,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
+
+  // Registra login do usuário e detecta novos dispositivos
+  useLoginTracker();
 
   // Fechar o sidebar mobile ao trocar de rota
   useEffect(() => {
