@@ -434,6 +434,7 @@ export default function Dashboard() {
         clientesRegistroSemValor,
         recuperacaoPendentes: recoveryPending || 0,
         billingSkipped: billingSkippedCount,
+        billingErrorsUnresolved: billingErrorsUnresolvedCount,
         churnRate,
       });
     };
