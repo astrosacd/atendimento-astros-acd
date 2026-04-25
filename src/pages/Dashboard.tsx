@@ -440,9 +440,25 @@ export default function Dashboard() {
     };
 
     if (user) fetchStats();
-    
+
+    // Realtime: refetch when billing_logs change (errors arriving / being resolved)
+    let billingChannel: ReturnType<typeof supabase.channel> | null = null;
+    if (user && isAdmin) {
+      billingChannel = supabase
+        .channel('dashboard-billing-logs')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'billing_logs' },
+          () => {
+            if (isMounted) fetchStats();
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       isMounted = false;
+      if (billingChannel) supabase.removeChannel(billingChannel);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
