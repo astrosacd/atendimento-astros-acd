@@ -654,6 +654,18 @@ export default function Dashboard() {
   });
 
   const priorityAlerts = [
+    isAdmin && stats.billingErrorsUnresolved > 0
+      ? {
+          id: 'billing-errors',
+          title: 'Erros de envio pendentes',
+          description: `${stats.billingErrorsUnresolved} envio(s) com erro no histórico de cobrança precisam ser tratados.`,
+          count: stats.billingErrorsUnresolved,
+          onClick: () => navigate('/admin/cobranca?tab=logs&filter=error'),
+          tone: 'critical' as const,
+          icon: AlertCircle,
+          pulse: true,
+        }
+      : null,
     isAdmin && stats.billingSkipped > 0
       ? {
           id: 'billing-skipped',
