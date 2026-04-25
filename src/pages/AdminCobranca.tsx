@@ -2973,16 +2973,16 @@ const AdminCobranca = () => {
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {log.status === 'skipped' && !log.resolution && (
+                                    {(log.status === 'skipped' || log.status === 'error') && !log.resolution && (
                                       <Button
                                         onClick={() => {
                                           setResolvingLogId(log.id);
-                                          setResolutionType('erro_numero');
+                                          setResolutionType(log.status === 'error' ? 'erro_sistema' : 'erro_numero');
                                           setResolutionNote('');
                                         }}
                                         variant="outline"
                                         size="sm"
-                                        className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                        className={`text-xs ${log.status === 'error' ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'}`}
                                       >
                                         Resolver
                                       </Button>
