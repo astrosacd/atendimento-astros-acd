@@ -81,16 +81,20 @@ Deno.serve(async (req) => {
       cutoffDate.setDate(cutoffDate.getDate() - days);
       const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
+      // Apenas clientes com cobrança recorrente ativa (mensal).
+      // Clientes do tipo "apenas registro" (cobranca_ativa = false) não possuem
+      // recorrência mensal e devem ser ignorados pela regra de atraso de renovação.
       const { data: overdueClients, error: overdueClientsError } = await supabase
         .from('clientes')
         .select('id, nome, produto, valor, data_renovacao')
+        .eq('cobranca_ativa', true)
         .lte('data_renovacao', cutoffStr);
 
       if (overdueClientsError) throw overdueClientsError;
 
       const overdueCount = overdueClients?.length || 0;
       console.log(
-        `[Rule: ${rule.name}] Found ${overdueCount} overdue clients (cutoff: ${cutoffStr}, delay: ${days} days)`,
+        `[Rule: ${rule.name}] Found ${overdueCount} overdue clients with active recurring billing (cutoff: ${cutoffStr}, delay: ${days} days)`,
       );
 
       if (overdueCount === 0) {
