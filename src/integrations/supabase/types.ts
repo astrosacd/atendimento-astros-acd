@@ -1718,6 +1718,94 @@ export type Database = {
         }
         Relationships: []
       }
+      client_score_history: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          faixa_anterior: string | null
+          faixa_nova: string
+          id: string
+          motivo: string | null
+          score_anterior: number | null
+          score_novo: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          faixa_anterior?: string | null
+          faixa_nova: string
+          id?: string
+          motivo?: string | null
+          score_anterior?: number | null
+          score_novo: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          faixa_anterior?: string | null
+          faixa_nova?: string
+          id?: string
+          motivo?: string | null
+          score_anterior?: number | null
+          score_novo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_score_history_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_scores: {
+        Row: {
+          calculated_at: string
+          cliente_id: string
+          created_at: string
+          desconto_sugerido: number | null
+          faixa: string
+          fatores: Json | null
+          id: string
+          justificativa: string | null
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          calculated_at?: string
+          cliente_id: string
+          created_at?: string
+          desconto_sugerido?: number | null
+          faixa?: string
+          fatores?: Json | null
+          id?: string
+          justificativa?: string | null
+          score?: number
+          updated_at?: string
+        }
+        Update: {
+          calculated_at?: string
+          cliente_id?: string
+          created_at?: string
+          desconto_sugerido?: number | null
+          faixa?: string
+          fatores?: Json | null
+          id?: string
+          justificativa?: string | null
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_scores_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_server_tool_types: {
         Row: {
           created_at: string
@@ -6111,6 +6199,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_login_history: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          device_name: string | null
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          is_new_device: boolean | null
+          logged_in_at: string
+          logged_out_at: string | null
+          os: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_name?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          is_new_device?: boolean | null
+          logged_in_at?: string
+          logged_out_at?: string | null
+          os?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_name?: string | null
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          is_new_device?: boolean | null
+          logged_in_at?: string
+          logged_out_at?: string | null
+          os?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -6128,6 +6267,39 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_security_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          title?: string
           user_id?: string
         }
         Relationships: []
