@@ -78,6 +78,7 @@ interface ClienteStats {
   clientesRegistroSemValor: number;
   recuperacaoPendentes: number;
   billingSkipped: number;
+  billingErrorsUnresolved: number;
   churnRate: number;
 }
 
@@ -128,6 +129,7 @@ export default function Dashboard() {
     clientesRegistroSemValor: 0,
     recuperacaoPendentes: 0,
     billingSkipped: 0,
+    billingErrorsUnresolved: 0,
     churnRate: 0,
   });
 
@@ -300,6 +302,7 @@ export default function Dashboard() {
       let tarefasConcluidas = 0;
       let recoveryPending = 0;
       let billingSkippedCount = 0;
+      let billingErrorsUnresolvedCount = 0;
       let churnRate = 0;
 
       if (isAdmin) {
@@ -367,6 +370,14 @@ export default function Dashboard() {
           .is('resolution', null);
         billingSkippedCount = skippedC || 0;
 
+        // Billing errors (unresolved)
+        const { count: errorsC } = await supabase
+          .from('billing_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'error')
+          .is('resolution', null);
+        billingErrorsUnresolvedCount = errorsC || 0;
+
         // Chamados stats
         const { count: abertos } = await supabase
           .from('chamados')
@@ -423,14 +434,31 @@ export default function Dashboard() {
         clientesRegistroSemValor,
         recuperacaoPendentes: recoveryPending || 0,
         billingSkipped: billingSkippedCount,
+        billingErrorsUnresolved: billingErrorsUnresolvedCount,
         churnRate,
       });
     };
 
     if (user) fetchStats();
-    
+
+    // Realtime: refetch when billing_logs change (errors arriving / being resolved)
+    let billingChannel: ReturnType<typeof supabase.channel> | null = null;
+    if (user && isAdmin) {
+      billingChannel = supabase
+        .channel('dashboard-billing-logs')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'billing_logs' },
+          () => {
+            if (isMounted) fetchStats();
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       isMounted = false;
+      if (billingChannel) supabase.removeChannel(billingChannel);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
@@ -642,6 +670,18 @@ export default function Dashboard() {
   });
 
   const priorityAlerts = [
+    isAdmin && stats.billingErrorsUnresolved > 0
+      ? {
+          id: 'billing-errors',
+          title: 'Erros de envio pendentes',
+          description: `${stats.billingErrorsUnresolved} envio(s) com erro no histórico de cobrança precisam ser tratados.`,
+          count: stats.billingErrorsUnresolved,
+          onClick: () => navigate('/admin/cobranca?tab=logs&filter=error'),
+          tone: 'critical' as const,
+          icon: AlertCircle,
+          pulse: true,
+        }
+      : null,
     isAdmin && stats.billingSkipped > 0
       ? {
           id: 'billing-skipped',
