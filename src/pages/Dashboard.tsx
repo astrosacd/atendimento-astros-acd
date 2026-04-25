@@ -29,6 +29,7 @@ import { FollowupsChart } from '@/components/followups/FollowupsChart';
 import { useFollowups } from '@/hooks/useFollowups';
 import { Badge } from '@/components/ui/badge';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { SecurityAlertsCard } from '@/components/dashboard/SecurityAlertsCard';
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCard';
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
@@ -771,6 +772,8 @@ export default function Dashboard() {
         </div>
 
         <QuickActions />
+
+        <SecurityAlertsCard />
 
         {priorityAlerts.length > 0 && (
           <section className="mb-8 space-y-4">
