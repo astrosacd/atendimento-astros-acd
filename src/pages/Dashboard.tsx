@@ -370,6 +370,14 @@ export default function Dashboard() {
           .is('resolution', null);
         billingSkippedCount = skippedC || 0;
 
+        // Billing errors (unresolved)
+        const { count: errorsC } = await supabase
+          .from('billing_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'error')
+          .is('resolution', null);
+        billingErrorsUnresolvedCount = errorsC || 0;
+
         // Chamados stats
         const { count: abertos } = await supabase
           .from('chamados')
