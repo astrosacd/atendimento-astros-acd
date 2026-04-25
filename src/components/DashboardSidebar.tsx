@@ -281,6 +281,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.register'), icon: UserPlus, path: '/cadastrar', adminOnly: !canCreateClients(), color: 'text-primary', gradient: 'from-green-500 to-emerald-500' },
         { title: t('sidebar.update'), icon: Edit, path: '/atualizar', adminOnly: !canUpdateClients(), color: 'text-update', gradient: 'from-violet-500 to-purple-500' },
         { title: 'Mapa 360°', icon: Network, path: '/grafo-clientes', adminOnly: !canViewClientGraph(), color: 'text-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
+        { title: 'Score de Clientes', icon: Sparkles, path: '/scores-clientes', color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
         { title: t('sidebar.delete'), icon: Trash2, path: '/excluir', adminOnly: !canDeleteClients(), color: 'text-destructive', gradient: 'from-red-500 to-rose-500' },
       ]
     },
