@@ -246,11 +246,14 @@ const AdminCobranca = () => {
     loadStripeConfig();
   }, []);
 
-  // Handle URL filter param for skipped billing
+  // Handle URL filter param for skipped/error billing
   useEffect(() => {
     const filter = searchParams.get('filter');
     if (filter === 'skipped') {
       setLogStatusFilter('skipped');
+      setLogDateFilter('all');
+    } else if (filter === 'error') {
+      setLogStatusFilter('error');
       setLogDateFilter('all');
     }
   }, [searchParams]);
