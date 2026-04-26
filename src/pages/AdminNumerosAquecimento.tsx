@@ -61,9 +61,7 @@ import {
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
-import { AparelhosTab } from '@/components/numeros-aquecimento/AparelhosTab';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
-import { useAparelhos, calcularOcupacao } from '@/hooks/useAparelhos';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -116,7 +114,7 @@ export default function AdminNumerosAquecimento() {
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
-  const { data: aparelhos = [] } = useAparelhos();
+  
 
   // Mutations
   const createNumero = useCreateNumero();
@@ -207,8 +205,6 @@ export default function AdminNumerosAquecimento() {
               <CreateNumeroDialog 
                 statusList={statusList} 
                 modelosList={modelosList} 
-                aparelhos={aparelhos}
-                numeros={numeros}
                 existingNumeros={numeros}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
@@ -228,12 +224,8 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
-            <TabsTrigger value="aparelhos">
-              <Smartphone className="h-4 w-4 mr-1" />
-              Aparelhos
-            </TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
             <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
@@ -247,7 +239,7 @@ export default function AdminNumerosAquecimento() {
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
             {/* Capacity Banner */}
-            <CapacityBanner numeros={numeros} onGoToAparelhos={() => setActiveTab('aparelhos')} />
+            <CapacityBanner numeros={numeros} modelosList={modelosList} />
 
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">
@@ -387,8 +379,8 @@ export default function AdminNumerosAquecimento() {
                         ) : (
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
-                            const aparelho = aparelhos.find(a => a.id === numero.aparelho_id);
-                            const oc = aparelho ? calcularOcupacao(aparelho, numeros as any) : null;
+                            const modelo = numero.modelo;
+                            const ocupadosModelo = modelo ? numeros.filter(n => n.modelo_id === modelo.id).length : 0;
                             return (
                               <TableRow key={numero.id}>
                                 <TableCell className="font-medium">
@@ -402,16 +394,12 @@ export default function AdminNumerosAquecimento() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span>{numero.modelo?.nome || '-'}</span>
-                                    {aparelho && oc && (
-                                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <Smartphone className="h-2.5 w-2.5" />
-                                        {aparelho.apelido}
-                                        <Badge variant="secondary" className="h-3.5 text-[9px] px-1">
-                                          {oc.ocupados}/{aparelho.capacidade_total}
-                                        </Badge>
-                                      </span>
+                                  <div className="flex items-center gap-2">
+                                    <span>{modelo?.nome || '-'}</span>
+                                    {modelo && modelo.capacidade_whatsapp > 0 && (
+                                      <Badge variant="secondary" className="h-4 text-[9px] px-1">
+                                        {ocupadosModelo}/{modelo.capacidade_whatsapp}
+                                      </Badge>
                                     )}
                                   </div>
                                 </TableCell>
@@ -436,8 +424,6 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    aparelhos={aparelhos}
-                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -547,8 +533,6 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    aparelhos={aparelhos}
-                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -594,11 +578,6 @@ export default function AdminNumerosAquecimento() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          {/* Aparelhos Tab */}
-          <TabsContent value="aparelhos" className="space-y-4">
-            <AparelhosTab numeros={numeros} modelosList={modelosList} />
           </TabsContent>
 
           {/* Config Tab */}
@@ -938,16 +917,12 @@ function StatsCard({ title, value, icon }: { title: string; value: number; icon:
 function CreateNumeroDialog({ 
   statusList, 
   modelosList,
-  aparelhos,
-  numeros: allNumeros,
   existingNumeros,
   onCreate,
   isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
-  aparelhos: any[];
-  numeros: NumeroAquecimento[];
   existingNumeros: NumeroAquecimento[];
   onCreate: (data: any, options: { onSuccess: () => void }) => void;
   isCreating: boolean;
@@ -956,21 +931,19 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
-  const [aparelhoId, setAparelhoId] = useState<string>('');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
 
-  // Calcular ocupação dos aparelhos
-  const aparelhoOptions = aparelhos.map((a) => {
-    const oc = calcularOcupacao(a, allNumeros as any);
-    const cheio = oc.status === 'cheio';
+  // Opções de modelo com indicação de capacidade ocupada
+  const modeloOptions = modelosList.map((m) => {
+    const ocupados = existingNumeros.filter((n) => n.modelo_id === m.id).length;
+    const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
     return {
-      value: a.id,
-      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
-      disabled: cheio,
+      value: m.id,
+      label: `${m.nome}${m.capacidade_whatsapp > 0 ? ` (${ocupados}/${m.capacidade_whatsapp})` : ''}${cheio ? ' - cheio' : ''}`,
     };
   });
 
@@ -991,13 +964,13 @@ function CreateNumeroDialog({
       return;
     }
 
-    // Validar capacidade do aparelho
-    if (aparelhoId) {
-      const aparelho = aparelhos.find(a => a.id === aparelhoId);
-      if (aparelho) {
-        const oc = calcularOcupacao(aparelho, allNumeros as any);
-        if (oc.ocupados >= aparelho.capacidade_total) {
-          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima (${aparelho.capacidade_total})`);
+    // Validar capacidade do modelo
+    if (modeloId) {
+      const modelo = modelosList.find((m) => m.id === modeloId);
+      if (modelo && modelo.capacidade_whatsapp > 0) {
+        const ocupados = existingNumeros.filter((n) => n.modelo_id === modeloId).length;
+        if (ocupados >= modelo.capacidade_whatsapp) {
+          toast.error(`Modelo "${modelo.nome}" já está na capacidade máxima (${modelo.capacidade_whatsapp})`);
           return;
         }
       }
@@ -1007,7 +980,6 @@ function CreateNumeroDialog({
       numero,
       modelo_id: modeloId || null,
       status_id: statusId || null,
-      aparelho_id: aparelhoId || null,
       tipo_whatsapp: tipoWhatsapp,
       observacoes: observacoes || undefined,
     }, {
@@ -1016,7 +988,6 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
-        setAparelhoId('');
         setTipoWhatsapp('normal');
         setObservacoes('');
       }
@@ -1058,34 +1029,9 @@ function CreateNumeroDialog({
             </Select>
           </div>
           <div>
-            <Label>Aparelho</Label>
-            {aparelhos.length === 0 ? (
-              <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
-                Nenhum aparelho cadastrado. Acesse a aba "Aparelhos" para cadastrar.
-              </div>
-            ) : (
-              <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem aparelho" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sem aparelho</SelectItem>
-                  {aparelhoOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <div>
             <Label>Modelo</Label>
             <SearchableSelect
-              options={modelosList.map((modelo) => ({
-                value: modelo.id,
-                label: modelo.nome,
-              }))}
+              options={modeloOptions}
               value={modeloId}
               onValueChange={setModeloId}
               placeholder="Selecione o modelo"
@@ -1132,8 +1078,6 @@ function NumeroActionsMenu({
   numero,
   statusList,
   modelosList,
-  aparelhos,
-  allNumeros,
   canEdit,
   canChangeStatus,
   canChangeObs,
@@ -1147,8 +1091,6 @@ function NumeroActionsMenu({
   numero: NumeroAquecimento;
   statusList: NumeroStatus[];
   modelosList: NumeroModelo[];
-  aparelhos: any[];
-  allNumeros: NumeroAquecimento[];
   canEdit: boolean;
   canChangeStatus: boolean;
   canChangeObs: boolean;
@@ -1164,7 +1106,6 @@ function NumeroActionsMenu({
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
-  const [aparelhoId, setAparelhoId] = useState(numero.aparelho_id || '');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   
@@ -1175,41 +1116,15 @@ function NumeroActionsMenu({
   // Determinar se pode excluir este número específico
   const canDeleteThisNumber = isVendido ? canDeleteSold : canDelete;
 
-  // Opções de aparelho com indicação de capacidade
-  const aparelhoOptions = aparelhos.map((a) => {
-    const oc = calcularOcupacao(a, allNumeros as any);
-    const isCurrent = a.id === numero.aparelho_id;
-    const cheio = oc.status === 'cheio' && !isCurrent;
-    return {
-      value: a.id,
-      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
-      disabled: cheio,
-    };
-  });
-
   const handleSave = () => {
-    // Block any changes if status is "Vendido"
     if (isVendido) {
       toast.error('Números vendidos não podem ser alterados');
       setEditOpen(false);
       return;
     }
 
-    // Validar capacidade ao mudar de aparelho
-    if (canEdit && aparelhoId && aparelhoId !== numero.aparelho_id) {
-      const aparelho = aparelhos.find(a => a.id === aparelhoId);
-      if (aparelho) {
-        const oc = calcularOcupacao(aparelho, allNumeros as any);
-        if (oc.ocupados >= aparelho.capacidade_total) {
-          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima`);
-          return;
-        }
-      }
-    }
-    
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
-    if (canEdit && aparelhoId !== (numero.aparelho_id || '')) updates.aparelho_id = aparelhoId || null;
     if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
     if (canChangeObs && observacoes !== numero.observacoes) updates.observacoes = observacoes;
@@ -1293,28 +1208,6 @@ function NumeroActionsMenu({
                       <SelectItem value="business">💼 WhatsApp Business</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label>Aparelho</Label>
-                  {aparelhos.length === 0 ? (
-                    <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
-                      Nenhum aparelho cadastrado.
-                    </div>
-                  ) : (
-                    <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sem aparelho" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Sem aparelho</SelectItem>
-                        {aparelhoOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
                 </div>
               </>
             )}
@@ -1575,17 +1468,28 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [nome, setNome] = useState('');
   const [marca, setMarca] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [capacidade, setCapacidade] = useState(3);
 
   const handleSubmit = () => {
     if (!nome) {
       toast.error('Nome é obrigatório');
       return;
     }
-    onCreate({ nome, marca: marca || undefined, descricao: descricao || undefined });
+    if (capacidade < 1 || capacidade > 20) {
+      toast.error('Capacidade deve ser entre 1 e 20');
+      return;
+    }
+    onCreate({
+      nome,
+      marca: marca || undefined,
+      descricao: descricao || undefined,
+      capacidade_whatsapp: capacidade,
+    });
     setOpen(false);
     setNome('');
     setMarca('');
     setDescricao('');
+    setCapacidade(3);
   };
 
   return (
@@ -1599,15 +1503,31 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Criar Modelo</DialogTitle>
+          <DialogDescription>
+            Defina o modelo do aparelho e quantos WhatsApp ele comporta
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: iPhone 15" />
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Samsung A03, iPhone 15" />
           </div>
           <div>
             <Label>Marca</Label>
-            <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Apple" />
+            <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Samsung, Apple" />
+          </div>
+          <div>
+            <Label>Capacidade de WhatsApp *</Label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={capacidade}
+              onChange={(e) => setCapacidade(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Quantos WhatsApp (normal + business) este modelo comporta
+            </p>
           </div>
           <div>
             <Label>Descrição</Label>
@@ -1628,9 +1548,19 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [nome, setNome] = useState(modelo.nome);
   const [marca, setMarca] = useState(modelo.marca || '');
   const [descricao, setDescricao] = useState(modelo.descricao || '');
+  const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
 
   const handleSubmit = () => {
-    onUpdate({ nome, marca: marca || null, descricao: descricao || null });
+    if (capacidade < 1 || capacidade > 20) {
+      toast.error('Capacidade deve ser entre 1 e 20');
+      return;
+    }
+    onUpdate({
+      nome,
+      marca: marca || null,
+      descricao: descricao || null,
+      capacidade_whatsapp: capacidade,
+    });
     setOpen(false);
   };
 
@@ -1653,6 +1583,19 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <div>
             <Label>Marca</Label>
             <Input value={marca} onChange={(e) => setMarca(e.target.value)} />
+          </div>
+          <div>
+            <Label>Capacidade de WhatsApp *</Label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={capacidade}
+              onChange={(e) => setCapacidade(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Quantos WhatsApp (normal + business) este modelo comporta
+            </p>
           </div>
           <div>
             <Label>Descrição</Label>
