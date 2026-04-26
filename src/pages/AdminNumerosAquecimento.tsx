@@ -917,16 +917,12 @@ function StatsCard({ title, value, icon }: { title: string; value: number; icon:
 function CreateNumeroDialog({ 
   statusList, 
   modelosList,
-  aparelhos,
-  numeros: allNumeros,
   existingNumeros,
   onCreate,
   isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
-  aparelhos: any[];
-  numeros: NumeroAquecimento[];
   existingNumeros: NumeroAquecimento[];
   onCreate: (data: any, options: { onSuccess: () => void }) => void;
   isCreating: boolean;
@@ -935,21 +931,19 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
-  const [aparelhoId, setAparelhoId] = useState<string>('');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
 
-  // Calcular ocupação dos aparelhos
-  const aparelhoOptions = aparelhos.map((a) => {
-    const oc = calcularOcupacao(a, allNumeros as any);
-    const cheio = oc.status === 'cheio';
+  // Opções de modelo com indicação de capacidade ocupada
+  const modeloOptions = modelosList.map((m) => {
+    const ocupados = existingNumeros.filter((n) => n.modelo_id === m.id).length;
+    const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
     return {
-      value: a.id,
-      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
-      disabled: cheio,
+      value: m.id,
+      label: `${m.nome}${m.capacidade_whatsapp > 0 ? ` (${ocupados}/${m.capacidade_whatsapp})` : ''}${cheio ? ' - cheio' : ''}`,
     };
   });
 
@@ -970,13 +964,13 @@ function CreateNumeroDialog({
       return;
     }
 
-    // Validar capacidade do aparelho
-    if (aparelhoId) {
-      const aparelho = aparelhos.find(a => a.id === aparelhoId);
-      if (aparelho) {
-        const oc = calcularOcupacao(aparelho, allNumeros as any);
-        if (oc.ocupados >= aparelho.capacidade_total) {
-          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima (${aparelho.capacidade_total})`);
+    // Validar capacidade do modelo
+    if (modeloId) {
+      const modelo = modelosList.find((m) => m.id === modeloId);
+      if (modelo && modelo.capacidade_whatsapp > 0) {
+        const ocupados = existingNumeros.filter((n) => n.modelo_id === modeloId).length;
+        if (ocupados >= modelo.capacidade_whatsapp) {
+          toast.error(`Modelo "${modelo.nome}" já está na capacidade máxima (${modelo.capacidade_whatsapp})`);
           return;
         }
       }
@@ -986,7 +980,6 @@ function CreateNumeroDialog({
       numero,
       modelo_id: modeloId || null,
       status_id: statusId || null,
-      aparelho_id: aparelhoId || null,
       tipo_whatsapp: tipoWhatsapp,
       observacoes: observacoes || undefined,
     }, {
@@ -995,7 +988,6 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
-        setAparelhoId('');
         setTipoWhatsapp('normal');
         setObservacoes('');
       }
