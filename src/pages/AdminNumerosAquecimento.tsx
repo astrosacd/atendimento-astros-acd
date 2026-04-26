@@ -379,8 +379,8 @@ export default function AdminNumerosAquecimento() {
                         ) : (
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
-                            const aparelho = aparelhos.find(a => a.id === numero.aparelho_id);
-                            const oc = aparelho ? calcularOcupacao(aparelho, numeros as any) : null;
+                            const modelo = numero.modelo;
+                            const ocupadosModelo = modelo ? numeros.filter(n => n.modelo_id === modelo.id).length : 0;
                             return (
                               <TableRow key={numero.id}>
                                 <TableCell className="font-medium">
@@ -394,16 +394,12 @@ export default function AdminNumerosAquecimento() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span>{numero.modelo?.nome || '-'}</span>
-                                    {aparelho && oc && (
-                                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                        <Smartphone className="h-2.5 w-2.5" />
-                                        {aparelho.apelido}
-                                        <Badge variant="secondary" className="h-3.5 text-[9px] px-1">
-                                          {oc.ocupados}/{aparelho.capacidade_total}
-                                        </Badge>
-                                      </span>
+                                  <div className="flex items-center gap-2">
+                                    <span>{modelo?.nome || '-'}</span>
+                                    {modelo && modelo.capacidade_whatsapp > 0 && (
+                                      <Badge variant="secondary" className="h-4 text-[9px] px-1">
+                                        {ocupadosModelo}/{modelo.capacidade_whatsapp}
+                                      </Badge>
                                     )}
                                   </div>
                                 </TableCell>
@@ -428,8 +424,6 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    aparelhos={aparelhos}
-                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
