@@ -46,11 +46,16 @@ export function CapacityBanner({ numeros, onGoToAparelhos }: Props) {
     <Card className="border-amber-500/30 bg-amber-500/5">
       <CardContent className="py-3 px-4">
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <span className="font-semibold text-sm text-amber-700 dark:text-amber-400">
               {totalLivres} {totalLivres === 1 ? 'vaga disponível' : 'vagas disponíveis'} em {comVagas.length} {comVagas.length === 1 ? 'aparelho' : 'aparelhos'}
             </span>
+            {semAparelho > 0 && (
+              <Badge variant="destructive" className="text-[10px] h-5">
+                {semAparelho} {semAparelho === 1 ? 'número sem aparelho vinculado' : 'números sem aparelho vinculado'}
+              </Badge>
+            )}
           </div>
           {onGoToAparelhos && (
             <Button size="sm" variant="ghost" className="h-7" onClick={onGoToAparelhos}>
@@ -58,6 +63,11 @@ export function CapacityBanner({ numeros, onGoToAparelhos }: Props) {
             </Button>
           )}
         </div>
+        {semAparelho > 0 && (
+          <div className="mb-2 text-xs text-muted-foreground bg-background/50 border border-dashed rounded-md px-2.5 py-1.5">
+            💡 Você tem <strong>{semAparelho}</strong> {semAparelho === 1 ? 'número cadastrado' : 'números cadastrados'} sem aparelho vinculado. Edite cada número (menu de ações na tabela) e selecione o aparelho correspondente para que a contagem fique correta.
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {comVagas.slice(0, 8).map(o => {
             const sugestao = sugerirTipoFaltante(o);
