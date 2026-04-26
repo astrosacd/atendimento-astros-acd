@@ -10,6 +10,8 @@ export interface NumeroAquecimento {
   numero: string;
   modelo_id: string | null;
   status_id: string | null;
+  aparelho_id: string | null;
+  tipo_whatsapp: 'normal' | 'business' | null;
   ultima_atividade: string;
   observacoes: string | null;
   created_by: string | null;
