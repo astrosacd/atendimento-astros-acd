@@ -239,7 +239,7 @@ export default function AdminNumerosAquecimento() {
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
             {/* Capacity Banner */}
-            <CapacityBanner numeros={numeros} modelosList={modelosList} />
+            <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
 
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">
