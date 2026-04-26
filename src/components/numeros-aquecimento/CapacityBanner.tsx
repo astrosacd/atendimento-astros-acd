@@ -39,7 +39,7 @@ export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
   const ocupacoes: ModeloOcupacao[] = modelosList
     .filter((m) => m.capacidade_whatsapp > 0)
     .map((modelo) => {
-      const doModelo = numeros.filter((n) => n.modelo_id === modelo.id);
+      const doModelo = numerosEstoque.filter((n) => n.modelo_id === modelo.id);
       const normal = doModelo.filter((n) => n.tipo_whatsapp === 'normal').length;
       const business = doModelo.filter((n) => n.tipo_whatsapp === 'business').length;
       const ocupados = doModelo.length;
@@ -54,7 +54,7 @@ export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
     });
 
   const comVagas = ocupacoes.filter((o) => o.livres > 0 && o.ocupados > 0);
-  const semTipo = numeros.filter((n) => !n.tipo_whatsapp).length;
+  const semTipo = numerosEstoque.filter((n) => !n.tipo_whatsapp).length;
 
   if (comVagas.length === 0 && semTipo === 0) {
     return (
