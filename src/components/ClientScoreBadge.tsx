@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trophy, Award, Medal, AlertTriangle, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Trophy, Award, Medal, AlertTriangle, Loader2, Sparkles, RefreshCw, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientScore {
@@ -47,6 +47,63 @@ const FAIXA_CONFIG = {
   },
 } as const;
 
+/* ============================================================
+ * Fila global de cálculo (throttle 1 por vez + retry com backoff)
+ * Evita que /consultar dispare dezenas de requests em paralelo
+ * e bata no rate limit do Lovable AI.
+ * ============================================================ */
+type Job = {
+  clienteId: string;
+  resolve: (ok: boolean) => void;
+  attempt: number;
+};
+const queue: Job[] = [];
+let processing = false;
+const DELAY_BETWEEN_CALLS_MS = 1500; // espaçamento entre chamadas
+const MAX_ATTEMPTS = 3;
+
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+  while (queue.length > 0) {
+    const job = queue.shift()!;
+    try {
+      const { error } = await supabase.functions.invoke("calculate-client-score", {
+        body: { cliente_id: job.clienteId },
+      });
+      const msg = (error as any)?.message || "";
+      const isRateLimit = msg.includes("Rate limit") || msg.includes("429");
+      if (error && isRateLimit && job.attempt < MAX_ATTEMPTS) {
+        // Reagenda no fim da fila com backoff
+        queue.push({ ...job, attempt: job.attempt + 1 });
+        await new Promise((r) => setTimeout(r, 5000 * job.attempt));
+      } else {
+        job.resolve(!error);
+      }
+    } catch (e) {
+      console.error("[ScoreQueue] erro:", e);
+      job.resolve(false);
+    }
+    // espaçamento entre jobs
+    if (queue.length > 0) {
+      await new Promise((r) => setTimeout(r, DELAY_BETWEEN_CALLS_MS));
+    }
+  }
+  processing = false;
+}
+
+function enqueueScoreCalc(clienteId: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    // dedup: se já está na fila, ignora
+    if (queue.some((j) => j.clienteId === clienteId)) {
+      resolve(false);
+      return;
+    }
+    queue.push({ clienteId, resolve, attempt: 1 });
+    processQueue();
+  });
+}
+
 export function ClientScoreBadge({
   clienteId,
   size = "md",
@@ -58,6 +115,7 @@ export function ClientScoreBadge({
   const [score, setScore] = useState<ClientScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
+  const [hasData, setHasData] = useState<boolean | null>(null); // tem pagamentos/billings?
   const triggeredRef = useRef(false);
 
   const loadScore = useCallback(async () => {
@@ -71,19 +129,29 @@ export function ClientScoreBadge({
     return data as ClientScore | null;
   }, [clienteId]);
 
+  const checkHasData = useCallback(async () => {
+    const [pagRes, bilRes] = await Promise.all([
+      supabase
+        .from("client_payments")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", clienteId),
+      supabase
+        .from("billing_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", clienteId),
+    ]);
+    const total = (pagRes.count || 0) + (bilRes.count || 0);
+    setHasData(total > 0);
+    return total > 0;
+  }, [clienteId]);
+
   const calculateOne = useCallback(async () => {
     if (calculating) return;
     setCalculating(true);
     try {
-      const { error } = await supabase.functions.invoke("calculate-client-score", {
-        body: { cliente_id: clienteId },
-      });
-      if (!error) {
-        const fresh = await loadScore();
-        if (fresh && onCalculated) onCalculated(fresh);
-      }
-    } catch (e) {
-      console.error("[ClientScoreBadge] calc error", e);
+      await enqueueScoreCalc(clienteId);
+      const fresh = await loadScore();
+      if (fresh && onCalculated) onCalculated(fresh);
     } finally {
       setCalculating(false);
     }
@@ -94,14 +162,22 @@ export function ClientScoreBadge({
     triggeredRef.current = false;
     setLoading(true);
     setScore(null);
-    loadScore().then((data) => {
+    setHasData(null);
+
+    (async () => {
+      const data = await loadScore();
       if (!mounted) return;
-      // Auto-calcular se não houver score
-      if (!data && autoCalculate && !triggeredRef.current) {
+      if (data) return; // já tem score
+
+      // sem score: verifica se vale a pena chamar a IA
+      const temDados = await checkHasData();
+      if (!mounted) return;
+      if (autoCalculate && temDados && !triggeredRef.current) {
         triggeredRef.current = true;
         calculateOne();
       }
-    });
+    })();
+
     return () => {
       mounted = false;
     };
@@ -141,6 +217,42 @@ export function ClientScoreBadge({
   }
 
   if (!score) {
+    // Cliente sem dados de pagamento/cobrança ainda
+    if (hasData === false && !calculating) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                onClick={handleRecalc}
+                className={cn(
+                  "gap-1 cursor-pointer hover:bg-muted text-muted-foreground border-dashed",
+                  size === "sm" ? "text-[10px] px-1.5 py-0" : "text-xs",
+                  className
+                )}
+              >
+                <Minus className="h-3 w-3" />
+                Sem histórico
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[260px]">
+              <div className="space-y-1 text-xs">
+                <div className="font-semibold">Sem dados para calcular score</div>
+                <div className="text-muted-foreground">
+                  Este cliente ainda não tem pagamentos nem cobranças registrados. O score só é
+                  calculado quando há histórico financeiro.
+                </div>
+                <div className="text-[10px] text-muted-foreground/70 pt-1 border-t">
+                  Clique para calcular mesmo assim
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
     return (
       <Badge
         variant="outline"
