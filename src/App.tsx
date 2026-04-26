@@ -71,7 +71,6 @@ import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
-import ScoresClientes from "./pages/ScoresClientes";
 
 const queryClient = new QueryClient();
 
@@ -171,7 +170,6 @@ function AppRoutes() {
       <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_client_graph"><GrafoClientes /></ProtectedRoute>} />
       <Route path="/central-ajuda" element={<ProtectedRoute permission="view_central_ajuda"><CentralAjuda /></ProtectedRoute>} />
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-      <Route path="/scores-clientes" element={<ProtectedRoute permission="view_clients"><ScoresClientes /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
