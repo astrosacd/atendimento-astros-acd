@@ -61,6 +61,9 @@ import {
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
+import { AparelhosTab } from '@/components/numeros-aquecimento/AparelhosTab';
+import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
+import { useAparelhos, calcularOcupacao } from '@/hooks/useAparelhos';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
