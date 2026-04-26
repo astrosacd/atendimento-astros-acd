@@ -1468,17 +1468,28 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
   const [nome, setNome] = useState('');
   const [marca, setMarca] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [capacidade, setCapacidade] = useState(3);
 
   const handleSubmit = () => {
     if (!nome) {
       toast.error('Nome é obrigatório');
       return;
     }
-    onCreate({ nome, marca: marca || undefined, descricao: descricao || undefined });
+    if (capacidade < 1 || capacidade > 20) {
+      toast.error('Capacidade deve ser entre 1 e 20');
+      return;
+    }
+    onCreate({
+      nome,
+      marca: marca || undefined,
+      descricao: descricao || undefined,
+      capacidade_whatsapp: capacidade,
+    });
     setOpen(false);
     setNome('');
     setMarca('');
     setDescricao('');
+    setCapacidade(3);
   };
 
   return (
@@ -1492,15 +1503,31 @@ function CreateModeloDialog({ onCreate }: { onCreate: (data: any) => void }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Criar Modelo</DialogTitle>
+          <DialogDescription>
+            Defina o modelo do aparelho e quantos WhatsApp ele comporta
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Nome *</Label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: iPhone 15" />
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Samsung A03, iPhone 15" />
           </div>
           <div>
             <Label>Marca</Label>
-            <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Apple" />
+            <Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Ex: Samsung, Apple" />
+          </div>
+          <div>
+            <Label>Capacidade de WhatsApp *</Label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={capacidade}
+              onChange={(e) => setCapacidade(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Quantos WhatsApp (normal + business) este modelo comporta
+            </p>
           </div>
           <div>
             <Label>Descrição</Label>
@@ -1521,9 +1548,19 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
   const [nome, setNome] = useState(modelo.nome);
   const [marca, setMarca] = useState(modelo.marca || '');
   const [descricao, setDescricao] = useState(modelo.descricao || '');
+  const [capacidade, setCapacidade] = useState(modelo.capacidade_whatsapp || 3);
 
   const handleSubmit = () => {
-    onUpdate({ nome, marca: marca || null, descricao: descricao || null });
+    if (capacidade < 1 || capacidade > 20) {
+      toast.error('Capacidade deve ser entre 1 e 20');
+      return;
+    }
+    onUpdate({
+      nome,
+      marca: marca || null,
+      descricao: descricao || null,
+      capacidade_whatsapp: capacidade,
+    });
     setOpen(false);
   };
 
@@ -1546,6 +1583,19 @@ function EditModeloDialog({ modelo, onUpdate }: { modelo: NumeroModelo; onUpdate
           <div>
             <Label>Marca</Label>
             <Input value={marca} onChange={(e) => setMarca(e.target.value)} />
+          </div>
+          <div>
+            <Label>Capacidade de WhatsApp *</Label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={capacidade}
+              onChange={(e) => setCapacidade(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Quantos WhatsApp (normal + business) este modelo comporta
+            </p>
           </div>
           <div>
             <Label>Descrição</Label>
