@@ -1029,34 +1029,9 @@ function CreateNumeroDialog({
             </Select>
           </div>
           <div>
-            <Label>Aparelho</Label>
-            {aparelhos.length === 0 ? (
-              <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
-                Nenhum aparelho cadastrado. Acesse a aba "Aparelhos" para cadastrar.
-              </div>
-            ) : (
-              <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem aparelho" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sem aparelho</SelectItem>
-                  {aparelhoOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <div>
             <Label>Modelo</Label>
             <SearchableSelect
-              options={modelosList.map((modelo) => ({
-                value: modelo.id,
-                label: modelo.nome,
-              }))}
+              options={modeloOptions}
               value={modeloId}
               onValueChange={setModeloId}
               placeholder="Selecione o modelo"
