@@ -566,6 +566,11 @@ export default function AdminNumerosAquecimento() {
             )}
           </TabsContent>
 
+          {/* Aparelhos Tab */}
+          <TabsContent value="aparelhos" className="space-y-4">
+            <AparelhosTab numeros={numeros} modelosList={modelosList} />
+          </TabsContent>
+
           {/* Config Tab */}
           <TabsContent value="config" className="space-y-4">
             {/* Alert Configuration - Full Width */}
