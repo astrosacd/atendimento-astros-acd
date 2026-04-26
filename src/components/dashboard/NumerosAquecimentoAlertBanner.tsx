@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertTriangle, X, Eye, ExternalLink, Clock } from 'lucide-react';
 import { useNumerosAlertCheck, useMarkAlertShown } from '@/hooks/useNumerosAquecimentoAlerts';
 import { usePermissions } from '@/hooks/usePermissions';
-import type { NumeroAquecimento } from '@/hooks/useNumerosAquecimento';
+
 
 const statusColorMap: Record<string, string> = {
   green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
