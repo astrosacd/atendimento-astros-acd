@@ -4317,6 +4317,7 @@ export type Database = {
       }
       numeros_aquecimento: {
         Row: {
+          aparelho_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -4324,10 +4325,12 @@ export type Database = {
           numero: string
           observacoes: string | null
           status_id: string | null
+          tipo_whatsapp: string | null
           ultima_atividade: string
           updated_at: string
         }
         Insert: {
+          aparelho_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4335,10 +4338,12 @@ export type Database = {
           numero: string
           observacoes?: string | null
           status_id?: string | null
+          tipo_whatsapp?: string | null
           ultima_atividade: string
           updated_at?: string
         }
         Update: {
+          aparelho_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4346,10 +4351,18 @@ export type Database = {
           numero?: string
           observacoes?: string | null
           status_id?: string | null
+          tipo_whatsapp?: string | null
           ultima_atividade?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "numeros_aquecimento_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_aparelhos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "numeros_aquecimento_modelo_id_fkey"
             columns: ["modelo_id"]
@@ -4401,6 +4414,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      numeros_aquecimento_aparelhos: {
+        Row: {
+          apelido: string
+          capacidade_total: number
+          created_at: string
+          created_by: string | null
+          id: string
+          modelo_id: string | null
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          apelido: string
+          capacidade_total?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modelo_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apelido?: string
+          capacidade_total?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modelo_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "numeros_aquecimento_aparelhos_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "numeros_aquecimento_modelos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       numeros_aquecimento_api_keys: {
         Row: {
