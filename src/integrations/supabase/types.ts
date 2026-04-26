@@ -4541,6 +4541,7 @@ export type Database = {
       }
       numeros_aquecimento_modelos: {
         Row: {
+          capacidade_whatsapp: number
           created_at: string
           descricao: string | null
           id: string
@@ -4549,6 +4550,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capacidade_whatsapp?: number
           created_at?: string
           descricao?: string | null
           id?: string
@@ -4557,6 +4559,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capacidade_whatsapp?: number
           created_at?: string
           descricao?: string | null
           id?: string
