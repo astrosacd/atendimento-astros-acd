@@ -26,8 +26,14 @@ function sugerirTipo(o: ModeloOcupacao): string {
   return o.normal < o.business ? 'normal' : 'business';
 }
 
-export function CapacityBanner({ numeros, modelosList }: Props) {
+export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
   if (modelosList.length === 0) return null;
+
+  // Excluir números com status "Vendido" — capacidade é só do estoque
+  const vendidoStatusId = statusList?.find((s) => s.nome === 'Vendido')?.id;
+  const numerosEstoque = vendidoStatusId
+    ? numeros.filter((n) => n.status_id !== vendidoStatusId)
+    : numeros;
 
   // Considera apenas números não vendidos (status fica fora — quem chama já filtra se quiser)
   const ocupacoes: ModeloOcupacao[] = modelosList
