@@ -61,6 +61,9 @@ import {
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
 import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
+import { AparelhosTab } from '@/components/numeros-aquecimento/AparelhosTab';
+import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
+import { useAparelhos, calcularOcupacao } from '@/hooks/useAparelhos';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -113,6 +116,7 @@ export default function AdminNumerosAquecimento() {
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
+  const { data: aparelhos = [] } = useAparelhos();
 
   // Mutations
   const createNumero = useCreateNumero();
@@ -203,6 +207,8 @@ export default function AdminNumerosAquecimento() {
               <CreateNumeroDialog 
                 statusList={statusList} 
                 modelosList={modelosList} 
+                aparelhos={aparelhos}
+                numeros={numeros}
                 existingNumeros={numeros}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
@@ -222,8 +228,12 @@ export default function AdminNumerosAquecimento() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-auto">
             <TabsTrigger value="numeros">{t('numberStatus.numbers')}</TabsTrigger>
+            <TabsTrigger value="aparelhos">
+              <Smartphone className="h-4 w-4 mr-1" />
+              Aparelhos
+            </TabsTrigger>
             <TabsTrigger value="config" disabled={!canManageStatus && !canManageModelos}>{t('numberStatus.config')}</TabsTrigger>
             <TabsTrigger value="history" disabled={!canViewHistory}>{t('numberStatus.history')}</TabsTrigger>
             <TabsTrigger value="restore" disabled={!canRestoreNumbers}>
@@ -236,6 +246,9 @@ export default function AdminNumerosAquecimento() {
 
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
+            {/* Capacity Banner */}
+            <CapacityBanner numeros={numeros} onGoToAparelhos={() => setActiveTab('aparelhos')} />
+
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">
               <Button
@@ -374,10 +387,34 @@ export default function AdminNumerosAquecimento() {
                         ) : (
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
+                            const aparelho = aparelhos.find(a => a.id === numero.aparelho_id);
+                            const oc = aparelho ? calcularOcupacao(aparelho, numeros as any) : null;
                             return (
                               <TableRow key={numero.id}>
-                                <TableCell className="font-medium">{numero.numero}</TableCell>
-                                <TableCell>{numero.modelo?.nome || '-'}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {numero.numero}
+                                    {numero.tipo_whatsapp && (
+                                      <Badge variant="outline" className="text-[9px] h-4 px-1">
+                                        {numero.tipo_whatsapp === 'business' ? 'B' : 'N'}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span>{numero.modelo?.nome || '-'}</span>
+                                    {aparelho && oc && (
+                                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                        <Smartphone className="h-2.5 w-2.5" />
+                                        {aparelho.apelido}
+                                        <Badge variant="secondary" className="h-3.5 text-[9px] px-1">
+                                          {oc.ocupados}/{aparelho.capacidade_total}
+                                        </Badge>
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell>
                                   {status ? (
                                     <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
@@ -399,6 +436,8 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
+                                    aparelhos={aparelhos}
+                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -508,6 +547,8 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
+                                    aparelhos={aparelhos}
+                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -553,6 +594,11 @@ export default function AdminNumerosAquecimento() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Aparelhos Tab */}
+          <TabsContent value="aparelhos" className="space-y-4">
+            <AparelhosTab numeros={numeros} modelosList={modelosList} />
           </TabsContent>
 
           {/* Config Tab */}
@@ -892,12 +938,16 @@ function StatsCard({ title, value, icon }: { title: string; value: number; icon:
 function CreateNumeroDialog({ 
   statusList, 
   modelosList,
+  aparelhos,
+  numeros: allNumeros,
   existingNumeros,
   onCreate,
   isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
+  aparelhos: any[];
+  numeros: NumeroAquecimento[];
   existingNumeros: NumeroAquecimento[];
   onCreate: (data: any, options: { onSuccess: () => void }) => void;
   isCreating: boolean;
@@ -906,10 +956,23 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
+  const [aparelhoId, setAparelhoId] = useState<string>('');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
+
+  // Calcular ocupação dos aparelhos
+  const aparelhoOptions = aparelhos.map((a) => {
+    const oc = calcularOcupacao(a, allNumeros as any);
+    const cheio = oc.status === 'cheio';
+    return {
+      value: a.id,
+      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
+      disabled: cheio,
+    };
+  });
 
   const handleSubmit = () => {
     if (!numero) {
@@ -928,10 +991,24 @@ function CreateNumeroDialog({
       return;
     }
 
+    // Validar capacidade do aparelho
+    if (aparelhoId) {
+      const aparelho = aparelhos.find(a => a.id === aparelhoId);
+      if (aparelho) {
+        const oc = calcularOcupacao(aparelho, allNumeros as any);
+        if (oc.ocupados >= aparelho.capacidade_total) {
+          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima (${aparelho.capacidade_total})`);
+          return;
+        }
+      }
+    }
+
     onCreate({
       numero,
       modelo_id: modeloId || null,
       status_id: statusId || null,
+      aparelho_id: aparelhoId || null,
+      tipo_whatsapp: tipoWhatsapp,
       observacoes: observacoes || undefined,
     }, {
       onSuccess: () => {
@@ -939,6 +1016,8 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
+        setAparelhoId('');
+        setTipoWhatsapp('normal');
         setObservacoes('');
       }
     });
@@ -952,7 +1031,7 @@ function CreateNumeroDialog({
           Novo Número
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cadastrar Número</DialogTitle>
           <DialogDescription>Adicione um novo número ao sistema</DialogDescription>
@@ -965,6 +1044,40 @@ function CreateNumeroDialog({
               value={numero}
               onChange={(e) => setNumero(e.target.value)}
             />
+          </div>
+          <div>
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Aparelho</Label>
+            {aparelhos.length === 0 ? (
+              <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                Nenhum aparelho cadastrado. Acesse a aba "Aparelhos" para cadastrar.
+              </div>
+            ) : (
+              <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem aparelho" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem aparelho</SelectItem>
+                  {aparelhoOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div>
             <Label>Modelo</Label>
@@ -1019,6 +1132,8 @@ function NumeroActionsMenu({
   numero,
   statusList,
   modelosList,
+  aparelhos,
+  allNumeros,
   canEdit,
   canChangeStatus,
   canChangeObs,
@@ -1032,6 +1147,8 @@ function NumeroActionsMenu({
   numero: NumeroAquecimento;
   statusList: NumeroStatus[];
   modelosList: NumeroModelo[];
+  aparelhos: any[];
+  allNumeros: NumeroAquecimento[];
   canEdit: boolean;
   canChangeStatus: boolean;
   canChangeObs: boolean;
@@ -1047,6 +1164,8 @@ function NumeroActionsMenu({
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
+  const [aparelhoId, setAparelhoId] = useState(numero.aparelho_id || '');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   
   // Fetch observation history for this number
@@ -1056,6 +1175,18 @@ function NumeroActionsMenu({
   // Determinar se pode excluir este número específico
   const canDeleteThisNumber = isVendido ? canDeleteSold : canDelete;
 
+  // Opções de aparelho com indicação de capacidade
+  const aparelhoOptions = aparelhos.map((a) => {
+    const oc = calcularOcupacao(a, allNumeros as any);
+    const isCurrent = a.id === numero.aparelho_id;
+    const cheio = oc.status === 'cheio' && !isCurrent;
+    return {
+      value: a.id,
+      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
+      disabled: cheio,
+    };
+  });
+
   const handleSave = () => {
     // Block any changes if status is "Vendido"
     if (isVendido) {
@@ -1063,9 +1194,23 @@ function NumeroActionsMenu({
       setEditOpen(false);
       return;
     }
+
+    // Validar capacidade ao mudar de aparelho
+    if (canEdit && aparelhoId && aparelhoId !== numero.aparelho_id) {
+      const aparelho = aparelhos.find(a => a.id === aparelhoId);
+      if (aparelho) {
+        const oc = calcularOcupacao(aparelho, allNumeros as any);
+        if (oc.ocupados >= aparelho.capacidade_total) {
+          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima`);
+          return;
+        }
+      }
+    }
     
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
+    if (canEdit && aparelhoId !== (numero.aparelho_id || '')) updates.aparelho_id = aparelhoId || null;
+    if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
     if (canChangeObs && observacoes !== numero.observacoes) updates.observacoes = observacoes;
     
@@ -1129,12 +1274,50 @@ function NumeroActionsMenu({
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Número</DialogTitle>
             <DialogDescription>{numero.numero}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {canEdit && (
+              <>
+                <div>
+                  <Label>Tipo WhatsApp *</Label>
+                  <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                      <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Aparelho</Label>
+                  {aparelhos.length === 0 ? (
+                    <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                      Nenhum aparelho cadastrado.
+                    </div>
+                  ) : (
+                    <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sem aparelho" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem aparelho</SelectItem>
+                        {aparelhoOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
             {canEdit && (
               <div>
                 <Label>Modelo</Label>
