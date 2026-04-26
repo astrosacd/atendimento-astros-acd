@@ -207,6 +207,8 @@ export default function AdminNumerosAquecimento() {
               <CreateNumeroDialog 
                 statusList={statusList} 
                 modelosList={modelosList} 
+                aparelhos={aparelhos}
+                numeros={numeros}
                 existingNumeros={numeros}
                 onCreate={createNumero.mutate}
                 isCreating={createNumero.isPending}
