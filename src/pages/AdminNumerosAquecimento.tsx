@@ -367,7 +367,7 @@ export default function AdminNumerosAquecimento() {
                           </TableRow>
                         ) : paginatedNumerosEstoque.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                               {t('numberStatus.noNumbers')}
                             </TableCell>
                           </TableRow>
@@ -384,6 +384,9 @@ export default function AdminNumerosAquecimento() {
                                       {status.nome}
                                     </Badge>
                                   ) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <NumeroAnaliseInline numero={numero} statusList={statusList} />
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
                                   {numero.ultima_atividade}
