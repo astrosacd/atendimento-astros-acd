@@ -116,6 +116,7 @@ export default function AdminNumerosAquecimento() {
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
+  const { data: aparelhos = [] } = useAparelhos();
 
   // Mutations
   const createNumero = useCreateNumero();
