@@ -1,9 +1,14 @@
 import { usePermissions } from '@/hooks/usePermissions';
 import { NumerosAquecimentoCard } from './NumerosAquecimentoCard';
+import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
+import { useNumerosAquecimento, useNumerosModelos } from '@/hooks/useNumerosAquecimento';
 
 export function NumerosAquecimentoSection() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission('view_numeros_aquecimento');
+
+  const { data: numeros = [] } = useNumerosAquecimento();
+  const { data: modelosList = [] } = useNumerosModelos();
 
   if (!canView) {
     return null;
@@ -16,6 +21,7 @@ export function NumerosAquecimentoSection() {
         Status de Números
       </h3>
       <div className="grid grid-cols-1 gap-4 mb-6">
+        <CapacityBanner numeros={numeros} modelosList={modelosList} />
         <NumerosAquecimentoCard />
       </div>
     </>

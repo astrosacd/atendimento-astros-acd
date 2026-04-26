@@ -424,6 +424,7 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
+                                    existingNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -533,6 +534,7 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
+                                    existingNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -968,9 +970,14 @@ function CreateNumeroDialog({
     if (modeloId) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
-        const ocupados = existingNumeros.filter((n) => n.modelo_id === modeloId).length;
+        const doModelo = existingNumeros.filter((n) => n.modelo_id === modeloId);
+        const ocupados = doModelo.length;
         if (ocupados >= modelo.capacidade_whatsapp) {
-          toast.error(`Modelo "${modelo.nome}" já está na capacidade máxima (${modelo.capacidade_whatsapp})`);
+          const tipoLabel = tipoWhatsapp === 'business' ? 'Business' : 'Normal';
+          toast.error(
+            `Não é possível cadastrar: o modelo "${modelo.nome}" já está cheio (${ocupados}/${modelo.capacidade_whatsapp}). Ajuste o limite do modelo em Configurações ou escolha outro modelo.`,
+            { duration: 6000, description: `Tentativa de adicionar mais 1 ${tipoLabel} além da capacidade.` }
+          );
           return;
         }
       }
@@ -1078,6 +1085,7 @@ function NumeroActionsMenu({
   numero,
   statusList,
   modelosList,
+  existingNumeros,
   canEdit,
   canChangeStatus,
   canChangeObs,
@@ -1091,6 +1099,7 @@ function NumeroActionsMenu({
   numero: NumeroAquecimento;
   statusList: NumeroStatus[];
   modelosList: NumeroModelo[];
+  existingNumeros: NumeroAquecimento[];
   canEdit: boolean;
   canChangeStatus: boolean;
   canChangeObs: boolean;
@@ -1121,6 +1130,23 @@ function NumeroActionsMenu({
       toast.error('Números vendidos não podem ser alterados');
       setEditOpen(false);
       return;
+    }
+
+    // Validar capacidade ao trocar de modelo
+    if (canEdit && modeloId && modeloId !== numero.modelo_id) {
+      const modelo = modelosList.find((m) => m.id === modeloId);
+      if (modelo && modelo.capacidade_whatsapp > 0) {
+        const ocupados = existingNumeros.filter(
+          (n) => n.modelo_id === modeloId && n.id !== numero.id
+        ).length;
+        if (ocupados >= modelo.capacidade_whatsapp) {
+          toast.error(
+            `Não é possível mover para "${modelo.nome}": modelo já está cheio (${ocupados}/${modelo.capacidade_whatsapp}). Ajuste o limite em Configurações ou escolha outro modelo.`,
+            { duration: 6000 }
+          );
+          return;
+        }
+      }
     }
 
     const updates: Partial<NumeroAquecimento> = {};
