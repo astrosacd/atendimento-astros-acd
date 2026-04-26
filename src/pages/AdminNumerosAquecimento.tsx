@@ -968,9 +968,14 @@ function CreateNumeroDialog({
     if (modeloId) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
-        const ocupados = existingNumeros.filter((n) => n.modelo_id === modeloId).length;
+        const doModelo = existingNumeros.filter((n) => n.modelo_id === modeloId);
+        const ocupados = doModelo.length;
         if (ocupados >= modelo.capacidade_whatsapp) {
-          toast.error(`Modelo "${modelo.nome}" já está na capacidade máxima (${modelo.capacidade_whatsapp})`);
+          const tipoLabel = tipoWhatsapp === 'business' ? 'Business' : 'Normal';
+          toast.error(
+            `Não é possível cadastrar: o modelo "${modelo.nome}" já está cheio (${ocupados}/${modelo.capacidade_whatsapp}). Ajuste o limite do modelo em Configurações ou escolha outro modelo.`,
+            { duration: 6000, description: `Tentativa de adicionar mais 1 ${tipoLabel} além da capacidade.` }
+          );
           return;
         }
       }
