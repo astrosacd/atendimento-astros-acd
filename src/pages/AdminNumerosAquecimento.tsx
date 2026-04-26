@@ -939,9 +939,15 @@ function CreateNumeroDialog({
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
 
+  // Excluir números vendidos do cálculo de capacidade (são só do estoque)
+  const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+  const numerosEstoque = vendidoStatusId
+    ? existingNumeros.filter((n) => n.status_id !== vendidoStatusId)
+    : existingNumeros;
+
   // Opções de modelo com indicação de capacidade ocupada
   const modeloOptions = modelosList.map((m) => {
-    const ocupados = existingNumeros.filter((n) => n.modelo_id === m.id).length;
+    const ocupados = numerosEstoque.filter((n) => n.modelo_id === m.id).length;
     const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
     return {
       value: m.id,
