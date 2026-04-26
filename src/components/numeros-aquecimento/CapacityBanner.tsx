@@ -17,8 +17,9 @@ export function CapacityBanner({ numeros, onGoToAparelhos }: Props) {
 
   const ocupacoes = aparelhos.map(a => calcularOcupacao(a, numeros as any));
   const comVagas = ocupacoes.filter(o => o.status !== 'cheio' && o.livres > 0);
+  const semAparelho = numeros.filter((n: any) => !n.aparelho_id).length;
 
-  if (comVagas.length === 0) {
+  if (comVagas.length === 0 && semAparelho === 0) {
     return (
       <Card className="border-green-500/30 bg-green-500/5">
         <CardContent className="py-3 px-4 flex items-center justify-between">
