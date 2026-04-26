@@ -1,11 +1,12 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
-import type { NumeroAquecimento, NumeroModelo } from '@/hooks/useNumerosAquecimento';
+import type { NumeroAquecimento, NumeroModelo, NumeroStatus } from '@/hooks/useNumerosAquecimento';
 
 interface Props {
   numeros: NumeroAquecimento[];
   modelosList: NumeroModelo[];
+  statusList?: NumeroStatus[];
 }
 
 interface ModeloOcupacao {
@@ -25,14 +26,20 @@ function sugerirTipo(o: ModeloOcupacao): string {
   return o.normal < o.business ? 'normal' : 'business';
 }
 
-export function CapacityBanner({ numeros, modelosList }: Props) {
+export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
   if (modelosList.length === 0) return null;
+
+  // Excluir números com status "Vendido" — capacidade é só do estoque
+  const vendidoStatusId = statusList?.find((s) => s.nome === 'Vendido')?.id;
+  const numerosEstoque = vendidoStatusId
+    ? numeros.filter((n) => n.status_id !== vendidoStatusId)
+    : numeros;
 
   // Considera apenas números não vendidos (status fica fora — quem chama já filtra se quiser)
   const ocupacoes: ModeloOcupacao[] = modelosList
     .filter((m) => m.capacidade_whatsapp > 0)
     .map((modelo) => {
-      const doModelo = numeros.filter((n) => n.modelo_id === modelo.id);
+      const doModelo = numerosEstoque.filter((n) => n.modelo_id === modelo.id);
       const normal = doModelo.filter((n) => n.tipo_whatsapp === 'normal').length;
       const business = doModelo.filter((n) => n.tipo_whatsapp === 'business').length;
       const ocupados = doModelo.length;
@@ -47,7 +54,7 @@ export function CapacityBanner({ numeros, modelosList }: Props) {
     });
 
   const comVagas = ocupacoes.filter((o) => o.livres > 0 && o.ocupados > 0);
-  const semTipo = numeros.filter((n) => !n.tipo_whatsapp).length;
+  const semTipo = numerosEstoque.filter((n) => !n.tipo_whatsapp).length;
 
   if (comVagas.length === 0 && semTipo === 0) {
     return (

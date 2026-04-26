@@ -239,7 +239,7 @@ export default function AdminNumerosAquecimento() {
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
             {/* Capacity Banner */}
-            <CapacityBanner numeros={numeros} modelosList={modelosList} />
+            <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
 
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">
@@ -380,7 +380,7 @@ export default function AdminNumerosAquecimento() {
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
                             const modelo = numero.modelo;
-                            const ocupadosModelo = modelo ? numeros.filter(n => n.modelo_id === modelo.id).length : 0;
+                            const ocupadosModelo = modelo ? numeros.filter(n => n.modelo_id === modelo.id && n.status_id !== vendidoStatusId).length : 0;
                             return (
                               <TableRow key={numero.id}>
                                 <TableCell className="font-medium">
@@ -939,9 +939,15 @@ function CreateNumeroDialog({
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
 
+  // Excluir números vendidos do cálculo de capacidade (são só do estoque)
+  const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+  const numerosEstoque = vendidoStatusId
+    ? existingNumeros.filter((n) => n.status_id !== vendidoStatusId)
+    : existingNumeros;
+
   // Opções de modelo com indicação de capacidade ocupada
   const modeloOptions = modelosList.map((m) => {
-    const ocupados = existingNumeros.filter((n) => n.modelo_id === m.id).length;
+    const ocupados = numerosEstoque.filter((n) => n.modelo_id === m.id).length;
     const cheio = m.capacidade_whatsapp > 0 && ocupados >= m.capacidade_whatsapp;
     return {
       value: m.id,
@@ -970,7 +976,7 @@ function CreateNumeroDialog({
     if (modeloId) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
-        const doModelo = existingNumeros.filter((n) => n.modelo_id === modeloId);
+        const doModelo = numerosEstoque.filter((n) => n.modelo_id === modeloId);
         const ocupados = doModelo.length;
         if (ocupados >= modelo.capacidade_whatsapp) {
           const tipoLabel = tipoWhatsapp === 'business' ? 'Business' : 'Normal';
@@ -1136,8 +1142,9 @@ function NumeroActionsMenu({
     if (canEdit && modeloId && modeloId !== numero.modelo_id) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
+        const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
         const ocupados = existingNumeros.filter(
-          (n) => n.modelo_id === modeloId && n.id !== numero.id
+          (n) => n.modelo_id === modeloId && n.id !== numero.id && n.status_id !== vendidoStatusId
         ).length;
         if (ocupados >= modelo.capacidade_whatsapp) {
           toast.error(
