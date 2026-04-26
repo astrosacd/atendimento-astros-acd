@@ -1078,8 +1078,6 @@ function NumeroActionsMenu({
   numero,
   statusList,
   modelosList,
-  aparelhos,
-  allNumeros,
   canEdit,
   canChangeStatus,
   canChangeObs,
@@ -1093,8 +1091,6 @@ function NumeroActionsMenu({
   numero: NumeroAquecimento;
   statusList: NumeroStatus[];
   modelosList: NumeroModelo[];
-  aparelhos: any[];
-  allNumeros: NumeroAquecimento[];
   canEdit: boolean;
   canChangeStatus: boolean;
   canChangeObs: boolean;
@@ -1110,7 +1106,6 @@ function NumeroActionsMenu({
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
-  const [aparelhoId, setAparelhoId] = useState(numero.aparelho_id || '');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   
@@ -1121,41 +1116,15 @@ function NumeroActionsMenu({
   // Determinar se pode excluir este número específico
   const canDeleteThisNumber = isVendido ? canDeleteSold : canDelete;
 
-  // Opções de aparelho com indicação de capacidade
-  const aparelhoOptions = aparelhos.map((a) => {
-    const oc = calcularOcupacao(a, allNumeros as any);
-    const isCurrent = a.id === numero.aparelho_id;
-    const cheio = oc.status === 'cheio' && !isCurrent;
-    return {
-      value: a.id,
-      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
-      disabled: cheio,
-    };
-  });
-
   const handleSave = () => {
-    // Block any changes if status is "Vendido"
     if (isVendido) {
       toast.error('Números vendidos não podem ser alterados');
       setEditOpen(false);
       return;
     }
 
-    // Validar capacidade ao mudar de aparelho
-    if (canEdit && aparelhoId && aparelhoId !== numero.aparelho_id) {
-      const aparelho = aparelhos.find(a => a.id === aparelhoId);
-      if (aparelho) {
-        const oc = calcularOcupacao(aparelho, allNumeros as any);
-        if (oc.ocupados >= aparelho.capacidade_total) {
-          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima`);
-          return;
-        }
-      }
-    }
-    
     const updates: Partial<NumeroAquecimento> = {};
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
-    if (canEdit && aparelhoId !== (numero.aparelho_id || '')) updates.aparelho_id = aparelhoId || null;
     if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
     if (canChangeObs && observacoes !== numero.observacoes) updates.observacoes = observacoes;
