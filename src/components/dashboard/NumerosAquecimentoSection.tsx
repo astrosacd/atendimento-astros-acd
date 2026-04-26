@@ -1,7 +1,7 @@
 import { usePermissions } from '@/hooks/usePermissions';
 import { NumerosAquecimentoCard } from './NumerosAquecimentoCard';
 import { CapacityBanner } from '@/components/numeros-aquecimento/CapacityBanner';
-import { useNumerosAquecimento, useNumerosModelos } from '@/hooks/useNumerosAquecimento';
+import { useNumerosAquecimento, useNumerosModelos, useNumerosStatus } from '@/hooks/useNumerosAquecimento';
 
 export function NumerosAquecimentoSection() {
   const { hasPermission } = usePermissions();
@@ -9,6 +9,7 @@ export function NumerosAquecimentoSection() {
 
   const { data: numeros = [] } = useNumerosAquecimento();
   const { data: modelosList = [] } = useNumerosModelos();
+  const { data: statusList = [] } = useNumerosStatus();
 
   if (!canView) {
     return null;
