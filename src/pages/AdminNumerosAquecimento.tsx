@@ -387,10 +387,34 @@ export default function AdminNumerosAquecimento() {
                         ) : (
                           paginatedNumerosEstoque.map((numero) => {
                             const status = statusList.find(s => s.id === numero.status_id);
+                            const aparelho = aparelhos.find(a => a.id === numero.aparelho_id);
+                            const oc = aparelho ? calcularOcupacao(aparelho, numeros as any) : null;
                             return (
                               <TableRow key={numero.id}>
-                                <TableCell className="font-medium">{numero.numero}</TableCell>
-                                <TableCell>{numero.modelo?.nome || '-'}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {numero.numero}
+                                    {numero.tipo_whatsapp && (
+                                      <Badge variant="outline" className="text-[9px] h-4 px-1">
+                                        {numero.tipo_whatsapp === 'business' ? 'B' : 'N'}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span>{numero.modelo?.nome || '-'}</span>
+                                    {aparelho && oc && (
+                                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                        <Smartphone className="h-2.5 w-2.5" />
+                                        {aparelho.apelido}
+                                        <Badge variant="secondary" className="h-3.5 text-[9px] px-1">
+                                          {oc.ocupados}/{aparelho.capacidade_total}
+                                        </Badge>
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell>
                                   {status ? (
                                     <Badge className={statusColorMap[status.cor] || statusColorMap.gray}>
