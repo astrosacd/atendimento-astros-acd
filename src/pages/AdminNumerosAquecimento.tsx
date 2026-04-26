@@ -1142,8 +1142,9 @@ function NumeroActionsMenu({
     if (canEdit && modeloId && modeloId !== numero.modelo_id) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
+        const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
         const ocupados = existingNumeros.filter(
-          (n) => n.modelo_id === modeloId && n.id !== numero.id
+          (n) => n.modelo_id === modeloId && n.id !== numero.id && n.status_id !== vendidoStatusId
         ).length;
         if (ocupados >= modelo.capacidade_whatsapp) {
           toast.error(
