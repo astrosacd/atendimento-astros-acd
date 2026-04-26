@@ -51,6 +51,7 @@ import { ClientSocialCredentials } from '@/components/ClientSocialCredentials';
 import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { ClientAIUpsell } from '@/components/ClientAIUpsell';
+import { ClientScoreBadge } from '@/components/ClientScoreBadge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -694,6 +695,10 @@ export default function ConsultarCliente() {
                               <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/30 text-[10px]" title="Este cadastro é ignorado em métricas e análises de IA">
                                 🚫 Fora das métricas
                               </Badge>
+                            )}
+                            {/* Score de IA - calcula automaticamente se não houver, clique para recalcular */}
+                            {!isNonClientType(cliente) && cliente.cobranca_ativa !== false && (
+                              <ClientScoreBadge clienteId={cliente.id} size="sm" />
                             )}
                           </div>
                           <div className="flex items-center gap-1">
