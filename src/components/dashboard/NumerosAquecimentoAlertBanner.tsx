@@ -53,7 +53,7 @@ export function NumerosAquecimentoAlertBanner() {
   };
 
   // Calculate time since status change for each number
-  const getTimeSinceActivity = (numero: NumeroAquecimento) => {
+  const getTimeSinceActivity = (numero: { ultima_atividade?: string | null }) => {
     // Extract date from ultima_atividade (format: "st - DD/MM/YYYY")
     const match = numero.ultima_atividade?.match(/(\d{2})\/(\d{2})\/(\d{4})/);
     if (!match) return 'Desconhecido';
