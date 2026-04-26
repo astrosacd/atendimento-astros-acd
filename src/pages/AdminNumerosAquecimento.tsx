@@ -60,6 +60,7 @@ import {
 } from '@/hooks/useNumerosAquecimento';
 import { AlertConfigCard } from '@/components/numeros-aquecimento/AlertConfigCard';
 import { RestoreNumbersTab } from '@/components/numeros-aquecimento/RestoreNumbersTab';
+import { NumeroAnaliseInline } from '@/components/numeros-aquecimento/NumeroAnaliseInline';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -351,6 +352,7 @@ export default function AdminNumerosAquecimento() {
                           <TableHead>{t('numberStatus.number')}</TableHead>
                           <TableHead>{t('numberStatus.model')}</TableHead>
                           <TableHead>{t('numberStatus.status')}</TableHead>
+                          <TableHead>Análise</TableHead>
                           <TableHead>{t('numberStatus.lastActivity')}</TableHead>
                           <TableHead>{t('numberStatus.observations')}</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
@@ -359,13 +361,13 @@ export default function AdminNumerosAquecimento() {
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                               {t('numberStatus.loading')}
                             </TableCell>
                           </TableRow>
                         ) : paginatedNumerosEstoque.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                               {t('numberStatus.noNumbers')}
                             </TableCell>
                           </TableRow>
@@ -382,6 +384,9 @@ export default function AdminNumerosAquecimento() {
                                       {status.nome}
                                     </Badge>
                                   ) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <NumeroAnaliseInline numero={numero} statusList={statusList} />
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
                                   {numero.ultima_atividade}
