@@ -976,7 +976,7 @@ function CreateNumeroDialog({
     if (modeloId) {
       const modelo = modelosList.find((m) => m.id === modeloId);
       if (modelo && modelo.capacidade_whatsapp > 0) {
-        const doModelo = existingNumeros.filter((n) => n.modelo_id === modeloId);
+        const doModelo = numerosEstoque.filter((n) => n.modelo_id === modeloId);
         const ocupados = doModelo.length;
         if (ocupados >= modelo.capacidade_whatsapp) {
           const tipoLabel = tipoWhatsapp === 'business' ? 'Business' : 'Normal';
