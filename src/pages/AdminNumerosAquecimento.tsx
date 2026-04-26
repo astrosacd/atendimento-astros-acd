@@ -412,6 +412,8 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
+                                    aparelhos={aparelhos}
+                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
