@@ -908,12 +908,16 @@ function StatsCard({ title, value, icon }: { title: string; value: number; icon:
 function CreateNumeroDialog({ 
   statusList, 
   modelosList,
+  aparelhos,
+  numeros: allNumeros,
   existingNumeros,
   onCreate,
   isCreating
 }: { 
   statusList: NumeroStatus[]; 
   modelosList: NumeroModelo[];
+  aparelhos: any[];
+  numeros: NumeroAquecimento[];
   existingNumeros: NumeroAquecimento[];
   onCreate: (data: any, options: { onSuccess: () => void }) => void;
   isCreating: boolean;
@@ -922,10 +926,23 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
+  const [aparelhoId, setAparelhoId] = useState<string>('');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
   const normalizeNumber = (num: string) => num.replace(/[\s\-\(\)\.]/g, '');
+
+  // Calcular ocupação dos aparelhos
+  const aparelhoOptions = aparelhos.map((a) => {
+    const oc = calcularOcupacao(a, allNumeros as any);
+    const cheio = oc.status === 'cheio';
+    return {
+      value: a.id,
+      label: `${a.apelido} (${oc.ocupados}/${a.capacidade_total})${cheio ? ' - cheio' : ''}`,
+      disabled: cheio,
+    };
+  });
 
   const handleSubmit = () => {
     if (!numero) {
@@ -944,10 +961,24 @@ function CreateNumeroDialog({
       return;
     }
 
+    // Validar capacidade do aparelho
+    if (aparelhoId) {
+      const aparelho = aparelhos.find(a => a.id === aparelhoId);
+      if (aparelho) {
+        const oc = calcularOcupacao(aparelho, allNumeros as any);
+        if (oc.ocupados >= aparelho.capacidade_total) {
+          toast.error(`Aparelho "${aparelho.apelido}" já está na capacidade máxima (${aparelho.capacidade_total})`);
+          return;
+        }
+      }
+    }
+
     onCreate({
       numero,
       modelo_id: modeloId || null,
       status_id: statusId || null,
+      aparelho_id: aparelhoId || null,
+      tipo_whatsapp: tipoWhatsapp,
       observacoes: observacoes || undefined,
     }, {
       onSuccess: () => {
@@ -955,6 +986,8 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
+        setAparelhoId('');
+        setTipoWhatsapp('normal');
         setObservacoes('');
       }
     });
@@ -968,7 +1001,7 @@ function CreateNumeroDialog({
           Novo Número
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cadastrar Número</DialogTitle>
           <DialogDescription>Adicione um novo número ao sistema</DialogDescription>
@@ -981,6 +1014,40 @@ function CreateNumeroDialog({
               value={numero}
               onChange={(e) => setNumero(e.target.value)}
             />
+          </div>
+          <div>
+            <Label>Tipo WhatsApp *</Label>
+            <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Aparelho</Label>
+            {aparelhos.length === 0 ? (
+              <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                Nenhum aparelho cadastrado. Acesse a aba "Aparelhos" para cadastrar.
+              </div>
+            ) : (
+              <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem aparelho" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem aparelho</SelectItem>
+                  {aparelhoOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div>
             <Label>Modelo</Label>
