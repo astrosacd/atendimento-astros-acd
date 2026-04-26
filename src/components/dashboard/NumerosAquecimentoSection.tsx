@@ -22,7 +22,7 @@ export function NumerosAquecimentoSection() {
         Status de Números
       </h3>
       <div className="grid grid-cols-1 gap-4 mb-6">
-        <CapacityBanner numeros={numeros} modelosList={modelosList} />
+        <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
         <NumerosAquecimentoCard />
       </div>
     </>
