@@ -1,11 +1,12 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
-import type { NumeroAquecimento, NumeroModelo } from '@/hooks/useNumerosAquecimento';
+import type { NumeroAquecimento, NumeroModelo, NumeroStatus } from '@/hooks/useNumerosAquecimento';
 
 interface Props {
   numeros: NumeroAquecimento[];
   modelosList: NumeroModelo[];
+  statusList?: NumeroStatus[];
 }
 
 interface ModeloOcupacao {
