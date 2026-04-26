@@ -1250,12 +1250,50 @@ function NumeroActionsMenu({
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Número</DialogTitle>
             <DialogDescription>{numero.numero}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {canEdit && (
+              <>
+                <div>
+                  <Label>Tipo WhatsApp *</Label>
+                  <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                      <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Aparelho</Label>
+                  {aparelhos.length === 0 ? (
+                    <div className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                      Nenhum aparelho cadastrado.
+                    </div>
+                  ) : (
+                    <Select value={aparelhoId || '__none__'} onValueChange={(v) => setAparelhoId(v === '__none__' ? '' : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sem aparelho" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Sem aparelho</SelectItem>
+                        {aparelhoOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
             {canEdit && (
               <div>
                 <Label>Modelo</Label>
