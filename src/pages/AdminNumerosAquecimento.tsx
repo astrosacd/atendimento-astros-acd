@@ -533,8 +533,6 @@ export default function AdminNumerosAquecimento() {
                                     numero={numero}
                                     statusList={statusList}
                                     modelosList={modelosList}
-                                    aparelhos={aparelhos}
-                                    allNumeros={numeros}
                                     canEdit={canEdit}
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
@@ -580,11 +578,6 @@ export default function AdminNumerosAquecimento() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          {/* Aparelhos Tab */}
-          <TabsContent value="aparelhos" className="space-y-4">
-            <AparelhosTab numeros={numeros} modelosList={modelosList} />
           </TabsContent>
 
           {/* Config Tab */}
