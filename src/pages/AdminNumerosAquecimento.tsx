@@ -1085,6 +1085,7 @@ function NumeroActionsMenu({
   numero,
   statusList,
   modelosList,
+  existingNumeros,
   canEdit,
   canChangeStatus,
   canChangeObs,
@@ -1098,6 +1099,7 @@ function NumeroActionsMenu({
   numero: NumeroAquecimento;
   statusList: NumeroStatus[];
   modelosList: NumeroModelo[];
+  existingNumeros: NumeroAquecimento[];
   canEdit: boolean;
   canChangeStatus: boolean;
   canChangeObs: boolean;
@@ -1128,6 +1130,23 @@ function NumeroActionsMenu({
       toast.error('Números vendidos não podem ser alterados');
       setEditOpen(false);
       return;
+    }
+
+    // Validar capacidade ao trocar de modelo
+    if (canEdit && modeloId && modeloId !== numero.modelo_id) {
+      const modelo = modelosList.find((m) => m.id === modeloId);
+      if (modelo && modelo.capacidade_whatsapp > 0) {
+        const ocupados = existingNumeros.filter(
+          (n) => n.modelo_id === modeloId && n.id !== numero.id
+        ).length;
+        if (ocupados >= modelo.capacidade_whatsapp) {
+          toast.error(
+            `Não é possível mover para "${modelo.nome}": modelo já está cheio (${ocupados}/${modelo.capacidade_whatsapp}). Ajuste o limite em Configurações ou escolha outro modelo.`,
+            { duration: 6000 }
+          );
+          return;
+        }
+      }
     }
 
     const updates: Partial<NumeroAquecimento> = {};
