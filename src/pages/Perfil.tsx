@@ -211,9 +211,9 @@ export default function Perfil() {
                                 </span>
                               )}
                               {l.ip_address && <span>IP: {l.ip_address}</span>}
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1" title={`Início: ${new Date(l.logged_in_at).toLocaleString("pt-BR")}`}>
                                 <Clock className="h-3 w-3" />
-                                {formatDistanceToNow(new Date(l.logged_in_at), {
+                                Ativa {formatDistanceToNow(new Date(l.last_seen_at || l.logged_in_at), {
                                   addSuffix: true,
                                   locale: ptBR,
                                 })}
