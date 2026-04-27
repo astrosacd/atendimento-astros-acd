@@ -109,8 +109,8 @@ export default function AdminNumerosAquecimento() {
     status_id: statusFilter || undefined,
     modelo_id: modeloFilter || undefined,
   });
-  const { data: statusList = [] } = useNumerosStatus();
-  const { data: modelosList = [] } = useNumerosModelos();
+  const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
+  const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
   const { data: history = [] } = useNumeroHistory();
   const { data: webhooks = [] } = useNumerosWebhooks();
   const { data: apiKeys = [] } = useNumerosApiKeys();
