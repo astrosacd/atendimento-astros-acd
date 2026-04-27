@@ -103,7 +103,7 @@ export function useLoginTracker() {
         if (activeExisting && activeExisting.length > 0) {
           // Reaproveita sessão ativa existente: apenas atualiza last_seen e dados
           const existing = activeExisting[0];
-          usedSessionId = existing.session_id || sessionId;
+          usedSessionId = (existing.session_id as string) || sessionId;
 
           await supabase
             .from("user_login_history")
