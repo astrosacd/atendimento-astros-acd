@@ -242,8 +242,8 @@ export default function AdminNumerosAquecimento() {
           {/* Números Tab */}
           <TabsContent value="numeros" className="space-y-4">
             {/* Capacity Banner */}
-            {!(isLoading || loadingModelos || loadingStatus) && (
-              <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
+            {!(loadingTotais || loadingModelos || loadingStatus) && (
+              <CapacityBanner numeros={numerosTotais} modelosList={modelosList} statusList={statusList} />
             )}
             {/* Sub-tabs for Em Estoque / Vendidos */}
             <div className="flex items-center gap-2 border-b pb-2">
