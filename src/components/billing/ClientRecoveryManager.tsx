@@ -52,6 +52,7 @@ interface Cliente {
   moeda: string;
   data_renovacao: string;
   cobranca_ativa: boolean;
+  observacao: string | null;
 }
 
 interface RecoveryAttempt {
@@ -141,7 +142,7 @@ export const ClientRecoveryManager = () => {
       
       const { data, error } = await supabase
         .from('clientes')
-        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa')
+        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa, observacao')
         .eq('cobranca_ativa', true)
         .lt('data_renovacao', thirtyDaysAgo.toISOString().split('T')[0])
         .order('data_renovacao', { ascending: true });
@@ -164,7 +165,7 @@ export const ClientRecoveryManager = () => {
     try {
       const { data, error } = await supabase
         .from('clientes')
-        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa')
+        .select('id, nome, email, numero, produto, plano, valor, moeda, data_renovacao, cobranca_ativa, observacao')
         .eq('cobranca_ativa', false)
         .order('data_renovacao', { ascending: false });
 
