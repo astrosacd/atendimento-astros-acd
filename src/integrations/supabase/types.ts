@@ -6266,6 +6266,7 @@ export type Database = {
           ip_address: string | null
           is_active: boolean | null
           is_new_device: boolean | null
+          last_seen_at: string
           logged_in_at: string
           logged_out_at: string | null
           os: string | null
@@ -6282,6 +6283,7 @@ export type Database = {
           ip_address?: string | null
           is_active?: boolean | null
           is_new_device?: boolean | null
+          last_seen_at?: string
           logged_in_at?: string
           logged_out_at?: string | null
           os?: string | null
@@ -6298,6 +6300,7 @@ export type Database = {
           ip_address?: string | null
           is_active?: boolean | null
           is_new_device?: boolean | null
+          last_seen_at?: string
           logged_in_at?: string
           logged_out_at?: string | null
           os?: string | null
