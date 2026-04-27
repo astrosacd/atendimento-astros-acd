@@ -34,6 +34,7 @@ interface LoginRecord {
   logged_in_at: string;
   logged_out_at: string | null;
   is_active: boolean;
+  last_seen_at?: string | null;
 }
 
 export default function Perfil() {
