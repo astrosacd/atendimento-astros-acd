@@ -613,7 +613,24 @@ export const ClientRecoveryManager = () => {
                           <TableRow key={cliente.id} className="hover:bg-muted/30">
                             <TableCell>
                               <div>
-                                <p className="font-medium">{cliente.nome}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-medium">{cliente.nome}</p>
+                                  {cliente.observacao && cliente.observacao.trim() && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex cursor-help text-amber-400 hover:text-amber-300">
+                                            <StickyNote className="w-3.5 h-3.5" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <p className="text-xs font-semibold mb-1">Observação:</p>
+                                          <p className="text-xs whitespace-pre-wrap">{cliente.observacao}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs text-muted-foreground">{cliente.numero}</p>
                                   {(() => {
@@ -815,7 +832,24 @@ export const ClientRecoveryManager = () => {
                           <TableRow key={cliente.id} className="hover:bg-muted/30">
                             <TableCell>
                               <div>
-                                <p className="font-medium">{cliente.nome}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-medium">{cliente.nome}</p>
+                                  {cliente.observacao && cliente.observacao.trim() && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex cursor-help text-amber-400 hover:text-amber-300">
+                                            <StickyNote className="w-3.5 h-3.5" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <p className="text-xs font-semibold mb-1">Observação:</p>
+                                          <p className="text-xs whitespace-pre-wrap">{cliente.observacao}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <p className="text-xs text-muted-foreground">{cliente.numero}</p>
                                   {(() => {
