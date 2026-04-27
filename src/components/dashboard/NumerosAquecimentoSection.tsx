@@ -7,13 +7,15 @@ export function NumerosAquecimentoSection() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission('view_numeros_aquecimento');
 
-  const { data: numeros = [] } = useNumerosAquecimento();
-  const { data: modelosList = [] } = useNumerosModelos();
-  const { data: statusList = [] } = useNumerosStatus();
+  const { data: numeros = [], isLoading: loadingNumeros } = useNumerosAquecimento();
+  const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
+  const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
 
   if (!canView) {
     return null;
   }
+
+  const isLoading = loadingNumeros || loadingModelos || loadingStatus;
 
   return (
     <>
@@ -22,7 +24,9 @@ export function NumerosAquecimentoSection() {
         Status de Números
       </h3>
       <div className="grid grid-cols-1 gap-4 mb-6">
-        <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
+        {!isLoading && (
+          <CapacityBanner numeros={numeros} modelosList={modelosList} statusList={statusList} />
+        )}
         <NumerosAquecimentoCard />
       </div>
     </>
