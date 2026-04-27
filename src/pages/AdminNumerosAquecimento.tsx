@@ -109,6 +109,9 @@ export default function AdminNumerosAquecimento() {
     status_id: statusFilter || undefined,
     modelo_id: modeloFilter || undefined,
   });
+  // Lista completa (sem filtros) usada apenas pelo banner de capacidade,
+  // para não mostrar "vagas disponíveis" falsas quando o usuário pesquisa.
+  const { data: numerosTotais = [], isLoading: loadingTotais } = useNumerosAquecimento();
   const { data: statusList = [], isLoading: loadingStatus } = useNumerosStatus();
   const { data: modelosList = [], isLoading: loadingModelos } = useNumerosModelos();
   const { data: history = [] } = useNumeroHistory();
