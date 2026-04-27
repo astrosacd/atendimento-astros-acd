@@ -35,7 +35,8 @@ import {
   Database,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  StickyNote
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
