@@ -98,7 +98,7 @@ export function useLoginTracker() {
 
         const isNewDevice = !anyPrevious || anyPrevious.length === 0;
 
-        let usedSessionId = sessionId;
+        let usedSessionId: string = sessionId;
 
         if (activeExisting && activeExisting.length > 0) {
           // Reaproveita sessão ativa existente: apenas atualiza last_seen e dados
