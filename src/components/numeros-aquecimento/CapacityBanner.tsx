@@ -53,7 +53,7 @@ export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
       };
     });
 
-  const comVagas = ocupacoes.filter((o) => o.livres > 0 && o.ocupados > 0);
+  const comVagas = ocupacoes.filter((o) => o.livres > 0);
   const semTipo = numerosEstoque.filter((n) => !n.tipo_whatsapp).length;
 
   if (comVagas.length === 0 && semTipo === 0) {
