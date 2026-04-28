@@ -315,14 +315,62 @@ const AdminCobranca = () => {
     }
   };
 
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
+  const [webhookInfo, setWebhookInfo] = useState<{ url: string, token: string } | null>(null);
+
+  const syncMetaTemplates = async () => {
+    if (!config.meta_access_token || !config.meta_waba_id) {
+      toast({ title: "Erro", description: "Informe Access Token e WABA ID primeiro", variant: "destructive" });
+      return;
+    }
+    
+    setIsSyncingMeta(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { 
+          action: 'fetch-templates',
+          accessToken: config.meta_access_token,
+          wabaId: config.meta_waba_id
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Map Meta templates to the local format if needed, or just store them
+      // For now, let's keep the Meta API format and adjust the Select components
+      setMetaTemplates(data.templates || []);
+      toast({ title: "Sucesso", description: `${data.templates?.length || 0} templates sincronizados!` });
+    } catch (err: any) {
+      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSyncingMeta(false);
+    }
+  };
+
+  const getWebhookInfo = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { action: 'get-webhook-info' }
+      });
+      if (error) throw error;
+      setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
+    } catch (err: any) {
+      console.error("Erro ao buscar info do webhook", err);
+    }
+  };
+
   const loadMetaTemplates = async () => {
+    // keeping original for compatibility if needed
     try {
       const { data, error } = await supabase
         .from('meta_template_mapping')
         .select('*')
         .order('template_name', { ascending: true });
       if (error) throw error;
-      setMetaTemplates(data || []);
+      // If we already have templates from Meta API, don't overwrite with mapping table
+      if (metaTemplates.length === 0) {
+        setMetaTemplates(data || []);
+      }
     } catch (error) {
       console.error('Error loading Meta templates:', error);
     }
