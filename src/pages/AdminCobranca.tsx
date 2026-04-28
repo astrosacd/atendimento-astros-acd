@@ -2761,37 +2761,6 @@ const AdminCobranca = () => {
                           ))}
                         </div>
                       </div>
-                            <Select 
-                              value={config[`meta_var_${num}_field`] || (num === 1 ? 'nome' : num === 2 ? 'valor' : num === 3 ? 'data_renovacao' : 'link_pagamento')}
-                              onValueChange={(val) => {
-                                setConfig(prev => ({ ...prev, [`meta_var_${num}_field`]: val }));
-                                // Auto-save for this specific config
-                                supabase.from('billing_config').upsert({ 
-                                  config_key: `meta_var_${num}_field`, 
-                                  config_value: val 
-                                }).then(({ error }) => {
-                                  if (error) toast({ title: "Erro ao salvar mapeamento", description: error.message, variant: "destructive" });
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue placeholder="Selecione o campo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="nome">Nome do Cliente</SelectItem>
-                                <SelectItem value="valor">Valor da Cobrança</SelectItem>
-                                <SelectItem value="data_renovacao">Data de Vencimento</SelectItem>
-                                <SelectItem value="link_pagamento">Link de Pagamento</SelectItem>
-                                <SelectItem value="produto">Nome do Produto</SelectItem>
-                                <SelectItem value="plano">Nome do Plano</SelectItem>
-                                <SelectItem value="cpf">CPF/CNPJ</SelectItem>
-                                <SelectItem value="email">Email</SelectItem>
-                                <SelectItem value="none">Vazio (Remover)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        ))}
-                      </div>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-border/40">
