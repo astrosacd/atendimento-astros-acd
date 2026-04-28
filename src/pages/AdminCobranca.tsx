@@ -2671,12 +2671,26 @@ const AdminCobranca = () => {
                               {tmpl.label}
                             </Badge>
                           </div>
-                          <Input 
-                            placeholder="Nome do Template na Meta"
-                            value={config[tmpl.key] || ''}
-                            onChange={(e) => setConfig({...config, [tmpl.key]: e.target.value})}
-                            className="h-9"
-                          />
+                          <Select 
+                            value={config[tmpl.key] || 'none'} 
+                            onValueChange={(val) => setConfig({...config, [tmpl.key]: val})}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Selecione o template" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {metaTemplates.length > 0 ? (
+                                <>
+                                  <SelectItem value="none">Nenhum</SelectItem>
+                                  {metaTemplates.map(t => (
+                                    <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                                  ))}
+                                </>
+                              ) : (
+                                <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
                         </div>
                       ))}
                     </div>
