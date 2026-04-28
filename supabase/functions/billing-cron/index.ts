@@ -720,7 +720,7 @@ const sendWhatsAppOfficial = async (
   numero: string,
   templateName: string,
   languageCode: string,
-  vars: string[],
+  components: any[],
   credentials: { access_token: string; phone_number_id: string }
 ): Promise<{ success: boolean; error?: string }> => {
   try {
@@ -742,12 +742,7 @@ const sendWhatsAppOfficial = async (
           language: {
             code: languageCode || 'pt_BR'
           },
-          components: [
-            {
-              type: "body",
-              parameters: vars.map(v => ({ type: "text", text: v }))
-            }
-          ]
+          components: components
         }
       }),
     });
