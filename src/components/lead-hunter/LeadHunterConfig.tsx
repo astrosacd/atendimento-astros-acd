@@ -60,9 +60,9 @@ export default function LeadHunterConfig() {
       
       if (error) throw error;
       setMetaTemplates(data.templates || []);
-      toast.success(`${data.templates?.length || 0} templates sincronizados!`);
+      toast.success(`Conectado com sucesso! ${data.templates?.length || 0} templates sincronizados.`);
     } catch (err: any) {
-      toast.error("Erro na sincronização: " + err.message);
+      toast.error("Erro de conexão: Verifique se o Token e WABA ID estão corretos. Detalhe: " + err.message);
     } finally {
       setIsSyncingMeta(false);
     }
