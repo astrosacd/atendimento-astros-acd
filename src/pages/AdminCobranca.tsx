@@ -3343,7 +3343,7 @@ const AdminCobranca = () => {
                         <div>
                           <p className="font-semibold">Enviar por WhatsApp</p>
                           <p className="text-sm text-muted-foreground">
-                            Usa a instância Evolution ativa
+                            {config.whatsapp_provider === 'official' ? 'Usa a API Oficial da Meta' : 'Usa a instância Evolution ativa'}
                           </p>
                         </div>
                       </div>
