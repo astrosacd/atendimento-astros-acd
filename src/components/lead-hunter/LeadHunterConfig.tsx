@@ -324,25 +324,8 @@ export default function LeadHunterConfig() {
                 </p>
                 
                 <div className="space-y-4 mb-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs">Link de Suporte WhatsApp</Label>
-                      <Input 
-                        placeholder="Ex: https://wa.me/5511999999999"
-                        value={config.lead_hunter_support_link || ''}
-                        onChange={(e) => updateConfig.mutate({ lead_hunter_support_link: e.target.value })}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Link Personalizado (Opcional)</Label>
-                      <Input 
-                        placeholder="Ex: https://meusite.com"
-                        value={config.lead_hunter_custom_link || ''}
-                        onChange={(e) => updateConfig.mutate({ lead_hunter_custom_link: e.target.value })}
-                        className="h-9"
-                      />
-                    </div>
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[11px] text-blue-400 mb-4">
+                    <p><strong>Configuração:</strong> Mapeie abaixo quais dados do lead devem preencher as variáveis do seu template da Meta.</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

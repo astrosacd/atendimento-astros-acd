@@ -2692,25 +2692,8 @@ const AdminCobranca = () => {
                       </p>
                       
                       <div className="space-y-4 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label className="text-xs">Link de Suporte WhatsApp</Label>
-                            <Input 
-                              placeholder="Ex: https://wa.me/5511999999999"
-                              value={config.whatsapp_support_link || ''}
-                              onChange={(e) => setConfig({...config, whatsapp_support_link: e.target.value})}
-                              className="h-9"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">Link Personalizado (Opcional)</Label>
-                            <Input 
-                              placeholder="Ex: https://meusite.com/promocao"
-                              value={config.custom_link_1 || ''}
-                              onChange={(e) => setConfig({...config, custom_link_1: e.target.value})}
-                              className="h-9"
-                            />
-                          </div>
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[11px] text-blue-400">
+                          <p><strong>Configuração:</strong> Mapeie abaixo quais dados do cliente devem preencher as variáveis do seu template da Meta.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2750,8 +2733,6 @@ const AdminCobranca = () => {
                                   <SelectItem value="link_pagamento">Link de Pagamento (MP/Stripe)</SelectItem>
                                   <SelectItem value="produto">Nome do Produto</SelectItem>
                                   <SelectItem value="plano">Nome do Plano</SelectItem>
-                                  <SelectItem value="whatsapp_support">Link de Suporte WhatsApp</SelectItem>
-                                  <SelectItem value="custom_link_1">Link Personalizado</SelectItem>
                                   <SelectItem value="cpf">CPF/CNPJ</SelectItem>
                                   <SelectItem value="email">E-mail</SelectItem>
                                   <SelectItem value="none">Vazio (Nenhum)</SelectItem>
