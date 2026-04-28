@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,16 @@ export default function LeadHunterCampanhas() {
   const { data: campanhas = [], isLoading } = useLeadHunterCampanhas();
   const { data: allLeads = [] } = useLeadHunterLeads();
   const { data: config = {} } = useLeadHunterConfig();
+  const [metaTemplates, setMetaTemplates] = useState<{ id: string; template_name: string }[]>([]);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      const { data } = await supabase.from('meta_template_mapping').select('id, template_name');
+      if (data) setMetaTemplates(data);
+    };
+    loadTemplates();
+  }, []);
+
   const skipDomains: string[] = (() => {
     try { return config.scrape_skip_domains ? JSON.parse(config.scrape_skip_domains) : DEFAULT_SKIP_DOMAINS; } catch { return DEFAULT_SKIP_DOMAINS; }
   })();
@@ -61,6 +71,8 @@ export default function LeadHunterCampanhas() {
     provedor_ia: 'lovable',
     modelo_ia: '',
     delay_entre_mensagens: 10,
+    whatsapp_provider: 'evolution',
+    meta_template_name: '',
   });
 
   const unlinkedLeads = allLeads.filter(l => !l.campanha_id && l.status === 'novo');
@@ -73,6 +85,7 @@ export default function LeadHunterCampanhas() {
     setForm({
       nome: '', descricao: '', tipo_mensagem: 'personalizada', mensagem_modelo: '',
       prompt_ia: form.prompt_ia, provedor_ia: 'lovable', modelo_ia: '', delay_entre_mensagens: 10,
+      whatsapp_provider: 'evolution', meta_template_name: '',
     });
   };
 
@@ -326,6 +339,39 @@ export default function LeadHunterCampanhas() {
                 <Label>Delay entre mensagens (seg)</Label>
                 <Input type="number" value={form.delay_entre_mensagens} onChange={e => setForm(p => ({ ...p, delay_entre_mensagens: parseInt(e.target.value) || 10 }))} />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Provedor WhatsApp</Label>
+                <Select value={form.whatsapp_provider} onValueChange={v => setForm(p => ({ ...p, whatsapp_provider: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
+                    <SelectItem value="official">API Oficial (Meta)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.whatsapp_provider === 'official' && (
+                <div>
+                  <Label>Template da Meta</Label>
+                  <Select value={form.meta_template_name} onValueChange={v => setForm(p => ({ ...p, meta_template_name: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metaTemplates.map(t => (
+                        <SelectItem key={t.id} value={t.template_name}>
+                          {t.template_name}
+                        </SelectItem>
+                      ))}
+                      {metaTemplates.length === 0 && (
+                        <div className="p-2 text-xs text-muted-foreground text-center">Nenhum template mapeado</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {form.tipo_mensagem === 'modelo_unico' ? (

@@ -4034,6 +4034,8 @@ export type Database = {
           descricao: string | null
           id: string
           mensagem_modelo: string | null
+          meta_language_code: string | null
+          meta_template_name: string | null
           modelo_ia: string | null
           nome: string
           prompt_ia: string | null
@@ -4045,6 +4047,7 @@ export type Database = {
           total_leads: number | null
           total_respondidos: number | null
           updated_at: string | null
+          whatsapp_provider: string | null
         }
         Insert: {
           created_at?: string | null
@@ -4053,6 +4056,8 @@ export type Database = {
           descricao?: string | null
           id?: string
           mensagem_modelo?: string | null
+          meta_language_code?: string | null
+          meta_template_name?: string | null
           modelo_ia?: string | null
           nome: string
           prompt_ia?: string | null
@@ -4064,6 +4069,7 @@ export type Database = {
           total_leads?: number | null
           total_respondidos?: number | null
           updated_at?: string | null
+          whatsapp_provider?: string | null
         }
         Update: {
           created_at?: string | null
@@ -4072,6 +4078,8 @@ export type Database = {
           descricao?: string | null
           id?: string
           mensagem_modelo?: string | null
+          meta_language_code?: string | null
+          meta_template_name?: string | null
           modelo_ia?: string | null
           nome?: string
           prompt_ia?: string | null
@@ -4083,6 +4091,7 @@ export type Database = {
           total_leads?: number | null
           total_respondidos?: number | null
           updated_at?: string | null
+          whatsapp_provider?: string | null
         }
         Relationships: []
       }
