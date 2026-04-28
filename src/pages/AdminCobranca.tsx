@@ -2492,17 +2492,163 @@ const AdminCobranca = () => {
               </Card>
             </div>
 
-            {/* WhatsApp Instances */}
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-green-400" />
-                  Instâncias WhatsApp (Evolution API)
-                </CardTitle>
-                <CardDescription>
-                  Gerencie múltiplas instâncias para rotação de envio (exclusivas para cobrança)
-                </CardDescription>
-              </CardHeader>
+            {/* WhatsApp Config Content based on Provider */}
+            {config.whatsapp_provider === 'official' ? (
+              <div className="grid grid-cols-1 gap-6">
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      Credenciais WhatsApp Oficial (Meta)
+                    </CardTitle>
+                    <CardDescription>
+                      Configure as chaves da API Oficial para este módulo
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Access Token</Label>
+                        <Input 
+                          type="password" 
+                          value={config.meta_access_token || ''} 
+                          onChange={(e) => setConfig({...config, meta_access_token: e.target.value})}
+                          placeholder="EAAB..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone Number ID</Label>
+                        <Input 
+                          value={config.meta_phone_number_id || ''} 
+                          onChange={(e) => setConfig({...config, meta_phone_number_id: e.target.value})}
+                          placeholder="1234567890..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>WABA ID</Label>
+                        <Input 
+                          value={config.meta_waba_id || ''} 
+                          onChange={(e) => setConfig({...config, meta_waba_id: e.target.value})}
+                          placeholder="1234567890..." 
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LayoutGrid className="w-5 h-5 text-primary" />
+                      Mapeamento de Templates
+                    </CardTitle>
+                    <CardDescription>
+                      Associe eventos de cobrança aos seus templates da Meta
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {[
+                        { key: 'template_d_menos_3', label: 'D-3 (Lembrete)', color: 'blue' },
+                        { key: 'template_d_zero', label: 'D-0 (Vencimento)', color: 'amber' },
+                        { key: 'template_d_mais_1', label: 'D+1 (Atraso)', color: 'orange' },
+                        { key: 'template_d_mais_2', label: 'D+2 (Atraso)', color: 'red' },
+                        { key: 'template_d_mais_15', label: 'D+15 (Pendência)', color: 'purple' },
+                        { key: 'template_d_mais_30', label: 'D+30 (Cancelamento)', color: 'red' },
+                      ].map((tmpl) => (
+                        <div key={tmpl.key} className="flex items-center gap-4 border-b pb-3 last:border-0 last:pb-0">
+                          <div className="min-w-[150px]">
+                            <Badge className={`bg-${tmpl.color}-500/20 text-${tmpl.color}-400`}>
+                              {tmpl.label}
+                            </Badge>
+                          </div>
+                          <Input 
+                            placeholder="Nome do Template na Meta"
+                            value={config[tmpl.key] || ''}
+                            onChange={(e) => setConfig({...config, [tmpl.key]: e.target.value})}
+                            className="h-9"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-green-400" />
+                    Instâncias WhatsApp (Evolution API)
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie múltiplas instâncias para rotação de envio (exclusivas para cobrança)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <Input
+                      placeholder="Nome da instância"
+                      value={newInstance.instance_name}
+                      onChange={(e) => setNewInstance({ ...newInstance, instance_name: e.target.value })}
+                    />
+                    <Input
+                      placeholder="URL da API"
+                      value={newInstance.api_url}
+                      onChange={(e) => setNewInstance({ ...newInstance, api_url: e.target.value })}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="API Key"
+                      value={newInstance.api_key}
+                      onChange={(e) => setNewInstance({ ...newInstance, api_key: e.target.value })}
+                    />
+                    <Button onClick={addWhatsAppInstance} disabled={isAddingInstance}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar
+                    </Button>
+                  </div>
+
+                  {whatsappInstances.length > 0 && (
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Instância</TableHead>
+                            <TableHead className="hidden sm:table-cell">URL</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {whatsappInstances.map((inst) => (
+                            <TableRow key={inst.id}>
+                              <TableCell className="font-medium">{inst.instance_name}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-muted-foreground truncate max-w-[200px]">{inst.api_url}</TableCell>
+                              <TableCell>
+                                <Badge className={inst.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
+                                  {inst.is_active ? 'Ativo' : 'Inativo'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button size="sm" variant="ghost" onClick={() => toggleInstanceStatus(inst.id, inst.is_active)}>
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => deleteInstance(inst.id)}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <Input
