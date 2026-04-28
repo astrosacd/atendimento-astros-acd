@@ -409,6 +409,7 @@ export default function LeadHunterConfig() {
                     <input type="hidden" id="test_template_hunter_val" />
                   </div>
                   <Button 
+                    variant="secondary"
                     onClick={async () => {
                       const phone = (document.getElementById('test_phone_hunter') as HTMLInputElement)?.value;
                       const template = (document.getElementById('test_template_hunter_val') as HTMLInputElement)?.value;
