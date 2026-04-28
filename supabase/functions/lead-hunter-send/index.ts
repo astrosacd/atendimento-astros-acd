@@ -143,21 +143,37 @@ serve(async (req) => {
               case 'cidade': return lead.cidade || "";
               case 'telefone': return lead.telefone || "";
               case 'website': return lead.website || "";
+              case 'whatsapp_support': return config.lead_hunter_support_link || "";
+              case 'custom_link': return config.lead_hunter_custom_link || "";
               case 'none': return "";
               default: return "";
             }
           };
 
-          const parameters = [1, 2, 3].map(num => {
+          const components: any[] = [];
+          const bodyParams: any[] = [];
+          const headerParams: any[] = [];
+          const button1Params: any[] = [];
+          const button2Params: any[] = [];
+
+          [1, 2, 3, 4, 5, 6].forEach(num => {
             const field = config[`meta_var_${num}_field`];
-            if (!field) {
-              if (num === 1) return lead.nome || lead.empresa || "Cliente";
-              if (num === 2) return lead.empresa || "Sua Empresa";
-              if (num === 3) return lead.categoria || "Seu Setor";
-              return "";
-            }
-            return { type: "text", text: getFieldValue(field) };
+            const target = config[`meta_var_${num}_target`] || 'body';
+            if (!field || field === 'none') return;
+
+            const val = getFieldValue(field);
+            const param = { type: "text", text: val };
+
+            if (target === 'body') bodyParams.push(param);
+            else if (target === 'header') headerParams.push(param);
+            else if (target === 'button_1') button1Params.push(param);
+            else if (target === 'button_2') button2Params.push(param);
           });
+
+          if (headerParams.length > 0) components.push({ type: "header", parameters: headerParams });
+          if (bodyParams.length > 0) components.push({ type: "body", parameters: bodyParams });
+          if (button1Params.length > 0) components.push({ type: "button", sub_type: "url", index: "0", parameters: button1Params });
+          if (button2Params.length > 0) components.push({ type: "button", sub_type: "url", index: "1", parameters: button2Params });
 
           // Meta Official API Send
           const response = await fetch(`https://graph.facebook.com/v21.0/${metaCreds.phone_number_id}/messages`, {
@@ -175,12 +191,7 @@ serve(async (req) => {
                 language: {
                   code: campanha.meta_language_code || 'pt_BR'
                 },
-                components: [
-                  {
-                    type: "body",
-                    parameters: parameters
-                  }
-                ]
+                components: components
               }
             }),
           });
