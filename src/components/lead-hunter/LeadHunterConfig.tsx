@@ -32,6 +32,10 @@ export default function LeadHunterConfig() {
   const [serpApiKey, setSerpApiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [groqKey, setGroqKey] = useState('');
+  const [whatsappProvider, setWhatsappProvider] = useState('evolution');
+  const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
+  const [metaWabaId, setMetaWabaId] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
   // Scraping skip domains
