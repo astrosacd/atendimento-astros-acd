@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   useLeadHunterConfig, useUpdateConfig, 
@@ -238,6 +239,65 @@ export default function LeadHunterConfig() {
               <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
                 <Save className="h-4 w-4 mr-2" /> Salvar Credenciais Meta
               </Button>
+              <div className="mt-6 pt-6 border-t border-border/40">
+                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                  <Send className="w-4 h-4 text-primary" />
+                  Envio de Teste (Oficial)
+                </h4>
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1">
+                    <Input 
+                      placeholder="Número (Ex: 5511999999999)"
+                      id="test_phone_hunter"
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input 
+                      placeholder="Nome do Template"
+                      id="test_template_hunter"
+                      className="h-10"
+                    />
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      const phoneInput = document.getElementById('test_phone_hunter') as HTMLInputElement;
+                      const templateInput = document.getElementById('test_template_hunter') as HTMLInputElement;
+                      const phone = phoneInput?.value;
+                      const template = templateInput?.value;
+                      
+                      if (!phone || !template) {
+                        toast.error("Informe número e template");
+                        return;
+                      }
+
+                      try {
+                        const { data, error } = await supabase.functions.invoke('lead-hunter-send', {
+                          body: { 
+                            leadIds: [], 
+                            testMode: true,
+                            phone,
+                            templateName: template,
+                            leadData: {
+                              nome: "Lead Teste",
+                              empresa: "Empresa Teste",
+                              categoria: "Categoria Teste"
+                            }
+                          }
+                        });
+                        if (error) throw error;
+                        toast.success("Mensagem de teste enviada!");
+                      } catch (err: any) {
+                        toast.error("Erro ao enviar teste: " + err.message);
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    <Send className="w-4 h-4" /> Enviar Teste
+                  </Button>
+                </div>
+              </div>
+
               <div className="bg-muted/30 p-4 rounded-md border border-dashed text-xs text-muted-foreground">
                 <p className="font-semibold mb-1">Aviso:</p>
                 <p>Ao usar a API Oficial no Lead Hunter, certifique-se de usar templates aprovados pela Meta para o primeiro contato (opt-in).</p>
