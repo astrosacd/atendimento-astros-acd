@@ -2663,7 +2663,7 @@ const AdminCobranca = () => {
                             </Badge>
                           </div>
                           <Select 
-                            value={config[tmpl.key] || 'none'} 
+                            value={hasMetaTemplate(config[tmpl.key]) ? config[tmpl.key] : 'none'} 
                             onValueChange={(val) => setConfig({...config, [tmpl.key]: val})}
                           >
                             <SelectTrigger className="h-9">
@@ -2967,7 +2967,7 @@ const AdminCobranca = () => {
                     {config.whatsapp_provider === 'official' ? (
                       <div className="space-y-2">
                         <Select
-                          value={config[msg.templateKey] || ''}
+                          value={hasMetaTemplate(config[msg.templateKey]) ? config[msg.templateKey] : 'none'}
                           onValueChange={(v) => setConfig({ ...config, [msg.templateKey]: v })}
                         >
                           <SelectTrigger className="font-mono">
