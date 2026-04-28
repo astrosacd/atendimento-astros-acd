@@ -114,7 +114,13 @@ Se precisar de ajuda, é só responder esta mensagem!`
     required_proof: true
   });
 
-  useEffect(() => {
+  const [metaCredentials, setMetaCredentials] = useState({
+    access_token: '',
+    phone_number_id: '',
+    waba_id: '',
+    is_active: true
+  });
+  const [templateMappings, setTemplateMappings] = useState<any[]>([]);
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
       enabled: settings.mercadopago.enabled ?? false,
