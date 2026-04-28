@@ -341,6 +341,39 @@ export default function LeadHunterCampanhas() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Provedor WhatsApp</Label>
+                <Select value={form.whatsapp_provider} onValueChange={v => setForm(p => ({ ...p, whatsapp_provider: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
+                    <SelectItem value="official">API Oficial (Meta)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.whatsapp_provider === 'official' && (
+                <div>
+                  <Label>Template da Meta</Label>
+                  <Select value={form.meta_template_name} onValueChange={v => setForm(p => ({ ...p, meta_template_name: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metaTemplates.map(t => (
+                        <SelectItem key={t.id} value={t.template_name}>
+                          {t.template_name}
+                        </SelectItem>
+                      ))}
+                      {metaTemplates.length === 0 && (
+                        <div className="p-2 text-xs text-muted-foreground text-center">Nenhum template mapeado</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             {form.tipo_mensagem === 'modelo_unico' ? (
               <div>
                 <Label>Mensagem Modelo</Label>
