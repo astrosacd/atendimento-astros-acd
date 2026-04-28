@@ -335,10 +335,12 @@ export default function LeadHunterCampanhas() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Delay entre mensagens (seg)</Label>
-                <Input type="number" value={form.delay_entre_mensagens} onChange={e => setForm(p => ({ ...p, delay_entre_mensagens: parseInt(e.target.value) || 10 }))} />
-              </div>
+              {form.whatsapp_provider !== 'official' && (
+                <div>
+                  <Label>Delay entre mensagens (seg)</Label>
+                  <Input type="number" value={form.delay_entre_mensagens} onChange={e => setForm(p => ({ ...p, delay_entre_mensagens: parseInt(e.target.value) || 10 }))} />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

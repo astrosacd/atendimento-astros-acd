@@ -2617,6 +2617,70 @@ const AdminCobranca = () => {
                         </div>
                       </div>
                     </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-border/40">
+                      <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                        <Send className="w-4 h-4 text-primary" />
+                        Envio de Teste (Oficial)
+                      </h4>
+                      <div className="flex flex-col md:flex-row gap-3">
+                        <div className="flex-1">
+                          <Input 
+                            placeholder="Número (Ex: 5511999999999)"
+                            id="test_phone_official"
+                            className="h-10"
+                          />
+                        </div>
+                        <Select id="test_template_official">
+                          <SelectTrigger className="w-full md:w-[200px]">
+                            <SelectValue placeholder="Selecione o template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[
+                              { key: 'template_d_zero', label: 'D-0' },
+                              { key: 'template_d_menos_3', label: 'D-3' },
+                              { key: 'template_d_mais_1', label: 'D+1' }
+                            ].map(t => (
+                              <SelectItem key={t.key} value={config[t.key] || ''}>
+                                {t.label} ({config[t.key] || 'Não config.'})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          onClick={async () => {
+                            const phone = (document.getElementById('test_phone_official') as HTMLInputElement)?.value;
+                            const template = (document.getElementById('test_template_official') as HTMLSelectElement)?.value || (document.querySelector('[id="test_template_official"] [data-value]') as any)?.dataset?.value;
+                            
+                            if (!phone) return toast.error("Informe o número");
+                            if (!template) return toast.error("Selecione o template");
+
+                            try {
+                              const { data, error } = await supabase.functions.invoke('billing-cron', {
+                                body: { 
+                                  isTest: true,
+                                  phone,
+                                  templateName: template,
+                                  clienteTeste: {
+                                    nome: "Cliente Teste",
+                                    valor: 150.00,
+                                    produto: "Produto Teste",
+                                    link: "https://teste.com/pagamento"
+                                  }
+                                }
+                              });
+                              if (error) throw error;
+                              toast.success("Mensagem de teste enviada!");
+                            } catch (err: any) {
+                              toast.error("Erro ao enviar teste: " + err.message);
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          <Send className="w-4 h-4" /> Enviar Teste
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
