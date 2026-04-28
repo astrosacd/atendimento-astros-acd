@@ -121,6 +121,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     is_active: true
   });
   const [templateMappings, setTemplateMappings] = useState<any[]>([]);
+  useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
       enabled: settings.mercadopago.enabled ?? false,
