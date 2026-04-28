@@ -1318,7 +1318,7 @@ const handler = async (req: Request): Promise<Response> => {
                 cliente.numero,
                 templateName,
                 'pt_BR',
-                parameters,
+                components,
                 { access_token: accessToken, phone_number_id: phoneNumberId }
               );
             }
