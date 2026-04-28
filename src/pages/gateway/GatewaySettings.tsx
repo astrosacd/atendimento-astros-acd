@@ -9,9 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone, ShieldCheck, UserCheck, AlertCircle, Sparkles, Key, LayoutGrid } from 'lucide-react';
+import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
 
@@ -114,13 +112,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     required_proof: true
   });
 
-  const [metaCredentials, setMetaCredentials] = useState({
-    access_token: '',
-    phone_number_id: '',
-    waba_id: '',
-    is_active: true
-  });
-  const [templateMappings, setTemplateMappings] = useState<any[]>([]);
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
@@ -141,15 +132,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     if (settings.approval_config) setApprovalConfig(settings.approval_config);
     if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
 
-    // Load Meta credentials
-    const loadMeta = async () => {
-      const { data: creds } = await supabase.from('meta_credentials').select('*').limit(1).maybeSingle();
-      if (creds) setMetaCredentials(creds);
-
-      const { data: maps } = await supabase.from('meta_template_mapping').select('*').order('event_key');
-      if (maps) setTemplateMappings(maps);
-    };
-    loadMeta();
   }, [settings]);
 
   const handleSaveStripe = () => {
@@ -196,37 +178,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     updateSetting({ key: 'approval_config', value: approvalConfig });
   };
 
-  const handleSaveMetaCredentials = async () => {
-    try {
-      const { id, created_at, updated_at, ...payload } = metaCredentials as any;
-      const { error } = await supabase
-        .from('meta_credentials')
-        .upsert({ 
-          ...(id ? { id } : {}),
-          ...payload
-        });
-      
-      if (error) throw error;
-      toast.success('Credenciais Meta salvas com sucesso');
-    } catch (error: any) {
-      toast.error('Erro ao salvar credenciais Meta: ' + error.message);
-    }
-  };
-
-  const handleUpdateTemplateMapping = async (id: string, templateName: string) => {
-    try {
-      const { error } = await supabase
-        .from('meta_template_mapping')
-        .update({ template_name: templateName })
-        .eq('id', id);
-      
-      if (error) throw error;
-      setTemplateMappings(prev => prev.map(m => m.id === id ? { ...m, template_name: templateName } : m));
-      toast.success('Mapeamento atualizado');
-    } catch (error: any) {
-      toast.error('Erro ao atualizar mapeamento: ' + error.message);
-    }
-  };
   const [siteBaseUrl, setSiteBaseUrl] = useState('');
   const [localSlug, setLocalSlug] = useState('');
   const [authAccessCode, setAuthAccessCode] = useState('');
@@ -411,10 +362,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Gateways</span>
           </TabsTrigger>
-          <TabsTrigger value="whatsapp_official" className="gap-2 flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="hidden sm:inline">WhatsApp Oficial</span>
-          </TabsTrigger>
           <TabsTrigger value="checkout" className="gap-2 flex-shrink-0">
             <Timer className="h-4 w-4" />
             <span className="hidden sm:inline">Checkout</span>
@@ -433,111 +380,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="whatsapp_official" className="space-y-4">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                WhatsApp API Oficial (Meta)
-              </CardTitle>
-              <CardDescription>Configure suas credenciais da plataforma Meta for Developers</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Access Token (Permanente)</Label>
-                  <Input 
-                    type="password"
-                    value={metaCredentials.access_token}
-                    onChange={(e) => setMetaCredentials(prev => ({ ...prev, access_token: e.target.value }))}
-                    placeholder="EAAB..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone Number ID</Label>
-                  <Input 
-                    value={metaCredentials.phone_number_id}
-                    onChange={(e) => setMetaCredentials(prev => ({ ...prev, phone_number_id: e.target.value }))}
-                    placeholder="1234567890..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>WhatsApp Business Account ID (WABA ID)</Label>
-                  <Input 
-                    value={metaCredentials.waba_id}
-                    onChange={(e) => setMetaCredentials(prev => ({ ...prev, waba_id: e.target.value }))}
-                    placeholder="1234567890..."
-                  />
-                </div>
-                <div className="flex items-center gap-2 pt-8">
-                  <Switch 
-                    checked={metaCredentials.is_active}
-                    onCheckedChange={(checked) => setMetaCredentials(prev => ({ ...prev, is_active: checked }))}
-                  />
-                  <Label>API Oficial Ativa</Label>
-                </div>
-              </div>
-              <Button onClick={handleSaveMetaCredentials} className="w-full md:w-auto">
-                <Save className="h-4 w-4 mr-2" /> Salvar Credenciais
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <LayoutGrid className="h-4 w-4 text-primary" />
-                Mapeamento de Templates
-              </CardTitle>
-              <CardDescription>Associe os eventos de cobrança aos nomes dos seus templates aprovados na Meta</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Evento de Cobrança</TableHead>
-                      <TableHead>Nome do Template (Meta)</TableHead>
-                      <TableHead className="w-[100px] text-right">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {templateMappings.map((mapping) => (
-                      <TableRow key={mapping.id}>
-                        <TableCell className="font-medium">
-                          {mapping.event_key === 'message_d_menos_3' && 'Cobrança D-3 (3 dias antes)'}
-                          {mapping.event_key === 'message_d_zero' && 'Cobrança D-0 (Dia do vencimento)'}
-                          {mapping.event_key === 'message_d_mais_1' && 'Cobrança D+1 (1 dia após)'}
-                          {mapping.event_key === 'message_d_mais_2' && 'Cobrança D+2 (2 dias após)'}
-                          {mapping.event_key === 'message_d_mais_15' && 'Cobrança D+15 (15 dias após)'}
-                          {mapping.event_key === 'message_d_mais_30' && 'Cobrança D+30 (30 dias após)'}
-                        </TableCell>
-                        <TableCell>
-                          <Input 
-                            defaultValue={mapping.template_name}
-                            onBlur={(e) => handleUpdateTemplateMapping(mapping.id, e.target.value)}
-                            className="h-8"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className="text-[10px]">Auto-save</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="bg-muted/30 p-4 rounded-md border border-dashed border-border text-xs text-muted-foreground">
-                  <p className="font-semibold mb-2">Instruções para Templates:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Os nomes dos templates devem ser exatamente iguais aos aprovados no Gerenciador de WhatsApp.</li>
-                    <li>O sistema enviará variáveis automaticamente na ordem: {'{{1}}'} = Nome, {'{{2}}'} = Plano, {'{{3}}'} = Valor, {'{{4}}'} = Data de Vencimento/Renovação.</li>
-                    <li>Certifique-se de que o template possui 4 variáveis na Meta.</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="gateways" className="space-y-4">
           <Card className="border-border/50">
