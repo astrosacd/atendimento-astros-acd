@@ -134,15 +134,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     if (settings.approval_config) setApprovalConfig(settings.approval_config);
     if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
 
-    // Load Meta credentials
-    const loadMeta = async () => {
-      const { data: creds } = await supabase.from('meta_credentials').select('*').limit(1).maybeSingle();
-      if (creds) setMetaCredentials(creds);
-
-      const { data: maps } = await supabase.from('meta_template_mapping').select('*').order('event_key');
-      if (maps) setTemplateMappings(maps);
-    };
-    loadMeta();
   }, [settings]);
 
   const handleSaveStripe = () => {
