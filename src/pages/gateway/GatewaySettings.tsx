@@ -364,10 +364,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Gateways</span>
           </TabsTrigger>
-          <TabsTrigger value="whatsapp_official" className="gap-2 flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="hidden sm:inline">WhatsApp Oficial</span>
-          </TabsTrigger>
           <TabsTrigger value="checkout" className="gap-2 flex-shrink-0">
             <Timer className="h-4 w-4" />
             <span className="hidden sm:inline">Checkout</span>
