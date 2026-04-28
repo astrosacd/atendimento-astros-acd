@@ -239,6 +239,15 @@ const AdminCobranca = () => {
   const [isSavingStripe, setIsSavingStripe] = useState(false);
 
   const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
+  const getMetaTemplateName = (template: any) => {
+    const name = template?.name || template?.template_name || '';
+    return typeof name === 'string' ? name.trim() : '';
+  };
+  const getMetaTemplateLanguage = (template: any) => {
+    const language = template?.language || template?.language_code || '';
+    return typeof language === 'string' ? language.trim() : '';
+  };
+  const validMetaTemplates = metaTemplates.filter((template) => getMetaTemplateName(template));
 
   useEffect(() => {
     loadConfig();
@@ -250,7 +259,6 @@ const AdminCobranca = () => {
     loadDbCronSchedule();
     loadLastExecution();
     loadStripeConfig();
-    loadMetaTemplates();
   }, []);
 
   // Handle URL filter param for skipped/error billing
