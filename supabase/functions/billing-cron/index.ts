@@ -1270,22 +1270,37 @@ const handler = async (req: Request): Promise<Response> => {
                 case 'plano': return cliente.plano || 'N/A';
                 case 'cpf': return cliente.cpf || '';
                 case 'email': return cliente.email || '';
+                case 'whatsapp_support': return config.whatsapp_support_link || '';
+                case 'custom_link_1': return config.custom_link_1 || '';
                 case 'none': return '';
                 default: return '';
               }
             };
 
-            const parameters = [1, 2, 3, 4].map(num => {
+            const components: any[] = [];
+            const bodyParams: any[] = [];
+            const headerParams: any[] = [];
+            const button1Params: any[] = [];
+            const button2Params: any[] = [];
+
+            [1, 2, 3, 4, 5, 6, 7, 8].forEach(num => {
               const field = config[`meta_var_${num}_field`];
-              if (!field) {
-                if (num === 1) return cliente.nome || '';
-                if (num === 2) return `${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor.toFixed(2)}`;
-                if (num === 3) return new Date(cliente.data_renovacao).toLocaleDateString('pt-BR');
-                if (num === 4) return paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
-                return '';
-              }
-              return getFieldValue(field);
+              const target = config[`meta_var_${num}_target`] || 'body';
+              if (!field || field === 'none') return;
+
+              const val = getFieldValue(field);
+              const param = { type: "text", text: val };
+
+              if (target === 'body') bodyParams.push(param);
+              else if (target === 'header') headerParams.push(param);
+              else if (target === 'button_1') button1Params.push(param);
+              else if (target === 'button_2') button2Params.push(param);
             });
+
+            if (headerParams.length > 0) components.push({ type: "header", parameters: headerParams });
+            if (bodyParams.length > 0) components.push({ type: "body", parameters: bodyParams });
+            if (button1Params.length > 0) components.push({ type: "button", sub_type: "url", index: "0", parameters: button1Params });
+            if (button2Params.length > 0) components.push({ type: "button", sub_type: "url", index: "1", parameters: button2Params });
 
             // Get credentials from config (module specific) or fallback to global meta_credentials
             const accessToken = config.meta_access_token || (metaCreds?.access_token);
