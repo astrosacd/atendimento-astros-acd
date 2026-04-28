@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   useLeadHunterConfig, useUpdateConfig, 
   useLeadHunterInstances, useCreateInstance, useDeleteInstance,
