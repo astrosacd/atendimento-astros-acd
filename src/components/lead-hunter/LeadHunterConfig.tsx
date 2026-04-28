@@ -286,9 +286,10 @@ export default function LeadHunterConfig() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
+      )}
 
         <Dialog open={showInstanceDialog} onOpenChange={setShowInstanceDialog}>
           <DialogContent>
