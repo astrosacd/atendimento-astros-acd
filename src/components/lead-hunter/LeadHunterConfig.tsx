@@ -316,24 +316,40 @@ export default function LeadHunterConfig() {
               <div className="mt-6 pt-6 border-t border-border/40">
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Info className="w-4 h-4 text-primary" />
-                  Variáveis dos Templates (Meta)
+                  Mapeamento de Variáveis (Meta)
                 </h4>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Ao criar seus templates no Gerenciador de Negócios da Meta, use as variáveis abaixo para que os dados sejam preenchidos automaticamente:
+                <p className="text-xs text-muted-foreground mb-4">
+                  Configure qual informação será enviada em cada variável do seu template da Meta para o Lead Hunter.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-y-2 text-xs mb-4">
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{1}}"}</code>
-                    <span>Nome do Lead</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{2}}"}</code>
-                    <span>Nome da Empresa</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{3}}"}</code>
-                    <span>Categoria/Setor</span>
-                  </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {[1, 2, 3].map((num) => (
+                    <div key={num} className="space-y-2">
+                      <Label className="text-xs flex items-center gap-2">
+                        <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
+                        Variável {num}
+                      </Label>
+                      <Select 
+                        value={config[`meta_var_${num}_field`] || (num === 1 ? 'nome' : num === 2 ? 'empresa' : 'categoria')}
+                        onValueChange={(val) => {
+                          updateConfig.mutate({ [`meta_var_${num}_field`]: val });
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Selecione o campo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nome">Nome do Lead</SelectItem>
+                          <SelectItem value="empresa">Nome da Empresa</SelectItem>
+                          <SelectItem value="categoria">Categoria/Setor</SelectItem>
+                          <SelectItem value="cidade">Cidade</SelectItem>
+                          <SelectItem value="telefone">Telefone</SelectItem>
+                          <SelectItem value="website">Website</SelectItem>
+                          <SelectItem value="none">Vazio (Remover)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
                 </div>
 
                 <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
