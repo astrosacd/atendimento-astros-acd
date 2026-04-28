@@ -113,6 +113,7 @@ Se precisar de ajuda, é só responder esta mensagem!`
     duplicate_id_check: true,
     required_proof: true
   });
+
   const [metaCredentials, setMetaCredentials] = useState({
     access_token: '',
     phone_number_id: '',
@@ -120,7 +121,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     is_active: true
   });
   const [templateMappings, setTemplateMappings] = useState<any[]>([]);
-
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({

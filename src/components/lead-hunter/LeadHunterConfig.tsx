@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   useLeadHunterConfig, useUpdateConfig, 
   useLeadHunterInstances, useCreateInstance, useDeleteInstance,
@@ -31,6 +32,10 @@ export default function LeadHunterConfig() {
   const [serpApiKey, setSerpApiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [groqKey, setGroqKey] = useState('');
+  const [whatsappProvider, setWhatsappProvider] = useState('evolution');
+  const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
+  const [metaWabaId, setMetaWabaId] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
   // Scraping skip domains
@@ -55,6 +60,10 @@ export default function LeadHunterConfig() {
       setSerpApiKey(config.serp_api_key || '');
       setOpenaiKey(config.openai_api_key || '');
       setGroqKey(config.groq_api_key || '');
+      setWhatsappProvider(config.whatsapp_provider || 'evolution');
+      setMetaAccessToken(config.meta_access_token || '');
+      setMetaPhoneNumberId(config.meta_phone_number_id || '');
+      setMetaWabaId(config.meta_waba_id || '');
       if (config.scrape_skip_domains) {
         try {
           setSkipDomains(JSON.parse(config.scrape_skip_domains));
@@ -80,6 +89,10 @@ export default function LeadHunterConfig() {
       openai_api_key: openaiKey,
       groq_api_key: groqKey,
       scrape_skip_domains: JSON.stringify(skipDomains),
+      whatsapp_provider: whatsappProvider,
+      meta_access_token: metaAccessToken,
+      meta_phone_number_id: metaPhoneNumberId,
+      meta_waba_id: metaWabaId,
     });
   };
 
@@ -163,14 +176,83 @@ export default function LeadHunterConfig() {
 
       {/* WhatsApp Tab */}
       <TabsContent value="whatsapp">
-        <Card className="border-border/40">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Instâncias WhatsApp (Evolution API)</CardTitle>
-            <Button size="sm" onClick={() => setShowInstanceDialog(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Adicionar
-            </Button>
+        <Card className="border-border/40 mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Provedor WhatsApp</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="space-y-4">
+              <Label>Selecione o Provedor de Disparo</Label>
+              <Select value={whatsappProvider} onValueChange={setWhatsappProvider}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o provedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
+                  <SelectItem value="official">WhatsApp API Oficial (Meta)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Escolha se as mensagens da campanha serão enviadas via Evolution ou API Oficial.
+              </p>
+              <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
+                <Save className="h-4 w-4 mr-2" /> Salvar Provedor
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {whatsappProvider === 'official' ? (
+          <Card className="border-border/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> WhatsApp API Oficial (Meta)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Access Token</Label>
+                  <Input 
+                    type="password" 
+                    value={metaAccessToken} 
+                    onChange={e => setMetaAccessToken(e.target.value)} 
+                    placeholder="EAAB..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone Number ID</Label>
+                  <Input 
+                    value={metaPhoneNumberId} 
+                    onChange={e => setMetaPhoneNumberId(e.target.value)} 
+                    placeholder="1234567890..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>WABA ID</Label>
+                  <Input 
+                    value={metaWabaId} 
+                    onChange={e => setMetaWabaId(e.target.value)} 
+                    placeholder="1234567890..." 
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
+                <Save className="h-4 w-4 mr-2" /> Salvar Credenciais Meta
+              </Button>
+              <div className="bg-muted/30 p-4 rounded-md border border-dashed text-xs text-muted-foreground">
+                <p className="font-semibold mb-1">Aviso:</p>
+                <p>Ao usar a API Oficial no Lead Hunter, certifique-se de usar templates aprovados pela Meta para o primeiro contato (opt-in).</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-border/40">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><MessageSquare className="h-5 w-5" /> Instâncias WhatsApp (Evolution API)</CardTitle>
+              <Button size="sm" onClick={() => setShowInstanceDialog(true)}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
+              </Button>
+            </CardHeader>
+            <CardContent>
             {instances.length === 0 ? (
               <p className="text-center text-muted-foreground py-6">Nenhuma instância configurada</p>
             ) : (
@@ -207,6 +289,7 @@ export default function LeadHunterConfig() {
             )}
           </CardContent>
         </Card>
+      )}
 
         <Dialog open={showInstanceDialog} onOpenChange={setShowInstanceDialog}>
           <DialogContent>
