@@ -4315,6 +4315,63 @@ export type Database = {
           },
         ]
       }
+      meta_credentials: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          phone_number_id: string
+          updated_at: string | null
+          waba_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_number_id: string
+          updated_at?: string | null
+          waba_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_number_id?: string
+          updated_at?: string | null
+          waba_id?: string
+        }
+        Relationships: []
+      }
+      meta_template_mapping: {
+        Row: {
+          created_at: string | null
+          event_key: string
+          id: string
+          language_code: string | null
+          template_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_key: string
+          id?: string
+          language_code?: string | null
+          template_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_key?: string
+          id?: string
+          language_code?: string | null
+          template_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       numeros_aquecimento: {
         Row: {
           aparelho_id: string | null
