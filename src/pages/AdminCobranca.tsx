@@ -2482,30 +2482,34 @@ const AdminCobranca = () => {
                       onCheckedChange={(c) => setConfig({ ...config, whatsapp_enabled: c ? 'true' : 'false' })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Delay entre mensagens (segundos)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="60"
-                      placeholder="3"
-                      value={config.whatsapp_delay || ''}
-                      onChange={(e) => setConfig({ ...config, whatsapp_delay: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Tempo de espera entre cada envio de WhatsApp para evitar bloqueio. Recomendado: 3-5 segundos.
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
-                    <div>
-                      <span>Rotação aleatória de instâncias</span>
-                      <p className="text-xs text-muted-foreground">Distribui envios aleatoriamente entre instâncias ativas</p>
-                    </div>
-                    <Switch
-                      checked={config.whatsapp_random_rotation === 'true'}
-                      onCheckedChange={(c) => setConfig({ ...config, whatsapp_random_rotation: c ? 'true' : 'false' })}
-                    />
-                  </div>
+                  {config.whatsapp_provider !== 'official' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Delay entre mensagens (segundos)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="60"
+                          placeholder="3"
+                          value={config.whatsapp_delay || ''}
+                          onChange={(e) => setConfig({ ...config, whatsapp_delay: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Tempo de espera entre cada envio de WhatsApp para evitar bloqueio. Recomendado: 3-5 segundos.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                        <div>
+                          <span>Rotação aleatória de instâncias</span>
+                          <p className="text-xs text-muted-foreground">Distribui envios aleatoriamente entre instâncias ativas</p>
+                        </div>
+                        <Switch
+                          checked={config.whatsapp_random_rotation === 'true'}
+                          onCheckedChange={(c) => setConfig({ ...config, whatsapp_random_rotation: c ? 'true' : 'false' })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -2786,7 +2790,9 @@ const AdminCobranca = () => {
               <CardHeader>
                 <CardTitle>Templates de Mensagens</CardTitle>
                 <CardDescription>
-                  Usados quando a IA está desativada. Variáveis: {'{nome}'}, {'{produto}'}, {'{plano}'}, {'{valor}'}, {'{data_renovacao}'}
+                  {config.whatsapp_provider === 'official' 
+                    ? 'Selecione os templates da Meta para cada evento de cobrança. Os templates devem seguir o mapeamento de variáveis {{1}} a {{4}}.' 
+                    : 'Usados quando a IA está desativada. Variáveis: {nome}, {produto}, {plano}, {valor}, {data_renovacao}'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -3339,7 +3345,7 @@ const AdminCobranca = () => {
                         <div>
                           <p className="font-semibold">Enviar por WhatsApp</p>
                           <p className="text-sm text-muted-foreground">
-                            Usa a instância Evolution ativa
+                            {config.whatsapp_provider === 'official' ? 'Usa a API Oficial da Meta' : 'Usa a instância Evolution ativa'}
                           </p>
                         </div>
                       </div>
