@@ -2686,14 +2686,14 @@ const AdminCobranca = () => {
                         <Info className="w-4 h-4 text-primary" />
                         Mapeamento de Variáveis (Meta)
                       </h4>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        Escolha o que enviar em cada variável do template da Meta.
+                       <p className="text-xs text-muted-foreground mb-4">
+                        Escolha o que enviar em cada variável {"{{1}}, {{2}}"}, etc. do template. 
                         <strong>Dica:</strong> Para não enviar nada em uma variável, selecione "Vazio (Nenhum)".
                       </p>
                       
                       <div className="space-y-4 mb-6">
                         <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[11px] text-blue-400">
-                          <p><strong>Importante:</strong> Se o seu template tiver botões com links dinâmicos, mapeie as variáveis correspondentes abaixo e selecione o destino correto (Ex: Botão 1).</p>
+                          <p><strong>Configuração:</strong> Mapeie abaixo quais dados do cliente devem preencher as variáveis do seu template da Meta.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2701,7 +2701,7 @@ const AdminCobranca = () => {
                             <div key={num} className="space-y-2 p-3 bg-background/50 rounded-md border border-border/30">
                               <Label className="text-xs flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                  <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{num}</code>
+                                  <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
                                   Variável {num}
                                 </div>
                                 <Select 
