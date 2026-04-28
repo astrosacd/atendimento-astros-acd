@@ -374,6 +374,29 @@ export default function LeadHunterCampanhas() {
               )}
             </div>
 
+            {form.whatsapp_provider === 'official' && (
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10 mb-4">
+                <h4 className="text-xs font-semibold mb-2 flex items-center gap-2 text-primary">
+                  <Info className="w-3 h-3" />
+                  Variáveis do Template Meta
+                </h4>
+                <div className="grid grid-cols-1 gap-1.5 text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{1}}"}</code>
+                    <span>Nome do Lead (ou Empresa se vazio)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{2}}"}</code>
+                    <span>Nome da Empresa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1 py-0.5 rounded text-primary font-bold">{"{{3}}"}</code>
+                    <span>Categoria / Setor</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {form.tipo_mensagem === 'modelo_unico' ? (
               <div>
                 <Label>Mensagem Modelo</Label>
