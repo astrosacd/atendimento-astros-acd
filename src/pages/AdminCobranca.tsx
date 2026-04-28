@@ -2688,46 +2688,78 @@ const AdminCobranca = () => {
                       </h4>
                       <p className="text-xs text-muted-foreground mb-4">
                         Configure qual informação será enviada em cada variável do seu template da Meta. 
-                        Dica: O <strong>Link de Pagamento</strong> pode ser usado como parâmetro de um <strong>Botão de URL Dinâmica</strong> no seu template.
+                        <strong>Importante:</strong> Se o seu template tiver botões com links dinâmicos, mapeie as variáveis correspondentes abaixo.
                       </p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[1, 2, 3, 4].map((num) => (
-                          <div key={num} className="space-y-2">
-                            <Label className="text-xs flex items-center gap-2">
-                              <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
-                              Variável {num}
-                            </Label>
-                            <Select 
-                              value={config[`meta_var_${num}_field`] || (num === 1 ? 'nome' : num === 2 ? 'valor' : num === 3 ? 'data_renovacao' : 'link_pagamento')}
-                              onValueChange={(val) => {
-                                setConfig(prev => ({ ...prev, [`meta_var_${num}_field`]: val }));
-                                // Auto-save for this specific config
-                                supabase.from('billing_config').upsert({ 
-                                  config_key: `meta_var_${num}_field`, 
-                                  config_value: val 
-                                }).then(({ error }) => {
-                                  if (error) toast({ title: "Erro ao salvar mapeamento", description: error.message, variant: "destructive" });
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue placeholder="Selecione o campo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="nome">Nome do Cliente</SelectItem>
-                                <SelectItem value="valor">Valor da Cobrança</SelectItem>
-                                <SelectItem value="data_renovacao">Data de Vencimento</SelectItem>
-                                <SelectItem value="link_pagamento">Link de Pagamento</SelectItem>
-                                <SelectItem value="produto">Nome do Produto</SelectItem>
-                                <SelectItem value="plano">Nome do Plano</SelectItem>
-                                <SelectItem value="cpf">CPF/CNPJ</SelectItem>
-                                <SelectItem value="email">Email</SelectItem>
-                                <SelectItem value="none">Vazio (Remover)</SelectItem>
-                              </SelectContent>
-                            </Select>
+                      <div className="space-y-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Link de Suporte WhatsApp</Label>
+                            <Input 
+                              placeholder="Ex: https://wa.me/5511999999999"
+                              value={config.whatsapp_support_link || ''}
+                              onChange={(e) => setConfig({...config, whatsapp_support_link: e.target.value})}
+                              className="h-9"
+                            />
                           </div>
-                        ))}
+                          <div className="space-y-2">
+                            <Label className="text-xs">Link Personalizado (Opcional)</Label>
+                            <Input 
+                              placeholder="Ex: https://meusite.com/promocao"
+                              value={config.custom_link_1 || ''}
+                              onChange={(e) => setConfig({...config, custom_link_1: e.target.value})}
+                              className="h-9"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                            <div key={num} className="space-y-2 p-3 bg-background/50 rounded-md border border-border/30">
+                              <Label className="text-xs flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
+                                  Variável {num}
+                                </div>
+                                <Select 
+                                  value={config[`meta_var_${num}_target`] || 'body'}
+                                  onValueChange={(val) => setConfig({...config, [`meta_var_${num}_target`]: val})}
+                                >
+                                  <SelectTrigger className="h-6 w-[100px] text-[10px] bg-transparent border-none">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="body">Corpo</SelectItem>
+                                    <SelectItem value="header">Cabeçalho</SelectItem>
+                                    <SelectItem value="button_1">Botão 1</SelectItem>
+                                    <SelectItem value="button_2">Botão 2</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </Label>
+                              <Select 
+                                value={config[`meta_var_${num}_field`] || 'none'}
+                                onValueChange={(val) => setConfig({...config, [`meta_var_${num}_field`]: val})}
+                              >
+                                <SelectTrigger className="h-8 text-[11px]">
+                                  <SelectValue placeholder="Selecione o dado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="nome">Nome do Cliente</SelectItem>
+                                  <SelectItem value="valor">Valor da Cobrança</SelectItem>
+                                  <SelectItem value="data_renovacao">Data de Vencimento</SelectItem>
+                                  <SelectItem value="link_pagamento">Link de Pagamento (MP/Stripe)</SelectItem>
+                                  <SelectItem value="produto">Nome do Produto</SelectItem>
+                                  <SelectItem value="plano">Nome do Plano</SelectItem>
+                                  <SelectItem value="whatsapp_support">Link de Suporte WhatsApp</SelectItem>
+                                  <SelectItem value="custom_link_1">Link Personalizado</SelectItem>
+                                  <SelectItem value="cpf">CPF/CNPJ</SelectItem>
+                                  <SelectItem value="email">E-mail</SelectItem>
+                                  <SelectItem value="none">Vazio (Nenhum)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
