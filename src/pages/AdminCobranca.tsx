@@ -2631,7 +2631,10 @@ const AdminCobranca = () => {
                             className="h-10"
                           />
                         </div>
-                        <Select id="test_template_official">
+                        <Select onValueChange={(v) => {
+                          const el = document.getElementById('test_template_official_val') as HTMLInputElement;
+                          if (el) el.value = v;
+                        }}>
                           <SelectTrigger className="w-full md:w-[200px]">
                             <SelectValue placeholder="Selecione o template" />
                           </SelectTrigger>
@@ -2647,13 +2650,20 @@ const AdminCobranca = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        <input type="hidden" id="test_template_official_val" />
                         <Button 
                           onClick={async () => {
                             const phone = (document.getElementById('test_phone_official') as HTMLInputElement)?.value;
-                            const template = (document.getElementById('test_template_official') as HTMLSelectElement)?.value || (document.querySelector('[id="test_template_official"] [data-value]') as any)?.dataset?.value;
+                            const template = (document.getElementById('test_template_official_val') as HTMLInputElement)?.value;
                             
-                            if (!phone) return toast.error("Informe o número");
-                            if (!template) return toast.error("Selecione o template");
+                            if (!phone) {
+                              toast({ title: "Erro", description: "Informe o número", variant: "destructive" });
+                              return;
+                            }
+                            if (!template) {
+                              toast({ title: "Erro", description: "Selecione o template", variant: "destructive" });
+                              return;
+                            }
 
                             try {
                               const { data, error } = await supabase.functions.invoke('billing-cron', {
@@ -2670,9 +2680,9 @@ const AdminCobranca = () => {
                                 }
                               });
                               if (error) throw error;
-                              toast.success("Mensagem de teste enviada!");
+                              toast({ title: "Sucesso", description: "Mensagem de teste enviada!" });
                             } catch (err: any) {
-                              toast.error("Erro ao enviar teste: " + err.message);
+                              toast({ title: "Erro ao enviar teste", description: err.message, variant: "destructive" });
                             }
                           }}
                           className="gap-2"
