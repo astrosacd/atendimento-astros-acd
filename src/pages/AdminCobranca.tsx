@@ -238,7 +238,7 @@ const AdminCobranca = () => {
   });
   const [isSavingStripe, setIsSavingStripe] = useState(false);
 
-  const [metaTemplates, setMetaTemplates] = useState<{ id: string; event_key: string; template_name: string }[]>([]);
+  const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
 
   useEffect(() => {
     loadConfig();

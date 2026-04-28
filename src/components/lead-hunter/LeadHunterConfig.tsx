@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send, RefreshCw
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send, RefreshCw, Info
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
