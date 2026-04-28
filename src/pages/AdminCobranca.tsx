@@ -2790,7 +2790,9 @@ const AdminCobranca = () => {
               <CardHeader>
                 <CardTitle>Templates de Mensagens</CardTitle>
                 <CardDescription>
-                  Usados quando a IA está desativada. Variáveis: {'{nome}'}, {'{produto}'}, {'{plano}'}, {'{valor}'}, {'{data_renovacao}'}
+                  {config.whatsapp_provider === 'official' 
+                    ? 'Selecione os templates da Meta para cada evento de cobrança. Os templates devem seguir o mapeamento de variáveis {{1}} a {{4}}.' 
+                    : 'Usados quando a IA está desativada. Variáveis: {nome}, {produto}, {plano}, {valor}, {data_renovacao}'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
