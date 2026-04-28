@@ -1252,17 +1252,23 @@ const handler = async (req: Request): Promise<Response> => {
           let whatsappResult: { success: boolean; error?: string };
           let providerUsed = 'evolution';
 
-          if (isOfficial && metaCreds) {
+          if (isOfficial) {
             providerUsed = 'official';
             // Variable mapping: {{1}} Name, {{2}} Value, {{3}} Product, {{4}} Link
             const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
             const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
             const paymentLink = paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
             
-            // Get template name from config or fallback to mapping table
+            // Get credentials from config (module specific) or fallback to global meta_credentials
+            const accessToken = config.meta_access_token || (metaCreds?.access_token);
+            const phoneNumberId = config.meta_phone_number_id || (metaCreds?.phone_number_id);
+
+            // Get template name from config
             const templateName = config[`template_${messageType}`];
             
-            if (!templateName) {
+            if (!accessToken || !phoneNumberId) {
+              whatsappResult = { success: false, error: "Credenciais da Meta não configuradas." };
+            } else if (!templateName) {
               whatsappResult = { success: false, error: `Template Meta não configurado para ${messageType}` };
             } else {
               whatsappResult = await sendWhatsAppOfficial(
@@ -1270,7 +1276,7 @@ const handler = async (req: Request): Promise<Response> => {
                 templateName,
                 'pt_BR',
                 [cliente.nome, formattedValue, cliente.produto, paymentLink],
-                { access_token: metaCreds.access_token, phone_number_id: metaCreds.phone_number_id }
+                { access_token: accessToken, phone_number_id: phoneNumberId }
               );
             }
           } else {
