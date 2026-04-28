@@ -180,37 +180,6 @@ Se precisar de ajuda, é só responder esta mensagem!`
     updateSetting({ key: 'approval_config', value: approvalConfig });
   };
 
-  const handleSaveMetaCredentials = async () => {
-    try {
-      const { id, created_at, updated_at, ...payload } = metaCredentials as any;
-      const { error } = await supabase
-        .from('meta_credentials')
-        .upsert({ 
-          ...(id ? { id } : {}),
-          ...payload
-        });
-      
-      if (error) throw error;
-      toast.success('Credenciais Meta salvas com sucesso');
-    } catch (error: any) {
-      toast.error('Erro ao salvar credenciais Meta: ' + error.message);
-    }
-  };
-
-  const handleUpdateTemplateMapping = async (id: string, templateName: string) => {
-    try {
-      const { error } = await supabase
-        .from('meta_template_mapping')
-        .update({ template_name: templateName })
-        .eq('id', id);
-      
-      if (error) throw error;
-      setTemplateMappings(prev => prev.map(m => m.id === id ? { ...m, template_name: templateName } : m));
-      toast.success('Mapeamento atualizado');
-    } catch (error: any) {
-      toast.error('Erro ao atualizar mapeamento: ' + error.message);
-    }
-  };
   const [siteBaseUrl, setSiteBaseUrl] = useState('');
   const [localSlug, setLocalSlug] = useState('');
   const [authAccessCode, setAuthAccessCode] = useState('');
