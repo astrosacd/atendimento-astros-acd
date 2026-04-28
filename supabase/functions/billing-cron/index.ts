@@ -716,6 +716,54 @@ const sendEmail = async (
   }
 };
 
+const sendWhatsAppOfficial = async (
+  numero: string,
+  templateName: string,
+  languageCode: string,
+  vars: string[],
+  credentials: { access_token: string; phone_number_id: string }
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanNumber = numero.replace(/\D/g, '');
+    const formattedNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+
+    const response = await fetch(`https://graph.facebook.com/v21.0/${credentials.phone_number_id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: languageCode || 'pt_BR'
+          },
+          components: [
+            {
+              type: "body",
+              parameters: vars.map(v => ({ type: "text", text: v }))
+            }
+          ]
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Meta API error: ${errorText}`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('WhatsApp Official send error:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+};
+
 const sendWhatsApp = async (
   numero: string,
   message: string,
@@ -936,6 +984,13 @@ const handler = async (req: Request): Promise<Response> => {
       .from('billing_whatsapp_instances')
       .select('*')
       .eq('is_active', true);
+
+    // Get Meta credentials for Official API
+    const { data: metaCreds } = await supabase
+      .from('meta_credentials')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
 
     // Get Stripe config for USD clients
     const { data: stripeConfigData } = await supabase
@@ -1175,9 +1230,9 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Send WhatsApp if enabled
+      const isOfficial = config.whatsapp_provider === 'official';
       const canSendWhatsApp = config.whatsapp_enabled === 'true' && 
-                              whatsappInstances && 
-                              whatsappInstances.length > 0;
+                              (isOfficial ? !!metaCreds : (whatsappInstances && whatsappInstances.length > 0));
       
       if (canSendWhatsApp) {
         if (!whatsappValidation.valid) {
@@ -1194,28 +1249,68 @@ const handler = async (req: Request): Promise<Response> => {
           });
           console.log(`Skipping WhatsApp for ${cliente.nome}: ${whatsappValidation.reason}`);
         } else {
-          // Select instance - random if enabled, otherwise round-robin
-          let instance;
-          if (config.whatsapp_random_rotation === 'true') {
-            const randomIndex = Math.floor(Math.random() * whatsappInstances.length);
-            instance = whatsappInstances[randomIndex];
-            console.log(`Using random WhatsApp instance: ${instance.instance_name} (index ${randomIndex})`);
-          } else {
-            instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
-            whatsappInstanceIndex++;
-          }
-          
-          // Apply delay if configured
-          const delaySeconds = parseInt(config.whatsapp_delay || '0', 10);
-          if (delaySeconds > 0 && whatsappInstanceIndex > 1) {
-            console.log(`Waiting ${delaySeconds} seconds before sending WhatsApp...`);
-            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
-          }
+          let whatsappResult: { success: boolean; error?: string };
+          let providerUsed = 'evolution';
 
-          const whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
+          if (isOfficial) {
+            providerUsed = 'official';
+            // Variable mapping: {{1}} Name, {{2}} Value, {{3}} Product, {{4}} Link
+            const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
+            const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
+            const paymentLink = paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
+            
+            // Get credentials from config (module specific) or fallback to global meta_credentials
+            const accessToken = config.meta_access_token || (metaCreds?.access_token);
+            const phoneNumberId = config.meta_phone_number_id || (metaCreds?.phone_number_id);
+
+            // Get template name from config
+            const templateName = config[`template_${messageType}`];
+            
+            if (!accessToken || !phoneNumberId) {
+              whatsappResult = { success: false, error: "Credenciais da Meta não configuradas." };
+            } else if (!templateName) {
+              whatsappResult = { success: false, error: `Template Meta não configurado para ${messageType}` };
+            } else {
+              whatsappResult = await sendWhatsAppOfficial(
+                cliente.numero,
+                templateName,
+                'pt_BR',
+                [cliente.nome, formattedValue, cliente.produto, paymentLink],
+                { access_token: accessToken, phone_number_id: phoneNumberId }
+              );
+            }
+          } else {
+            // Select instance - random if enabled, otherwise round-robin
+            let instance;
+            if (config.whatsapp_random_rotation === 'true') {
+              const randomIndex = Math.floor(Math.random() * whatsappInstances.length);
+              instance = whatsappInstances[randomIndex];
+              console.log(`Using random WhatsApp instance: ${instance.instance_name} (index ${randomIndex})`);
+            } else {
+              instance = whatsappInstances[whatsappInstanceIndex % whatsappInstances.length];
+              whatsappInstanceIndex++;
+            }
+            
+            // Apply delay if configured
+            const delaySeconds = parseInt(config.whatsapp_delay || '0', 10);
+            if (delaySeconds > 0 && whatsappInstanceIndex > 1) {
+              console.log(`Waiting ${delaySeconds} seconds before sending WhatsApp...`);
+              await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+            }
+
+            whatsappResult = await sendWhatsApp(cliente.numero, message, instance);
+            
+            if (whatsappResult.success && instance) {
+              await supabase
+                .from('billing_whatsapp_instances')
+                .update({ last_used_at: new Date().toISOString() })
+                .eq('id', instance.id);
+            }
+          }
           
-          // Include payment skip reasons in error_message if any
+          // Include payment skip reasons and provider in error_message if any
           const logError = whatsappResult.error || (logNotes.length > 0 ? logNotes.join('; ') : null);
+          const providerInfo = `[Provider: ${providerUsed}]`;
 
           await supabase.from('billing_logs').insert({
             cliente_id: cliente.id,
@@ -1225,13 +1320,8 @@ const handler = async (req: Request): Promise<Response> => {
             message_type: messageType,
             channel: 'whatsapp',
             status: whatsappResult.success ? 'sent' : 'error',
-            error_message: logError,
+            error_message: logError ? `${providerInfo} ${logError}` : providerInfo,
           });
-
-          await supabase
-            .from('billing_whatsapp_instances')
-            .update({ last_used_at: new Date().toISOString() })
-            .eq('id', instance.id);
 
           if (whatsappResult.success) {
             totalSent++;
