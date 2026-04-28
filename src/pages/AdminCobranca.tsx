@@ -57,7 +57,11 @@ import {
   Target,
   Percent,
   ArrowUpRight,
-  ArrowDownRight, Loader2, Globe, LayoutGrid, Info,
+  ArrowDownRight, 
+  Loader2, 
+  Globe, 
+  LayoutGrid, 
+  Info,
   CreditCard,
   QrCode,
   Link2,
@@ -65,8 +69,6 @@ import {
   Download,
   UserPlus,
   Database,
-  LayoutGrid,
-  Info
 } from 'lucide-react';
 
 interface BillingConfig {
