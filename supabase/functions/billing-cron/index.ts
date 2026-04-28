@@ -716,6 +716,54 @@ const sendEmail = async (
   }
 };
 
+const sendWhatsAppOfficial = async (
+  numero: string,
+  templateName: string,
+  languageCode: string,
+  vars: string[],
+  credentials: { access_token: string; phone_number_id: string }
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanNumber = numero.replace(/\D/g, '');
+    const formattedNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`;
+
+    const response = await fetch(`https://graph.facebook.com/v21.0/${credentials.phone_number_id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: languageCode || 'pt_BR'
+          },
+          components: [
+            {
+              type: "body",
+              parameters: vars.map(v => ({ type: "text", text: v }))
+            }
+          ]
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Meta API error: ${errorText}`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('WhatsApp Official send error:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+};
+
 const sendWhatsApp = async (
   numero: string,
   message: string,
