@@ -2649,69 +2649,6 @@ const AdminCobranca = () => {
                 </CardContent>
               </Card>
             )}
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <Input
-                    placeholder="Nome da instância"
-                    value={newInstance.instance_name}
-                    onChange={(e) => setNewInstance({ ...newInstance, instance_name: e.target.value })}
-                  />
-                  <Input
-                    placeholder="URL da API"
-                    value={newInstance.api_url}
-                    onChange={(e) => setNewInstance({ ...newInstance, api_url: e.target.value })}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="API Key"
-                    value={newInstance.api_key}
-                    onChange={(e) => setNewInstance({ ...newInstance, api_key: e.target.value })}
-                  />
-                  <Button onClick={addWhatsAppInstance} disabled={isAddingInstance}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar
-                  </Button>
-                </div>
-
-                {whatsappInstances.length > 0 && (
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Instância</TableHead>
-                          <TableHead className="hidden sm:table-cell">URL</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {whatsappInstances.map((inst) => (
-                          <TableRow key={inst.id}>
-                            <TableCell className="font-medium">{inst.instance_name}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-muted-foreground truncate max-w-[200px]">{inst.api_url}</TableCell>
-                            <TableCell>
-                              <Badge className={inst.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}>
-                                {inst.is_active ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button size="sm" variant="ghost" onClick={() => toggleInstanceStatus(inst.id, inst.is_active)}>
-                                  <Power className="w-4 h-4" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300" onClick={() => deleteInstance(inst.id)}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             <div className="flex justify-end">
               <Button onClick={saveConfig} disabled={isSaving} className="bg-gradient-to-r from-emerald-500 to-green-600">
