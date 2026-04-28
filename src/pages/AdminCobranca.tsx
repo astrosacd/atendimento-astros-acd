@@ -57,7 +57,7 @@ import {
   Target,
   Percent,
   ArrowUpRight,
-  ArrowDownRight,
+  ArrowDownRight, Loader2, Globe, LayoutGrid, Info,
   CreditCard,
   QrCode,
   Link2,
