@@ -985,6 +985,13 @@ const handler = async (req: Request): Promise<Response> => {
       .select('*')
       .eq('is_active', true);
 
+    // Get Meta credentials for Official API
+    const { data: metaCreds } = await supabase
+      .from('meta_credentials')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+
     // Get Stripe config for USD clients
     const { data: stripeConfigData } = await supabase
       .from('billing_stripe_config')
