@@ -2589,7 +2589,7 @@ const AdminCobranca = () => {
                           <p className="text-muted-foreground">Token de Verificação:</p>
                           <code className="block p-1 bg-background border rounded">{webhookInfo.token}</code>
                         </div>
-                        <p className="text-[10px] text-muted-foreground italic">Use esses dados no Portal Meta Developers > WhatsApp > Configuração para receber status de entrega e respostas.</p>
+                        <p className="text-[10px] text-muted-foreground italic">Use esses dados no Portal Meta Developers &gt; WhatsApp &gt; Configuração para receber status de entrega e respostas.</p>
                       </div>
                     )}
                   </CardContent>
