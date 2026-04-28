@@ -65,7 +65,8 @@ import {
   Download,
   UserPlus,
   Database,
-  LayoutGrid
+  LayoutGrid,
+  Info
 } from 'lucide-react';
 
 interface BillingConfig {
