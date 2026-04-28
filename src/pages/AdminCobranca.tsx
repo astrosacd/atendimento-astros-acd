@@ -2482,30 +2482,34 @@ const AdminCobranca = () => {
                       onCheckedChange={(c) => setConfig({ ...config, whatsapp_enabled: c ? 'true' : 'false' })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Delay entre mensagens (segundos)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="60"
-                      placeholder="3"
-                      value={config.whatsapp_delay || ''}
-                      onChange={(e) => setConfig({ ...config, whatsapp_delay: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Tempo de espera entre cada envio de WhatsApp para evitar bloqueio. Recomendado: 3-5 segundos.
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
-                    <div>
-                      <span>Rotação aleatória de instâncias</span>
-                      <p className="text-xs text-muted-foreground">Distribui envios aleatoriamente entre instâncias ativas</p>
-                    </div>
-                    <Switch
-                      checked={config.whatsapp_random_rotation === 'true'}
-                      onCheckedChange={(c) => setConfig({ ...config, whatsapp_random_rotation: c ? 'true' : 'false' })}
-                    />
-                  </div>
+                  {config.whatsapp_provider !== 'official' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Delay entre mensagens (segundos)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="60"
+                          placeholder="3"
+                          value={config.whatsapp_delay || ''}
+                          onChange={(e) => setConfig({ ...config, whatsapp_delay: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Tempo de espera entre cada envio de WhatsApp para evitar bloqueio. Recomendado: 3-5 segundos.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                        <div>
+                          <span>Rotação aleatória de instâncias</span>
+                          <p className="text-xs text-muted-foreground">Distribui envios aleatoriamente entre instâncias ativas</p>
+                        </div>
+                        <Switch
+                          checked={config.whatsapp_random_rotation === 'true'}
+                          onCheckedChange={(c) => setConfig({ ...config, whatsapp_random_rotation: c ? 'true' : 'false' })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
