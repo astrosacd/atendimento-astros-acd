@@ -2974,6 +2974,7 @@ const AdminCobranca = () => {
                             <SelectValue placeholder="Selecione o template aprovado" />
                           </SelectTrigger>
                           <SelectContent>
+                            {validMetaTemplates.length > 0 && <SelectItem value="none">Nenhum</SelectItem>}
                             {validMetaTemplates.map((t) => (
                               <SelectItem key={t.id || getMetaTemplateName(t)} value={getMetaTemplateName(t)}>
                                 {getMetaTemplateName(t)}
