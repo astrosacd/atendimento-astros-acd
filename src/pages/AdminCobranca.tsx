@@ -2644,7 +2644,7 @@ const AdminCobranca = () => {
                               { key: 'template_d_menos_3', label: 'D-3' },
                               { key: 'template_d_mais_1', label: 'D+1' }
                             ].map(t => (
-                              <SelectItem key={t.key} value={config[t.key] || ''}>
+                              <SelectItem key={t.key} value={config[t.key] || `none_${t.key}`}>
                                 {t.label} ({config[t.key] || 'Não config.'})
                               </SelectItem>
                             ))}
@@ -2660,8 +2660,8 @@ const AdminCobranca = () => {
                               toast({ title: "Erro", description: "Informe o número", variant: "destructive" });
                               return;
                             }
-                            if (!template) {
-                              toast({ title: "Erro", description: "Selecione o template", variant: "destructive" });
+                            if (!template || template.startsWith('none_')) {
+                              toast({ title: "Erro", description: "Selecione um template configurado", variant: "destructive" });
                               return;
                             }
 
