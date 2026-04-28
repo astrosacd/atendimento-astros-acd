@@ -2444,6 +2444,19 @@ const AdminCobranca = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-4 mb-4 border-b pb-4">
+                    <Label className="text-sm font-semibold mb-2 block">Provedor WhatsApp</Label>
+                    <Select value={config.whatsapp_provider || 'evolution'} onValueChange={(v) => setConfig({ ...config, whatsapp_provider: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o provedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="evolution">Evolution API (Instâncias)</SelectItem>
+                        <SelectItem value="official">WhatsApp Business API Oficial (Meta)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
                     <span>Enviar por WhatsApp</span>
                     <Switch
