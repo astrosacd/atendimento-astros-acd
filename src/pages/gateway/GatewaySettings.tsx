@@ -9,8 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useGatewaySettings } from '@/hooks/useGateway';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CreditCard, Mail, ShoppingCart, Save, Timer, Link, Copy, ExternalLink, Bell, MessageSquare, CheckCircle2, Clock, Phone, ShieldCheck, UserCheck, AlertCircle, Sparkles, Key, LayoutGrid } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
