@@ -365,8 +365,7 @@ export default function LeadHunterConfig() {
                             <SelectItem value="cidade">Cidade</SelectItem>
                             <SelectItem value="telefone">Telefone</SelectItem>
                             <SelectItem value="website">Website</SelectItem>
-                            <SelectItem value="whatsapp_support">Link de Suporte</SelectItem>
-                            <SelectItem value="custom_link">Link Personalizado</SelectItem>
+                            <SelectItem value="website">Website</SelectItem>
                             <SelectItem value="none">Vazio (Remover)</SelectItem>
                           </SelectContent>
                         </Select>
