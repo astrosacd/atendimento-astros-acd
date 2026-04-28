@@ -2555,6 +2555,43 @@ const AdminCobranca = () => {
                         />
                       </div>
                     </div>
+                    
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={syncMetaTemplates} 
+                        disabled={isSyncingMeta}
+                        className="gap-2"
+                      >
+                        {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        Sincronizar Templates
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={getWebhookInfo}
+                        className="gap-2 text-xs"
+                      >
+                        <Globe className="w-3 h-3" /> Configurar Webhook (Opcional)
+                      </Button>
+                    </div>
+
+                    {webhookInfo && (
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs space-y-2">
+                        <p className="font-semibold text-blue-400">Configuração de Webhook na Meta:</p>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">URL de Retorno:</p>
+                          <code className="block p-1 bg-background border rounded truncate">{webhookInfo.url}</code>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">Token de Verificação:</p>
+                          <code className="block p-1 bg-background border rounded">{webhookInfo.token}</code>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground italic">Use esses dados no Portal Meta Developers > WhatsApp > Configuração para receber status de entrega e respostas.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
