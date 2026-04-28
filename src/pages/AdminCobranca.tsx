@@ -2671,26 +2671,66 @@ const AdminCobranca = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {[
-                  { key: 'message_d_menos_3', label: 'D-3', desc: 'Lembrete (3 dias antes)', color: 'blue' },
-                  { key: 'message_d_zero', label: 'D', desc: 'Dia do Vencimento', color: 'amber' },
-                  { key: 'message_d_mais_1', label: 'D+1', desc: '1º Aviso', color: 'orange' },
-                  { key: 'message_d_mais_2', label: 'D+2', desc: '2º Aviso', color: 'red' },
-                  { key: 'message_d_mais_15', label: 'D+15', desc: 'Aviso de Pendência', color: 'purple' },
-                  { key: 'message_d_mais_30', label: 'D+30', desc: 'Aviso Final', color: 'red' },
-                ].map((msg) => (
-                  <div key={msg.key} className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Badge className={`bg-${msg.color}-500/20 text-${msg.color}-400 border-${msg.color}-500/30`}>
-                        {msg.label}
-                      </Badge>
-                      {msg.desc}
-                    </Label>
-                    <Textarea
-                      value={config[msg.key] || defaultMessages[msg.key] || ''}
-                      onChange={(e) => setConfig({ ...config, [msg.key]: e.target.value })}
-                      className="min-h-[80px]"
+                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-background to-muted/30 border mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${config.whatsapp_provider === 'official' ? 'bg-primary/20' : 'bg-emerald-500/20'}`}>
+                      {config.whatsapp_provider === 'official' ? <Sparkles className="w-5 h-5 text-primary" /> : <MessageSquare className="w-5 h-5 text-emerald-400" />}
+                    </div>
+                    <div>
+                      <p className="font-semibold">Provedor de WhatsApp</p>
+                      <p className="text-sm text-muted-foreground">
+                        {config.whatsapp_provider === 'official' ? 'Usando API Oficial (Templates)' : 'Usando Evolution API (Texto Livre)'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Evolution</Label>
+                    <Switch
+                      checked={config.whatsapp_provider === 'official'}
+                      onCheckedChange={(checked) => setConfig({ ...config, whatsapp_provider: checked ? 'official' : 'evolution' })}
                     />
+                    <Label className="text-xs text-primary font-medium">Oficial (Meta)</Label>
+                  </div>
+                </div>
+
+                {[
+                  { key: 'message_d_menos_3', templateKey: 'template_d_menos_3', label: 'D-3', desc: 'Lembrete (3 dias antes)', color: 'blue' },
+                  { key: 'message_d_zero', templateKey: 'template_d_zero', label: 'D', desc: 'Dia do Vencimento', color: 'amber' },
+                  { key: 'message_d_mais_1', templateKey: 'template_d_mais_1', label: 'D+1', desc: '1º Aviso', color: 'orange' },
+                  { key: 'message_d_mais_2', templateKey: 'template_d_mais_2', label: 'D+2', desc: '2º Aviso', color: 'red' },
+                  { key: 'message_d_mais_15', templateKey: 'template_d_mais_15', label: 'D+15', desc: 'Aviso de Pendência', color: 'purple' },
+                  { key: 'message_d_mais_30', templateKey: 'template_d_mais_30', label: 'D+30', desc: 'Aviso Final', color: 'red' },
+                ].map((msg) => (
+                  <div key={msg.key} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Badge className={`bg-${msg.color}-500/20 text-${msg.color}-400 border-${msg.color}-500/30`}>
+                          {msg.label}
+                        </Badge>
+                        {msg.desc}
+                      </Label>
+                    </div>
+                    
+                    {config.whatsapp_provider === 'official' ? (
+                      <div className="space-y-2">
+                        <Input 
+                          placeholder="Digite o nome exato do template aprovado na Meta"
+                          value={config[msg.templateKey] || ''}
+                          onChange={(e) => setConfig({ ...config, [msg.templateKey]: e.target.value })}
+                          className="font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Certifique-se de que o template possui as 4 variáveis padrão.
+                        </p>
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={config[msg.key] || defaultMessages[msg.key] || ''}
+                        onChange={(e) => setConfig({ ...config, [msg.key]: e.target.value })}
+                        className="min-h-[80px]"
+                      />
+                    )}
                   </div>
                 ))}
               </CardContent>
