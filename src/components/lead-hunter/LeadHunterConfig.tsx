@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send, RefreshCw
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send, RefreshCw, Info
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -277,10 +277,65 @@ export default function LeadHunterConfig() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSaveApis} disabled={updateConfig.isPending}>
-                <Save className="h-4 w-4 mr-2" /> Salvar Credenciais Meta
-              </Button>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={syncMetaTemplates} 
+                  disabled={isSyncingMeta}
+                  className="gap-2"
+                >
+                  {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Sincronizar Templates
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={getWebhookInfo}
+                  className="gap-2 text-xs"
+                >
+                  <Globe className="w-3 h-3" /> Configurar Webhook (Opcional)
+                </Button>
+              </div>
+
+              {webhookInfo && (
+                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs space-y-2">
+                  <p className="font-semibold text-blue-400">Configuração de Webhook na Meta:</p>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">URL de Retorno:</p>
+                    <code className="block p-1 bg-background border rounded truncate">{webhookInfo.url}</code>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-muted-foreground">Token de Verificação:</p>
+                    <code className="block p-1 bg-background border rounded">{webhookInfo.token}</code>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-6 pt-6 border-t border-border/40">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-primary" />
+                  Variáveis dos Templates (Meta)
+                </h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Ao criar seus templates no Gerenciador de Negócios da Meta, use as variáveis abaixo para que os dados sejam preenchidos automaticamente:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-y-2 text-xs mb-4">
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{1}}"}</code>
+                    <span>Nome do Lead</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{2}}"}</code>
+                    <span>Nome da Empresa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{3}}"}</code>
+                    <span>Categoria/Setor</span>
+                  </div>
+                </div>
+
                 <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
                   <Send className="w-4 h-4 text-primary" />
                   Envio de Teste (Oficial)
@@ -294,21 +349,34 @@ export default function LeadHunterConfig() {
                     />
                   </div>
                   <div className="flex-1">
-                    <Input 
-                      placeholder="Nome do Template"
-                      id="test_template_hunter"
-                      className="h-10"
-                    />
+                    <Select onValueChange={(v) => {
+                      const el = document.getElementById('test_template_hunter_val') as HTMLInputElement;
+                      if (el) el.value = v;
+                    }}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecione o template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {metaTemplates.length > 0 ? (
+                          metaTemplates.map(tmpl => (
+                            <SelectItem key={tmpl.id} value={tmpl.name}>
+                              {tmpl.name} ({tmpl.language})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" id="test_template_hunter_val" />
                   </div>
                   <Button 
                     onClick={async () => {
-                      const phoneInput = document.getElementById('test_phone_hunter') as HTMLInputElement;
-                      const templateInput = document.getElementById('test_template_hunter') as HTMLInputElement;
-                      const phone = phoneInput?.value;
-                      const template = templateInput?.value;
+                      const phone = (document.getElementById('test_phone_hunter') as HTMLInputElement)?.value;
+                      const template = (document.getElementById('test_template_hunter_val') as HTMLInputElement)?.value;
                       
-                      if (!phone || !template) {
-                        toast.error("Informe número e template");
+                      if (!phone || !template || template === 'none') {
+                        toast.error("Informe número e selecione um template");
                         return;
                       }
 
@@ -339,7 +407,7 @@ export default function LeadHunterConfig() {
                 </div>
               </div>
 
-              <div className="bg-muted/30 p-4 rounded-md border border-dashed text-xs text-muted-foreground">
+              <div className="bg-muted/30 p-4 rounded-md border border-dashed text-xs text-muted-foreground mt-4">
                 <p className="font-semibold mb-1">Aviso:</p>
                 <p>Ao usar a API Oficial no Lead Hunter, certifique-se de usar templates aprovados pela Meta para o primeiro contato (opt-in).</p>
               </div>
