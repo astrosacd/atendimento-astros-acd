@@ -2701,7 +2701,7 @@ const AdminCobranca = () => {
                             <div key={num} className="space-y-2 p-3 bg-background/50 rounded-md border border-border/30">
                               <Label className="text-xs flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                  <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{"}{num}{"}}"}</code>
+                                  <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{num}</code>
                                   Variável {num}
                                 </div>
                                 <Select 
