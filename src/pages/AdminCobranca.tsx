@@ -2669,11 +2669,11 @@ const AdminCobranca = () => {
                               <SelectValue placeholder="Selecione o template" />
                             </SelectTrigger>
                             <SelectContent>
-                              {metaTemplates.length > 0 ? (
+                              {validMetaTemplates.length > 0 ? (
                                 <>
                                   <SelectItem value="none">Nenhum</SelectItem>
-                                  {metaTemplates.map(t => (
-                                    <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                                  {validMetaTemplates.map(t => (
+                                    <SelectItem key={t.id || getMetaTemplateName(t)} value={getMetaTemplateName(t)}>{getMetaTemplateName(t)}</SelectItem>
                                   ))}
                                 </>
                               ) : (
@@ -2769,10 +2769,10 @@ const AdminCobranca = () => {
                             <SelectValue placeholder="Selecione o template" />
                           </SelectTrigger>
                           <SelectContent>
-                            {metaTemplates.length > 0 ? (
-                              metaTemplates.map(tmpl => (
-                                <SelectItem key={tmpl.id} value={tmpl.name}>
-                                  {tmpl.name} ({tmpl.language})
+                            {validMetaTemplates.length > 0 ? (
+                              validMetaTemplates.map(tmpl => (
+                                <SelectItem key={tmpl.id || getMetaTemplateName(tmpl)} value={getMetaTemplateName(tmpl)}>
+                                  {getMetaTemplateLanguage(tmpl) ? `${getMetaTemplateName(tmpl)} (${getMetaTemplateLanguage(tmpl)})` : getMetaTemplateName(tmpl)}
                                 </SelectItem>
                               ))
                             ) : (
