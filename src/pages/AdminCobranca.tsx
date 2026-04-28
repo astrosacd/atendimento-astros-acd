@@ -65,7 +65,8 @@ import {
   Download,
   UserPlus,
   Database,
-  LayoutGrid
+  LayoutGrid,
+  Info
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -2587,6 +2588,34 @@ const AdminCobranca = () => {
                           />
                         </div>
                       ))}
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border/40">
+                      <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Info className="w-4 h-4 text-primary" />
+                        Variáveis dos Templates (Meta)
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Ao criar seus templates no Gerenciador de Negócios da Meta, use as variáveis abaixo na ordem exata:
+                      </p>
+                      <div className="grid grid-cols-2 gap-y-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{1}}"}</code>
+                          <span>Nome do Cliente</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{2}}"}</code>
+                          <span>Valor da Cobrança</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{3}}"}</code>
+                          <span>Nome do Produto</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{4}}"}</code>
+                          <span>Link de Pagamento</span>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
