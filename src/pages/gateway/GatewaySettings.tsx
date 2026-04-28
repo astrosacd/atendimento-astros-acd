@@ -111,6 +111,14 @@ Se precisar de ajuda, é só responder esta mensagem!`
     duplicate_id_check: true,
     required_proof: true
   });
+  const [metaCredentials, setMetaCredentials] = useState({
+    access_token: '',
+    phone_number_id: '',
+    waba_id: '',
+    is_active: true
+  });
+  const [templateMappings, setTemplateMappings] = useState<any[]>([]);
+
   useEffect(() => {
     if (settings.stripe) setStripe(settings.stripe);
     if (settings.mercadopago) setMercadopago({
@@ -130,6 +138,16 @@ Se precisar de ajuda, é só responder esta mensagem!`
     if (settings.payment_notifications) setNotifications(settings.payment_notifications);
     if (settings.approval_config) setApprovalConfig(settings.approval_config);
     if (settings.site_base_url?.url) setSiteBaseUrl(String(settings.site_base_url.url));
+
+    // Load Meta credentials
+    const loadMeta = async () => {
+      const { data: creds } = await supabase.from('meta_credentials').select('*').limit(1).maybeSingle();
+      if (creds) setMetaCredentials(creds);
+
+      const { data: maps } = await supabase.from('meta_template_mapping').select('*').order('event_key');
+      if (maps) setTemplateMappings(maps);
+    };
+    loadMeta();
   }, [settings]);
 
   const handleSaveStripe = () => {
