@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
-  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send
+  Settings, Key, MessageSquare, Brain, Database, Plus, Trash2, Save, Loader2, Eye, EyeOff, Globe, X, Sparkles, Send, RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -38,6 +38,47 @@ export default function LeadHunterConfig() {
   const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
   const [metaWabaId, setMetaWabaId] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
+  const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
+  const [webhookInfo, setWebhookInfo] = useState<{ url: string, token: string } | null>(null);
+
+  const syncMetaTemplates = async () => {
+    if (!metaAccessToken || !metaWabaId) {
+      toast.error("Informe Access Token e WABA ID primeiro");
+      return;
+    }
+    
+    setIsSyncingMeta(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { 
+          action: 'fetch-templates',
+          accessToken: metaAccessToken,
+          wabaId: metaWabaId
+        }
+      });
+      
+      if (error) throw error;
+      setMetaTemplates(data.templates || []);
+      toast.success(`${data.templates?.length || 0} templates sincronizados!`);
+    } catch (err: any) {
+      toast.error("Erro na sincronização: " + err.message);
+    } finally {
+      setIsSyncingMeta(false);
+    }
+  };
+
+  const getWebhookInfo = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { action: 'get-webhook-info' }
+      });
+      if (error) throw error;
+      setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
+    } catch (err: any) {
+      console.error("Erro ao buscar info do webhook", err);
+    }
+  };
 
   // Scraping skip domains
   const DEFAULT_SKIP_DOMAINS = [

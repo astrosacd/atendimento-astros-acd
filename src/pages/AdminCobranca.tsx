@@ -57,7 +57,11 @@ import {
   Target,
   Percent,
   ArrowUpRight,
-  ArrowDownRight,
+  ArrowDownRight, 
+  Loader2, 
+  Globe, 
+  LayoutGrid, 
+  Info,
   CreditCard,
   QrCode,
   Link2,
@@ -65,8 +69,6 @@ import {
   Download,
   UserPlus,
   Database,
-  LayoutGrid,
-  Info
 } from 'lucide-react';
 
 interface BillingConfig {
@@ -315,14 +317,62 @@ const AdminCobranca = () => {
     }
   };
 
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
+  const [webhookInfo, setWebhookInfo] = useState<{ url: string, token: string } | null>(null);
+
+  const syncMetaTemplates = async () => {
+    if (!config.meta_access_token || !config.meta_waba_id) {
+      toast({ title: "Erro", description: "Informe Access Token e WABA ID primeiro", variant: "destructive" });
+      return;
+    }
+    
+    setIsSyncingMeta(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { 
+          action: 'fetch-templates',
+          accessToken: config.meta_access_token,
+          wabaId: config.meta_waba_id
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Map Meta templates to the local format if needed, or just store them
+      // For now, let's keep the Meta API format and adjust the Select components
+      setMetaTemplates(data.templates || []);
+      toast({ title: "Sucesso", description: `${data.templates?.length || 0} templates sincronizados!` });
+    } catch (err: any) {
+      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSyncingMeta(false);
+    }
+  };
+
+  const getWebhookInfo = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-meta-api', {
+        body: { action: 'get-webhook-info' }
+      });
+      if (error) throw error;
+      setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
+    } catch (err: any) {
+      console.error("Erro ao buscar info do webhook", err);
+    }
+  };
+
   const loadMetaTemplates = async () => {
+    // keeping original for compatibility if needed
     try {
       const { data, error } = await supabase
         .from('meta_template_mapping')
         .select('*')
         .order('template_name', { ascending: true });
       if (error) throw error;
-      setMetaTemplates(data || []);
+      // If we already have templates from Meta API, don't overwrite with mapping table
+      if (metaTemplates.length === 0) {
+        setMetaTemplates(data || []);
+      }
     } catch (error) {
       console.error('Error loading Meta templates:', error);
     }
@@ -2555,6 +2605,43 @@ const AdminCobranca = () => {
                         />
                       </div>
                     </div>
+                    
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={syncMetaTemplates} 
+                        disabled={isSyncingMeta}
+                        className="gap-2"
+                      >
+                        {isSyncingMeta ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        Sincronizar Templates
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={getWebhookInfo}
+                        className="gap-2 text-xs"
+                      >
+                        <Globe className="w-3 h-3" /> Configurar Webhook (Opcional)
+                      </Button>
+                    </div>
+
+                    {webhookInfo && (
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs space-y-2">
+                        <p className="font-semibold text-blue-400">Configuração de Webhook na Meta:</p>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">URL de Retorno:</p>
+                          <code className="block p-1 bg-background border rounded truncate">{webhookInfo.url}</code>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">Token de Verificação:</p>
+                          <code className="block p-1 bg-background border rounded">{webhookInfo.token}</code>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground italic">Use esses dados no Portal Meta Developers &gt; WhatsApp &gt; Configuração para receber status de entrega e respostas.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
