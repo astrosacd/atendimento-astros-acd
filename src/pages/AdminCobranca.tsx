@@ -2687,9 +2687,9 @@ const AdminCobranca = () => {
                         Variáveis dos Templates (Meta)
                       </h4>
                       <p className="text-xs text-muted-foreground mb-3">
-                        Ao criar seus templates no Gerenciador de Negócios da Meta, use as variáveis abaixo na ordem exata:
+                        Ao criar seus templates no Gerenciador de Negócios da Meta, use as variáveis abaixo para que os dados sejam preenchidos automaticamente:
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-2 text-xs">
                         <div className="flex items-center gap-2">
                           <code className="bg-muted px-1.5 py-0.5 rounded text-primary">{"{{1}}"}</code>
                           <span>Nome do Cliente</span>
@@ -2730,15 +2730,15 @@ const AdminCobranca = () => {
                             <SelectValue placeholder="Selecione o template" />
                           </SelectTrigger>
                           <SelectContent>
-                            {[
-                              { key: 'template_d_zero', label: 'D-0' },
-                              { key: 'template_d_menos_3', label: 'D-3' },
-                              { key: 'template_d_mais_1', label: 'D+1' }
-                            ].map(t => (
-                              <SelectItem key={t.key} value={config[t.key] || `none_${t.key}`}>
-                                {t.label} ({config[t.key] || 'Não config.'})
-                              </SelectItem>
-                            ))}
+                            {metaTemplates.length > 0 ? (
+                              metaTemplates.map(tmpl => (
+                                <SelectItem key={tmpl.id} value={tmpl.name}>
+                                  {tmpl.name} ({tmpl.language})
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                         <input type="hidden" id="test_template_official_val" />
