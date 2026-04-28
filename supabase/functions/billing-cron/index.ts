@@ -1254,11 +1254,39 @@ const handler = async (req: Request): Promise<Response> => {
 
           if (isOfficial) {
             providerUsed = 'official';
-            // Variable mapping: {{1}} Name, {{2}} Value, {{3}} Product, {{4}} Link
-            const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
-            const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
-            const paymentLink = paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
-            
+            // Dynamic variable mapping
+            const getFieldValue = (field: string) => {
+              const currencySymbol = cliente.moeda === 'USD' ? '$' : 'R$';
+              const formattedValue = `${currencySymbol} ${cliente.valor.toFixed(2)}`;
+              const paymentLink = paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
+              const dueDate = new Date(cliente.data_renovacao).toLocaleDateString('pt-BR');
+
+              switch (field) {
+                case 'nome': return cliente.nome || '';
+                case 'valor': return formattedValue;
+                case 'data_renovacao': return dueDate;
+                case 'link_pagamento': return paymentLink;
+                case 'produto': return cliente.produto || '';
+                case 'plano': return cliente.plano || 'N/A';
+                case 'cpf': return cliente.cpf || '';
+                case 'email': return cliente.email || '';
+                case 'none': return '';
+                default: return '';
+              }
+            };
+
+            const parameters = [1, 2, 3, 4].map(num => {
+              const field = config[`meta_var_${num}_field`];
+              if (!field) {
+                if (num === 1) return cliente.nome || '';
+                if (num === 2) return `${cliente.moeda === 'USD' ? '$' : 'R$'} ${cliente.valor.toFixed(2)}`;
+                if (num === 3) return new Date(cliente.data_renovacao).toLocaleDateString('pt-BR');
+                if (num === 4) return paymentData.stripePaymentLink || paymentData.linkPagamento || paymentData.boletoUrl || paymentData.pixChave || '';
+                return '';
+              }
+              return getFieldValue(field);
+            });
+
             // Get credentials from config (module specific) or fallback to global meta_credentials
             const accessToken = config.meta_access_token || (metaCreds?.access_token);
             const phoneNumberId = config.meta_phone_number_id || (metaCreds?.phone_number_id);
