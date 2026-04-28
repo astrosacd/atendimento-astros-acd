@@ -2687,8 +2687,8 @@ const AdminCobranca = () => {
                         Mapeamento de Variáveis (Meta)
                       </h4>
                       <p className="text-xs text-muted-foreground mb-4">
-                        Configure qual informação será enviada em cada variável do seu template da Meta. 
-                        <strong>Importante:</strong> Se o seu template tiver botões com links dinâmicos, mapeie as variáveis correspondentes abaixo.
+                        Escolha o que enviar em cada variável ({`{{1}}`, `{{2}}`, etc.}) do template. 
+                        <strong>Dica:</strong> Para não enviar nada em uma variável, selecione "Vazio (Nenhum)".
                       </p>
                       
                       <div className="space-y-4 mb-6">
