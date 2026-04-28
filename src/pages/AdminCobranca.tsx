@@ -235,6 +235,8 @@ const AdminCobranca = () => {
   });
   const [isSavingStripe, setIsSavingStripe] = useState(false);
 
+  const [metaTemplates, setMetaTemplates] = useState<{ id: string; event_key: string; template_name: string }[]>([]);
+
   useEffect(() => {
     loadConfig();
     loadLogs();
@@ -245,6 +247,7 @@ const AdminCobranca = () => {
     loadDbCronSchedule();
     loadLastExecution();
     loadStripeConfig();
+    loadMetaTemplates();
   }, []);
 
   // Handle URL filter param for skipped/error billing
@@ -2713,15 +2716,27 @@ const AdminCobranca = () => {
                     
                     {config.whatsapp_provider === 'official' ? (
                       <div className="space-y-2">
-                        <Input 
-                          placeholder="Digite o nome exato do template aprovado na Meta"
+                        <Select
                           value={config[msg.templateKey] || ''}
-                          onChange={(e) => setConfig({ ...config, [msg.templateKey]: e.target.value })}
-                          className="font-mono"
-                        />
+                          onValueChange={(v) => setConfig({ ...config, [msg.templateKey]: v })}
+                        >
+                          <SelectTrigger className="font-mono">
+                            <SelectValue placeholder="Selecione o template aprovado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {metaTemplates.map((t) => (
+                              <SelectItem key={t.id} value={t.template_name}>
+                                {t.template_name}
+                              </SelectItem>
+                            ))}
+                            {metaTemplates.length === 0 && (
+                              <div className="p-2 text-xs text-muted-foreground">Nenhum template mapeado</div>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
-                          Certifique-se de que o template possui as 4 variáveis padrão.
+                          Certifique-se de que o template possui as 4 variáveis padrão: {'{{1}}'}, {'{{2}}'}, {'{{3}}'}, {'{{4}}'}.
                         </p>
                       </div>
                     ) : (
