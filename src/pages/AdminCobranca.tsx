@@ -346,10 +346,9 @@ const AdminCobranca = () => {
       
       if (error) throw error;
       
-      // Map Meta templates to the local format if needed, or just store them
-      // For now, let's keep the Meta API format and adjust the Select components
-      setMetaTemplates(data.templates || []);
-      toast({ title: "Sucesso", description: `${data.templates?.length || 0} templates sincronizados!` });
+      const templates = (data.templates || []).filter((template: any) => getMetaTemplateName(template));
+      setMetaTemplates(templates);
+      toast({ title: "Sucesso", description: `${templates.length} templates sincronizados!` });
     } catch (err: any) {
       toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
     } finally {
@@ -366,23 +365,6 @@ const AdminCobranca = () => {
       setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
     } catch (err: any) {
       console.error("Erro ao buscar info do webhook", err);
-    }
-  };
-
-  const loadMetaTemplates = async () => {
-    // keeping original for compatibility if needed
-    try {
-      const { data, error } = await supabase
-        .from('meta_template_mapping')
-        .select('*')
-        .order('template_name', { ascending: true });
-      if (error) throw error;
-      // If we already have templates from Meta API, don't overwrite with mapping table
-      if (metaTemplates.length === 0) {
-        setMetaTemplates(data || []);
-      }
-    } catch (error) {
-      console.error('Error loading Meta templates:', error);
     }
   };
 
