@@ -399,34 +399,38 @@ export default function LeadHunterCampanhas() {
               </div>
             )}
 
-            {form.tipo_mensagem === 'modelo_unico' ? (
-              <div>
-                <Label>Mensagem Modelo</Label>
-                <Textarea value={form.mensagem_modelo} onChange={e => setForm(p => ({ ...p, mensagem_modelo: e.target.value }))} rows={4} placeholder="Use {nome}, {empresa} para variáveis" />
-              </div>
-            ) : (
+            {form.whatsapp_provider !== 'official' && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                {form.tipo_mensagem === 'modelo_unico' ? (
                   <div>
-                    <Label>Provedor IA</Label>
-                    <Select value={form.provedor_ia} onValueChange={v => setForm(p => ({ ...p, provedor_ia: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lovable">Lovable AI (padrão)</SelectItem>
-                        <SelectItem value="openai">OpenAI</SelectItem>
-                        <SelectItem value="groq">Groq</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Mensagem Modelo</Label>
+                    <Textarea value={form.mensagem_modelo} onChange={e => setForm(p => ({ ...p, mensagem_modelo: e.target.value }))} rows={4} placeholder="Use {nome}, {empresa} para variáveis" />
                   </div>
-                  <div>
-                    <Label>Modelo IA (opcional)</Label>
-                    <Input value={form.modelo_ia} onChange={e => setForm(p => ({ ...p, modelo_ia: e.target.value }))} placeholder="Ex: gpt-4o-mini" />
-                  </div>
-                </div>
-                <div>
-                  <Label>Prompt da IA</Label>
-                  <Textarea value={form.prompt_ia} onChange={e => setForm(p => ({ ...p, prompt_ia: e.target.value }))} rows={5} />
-                </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Provedor IA</Label>
+                        <Select value={form.provedor_ia} onValueChange={v => setForm(p => ({ ...p, provedor_ia: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="lovable">Lovable AI (padrão)</SelectItem>
+                            <SelectItem value="openai">OpenAI</SelectItem>
+                            <SelectItem value="groq">Groq</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Modelo IA (opcional)</Label>
+                        <Input value={form.modelo_ia} onChange={e => setForm(p => ({ ...p, modelo_ia: e.target.value }))} placeholder="Ex: gpt-4o-mini" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Prompt da IA</Label>
+                      <Textarea value={form.prompt_ia} onChange={e => setForm(p => ({ ...p, prompt_ia: e.target.value }))} rows={5} />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
