@@ -2973,13 +2973,13 @@ const AdminCobranca = () => {
                             <SelectValue placeholder="Selecione o template aprovado" />
                           </SelectTrigger>
                           <SelectContent>
-                            {metaTemplates.map((t) => (
-                              <SelectItem key={t.id} value={t.template_name}>
-                                {t.template_name}
+                            {validMetaTemplates.map((t) => (
+                              <SelectItem key={t.id || getMetaTemplateName(t)} value={getMetaTemplateName(t)}>
+                                {getMetaTemplateName(t)}
                               </SelectItem>
                             ))}
-                            {metaTemplates.length === 0 && (
-                              <div className="p-2 text-xs text-muted-foreground">Nenhum template mapeado</div>
+                            {validMetaTemplates.length === 0 && (
+                              <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
