@@ -121,13 +121,22 @@ export default function LeadHunterLeads() {
   const handleSendSingle = async (leadId: string) => {
     setSendingIds(prev => new Set(prev).add(leadId));
     try {
+      const { data: configRows } = await supabase.from("lead_hunter_config").select("*");
+      const currentConfig: Record<string, string> = {};
+      (configRows || []).forEach((r: any) => { currentConfig[r.config_key] = r.config_value; });
+
+      const isOfficial = currentConfig.whatsapp_provider === 'official';
+
       const { data, error } = await supabase.functions.invoke('lead-hunter-send', {
         body: { leadIds: [leadId] },
       });
       if (error) throw error;
-      toast.success(data?.message || 'Disparo enviado com sucesso!');
-    } catch {
-      toast.error('Erro ao disparar mensagem');
+      
+      const providerMsg = isOfficial ? 'via API Oficial' : 'via Evolution';
+      toast.success(`${data?.message || 'Disparo enviado com sucesso!'} (${providerMsg})`);
+    } catch (error: any) {
+      console.error('Send error:', error);
+      toast.error(`Erro ao disparar: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setSendingIds(prev => {
         const next = new Set(prev);
