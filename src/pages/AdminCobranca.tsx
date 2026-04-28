@@ -314,6 +314,19 @@ const AdminCobranca = () => {
     }
   };
 
+  const loadMetaTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('meta_template_mapping')
+        .select('*')
+        .order('template_name', { ascending: true });
+      if (error) throw error;
+      setMetaTemplates(data || []);
+    } catch (error) {
+      console.error('Error loading Meta templates:', error);
+    }
+  };
+
   const loadStripeConfig = async () => {
     try {
       const { data, error } = await supabase
