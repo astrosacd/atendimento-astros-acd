@@ -797,6 +797,18 @@ Se configurado, recebe email/WhatsApp de boas-vindas.`
 Use variáveis como \`{nome}\`, \`{valor}\`, \`{data}\` nos templates.`
         },
         {
+          title: "WhatsApp Oficial da Meta",
+          content: `Na aba **Canais**, ao usar **Oficial (Meta)**:
+
+1. Preencha **Access Token**, **Phone Number ID** e **WABA ID**
+2. Clique em **Sincronizar Templates**
+3. Se nenhum template real for retornado, os seletores mostram **Sincronize primeiro**
+4. No **Mapeamento de Templates**, associe cada evento de cobrança ao template aprovado
+5. No **Mapeamento de Variáveis**, escolha quais dados preencherão cada variável da Meta
+
+**Variáveis de botão:** se o template tiver botão com URL dinâmica, selecione o destino **Botão 1** ou **Botão 2** e escolha o campo que deve preencher o link.`
+        },
+        {
           title: "IA para mensagens (opcional)",
           content: `Na aba **IA**, você pode:
 - Selecionar um modelo de IA (Gemini ou GPT)
@@ -910,7 +922,8 @@ Se o sistema detectar que o cron não executou no horário previsto:
         "Use o filtro 'Info' para ver quando não havia clientes para cobrar",
         "O CRON Secret só precisa ser configurado no painel (sincroniza automaticamente)",
         "Ative as notificações de erro para ser alertado quando cobranças falharem",
-        "Se o cron não executar, use 'Executar Agora' e verifique o CRON Secret"
+        "Se o cron não executar, use 'Executar Agora' e verifique o CRON Secret",
+        "Templates da Meta só aparecem depois da sincronização retornar templates reais aprovados"
       ]
     },
     {
@@ -4675,12 +4688,20 @@ Configure um intervalo entre mensagens para evitar bloqueios do WhatsApp.`
 - **Modelo de IA**: Qual modelo usar para gerar mensagens
 - **Prompt base**: Contexto para a IA ao gerar mensagens
 - **Integração Baserow**: Sincronização de leads
+- **WhatsApp Oficial (Meta)**: Access Token, Phone Number ID, WABA ID, sincronização de templates e mapeamento de variáveis
+
+**Templates da Meta:**
+- Clique em **Sincronizar Templates** para carregar os templates aprovados
+- Se não houver template real sincronizado, o seletor mostra **Sincronize primeiro**
+- Use **Vazio (Nenhum)** para não enviar conteúdo em uma variável
+- Para botões com URL dinâmica, selecione o destino **Botão 1** ou **Botão 2**
 
 **Permissões disponíveis:**
 - **view_lead_hunter**: Visualizar leads e campanhas
 - **manage_lead_hunter_leads**: Gerenciar leads
 - **manage_lead_hunter_campanhas**: Gerenciar campanhas
 - **manage_lead_hunter_config**: Alterar configurações
+- **manage_lead_hunter_meta_templates**: Gerenciar credenciais, templates e variáveis da Meta
 - **manage_lead_hunter_busca**: Usar busca SERP
 - **view_lead_hunter_historico**: Ver histórico de envios`
         }

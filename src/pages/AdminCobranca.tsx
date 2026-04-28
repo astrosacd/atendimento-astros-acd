@@ -239,6 +239,16 @@ const AdminCobranca = () => {
   const [isSavingStripe, setIsSavingStripe] = useState(false);
 
   const [metaTemplates, setMetaTemplates] = useState<any[]>([]);
+  const getMetaTemplateName = (template: any) => {
+    const name = template?.name || template?.template_name || '';
+    return typeof name === 'string' ? name.trim() : '';
+  };
+  const getMetaTemplateLanguage = (template: any) => {
+    const language = template?.language || template?.language_code || '';
+    return typeof language === 'string' ? language.trim() : '';
+  };
+  const validMetaTemplates = metaTemplates.filter((template) => getMetaTemplateName(template));
+  const hasMetaTemplate = (templateName?: string) => Boolean(templateName && validMetaTemplates.some((template) => getMetaTemplateName(template) === templateName));
 
   useEffect(() => {
     loadConfig();
@@ -250,7 +260,6 @@ const AdminCobranca = () => {
     loadDbCronSchedule();
     loadLastExecution();
     loadStripeConfig();
-    loadMetaTemplates();
   }, []);
 
   // Handle URL filter param for skipped/error billing
@@ -338,10 +347,9 @@ const AdminCobranca = () => {
       
       if (error) throw error;
       
-      // Map Meta templates to the local format if needed, or just store them
-      // For now, let's keep the Meta API format and adjust the Select components
-      setMetaTemplates(data.templates || []);
-      toast({ title: "Sucesso", description: `${data.templates?.length || 0} templates sincronizados!` });
+      const templates = (data.templates || []).filter((template: any) => getMetaTemplateName(template));
+      setMetaTemplates(templates);
+      toast({ title: "Sucesso", description: `${templates.length} templates sincronizados!` });
     } catch (err: any) {
       toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
     } finally {
@@ -358,23 +366,6 @@ const AdminCobranca = () => {
       setWebhookInfo({ url: data.webhookUrl, token: data.verifyToken });
     } catch (err: any) {
       console.error("Erro ao buscar info do webhook", err);
-    }
-  };
-
-  const loadMetaTemplates = async () => {
-    // keeping original for compatibility if needed
-    try {
-      const { data, error } = await supabase
-        .from('meta_template_mapping')
-        .select('*')
-        .order('template_name', { ascending: true });
-      if (error) throw error;
-      // If we already have templates from Meta API, don't overwrite with mapping table
-      if (metaTemplates.length === 0) {
-        setMetaTemplates(data || []);
-      }
-    } catch (error) {
-      console.error('Error loading Meta templates:', error);
     }
   };
 
@@ -2672,18 +2663,18 @@ const AdminCobranca = () => {
                             </Badge>
                           </div>
                           <Select 
-                            value={config[tmpl.key] || 'none'} 
+                            value={hasMetaTemplate(config[tmpl.key]) ? config[tmpl.key] : 'none'} 
                             onValueChange={(val) => setConfig({...config, [tmpl.key]: val})}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue placeholder="Selecione o template" />
                             </SelectTrigger>
                             <SelectContent>
-                              {metaTemplates.length > 0 ? (
+                              {validMetaTemplates.length > 0 ? (
                                 <>
                                   <SelectItem value="none">Nenhum</SelectItem>
-                                  {metaTemplates.map(t => (
-                                    <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                                  {validMetaTemplates.map(t => (
+                                    <SelectItem key={t.id || getMetaTemplateName(t)} value={getMetaTemplateName(t)}>{getMetaTemplateName(t)}</SelectItem>
                                   ))}
                                 </>
                               ) : (
@@ -2779,10 +2770,10 @@ const AdminCobranca = () => {
                             <SelectValue placeholder="Selecione o template" />
                           </SelectTrigger>
                           <SelectContent>
-                            {metaTemplates.length > 0 ? (
-                              metaTemplates.map(tmpl => (
-                                <SelectItem key={tmpl.id} value={tmpl.name}>
-                                  {tmpl.name} ({tmpl.language})
+                            {validMetaTemplates.length > 0 ? (
+                              validMetaTemplates.map(tmpl => (
+                                <SelectItem key={tmpl.id || getMetaTemplateName(tmpl)} value={getMetaTemplateName(tmpl)}>
+                                  {getMetaTemplateLanguage(tmpl) ? `${getMetaTemplateName(tmpl)} (${getMetaTemplateLanguage(tmpl)})` : getMetaTemplateName(tmpl)}
                                 </SelectItem>
                               ))
                             ) : (
@@ -2976,20 +2967,21 @@ const AdminCobranca = () => {
                     {config.whatsapp_provider === 'official' ? (
                       <div className="space-y-2">
                         <Select
-                          value={config[msg.templateKey] || ''}
+                          value={hasMetaTemplate(config[msg.templateKey]) ? config[msg.templateKey] : 'none'}
                           onValueChange={(v) => setConfig({ ...config, [msg.templateKey]: v })}
                         >
                           <SelectTrigger className="font-mono">
                             <SelectValue placeholder="Selecione o template aprovado" />
                           </SelectTrigger>
                           <SelectContent>
-                            {metaTemplates.map((t) => (
-                              <SelectItem key={t.id} value={t.template_name}>
-                                {t.template_name}
+                            {validMetaTemplates.length > 0 && <SelectItem value="none">Nenhum</SelectItem>}
+                            {validMetaTemplates.map((t) => (
+                              <SelectItem key={t.id || getMetaTemplateName(t)} value={getMetaTemplateName(t)}>
+                                {getMetaTemplateName(t)}
                               </SelectItem>
                             ))}
-                            {metaTemplates.length === 0 && (
-                              <div className="p-2 text-xs text-muted-foreground">Nenhum template mapeado</div>
+                            {validMetaTemplates.length === 0 && (
+                              <SelectItem value="none" disabled>Sincronize primeiro</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
