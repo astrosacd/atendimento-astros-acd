@@ -2778,6 +2778,7 @@ const AdminCobranca = () => {
                         </Select>
                         <input type="hidden" id="test_template_official_val" />
                         <Button 
+                          variant="secondary"
                           onClick={async () => {
                             const phone = (document.getElementById('test_phone_official') as HTMLInputElement)?.value;
                             const template = (document.getElementById('test_template_official_val') as HTMLInputElement)?.value;
