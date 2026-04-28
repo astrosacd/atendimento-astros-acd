@@ -2686,8 +2686,8 @@ const AdminCobranca = () => {
                         <Info className="w-4 h-4 text-primary" />
                         Mapeamento de Variáveis (Meta)
                       </h4>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        Escolha o que enviar em cada variável {{1}}, {{2}}, etc. do template. 
+                       <p className="text-xs text-muted-foreground mb-4">
+                        Escolha o que enviar em cada variável {"{{1}}, {{2}}"}, etc. do template. 
                         <strong>Dica:</strong> Para não enviar nada em uma variável, selecione "Vazio (Nenhum)".
                       </p>
                       
