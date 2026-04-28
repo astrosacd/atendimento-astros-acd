@@ -134,6 +134,31 @@ serve(async (req) => {
             throw new Error("Template da Meta não selecionado para esta campanha");
           }
 
+          // Dynamic variable mapping
+          const getFieldValue = (field: string) => {
+            switch (field) {
+              case 'nome': return lead.nome || lead.empresa || "Cliente";
+              case 'empresa': return lead.empresa || "Sua Empresa";
+              case 'categoria': return lead.categoria || "Seu Setor";
+              case 'cidade': return lead.cidade || "";
+              case 'telefone': return lead.telefone || "";
+              case 'website': return lead.website || "";
+              case 'none': return "";
+              default: return "";
+            }
+          };
+
+          const parameters = [1, 2, 3].map(num => {
+            const field = config[`meta_var_${num}_field`];
+            if (!field) {
+              if (num === 1) return lead.nome || lead.empresa || "Cliente";
+              if (num === 2) return lead.empresa || "Sua Empresa";
+              if (num === 3) return lead.categoria || "Seu Setor";
+              return "";
+            }
+            return { type: "text", text: getFieldValue(field) };
+          });
+
           // Meta Official API Send
           const response = await fetch(`https://graph.facebook.com/v21.0/${metaCreds.phone_number_id}/messages`, {
             method: 'POST',
@@ -153,11 +178,7 @@ serve(async (req) => {
                 components: [
                   {
                     type: "body",
-                    parameters: [
-                      { type: "text", text: lead.nome || lead.empresa || "Cliente" },
-                      { type: "text", text: lead.empresa || "Sua Empresa" },
-                      { type: "text", text: lead.categoria || "Seu Setor" }
-                    ]
+                    parameters: parameters
                   }
                 ]
               }
