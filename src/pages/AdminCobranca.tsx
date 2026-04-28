@@ -248,6 +248,7 @@ const AdminCobranca = () => {
     return typeof language === 'string' ? language.trim() : '';
   };
   const validMetaTemplates = metaTemplates.filter((template) => getMetaTemplateName(template));
+  const hasMetaTemplate = (templateName?: string) => Boolean(templateName && validMetaTemplates.some((template) => getMetaTemplateName(template) === templateName));
 
   useEffect(() => {
     loadConfig();
