@@ -113,6 +113,7 @@ export function usePermissions() {
   const canViewCobrancaRecibo = () => hasPermission('view_cobranca_recibo');
   const canViewCobrancaRelatorios = () => hasPermission('view_cobranca_relatorios');
   const canViewCobrancaLogs = () => hasPermission('view_cobranca_logs');
+  const canManageCobrancaMetaTemplates = () => hasPermission('manage_cobranca_meta_templates');
 
   // Revendedor permissions
   const canViewRevendedor = () => hasPermission('view_revendedor');
@@ -195,6 +196,7 @@ export function usePermissions() {
   const canManageLeadHunterBaserow = () => hasPermission('manage_lead_hunter_baserow');
   const canViewLeadHunterHistorico = () => hasPermission('view_lead_hunter_historico');
   const canManageLeadHunterBusca = () => hasPermission('manage_lead_hunter_busca');
+  const canManageLeadHunterMetaTemplates = () => hasPermission('manage_lead_hunter_meta_templates');
 
   // Agenda permissions
   const canViewAgenda = () => hasPermission('view_agenda');
@@ -306,6 +308,7 @@ export function usePermissions() {
     canViewCobrancaRecibo,
     canViewCobrancaRelatorios,
     canViewCobrancaLogs,
+    canManageCobrancaMetaTemplates,
     canViewRevendedor,
     canManageRevendedorPlanos,
     canManageRevendedorConfig,
@@ -358,6 +361,7 @@ export function usePermissions() {
     canManageLeadHunterBaserow,
     canViewLeadHunterHistorico,
     canManageLeadHunterBusca,
+    canManageLeadHunterMetaTemplates,
     // Social Media
     canViewSocialCredentials,
     canManageSocialCredentials,
