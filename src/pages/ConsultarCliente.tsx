@@ -52,6 +52,7 @@ import { ClientServerCredentials } from '@/components/ClientServerCredentials';
 import { CreateWhatsAppGroupDialog } from '@/components/CreateWhatsAppGroupDialog';
 import { ClientAIUpsell } from '@/components/ClientAIUpsell';
 import { ClientScoreBadge } from '@/components/ClientScoreBadge';
+import { ClientPaymentApprovalBadge } from '@/components/ClientPaymentApprovalBadge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -696,6 +697,8 @@ export default function ConsultarCliente() {
                                 🚫 Fora das métricas
                               </Badge>
                             )}
+                            {/* Status de aprovação de pagamento (Segurança de Pagamento) */}
+                            <ClientPaymentApprovalBadge clienteId={cliente.id} />
                             {/* Score de IA - calcula automaticamente se não houver, clique para recalcular */}
                             {!isNonClientType(cliente) && cliente.cobranca_ativa !== false && (
                               <ClientScoreBadge clienteId={cliente.id} size="sm" />
