@@ -27,13 +27,13 @@ function getTipoEspecificadoNoModelo(nome: string): 'normal' | 'business' | null
 
 function sugerirTipo(o: ModeloOcupacao): string {
   if (o.livres <= 0) return '';
+  // Sempre respeitar o tipo especificado no nome do modelo
   const tipoEspecificado = getTipoEspecificadoNoModelo(o.modelo.nome);
-  if (tipoEspecificado === 'business') return 'business';
+  if (tipoEspecificado) return tipoEspecificado;
+  // Sem tipo no nome: sugerir conforme a ocupação atual
   if (o.normal > 0 && o.business === 0) return 'business';
   if (o.business > 0 && o.normal === 0) return 'normal';
-  if (tipoEspecificado === 'normal' && o.ocupados === 0 && o.capacidade === 1) return 'normal';
-  if (o.normal === 0 && o.business === 0) return 'normal ou business';
-  return o.normal < o.business ? 'normal' : 'business';
+  return 'normal ou business';
 }
 
 export function CapacityBanner({ numeros, modelosList, statusList }: Props) {
