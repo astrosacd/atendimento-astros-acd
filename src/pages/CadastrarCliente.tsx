@@ -65,6 +65,8 @@ export default function CadastrarCliente() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
+  const [paymentMethod, setPaymentMethod] = useState<string>('other');
+  const [pixProof, setPixProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
@@ -89,6 +91,7 @@ export default function CadastrarCliente() {
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const { registerEarlyPayment } = usePaymentStatus();
   const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
