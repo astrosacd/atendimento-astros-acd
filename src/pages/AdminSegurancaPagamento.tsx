@@ -679,18 +679,18 @@ export default function AdminSegurancaPagamento() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                {payment.status === 'rejected' && payment.approval_reason && (
+                                {(payment.status === 'rejected' || isPending) && (
                                   <DropdownMenuItem
                                     onClick={() => setReasonDialog({ open: true, payment })}
                                     className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10"
                                   >
                                     <Eye className="h-4 w-4 mr-2" />
-                                    Ver motivo da rejeição
+                                    Ver detalhes da análise
                                   </DropdownMenuItem>
                                 )}
                                 {payment.comprovante_url && (
                                   <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
-                                    <Eye className="h-4 w-4 mr-2" />
+                                    <ExternalLink className="h-4 w-4 mr-2" />
                                     Ver Comprovante
                                   </DropdownMenuItem>
                                 )}
