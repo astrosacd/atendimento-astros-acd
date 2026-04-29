@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinity, Upload, File, Trash2, Image, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinity, Upload, File, Trash2, Image, ShieldCheck, CreditCard } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
+import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
 import { ProductSelector } from '@/components/kanban/ProductSelector';
@@ -65,6 +66,8 @@ export default function CadastrarCliente() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
+  const [paymentMethod, setPaymentMethod] = useState<string>('other');
+  const [pixProof, setPixProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
@@ -89,6 +92,7 @@ export default function CadastrarCliente() {
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const { registerEarlyPayment } = usePaymentStatus();
   const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
@@ -248,6 +252,11 @@ export default function CadastrarCliente() {
     if (cliente) {
       setCreatedClienteId(cliente.id);
       
+      // Se for pagamento via Pix, registra o pagamento para análise
+      if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
+        await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
+      }
+      
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
@@ -279,6 +288,8 @@ export default function CadastrarCliente() {
       ciclo_cobranca: 'mensal',
     });
     setUploadedFiles([]);
+    setPixProof(null);
+    setPaymentMethod('other');
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
@@ -606,7 +617,51 @@ export default function CadastrarCliente() {
                 )}
               </div>
 
-              {/* Campo de Valor - Para Cliente Registro */}
+              {/* Meio de Pagamento */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <Label className="text-foreground font-medium">Meio de Pagamento</Label>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Select
+                      value={paymentMethod}
+                      onValueChange={setPaymentMethod}
+                    >
+                      <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                        <SelectValue placeholder="Selecione o meio de pagamento..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="pix">📱 Pix (Análise Automática)</SelectItem>
+                        <SelectItem value="other">💳 Outros / Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {paymentMethod === 'pix' && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label className="text-xs text-amber-500 font-medium">
+                        Comprovante Pix <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => setPixProof(e.target.files?.[0] || null)}
+                          className="bg-secondary border-border text-xs h-11 pt-2.5 cursor-pointer"
+                          required={paymentMethod === 'pix'}
+                        />
+                        <p className="text-[10px] text-muted-foreground bg-amber-500/5 p-2 rounded border border-amber-500/20">
+                          ⚠️ O pagamento será enviado para análise OCR e duplicidade. A aprovação deve ser feita em "Segurança de Pagamento".
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {clienteType === 'registro' && (
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center gap-2">

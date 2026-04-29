@@ -1110,6 +1110,22 @@ Esses clientes **não recebem** cobranças automáticas do sistema.`
 6. Confirme o cadastro`
         },
         {
+          title: "PixPague: Pagamento com Pix no Cadastro",
+          content: `Tanto clientes **Mensal** quanto **Registro** podem ter seu primeiro pagamento registrado via Pix já no momento do cadastro:
+
+1. No formulário de cadastro, localize a seção **Meio de Pagamento**
+2. Selecione **"Pix (Análise Automática)"**
+3. Faça o **upload do comprovante** (Obrigatório para Pix)
+4. O sistema criará o cliente e enviará o comprovante para análise
+
+**O que acontece após o cadastro?**
+- O pagamento fica com status **"Pendente de Aprovação"**
+- A **IA (OCR)** lê o valor e ID da transação automaticamente
+- O sistema verifica se o comprovante é duplicado (prevenção de fraude)
+- O consultor deve aprovar o pagamento no módulo **Segurança de Pagamento**
+- **Nenhuma notificação** é enviada ao cliente nesta fase inicial.`
+        },
+        {
           title: "Gerenciamento de Arquivos",
           content: `Clientes Registro podem ter arquivos anexados:
 
@@ -1134,9 +1150,11 @@ Esses clientes **não recebem** cobranças automáticas do sistema.`
 | Cobrança automática | ✅ Sim | ❌ Não |
 | Data de renovação | ✅ Editável | ❌ Oculta |
 | Valor mensal | ✅ Definido | ❌ Não aplicável |
-| Histórico pagamentos | ✅ Disponível | ❌ Não mostrado |
+| Histórico pagamentos | ✅ Disponível | ✅ Disponível* |
 | Anexo de arquivos | ❌ Não | ✅ Sim |
-| Badge visual | 🔵 Azul | 🟡 Amarelo "Registro" |`
+| Badge visual | 🔵 Azul | 🟡 Amarelo "Registro" |
+
+\* *O histórico de pagamentos em Clientes Registro é usado principalmente para registrar o Pix inicial via PixPague.*`
         },
         {
           title: "Filtrar por tipo de cliente",
