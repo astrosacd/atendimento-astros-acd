@@ -311,7 +311,9 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Valor (R$)</Label>
+                    <Label className="text-xs">
+                      Valor (R$) <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -319,7 +321,7 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                       placeholder="Ex: 49.90"
                       value={earlyPaymentAmount}
                       onChange={(e) => setEarlyPaymentAmount(e.target.value)}
-                      className="bg-secondary/50 border-border"
+                      className={`bg-secondary/50 border-border ${!earlyPaymentAmount && 'border-destructive/50'}`}
                     />
                   </div>
                    <div className="space-y-1">

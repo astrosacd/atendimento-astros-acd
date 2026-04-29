@@ -66,7 +66,7 @@ export default function CadastrarCliente() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
-  const [paymentMethod, setPaymentMethod] = useState<string>('other');
+  const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [pixProof, setPixProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
@@ -193,6 +193,16 @@ export default function CadastrarCliente() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação: Meio de Pagamento é obrigatório
+    if (!paymentMethod) {
+      toast({
+        title: 'Meio de Pagamento obrigatório',
+        description: 'Selecione como o cliente pagou para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validação: Tipo de Cadastro é obrigatório
     if (!formData.tipo) {
       toast({
@@ -621,7 +631,9 @@ export default function CadastrarCliente() {
               <div className="space-y-4 pt-4 border-t border-border">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
-                  <Label className="text-foreground font-medium">Meio de Pagamento</Label>
+                  <Label className="text-foreground font-medium">
+                    Meio de Pagamento <span className="text-destructive">*</span>
+                  </Label>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -630,7 +642,7 @@ export default function CadastrarCliente() {
                       value={paymentMethod}
                       onValueChange={setPaymentMethod}
                     >
-                      <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                      <SelectTrigger className={`bg-secondary border-border text-foreground h-11 ${!paymentMethod && 'border-destructive/50'}`}>
                         <SelectValue placeholder="Selecione o meio de pagamento..." />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
