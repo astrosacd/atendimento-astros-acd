@@ -139,7 +139,9 @@ serve(async (req) => {
 
     // 2) Renew cliente.data_renovacao from CURRENT renewal date (not today)
     const cliente: any = payment.cliente;
-    if (cliente?.data_renovacao && cliente?.ciclo_cobranca) {
+    
+    // 2) Renew cliente.data_renovacao only if billing is active (mensal)
+    if (cliente?.cobranca_ativa !== false && cliente?.data_renovacao && cliente?.ciclo_cobranca) {
       const renewalDate = new Date(cliente.data_renovacao);
       const months = CYCLE_MONTHS[cliente.ciclo_cobranca] || 1;
       renewalDate.setMonth(renewalDate.getMonth() + months);
@@ -151,10 +153,11 @@ serve(async (req) => {
         .eq("id", cliente.id);
     }
 
-    // 3) Send receipt — use INTERNAL UUID (paymentId), not external payment_id
+    // 3) Send receipt — ONLY if it is a monthly client (cobranca_ativa !== false)
     let receiptResult: any = null;
     let receiptError: string | null = null;
-    if (cliente?.id) {
+    
+    if (cliente?.id && cliente?.cobranca_ativa !== false) {
       try {
         const { data, error } = await supabase.functions.invoke("send-receipt", {
           body: { clienteId: cliente.id, paymentId, paidAt },
@@ -170,6 +173,9 @@ serve(async (req) => {
         receiptError = e?.message ?? String(e);
         console.error("Exceção ao enviar recibo:", e);
       }
+    } else if (cliente?.cobranca_ativa === false) {
+      receiptResult = { skipped: true, reason: "Registro apenas (sem recibo)" };
+      console.log("Skipping receipt for registration-only client");
     } else {
       receiptError = "cliente_id ausente no pagamento";
     }
