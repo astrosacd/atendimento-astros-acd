@@ -287,6 +287,8 @@ export default function CadastrarCliente() {
       ciclo_cobranca: 'mensal',
     });
     setUploadedFiles([]);
+    setPixProof(null);
+    setPaymentMethod('other');
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
