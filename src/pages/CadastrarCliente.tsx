@@ -251,6 +251,11 @@ export default function CadastrarCliente() {
     if (cliente) {
       setCreatedClienteId(cliente.id);
       
+      // Se for pagamento via Pix, registra o pagamento para análise
+      if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
+        await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
+      }
+      
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
