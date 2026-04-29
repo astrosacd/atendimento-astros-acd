@@ -522,23 +522,23 @@ export default function AdminSegurancaPagamento() {
                                         <DropdownMenuSeparator />
                                       </div>
                                     )}
-                                    {payment.status === 'rejected' && payment.approval_reason && (
+                                    {/* Olhinho para ver detalhes da análise (IA/Duplicidade) ou motivo da rejeição */}
+                                    {(payment.status === 'rejected' || isPending) && (
                                       <DropdownMenuItem
                                         onClick={() => setReasonDialog({ open: true, payment })}
                                         className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10"
                                       >
                                         <Eye className="h-4 w-4 mr-2" />
-                                        Ver motivo da rejeição
+                                        Ver detalhes da análise
                                       </DropdownMenuItem>
                                     )}
                                     {payment.comprovante_url && (
                                       <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
-                                        <Eye className="h-4 w-4 mr-2" />
+                                        <ExternalLink className="h-4 w-4 mr-2" />
                                         Ver Comprovante
                                       </DropdownMenuItem>
                                     )}
-                                    {/* Notificar Cliente: somente em renovações de clientes mensais.
-                                        Não exibe no primeiro cadastro nem em "apenas registro". */}
+                                    {/* Notificar Cliente: somente em renovações de clientes mensais. */}
                                     {payment.cliente?.cobranca_ativa === true &&
                                       payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
                                       <DropdownMenuItem>
