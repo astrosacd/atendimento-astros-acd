@@ -507,14 +507,14 @@ export default function AdminSegurancaPagamento() {
                                       <div className="xl:hidden">
                                         <DropdownMenuItem
                                           onClick={() => handleApproval(payment, 'approve')}
-                                          className="text-emerald-500 focus:text-emerald-500"
+                                          className="text-emerald-500 focus:text-emerald-600 focus:bg-emerald-500/10"
                                         >
                                           <CheckCircle2 className="h-4 w-4 mr-2" />
                                           Aprovar
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => handleApproval(payment, 'reject')}
-                                          className="text-destructive focus:text-destructive"
+                                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                         >
                                           <XCircle className="h-4 w-4 mr-2" />
                                           Rejeitar
@@ -522,16 +522,30 @@ export default function AdminSegurancaPagamento() {
                                         <DropdownMenuSeparator />
                                       </div>
                                     )}
+                                    {payment.status === 'rejected' && payment.approval_reason && (
+                                      <DropdownMenuItem
+                                        onClick={() => setReasonDialog({ open: true, payment })}
+                                        className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10"
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Ver motivo da rejeição
+                                      </DropdownMenuItem>
+                                    )}
                                     {payment.comprovante_url && (
                                       <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
                                         <Eye className="h-4 w-4 mr-2" />
                                         Ver Comprovante
                                       </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem>
-                                      <Smartphone className="h-4 w-4 mr-2" />
-                                      Notificar Cliente
-                                    </DropdownMenuItem>
+                                    {/* Notificar Cliente: somente em renovações de clientes mensais.
+                                        Não exibe no primeiro cadastro nem em "apenas registro". */}
+                                    {payment.cliente?.cobranca_ativa === true &&
+                                      payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
+                                      <DropdownMenuItem>
+                                        <Smartphone className="h-4 w-4 mr-2" />
+                                        Notificar Cliente
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
