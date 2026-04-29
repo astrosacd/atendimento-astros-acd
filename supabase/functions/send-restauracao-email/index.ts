@@ -14,7 +14,8 @@ interface RestauracaoItem {
 
 interface RequestBody {
   numeros: RestauracaoItem[];
-  recipients?: string[]; // optional override
+  channel?: "email" | "whatsapp"; // default: email (compat)
+  recipients?: string[];
 }
 
 serve(async (req) => {
@@ -30,7 +31,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate user
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) throw new Error("Não autorizado");
@@ -39,15 +39,67 @@ serve(async (req) => {
     if (!body.numeros || !Array.isArray(body.numeros) || body.numeros.length === 0) {
       throw new Error("Lista de números vazia");
     }
+    const channel = body.channel || "email";
 
-    // Reuse Gmail credentials from consulta_numeros_reminder_config
     const { data: cfg, error: cfgError } = await supabase
       .from("consulta_numeros_reminder_config")
-      .select("gmail_user, gmail_app_password, gmail_recipients")
+      .select("gmail_user, gmail_app_password, gmail_recipients, evolution_api_url, evolution_api_key, evolution_instance_name, whatsapp_group_id, whatsapp_mention_all")
       .single();
 
-    if (cfgError) throw new Error("Erro ao buscar configurações de e-mail");
+    if (cfgError) throw new Error("Erro ao buscar configurações");
 
+    const count = body.numeros.length;
+    const fmtDate = (iso: string) =>
+      iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "-";
+
+    if (channel === "whatsapp") {
+      const url = cfg?.evolution_api_url;
+      const apiKey = cfg?.evolution_api_key;
+      const instance = cfg?.evolution_instance_name;
+      const groupId = cfg?.whatsapp_group_id;
+      const mentionAll = cfg?.whatsapp_mention_all ?? true;
+
+      if (!url || !apiKey || !instance || !groupId) {
+        throw new Error("WhatsApp não configurado em Consulta de Números → Lembretes (URL, API Key, instância e grupo)");
+      }
+
+      const lines = body.numeros
+        .map((n) => `• ${n.numero} — excluído em ${fmtDate(n.data_exclusao)}`)
+        .join("\n");
+      const text = `🔄 *${count} número(s) interno(s) para tentativa de desbanimento*\n\n${lines}`;
+
+      const baseUrl = url.replace(/\/$/, "");
+      const endpoint = `${baseUrl}/message/sendText/${instance}`;
+
+      const payload: Record<string, unknown> = {
+        number: groupId,
+        text,
+      };
+      if (mentionAll) {
+        payload.mentionsEveryOne = true;
+      }
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: apiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Evolution API erro ${res.status}: ${errText}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, channel: "whatsapp", count }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // === EMAIL ===
     const gmailUser = cfg?.gmail_user;
     const gmailAppPassword = cfg?.gmail_app_password;
     const recipients = (body.recipients && body.recipients.length > 0)
@@ -55,10 +107,10 @@ serve(async (req) => {
       : (cfg?.gmail_recipients || []);
 
     if (!gmailUser || !gmailAppPassword) {
-      throw new Error("Credenciais de e-mail não configuradas em Consulta de Números > Lembretes");
+      throw new Error("Credenciais de e-mail não configuradas em Consulta de Números → Lembretes");
     }
     if (!recipients || recipients.length === 0) {
-      throw new Error("Nenhum destinatário configurado em Consulta de Números > Lembretes");
+      throw new Error("Nenhum destinatário configurado em Consulta de Números → Lembretes");
     }
 
     const client = new SMTPClient({
@@ -70,16 +122,11 @@ serve(async (req) => {
       },
     });
 
-    const count = body.numeros.length;
     const subject = `🔄 ${count} número(s) interno(s) para tentativa de desbanimento`;
-
     const rows = body.numeros
-      .map((n) => {
-        const data = n.data_exclusao
-          ? new Date(n.data_exclusao).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
-          : "-";
-        return `<tr><td style="padding:8px;border:1px solid #e5e7eb;">${n.numero}</td><td style="padding:8px;border:1px solid #e5e7eb;">${data}</td></tr>`;
-      })
+      .map((n) =>
+        `<tr><td style="padding:8px;border:1px solid #e5e7eb;">${n.numero}</td><td style="padding:8px;border:1px solid #e5e7eb;">${fmtDate(n.data_exclusao)}</td></tr>`
+      )
       .join("");
 
     const html = `
@@ -105,7 +152,7 @@ serve(async (req) => {
 </body></html>`.trim();
 
     const textBody = body.numeros
-      .map((n) => `- ${n.numero} (excluído em ${n.data_exclusao ? new Date(n.data_exclusao).toLocaleString("pt-BR") : "-"})`)
+      .map((n) => `- ${n.numero} (excluído em ${fmtDate(n.data_exclusao)})`)
       .join("\n");
 
     await client.send({
@@ -115,11 +162,10 @@ serve(async (req) => {
       content: `Números para desbanimento:\n\n${textBody}`,
       html,
     });
-
     await client.close();
 
     return new Response(
-      JSON.stringify({ success: true, sent_to: recipients, count }),
+      JSON.stringify({ success: true, channel: "email", sent_to: recipients, count }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error: any) {
