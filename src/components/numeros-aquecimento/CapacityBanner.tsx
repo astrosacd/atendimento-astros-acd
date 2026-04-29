@@ -18,10 +18,20 @@ interface ModeloOcupacao {
   business: number;
 }
 
+function getTipoEspecificadoNoModelo(nome: string): 'normal' | 'business' | null {
+  const normalized = nome.toLowerCase();
+  if (/\bbusiness\b/.test(normalized)) return 'business';
+  if (/\bnormal\b/.test(normalized)) return 'normal';
+  return null;
+}
+
 function sugerirTipo(o: ModeloOcupacao): string {
   if (o.livres <= 0) return '';
+  const tipoEspecificado = getTipoEspecificadoNoModelo(o.modelo.nome);
+  if (tipoEspecificado === 'business') return 'business';
   if (o.normal > 0 && o.business === 0) return 'business';
   if (o.business > 0 && o.normal === 0) return 'normal';
+  if (tipoEspecificado === 'normal' && o.ocupados === 0 && o.capacidade === 1) return 'normal';
   if (o.normal === 0 && o.business === 0) return 'normal ou business';
   return o.normal < o.business ? 'normal' : 'business';
 }
