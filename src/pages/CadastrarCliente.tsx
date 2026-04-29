@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry';
 import { useTranslation } from 'react-i18next';
 import { useDuplicateCheck } from '@/hooks/useDuplicateCheck';
+import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
 import { ProductSelector } from '@/components/kanban/ProductSelector';
