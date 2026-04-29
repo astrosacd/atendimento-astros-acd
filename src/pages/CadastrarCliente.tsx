@@ -193,6 +193,16 @@ export default function CadastrarCliente() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação: Meio de Pagamento é obrigatório
+    if (!paymentMethod) {
+      toast({
+        title: 'Meio de Pagamento obrigatório',
+        description: 'Selecione como o cliente pagou para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validação: Tipo de Cadastro é obrigatório
     if (!formData.tipo) {
       toast({
