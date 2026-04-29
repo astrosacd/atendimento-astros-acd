@@ -631,7 +631,9 @@ export default function CadastrarCliente() {
               <div className="space-y-4 pt-4 border-t border-border">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-primary" />
-                  <Label className="text-foreground font-medium">Meio de Pagamento</Label>
+                  <Label className="text-foreground font-medium">
+                    Meio de Pagamento <span className="text-destructive">*</span>
+                  </Label>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
@@ -640,7 +642,7 @@ export default function CadastrarCliente() {
                       value={paymentMethod}
                       onValueChange={setPaymentMethod}
                     >
-                      <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                      <SelectTrigger className={`bg-secondary border-border text-foreground h-11 ${!paymentMethod && 'border-destructive/50'}`}>
                         <SelectValue placeholder="Selecione o meio de pagamento..." />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
