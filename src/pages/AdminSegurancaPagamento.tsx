@@ -88,6 +88,12 @@ export default function AdminSegurancaPagamento() {
     reason: string;
   }>({ open: false, payment: null, action: 'approve', reason: '' });
 
+  // Dialog para visualizar motivo da rejeição/aprovação manual
+  const [reasonDialog, setReasonDialog] = useState<{ open: boolean; payment: any | null }>({
+    open: false,
+    payment: null,
+  });
+
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
   const performApproval = async (
