@@ -246,11 +246,30 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                 Restaure números que foram excluídos do sistema
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSendEmail}
+                disabled={sendingEmail || filteredDeletedNumbers.length === 0}
+                title="Envia a lista de números internos para tentativa de desbanimento"
+              >
+                {sendingEmail ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Enviar por e-mail
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            ℹ️ Aproveitamos as credenciais de e-mail configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail e lista de destinatários). Nada é alterado naquele módulo.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
