@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { RefreshCw, RotateCcw, Trash2, Search } from 'lucide-react';
+import { RefreshCw, RotateCcw, Trash2, Search, Mail, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +49,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [restoreModeloId, setRestoreModeloId] = useState<string>('');
   const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Fetch deleted numbers from history
   const { data: deletedNumbers = [], isLoading, refetch } = useQuery({
@@ -109,6 +110,31 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       record.numero_valor.toLowerCase().includes(query)
     );
   }, [deletedNumbers, searchQuery]);
+
+  const handleSendEmail = async () => {
+    if (filteredDeletedNumbers.length === 0) {
+      toast.error('Nenhum número para enviar');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
+        body: {
+          numeros: filteredDeletedNumbers.map((r) => ({
+            numero: r.numero_valor,
+            data_exclusao: r.created_at,
+          })),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`E-mail enviado com ${filteredDeletedNumbers.length} número(s)`);
+    } catch (e: any) {
+      toast.error(`Erro ao enviar e-mail: ${e?.message || e}`);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   // Restore number mutation
   const restoreNumber = useMutation({
@@ -220,11 +246,30 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                 Restaure números que foram excluídos do sistema
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSendEmail}
+                disabled={sendingEmail || filteredDeletedNumbers.length === 0}
+                title="Envia a lista de números internos para tentativa de desbanimento"
+              >
+                {sendingEmail ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Enviar por e-mail
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            ℹ️ Aproveitamos as credenciais de e-mail configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail e lista de destinatários). Nada é alterado naquele módulo.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
