@@ -66,7 +66,7 @@ export default function CadastrarCliente() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [countryCode, setCountryCode] = useState('BR');
-  const [paymentMethod, setPaymentMethod] = useState<string>('other');
+  const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [pixProof, setPixProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
