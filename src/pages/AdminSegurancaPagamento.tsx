@@ -995,6 +995,63 @@ export default function AdminSegurancaPagamento() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Ver motivo da rejeição */}
+      <Dialog
+        open={reasonDialog.open}
+        onOpenChange={(open) => setReasonDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Motivo da rejeição
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes informados pelo aprovador no momento da decisão.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {reasonDialog.payment && (
+              <>
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Cliente:</span>{' '}
+                    <strong>{reasonDialog.payment.cliente?.nome || '—'}</strong>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Valor:</span>{' '}
+                    <strong>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        reasonDialog.payment.amount || 0,
+                      )}
+                    </strong>
+                  </p>
+                  {reasonDialog.payment.approved_by_email && (
+                    <p>
+                      <span className="text-muted-foreground">Rejeitado por:</span>{' '}
+                      <strong>{reasonDialog.payment.approved_by_email}</strong>
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-destructive/80 mb-1">
+                    Justificativa
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {reasonDialog.payment.approval_reason || 'Nenhum motivo informado.'}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setReasonDialog({ open: false, payment: null })}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
