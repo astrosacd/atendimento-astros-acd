@@ -111,6 +111,31 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     );
   }, [deletedNumbers, searchQuery]);
 
+  const handleSendEmail = async () => {
+    if (filteredDeletedNumbers.length === 0) {
+      toast.error('Nenhum número para enviar');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
+        body: {
+          numeros: filteredDeletedNumbers.map((r) => ({
+            numero: r.numero_valor,
+            data_exclusao: r.created_at,
+          })),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`E-mail enviado com ${filteredDeletedNumbers.length} número(s)`);
+    } catch (e: any) {
+      toast.error(`Erro ao enviar e-mail: ${e?.message || e}`);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   // Restore number mutation
   const restoreNumber = useMutation({
     mutationFn: async ({
