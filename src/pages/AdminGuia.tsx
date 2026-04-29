@@ -1150,9 +1150,11 @@ Esses clientes **não recebem** cobranças automáticas do sistema.`
 | Cobrança automática | ✅ Sim | ❌ Não |
 | Data de renovação | ✅ Editável | ❌ Oculta |
 | Valor mensal | ✅ Definido | ❌ Não aplicável |
-| Histórico pagamentos | ✅ Disponível | ❌ Não mostrado |
+| Histórico pagamentos | ✅ Disponível | ✅ Disponível* |
 | Anexo de arquivos | ❌ Não | ✅ Sim |
-| Badge visual | 🔵 Azul | 🟡 Amarelo "Registro" |`
+| Badge visual | 🔵 Azul | 🟡 Amarelo "Registro" |
+
+\* *O histórico de pagamentos em Clientes Registro é usado principalmente para registrar o Pix inicial via PixPague.*`
         },
         {
           title: "Filtrar por tipo de cliente",
