@@ -222,18 +222,18 @@ export default function AdminSegurancaPagamento() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
-        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Validado</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-semibold">Validado</Badge>;
       case 'duplicate':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Duplicado</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/30 animate-pulse font-bold">Duplicado</Badge>;
       case 'divergent':
       case 'mismatch':
-        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">Valor Divergente</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 font-semibold">Valor Divergente</Badge>;
       case 'invalid':
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 animate-pulse">Não é Comprovante</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/30 animate-pulse font-bold">Não é Comprovante</Badge>;
       case 'pending':
-        return <Badge variant="outline" className="text-muted-foreground italic">Em processamento</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground italic border-dashed">Em processamento</Badge>;
       case 'rejected_manual':
-        return <Badge variant="destructive">Rejeitado</Badge>;
+        return <Badge variant="destructive" className="font-semibold">Rejeitado</Badge>;
       case 'error':
         return <Badge variant="destructive">Erro na IA</Badge>;
       default:
@@ -244,11 +244,11 @@ export default function AdminSegurancaPagamento() {
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case 'pending_approval':
-        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse">⏳ Aguardando Aprovação</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 animate-pulse font-semibold">⏳ Aguardando Aprovação</Badge>;
       case 'paid':
-        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Aprovado</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold">Aprovado</Badge>;
       case 'rejected':
-        return <Badge variant="destructive">Rejeitado</Badge>;
+        return <Badge variant="destructive" className="font-semibold">Rejeitado</Badge>;
       default:
         return null;
     }
