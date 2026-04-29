@@ -289,6 +289,21 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                 )}
                 Enviar por e-mail
               </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSendWhatsapp}
+                disabled={sendingWhatsapp || filteredDeletedNumbers.length === 0}
+                title="Envia a lista para o grupo de WhatsApp configurado"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {sendingWhatsapp ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                )}
+                Enviar para WhatsApp
+              </Button>
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -296,7 +311,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            ℹ️ Aproveitamos as credenciais de e-mail configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail e lista de destinatários). Nada é alterado naquele módulo.
+            ℹ️ Aproveitamos as credenciais de e-mail e do grupo de WhatsApp configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail, destinatários, Evolution API e grupo). Nada é alterado naquele módulo.
           </p>
         </CardHeader>
         <CardContent>
