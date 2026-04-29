@@ -61,7 +61,7 @@ export default function AdminSegurancaPagamento() {
     try {
       const { data, error } = await supabase
         .from('client_payments')
-        .select('*, cliente:clientes(nome, email, numero)')
+        .select('*, cliente:clientes(nome, email, numero, cobranca_ativa)')
         .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
@@ -87,6 +87,12 @@ export default function AdminSegurancaPagamento() {
     action: 'approve' | 'reject';
     reason: string;
   }>({ open: false, payment: null, action: 'approve', reason: '' });
+
+  // Dialog para visualizar motivo da rejeição/aprovação manual
+  const [reasonDialog, setReasonDialog] = useState<{ open: boolean; payment: any | null }>({
+    open: false,
+    payment: null,
+  });
 
   const SUSPICIOUS = new Set(['duplicate', 'mismatch', 'divergent', 'invalid']);
 
@@ -501,14 +507,14 @@ export default function AdminSegurancaPagamento() {
                                       <div className="xl:hidden">
                                         <DropdownMenuItem
                                           onClick={() => handleApproval(payment, 'approve')}
-                                          className="text-emerald-500 focus:text-emerald-500"
+                                          className="text-emerald-500 focus:text-emerald-600 focus:bg-emerald-500/10"
                                         >
                                           <CheckCircle2 className="h-4 w-4 mr-2" />
                                           Aprovar
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                           onClick={() => handleApproval(payment, 'reject')}
-                                          className="text-destructive focus:text-destructive"
+                                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                         >
                                           <XCircle className="h-4 w-4 mr-2" />
                                           Rejeitar
@@ -516,16 +522,30 @@ export default function AdminSegurancaPagamento() {
                                         <DropdownMenuSeparator />
                                       </div>
                                     )}
+                                    {payment.status === 'rejected' && payment.approval_reason && (
+                                      <DropdownMenuItem
+                                        onClick={() => setReasonDialog({ open: true, payment })}
+                                        className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10"
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        Ver motivo da rejeição
+                                      </DropdownMenuItem>
+                                    )}
                                     {payment.comprovante_url && (
                                       <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
                                         <Eye className="h-4 w-4 mr-2" />
                                         Ver Comprovante
                                       </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem>
-                                      <Smartphone className="h-4 w-4 mr-2" />
-                                      Notificar Cliente
-                                    </DropdownMenuItem>
+                                    {/* Notificar Cliente: somente em renovações de clientes mensais.
+                                        Não exibe no primeiro cadastro nem em "apenas registro". */}
+                                    {payment.cliente?.cobranca_ativa === true &&
+                                      payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
+                                      <DropdownMenuItem>
+                                        <Smartphone className="h-4 w-4 mr-2" />
+                                        Notificar Cliente
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -659,16 +679,28 @@ export default function AdminSegurancaPagamento() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                {payment.status === 'rejected' && payment.approval_reason && (
+                                  <DropdownMenuItem
+                                    onClick={() => setReasonDialog({ open: true, payment })}
+                                    className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10"
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Ver motivo da rejeição
+                                  </DropdownMenuItem>
+                                )}
                                 {payment.comprovante_url && (
                                   <DropdownMenuItem onClick={() => window.open(payment.comprovante_url, '_blank')}>
                                     <Eye className="h-4 w-4 mr-2" />
                                     Ver Comprovante
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem>
-                                  <Smartphone className="h-4 w-4 mr-2" />
-                                  Notificar Cliente
-                                </DropdownMenuItem>
+                                {payment.cliente?.cobranca_ativa === true &&
+                                  payments.filter(p => p.cliente_id === payment.cliente_id && p.status === 'paid' && p.id !== payment.id).length > 0 && (
+                                  <DropdownMenuItem>
+                                    <Smartphone className="h-4 w-4 mr-2" />
+                                    Notificar Cliente
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -959,6 +991,63 @@ export default function AdminSegurancaPagamento() {
                   Confirmar rejeição
                 </>
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Ver motivo da rejeição */}
+      <Dialog
+        open={reasonDialog.open}
+        onOpenChange={(open) => setReasonDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Motivo da rejeição
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes informados pelo aprovador no momento da decisão.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {reasonDialog.payment && (
+              <>
+                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Cliente:</span>{' '}
+                    <strong>{reasonDialog.payment.cliente?.nome || '—'}</strong>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Valor:</span>{' '}
+                    <strong>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        reasonDialog.payment.amount || 0,
+                      )}
+                    </strong>
+                  </p>
+                  {reasonDialog.payment.approved_by_email && (
+                    <p>
+                      <span className="text-muted-foreground">Rejeitado por:</span>{' '}
+                      <strong>{reasonDialog.payment.approved_by_email}</strong>
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-destructive/80 mb-1">
+                    Justificativa
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {reasonDialog.payment.approval_reason || 'Nenhum motivo informado.'}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setReasonDialog({ open: false, payment: null })}>
+              Fechar
             </Button>
           </div>
         </DialogContent>
