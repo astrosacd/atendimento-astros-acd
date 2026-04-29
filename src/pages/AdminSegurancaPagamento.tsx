@@ -1003,45 +1003,89 @@ export default function AdminSegurancaPagamento() {
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <XCircle className="h-5 w-5" />
-              Motivo da rejeição
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              Análise de Segurança
             </DialogTitle>
             <DialogDescription>
-              Detalhes informados pelo aprovador no momento da decisão.
+              Informações detectadas pela IA e status de duplicidade.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {reasonDialog.payment && (
               <>
-                <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
-                  <p>
-                    <span className="text-muted-foreground">Cliente:</span>{' '}
-                    <strong>{reasonDialog.payment.cliente?.nome || '—'}</strong>
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Valor:</span>{' '}
-                    <strong>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Cliente</p>
+                    <p className="font-medium truncate">{reasonDialog.payment.cliente?.nome || '—'}</p>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Valor Digitado</p>
+                    <p className="font-bold">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                         reasonDialog.payment.amount || 0,
                       )}
-                    </strong>
-                  </p>
-                  {reasonDialog.payment.approved_by_email && (
-                    <p>
-                      <span className="text-muted-foreground">Rejeitado por:</span>{' '}
-                      <strong>{reasonDialog.payment.approved_by_email}</strong>
                     </p>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1">
+                    <FileSearch className="h-3.5 w-3.5" />
+                    Resultado do OCR (IA)
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex justify-between items-center border-b border-amber-500/10 pb-1">
+                      <span className="text-muted-foreground">Valor lido no papel:</span>
+                      <span className={`font-bold ${reasonDialog.payment.ocr_amount !== reasonDialog.payment.amount ? 'text-destructive' : 'text-emerald-600'}`}>
+                        {reasonDialog.payment.ocr_amount 
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(reasonDialog.payment.ocr_amount)
+                          : 'Não detectado'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-amber-500/10 pb-1">
+                      <span className="text-muted-foreground">ID da Transação:</span>
+                      <span className="font-mono text-[10px] bg-white/50 px-1 rounded truncate ml-2">
+                        {reasonDialog.payment.pix_transaction_id || 'Não detectado'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Status da IA:</span>
+                      {getStatusBadge(reasonDialog.payment.ocr_status)}
+                    </div>
+                  </div>
+
+                  {reasonDialog.payment.ocr_status === 'duplicate' && (
+                    <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-[11px] text-destructive font-medium flex gap-2">
+                      <ShieldAlert className="h-4 w-4 shrink-0" />
+                      Atenção: Este ID de transação já foi utilizado em outro pagamento. Possível tentativa de fraude!
+                    </div>
+                  )}
+                  
+                  {reasonDialog.payment.ocr_status === 'mismatch' && (
+                    <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded text-[11px] text-amber-700 font-medium flex gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Atenção: O valor que o cliente digitou não bate com o valor que a IA leu no comprovante.
+                    </div>
                   )}
                 </div>
-                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-                  <p className="text-[11px] uppercase tracking-wide text-destructive/80 mb-1">
-                    Justificativa
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {reasonDialog.payment.approval_reason || 'Nenhum motivo informado.'}
-                  </p>
-                </div>
+
+                {reasonDialog.payment.approval_reason && (
+                  <div className={`rounded-md border p-3 ${reasonDialog.payment.status === 'rejected' ? 'border-destructive/30 bg-destructive/5' : 'border-emerald-500/30 bg-emerald-500/5'}`}>
+                    <p className={`text-[10px] uppercase tracking-wide font-bold mb-1 ${reasonDialog.payment.status === 'rejected' ? 'text-destructive' : 'text-emerald-600'}`}>
+                      {reasonDialog.payment.status === 'rejected' ? 'Justificativa da Rejeição' : 'Observação da Aprovação'}
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {reasonDialog.payment.approval_reason}
+                    </p>
+                    {reasonDialog.payment.approved_by_email && (
+                      <p className="text-[10px] text-muted-foreground mt-2 italic text-right">
+                        — {reasonDialog.payment.approved_by_email}
+                      </p>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
