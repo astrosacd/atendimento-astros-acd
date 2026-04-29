@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { RefreshCw, RotateCcw, Trash2, Search, Mail, Loader2 } from 'lucide-react';
+import { RefreshCw, RotateCcw, Trash2, Search, Mail, Loader2, MessageSquare } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +50,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
   // Fetch deleted numbers from history
   const { data: deletedNumbers = [], isLoading, refetch } = useQuery({
@@ -120,6 +121,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     try {
       const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
         body: {
+          channel: 'email',
           numeros: filteredDeletedNumbers.map((r) => ({
             numero: r.numero_valor,
             data_exclusao: r.created_at,
@@ -133,6 +135,32 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       toast.error(`Erro ao enviar e-mail: ${e?.message || e}`);
     } finally {
       setSendingEmail(false);
+    }
+  };
+
+  const handleSendWhatsapp = async () => {
+    if (filteredDeletedNumbers.length === 0) {
+      toast.error('Nenhum número para enviar');
+      return;
+    }
+    setSendingWhatsapp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-restauracao-email', {
+        body: {
+          channel: 'whatsapp',
+          numeros: filteredDeletedNumbers.map((r) => ({
+            numero: r.numero_valor,
+            data_exclusao: r.created_at,
+          })),
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`WhatsApp enviado para o grupo (${filteredDeletedNumbers.length} número(s))`);
+    } catch (e: any) {
+      toast.error(`Erro ao enviar WhatsApp: ${e?.message || e}`);
+    } finally {
+      setSendingWhatsapp(false);
     }
   };
 
@@ -261,6 +289,21 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                 )}
                 Enviar por e-mail
               </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSendWhatsapp}
+                disabled={sendingWhatsapp || filteredDeletedNumbers.length === 0}
+                title="Envia a lista para o grupo de WhatsApp configurado"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {sendingWhatsapp ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                )}
+                Enviar para WhatsApp
+              </Button>
               <Button variant="outline" size="sm" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Atualizar
@@ -268,7 +311,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            ℹ️ Aproveitamos as credenciais de e-mail configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail e lista de destinatários). Nada é alterado naquele módulo.
+            ℹ️ Aproveitamos as credenciais de e-mail e do grupo de WhatsApp configuradas em <strong>Consulta de Números → Configurações → Lembretes</strong> (remetente Gmail, destinatários, Evolution API e grupo). Nada é alterado naquele módulo.
           </p>
         </CardHeader>
         <CardContent>
