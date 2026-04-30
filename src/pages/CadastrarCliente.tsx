@@ -334,6 +334,16 @@ export default function CadastrarCliente() {
       });
       return;
     }
+
+    // Validação: Link de Pagamento exige link colado/escolhido
+    if (paymentMethod === 'link_pagamento' && !paymentLinkUrl.trim() && !selectedPaymentLinkId) {
+      toast({
+        title: 'Link obrigatório',
+        description: 'Cole o link de pagamento ou escolha um da lista antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
     
