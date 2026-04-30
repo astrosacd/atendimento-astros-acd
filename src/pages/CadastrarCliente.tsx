@@ -128,6 +128,22 @@ export default function CadastrarCliente() {
     fetchTags();
   }, []);
 
+  // Fetch recent payment links (last 30 days, pending) for the dropdown
+  useEffect(() => {
+    if (paymentMethod !== 'link_pagamento') return;
+    const fetchLinks = async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('payment_links')
+        .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setRecentPaymentLinks((data as any) || []);
+    };
+    fetchLinks();
+  }, [paymentMethod]);
+
   useEffect(() => {
     if (clienteType === 'mensal') {
       setFormData(prev => ({ ...prev, cobranca_ativa: true }));
