@@ -442,6 +442,9 @@ export default function CadastrarCliente() {
     setUploadedFiles([]);
     setPixProof(null);
     setPaymentMethod('other');
+    setPaymentLinkUrl('');
+    setSelectedPaymentLinkId('');
+    setLinkValidation({ state: 'idle', message: '' });
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
