@@ -220,7 +220,98 @@ export default function CadastrarCliente() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Validate the pasted/selected payment link against MP/Stripe
+  const handleValidateLink = async () => {
+    const declared = Number(formData.valor) || 0;
+    if (declared <= 0) {
+      toast({ title: 'Informe o valor', description: 'Preencha o valor antes de validar o link.', variant: 'destructive' });
+      return;
+    }
+    if (!paymentLinkUrl && !selectedPaymentLinkId) {
+      toast({ title: 'Cole o link', description: 'Cole a URL do link de pagamento ou escolha um da lista.', variant: 'destructive' });
+      return;
+    }
+
+    setIsValidatingLink(true);
+    setLinkValidation({ state: 'idle', message: 'Consultando gateway...' });
+    try {
+      // Resolve IDs
+      let mpPaymentId: string | undefined;
+      let stripePaymentId: string | undefined;
+      let urlForLookup = paymentLinkUrl.trim();
+
+      if (selectedPaymentLinkId) {
+        const link = recentPaymentLinks.find(l => l.id === selectedPaymentLinkId);
+        if (link) {
+          urlForLookup = link.payment_url;
+          if (link.mp_payment_id) {
+            if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
+            else mpPaymentId = link.mp_payment_id;
+          }
+        }
+      }
+
+      if (!mpPaymentId && !stripePaymentId && urlForLookup) {
+        const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
+        const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
+        if (stripeMatch) stripePaymentId = stripeMatch[0];
+        else if (mpQs) mpPaymentId = mpQs[1];
+      }
+
+      if (!mpPaymentId && !stripePaymentId) {
+        setLinkValidation({
+          state: 'pending',
+          message: 'Não foi possível extrair o ID do link automaticamente. Será enviado para aprovação manual em "Segurança de Pagamento".',
+        });
+        return;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke('check-payment-link-status', {
+        body: mpPaymentId ? { mp_payment_id: mpPaymentId } : { stripe_payment_id: stripePaymentId },
+      });
+
+      if (error || !result || result.error) {
+        setLinkValidation({
+          state: 'invalid',
+          message: result?.error || 'Não foi possível consultar o pagamento. Confira o link.',
+        });
+        return;
+      }
+
+      const isApproved = ['approved', 'paid', 'succeeded'].includes(result.status);
+      const gatewayAmount = typeof result.amount === 'number' ? result.amount : undefined;
+      const txnId = result.payment_id;
+
+      if (!isApproved) {
+        setLinkValidation({
+          state: 'pending',
+          message: `Pagamento ainda não confirmado pelo gateway (status: ${result.status}). Será enviado para aprovação.`,
+          amount: gatewayAmount, transactionId: txnId,
+        });
+        return;
+      }
+
+      if (gatewayAmount !== undefined && Math.abs(gatewayAmount - declared) > 0.01) {
+        setLinkValidation({
+          state: 'divergent',
+          message: `Valor divergente! Gateway: ${gatewayAmount.toFixed(2)} × Digitado: ${declared.toFixed(2)}.`,
+          amount: gatewayAmount, transactionId: txnId,
+        });
+        return;
+      }
+
+      setLinkValidation({
+        state: 'success',
+        message: `Pagamento aprovado no gateway. Valor: ${(gatewayAmount ?? declared).toFixed(2)}.`,
+        amount: gatewayAmount, transactionId: txnId,
+      });
+    } catch (err: any) {
+      setLinkValidation({ state: 'invalid', message: err?.message || 'Erro ao validar link.' });
+    } finally {
+      setIsValidatingLink(false);
+    }
+  };
+
     e.preventDefault();
     
     // Validação: Meio de Pagamento é obrigatório
