@@ -398,7 +398,17 @@ export default function CadastrarCliente() {
       if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
         await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
       }
-      
+
+      // Se for pagamento via Link, valida e registra para aprovação
+      if (paymentMethod === 'link_pagamento' && formData.valor > 0) {
+        await registerLinkPayment({
+          clienteId: cliente.id,
+          declaredAmount: Number(formData.valor),
+          paymentLinkUrl: paymentLinkUrl.trim() || undefined,
+          paymentLinkId: selectedPaymentLinkId || undefined,
+        });
+      }
+
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
