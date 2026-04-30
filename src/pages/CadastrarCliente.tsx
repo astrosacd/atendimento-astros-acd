@@ -792,6 +792,7 @@ export default function CadastrarCliente() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
                         <SelectItem value="pix">📱 Pix (Análise Automática)</SelectItem>
+                        <SelectItem value="link_pagamento">🔗 Link de Pagamento (MP / Stripe)</SelectItem>
                         <SelectItem value="other">💳 Outros / Manual</SelectItem>
                       </SelectContent>
                     </Select>
@@ -814,6 +815,106 @@ export default function CadastrarCliente() {
                           ⚠️ O pagamento será enviado para análise OCR e duplicidade. A aprovação deve ser feita em "Segurança de Pagamento".
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'link_pagamento' && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {recentPaymentLinks.length > 0 && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground font-medium">
+                            Links recentes (últimos 30 dias)
+                          </Label>
+                          <Select
+                            value={selectedPaymentLinkId}
+                            onValueChange={(v) => {
+                              setSelectedPaymentLinkId(v);
+                              const link = recentPaymentLinks.find(l => l.id === v);
+                              if (link) {
+                                setPaymentLinkUrl(link.payment_url);
+                                setLinkValidation({ state: 'idle', message: '' });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                              <SelectValue placeholder="Escolher link gerado recentemente..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border max-h-64">
+                              {recentPaymentLinks.map(link => (
+                                <SelectItem key={link.id} value={link.id}>
+                                  <span className="flex items-center gap-2 text-xs">
+                                    <span className="font-medium">{link.empresa}</span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span className="uppercase text-[10px] px-1.5 py-0.5 rounded bg-muted">
+                                      {link.provider === 'stripe' ? 'Stripe' : 'MP'}
+                                    </span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span>R$ {Number(link.valor_com_taxa).toFixed(2)}</span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span className={link.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}>
+                                      {link.status === 'paid' ? 'pago' : link.status}
+                                    </span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-amber-500 font-medium">
+                          Link de Pagamento (URL) <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="url"
+                            placeholder="Cole aqui a URL do MP/Stripe (ex: https://...)"
+                            value={paymentLinkUrl}
+                            onChange={(e) => {
+                              setPaymentLinkUrl(e.target.value);
+                              setSelectedPaymentLinkId('');
+                              setLinkValidation({ state: 'idle', message: '' });
+                            }}
+                            className="bg-secondary border-border text-foreground h-11 flex-1 text-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleValidateLink}
+                            disabled={isValidatingLink || (!paymentLinkUrl.trim() && !selectedPaymentLinkId)}
+                            className="h-11 shrink-0"
+                          >
+                            {isValidatingLink ? 'Validando...' : 'Validar'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {linkValidation.state !== 'idle' && (
+                        <div className={`p-3 rounded border text-xs flex items-start gap-2 ${
+                          linkValidation.state === 'success' ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700' :
+                          linkValidation.state === 'divergent' ? 'bg-amber-500/5 border-amber-500/30 text-amber-700' :
+                          linkValidation.state === 'duplicate' || linkValidation.state === 'invalid' ? 'bg-destructive/5 border-destructive/30 text-destructive' :
+                          'bg-muted border-border text-muted-foreground'
+                        }`}>
+                          <span className="font-medium">
+                            {linkValidation.state === 'success' && '✅'}
+                            {linkValidation.state === 'divergent' && '⚠️'}
+                            {(linkValidation.state === 'duplicate' || linkValidation.state === 'invalid') && '🚫'}
+                            {linkValidation.state === 'pending' && '⏳'}
+                          </span>
+                          <div className="space-y-0.5">
+                            <p>{linkValidation.message}</p>
+                            {linkValidation.transactionId && (
+                              <p className="font-mono text-[10px] opacity-70">ID: {linkValidation.transactionId}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-muted-foreground bg-amber-500/5 p-2 rounded border border-amber-500/20">
+                        ⚠️ O link será consultado no Mercado Pago / Stripe e enviado para aprovação em "Segurança de Pagamento" (com olhinho mostrando os dados validados).
+                      </p>
                     </div>
                   )}
                 </div>
