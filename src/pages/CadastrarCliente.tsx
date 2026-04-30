@@ -68,6 +68,20 @@ export default function CadastrarCliente() {
   const [countryCode, setCountryCode] = useState('BR');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [pixProof, setPixProof] = useState<File | null>(null);
+  // Link de Pagamento (MP/Stripe) flow
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
+  const [selectedPaymentLinkId, setSelectedPaymentLinkId] = useState<string>('');
+  const [recentPaymentLinks, setRecentPaymentLinks] = useState<Array<{
+    id: string; empresa: string; provider: string; payment_url: string;
+    valor_com_taxa: number; status: string; created_at: string; mp_payment_id: string | null;
+  }>>([]);
+  const [isValidatingLink, setIsValidatingLink] = useState(false);
+  const [linkValidation, setLinkValidation] = useState<{
+    state: 'idle' | 'success' | 'divergent' | 'duplicate' | 'invalid' | 'pending';
+    message: string;
+    amount?: number;
+    transactionId?: string;
+  }>({ state: 'idle', message: '' });
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
