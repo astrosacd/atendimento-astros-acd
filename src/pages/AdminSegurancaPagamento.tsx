@@ -62,7 +62,7 @@ export default function AdminSegurancaPagamento() {
       const { data, error } = await supabase
         .from('client_payments')
         .select('*, cliente:clientes(nome, email, numero, cobranca_ativa)')
-        .or('payment_type.eq.pix_manual,pix_transaction_id.not.is.null')
+        .or('payment_type.eq.pix_manual,payment_type.eq.link_pagamento,pix_transaction_id.not.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

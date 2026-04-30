@@ -369,6 +369,171 @@ export function usePaymentStatus() {
     }
   };
 
+  // Register a payment paid via external Payment Link (Mercado Pago / Stripe).
+  // Validates the link/payment ID against the gateway and stores it as pending_approval
+  // so it shows up in "Segurança de Pagamento" with the validated data (amount, txn id, status).
+  const registerLinkPayment = async (params: {
+    clienteId: string;
+    declaredAmount: number;
+    paymentLinkUrl?: string;       // raw URL pasted by the user
+    paymentLinkId?: string;        // optional: id from payment_links dropdown
+    provider?: 'mercadopago' | 'stripe';
+    mpPaymentId?: string;          // when already known (from dropdown)
+    stripePaymentId?: string;      // when already known (from dropdown)
+  }): Promise<{ ok: boolean; ocrStatus?: string; gatewayAmount?: number; transactionId?: string; }> => {
+    try {
+      const {
+        clienteId, declaredAmount, paymentLinkUrl, paymentLinkId,
+        provider, mpPaymentId: providedMp, stripePaymentId: providedStripe,
+      } = params;
+
+      // 1) Resolve which gateway/IDs to query
+      let mpPaymentId: string | undefined = providedMp;
+      let stripePaymentId: string | undefined = providedStripe;
+      let resolvedProvider: 'mercadopago' | 'stripe' | undefined = provider;
+      let linkUrlToStore: string | null = paymentLinkUrl?.trim() || null;
+
+      // If a saved link from the dropdown was chosen, look it up
+      if (paymentLinkId && !mpPaymentId && !stripePaymentId) {
+        const { data: linkRow } = await supabase
+          .from('payment_links')
+          .select('provider, preference_id, external_reference, mp_payment_id, payment_url, status')
+          .eq('id', paymentLinkId)
+          .maybeSingle();
+
+        if (linkRow) {
+          linkUrlToStore = linkRow.payment_url || linkUrlToStore;
+          resolvedProvider = (linkRow.provider as any) || resolvedProvider;
+          if (linkRow.mp_payment_id) {
+            if (resolvedProvider === 'stripe') stripePaymentId = linkRow.mp_payment_id;
+            else mpPaymentId = linkRow.mp_payment_id;
+          }
+        }
+      }
+
+      // If only the URL was given, try to extract IDs from it
+      if (!mpPaymentId && !stripePaymentId && linkUrlToStore) {
+        const url = linkUrlToStore;
+        // Stripe formats: pi_xxx, cs_xxx, plink_xxx (payment link id)
+        const stripeMatch = url.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
+        // Mercado Pago: payment_id in querystring or numeric id
+        const mpQs = url.match(/[?&](?:payment_id|collection_id)=(\d+)/);
+        if (stripeMatch) {
+          stripePaymentId = stripeMatch[0];
+          resolvedProvider = 'stripe';
+        } else if (mpQs) {
+          mpPaymentId = mpQs[1];
+          resolvedProvider = 'mercadopago';
+        }
+      }
+
+      // 2) Call gateway validator
+      let ocrStatus: string = 'pending';
+      let gatewayAmount: number | null = null;
+      let transactionId: string | null = mpPaymentId || stripePaymentId || null;
+      let gatewayStatus: string | null = null;
+
+      if (mpPaymentId || stripePaymentId) {
+        const { data: result, error: invokeErr } = await supabase.functions.invoke('check-payment-link-status', {
+          body: mpPaymentId ? { mp_payment_id: mpPaymentId } : { stripe_payment_id: stripePaymentId },
+        });
+        if (invokeErr) {
+          console.error('Erro ao validar link de pagamento:', invokeErr);
+        }
+        if (result && !result.error) {
+          gatewayAmount = typeof result.amount === 'number' ? result.amount : null;
+          transactionId = result.payment_id || transactionId;
+          gatewayStatus = result.status || null;
+
+          // If gateway returns approved/paid → check value match
+          const isApproved = gatewayStatus === 'approved' || gatewayStatus === 'paid' || gatewayStatus === 'succeeded';
+          if (isApproved) {
+            if (gatewayAmount !== null && Math.abs(gatewayAmount - declaredAmount) > 0.01) {
+              ocrStatus = 'divergent';
+            } else {
+              ocrStatus = 'success';
+            }
+          } else {
+            // Not paid yet → keep pending so admin can re-check later
+            ocrStatus = 'pending';
+          }
+        } else {
+          // Gateway returned not_found / error
+          ocrStatus = 'invalid';
+        }
+      } else {
+        // No ID extractable → admin must approve manually
+        ocrStatus = 'pending';
+      }
+
+      // 3) Duplicate detection — same transaction id already used in another payment
+      if (transactionId) {
+        const { data: dup } = await supabase
+          .from('client_payments')
+          .select('id')
+          .eq('pix_transaction_id', transactionId)
+          .limit(1)
+          .maybeSingle();
+        if (dup) ocrStatus = 'duplicate';
+      }
+
+      // 4) Capture submitter
+      const { data: { user: submitter } } = await supabase.auth.getUser();
+      let submittedByName: string | null = null;
+      if (submitter?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', submitter.id)
+          .maybeSingle();
+        submittedByName = profile?.name ?? null;
+      }
+
+      // 5) Insert as pending_approval so it appears in Segurança de Pagamento
+      const paymentId = `manual_link_${Date.now()}`;
+      const { error: insertError } = await supabase
+        .from('client_payments')
+        .insert({
+          cliente_id: clienteId,
+          payment_id: paymentId,
+          payment_type: 'link_pagamento',
+          amount: declaredAmount,
+          status: 'pending_approval',
+          paid_at: null,
+          billing_date: new Date().toISOString().split('T')[0],
+          comprovante_url: linkUrlToStore,
+          pix_transaction_id: transactionId,
+          ocr_status: ocrStatus,
+          ocr_amount: gatewayAmount,
+          submitted_by: submitter?.id ?? null,
+          submitted_by_email: submitter?.email ?? null,
+          submitted_by_name: submittedByName,
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: '📨 Enviado para aprovação',
+        description: 'O link de pagamento foi validado e enviado para "Segurança de Pagamento".',
+      });
+
+      return {
+        ok: true,
+        ocrStatus,
+        gatewayAmount: gatewayAmount ?? undefined,
+        transactionId: transactionId ?? undefined,
+      };
+    } catch (error) {
+      console.error('Error registering link payment:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao registrar pagamento por link',
+        variant: 'destructive',
+      });
+      return { ok: false };
+    }
+  };
+
   return {
     isLoading,
     checkPaymentStatus,
@@ -377,5 +542,6 @@ export function usePaymentStatus() {
     markPaymentAsPaid,
     cancelPayment,
     registerEarlyPayment,
+    registerLinkPayment,
   };
 }

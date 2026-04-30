@@ -68,6 +68,20 @@ export default function CadastrarCliente() {
   const [countryCode, setCountryCode] = useState('BR');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [pixProof, setPixProof] = useState<File | null>(null);
+  // Link de Pagamento (MP/Stripe) flow
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
+  const [selectedPaymentLinkId, setSelectedPaymentLinkId] = useState<string>('');
+  const [recentPaymentLinks, setRecentPaymentLinks] = useState<Array<{
+    id: string; empresa: string; provider: string; payment_url: string;
+    valor_com_taxa: number; status: string; created_at: string; mp_payment_id: string | null;
+  }>>([]);
+  const [isValidatingLink, setIsValidatingLink] = useState(false);
+  const [linkValidation, setLinkValidation] = useState<{
+    state: 'idle' | 'success' | 'divergent' | 'duplicate' | 'invalid' | 'pending';
+    message: string;
+    amount?: number;
+    transactionId?: string;
+  }>({ state: 'idle', message: '' });
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
@@ -92,7 +106,7 @@ export default function CadastrarCliente() {
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
-  const { registerEarlyPayment } = usePaymentStatus();
+  const { registerEarlyPayment, registerLinkPayment } = usePaymentStatus();
   const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
@@ -113,6 +127,22 @@ export default function CadastrarCliente() {
 
     fetchTags();
   }, []);
+
+  // Fetch recent payment links (last 30 days, pending) for the dropdown
+  useEffect(() => {
+    if (paymentMethod !== 'link_pagamento') return;
+    const fetchLinks = async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('payment_links')
+        .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setRecentPaymentLinks((data as any) || []);
+    };
+    fetchLinks();
+  }, [paymentMethod]);
 
   useEffect(() => {
     if (clienteType === 'mensal') {
@@ -190,9 +220,101 @@ export default function CadastrarCliente() {
     }
   };
 
+  // Validate the pasted/selected payment link against MP/Stripe
+  const handleValidateLink = async () => {
+    const declared = Number(formData.valor) || 0;
+    if (declared <= 0) {
+      toast({ title: 'Informe o valor', description: 'Preencha o valor antes de validar o link.', variant: 'destructive' });
+      return;
+    }
+    if (!paymentLinkUrl && !selectedPaymentLinkId) {
+      toast({ title: 'Cole o link', description: 'Cole a URL do link de pagamento ou escolha um da lista.', variant: 'destructive' });
+      return;
+    }
+
+    setIsValidatingLink(true);
+    setLinkValidation({ state: 'idle', message: 'Consultando gateway...' });
+    try {
+      // Resolve IDs
+      let mpPaymentId: string | undefined;
+      let stripePaymentId: string | undefined;
+      let urlForLookup = paymentLinkUrl.trim();
+
+      if (selectedPaymentLinkId) {
+        const link = recentPaymentLinks.find(l => l.id === selectedPaymentLinkId);
+        if (link) {
+          urlForLookup = link.payment_url;
+          if (link.mp_payment_id) {
+            if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
+            else mpPaymentId = link.mp_payment_id;
+          }
+        }
+      }
+
+      if (!mpPaymentId && !stripePaymentId && urlForLookup) {
+        const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
+        const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
+        if (stripeMatch) stripePaymentId = stripeMatch[0];
+        else if (mpQs) mpPaymentId = mpQs[1];
+      }
+
+      if (!mpPaymentId && !stripePaymentId) {
+        setLinkValidation({
+          state: 'pending',
+          message: 'Não foi possível extrair o ID do link automaticamente. Será enviado para aprovação manual em "Segurança de Pagamento".',
+        });
+        return;
+      }
+
+      const { data: result, error } = await supabase.functions.invoke('check-payment-link-status', {
+        body: mpPaymentId ? { mp_payment_id: mpPaymentId } : { stripe_payment_id: stripePaymentId },
+      });
+
+      if (error || !result || result.error) {
+        setLinkValidation({
+          state: 'invalid',
+          message: result?.error || 'Não foi possível consultar o pagamento. Confira o link.',
+        });
+        return;
+      }
+
+      const isApproved = ['approved', 'paid', 'succeeded'].includes(result.status);
+      const gatewayAmount = typeof result.amount === 'number' ? result.amount : undefined;
+      const txnId = result.payment_id;
+
+      if (!isApproved) {
+        setLinkValidation({
+          state: 'pending',
+          message: `Pagamento ainda não confirmado pelo gateway (status: ${result.status}). Será enviado para aprovação.`,
+          amount: gatewayAmount, transactionId: txnId,
+        });
+        return;
+      }
+
+      if (gatewayAmount !== undefined && Math.abs(gatewayAmount - declared) > 0.01) {
+        setLinkValidation({
+          state: 'divergent',
+          message: `Valor divergente! Gateway: ${gatewayAmount.toFixed(2)} × Digitado: ${declared.toFixed(2)}.`,
+          amount: gatewayAmount, transactionId: txnId,
+        });
+        return;
+      }
+
+      setLinkValidation({
+        state: 'success',
+        message: `Pagamento aprovado no gateway. Valor: ${(gatewayAmount ?? declared).toFixed(2)}.`,
+        amount: gatewayAmount, transactionId: txnId,
+      });
+    } catch (err: any) {
+      setLinkValidation({ state: 'invalid', message: err?.message || 'Erro ao validar link.' });
+    } finally {
+      setIsValidatingLink(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validação: Meio de Pagamento é obrigatório
     if (!paymentMethod) {
       toast({
@@ -208,6 +330,16 @@ export default function CadastrarCliente() {
       toast({
         title: 'Tipo de Cadastro obrigatório',
         description: 'Selecione o tipo de cadastro antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validação: Link de Pagamento exige link colado/escolhido
+    if (paymentMethod === 'link_pagamento' && !paymentLinkUrl.trim() && !selectedPaymentLinkId) {
+      toast({
+        title: 'Link obrigatório',
+        description: 'Cole o link de pagamento ou escolha um da lista antes de continuar.',
         variant: 'destructive',
       });
       return;
@@ -266,7 +398,17 @@ export default function CadastrarCliente() {
       if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
         await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
       }
-      
+
+      // Se for pagamento via Link, valida e registra para aprovação
+      if (paymentMethod === 'link_pagamento' && formData.valor > 0) {
+        await registerLinkPayment({
+          clienteId: cliente.id,
+          declaredAmount: Number(formData.valor),
+          paymentLinkUrl: paymentLinkUrl.trim() || undefined,
+          paymentLinkId: selectedPaymentLinkId || undefined,
+        });
+      }
+
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
@@ -300,6 +442,9 @@ export default function CadastrarCliente() {
     setUploadedFiles([]);
     setPixProof(null);
     setPaymentMethod('other');
+    setPaymentLinkUrl('');
+    setSelectedPaymentLinkId('');
+    setLinkValidation({ state: 'idle', message: '' });
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
@@ -647,6 +792,7 @@ export default function CadastrarCliente() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
                         <SelectItem value="pix">📱 Pix (Análise Automática)</SelectItem>
+                        <SelectItem value="link_pagamento">🔗 Link de Pagamento (MP / Stripe)</SelectItem>
                         <SelectItem value="other">💳 Outros / Manual</SelectItem>
                       </SelectContent>
                     </Select>
@@ -669,6 +815,106 @@ export default function CadastrarCliente() {
                           ⚠️ O pagamento será enviado para análise OCR e duplicidade. A aprovação deve ser feita em "Segurança de Pagamento".
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'link_pagamento' && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {recentPaymentLinks.length > 0 && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground font-medium">
+                            Links recentes (últimos 30 dias)
+                          </Label>
+                          <Select
+                            value={selectedPaymentLinkId}
+                            onValueChange={(v) => {
+                              setSelectedPaymentLinkId(v);
+                              const link = recentPaymentLinks.find(l => l.id === v);
+                              if (link) {
+                                setPaymentLinkUrl(link.payment_url);
+                                setLinkValidation({ state: 'idle', message: '' });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                              <SelectValue placeholder="Escolher link gerado recentemente..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border max-h-64">
+                              {recentPaymentLinks.map(link => (
+                                <SelectItem key={link.id} value={link.id}>
+                                  <span className="flex items-center gap-2 text-xs">
+                                    <span className="font-medium">{link.empresa}</span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span className="uppercase text-[10px] px-1.5 py-0.5 rounded bg-muted">
+                                      {link.provider === 'stripe' ? 'Stripe' : 'MP'}
+                                    </span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span>R$ {Number(link.valor_com_taxa).toFixed(2)}</span>
+                                    <span className="text-muted-foreground">·</span>
+                                    <span className={link.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}>
+                                      {link.status === 'paid' ? 'pago' : link.status}
+                                    </span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-amber-500 font-medium">
+                          Link de Pagamento (URL) <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="url"
+                            placeholder="Cole aqui a URL do MP/Stripe (ex: https://...)"
+                            value={paymentLinkUrl}
+                            onChange={(e) => {
+                              setPaymentLinkUrl(e.target.value);
+                              setSelectedPaymentLinkId('');
+                              setLinkValidation({ state: 'idle', message: '' });
+                            }}
+                            className="bg-secondary border-border text-foreground h-11 flex-1 text-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleValidateLink}
+                            disabled={isValidatingLink || (!paymentLinkUrl.trim() && !selectedPaymentLinkId)}
+                            className="h-11 shrink-0"
+                          >
+                            {isValidatingLink ? 'Validando...' : 'Validar'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {linkValidation.state !== 'idle' && (
+                        <div className={`p-3 rounded border text-xs flex items-start gap-2 ${
+                          linkValidation.state === 'success' ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700' :
+                          linkValidation.state === 'divergent' ? 'bg-amber-500/5 border-amber-500/30 text-amber-700' :
+                          linkValidation.state === 'duplicate' || linkValidation.state === 'invalid' ? 'bg-destructive/5 border-destructive/30 text-destructive' :
+                          'bg-muted border-border text-muted-foreground'
+                        }`}>
+                          <span className="font-medium">
+                            {linkValidation.state === 'success' && '✅'}
+                            {linkValidation.state === 'divergent' && '⚠️'}
+                            {(linkValidation.state === 'duplicate' || linkValidation.state === 'invalid') && '🚫'}
+                            {linkValidation.state === 'pending' && '⏳'}
+                          </span>
+                          <div className="space-y-0.5">
+                            <p>{linkValidation.message}</p>
+                            {linkValidation.transactionId && (
+                              <p className="font-mono text-[10px] opacity-70">ID: {linkValidation.transactionId}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-muted-foreground bg-amber-500/5 p-2 rounded border border-amber-500/20">
+                        ⚠️ O link será consultado no Mercado Pago / Stripe e enviado para aprovação em "Segurança de Pagamento" (com olhinho mostrando os dados validados).
+                      </p>
                     </div>
                   )}
                 </div>
