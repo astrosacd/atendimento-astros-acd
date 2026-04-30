@@ -312,8 +312,9 @@ export default function CadastrarCliente() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validação: Meio de Pagamento é obrigatório
     if (!paymentMethod) {
       toast({
