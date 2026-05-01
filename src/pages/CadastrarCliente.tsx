@@ -278,16 +278,28 @@ export default function CadastrarCliente() {
       }
 
       if (!mpPaymentId && !stripePaymentId && urlForLookup) {
-        const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
-        const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
-        if (stripeMatch) stripePaymentId = stripeMatch[0];
-        else if (mpQs) mpPaymentId = mpQs[1];
+        // First check if it's just a raw ID instead of a full URL
+        const isOnlyNumbers = /^\d+$/.test(urlForLookup);
+        const isStripeId = /^(pi|cs|cs_test|cs_live)_[A-Za-z0-9]+$/.test(urlForLookup);
+
+        if (isOnlyNumbers) {
+          mpPaymentId = urlForLookup;
+        } else if (isStripeId) {
+          stripePaymentId = urlForLookup;
+        } else {
+          // If it's a URL, try to extract IDs as before
+          const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
+          const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
+          
+          if (stripeMatch) stripePaymentId = stripeMatch[0];
+          else if (mpQs) mpPaymentId = mpQs[1];
+        }
       }
 
       if (!mpPaymentId && !stripePaymentId) {
         setLinkValidation({
           state: 'pending',
-          message: 'Não foi possível extrair o ID do link automaticamente. Será enviado para aprovação manual em "Segurança de Pagamento".',
+          message: 'Não foi possível extrair o ID. Cole o ID da transação (números do MP ou pi_... da Stripe) para validar automaticamente.',
         });
         return;
       }
