@@ -72,9 +72,11 @@ export default function CadastrarCliente() {
   // Link de Pagamento (MP/Stripe) flow
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
   const [selectedPaymentLinkId, setSelectedPaymentLinkId] = useState<string>('');
+  const [usedLinkIds, setUsedLinkIds] = useState<Set<string>>(new Set());
   const [recentPaymentLinks, setRecentPaymentLinks] = useState<Array<{
     id: string; empresa: string; provider: string; payment_url: string;
     valor_com_taxa: number; status: string; created_at: string; mp_payment_id: string | null;
+    expires_at: string;
   }>>([]);
   const [isValidatingLink, setIsValidatingLink] = useState(false);
   const [linkValidation, setLinkValidation] = useState<{
@@ -83,6 +85,9 @@ export default function CadastrarCliente() {
     amount?: number;
     transactionId?: string;
   }>({ state: 'idle', message: '' });
+  // Outros / Manual flow
+  const [otherObservation, setOtherObservation] = useState<string>('');
+  const [otherProof, setOtherProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
