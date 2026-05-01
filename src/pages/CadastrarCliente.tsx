@@ -370,6 +370,32 @@ export default function CadastrarCliente() {
       });
       return;
     }
+
+    // Validação: Link só pode salvar se gateway confirmou pagamento aprovado
+    if (paymentMethod === 'link_pagamento') {
+      if (linkValidation.state !== 'success') {
+        toast({
+          title: '🚫 Link ainda não pago',
+          description: linkValidation.state === 'pending' || linkValidation.state === 'idle'
+            ? 'Primeiro pague o link e clique em "Validar". Só é possível salvar com pagamento aprovado.'
+            : linkValidation.state === 'divergent'
+              ? 'Valor do link diverge do valor digitado. Corrija antes de salvar.'
+              : 'Link inválido ou duplicado. Não é possível salvar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Validação: Outros / Manual exige observação
+    if (paymentMethod === 'other' && !otherObservation.trim()) {
+      toast({
+        title: 'Observação obrigatória',
+        description: 'Explique o motivo do pagamento manual / outros antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
     
