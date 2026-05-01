@@ -266,6 +266,7 @@ export default function CadastrarCliente() {
       let stripePaymentId: string | undefined;
       let urlForLookup = paymentLinkUrl.trim();
 
+      // 1. If it's selected from dropdown, we already have IDs or can find them
       if (selectedPaymentLinkId) {
         const link = recentPaymentLinks.find(l => l.id === selectedPaymentLinkId);
         if (link) {
@@ -273,12 +274,23 @@ export default function CadastrarCliente() {
           if (link.mp_payment_id) {
             if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
             else mpPaymentId = link.mp_payment_id;
+          } else {
+            // Try to force a sync if no payment ID is present yet
+            const { data: syncRes } = await supabase.functions.invoke('check-payment-link-status', {
+              body: { link_id: link.id }
+            });
+            if (syncRes && syncRes.results && syncRes.results[0]?.mp_payment_id) {
+              const res = syncRes.results[0];
+              if (link.provider === 'stripe') stripePaymentId = res.mp_payment_id;
+              else mpPaymentId = res.mp_payment_id;
+            }
           }
         }
       }
 
+      // 2. If it's a URL or raw ID
       if (!mpPaymentId && !stripePaymentId && urlForLookup) {
-        // First check if it's just a raw ID instead of a full URL
+        // Detect if it's a raw ID
         const isOnlyNumbers = /^\d+$/.test(urlForLookup);
         const isStripeId = /^(pi|cs|cs_test|cs_live)_[A-Za-z0-9]+$/.test(urlForLookup);
 
@@ -287,12 +299,37 @@ export default function CadastrarCliente() {
         } else if (isStripeId) {
           stripePaymentId = urlForLookup;
         } else {
-          // If it's a URL, try to extract IDs as before
-          const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
-          const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
-          
-          if (stripeMatch) stripePaymentId = stripeMatch[0];
-          else if (mpQs) mpPaymentId = mpQs[1];
+          // It's a URL. First, try to see if it belongs to a link we generated
+          const { data: linkData } = await supabase
+            .from('payment_links')
+            .select('id, mp_payment_id, provider, preference_id, external_reference')
+            .or(`payment_url.eq.${urlForLookup},preference_id.eq.${urlForLookup},external_reference.eq.${urlForLookup}`)
+            .maybeSingle();
+
+          if (linkData) {
+            if (linkData.mp_payment_id) {
+              if (linkData.provider === 'stripe') stripePaymentId = linkData.mp_payment_id;
+              else mpPaymentId = linkData.mp_payment_id;
+            } else {
+              // Not synced yet? Force a sync check for this specific link ID
+              const { data: syncRes } = await supabase.functions.invoke('check-payment-link-status', {
+                body: { link_id: linkData.id }
+              });
+              if (syncRes && syncRes.results && syncRes.results[0]?.mp_payment_id) {
+                const res = syncRes.results[0];
+                if (linkData.provider === 'stripe') stripePaymentId = res.mp_payment_id;
+                else mpPaymentId = res.mp_payment_id;
+              }
+            }
+          }
+
+          // If still no ID, try regex extraction from URL (for external links)
+          if (!mpPaymentId && !stripePaymentId) {
+            const stripeMatch = urlForLookup.match(/\b(pi|cs|cs_test|cs_live|plink)_[A-Za-z0-9]+/);
+            const mpQs = urlForLookup.match(/[?&](?:payment_id|collection_id)=(\d+)/);
+            if (stripeMatch) stripePaymentId = stripeMatch[0];
+            else if (mpQs) mpPaymentId = mpQs[1];
+          }
         }
       }
 
