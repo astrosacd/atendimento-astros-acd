@@ -1011,7 +1011,21 @@ export default function CadastrarCliente() {
 
                       {linkValidation.state !== 'success' && (
                         <p className="text-[10px] text-destructive bg-destructive/5 p-2 rounded border border-destructive/20 font-medium">
-                          🚫 Link ainda não pago — primeiro pague o link e clique em "Validar". Só será possível salvar o cliente após confirmação.
+                          {linkValidation.state === 'divergent' && (
+                            <>⚠️ Valor divergente — o link foi pago, mas com valor diferente do digitado. Ajuste o campo "Valor do Produto" para corresponder ao valor recebido no gateway, depois clique em "Validar" novamente.</>
+                          )}
+                          {linkValidation.state === 'duplicate' && (
+                            <>🚫 Este link já foi utilizado em outro cadastro de cliente. Gere um novo link de pagamento para este cliente.</>
+                          )}
+                          {linkValidation.state === 'invalid' && (
+                            <>🚫 Link inválido — o gateway não reconheceu este link/ID. Confira se o link está correto.</>
+                          )}
+                          {linkValidation.state === 'pending' && (
+                            <>⏳ Pagamento ainda não confirmado pelo gateway. Aguarde o pagamento e clique em "Validar" novamente.</>
+                          )}
+                          {linkValidation.state === 'idle' && (
+                            <>🚫 Clique em "Validar" para consultar o pagamento no gateway. Só será possível salvar após confirmação.</>
+                          )}
                         </p>
                       )}
                     </div>
