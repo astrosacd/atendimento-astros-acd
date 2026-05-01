@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { ArrowLeft, Check, X, UserPlus, FileText, Tag, Repeat, Calendar, Infinity, Upload, File, Trash2, Image, ShieldCheck, CreditCard } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { z } from 'zod';
@@ -71,9 +72,11 @@ export default function CadastrarCliente() {
   // Link de Pagamento (MP/Stripe) flow
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
   const [selectedPaymentLinkId, setSelectedPaymentLinkId] = useState<string>('');
+  const [usedLinkIds, setUsedLinkIds] = useState<Set<string>>(new Set());
   const [recentPaymentLinks, setRecentPaymentLinks] = useState<Array<{
     id: string; empresa: string; provider: string; payment_url: string;
     valor_com_taxa: number; status: string; created_at: string; mp_payment_id: string | null;
+    expires_at: string;
   }>>([]);
   const [isValidatingLink, setIsValidatingLink] = useState(false);
   const [linkValidation, setLinkValidation] = useState<{
@@ -82,6 +85,9 @@ export default function CadastrarCliente() {
     amount?: number;
     transactionId?: string;
   }>({ state: 'idle', message: '' });
+  // Outros / Manual flow
+  const [otherObservation, setOtherObservation] = useState<string>('');
+  const [otherProof, setOtherProof] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<ClienteInput>({
     nome: '',
@@ -106,7 +112,7 @@ export default function CadastrarCliente() {
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
-  const { registerEarlyPayment, registerLinkPayment } = usePaymentStatus();
+  const { registerEarlyPayment, registerLinkPayment, registerOtherPayment } = usePaymentStatus();
   const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
@@ -128,18 +134,38 @@ export default function CadastrarCliente() {
     fetchTags();
   }, []);
 
-  // Fetch recent payment links (last 30 days, pending) for the dropdown
+  // Fetch recent payment links (não expirados) + IDs já usados em outros clientes
   useEffect(() => {
     if (paymentMethod !== 'link_pagamento') return;
     const fetchLinks = async () => {
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from('payment_links')
-        .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setRecentPaymentLinks((data as any) || []);
+      const nowIso = new Date().toISOString();
+      // Janela ampla (90d) — já filtramos por expires_at e por uso
+      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [{ data: links }, { data: usedRows }] = await Promise.all([
+        supabase
+          .from('payment_links')
+          .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id, expires_at')
+          .gte('created_at', since)
+          .gt('expires_at', nowIso)            // <- não mostrar expirados
+          .neq('status', 'expired')
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('client_payments')
+          .select('comprovante_url')
+          .eq('payment_type', 'link_pagamento'),
+      ]);
+
+      const used = new Set<string>();
+      (usedRows || []).forEach((r: any) => {
+        if (r.comprovante_url) used.add(r.comprovante_url);
+      });
+      setUsedLinkIds(used);
+
+      // Remover links cuja URL já foi usada em outro cadastro
+      const filtered = (links || []).filter((l: any) => !used.has(l.payment_url));
+      setRecentPaymentLinks(filtered as any);
     };
     fetchLinks();
   }, [paymentMethod]);
@@ -344,6 +370,32 @@ export default function CadastrarCliente() {
       });
       return;
     }
+
+    // Validação: Link só pode salvar se gateway confirmou pagamento aprovado
+    if (paymentMethod === 'link_pagamento') {
+      if (linkValidation.state !== 'success') {
+        toast({
+          title: '🚫 Link ainda não pago',
+          description: linkValidation.state === 'pending' || linkValidation.state === 'idle'
+            ? 'Primeiro pague o link e clique em "Validar". Só é possível salvar com pagamento aprovado.'
+            : linkValidation.state === 'divergent'
+              ? 'Valor do link diverge do valor digitado. Corrija antes de salvar.'
+              : 'Link inválido ou duplicado. Não é possível salvar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Validação: Outros / Manual exige observação
+    if (paymentMethod === 'other' && !otherObservation.trim()) {
+      toast({
+        title: 'Observação obrigatória',
+        description: 'Explique o motivo do pagamento manual / outros antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const schema = clienteType === 'registro' ? clienteVitalicioSchema : clienteSchema;
     
@@ -409,6 +461,16 @@ export default function CadastrarCliente() {
         });
       }
 
+      // Se for Outros / Manual, sempre envia para Segurança de Pagamento (sem OCR)
+      if (paymentMethod === 'other' && formData.valor > 0) {
+        await registerOtherPayment({
+          clienteId: cliente.id,
+          declaredAmount: Number(formData.valor),
+          observation: otherObservation.trim(),
+          proof: otherProof,
+        });
+      }
+
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
@@ -445,6 +507,8 @@ export default function CadastrarCliente() {
     setPaymentLinkUrl('');
     setSelectedPaymentLinkId('');
     setLinkValidation({ state: 'idle', message: '' });
+    setOtherObservation('');
+    setOtherProof(null);
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
@@ -823,9 +887,13 @@ export default function CadastrarCliente() {
                       {recentPaymentLinks.length > 0 && (
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground font-medium">
-                            Links recentes (últimos 30 dias)
+                            Links recentes (não expirados • não utilizados)
                           </Label>
-                          <Select
+                          <SearchableSelect
+                            options={recentPaymentLinks.map(link => ({
+                              value: link.id,
+                              label: `${link.empresa} · ${link.provider === 'stripe' ? 'Stripe' : 'MP'} · R$ ${Number(link.valor_com_taxa).toFixed(2)} · ${link.status === 'paid' ? 'pago' : link.status}`,
+                            }))}
                             value={selectedPaymentLinkId}
                             onValueChange={(v) => {
                               setSelectedPaymentLinkId(v);
@@ -835,30 +903,10 @@ export default function CadastrarCliente() {
                                 setLinkValidation({ state: 'idle', message: '' });
                               }
                             }}
-                          >
-                            <SelectTrigger className="bg-secondary border-border text-foreground h-11">
-                              <SelectValue placeholder="Escolher link gerado recentemente..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border max-h-64">
-                              {recentPaymentLinks.map(link => (
-                                <SelectItem key={link.id} value={link.id}>
-                                  <span className="flex items-center gap-2 text-xs">
-                                    <span className="font-medium">{link.empresa}</span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span className="uppercase text-[10px] px-1.5 py-0.5 rounded bg-muted">
-                                      {link.provider === 'stripe' ? 'Stripe' : 'MP'}
-                                    </span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span>R$ {Number(link.valor_com_taxa).toFixed(2)}</span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span className={link.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}>
-                                      {link.status === 'paid' ? 'pago' : link.status}
-                                    </span>
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Buscar link pelo nome da empresa..."
+                            searchPlaceholder="Digite o nome do link/empresa..."
+                            emptyMessage="Nenhum link encontrado."
+                          />
                         </div>
                       )}
 
@@ -912,8 +960,49 @@ export default function CadastrarCliente() {
                         </div>
                       )}
 
+                      {linkValidation.state !== 'success' && (
+                        <p className="text-[10px] text-destructive bg-destructive/5 p-2 rounded border border-destructive/20 font-medium">
+                          🚫 Link ainda não pago — primeiro pague o link e clique em "Validar". Só será possível salvar o cliente após confirmação.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {paymentMethod === 'other' && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-amber-500 font-medium">
+                          Observação do pagamento <span className="text-destructive">*</span>
+                        </Label>
+                        <Textarea
+                          placeholder="Ex: Pago via boleto bancário em 25/04/2026 — banco Itaú..."
+                          value={otherObservation}
+                          onChange={(e) => setOtherObservation(e.target.value)}
+                          className="bg-secondary border-border text-foreground min-h-[80px] text-xs"
+                          required
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Obrigatório: descreva o motivo / forma do pagamento (boleto, transferência, dinheiro, etc.).
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground font-medium">
+                          Comprovante (opcional)
+                        </Label>
+                        <Input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => setOtherProof(e.target.files?.[0] || null)}
+                          className="bg-secondary border-border text-xs h-11 pt-2.5 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Recomendado anexar comprovante se houver (boleto pago, recibo, print, etc.).
+                        </p>
+                      </div>
+
                       <p className="text-[10px] text-muted-foreground bg-amber-500/5 p-2 rounded border border-amber-500/20">
-                        ⚠️ O link será consultado no Mercado Pago / Stripe e enviado para aprovação em "Segurança de Pagamento" (com olhinho mostrando os dados validados).
+                        ⚠️ Pagamento ficará pendente em "Segurança de Pagamento" para aprovação manual.
                       </p>
                     </div>
                   )}
