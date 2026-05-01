@@ -534,6 +534,93 @@ export function usePaymentStatus() {
     }
   };
 
+  // Register a manual / "Other" payment (boleto, transferência, dinheiro, etc.)
+  // Always goes to "Segurança de Pagamento" as pending_approval.
+  // Observation is REQUIRED; proof file is OPTIONAL but recommended.
+  const registerOtherPayment = async (params: {
+    clienteId: string;
+    declaredAmount: number;
+    observation: string;
+    proof?: File | null;
+  }): Promise<boolean> => {
+    try {
+      const { clienteId, declaredAmount, observation, proof } = params;
+
+      if (!observation || !observation.trim()) {
+        toast({
+          title: 'Observação obrigatória',
+          description: 'Explique o motivo do pagamento manual / outros.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      // Optional proof upload
+      let proofUrl: string | null = null;
+      if (proof) {
+        const fileExt = proof.name.split('.').pop();
+        const fileName = `${clienteId}_other_${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, proof);
+        if (!uploadError && uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('payment-proofs')
+            .getPublicUrl(uploadData.path);
+          proofUrl = publicUrl;
+        }
+      }
+
+      // Capture submitter
+      const { data: { user: submitter } } = await supabase.auth.getUser();
+      let submittedByName: string | null = null;
+      if (submitter?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', submitter.id)
+          .maybeSingle();
+        submittedByName = profile?.name ?? null;
+      }
+
+      const paymentId = `manual_other_${Date.now()}`;
+      const { error: insertError } = await supabase
+        .from('client_payments')
+        .insert({
+          cliente_id: clienteId,
+          payment_id: paymentId,
+          payment_type: 'outros_manual',
+          amount: declaredAmount,
+          status: 'pending_approval',
+          paid_at: null,
+          billing_date: new Date().toISOString().split('T')[0],
+          comprovante_url: proofUrl,
+          ocr_status: 'manual_review',
+          approval_reason: observation.trim(),
+          submitted_by: submitter?.id ?? null,
+          submitted_by_email: submitter?.email ?? null,
+          submitted_by_name: submittedByName,
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: '📨 Enviado para aprovação',
+        description: 'O pagamento manual foi enviado para "Segurança de Pagamento" para aprovação.',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error registering other payment:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao registrar pagamento manual.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     isLoading,
     checkPaymentStatus,
@@ -543,5 +630,6 @@ export function usePaymentStatus() {
     cancelPayment,
     registerEarlyPayment,
     registerLinkPayment,
+    registerOtherPayment,
   };
 }
