@@ -461,6 +461,16 @@ export default function CadastrarCliente() {
         });
       }
 
+      // Se for Outros / Manual, sempre envia para Segurança de Pagamento (sem OCR)
+      if (paymentMethod === 'other' && formData.valor > 0) {
+        await registerOtherPayment({
+          clienteId: cliente.id,
+          declaredAmount: Number(formData.valor),
+          observation: otherObservation.trim(),
+          proof: otherProof,
+        });
+      }
+
       if (clienteType === 'registro' && uploadedFiles.length > 0) {
         await uploadFilesToStorage(cliente.id);
       }
