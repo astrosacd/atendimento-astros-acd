@@ -887,9 +887,13 @@ export default function CadastrarCliente() {
                       {recentPaymentLinks.length > 0 && (
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground font-medium">
-                            Links recentes (últimos 30 dias)
+                            Links recentes (não expirados • não utilizados)
                           </Label>
-                          <Select
+                          <SearchableSelect
+                            options={recentPaymentLinks.map(link => ({
+                              value: link.id,
+                              label: `${link.empresa} · ${link.provider === 'stripe' ? 'Stripe' : 'MP'} · R$ ${Number(link.valor_com_taxa).toFixed(2)} · ${link.status === 'paid' ? 'pago' : link.status}`,
+                            }))}
                             value={selectedPaymentLinkId}
                             onValueChange={(v) => {
                               setSelectedPaymentLinkId(v);
@@ -899,30 +903,10 @@ export default function CadastrarCliente() {
                                 setLinkValidation({ state: 'idle', message: '' });
                               }
                             }}
-                          >
-                            <SelectTrigger className="bg-secondary border-border text-foreground h-11">
-                              <SelectValue placeholder="Escolher link gerado recentemente..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border max-h-64">
-                              {recentPaymentLinks.map(link => (
-                                <SelectItem key={link.id} value={link.id}>
-                                  <span className="flex items-center gap-2 text-xs">
-                                    <span className="font-medium">{link.empresa}</span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span className="uppercase text-[10px] px-1.5 py-0.5 rounded bg-muted">
-                                      {link.provider === 'stripe' ? 'Stripe' : 'MP'}
-                                    </span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span>R$ {Number(link.valor_com_taxa).toFixed(2)}</span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span className={link.status === 'paid' ? 'text-emerald-600' : 'text-amber-600'}>
-                                      {link.status === 'paid' ? 'pago' : link.status}
-                                    </span>
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Buscar link pelo nome da empresa..."
+                            searchPlaceholder="Digite o nome do link/empresa..."
+                            emptyMessage="Nenhum link encontrado."
+                          />
                         </div>
                       )}
 
@@ -976,8 +960,49 @@ export default function CadastrarCliente() {
                         </div>
                       )}
 
+                      {linkValidation.state !== 'success' && (
+                        <p className="text-[10px] text-destructive bg-destructive/5 p-2 rounded border border-destructive/20 font-medium">
+                          🚫 Link ainda não pago — primeiro pague o link e clique em "Validar". Só será possível salvar o cliente após confirmação.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {paymentMethod === 'other' && (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-amber-500 font-medium">
+                          Observação do pagamento <span className="text-destructive">*</span>
+                        </Label>
+                        <Textarea
+                          placeholder="Ex: Pago via boleto bancário em 25/04/2026 — banco Itaú..."
+                          value={otherObservation}
+                          onChange={(e) => setOtherObservation(e.target.value)}
+                          className="bg-secondary border-border text-foreground min-h-[80px] text-xs"
+                          required
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Obrigatório: descreva o motivo / forma do pagamento (boleto, transferência, dinheiro, etc.).
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground font-medium">
+                          Comprovante (opcional)
+                        </Label>
+                        <Input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => setOtherProof(e.target.files?.[0] || null)}
+                          className="bg-secondary border-border text-xs h-11 pt-2.5 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Recomendado anexar comprovante se houver (boleto pago, recibo, print, etc.).
+                        </p>
+                      </div>
+
                       <p className="text-[10px] text-muted-foreground bg-amber-500/5 p-2 rounded border border-amber-500/20">
-                        ⚠️ O link será consultado no Mercado Pago / Stripe e enviado para aprovação em "Segurança de Pagamento" (com olhinho mostrando os dados validados).
+                        ⚠️ Pagamento ficará pendente em "Segurança de Pagamento" para aprovação manual.
                       </p>
                     </div>
                   )}
