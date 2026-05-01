@@ -112,7 +112,7 @@ export default function CadastrarCliente() {
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
-  const { registerEarlyPayment, registerLinkPayment } = usePaymentStatus();
+  const { registerEarlyPayment, registerLinkPayment, registerOtherPayment } = usePaymentStatus();
   const dupCheck = useDuplicateCheck();
 
   useEffect(() => {
