@@ -367,9 +367,24 @@ export default function CadastrarCliente() {
       }
 
       if (gatewayAmount !== undefined && Math.abs(gatewayAmount - declared) > 0.01) {
+        // Tolerância automática para taxa da plataforma (gateway cobra valor maior que o líquido).
+        // Aceita diferenças de até ~10% quando o gateway > digitado (cobre taxas típicas de MP/Stripe: 4,99% cartão, ~7% parcelado, etc).
+        const diff = gatewayAmount - declared;
+        const feePct = (diff / declared) * 100;
+        const isPlatformFee = diff > 0 && feePct <= 10;
+
+        if (isPlatformFee) {
+          setLinkValidation({
+            state: 'success',
+            message: `✅ Pagamento aprovado. Líquido: R$ ${declared.toFixed(2)} • Bruto: R$ ${gatewayAmount.toFixed(2)} (taxa da plataforma: ${feePct.toFixed(2)}%).`,
+            amount: gatewayAmount, transactionId: txnId,
+          });
+          return;
+        }
+
         setLinkValidation({
           state: 'divergent',
-          message: `Valor divergente! Gateway: ${gatewayAmount.toFixed(2)} × Digitado: ${declared.toFixed(2)}.`,
+          message: `Valor divergente! Gateway: R$ ${gatewayAmount.toFixed(2)} × Digitado: R$ ${declared.toFixed(2)} (diferença de ${feePct.toFixed(2)}%, fora da faixa de taxa).`,
           amount: gatewayAmount, transactionId: txnId,
         });
         return;
@@ -377,7 +392,7 @@ export default function CadastrarCliente() {
 
       setLinkValidation({
         state: 'success',
-        message: `Pagamento aprovado no gateway. Valor: ${(gatewayAmount ?? declared).toFixed(2)}.`,
+        message: `Pagamento aprovado no gateway. Valor: R$ ${(gatewayAmount ?? declared).toFixed(2)}.`,
         amount: gatewayAmount, transactionId: txnId,
       });
     } catch (err: any) {
