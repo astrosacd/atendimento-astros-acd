@@ -134,18 +134,38 @@ export default function CadastrarCliente() {
     fetchTags();
   }, []);
 
-  // Fetch recent payment links (last 30 days, pending) for the dropdown
+  // Fetch recent payment links (não expirados) + IDs já usados em outros clientes
   useEffect(() => {
     if (paymentMethod !== 'link_pagamento') return;
     const fetchLinks = async () => {
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
-        .from('payment_links')
-        .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setRecentPaymentLinks((data as any) || []);
+      const nowIso = new Date().toISOString();
+      // Janela ampla (90d) — já filtramos por expires_at e por uso
+      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [{ data: links }, { data: usedRows }] = await Promise.all([
+        supabase
+          .from('payment_links')
+          .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id, expires_at')
+          .gte('created_at', since)
+          .gt('expires_at', nowIso)            // <- não mostrar expirados
+          .neq('status', 'expired')
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('client_payments')
+          .select('comprovante_url')
+          .eq('payment_type', 'link_pagamento'),
+      ]);
+
+      const used = new Set<string>();
+      (usedRows || []).forEach((r: any) => {
+        if (r.comprovante_url) used.add(r.comprovante_url);
+      });
+      setUsedLinkIds(used);
+
+      // Remover links cuja URL já foi usada em outro cadastro
+      const filtered = (links || []).filter((l: any) => !used.has(l.payment_url));
+      setRecentPaymentLinks(filtered as any);
     };
     fetchLinks();
   }, [paymentMethod]);
