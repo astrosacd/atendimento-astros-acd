@@ -507,6 +507,8 @@ export default function CadastrarCliente() {
     setPaymentLinkUrl('');
     setSelectedPaymentLinkId('');
     setLinkValidation({ state: 'idle', message: '' });
+    setOtherObservation('');
+    setOtherProof(null);
     setCreatedClienteId(null);
     setClienteType(null);
     setShowSuccess(false);
