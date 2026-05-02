@@ -373,16 +373,44 @@ export default function CadastrarCliente() {
       }
 
       if (gatewayAmount !== undefined && Math.abs(gatewayAmount - declared) > 0.01) {
-        // Tolerância automática para taxa da plataforma (gateway cobra valor maior que o líquido).
-        // Aceita diferenças de até ~10% quando o gateway > digitado (cobre taxas típicas de MP/Stripe: 4,99% cartão, ~7% parcelado, etc).
+        // Buscar a taxa configurada exata (Cobrança → Pagamentos) se ainda não tivermos do link
+        let configuredFee = linkFeePercent;
+        if (configuredFee === undefined) {
+          try {
+            if (linkProvider === 'stripe' || (!linkProvider && stripePaymentId)) {
+              const { data: row } = await supabase
+                .from('billing_stripe_config')
+                .select('stripe_tax_percent')
+                .limit(1)
+                .maybeSingle();
+              configuredFee = Number(row?.stripe_tax_percent || 0);
+            } else {
+              const { data: row } = await supabase
+                .from('billing_config')
+                .select('config_value')
+                .eq('config_key', 'mp_taxa_cartao')
+                .maybeSingle();
+              const parsed = parseFloat(String(row?.config_value ?? '').replace(',', '.'));
+              configuredFee = Number.isFinite(parsed) ? parsed : 0;
+            }
+          } catch {
+            configuredFee = 0;
+          }
+        }
+
+        const fee = Number(configuredFee) || 0;
+        // Mesma fórmula usada na geração do link: bruto = líquido / (1 - fee/100)
+        const expectedGross = fee > 0 ? declared / (1 - fee / 100) : declared;
         const diff = gatewayAmount - declared;
-        const feePct = (diff / declared) * 100;
-        const isPlatformFee = diff > 0 && feePct <= 10;
+        const feePctReal = (diff / declared) * 100;
+        // Tolerância pequena para arredondamento do gateway (R$ 0,05 ou 0,2%, o que for maior)
+        const tolerance = Math.max(0.05, expectedGross * 0.002);
+        const isPlatformFee = Math.abs(gatewayAmount - expectedGross) <= tolerance;
 
         if (isPlatformFee) {
           setLinkValidation({
             state: 'success',
-            message: `✅ Pagamento aprovado. Líquido: R$ ${declared.toFixed(2)} • Bruto: R$ ${gatewayAmount.toFixed(2)} (taxa da plataforma: ${feePct.toFixed(2)}%).`,
+            message: `✅ Pagamento aprovado. Líquido: R$ ${declared.toFixed(2)} • Bruto: R$ ${gatewayAmount.toFixed(2)} (taxa configurada: ${fee.toFixed(2)}%).`,
             amount: gatewayAmount, transactionId: txnId,
           });
           return;
@@ -390,7 +418,7 @@ export default function CadastrarCliente() {
 
         setLinkValidation({
           state: 'divergent',
-          message: `Valor divergente! Gateway: R$ ${gatewayAmount.toFixed(2)} × Digitado: R$ ${declared.toFixed(2)} (diferença de ${feePct.toFixed(2)}%, fora da faixa de taxa).`,
+          message: `Valor divergente! Gateway: R$ ${gatewayAmount.toFixed(2)} × Digitado: R$ ${declared.toFixed(2)}. Esperado bruto com taxa de ${fee.toFixed(2)}%: R$ ${expectedGross.toFixed(2)} (diferença real: ${feePctReal.toFixed(2)}%).`,
           amount: gatewayAmount, transactionId: txnId,
         });
         return;
