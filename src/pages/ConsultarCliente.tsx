@@ -742,7 +742,13 @@ export default function ConsultarCliente() {
                                   <span className="text-xs font-medium hidden sm:inline">Ações</span>
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-60">
+                              <DropdownMenuContent
+                                align="end"
+                                side="left"
+                                sideOffset={8}
+                                collisionPadding={16}
+                                className="w-60 max-h-[70vh] overflow-y-auto"
+                              >
                                 {/* Grupo: Pagamento */}
                                 {isAdmin && (
                                   <>
