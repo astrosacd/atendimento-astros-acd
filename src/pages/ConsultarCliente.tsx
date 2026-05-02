@@ -749,6 +749,15 @@ export default function ConsultarCliente() {
                                 collisionPadding={16}
                                 className="w-60 max-h-[70vh] overflow-y-auto"
                               >
+                                <div className="px-3 py-2 border-b border-border/40 bg-muted/20">
+                                  <p className="text-[10px] font-bold text-primary uppercase truncate leading-tight">
+                                    {cliente.nome}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+                                    {cliente.produto || 'Sem produto'}
+                                  </p>
+                                </div>
+
                                 {/* Grupo: Pagamento */}
                                 {isAdmin && (
                                   <>
