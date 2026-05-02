@@ -265,12 +265,15 @@ export default function CadastrarCliente() {
       let mpPaymentId: string | undefined;
       let stripePaymentId: string | undefined;
       let urlForLookup = paymentLinkUrl.trim();
+      let linkProvider: 'mercadopago' | 'stripe' | undefined;
+      let linkFeePercent: number | undefined;
 
       // 1. If it's selected from dropdown, we already have IDs or can find them
       if (selectedPaymentLinkId) {
         const link = recentPaymentLinks.find(l => l.id === selectedPaymentLinkId);
         if (link) {
           urlForLookup = link.payment_url;
+          linkProvider = link.provider as any;
           if (link.mp_payment_id) {
             if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
             else mpPaymentId = link.mp_payment_id;
