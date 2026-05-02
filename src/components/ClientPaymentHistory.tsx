@@ -58,7 +58,12 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [earlyPaymentAmount, setEarlyPaymentAmount] = useState('');
   const [earlyPaymentProof, setEarlyPaymentProof] = useState<File | null>(null);
   const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
-  const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
+  // Approval-submission dialog state
+  const [approvalPayment, setApprovalPayment] = useState<Payment | null>(null);
+  const [approvalProof, setApprovalProof] = useState<File | null>(null);
+  const [approvalRef, setApprovalRef] = useState('');
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const { fetchClientPayments, cancelPayment, registerEarlyPayment, submitPendingForApproval } = usePaymentStatus();
   const { canRegisterPixpaguePayment } = usePermissions();
 
   useEffect(() => {
