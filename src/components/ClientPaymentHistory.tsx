@@ -466,9 +466,9 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                         size="sm"
                                         variant="ghost"
                                         className="text-emerald-400 hover:bg-emerald-500/10 h-8 w-8 p-0"
-                                        onClick={() => handleMarkAsPaid(payment.id)}
+                                        onClick={() => openApprovalDialog(payment)}
                                         disabled={actionLoading === payment.id}
-                                        title="Marcar como pago"
+                                        title="Marcar como pago (envia para Segurança de Pagamento)"
                                       >
                                         <CheckCircle className="w-4 h-4" />
                                       </Button>
