@@ -71,6 +71,7 @@ import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
+import SalaAgentes from "./pages/SalaAgentes";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,7 @@ function AppRoutes() {
           : <Navigate to="/auth" replace />
       } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
+      <Route path="/sala-agentes" element={<ProtectedRoute permission="view_dashboard"><SalaAgentes /></ProtectedRoute>} />
       
       {/* Client Management - permission-based */}
       <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />
