@@ -145,7 +145,7 @@ export default function CadastrarCliente() {
       const [{ data: links }, { data: usedRows }] = await Promise.all([
         supabase
           .from('payment_links')
-          .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id, expires_at')
+          .select('id, empresa, provider, payment_url, valor_com_taxa, taxa_percentual, status, created_at, mp_payment_id, expires_at')
           .gte('created_at', since)
           .gt('expires_at', nowIso)            // <- não mostrar expirados
           .neq('status', 'expired')
@@ -265,12 +265,16 @@ export default function CadastrarCliente() {
       let mpPaymentId: string | undefined;
       let stripePaymentId: string | undefined;
       let urlForLookup = paymentLinkUrl.trim();
+      let linkProvider: 'mercadopago' | 'stripe' | undefined;
+      let linkFeePercent: number | undefined;
 
       // 1. If it's selected from dropdown, we already have IDs or can find them
       if (selectedPaymentLinkId) {
         const link = recentPaymentLinks.find(l => l.id === selectedPaymentLinkId);
         if (link) {
           urlForLookup = link.payment_url;
+          linkProvider = link.provider as any;
+          linkFeePercent = typeof (link as any).taxa_percentual === 'number' ? (link as any).taxa_percentual : undefined;
           if (link.mp_payment_id) {
             if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
             else mpPaymentId = link.mp_payment_id;
@@ -302,11 +306,13 @@ export default function CadastrarCliente() {
           // It's a URL. First, try to see if it belongs to a link we generated
           const { data: linkData } = await supabase
             .from('payment_links')
-            .select('id, mp_payment_id, provider, preference_id, external_reference')
+            .select('id, mp_payment_id, provider, preference_id, external_reference, taxa_percentual')
             .or(`payment_url.eq.${urlForLookup},preference_id.eq.${urlForLookup},external_reference.eq.${urlForLookup}`)
             .maybeSingle();
 
           if (linkData) {
+            linkProvider = (linkData as any).provider;
+            linkFeePercent = typeof (linkData as any).taxa_percentual === 'number' ? (linkData as any).taxa_percentual : undefined;
             if (linkData.mp_payment_id) {
               if (linkData.provider === 'stripe') stripePaymentId = linkData.mp_payment_id;
               else mpPaymentId = linkData.mp_payment_id;
@@ -367,16 +373,44 @@ export default function CadastrarCliente() {
       }
 
       if (gatewayAmount !== undefined && Math.abs(gatewayAmount - declared) > 0.01) {
-        // Tolerância automática para taxa da plataforma (gateway cobra valor maior que o líquido).
-        // Aceita diferenças de até ~10% quando o gateway > digitado (cobre taxas típicas de MP/Stripe: 4,99% cartão, ~7% parcelado, etc).
+        // Buscar a taxa configurada exata (Cobrança → Pagamentos) se ainda não tivermos do link
+        let configuredFee = linkFeePercent;
+        if (configuredFee === undefined) {
+          try {
+            if (linkProvider === 'stripe' || (!linkProvider && stripePaymentId)) {
+              const { data: row } = await supabase
+                .from('billing_stripe_config')
+                .select('stripe_tax_percent')
+                .limit(1)
+                .maybeSingle();
+              configuredFee = Number(row?.stripe_tax_percent || 0);
+            } else {
+              const { data: row } = await supabase
+                .from('billing_config')
+                .select('config_value')
+                .eq('config_key', 'mp_taxa_cartao')
+                .maybeSingle();
+              const parsed = parseFloat(String(row?.config_value ?? '').replace(',', '.'));
+              configuredFee = Number.isFinite(parsed) ? parsed : 0;
+            }
+          } catch {
+            configuredFee = 0;
+          }
+        }
+
+        const fee = Number(configuredFee) || 0;
+        // Mesma fórmula usada na geração do link: bruto = líquido / (1 - fee/100)
+        const expectedGross = fee > 0 ? declared / (1 - fee / 100) : declared;
         const diff = gatewayAmount - declared;
-        const feePct = (diff / declared) * 100;
-        const isPlatformFee = diff > 0 && feePct <= 10;
+        const feePctReal = (diff / declared) * 100;
+        // Tolerância pequena para arredondamento do gateway (R$ 0,05 ou 0,2%, o que for maior)
+        const tolerance = Math.max(0.05, expectedGross * 0.002);
+        const isPlatformFee = Math.abs(gatewayAmount - expectedGross) <= tolerance;
 
         if (isPlatformFee) {
           setLinkValidation({
             state: 'success',
-            message: `✅ Pagamento aprovado. Líquido: R$ ${declared.toFixed(2)} • Bruto: R$ ${gatewayAmount.toFixed(2)} (taxa da plataforma: ${feePct.toFixed(2)}%).`,
+            message: `✅ Pagamento aprovado. Líquido: R$ ${declared.toFixed(2)} • Bruto: R$ ${gatewayAmount.toFixed(2)} (taxa configurada: ${fee.toFixed(2)}%).`,
             amount: gatewayAmount, transactionId: txnId,
           });
           return;
@@ -384,7 +418,7 @@ export default function CadastrarCliente() {
 
         setLinkValidation({
           state: 'divergent',
-          message: `Valor divergente! Gateway: R$ ${gatewayAmount.toFixed(2)} × Digitado: R$ ${declared.toFixed(2)} (diferença de ${feePct.toFixed(2)}%, fora da faixa de taxa).`,
+          message: `Valor divergente! Gateway: R$ ${gatewayAmount.toFixed(2)} × Digitado: R$ ${declared.toFixed(2)}. Esperado bruto com taxa de ${fee.toFixed(2)}%: R$ ${expectedGross.toFixed(2)} (diferença real: ${feePctReal.toFixed(2)}%).`,
           amount: gatewayAmount, transactionId: txnId,
         });
         return;
