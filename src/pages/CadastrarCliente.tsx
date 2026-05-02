@@ -168,7 +168,7 @@ export default function CadastrarCliente() {
       setRecentPaymentLinks(filtered as any);
     };
     fetchLinks();
-  }, [paymentMethod]);
+  }, [paymentMethod, clienteType]);
 
   useEffect(() => {
     if (clienteType === 'mensal') {
