@@ -274,6 +274,7 @@ export default function CadastrarCliente() {
         if (link) {
           urlForLookup = link.payment_url;
           linkProvider = link.provider as any;
+          linkFeePercent = typeof (link as any).taxa_percentual === 'number' ? (link as any).taxa_percentual : undefined;
           if (link.mp_payment_id) {
             if (link.provider === 'stripe') stripePaymentId = link.mp_payment_id;
             else mpPaymentId = link.mp_payment_id;
