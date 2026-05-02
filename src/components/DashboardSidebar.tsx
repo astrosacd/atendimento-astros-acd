@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   UserPlus, Search, Edit, Trash2, Users, Settings, 
   LayoutDashboard, Webhook, LogOut, ChevronLeft, ChevronRight, 
-  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle
+  Key, FileText, CreditCard, MessageCircle, ShieldCheck, Tag, Megaphone, Smartphone, Database, HelpCircle, ShoppingBag, Ticket, Sparkles, Store, BarChart3, ListTodo, FileSignature, Receipt, CalendarClock, Columns3, Crosshair, CalendarDays, Link2, Brain, Network, Package, UserCircle, Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -254,6 +254,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
       title: t('sidebar.groups.crm'),
       items: [
         { title: t('sidebar.dashboard'), icon: LayoutDashboard, path: '/dashboard', color: 'text-info', gradient: 'from-blue-500 to-cyan-500' },
+        { title: 'Sala dos Agentes', icon: Bot, path: '/sala-agentes', color: 'text-fuchsia-500', gradient: 'from-fuchsia-500 to-purple-500' },
         { title: t('sidebar.pipeline'), icon: Columns3, path: '/kanban', adminOnly: !canViewPipeline(), color: 'text-indigo-500', gradient: 'from-indigo-500 to-violet-500' },
         { title: t('sidebar.calendar'), icon: CalendarDays, path: '/agenda', adminOnly: !canViewAgenda(), color: 'text-teal-500', gradient: 'from-teal-500 to-cyan-500' },
         { title: t('sidebar.tasks'), icon: ListTodo, path: '/tarefas', color: 'text-amber-500', gradient: 'from-amber-500 to-orange-500' },
