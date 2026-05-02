@@ -79,15 +79,32 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     setIsLoading(false);
   };
 
-  const handleMarkAsPaid = async (paymentId: string) => {
-    setActionLoading(paymentId);
-    const success = await markPaymentAsPaid(paymentId);
+  const openApprovalDialog = (payment: Payment) => {
+    setApprovalPayment(payment);
+    setApprovalProof(null);
+    setApprovalRef('');
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!approvalPayment) return;
+    const isLinkLike = isLinkPaymentType(approvalPayment.payment_type);
+    if (!approvalProof && !(isLinkLike && approvalRef.trim())) {
+      return;
+    }
+    setApprovalLoading(true);
+    const success = await submitPendingForApproval({
+      paymentId: approvalPayment.id,
+      comprovante: approvalProof,
+      transactionRef: approvalProof ? null : approvalRef.trim() || null,
+    });
+    setApprovalLoading(false);
     if (success) {
+      setApprovalPayment(null);
+      setApprovalProof(null);
+      setApprovalRef('');
       await loadPayments();
-      // Notify parent to refresh client data
       onPaymentUpdate?.();
     }
-    setActionLoading(null);
   };
 
   const handleCancel = async (paymentId: string) => {
