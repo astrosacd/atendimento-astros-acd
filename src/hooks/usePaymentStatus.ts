@@ -621,6 +621,116 @@ export function usePaymentStatus() {
     }
   };
 
+  // Submit a pending billing for approval (sends to "Segurança de Pagamento")
+  // Used when the user clicks the green "Pago" button on a billing — instead of
+  // marking it as paid directly, the billing is updated to pending_approval with
+  // the proof attached (PIX/Boleto = file required; Link/Stripe = link or proof).
+  const submitPendingForApproval = async (params: {
+    paymentId: string;
+    comprovante?: File | null;
+    transactionRef?: string | null; // payment link URL or transaction ID
+  }): Promise<boolean> => {
+    try {
+      const { paymentId, comprovante, transactionRef } = params;
+
+      // Capture submitter for traceability
+      const { data: { user: submitter } } = await supabase.auth.getUser();
+      let submittedByName: string | null = null;
+      if (submitter?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', submitter.id)
+          .maybeSingle();
+        submittedByName = profile?.name ?? null;
+      }
+
+      // Get current payment to find cliente_id
+      const { data: existing, error: fetchError } = await supabase
+        .from('client_payments')
+        .select('cliente_id, amount')
+        .eq('id', paymentId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      // Upload proof if provided
+      let comprovanteUrl: string | null = null;
+      if (comprovante) {
+        const fileExt = comprovante.name.split('.').pop();
+        const fileName = `${existing.cliente_id}_${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('payment-proofs')
+          .upload(fileName, comprovante);
+        if (uploadError || !uploadData) {
+          toast({
+            title: 'Erro ao enviar comprovante',
+            description: uploadError?.message || 'Falha no upload do arquivo.',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        const { data: { publicUrl } } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(uploadData.path);
+        comprovanteUrl = publicUrl;
+      } else if (transactionRef) {
+        // Use the link/transaction reference as the "proof" pointer
+        comprovanteUrl = transactionRef;
+      } else {
+        toast({
+          title: 'Comprovante obrigatório',
+          description: 'Anexe o comprovante ou informe o link/ID da transação para enviar para aprovação.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      // Update billing → pending_approval (do NOT mark as paid yet)
+      const { error: updateError } = await supabase
+        .from('client_payments')
+        .update({
+          status: 'pending_approval',
+          comprovante_url: comprovanteUrl,
+          ocr_status: 'pending',
+          submitted_by: submitter?.id ?? null,
+          submitted_by_email: submitter?.email ?? null,
+          submitted_by_name: submittedByName,
+        })
+        .eq('id', paymentId);
+      if (updateError) throw updateError;
+
+      // Trigger background analysis (OCR / link validation) when there is a file
+      if (comprovante) {
+        try {
+          await supabase.functions.invoke('pixpague-trigger-processing', {
+            body: {
+              paymentId,
+              proofUrl: comprovanteUrl,
+              declaredAmount: existing.amount,
+            },
+          });
+        } catch (err) {
+          console.error('Erro ao agendar análise:', err);
+        }
+      }
+
+      toast({
+        title: '📨 Enviado para aprovação',
+        description: 'A cobrança foi para "Segurança de Pagamento". O recibo e a renovação só serão liberados após aprovação.',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error submitting payment for approval:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao enviar pagamento para aprovação.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   return {
     isLoading,
     checkPaymentStatus,
@@ -631,5 +741,6 @@ export function usePaymentStatus() {
     registerEarlyPayment,
     registerLinkPayment,
     registerOtherPayment,
+    submitPendingForApproval,
   };
 }
