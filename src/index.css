@@ -4,6 +4,31 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+/* === Sala de Agentes — tokens locais (não tocam no tema global) === */
+:root {
+  --room-bg: 30 35% 92%;
+  --room-wall: 220 20% 80%;
+  --room-floor: 35 30% 78%;
+  --room-accent: 222 88% 60%;
+  --room-accent-glow: 222 88% 70%;
+
+  --agent-blue: 222 88% 60%;
+  --agent-green: 152 70% 50%;
+  --agent-orange: 28 90% 58%;
+  --agent-purple: 270 70% 60%;
+  --agent-pink: 330 75% 62%;
+  --agent-cyan: 190 85% 55%;
+
+  --status-idle: 220 8% 55%;
+  --status-working: 142 71% 45%;
+  --status-thinking: 38 92% 50%;
+  --status-talking: 217 91% 60%;
+  --status-error: 0 72% 51%;
+}
+
+.font-display { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
 
 @layer base {
   :root {
