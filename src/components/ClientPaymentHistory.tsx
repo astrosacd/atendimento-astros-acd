@@ -497,6 +497,73 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
           </div>
         )}
       </DialogContent>
+
+      {/* Dialog: enviar pagamento pendente para Segurança de Pagamento */}
+      <Dialog open={!!approvalPayment} onOpenChange={(open) => { if (!open) setApprovalPayment(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar para aprovação</DialogTitle>
+            <DialogDescription>
+              {approvalPayment && (
+                <>
+                  {getPaymentTypeLabel(approvalPayment.payment_type)} •{' '}
+                  {formatCurrency(approvalPayment.amount, getPaymentCurrency(approvalPayment.payment_type))}
+                  <br />
+                  Anexe o comprovante {isLinkPaymentType(approvalPayment.payment_type) ? 'ou cole o link/ID da transação' : 'do pagamento'} para enviar para "Segurança de Pagamento".
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Comprovante (imagem ou PDF)</Label>
+              <Input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setApprovalProof(e.target.files?.[0] || null)}
+                className="bg-secondary border-border h-10 text-xs"
+              />
+            </div>
+
+            {approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Ou cole o link / ID da transação (Mercado Pago / Stripe)
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="https://... ou pi_... / ID numérico"
+                  value={approvalRef}
+                  onChange={(e) => setApprovalRef(e.target.value)}
+                  className="bg-secondary border-border h-10 text-xs"
+                  disabled={!!approvalProof}
+                />
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded p-2">
+              ⚠️ A cobrança ficará <b>aguardando aprovação</b> em "Segurança de Pagamento". O recibo e a renovação só serão liberados após aprovação.
+            </p>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setApprovalPayment(null)} disabled={approvalLoading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmitForApproval}
+              disabled={
+                approvalLoading ||
+                (!approvalProof &&
+                  !(approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && approvalRef.trim()))
+              }
+            >
+              {approvalLoading ? 'Enviando...' : 'Enviar para aprovação'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
