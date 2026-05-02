@@ -1,6 +1,6 @@
 import { Suspense, useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, Stats } from '@react-three/drei';
+import { OrbitControls, ContactShadows } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
