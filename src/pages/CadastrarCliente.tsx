@@ -306,11 +306,13 @@ export default function CadastrarCliente() {
           // It's a URL. First, try to see if it belongs to a link we generated
           const { data: linkData } = await supabase
             .from('payment_links')
-            .select('id, mp_payment_id, provider, preference_id, external_reference')
+            .select('id, mp_payment_id, provider, preference_id, external_reference, taxa_percentual')
             .or(`payment_url.eq.${urlForLookup},preference_id.eq.${urlForLookup},external_reference.eq.${urlForLookup}`)
             .maybeSingle();
 
           if (linkData) {
+            linkProvider = (linkData as any).provider;
+            linkFeePercent = typeof (linkData as any).taxa_percentual === 'number' ? (linkData as any).taxa_percentual : undefined;
             if (linkData.mp_payment_id) {
               if (linkData.provider === 'stripe') stripePaymentId = linkData.mp_payment_id;
               else mpPaymentId = linkData.mp_payment_id;
