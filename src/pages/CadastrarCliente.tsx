@@ -145,7 +145,7 @@ export default function CadastrarCliente() {
       const [{ data: links }, { data: usedRows }] = await Promise.all([
         supabase
           .from('payment_links')
-          .select('id, empresa, provider, payment_url, valor_com_taxa, status, created_at, mp_payment_id, expires_at')
+          .select('id, empresa, provider, payment_url, valor_com_taxa, taxa_percentual, status, created_at, mp_payment_id, expires_at')
           .gte('created_at', since)
           .gt('expires_at', nowIso)            // <- não mostrar expirados
           .neq('status', 'expired')
