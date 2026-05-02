@@ -147,8 +147,8 @@ export default function CadastrarCliente() {
           .from('payment_links')
           .select('id, empresa, provider, payment_url, valor_com_taxa, taxa_percentual, status, created_at, mp_payment_id, expires_at')
           .gte('created_at', since)
-          .gt('expires_at', nowIso)            // <- não mostrar expirados
-          .neq('status', 'expired')
+          // Mostrar links ainda válidos OU já pagos (mesmo que o checkout tenha expirado, o pagamento confirmado segue valendo)
+          .or(`status.eq.paid,and(expires_at.gt.${nowIso},status.neq.expired)`)
           .order('created_at', { ascending: false })
           .limit(100),
         supabase
