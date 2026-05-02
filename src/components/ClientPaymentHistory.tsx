@@ -50,6 +50,12 @@ const getPaymentCurrency = (paymentType: string): 'USD' | 'BRL' => {
   return 'BRL';
 };
 
+// Identifies link/card-like payment types where the proof can be a link/transaction ID
+const isLinkPaymentType = (paymentType: string): boolean => {
+  const t = paymentType.toLowerCase();
+  return t.includes('stripe') || t.includes('link') || t === 'mercadopago';
+};
+
 export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, onPaymentUpdate }: ClientPaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +64,12 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
   const [earlyPaymentAmount, setEarlyPaymentAmount] = useState('');
   const [earlyPaymentProof, setEarlyPaymentProof] = useState<File | null>(null);
   const [earlyPaymentLoading, setEarlyPaymentLoading] = useState(false);
-  const { fetchClientPayments, markPaymentAsPaid, cancelPayment, registerEarlyPayment } = usePaymentStatus();
+  // Approval-submission dialog state
+  const [approvalPayment, setApprovalPayment] = useState<Payment | null>(null);
+  const [approvalProof, setApprovalProof] = useState<File | null>(null);
+  const [approvalRef, setApprovalRef] = useState('');
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const { fetchClientPayments, cancelPayment, registerEarlyPayment, submitPendingForApproval } = usePaymentStatus();
   const { canRegisterPixpaguePayment } = usePermissions();
 
   useEffect(() => {
@@ -74,15 +85,32 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
     setIsLoading(false);
   };
 
-  const handleMarkAsPaid = async (paymentId: string) => {
-    setActionLoading(paymentId);
-    const success = await markPaymentAsPaid(paymentId);
+  const openApprovalDialog = (payment: Payment) => {
+    setApprovalPayment(payment);
+    setApprovalProof(null);
+    setApprovalRef('');
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!approvalPayment) return;
+    const isLinkLike = isLinkPaymentType(approvalPayment.payment_type);
+    if (!approvalProof && !(isLinkLike && approvalRef.trim())) {
+      return;
+    }
+    setApprovalLoading(true);
+    const success = await submitPendingForApproval({
+      paymentId: approvalPayment.id,
+      comprovante: approvalProof,
+      transactionRef: approvalProof ? null : approvalRef.trim() || null,
+    });
+    setApprovalLoading(false);
     if (success) {
+      setApprovalPayment(null);
+      setApprovalProof(null);
+      setApprovalRef('');
       await loadPayments();
-      // Notify parent to refresh client data
       onPaymentUpdate?.();
     }
-    setActionLoading(null);
   };
 
   const handleCancel = async (paymentId: string) => {
@@ -438,9 +466,9 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
                                         size="sm"
                                         variant="ghost"
                                         className="text-emerald-400 hover:bg-emerald-500/10 h-8 w-8 p-0"
-                                        onClick={() => handleMarkAsPaid(payment.id)}
+                                        onClick={() => openApprovalDialog(payment)}
                                         disabled={actionLoading === payment.id}
-                                        title="Marcar como pago"
+                                        title="Marcar como pago (envia para Segurança de Pagamento)"
                                       >
                                         <CheckCircle className="w-4 h-4" />
                                       </Button>
@@ -469,6 +497,73 @@ export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, 
           </div>
         )}
       </DialogContent>
+
+      {/* Dialog: enviar pagamento pendente para Segurança de Pagamento */}
+      <Dialog open={!!approvalPayment} onOpenChange={(open) => { if (!open) setApprovalPayment(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar para aprovação</DialogTitle>
+            <DialogDescription>
+              {approvalPayment && (
+                <>
+                  {getPaymentTypeLabel(approvalPayment.payment_type)} •{' '}
+                  {formatCurrency(approvalPayment.amount, getPaymentCurrency(approvalPayment.payment_type))}
+                  <br />
+                  Anexe o comprovante {isLinkPaymentType(approvalPayment.payment_type) ? 'ou cole o link/ID da transação' : 'do pagamento'} para enviar para "Segurança de Pagamento".
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Comprovante (imagem ou PDF)</Label>
+              <Input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setApprovalProof(e.target.files?.[0] || null)}
+                className="bg-secondary border-border h-10 text-xs"
+              />
+            </div>
+
+            {approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Ou cole o link / ID da transação (Mercado Pago / Stripe)
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="https://... ou pi_... / ID numérico"
+                  value={approvalRef}
+                  onChange={(e) => setApprovalRef(e.target.value)}
+                  className="bg-secondary border-border h-10 text-xs"
+                  disabled={!!approvalProof}
+                />
+              </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded p-2">
+              ⚠️ A cobrança ficará <b>aguardando aprovação</b> em "Segurança de Pagamento". O recibo e a renovação só serão liberados após aprovação.
+            </p>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setApprovalPayment(null)} disabled={approvalLoading}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmitForApproval}
+              disabled={
+                approvalLoading ||
+                (!approvalProof &&
+                  !(approvalPayment && isLinkPaymentType(approvalPayment.payment_type) && approvalRef.trim()))
+              }
+            >
+              {approvalLoading ? 'Enviando...' : 'Enviar para aprovação'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
