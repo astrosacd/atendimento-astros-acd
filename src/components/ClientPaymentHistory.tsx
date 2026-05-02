@@ -50,6 +50,12 @@ const getPaymentCurrency = (paymentType: string): 'USD' | 'BRL' => {
   return 'BRL';
 };
 
+// Identifies link/card-like payment types where the proof can be a link/transaction ID
+const isLinkPaymentType = (paymentType: string): boolean => {
+  const t = paymentType.toLowerCase();
+  return t.includes('stripe') || t.includes('link') || t === 'mercadopago';
+};
+
 export function ClientPaymentHistory({ clienteId, clienteName, isOpen, onClose, onPaymentUpdate }: ClientPaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
