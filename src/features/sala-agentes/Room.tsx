@@ -1,4 +1,4 @@
-import { Html } from '@react-three/drei';
+import { Html, Float, Text } from '@react-three/drei';
 import { ROOM_PALETTE } from './colors';
 
 /**
@@ -102,7 +102,7 @@ export function Room({ isNight }: { isNight?: boolean }) {
         </group>
       ))}
 
-      {/* Servidor Central (HUB de Integração) — Mais Tech */}
+      {/* Servidor Central (HUB de Integração) */}
       <group position={[0, 0, -2]}>
         <mesh castShadow position={[0, 0.8, 0]}>
           <boxGeometry args={[1.5, 1.6, 1.5]} />
@@ -119,8 +119,29 @@ export function Room({ isNight }: { isNight?: boolean }) {
             />
           </mesh>
         ))}
-        {/* Holograma em cima do servidor */}
-        <mesh position={[0, 2, 0]} rotation={[0, Date.now() / 1000, 0]}>
+        
+        {/* Logo flutuante da empresa */}
+        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+          <group position={[0, 2.8, 0]}>
+            <mesh rotation={[0, 0, 0]}>
+              <boxGeometry args={[1.8, 0.6, 0.1]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+            </mesh>
+            <Text
+              position={[0, 0, 0.06]}
+              fontSize={0.2}
+              color="#60a5fa"
+              anchorX="center"
+              anchorY="middle"
+            >
+              ASTROS CRM
+            </Text>
+            <pointLight position={[0, -0.5, 0]} intensity={1} color="#60a5fa" distance={3} />
+          </group>
+        </Float>
+
+        {/* Holograma central */}
+        <mesh position={[0, 2, 0]}>
           <octahedronGeometry args={[0.4]} />
           <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} emissive="#60a5fa" emissiveIntensity={2} wireframe />
         </mesh>

@@ -99,14 +99,8 @@ export function SalaAgentesScene() {
 
       if (error) throw error;
 
-      // Detecta se estamos no domínio lovable.app ou similar para construir a URL correta
-      const currentUrl = window.location.href;
-      const isLovableDev = currentUrl.includes('lovable.dev') || currentUrl.includes('lovable.app');
-      
-      let baseUrl = window.location.origin;
-      
-      // Ajuste crucial: Se estivermos no preview do Lovable, precisamos usar o domínio do Lovable app
-      // mas garantindo que o link seja /public/...
+      // Usamos a URL base vinda de project_urls ou window.location dependendo do ambiente
+      const baseUrl = "https://atendimento-astros-acd.lovable.app";
       const url = `${baseUrl}/public/sala-agentes?token=${token}`;
       
       await navigator.clipboard.writeText(url);
@@ -312,7 +306,7 @@ export function SalaAgentesScene() {
                     <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
                     <Activity className="absolute inset-0 h-4 w-4 scale-50 text-slate-400" />
                   </div>
-                  Escaneando pulso do sistema...
+                  Esperando atividades nos módulos do CRM...
                 </div>
               ) : (
                 <ul className="space-y-1.5">
