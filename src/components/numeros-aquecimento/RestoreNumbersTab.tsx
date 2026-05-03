@@ -172,11 +172,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       deletedRecord,
       statusId,
       modeloId,
+      tipoWhatsapp,
       observacoes,
     }: {
       deletedRecord: DeletedNumber;
       statusId: string;
       modeloId: string;
+      tipoWhatsapp: 'normal' | 'business';
       observacoes: string;
     }) => {
       const { data: profile } = await supabase
@@ -192,6 +194,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
           numero: deletedRecord.numero_valor,
           modelo_id: modeloId || null,
           status_id: statusId || null,
+          tipo_whatsapp: tipoWhatsapp,
           observacoes: observacoes || null,
           ultima_atividade: formatUltimaAtividade('cadastro'),
           created_by: user?.id,
