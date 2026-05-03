@@ -965,6 +965,11 @@ function CreateNumeroDialog({
       return;
     }
 
+    if (!tipoWhatsapp) {
+      toast.error('Tipo de WhatsApp é obrigatório');
+      return;
+    }
+
     // Check for duplicate number
     const normalizedInput = normalizeNumber(numero);
     const isDuplicate = existingNumeros.some(
@@ -1005,7 +1010,7 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
-        setTipoWhatsapp('normal');
+        setTipoWhatsapp('');
         setObservacoes('');
       }
     });
