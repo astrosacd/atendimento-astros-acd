@@ -996,7 +996,7 @@ export default function Dashboard() {
                   <span className="h-4 w-0.5 bg-amber-500 rounded-full"></span>
                   {t('sidebar.tickets')}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <Card 
                     className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/admin/chamados')}
