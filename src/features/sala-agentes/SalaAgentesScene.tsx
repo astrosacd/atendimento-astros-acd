@@ -148,21 +148,41 @@ export function SalaAgentesScene() {
         />
       </Canvas>
 
-      {/* HUD topo-esquerda — título + métricas */}
-      <div className="pointer-events-none absolute left-4 top-4 max-w-md">
+      {/* HUD topo-esquerda — título + métricas + compartilhamento */}
+      <div className="pointer-events-none absolute left-4 top-4 flex flex-col gap-3">
         <div className="pointer-events-auto rounded-xl bg-white/85 p-3 backdrop-blur shadow-lg ring-1 ring-slate-200">
-          <h1 className="font-display text-xl font-extrabold text-slate-900">
-            Sala dos Agentes
-          </h1>
-          <p className="mt-0.5 text-xs text-slate-600">
-            Visão ao vivo dos módulos do CRM trabalhando.
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="font-display text-xl font-extrabold text-slate-900">
+                Sala dos Agentes
+              </h1>
+              <p className="mt-0.5 text-xs text-slate-600">
+                Visão ao vivo dos módulos do CRM trabalhando.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 gap-2 bg-white/50" 
+                onClick={handleShare}
+                disabled={isGeneratingLink}
+              >
+                {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+                Compartilhar
+              </Button>
+            </div>
+          </div>
           <div className="mt-2 flex items-center gap-2 text-[11px]">
             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
               <Activity className="mr-1 h-3 w-3" /> {busyCount} ativos
             </Badge>
             <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
               <Sparkles className="mr-1 h-3 w-3" /> {AGENTS.length} agentes
+            </Badge>
+            <Badge variant="outline" className={`${isNight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+              {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
+              {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
             </Badge>
           </div>
         </div>
