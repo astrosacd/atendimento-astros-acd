@@ -206,14 +206,21 @@ export function SalaAgentesScene() {
 
       {/* Histórico ao vivo (rodapé direito) */}
       <div className="pointer-events-none absolute bottom-4 right-4 w-80">
-        <Card className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl ring-1 ring-slate-200 border-0">
-          <div className="border-b border-slate-200 px-3 py-2">
-            <h3 className="font-display text-sm font-bold text-slate-900">
+        <Card className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl ring-1 ring-slate-200 border-0 overflow-hidden">
+          <button 
+            className="flex w-full items-center justify-between border-b border-slate-200 px-3 py-2 text-left transition-colors hover:bg-slate-50"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <h3 className="flex items-center gap-2 font-display text-sm font-bold text-slate-900">
+              <Clock className="h-4 w-4 text-slate-500" />
               Atividades em tempo real
             </h3>
-          </div>
-          <ScrollArea className="h-56">
-            <div className="p-2">
+            {showHistory ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronUp className="h-4 w-4 text-slate-400" />}
+          </button>
+          
+          {showHistory && (
+            <ScrollArea className="h-56 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="p-2">
               {history.length === 0 ? (
                 <div className="flex h-40 items-center justify-center gap-2 text-xs text-slate-500">
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -245,8 +252,9 @@ export function SalaAgentesScene() {
                   })}
                 </ul>
               )}
-            </div>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          )}
         </Card>
       </div>
 
