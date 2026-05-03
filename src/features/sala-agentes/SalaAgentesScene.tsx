@@ -262,20 +262,31 @@ export function SalaAgentesScene() {
         )}
       </div>
 
-      {/* Legenda topo-direita */}
-      <div className="pointer-events-none absolute right-4 top-4">
-        <div className="pointer-events-auto rounded-xl bg-slate-900/90 p-4 backdrop-blur shadow-2xl ring-1 ring-white/20 text-white">
-          <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
-            Monitor de Status
-          </p>
-          <ul className="mt-3 space-y-2 text-xs">
-            <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
-            <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
-            <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
-            <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
-            <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
-          </ul>
-        </div>
+      {/* Monitor de Status topo-direita */}
+      <div className="pointer-events-none absolute right-4 top-4 flex flex-col items-end gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="pointer-events-auto h-8 w-8 rounded-full bg-slate-900/80 shadow-md ring-1 ring-white/20 hover:bg-slate-800 text-white"
+          onClick={() => setShowStatus(!showStatus)}
+        >
+          {showStatus ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+        
+        {showStatus && (
+          <div className="pointer-events-auto rounded-xl bg-slate-900/90 p-4 backdrop-blur shadow-2xl ring-1 ring-white/20 text-white animate-in slide-in-from-top-2 duration-200">
+            <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
+              Monitor de Status
+            </p>
+            <ul className="mt-3 space-y-2 text-xs">
+              <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
+              <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
+              <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
+              <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
+              <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Histórico ao vivo (rodapé direito) */}
