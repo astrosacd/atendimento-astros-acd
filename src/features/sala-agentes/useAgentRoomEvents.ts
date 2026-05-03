@@ -3,34 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { agentForActivity, agentForEvent, AGENTS, AgentStatus } from './agents';
 
 export interface AgentEvent {
-  id: string;            // uuid local
+  id: string;
   agentId: string;
   status: Exclude<AgentStatus, 'idle'>;
-  message: string;       // texto curto p/ balão
-  detail?: string;       // texto p/ painel lateral
+  message: string;
+  detail?: string;
   ts: number;
 }
 
 interface AgentRuntimeState {
   status: AgentStatus;
   message?: string;
-  busyUntil: number; // timestamp em ms
-  position: [number, number]; // [x, z] atual
+  busyUntil: number;
+  position: [number, number];
 }
 
 const VALID_AGENT_IDS = new Set(AGENTS.map(a => a.id));
-
-// Tabelas críticas escutadas via realtime
-const REALTIME_TABLES = [
-  'client_payments',
-  'clientes',
-  'proposals',
-  'chamados',
-  'client_tasks',
-  'agenda_events', // pode não existir, ignorado se falhar
-];
-
-// Polling de system_activities a cada 8s
+const REALTIME_TABLES = ['client_payments', 'clientes', 'proposals', 'chamados', 'client_tasks'];
 const POLL_INTERVAL_MS = 8000;
 const BUSY_DURATION_MS = 4500;
 const RECENT_EVENTS_KEEP = 40;
@@ -41,52 +30,12 @@ function makeMessage(table: string, action: string, payload: any): { msg: string
   if (t === 'clientes') {
     const nome = payload?.new?.nome || payload?.old?.nome || 'cliente';
     if (a === 'INSERT') return { msg: `Novo cliente: ${nome}`, detail: `Cadastro de ${nome}` };
-    if (a === 'UPDATE') return { msg: `Atualizou ${nome}`, detail: `Cliente ${nome} atualizado` };
-    if (a === 'DELETE') return { msg: `Removeu ${nome}`, detail: `Cliente ${nome} excluído` };
+    return { msg: `${a.toLowerCase()} em clientes`, detail: `${a} em clientes` };
   }
-  if (t === 'client_payments') {
-    const status = payload?.new?.status || payload?.old?.status;
-    if (status === 'pending_approval') return { msg: 'Comprovante chegou', detail: 'Pagamento aguardando aprovação' };
-    if (status === 'paid') return { msg: 'Pagamento aprovado', detail: 'Cliente renovado' };
-    if (status === 'rejected') return { msg: 'Pagamento reprovado', detail: 'Comprovante rejeitado' };
-    return { msg: 'Mexendo em pagamento', detail: 'Atualizou registro de pagamento' };
-  }
-  if (t === 'proposals') {
-    if (a === 'INSERT') return { msg: 'Nova proposta', detail: 'Proposta criada' };
-    if (a === 'UPDATE') {
-      const st = payload?.new?.status;
-      if (st === 'sent') return { msg: 'Proposta enviada', detail: 'Proposta enviada ao cliente' };
-      if (st === 'accepted') return { msg: 'Proposta aceita 🎉', detail: 'Cliente aceitou' };
-      if (st === 'rejected') return { msg: 'Proposta recusada', detail: 'Cliente recusou' };
-      return { msg: 'Proposta atualizada', detail: 'Status alterado' };
-    }
-  }
-  if (t === 'chamados') {
-    if (a === 'INSERT') return { msg: 'Novo chamado', detail: 'Chamado aberto' };
-    if (a === 'UPDATE') return { msg: 'Mexeu no chamado', detail: 'Chamado atualizado' };
-  }
-  if (t === 'client_tasks') {
-    if (a === 'INSERT') return { msg: 'Nova tarefa', detail: 'Tarefa criada' };
-    if (a === 'UPDATE') return { msg: 'Tarefa atualizada', detail: 'Status de tarefa alterado' };
-  }
-  return { msg: `${a.toLowerCase()} em ${table}`, detail: `${a} ${table}` };
+  return { msg: `${a.toLowerCase()} em ${table}`, detail: `${a} em ${table}` };
 }
 
 function statusForEvent(table: string, payload: any): Exclude<AgentStatus, 'idle'> {
-  const t = table.toLowerCase();
-  if (t === 'client_payments') {
-    const st = payload?.new?.status;
-    if (st === 'rejected') return 'error';
-    if (st === 'pending_approval') return 'thinking';
-    if (st === 'paid') return 'working';
-  }
-  if (t === 'proposals') {
-    const st = payload?.new?.status;
-    if (st === 'sent') return 'talking';
-    if (st === 'rejected') return 'error';
-    if (st === 'accepted') return 'working';
-  }
-  if (t === 'chamados') return 'talking';
   return 'working';
 }
 
@@ -94,11 +43,7 @@ export function useAgentRoomEvents() {
   const [runtime, setRuntime] = useState<Record<string, AgentRuntimeState>>(() => {
     const init: Record<string, AgentRuntimeState> = {};
     AGENTS.forEach(a => {
-      init[a.id] = { 
-        status: 'idle', 
-        busyUntil: 0, 
-        position: [...a.position] as [number, number] 
-      };
+      init[a.id] = { status: 'idle', busyUntil: 0, position: [...a.position] as [number, number] };
     });
     return init;
   });
@@ -106,22 +51,15 @@ export function useAgentRoomEvents() {
   const lastActivityIdRef = useRef<string | null>(null);
   const seenEventKeys = useRef<Set<string>>(new Set());
 
-  // Despacha um evento para a sala
   const dispatchEvent = useCallback((agentId: string, status: Exclude<AgentStatus, 'idle'>, message: string, detail?: string) => {
     if (!VALID_AGENT_IDS.has(agentId)) return;
     const now = Date.now();
-    
-    // Pequeno delay aleatório para parecer que o agente "notou" o evento
     const delay = Math.random() * 800;
     
     setTimeout(() => {
       const evt: AgentEvent = {
         id: `${now}-${Math.random().toString(36).slice(2, 7)}`,
-        agentId,
-        status,
-        message,
-        detail,
-        ts: now,
+        agentId, status, message, detail, ts: now,
       };
       setHistory(prev => [evt, ...prev].slice(0, RECENT_EVENTS_KEEP));
       setRuntime(prev => ({
@@ -137,92 +75,62 @@ export function useAgentRoomEvents() {
     }, delay);
   }, []);
 
-  // ===== Realtime =====
   useEffect(() => {
     const channels = REALTIME_TABLES.map(table => {
-      const ch = supabase
-        .channel(`sala-agentes-${table}`)
-        .on(
-          'postgres_changes' as any,
-          { event: '*', schema: 'public', table },
-          (payload: any) => {
-            const action = payload.eventType || payload.event || 'UPDATE';
-            const agentId = agentForEvent(table, action);
-            if (!agentId) return;
-            const key = `${payload.commit_timestamp || ''}-${payload.new?.id || payload.old?.id || ''}-${action}`;
-            if (seenEventKeys.current.has(key)) return;
-            seenEventKeys.current.add(key);
-            if (seenEventKeys.current.size > 200) {
-              const arr = Array.from(seenEventKeys.current);
-              seenEventKeys.current = new Set(arr.slice(-100));
-            }
-            const { msg, detail } = makeMessage(table, action, payload);
-            dispatchEvent(agentId, statusForEvent(table, payload), msg, detail);
-          },
-        )
-        .subscribe();
-      return ch;
-    });
-    return () => {
-      channels.forEach(c => supabase.removeChannel(c));
-    };
-  }, [dispatchEvent]);
-
-  // ===== Polling system_activities =====
-  useEffect(() => {
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const query = supabase
-          .from('system_activities')
-          .select('id, action, resource_type, details, created_at')
-          .order('created_at', { ascending: false })
-          .limit(15);
-        const { data, error } = await query;
-        if (error || !data || cancelled) return;
-
-        // Primeira execução: só guardamos o cursor sem disparar
-        if (lastActivityIdRef.current === null) {
-          lastActivityIdRef.current = data[0]?.id || '';
-          return;
-        }
-
-        const newOnes: typeof data = [];
-        for (const row of data) {
-          if (row.id === lastActivityIdRef.current) break;
-          newOnes.push(row);
-        }
-        if (newOnes.length === 0) return;
-        lastActivityIdRef.current = data[0].id;
-
-        // Em ordem cronológica (mais antigo primeiro) com pequena defasagem
-        newOnes.reverse().forEach((row, idx) => {
-          const agentId = agentForActivity(row.resource_type, row.action);
+      return supabase.channel(`sala-agentes-${table}`)
+        .on('postgres_changes' as any, { event: '*', schema: 'public', table }, (payload: any) => {
+          const action = payload.eventType || 'UPDATE';
+          const agentId = agentForEvent(table, action);
           if (!agentId) return;
-          const actionLabel = (row.action || 'evento').replace(/_/g, ' ');
-          const msg = `Processando: ${actionLabel}`;
-          const detail = row.details || `Módulo executando ${actionLabel} em ${row.resource_type}`;
-          setTimeout(() => dispatchEvent(agentId, 'working', msg, detail), idx * 500);
-        });
-      } catch (e) {
-        console.warn('[sala-agentes] polling error', e);
-      }
-    };
-    poll();
-    const id = setInterval(poll, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
+          const { msg, detail } = makeMessage(table, action, payload);
+          dispatchEvent(agentId, statusForEvent(table, payload), msg, detail);
+        }).subscribe();
+    });
+    return () => { channels.forEach(c => supabase.removeChannel(c)); };
   }, [dispatchEvent]);
 
-  // ===== Fade automático: volta para idle quando expira =====
+  useEffect(() => {
+    const id = setInterval(() => {
+      const busyCount = Object.values(runtime).filter(s => s.status !== 'idle').length;
+      if (busyCount >= 4) return; 
+      const idleAgents = AGENTS.filter(a => runtime[a.id]?.status === 'idle');
+      if (idleAgents.length === 0) return;
+      const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
+      const msgs = ['Monitorando CRM...', 'Sincronizando dados', 'Verificando novos eventos', 'IA pronta para agir'];
+      dispatchEvent(pick.id, 'thinking', msgs[Math.floor(Math.random() * msgs.length)], 'Monitoramento automático em execução');
+    }, 10000);
+    return () => clearInterval(id);
+  }, [dispatchEvent, runtime]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setRuntime(prev => {
+        const next = { ...prev };
+        let changed = false;
+        AGENTS.forEach(agent => {
+          const st = prev[agent.id];
+          if (st.status === 'idle' && Math.random() < 0.3) {
+            const rand = Math.random();
+            let newPos: [number, number];
+            if (rand < 0.4) newPos = [...agent.position] as [number, number];
+            else if (rand < 0.7) newPos = [(Math.random() - 0.5) * 6, (Math.random() - 0.5) * 5];
+            else newPos = [agent.position[0] + (Math.random() - 0.5) * 2, agent.position[1] + (Math.random() - 0.5) * 2];
+            next[agent.id] = { ...st, position: newPos };
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, 6000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
       setRuntime(prev => {
         let changed = false;
-        const next: Record<string, AgentRuntimeState> = { ...prev };
+        const next = { ...prev };
         for (const [aid, st] of Object.entries(prev)) {
           if (st.status !== 'idle' && st.busyUntil < now) {
             next[aid] = { ...st, status: 'idle', busyUntil: 0 };
@@ -234,76 +142,6 @@ export function useAgentRoomEvents() {
     }, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // Movimento dinâmico: agentes ociosos passeiam ou visitam outras salas
-  useEffect(() => {
-    const id = setInterval(() => {
-      setRuntime(prev => {
-        const next = { ...prev };
-        let changed = false;
-
-        AGENTS.forEach(agent => {
-          const st = prev[agent.id];
-          if (st.status === 'idle' && Math.random() < 0.35) { // Aumentado para 35%
-            const rand = Math.random();
-            let newPos: [number, number];
-
-            if (rand < 0.3) {
-              // Volta para a mesa original
-              newPos = [...agent.position] as [number, number];
-            } else if (rand < 0.6) {
-              // Passeia pela sala central (HUB)
-              newPos = [(Math.random() - 0.5) * 6, -1 + (Math.random() - 0.5) * 5];
-            } else if (rand < 0.85) {
-              // Visita outra sala (Interação entre módulos)
-              const otherAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-              // Fica um pouco ao lado do outro agente
-              newPos = [otherAgent.position[0] + (Math.random() > 0.5 ? 1.2 : -1.2), otherAgent.position[1]];
-            } else {
-              // Vai para a janela olhar o tempo
-              const windows = [-8, 0, 8];
-              newPos = [windows[Math.floor(Math.random() * 3)], -7.5];
-            }
-            
-            next[agent.id] = { 
-              ...st, 
-              position: newPos, 
-              message: rand > 0.92 ? 'Colaborando...' : rand < 0.1 ? 'Pausa rápida' : st.message 
-            };
-            changed = true;
-          }
-        });
-
-        return changed ? next : prev;
-      });
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Demo: dispara eventos de background para a sala nunca parecer vazia
-  useEffect(() => {
-    const id = setInterval(() => {
-      const busyCount = Object.values(runtime).filter(s => s.status !== 'idle').length;
-      if (busyCount >= 5) return; // Se já tiver atividade real, não interfere tanto
-
-      const idleAgents = AGENTS.filter(a => runtime[a.id]?.status === 'idle');
-      if (idleAgents.length === 0) return;
-      
-      const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
-      const msgs = [
-        'Analisando logs...',
-        'Otimizando DB',
-        'Check de segurança',
-        'IA Processando',
-        'Sincronizando...',
-        'Backup concluído',
-        'Limpando cache'
-      ];
-      
-      dispatchEvent(pick.id, 'thinking', msgs[Math.floor(Math.random() * msgs.length)], 'Atividade de manutenção automática do sistema');
-    }, 12000);
-    return () => clearInterval(id);
-  }, [dispatchEvent, runtime]);
 
   return { runtime, history, dispatchEvent };
 }

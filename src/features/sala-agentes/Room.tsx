@@ -1,4 +1,4 @@
-import { Html } from '@react-three/drei';
+import { Html, Float, Text } from '@react-three/drei';
 import { ROOM_PALETTE } from './colors';
 
 /**
