@@ -62,7 +62,7 @@ export function SalaAgentesScene() {
       const { data, error } = await supabase.storage.from('company_assets').upload(fileName, file);
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('company_assets').getPublicUrl(fileName);
-      await supabase.from('system_settings').upsert({ key: 'company_logo', value: publicUrl });
+      await supabase.from('system_settings').upsert({ key: 'company_logo', value: publicUrl }, { onConflict: 'key' });
       setLogoUrl(publicUrl);
       toast.success('Logo atualizada!');
     } catch (err) {
