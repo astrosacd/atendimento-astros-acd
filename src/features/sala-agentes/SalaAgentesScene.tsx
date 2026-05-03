@@ -373,12 +373,17 @@ export function SalaAgentesScene() {
             <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
               Monitor de Status
             </p>
-            <ul className="mt-3 space-y-2 text-xs">
-              <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
+            <ul className="mt-3 space-y-2 text-xs min-w-[180px]">
+              {(['idle','working','thinking','talking','error'] as const).map(s => {
+                const count = Object.values(runtime).filter(r => r.status === s).length;
+                const labels = { idle:'Ocioso', working:'Processando', thinking:'Analisando', talking:'Comunicando', error:'Atenção' };
+                return (
+                  <li key={s} className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-2"><StatusDot status={s} /> <span className={s==='error'?'text-red-400 font-bold':'text-slate-200'}>{labels[s]}</span></span>
+                    <span className="font-mono font-bold tabular-nums text-white">{count}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
