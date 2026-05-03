@@ -48,6 +48,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [selectedNumber, setSelectedNumber] = useState<DeletedNumber | null>(null);
   const [restoreStatusId, setRestoreStatusId] = useState<string>('');
   const [restoreModeloId, setRestoreModeloId] = useState<string>('');
+  const [restoreTipoWhatsapp, setRestoreTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
   const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
