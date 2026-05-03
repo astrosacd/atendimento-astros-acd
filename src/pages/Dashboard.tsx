@@ -299,6 +299,7 @@ export default function Dashboard() {
       let billingErrors = 0;
       let chamadosAbertos = 0;
       let chamadosEmAndamento = 0;
+      let chamadosAguardandoCliente = 0;
       let tarefasPendentes = 0;
       let tarefasEmAndamento = 0;
       let tarefasAtrasadas = 0;
