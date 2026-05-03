@@ -101,7 +101,7 @@ function AppRoutes() {
           : <Navigate to="/auth" replace />
       } />
       <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
-      <Route path="/sala-agentes" element={<ProtectedRoute permission="view_dashboard"><SalaAgentes /></ProtectedRoute>} />
+      <Route path="/sala-agentes" element={<ProtectedRoute permission="view_sala_agentes"><SalaAgentes /></ProtectedRoute>} />
       
       {/* Client Management - permission-based */}
       <Route path="/cadastrar" element={<ProtectedRoute permission="create_clients"><CadastrarCliente /></ProtectedRoute>} />

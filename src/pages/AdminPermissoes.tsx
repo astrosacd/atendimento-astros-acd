@@ -105,6 +105,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Chat': <MessageSquare className="h-4 w-4" />,
   'Vendas': <BarChart3 className="h-4 w-4" />,
   'Conexões': <Globe className="h-4 w-4" />,
+  'Sala dos Agentes': <Eye className="h-4 w-4" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
@@ -346,6 +347,7 @@ export default function AdminPermissoes() {
     'Chat': 'Chat',
     'Vendas': 'Vendas',
     'Conexões': 'Conexões',
+    'Sala dos Agentes': 'Sala dos Agentes',
   });
 
   const colorOptions = getColorOptions(t);
