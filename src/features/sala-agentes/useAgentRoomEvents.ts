@@ -230,7 +230,7 @@ export function useAgentRoomEvents() {
     return () => clearInterval(id);
   }, []);
 
-  // Movimento aleatório: agentes ociosos passeiam pela sala
+  // Movimento dinâmico: agentes ociosos passeiam ou visitam outras salas
   useEffect(() => {
     const id = setInterval(() => {
       setRuntime(prev => {
@@ -239,21 +239,30 @@ export function useAgentRoomEvents() {
 
         AGENTS.forEach(agent => {
           const st = prev[agent.id];
-          if (st.status === 'idle' && Math.random() < 0.15) { // 15% de chance de mover se estiver idle
-            // Sorteia um destino: ou a mesa original ou um ponto no "tapete central"
-            const onTable = Math.random() > 0.6;
-            const newPos: [number, number] = onTable 
-              ? [...agent.position] as [number, number]
-              : [(Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4]; // área central
+          if (st.status === 'idle' && Math.random() < 0.25) { // 25% de chance de mover
+            const rand = Math.random();
+            let newPos: [number, number];
+
+            if (rand < 0.4) {
+              // Volta para a mesa original
+              newPos = [...agent.position] as [number, number];
+            } else if (rand < 0.7) {
+              // Passeia pela sala central (HUB)
+              newPos = [(Math.random() - 0.5) * 4, -2 + (Math.random() - 0.5) * 4];
+            } else {
+              // Visita outra sala aleatória (Interação entre módulos)
+              const otherAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+              newPos = [otherAgent.position[0] + 1.2, otherAgent.position[1]];
+            }
             
-            next[agent.id] = { ...st, position: newPos };
+            next[agent.id] = { ...st, position: newPos, message: rand > 0.8 ? 'Visitando módulo...' : st.message };
             changed = true;
           }
         });
 
         return changed ? next : prev;
       });
-    }, 5000);
+    }, 4000); // Mais frenético
     return () => clearInterval(id);
   }, []);
 
