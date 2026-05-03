@@ -11,11 +11,12 @@ export function Room({ isNight }: { isNight?: boolean }) {
 
   return (
     <group>
-      {/* Chão Principal */}
+      {/* Chão Principal com Grid Tech */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color={isNight ? '#1a1c2c' : '#e6d8be'} roughness={0.9} />
+        <meshStandardMaterial color={isNight ? '#0f172a' : '#f8fafc'} roughness={0.8} />
       </mesh>
+      <gridHelper args={[W, 20, isNight ? '#1e293b' : '#e2e8f0', isNight ? '#0f172a' : '#f1f5f9']} position={[0, 0.01, 0]} />
 
       {/* Divisórias de Vidro (Salas) */}
       <group>
@@ -58,18 +59,18 @@ export function Room({ isNight }: { isNight?: boolean }) {
         </div>
       </Html>
 
-      {/* Tapetes das Salas */}
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-8, 0.01, -2]}>
-        <planeGeometry args={[7, 10]} />
-        <meshStandardMaterial color="#dbeafe" roughness={0.9} />
+      {/* Tapetes das Salas com bordas brilhantes */}
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-8, 0.02, -2]}>
+        <planeGeometry args={[7.2, 10.2]} />
+        <meshStandardMaterial color="#3b82f6" transparent opacity={0.1} />
       </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -2]}>
-        <planeGeometry args={[7, 10]} />
-        <meshStandardMaterial color="#f3e8ff" roughness={0.9} />
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -2]}>
+        <planeGeometry args={[7.2, 10.2]} />
+        <meshStandardMaterial color="#8b5cf6" transparent opacity={0.1} />
       </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[8, 0.01, -2]}>
-        <planeGeometry args={[7, 10]} />
-        <meshStandardMaterial color="#ecfdf5" roughness={0.9} />
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[8, 0.02, -2]}>
+        <planeGeometry args={[7.2, 10.2]} />
+        <meshStandardMaterial color="#10b981" transparent opacity={0.1} />
       </mesh>
 
       {/* Janelas com Céu Dinâmico */}
@@ -101,22 +102,28 @@ export function Room({ isNight }: { isNight?: boolean }) {
         </group>
       ))}
 
-      {/* Servidor Central (HUB de Integração) */}
+      {/* Servidor Central (HUB de Integração) — Mais Tech */}
       <group position={[0, 0, -2]}>
-        <mesh castShadow position={[0, 0.6, 0]}>
-          <boxGeometry args={[1.2, 1.2, 1.2]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.8} />
+        <mesh castShadow position={[0, 0.8, 0]}>
+          <boxGeometry args={[1.5, 1.6, 1.5]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.9} />
         </mesh>
-        {[...Array(8)].map((_, i) => (
-          <mesh key={i} position={[0.61, 1 - i * 0.12, 0]}>
-            <boxGeometry args={[0.02, 0.05, 0.4]} />
+        {/* Luzes pulsantes no servidor */}
+        {[...Array(12)].map((_, i) => (
+          <mesh key={i} position={[0.76, 1.4 - i * 0.12, 0]}>
+            <boxGeometry args={[0.02, 0.05, 0.6]} />
             <meshStandardMaterial 
-              color={i % 2 === 0 ? '#22c55e' : '#3b82f6'} 
-              emissive={i % 2 === 0 ? '#22c55e' : '#3b82f6'} 
-              emissiveIntensity={1.5} 
+              color={i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : '#f59e0b'} 
+              emissive={i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : '#f59e0b'} 
+              emissiveIntensity={2} 
             />
           </mesh>
         ))}
+        {/* Holograma em cima do servidor */}
+        <mesh position={[0, 2, 0]} rotation={[0, Date.now() / 1000, 0]}>
+          <octahedronGeometry args={[0.4]} />
+          <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} emissive="#60a5fa" emissiveIntensity={2} wireframe />
+        </mesh>
       </group>
     </group>
   );

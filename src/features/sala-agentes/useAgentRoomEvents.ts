@@ -244,57 +244,66 @@ export function useAgentRoomEvents() {
 
         AGENTS.forEach(agent => {
           const st = prev[agent.id];
-          if (st.status === 'idle' && Math.random() < 0.25) { // 25% de chance de mover
+          if (st.status === 'idle' && Math.random() < 0.35) { // Aumentado para 35%
             const rand = Math.random();
             let newPos: [number, number];
 
-            if (rand < 0.4) {
+            if (rand < 0.3) {
               // Volta para a mesa original
               newPos = [...agent.position] as [number, number];
-            } else if (rand < 0.7) {
+            } else if (rand < 0.6) {
               // Passeia pela sala central (HUB)
-              newPos = [(Math.random() - 0.5) * 4, -2 + (Math.random() - 0.5) * 4];
-            } else {
-              // Visita outra sala aleatória (Interação entre módulos)
+              newPos = [(Math.random() - 0.5) * 6, -1 + (Math.random() - 0.5) * 5];
+            } else if (rand < 0.85) {
+              // Visita outra sala (Interação entre módulos)
               const otherAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-              newPos = [otherAgent.position[0] + 1.2, otherAgent.position[1]];
+              // Fica um pouco ao lado do outro agente
+              newPos = [otherAgent.position[0] + (Math.random() > 0.5 ? 1.2 : -1.2), otherAgent.position[1]];
+            } else {
+              // Vai para a janela olhar o tempo
+              const windows = [-8, 0, 8];
+              newPos = [windows[Math.floor(Math.random() * 3)], -7.5];
             }
             
-            next[agent.id] = { ...st, position: newPos, message: rand > 0.8 ? 'Visitando módulo...' : st.message };
+            next[agent.id] = { 
+              ...st, 
+              position: newPos, 
+              message: rand > 0.92 ? 'Colaborando...' : rand < 0.1 ? 'Pausa rápida' : st.message 
+            };
             changed = true;
           }
         });
 
         return changed ? next : prev;
       });
-    }, 4000); // Mais frenético
+    }, 5000);
     return () => clearInterval(id);
   }, []);
 
-  // Demo: dispara um eventozinho leve a cada ~12s
+  // Demo: dispara eventos de background para a sala nunca parecer vazia
   useEffect(() => {
     const id = setInterval(() => {
-      setRuntime(prev => {
-        const busyCount = Object.values(prev).filter(s => s.status !== 'idle').length;
-        if (busyCount >= 3) return prev;
-        const idleAgents = AGENTS.filter(a => prev[a.id]?.status === 'idle');
-        if (idleAgents.length === 0) return prev;
-        const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
-        const now = Date.now();
-        return {
-          ...prev,
-          [pick.id]: { 
-            ...prev[pick.id],
-            status: 'thinking', 
-            busyUntil: now + 2500, 
-            message: 'Verificando...',
-            position: [...pick.position] as [number, number] // volta p/ mesa
-          },
-        };
-      });
-    }, 15000);
+      const busyCount = Object.values(runtime).filter(s => s.status !== 'idle').length;
+      if (busyCount >= 5) return; // Se já tiver atividade real, não interfere tanto
+
+      const idleAgents = AGENTS.filter(a => runtime[a.id]?.status === 'idle');
+      if (idleAgents.length === 0) return;
+      
+      const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
+      const msgs = [
+        'Analisando logs...',
+        'Otimizando DB',
+        'Check de segurança',
+        'IA Processando',
+        'Sincronizando...',
+        'Backup concluído',
+        'Limpando cache'
+      ];
+      
+      dispatchEvent(pick.id, 'thinking', msgs[Math.floor(Math.random() * msgs.length)], 'Atividade de manutenção automática do sistema');
+    }, 12000);
     return () => clearInterval(id);
-  }, []);
+  }, [dispatchEvent, runtime]);
 
   return { runtime, history, dispatchEvent };
 }

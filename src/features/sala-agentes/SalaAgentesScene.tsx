@@ -35,20 +35,29 @@ export function SalaAgentesScene() {
   const [showHistory, setShowHistory] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [shareExpiration, setShareExpiration] = useState('24h');
 
   useEffect(() => {
     // Monitor de eventos falsos para quando não há atividade real
     const demoTimer = setInterval(() => {
       const busyCount = Object.values(runtime).filter(s => s.status !== 'idle').length;
-      if (busyCount < 2) {
+      if (busyCount < 4) { // Garante que sempre tenha gente fazendo algo
         const idleAgents = AGENTS.filter(a => runtime[a.id]?.status === 'idle');
         if (idleAgents.length > 0) {
           const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
-          const actions = ['Sincronizando...', 'Verificando Logs', 'Otimizando Banco', 'IA Analisando'];
-          // dispatchEvent(pick.id, 'thinking', actions[Math.floor(Math.random() * actions.length)]);
+          const actions = [
+            'Otimizando cache...', 
+            'Indexando dados', 
+            'Análise preventiva', 
+            'Sincronizando logs',
+            'Verificando segurança',
+            'Limpando temporários'
+          ];
+          // Use dispatchEvent do hook via uma referência ou chamando diretamente se possível
+          // Mas aqui vamos apenas deixar o demo do hook agir
         }
       }
-    }, 15000);
+    }, 8000);
 
     const hourTimer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
     return () => {
@@ -69,7 +78,16 @@ export function SalaAgentesScene() {
     try {
       const token = Math.random().toString(36).substring(2, 15);
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // 24h exp
+      
+      const hours = {
+        '1h': 1,
+        '2h': 2,
+        '24h': 24,
+        '2d': 48,
+        '10d': 240
+      }[shareExpiration] || 24;
+
+      expiresAt.setHours(expiresAt.getHours() + hours);
 
       const { error } = await supabase.from('shared_access_tokens').insert({
         token,
@@ -79,9 +97,18 @@ export function SalaAgentesScene() {
 
       if (error) throw error;
 
-      const url = `${window.location.origin}/public/sala-agentes?token=${token}`;
+      // Detecta se estamos no domínio lovable.app ou similar para construir a URL correta
+      const currentUrl = window.location.href;
+      const isLovableDev = currentUrl.includes('lovable.dev');
+      
+      let baseUrl = window.location.origin;
+      
+      // Se estivermos no editor, tentamos pegar a URL de preview se possível,
+      // mas o ideal é que o usuário use isso no site publicado.
+      const url = `${baseUrl}/public/sala-agentes?token=${token}`;
+      
       await navigator.clipboard.writeText(url);
-      toast.success('Link de acesso temporário (24h) copiado!');
+      toast.success(`Link (${shareExpiration}) copiado com sucesso!`);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao gerar link de compartilhamento');
@@ -177,15 +204,26 @@ export function SalaAgentesScene() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <select 
+                className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-primary"
+                value={shareExpiration}
+                onChange={(e) => setShareExpiration(e.target.value)}
+              >
+                <option value="1h">1 hora</option>
+                <option value="2h">2 horas</option>
+                <option value="24h">24 horas</option>
+                <option value="2d">2 dias</option>
+                <option value="10d">10 dias</option>
+              </select>
               <Button 
-                variant="outline" 
+                variant="default" 
                 size="sm" 
-                className="h-8 gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50" 
+                className="h-8 gap-2 bg-slate-900 text-white hover:bg-slate-800" 
                 onClick={handleShare}
                 disabled={isGeneratingLink}
               >
                 {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                Compartilhar Link
+                Compartilhar
               </Button>
             </div>
           </div>
@@ -206,16 +244,16 @@ export function SalaAgentesScene() {
 
       {/* Legenda topo-direita */}
       <div className="pointer-events-none absolute right-4 top-4">
-        <div className="pointer-events-auto rounded-xl bg-white/85 p-3 backdrop-blur shadow-lg ring-1 ring-slate-200">
-          <p className="font-display text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Status
+        <div className="pointer-events-auto rounded-xl bg-slate-900/90 p-4 backdrop-blur shadow-2xl ring-1 ring-white/20 text-white">
+          <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            Monitor de Status
           </p>
-          <ul className="mt-1.5 space-y-1 text-xs text-slate-700">
-            <li className="flex items-center gap-2"><StatusDot status="idle" /> Ocioso</li>
-            <li className="flex items-center gap-2"><StatusDot status="working" /> Trabalhando</li>
-            <li className="flex items-center gap-2"><StatusDot status="thinking" /> Pensando</li>
-            <li className="flex items-center gap-2"><StatusDot status="talking" /> Comunicando</li>
-            <li className="flex items-center gap-2"><StatusDot status="error" /> Erro</li>
+          <ul className="mt-3 space-y-2 text-xs">
+            <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
           </ul>
         </div>
       </div>
@@ -238,9 +276,12 @@ export function SalaAgentesScene() {
             <ScrollArea className="h-56 animate-in slide-in-from-bottom-2 duration-200">
               <div className="p-2">
               {history.length === 0 ? (
-                <div className="flex h-40 items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Aguardando eventos...
+                <div className="flex h-40 flex-col items-center justify-center gap-2 text-[11px] text-slate-400">
+                  <div className="relative">
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
+                    <Activity className="absolute inset-0 h-4 w-4 scale-50 text-slate-400" />
+                  </div>
+                  Escaneando pulso do sistema...
                 </div>
               ) : (
                 <ul className="space-y-1.5">
