@@ -9,6 +9,7 @@ import type { AgentStatus } from './agents';
 interface Props {
   agent: AgentDef;
   status: AgentStatus;
+  position: [number, number]; // [x, z]
   message?: string;
   onClick?: () => void;
 }
@@ -17,7 +18,7 @@ interface Props {
  * Bonequinho voxel cúbico — composto por cabeça, tronco, braços e pernas.
  * Anima sutilmente quando idle (respiração) e mais intensamente quando working/talking.
  */
-export function VoxelAgent({ agent, status, message, onClick }: Props) {
+export function VoxelAgent({ agent, status, position, message, onClick }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
   const leftArmRef = useRef<THREE.Mesh>(null);
@@ -31,9 +32,27 @@ export function VoxelAgent({ agent, status, message, onClick }: Props) {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (groupRef.current) {
+      // Suaviza a posição X e Z (movimento)
+      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, position[0], 0.05);
+      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, position[1], 0.05);
+
       // respiração leve sempre, mais intensa quando trabalhando
       const breath = Math.sin(t * (isBusy ? 4 : 1.5)) * (isBusy ? 0.04 : 0.015);
       groupRef.current.position.y = 0.5 + breath;
+
+      // Inclinação suave na direção do movimento
+      const deltaX = position[0] - groupRef.current.position.x;
+      const deltaZ = position[1] - groupRef.current.position.z;
+      const moveDist = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+      
+      if (moveDist > 0.01) {
+        // Rotaciona para olhar para onde está indo
+        const targetRotation = Math.atan2(deltaX, deltaZ);
+        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotation, 0.1);
+      } else {
+        // Volta para a rotação padrão (olhando para a frente/centro)
+        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, 0.05);
+      }
     }
     if (headRef.current && status === 'thinking') {
       headRef.current.rotation.y = Math.sin(t * 2) * 0.3;
