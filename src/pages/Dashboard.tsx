@@ -68,6 +68,7 @@ interface ClienteStats {
   // Chamados
   chamadosAbertos: number;
   chamadosEmAndamento: number;
+  chamadosAguardandoCliente: number;
   // Tasks
   tarefasPendentes: number;
   tarefasEmAndamento: number;
