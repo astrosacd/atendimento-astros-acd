@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, Activity, Sparkles, X, ExternalLink, 
-  Share2, ChevronDown, ChevronUp, Clock, Sun, Moon 
+  Share2, ChevronDown, ChevronUp, Clock, Sun, Moon,
+  Upload, MessageSquare
 } from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
@@ -38,6 +39,64 @@ export function SalaAgentesScene() {
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ id: string, sender: string, text: string, time: string }[]>([]);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      const { data } = await supabase.from('system_settings').select('value').eq('key', 'company_logo').single();
+      if (data?.value) setLogoUrl(data.value);
+    };
+    fetchLogo();
+  }, []);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage.from('company_assets').upload(fileName, file);
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('company_assets').getPublicUrl(fileName);
+      await supabase.from('system_settings').upsert({ key: 'company_logo', value: publicUrl });
+      setLogoUrl(publicUrl);
+      toast.success('Logo atualizada!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro no upload');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  // Simulação de chat entre agentes baseada no histórico de eventos
+  useEffect(() => {
+    if (history.length > 0) {
+      const last = history[0];
+      const agent = AGENTS.find(a => a.id === last.agentId);
+      if (agent && Math.random() > 0.6) {
+        const responses = [
+          "Ok, estou verificando isso agora.",
+          "Dados atualizados com sucesso.",
+          "Processando a requisição...",
+          "Tudo certo por aqui!",
+          "Vou reportar isso para o admin.",
+          "Novo registro detectado.",
+          "IA confirmou os dados."
+        ];
+        const msg = {
+          id: Math.random().toString(),
+          sender: agent.name,
+          text: responses[Math.floor(Math.random() * responses.length)],
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        setChatMessages(prev => [msg, ...prev].slice(0, 5));
+      }
+    }
+  }, [history]);
 
   useEffect(() => {
     // Monitor de eventos falsos para quando não há atividade real
@@ -142,7 +201,7 @@ export function SalaAgentesScene() {
         )}
         
         <Suspense fallback={null}>
-          <Room isNight={isNight} />
+          <Room isNight={isNight} logoUrl={logoUrl} />
           
           {/* Estações de trabalho (estáticas) */}
           {AGENTS.map((agent) => (
@@ -251,9 +310,30 @@ export function SalaAgentesScene() {
                 {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
                 {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
               </Badge>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] hover:bg-slate-50">
+                <Upload className="h-3 w-3" />
+                {isUploadingLogo ? 'Enviando...' : 'Upload Logo'}
+                <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
+              </label>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Chat dos Agentes (Esquerda abaixo do título) */}
+      <div className="pointer-events-none absolute left-4 top-48 w-64 space-y-2">
+        {chatMessages.map((msg, i) => (
+          <div key={msg.id} 
+            className="pointer-events-auto flex flex-col rounded-lg bg-white/70 p-2 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm animate-in slide-in-from-left-4 duration-500"
+            style={{ opacity: 1 - i * 0.15 }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-900">{msg.sender}</span>
+              <span className="text-[9px] text-slate-400">{msg.time}</span>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-tight mt-0.5">{msg.text}</p>
+          </div>
+        ))}
       </div>
 
       {/* Monitor de Status topo-direita */}
