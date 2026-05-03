@@ -110,26 +110,31 @@ export function useAgentRoomEvents() {
   const dispatchEvent = useCallback((agentId: string, status: Exclude<AgentStatus, 'idle'>, message: string, detail?: string) => {
     if (!VALID_AGENT_IDS.has(agentId)) return;
     const now = Date.now();
-    const evt: AgentEvent = {
-      id: `${now}-${Math.random().toString(36).slice(2, 7)}`,
-      agentId,
-      status,
-      message,
-      detail,
-      ts: now,
-    };
-    setHistory(prev => [evt, ...prev].slice(0, RECENT_EVENTS_KEEP));
-    setRuntime(prev => ({
-      ...prev,
-      [agentId]: { 
-        ...prev[agentId], 
-        status, 
-        message, 
-        busyUntil: now + BUSY_DURATION_MS,
-        // Ao receber evento, volta para a mesa
-        position: [...AGENTS.find(a => a.id === agentId)!.position] as [number, number]
-      },
-    }));
+    
+    // Pequeno delay aleatório para parecer que o agente "notou" o evento
+    const delay = Math.random() * 800;
+    
+    setTimeout(() => {
+      const evt: AgentEvent = {
+        id: `${now}-${Math.random().toString(36).slice(2, 7)}`,
+        agentId,
+        status,
+        message,
+        detail,
+        ts: now,
+      };
+      setHistory(prev => [evt, ...prev].slice(0, RECENT_EVENTS_KEEP));
+      setRuntime(prev => ({
+        ...prev,
+        [agentId]: { 
+          ...prev[agentId], 
+          status, 
+          message, 
+          busyUntil: now + BUSY_DURATION_MS,
+          position: [...AGENTS.find(a => a.id === agentId)!.position] as [number, number]
+        },
+      }));
+    }, delay);
   }, []);
 
   // ===== Realtime =====
