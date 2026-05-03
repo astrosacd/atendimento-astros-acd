@@ -33,7 +33,6 @@ export function SalaAgentesScene() {
   const navigate = useNavigate();
   const { runtime, history } = useAgentRoomEvents();
   const [selected, setSelected] = useState<AgentDef | null>(null);
-  const [showHistory, setShowHistory] = useState(true);
   const [showStatus, setShowStatus] = useState(true);
   const [showHUD, setShowHUD] = useState(true);
   const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('activity');
