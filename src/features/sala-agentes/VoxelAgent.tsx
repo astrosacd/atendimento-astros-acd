@@ -162,9 +162,9 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
 
       {/* Balão de fala — só renderiza se houver mensagem ativa */}
       {isBusy && message && (
-        <Html position={[0, 1.95, 0]} center distanceFactor={8} zIndexRange={[10, 0]}>
+        <Html position={[0, 2.15, 0]} center distanceFactor={8} zIndexRange={[10, 0]}>
           <div
-            className="pointer-events-none whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold text-white shadow-lg"
+            className="pointer-events-none whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-bold text-white shadow-xl animate-in fade-in zoom-in duration-300 ring-2 ring-white/30"
             style={{ background: statusColor }}
           >
             {message}
