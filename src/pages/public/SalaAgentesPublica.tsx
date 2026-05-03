@@ -70,7 +70,7 @@ export default function SalaAgentesPublica() {
 
   return (
     <div className="h-screen w-full bg-slate-900 p-2 md:p-4">
-      <SalaAgentesScene />
+      <SalaAgentesScene isPublic />
     </div>
   );
 }
