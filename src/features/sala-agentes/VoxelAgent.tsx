@@ -33,37 +33,57 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
     const t = clock.getElapsedTime();
     if (groupRef.current) {
       // Suaviza a posição X e Z (movimento)
-      groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, position[0], 0.05);
-      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, position[1], 0.05);
+      const prevX = groupRef.current.position.x;
+      const prevZ = groupRef.current.position.z;
+      
+      groupRef.current.position.x = THREE.MathUtils.lerp(prevX, position[0], 0.05);
+      groupRef.current.position.z = THREE.MathUtils.lerp(prevZ, position[1], 0.05);
 
-      // respiração leve sempre, mais intensa quando trabalhando
-      const breath = Math.sin(t * (isBusy ? 4 : 1.5)) * (isBusy ? 0.04 : 0.015);
-      groupRef.current.position.y = 0.5 + breath;
-
-      // Inclinação suave na direção do movimento
+      // Distância percorrida neste frame para animar as pernas
       const deltaX = position[0] - groupRef.current.position.x;
       const deltaZ = position[1] - groupRef.current.position.z;
       const moveDist = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+      const isMoving = moveDist > 0.01;
+
+      // Respiração leve sempre, mais intensa quando trabalhando
+      const breath = Math.sin(t * (isBusy ? 4 : 1.5)) * (isBusy ? 0.04 : 0.015);
       
-      if (moveDist > 0.01) {
+      // Se estiver andando, dá um "pulo" leve
+      const walkJump = isMoving ? Math.abs(Math.sin(t * 10)) * 0.15 : 0;
+      groupRef.current.position.y = 0.5 + breath + walkJump;
+
+      if (isMoving) {
         // Rotaciona para olhar para onde está indo
         const targetRotation = Math.atan2(deltaX, deltaZ);
         groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotation, 0.1);
       } else {
-        // Volta para a rotação padrão (olhando para a frente/centro)
-        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, 0.05);
+        // Volta para a rotação padrão (olhando para o centro [0,0])
+        const lookAtCenter = Math.atan2(-groupRef.current.position.x, -groupRef.current.position.z);
+        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, lookAtCenter, 0.05);
       }
     }
-    if (headRef.current && status === 'thinking') {
-      headRef.current.rotation.y = Math.sin(t * 2) * 0.3;
-    }
-    if ((status === 'working' || status === 'talking') && leftArmRef.current && rightArmRef.current) {
+
+    // Animação das pernas se estiver andando
+    const isMoving = groupRef.current ? Math.sqrt(
+      Math.pow(position[0] - groupRef.current.position.x, 2) + 
+      Math.pow(position[1] - groupRef.current.position.z, 2)
+    ) > 0.01 : false;
+
+    if (isMoving && leftArmRef.current && rightArmRef.current) {
+      const swing = Math.sin(t * 12) * 0.5;
+      leftArmRef.current.rotation.x = swing;
+      rightArmRef.current.rotation.x = -swing;
+    } else if ((status === 'working' || status === 'talking') && leftArmRef.current && rightArmRef.current) {
       const swing = Math.sin(t * 6) * 0.6;
       leftArmRef.current.rotation.x = swing;
       rightArmRef.current.rotation.x = -swing;
     } else {
-      if (leftArmRef.current) leftArmRef.current.rotation.x *= 0.9;
-      if (rightArmRef.current) rightArmRef.current.rotation.x *= 0.9;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = THREE.MathUtils.lerp(leftArmRef.current.rotation.x, 0, 0.1);
+      if (rightArmRef.current) rightArmRef.current.rotation.x = THREE.MathUtils.lerp(rightArmRef.current.rotation.x, 0, 0.1);
+    }
+
+    if (headRef.current && status === 'thinking') {
+      headRef.current.rotation.y = Math.sin(t * 2) * 0.3;
     }
     if (haloRef.current && isBusy) {
       haloRef.current.rotation.y = t * 1.5;
