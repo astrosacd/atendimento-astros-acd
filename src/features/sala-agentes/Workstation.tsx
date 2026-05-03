@@ -8,18 +8,15 @@ import { VoxelAgent } from './VoxelAgent';
 
 interface Props {
   agent: AgentDef;
-  status: AgentStatus;
-  message?: string;
-  onSelect?: (agent: AgentDef) => void;
+  isBusy: boolean;
 }
 
 /**
  * Estação de trabalho: mesa + monitor + cadeira + agente + plaquinha.
  * Posicionada em [x, 0, z] no mundo. Agente fica na frente da mesa.
  */
-export function Workstation({ agent, status, message, onSelect }: Props) {
+export function Workstation({ agent, isBusy }: Props) {
   const screenRef = useRef<THREE.Mesh>(null);
-  const isBusy = status !== 'idle';
 
   useFrame(({ clock }) => {
     if (screenRef.current && isBusy) {
@@ -103,13 +100,7 @@ export function Workstation({ agent, status, message, onSelect }: Props) {
         </div>
       </Html>
 
-      {/* Agente */}
-      <VoxelAgent
-        agent={agent}
-        status={status}
-        message={message}
-        onClick={() => onSelect?.(agent)}
-      />
+      {/* Agente removido daqui para permitir movimento livre na cena principal */}
     </group>
   );
 }
