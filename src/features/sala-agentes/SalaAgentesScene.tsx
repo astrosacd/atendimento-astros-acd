@@ -36,6 +36,7 @@ export function SalaAgentesScene() {
   const [showHistory, setShowHistory] = useState(true);
   const [showStatus, setShowStatus] = useState(true);
   const [showHUD, setShowHUD] = useState(true);
+  const [showChat, setShowChat] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
@@ -327,11 +328,25 @@ export function SalaAgentesScene() {
       </div>
 
       {/* Chat dos Agentes (Esquerda abaixo do título) */}
-      <div className="pointer-events-none absolute left-4 top-48 w-64 space-y-2">
-        {chatMessages.map((msg, i) => (
+      <div className="pointer-events-none absolute left-4 top-48 w-64 flex flex-col gap-2">
+        <div className="pointer-events-auto flex items-center gap-2 mb-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7 rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 hover:bg-white"
+            onClick={() => setShowChat(!showChat)}
+          >
+            {showChat ? <ChevronUp className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+          </Button>
+          {!showChat && (
+            <span className="text-[10px] font-bold text-slate-500 bg-white/60 px-2 py-0.5 rounded-full backdrop-blur">CHAT</span>
+          )}
+        </div>
+
+        {showChat && chatMessages.map((msg, i) => (
           <div key={msg.id} 
             className="pointer-events-auto flex flex-col rounded-lg bg-white/70 p-2 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm animate-in slide-in-from-left-4 duration-500"
-            style={{ opacity: 1 - i * 0.15 }}
+            style={{ opacity: 1 - i * 0.12 }}
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-900">{msg.sender}</span>
