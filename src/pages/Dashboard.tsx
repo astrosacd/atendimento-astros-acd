@@ -1036,6 +1036,26 @@ export default function Dashboard() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  <Card 
+                    className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/admin/chamados')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                            <User className="h-6 w-6 text-purple-500" />
+                          </div>
+                          <div>
+                            <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAguardandoCliente}</p>
+                            <p className="text-xs text-muted-foreground">Aguardando Cliente</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </>
             )}
