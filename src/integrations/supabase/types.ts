@@ -6140,6 +6140,30 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_access_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          target_url: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          target_url: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          target_url?: string
+          token?: string
+        }
+        Relationships: []
+      }
       sms_validation_logs: {
         Row: {
           baserow_row_id: string | null

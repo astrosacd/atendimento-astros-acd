@@ -69,6 +69,7 @@ import LinkPagamentoPublico from "./pages/public/LinkPagamentoPublico";
 import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
+import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
@@ -186,7 +187,7 @@ function AppRoutes() {
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
-      
+      <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
