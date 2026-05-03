@@ -32,11 +32,47 @@ export function SalaAgentesScene() {
   const navigate = useNavigate();
   const { runtime, history } = useAgentRoomEvents();
   const [selected, setSelected] = useState<AgentDef | null>(null);
+  const [showHistory, setShowHistory] = useState(true);
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const busyCount = useMemo(
     () => Object.values(runtime).filter(s => s.status !== 'idle').length,
     [runtime],
   );
+
+  const isNight = currentHour < 6 || currentHour >= 18;
+
+  const handleShare = async () => {
+    setIsGeneratingLink(true);
+    try {
+      const token = Math.random().toString(36).substring(2, 15);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // 24h exp
+
+      const { error } = await supabase.from('shared_access_tokens').insert({
+        token,
+        target_url: window.location.pathname,
+        expires_at: expiresAt.toISOString()
+      });
+
+      if (error) throw error;
+
+      const url = `${window.location.origin}${window.location.pathname}?token=${token}`;
+      await navigator.clipboard.writeText(url);
+      toast.success('Link de acesso temporário (24h) copiado!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao gerar link de compartilhamento');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
 
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#f5ecd9] to-[#e6d8be]">
