@@ -37,9 +37,25 @@ export function SalaAgentesScene() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    // Monitor de eventos falsos para quando não há atividade real
+    const demoTimer = setInterval(() => {
+      const busyCount = Object.values(runtime).filter(s => s.status !== 'idle').length;
+      if (busyCount < 2) {
+        const idleAgents = AGENTS.filter(a => runtime[a.id]?.status === 'idle');
+        if (idleAgents.length > 0) {
+          const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
+          const actions = ['Sincronizando...', 'Verificando Logs', 'Otimizando Banco', 'IA Analisando'];
+          // dispatchEvent(pick.id, 'thinking', actions[Math.floor(Math.random() * actions.length)]);
+        }
+      }
+    }, 15000);
+
+    const hourTimer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    return () => {
+      clearInterval(demoTimer);
+      clearInterval(hourTimer);
+    };
+  }, [runtime]);
 
   const busyCount = useMemo(
     () => Object.values(runtime).filter(s => s.status !== 'idle').length,
