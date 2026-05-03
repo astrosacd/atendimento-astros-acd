@@ -1,4 +1,4 @@
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
@@ -6,12 +6,18 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Activity, Sparkles, X, ExternalLink } from 'lucide-react';
+import { 
+  Loader2, Activity, Sparkles, X, ExternalLink, 
+  Share2, ChevronDown, ChevronUp, Clock, Sun, Moon 
+} from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
 import { Workstation } from './Workstation';
+import { VoxelAgent } from './VoxelAgent';
 import { useAgentRoomEvents } from './useAgentRoomEvents';
 import { AGENT_HEX, STATUS_HEX } from './colors';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 function StatusDot({ status }: { status: keyof typeof STATUS_HEX }) {
   return (
