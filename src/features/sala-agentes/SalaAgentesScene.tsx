@@ -244,16 +244,16 @@ export function SalaAgentesScene() {
 
       {/* Legenda topo-direita */}
       <div className="pointer-events-none absolute right-4 top-4">
-        <div className="pointer-events-auto rounded-xl bg-white/85 p-3 backdrop-blur shadow-lg ring-1 ring-slate-200">
-          <p className="font-display text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Status
+        <div className="pointer-events-auto rounded-xl bg-slate-900/90 p-4 backdrop-blur shadow-2xl ring-1 ring-white/20 text-white">
+          <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            Monitor de Status
           </p>
-          <ul className="mt-1.5 space-y-1 text-xs text-slate-700">
-            <li className="flex items-center gap-2"><StatusDot status="idle" /> Ocioso</li>
-            <li className="flex items-center gap-2"><StatusDot status="working" /> Trabalhando</li>
-            <li className="flex items-center gap-2"><StatusDot status="thinking" /> Pensando</li>
-            <li className="flex items-center gap-2"><StatusDot status="talking" /> Comunicando</li>
-            <li className="flex items-center gap-2"><StatusDot status="error" /> Erro</li>
+          <ul className="mt-3 space-y-2 text-xs">
+            <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
+            <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
           </ul>
         </div>
       </div>
