@@ -70,14 +70,6 @@ const Admin = () => {
       path: '/admin/guia',
       color: 'from-cyan-500/20 to-cyan-600/10',
     },
-    {
-      key: 'predefinedProducts',
-      title: 'Produtos Predefinidos',
-      description: 'Gerencie a lista padronizada de produtos para cadastros e IA.',
-      icon: Package,
-      path: '/admin/produtos',
-      color: 'from-indigo-500/20 to-indigo-600/10',
-    },
   ];
 
   return (
