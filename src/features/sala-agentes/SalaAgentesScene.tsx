@@ -195,53 +195,71 @@ export function SalaAgentesScene() {
 
       {/* HUD topo-esquerda — título + métricas + compartilhamento */}
       <div className="pointer-events-none absolute left-4 top-4 flex flex-col gap-3">
-        <div className="pointer-events-auto rounded-xl bg-white/85 p-3 backdrop-blur shadow-lg ring-1 ring-slate-200">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="font-display text-xl font-extrabold text-slate-900">
-                Sala dos Agentes
-              </h1>
-              <p className="mt-0.5 text-xs text-slate-600">
-                Visão ao vivo dos módulos do CRM trabalhando.
-              </p>
+        <div className="pointer-events-auto flex items-center gap-2 mb-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-full bg-white/90 shadow-md ring-1 ring-slate-200 hover:bg-slate-50"
+            onClick={() => setShowHUD(!showHUD)}
+          >
+            {showHUD ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+          {!showHUD && (
+            <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur">
+              SALA DOS AGENTES
             </div>
-            <div className="flex items-center gap-2">
-              <select 
-                className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-primary"
-                value={shareExpiration}
-                onChange={(e) => setShareExpiration(e.target.value)}
-              >
-                <option value="1h">1 hora</option>
-                <option value="2h">2 horas</option>
-                <option value="24h">24 horas</option>
-                <option value="2d">2 dias</option>
-                <option value="10d">10 dias</option>
-              </select>
-              <Button 
-                variant="default" 
-                size="sm" 
-                className="h-8 gap-2 bg-slate-900 text-white hover:bg-slate-800" 
-                onClick={handleShare}
-                disabled={isGeneratingLink}
-              >
-                {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                Compartilhar
-              </Button>
-            </div>
-          </div>
-          <div className="mt-2 flex items-center gap-2 text-[11px]">
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-              <Activity className="mr-1 h-3 w-3" /> {busyCount} ativos
-            </Badge>
-            <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
-              <Sparkles className="mr-1 h-3 w-3" /> {AGENTS.length} agentes
-            </Badge>
-            <Badge variant="outline" className={`${isNight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-              {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
-              {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
-            </Badge>
-          </div>
+          )}
         </div>
+
+        {showHUD && (
+          <div className="pointer-events-auto rounded-xl bg-white/85 p-3 backdrop-blur shadow-lg ring-1 ring-slate-200 animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h1 className="font-display text-xl font-extrabold text-slate-900">
+                  Sala dos Agentes
+                </h1>
+                <p className="mt-0.5 text-xs text-slate-600">
+                  Visão ao vivo dos módulos do CRM trabalhando.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select 
+                  className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-primary"
+                  value={shareExpiration}
+                  onChange={(e) => setShareExpiration(e.target.value)}
+                >
+                  <option value="1h">1 hora</option>
+                  <option value="2h">2 horas</option>
+                  <option value="24h">24 horas</option>
+                  <option value="2d">2 dias</option>
+                  <option value="10d">10 dias</option>
+                </select>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="h-8 gap-2 bg-slate-900 text-white hover:bg-slate-800" 
+                  onClick={handleShare}
+                  disabled={isGeneratingLink}
+                >
+                  {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+                  Compartilhar
+                </Button>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-[11px]">
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                <Activity className="mr-1 h-3 w-3" /> {busyCount} ativos
+              </Badge>
+              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                <Sparkles className="mr-1 h-3 w-3" /> {AGENTS.length} agentes
+              </Badge>
+              <Badge variant="outline" className={`${isNight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
+                {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
+              </Badge>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Legenda topo-direita */}
