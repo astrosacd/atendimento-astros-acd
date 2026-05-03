@@ -276,9 +276,12 @@ export function SalaAgentesScene() {
             <ScrollArea className="h-56 animate-in slide-in-from-bottom-2 duration-200">
               <div className="p-2">
               {history.length === 0 ? (
-                <div className="flex h-40 items-center justify-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Aguardando eventos...
+                <div className="flex h-40 flex-col items-center justify-center gap-2 text-[11px] text-slate-400">
+                  <div className="relative">
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
+                    <Activity className="absolute inset-0 h-4 w-4 scale-50 text-slate-400" />
+                  </div>
+                  Escaneando pulso do sistema...
                 </div>
               ) : (
                 <ul className="space-y-1.5">
