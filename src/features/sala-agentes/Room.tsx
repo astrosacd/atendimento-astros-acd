@@ -4,7 +4,7 @@ import { ROOM_PALETTE } from './colors';
  * Sala — chão, paredes, vigas e detalhes (plantas, janelas).
  * Tudo estático. Dimensões: 22 (x) x 18 (z), centro em 0,0.
  */
-export function Room() {
+export function Room({ isNight }: { isNight?: boolean }) {
   const W = 22;
   const D = 18;
 
@@ -13,7 +13,7 @@ export function Room() {
       {/* Chão */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color={ROOM_PALETTE.floor} roughness={0.85} />
+        <meshStandardMaterial color={isNight ? '#2c3340' : ROOM_PALETTE.floor} roughness={0.85} />
       </mesh>
 
       {/* Tapete azul central */}
@@ -25,24 +25,28 @@ export function Room() {
       {/* Parede fundo (norte) */}
       <mesh position={[0, 3, -D / 2]}>
         <boxGeometry args={[W, 6, 0.2]} />
-        <meshStandardMaterial color={ROOM_PALETTE.wall} roughness={0.95} />
+        <meshStandardMaterial color={isNight ? '#1e2430' : ROOM_PALETTE.wall} roughness={0.95} />
       </mesh>
       {/* Parede esquerda */}
       <mesh position={[-W / 2, 3, 0]}>
         <boxGeometry args={[0.2, 6, D]} />
-        <meshStandardMaterial color={ROOM_PALETTE.wall} roughness={0.95} />
+        <meshStandardMaterial color={isNight ? '#1e2430' : ROOM_PALETTE.wall} roughness={0.95} />
       </mesh>
       {/* Parede direita */}
       <mesh position={[W / 2, 3, 0]}>
         <boxGeometry args={[0.2, 6, D]} />
-        <meshStandardMaterial color={ROOM_PALETTE.wall} roughness={0.95} />
+        <meshStandardMaterial color={isNight ? '#1e2430' : ROOM_PALETTE.wall} roughness={0.95} />
       </mesh>
 
       {/* Janelas no fundo (3) */}
       {[-6, 0, 6].map((x) => (
         <mesh key={`win-${x}`} position={[x, 4, -D / 2 + 0.15]}>
           <boxGeometry args={[3, 1.6, 0.05]} />
-          <meshStandardMaterial color="#bae0ff" emissive="#bae0ff" emissiveIntensity={0.3} />
+          <meshStandardMaterial 
+            color={isNight ? '#0a192f' : '#bae0ff'} 
+            emissive={isNight ? '#1a2c4e' : '#bae0ff'} 
+            emissiveIntensity={isNight ? 0.8 : 0.3} 
+          />
         </mesh>
       ))}
 
