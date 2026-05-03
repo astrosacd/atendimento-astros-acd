@@ -10,7 +10,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
-  Wallet, Phone, Headphones, ThumbsUp
+  Wallet, Phone, Headphones, ThumbsUp, User
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -68,6 +68,7 @@ interface ClienteStats {
   // Chamados
   chamadosAbertos: number;
   chamadosEmAndamento: number;
+  chamadosAguardandoCliente: number;
   // Tasks
   tarefasPendentes: number;
   tarefasEmAndamento: number;
@@ -121,6 +122,7 @@ export default function Dashboard() {
     billingErrors: 0,
     chamadosAbertos: 0,
     chamadosEmAndamento: 0,
+    chamadosAguardandoCliente: 0,
     tarefasPendentes: 0,
     tarefasEmAndamento: 0,
     tarefasAtrasadas: 0,
@@ -297,6 +299,7 @@ export default function Dashboard() {
       let billingErrors = 0;
       let chamadosAbertos = 0;
       let chamadosEmAndamento = 0;
+      let chamadosAguardandoCliente = 0;
       let tarefasPendentes = 0;
       let tarefasEmAndamento = 0;
       let tarefasAtrasadas = 0;
@@ -391,6 +394,12 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'em_andamento');
         chamadosEmAndamento = emAndamento || 0;
+
+        const { count: aguardandoC } = await supabase
+          .from('chamados')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'aguardando_cliente');
+        chamadosAguardandoCliente = aguardandoC || 0;
       }
 
       // Task stats (only for users with task permission)
@@ -426,6 +435,7 @@ export default function Dashboard() {
         billingErrors,
         chamadosAbertos,
         chamadosEmAndamento,
+        chamadosAguardandoCliente,
         tarefasPendentes,
         tarefasEmAndamento,
         tarefasAtrasadas,
@@ -986,7 +996,7 @@ export default function Dashboard() {
                   <span className="h-4 w-0.5 bg-amber-500 rounded-full"></span>
                   {t('sidebar.tickets')}
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <Card 
                     className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-colors cursor-pointer group"
                     onClick={() => navigate('/admin/chamados')}
@@ -1023,6 +1033,26 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-cyan-500 transition-colors" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer group"
+                    onClick={() => navigate('/admin/chamados')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                            <User className="h-6 w-6 text-purple-500" />
+                          </div>
+                          <div>
+                            <p className="text-3xl font-bold text-foreground font-display">{stats.chamadosAguardandoCliente}</p>
+                            <p className="text-xs text-muted-foreground">Aguardando Cliente</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
                       </div>
                     </CardContent>
                   </Card>
