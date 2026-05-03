@@ -62,7 +62,7 @@ export function SalaAgentesScene() {
       const { data, error } = await supabase.storage.from('company_assets').upload(fileName, file);
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('company_assets').getPublicUrl(fileName);
-      await supabase.from('system_settings').upsert({ key: 'company_logo', value: publicUrl });
+      await supabase.from('system_settings').upsert({ key: 'company_logo', value: publicUrl }, { onConflict: 'key' });
       setLogoUrl(publicUrl);
       toast.success('Logo atualizada!');
     } catch (err) {
@@ -327,32 +327,32 @@ export function SalaAgentesScene() {
         )}
       </div>
 
-      {/* Chat dos Agentes (Esquerda abaixo do título) */}
-      <div className="pointer-events-none absolute left-4 top-48 w-64 flex flex-col gap-2">
-        <div className="pointer-events-auto flex items-center gap-2 mb-1">
+      {/* Chat dos Agentes (Direita - meio, entre monitor e histórico) */}
+      <div className="pointer-events-none absolute right-4 top-72 w-64 flex flex-col gap-2 max-h-[calc(100vh-30rem)]">
+        <div className="pointer-events-auto flex items-center justify-end gap-2 mb-1">
+          {!showChat && (
+            <span className="text-[10px] font-bold text-white bg-slate-900/70 px-2 py-0.5 rounded-full backdrop-blur">CHAT</span>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7 rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 hover:bg-white"
+            className="h-7 w-7 rounded-full bg-slate-900/80 shadow-sm ring-1 ring-white/20 hover:bg-slate-800 text-white"
             onClick={() => setShowChat(!showChat)}
           >
             {showChat ? <ChevronUp className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
           </Button>
-          {!showChat && (
-            <span className="text-[10px] font-bold text-slate-500 bg-white/60 px-2 py-0.5 rounded-full backdrop-blur">CHAT</span>
-          )}
         </div>
 
-        {showChat && chatMessages.map((msg, i) => (
+        {showChat && chatMessages.slice(0, 4).map((msg, i) => (
           <div key={msg.id} 
-            className="pointer-events-auto flex flex-col rounded-lg bg-white/70 p-2 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm animate-in slide-in-from-left-4 duration-500"
-            style={{ opacity: 1 - i * 0.12 }}
+            className="pointer-events-auto flex flex-col rounded-lg bg-slate-900/80 p-2 shadow-sm ring-1 ring-white/10 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500"
+            style={{ opacity: 1 - i * 0.18 }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-900">{msg.sender}</span>
+              <span className="text-[10px] font-bold text-white">{msg.sender}</span>
               <span className="text-[9px] text-slate-400">{msg.time}</span>
             </div>
-            <p className="text-[11px] text-slate-600 leading-tight mt-0.5">{msg.text}</p>
+            <p className="text-[11px] text-slate-200 leading-tight mt-0.5">{msg.text}</p>
           </div>
         ))}
       </div>
@@ -373,12 +373,17 @@ export function SalaAgentesScene() {
             <p className="font-display text-[11px] font-bold uppercase tracking-widest text-slate-400">
               Monitor de Status
             </p>
-            <ul className="mt-3 space-y-2 text-xs">
-              <li className="flex items-center gap-3"><StatusDot status="idle" /> <span className="text-slate-300">Ocioso</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="working" /> <span className="font-medium">Processando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="thinking" /> <span className="font-medium">Analisando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="talking" /> <span className="font-medium">Comunicando</span></li>
-              <li className="flex items-center gap-3"><StatusDot status="error" /> <span className="text-red-400 font-bold">Atenção</span></li>
+            <ul className="mt-3 space-y-2 text-xs min-w-[180px]">
+              {(['idle','working','thinking','talking','error'] as const).map(s => {
+                const count = Object.values(runtime).filter(r => r.status === s).length;
+                const labels = { idle:'Ocioso', working:'Processando', thinking:'Analisando', talking:'Comunicando', error:'Atenção' };
+                return (
+                  <li key={s} className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-2"><StatusDot status={s} /> <span className={s==='error'?'text-red-400 font-bold':'text-slate-200'}>{labels[s]}</span></span>
+                    <span className="font-mono font-bold tabular-nums text-white">{count}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

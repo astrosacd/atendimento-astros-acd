@@ -156,6 +156,99 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
           <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} emissive="#60a5fa" emissiveIntensity={2} wireframe />
         </mesh>
       </group>
+
+      {/* Sala de Reunião (frontal) — mesa oval + cadeiras */}
+      <group position={[0, 0, 7]}>
+        {/* Tapete */}
+        <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0,0.02,0]}>
+          <planeGeometry args={[8, 4]} />
+          <meshStandardMaterial color={isNight ? '#1e293b' : '#fef3c7'} transparent opacity={0.4} />
+        </mesh>
+        {/* Mesa oval */}
+        <mesh castShadow receiveShadow position={[0, 0.7, 0]}>
+          <cylinderGeometry args={[1.6, 1.6, 0.12, 32]} />
+          <meshStandardMaterial color="#7c4a2a" roughness={0.4} metalness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.35, 0]}>
+          <cylinderGeometry args={[0.15, 0.15, 0.7, 12]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.8} />
+        </mesh>
+        {/* Cadeiras ao redor */}
+        {[0, 60, 120, 180, 240, 300].map(deg => {
+          const r = 2.2;
+          const rad = (deg * Math.PI) / 180;
+          return (
+            <group key={deg} position={[Math.cos(rad)*r, 0, Math.sin(rad)*r]} rotation={[0, -rad + Math.PI/2, 0]}>
+              <mesh castShadow position={[0, 0.5, 0]}>
+                <boxGeometry args={[0.5, 0.1, 0.5]} />
+                <meshStandardMaterial color="#334155" />
+              </mesh>
+              <mesh castShadow position={[0, 0.85, -0.2]}>
+                <boxGeometry args={[0.5, 0.7, 0.1]} />
+                <meshStandardMaterial color="#334155" />
+              </mesh>
+            </group>
+          );
+        })}
+        {/* Laptop sobre a mesa */}
+        <mesh castShadow position={[0.6, 0.78, 0]} rotation={[0, -0.3, 0]}>
+          <boxGeometry args={[0.5, 0.02, 0.35]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} />
+        </mesh>
+        <Html position={[0, 2.5, 0]} center distanceFactor={14}>
+          <div className="rounded bg-amber-500/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur whitespace-nowrap">
+            🤝 SALA DE REUNIÃO
+          </div>
+        </Html>
+      </group>
+
+      {/* Plantas decorativas nos cantos */}
+      {[[-11, -8], [11, -8], [-11, 8], [11, 8]].map(([x, z], i) => (
+        <group key={`plant-${i}`} position={[x, 0, z]}>
+          <mesh castShadow position={[0, 0.3, 0]}>
+            <cylinderGeometry args={[0.35, 0.4, 0.6, 12]} />
+            <meshStandardMaterial color="#92400e" />
+          </mesh>
+          <mesh castShadow position={[0, 1, 0]}>
+            <sphereGeometry args={[0.6, 12, 12]} />
+            <meshStandardMaterial color="#15803d" roughness={0.9} />
+          </mesh>
+          <mesh castShadow position={[0.2, 1.4, 0.1]}>
+            <sphereGeometry args={[0.4, 10, 10]} />
+            <meshStandardMaterial color="#22c55e" roughness={0.9} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Quadros corporativos nas paredes laterais */}
+      {[-1, 1].map(side => (
+        <group key={`quadro-${side}`} position={[side * 11.9, 2.5, 0]} rotation={[0, side > 0 ? -Math.PI/2 : Math.PI/2, 0]}>
+          <mesh>
+            <boxGeometry args={[2.5, 1.5, 0.05]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          <mesh position={[0, 0, 0.03]}>
+            <planeGeometry args={[2.3, 1.3]} />
+            <meshStandardMaterial 
+              color={side > 0 ? '#3b82f6' : '#10b981'} 
+              emissive={side > 0 ? '#3b82f6' : '#10b981'} 
+              emissiveIntensity={isNight ? 0.6 : 0.3}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Recepção / balcão na entrada */}
+      <group position={[0, 0, 8.5]}>
+        <mesh castShadow position={[0, 0.5, 0]}>
+          <boxGeometry args={[3, 1, 0.6]} />
+          <meshStandardMaterial color="#1e40af" metalness={0.3} roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 1.05, 0]}>
+          <boxGeometry args={[3.2, 0.1, 0.7]} />
+          <meshStandardMaterial color="#fafafa" metalness={0.5} />
+        </mesh>
+      </group>
     </group>
   );
 }
