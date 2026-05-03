@@ -443,6 +443,19 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
             </div>
 
             <div className="space-y-2">
+              <Label>Tipo WhatsApp *</Label>
+              <Select value={restoreTipoWhatsapp} onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                  <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="restore-obs">Observações (opcional)</Label>
               <Textarea
                 id="restore-obs"
