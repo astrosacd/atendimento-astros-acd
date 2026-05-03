@@ -24,6 +24,8 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
   const leftArmRef = useRef<THREE.Mesh>(null);
   const rightArmRef = useRef<THREE.Mesh>(null);
   const haloRef = useRef<THREE.Mesh>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
 
   const bodyColor = AGENT_HEX[agent.color];
   const statusColor = STATUS_HEX[status];
@@ -69,17 +71,23 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
       Math.pow(position[1] - groupRef.current.position.z, 2)
     ) > 0.01 : false;
 
-    if (isMoving && leftArmRef.current && rightArmRef.current) {
+    if (isMoving) {
       const swing = Math.sin(t * 12) * 0.5;
-      leftArmRef.current.rotation.x = swing;
-      rightArmRef.current.rotation.x = -swing;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = swing;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = -swing;
+      if (leftLegRef.current) leftLegRef.current.rotation.x = -swing * 1.2;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = swing * 1.2;
     } else if ((status === 'working' || status === 'talking') && leftArmRef.current && rightArmRef.current) {
       const swing = Math.sin(t * 6) * 0.6;
       leftArmRef.current.rotation.x = swing;
       rightArmRef.current.rotation.x = -swing;
+      if (leftLegRef.current) leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, 0, 0.1);
+      if (rightLegRef.current) rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, 0, 0.1);
     } else {
       if (leftArmRef.current) leftArmRef.current.rotation.x = THREE.MathUtils.lerp(leftArmRef.current.rotation.x, 0, 0.1);
       if (rightArmRef.current) rightArmRef.current.rotation.x = THREE.MathUtils.lerp(rightArmRef.current.rotation.x, 0, 0.1);
+      if (leftLegRef.current) leftLegRef.current.rotation.x = THREE.MathUtils.lerp(leftLegRef.current.rotation.x, 0, 0.1);
+      if (rightLegRef.current) rightLegRef.current.rotation.x = THREE.MathUtils.lerp(rightLegRef.current.rotation.x, 0, 0.1);
     }
 
     if (headRef.current && status === 'thinking') {
@@ -129,11 +137,11 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
       {/* Pernas */}
-      <mesh castShadow position={[-0.13, 0.05, 0]}>
+      <mesh ref={leftLegRef} castShadow position={[-0.13, 0.05, 0]}>
         <boxGeometry args={[0.2, 0.4, 0.2]} />
         <meshStandardMaterial color="#2c3340" roughness={0.7} />
       </mesh>
-      <mesh castShadow position={[0.13, 0.05, 0]}>
+      <mesh ref={rightLegRef} castShadow position={[0.13, 0.05, 0]}>
         <boxGeometry args={[0.2, 0.4, 0.2]} />
         <meshStandardMaterial color="#2c3340" roughness={0.7} />
       </mesh>
