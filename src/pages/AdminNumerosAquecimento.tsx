@@ -1042,7 +1042,7 @@ function CreateNumeroDialog({
             <Label>Tipo WhatsApp *</Label>
             <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
