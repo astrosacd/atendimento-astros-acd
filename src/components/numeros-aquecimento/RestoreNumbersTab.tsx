@@ -231,9 +231,10 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
 
   const handleOpenRestoreDialog = (number: DeletedNumber) => {
     setSelectedNumber(number);
-    // Pre-fill with original values if available
-    setRestoreStatusId(number.dados_anteriores?.status_id || '');
-    setRestoreModeloId(number.dados_anteriores?.modelo_id || '');
+    // Não pré-preenche - usuário deve escolher novamente
+    setRestoreStatusId('');
+    setRestoreModeloId('');
+    setRestoreTipoWhatsapp('');
     setRestoreObservacoes('');
     setRestoreDialogOpen(true);
   };
@@ -243,6 +244,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     setSelectedNumber(null);
     setRestoreStatusId('');
     setRestoreModeloId('');
+    setRestoreTipoWhatsapp('');
     setRestoreObservacoes('');
   };
 
@@ -256,11 +258,16 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       toast.error('Selecione um modelo');
       return;
     }
+    if (!restoreTipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp');
+      return;
+    }
 
     restoreNumber.mutate({
       deletedRecord: selectedNumber,
       statusId: restoreStatusId,
       modeloId: restoreModeloId,
+      tipoWhatsapp: restoreTipoWhatsapp,
       observacoes: restoreObservacoes,
     });
   };
