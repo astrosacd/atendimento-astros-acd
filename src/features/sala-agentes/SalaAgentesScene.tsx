@@ -36,7 +36,8 @@ export function SalaAgentesScene() {
   const [showHistory, setShowHistory] = useState(true);
   const [showStatus, setShowStatus] = useState(true);
   const [showHUD, setShowHUD] = useState(true);
-  const [showChat, setShowChat] = useState(true);
+  const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('activity');
+  const [showHistory, setShowHistory] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
@@ -327,35 +328,7 @@ export function SalaAgentesScene() {
         )}
       </div>
 
-      {/* Chat dos Agentes (Direita - meio, entre monitor e histórico) */}
-      <div className="pointer-events-none absolute right-4 top-72 w-64 flex flex-col gap-2 max-h-[calc(100vh-30rem)]">
-        <div className="pointer-events-auto flex items-center justify-end gap-2 mb-1">
-          {!showChat && (
-            <span className="text-[10px] font-bold text-white bg-slate-900/70 px-2 py-0.5 rounded-full backdrop-blur">CHAT</span>
-          )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 rounded-full bg-slate-900/80 shadow-sm ring-1 ring-white/20 hover:bg-slate-800 text-white"
-            onClick={() => setShowChat(!showChat)}
-          >
-            {showChat ? <ChevronUp className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
-
-        {showChat && chatMessages.slice(0, 4).map((msg, i) => (
-          <div key={msg.id} 
-            className="pointer-events-auto flex flex-col rounded-lg bg-slate-900/80 p-2 shadow-sm ring-1 ring-white/10 backdrop-blur-sm animate-in slide-in-from-right-4 duration-500"
-            style={{ opacity: 1 - i * 0.18 }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-white">{msg.sender}</span>
-              <span className="text-[9px] text-slate-400">{msg.time}</span>
-            </div>
-            <p className="text-[11px] text-slate-200 leading-tight mt-0.5">{msg.text}</p>
-          </div>
-        ))}
-      </div>
+      {/* Chat removido daqui pois agora está dentro do painel de atividades */}
 
       {/* Monitor de Status topo-direita */}
       <div className="pointer-events-none absolute right-4 top-4 flex flex-col items-end gap-2">
@@ -392,54 +365,80 @@ export function SalaAgentesScene() {
       {/* Histórico ao vivo (rodapé direito) */}
       <div className="pointer-events-none absolute bottom-4 right-4 w-80">
         <Card className="pointer-events-auto bg-white/90 backdrop-blur shadow-xl ring-1 ring-slate-200 border-0 overflow-hidden">
-          <button 
-            className="flex w-full items-center justify-between border-b border-slate-200 px-3 py-2 text-left transition-colors hover:bg-slate-50"
-            onClick={() => setShowHistory(!showHistory)}
-          >
-            <h3 className="flex items-center gap-2 font-display text-sm font-bold text-slate-900">
-              <Clock className="h-4 w-4 text-slate-500" />
-              Atividades em tempo real
-            </h3>
-            {showHistory ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronUp className="h-4 w-4 text-slate-400" />}
-          </button>
+          <div className="flex w-full items-center justify-between border-b border-slate-200 px-1 py-1">
+            <div className="flex items-center gap-1">
+              <button 
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${activeTab === 'activity' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
+                onClick={() => { setActiveTab('activity'); setShowHistory(true); }}
+              >
+                Atividades
+              </button>
+              <button 
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${activeTab === 'chat' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
+                onClick={() => { setActiveTab('chat'); setShowHistory(true); }}
+              >
+                Chat dos Agentes
+              </button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-400 hover:text-slate-900"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              {showHistory ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
           
           {showHistory && (
             <ScrollArea className="h-56 animate-in slide-in-from-bottom-2 duration-200">
               <div className="p-2">
-              {history.length === 0 ? (
-                <div className="flex h-40 flex-col items-center justify-center gap-2 text-[11px] text-slate-400">
-                  <div className="relative">
-                    <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
-                    <Activity className="absolute inset-0 h-4 w-4 scale-50 text-slate-400" />
-                  </div>
-                  Esperando atividades nos módulos do CRM...
-                </div>
-              ) : (
-                <ul className="space-y-1.5">
-                  {history.map((evt) => {
-                    const a = AGENTS.find(x => x.id === evt.agentId);
-                    if (!a) return null;
-                    return (
-                      <li key={evt.id} className="flex items-start gap-2 rounded-md p-1.5 hover:bg-slate-100">
-                        <span
-                          className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full"
-                          style={{ background: AGENT_HEX[a.color] }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 truncate">
-                            <span style={{ color: STATUS_HEX[evt.status] }}>{a.name}</span>{' '}
-                            <span className="text-slate-500 font-normal">· {a.module}</span>
-                          </p>
-                          <p className="text-[11px] text-slate-600 truncate">{evt.message}</p>
-                        </div>
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {new Date(evt.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                {activeTab === 'activity' ? (
+                  history.length === 0 ? (
+                    <div className="flex h-40 flex-col items-center justify-center gap-2 text-[11px] text-slate-400">
+                      <div className="relative">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
+                        <Activity className="absolute inset-0 h-4 w-4 scale-50 text-slate-400" />
+                      </div>
+                      Esperando atividades...
+                    </div>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {history.map((evt) => {
+                        const a = AGENTS.find(x => x.id === evt.agentId);
+                        if (!a) return null;
+                        return (
+                          <li key={evt.id} className="flex items-start gap-2 rounded-md p-1.5 hover:bg-slate-100">
+                            <span className="mt-1 h-2 w-2 rounded-full" style={{ background: AGENT_HEX[a.color] }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 truncate">{a.name}</p>
+                              <p className="text-[11px] text-slate-600 truncate">{evt.message}</p>
+                            </div>
+                            <span className="text-[10px] text-slate-400">{new Date(evt.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )
+                ) : (
+                  chatMessages.length === 0 ? (
+                    <div className="flex h-40 items-center justify-center text-[11px] text-slate-400 italic">
+                      Nenhuma conversa iniciada...
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {chatMessages.map((msg) => (
+                        <li key={msg.id} className="flex flex-col rounded-md bg-slate-50 p-2 border border-slate-100">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[10px] font-bold text-slate-900">{msg.sender}</span>
+                            <span className="text-[9px] text-slate-400">{msg.time}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 italic leading-tight">"{msg.text}"</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                )}
               </div>
             </ScrollArea>
           )}
