@@ -393,6 +393,12 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'em_andamento');
         chamadosEmAndamento = emAndamento || 0;
+
+        const { count: aguardandoC } = await supabase
+          .from('chamados')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'aguardando_cliente');
+        chamadosAguardandoCliente = aguardandoC || 0;
       }
 
       // Task stats (only for users with task permission)
