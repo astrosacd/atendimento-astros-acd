@@ -347,6 +347,7 @@ export default function AdminPermissoes() {
     'Chat': 'Chat',
     'Vendas': 'Vendas',
     'Conexões': 'Conexões',
+    'Sala dos Agentes': 'Sala dos Agentes',
   });
 
   const colorOptions = getColorOptions(t);
