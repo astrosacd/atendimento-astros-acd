@@ -122,6 +122,7 @@ export default function Dashboard() {
     billingErrors: 0,
     chamadosAbertos: 0,
     chamadosEmAndamento: 0,
+    chamadosAguardandoCliente: 0,
     tarefasPendentes: 0,
     tarefasEmAndamento: 0,
     tarefasAtrasadas: 0,
