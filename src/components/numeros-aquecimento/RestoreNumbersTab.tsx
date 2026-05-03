@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { RefreshCw, RotateCcw, Trash2, Search, Mail, Loader2, MessageSquare } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,6 +48,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
   const [selectedNumber, setSelectedNumber] = useState<DeletedNumber | null>(null);
   const [restoreStatusId, setRestoreStatusId] = useState<string>('');
   const [restoreModeloId, setRestoreModeloId] = useState<string>('');
+  const [restoreTipoWhatsapp, setRestoreTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
   const [restoreObservacoes, setRestoreObservacoes] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -170,11 +172,13 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       deletedRecord,
       statusId,
       modeloId,
+      tipoWhatsapp,
       observacoes,
     }: {
       deletedRecord: DeletedNumber;
       statusId: string;
       modeloId: string;
+      tipoWhatsapp: 'normal' | 'business';
       observacoes: string;
     }) => {
       const { data: profile } = await supabase
@@ -190,6 +194,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
           numero: deletedRecord.numero_valor,
           modelo_id: modeloId || null,
           status_id: statusId || null,
+          tipo_whatsapp: tipoWhatsapp,
           observacoes: observacoes || null,
           ultima_atividade: formatUltimaAtividade('cadastro'),
           created_by: user?.id,
@@ -226,9 +231,10 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
 
   const handleOpenRestoreDialog = (number: DeletedNumber) => {
     setSelectedNumber(number);
-    // Pre-fill with original values if available
-    setRestoreStatusId(number.dados_anteriores?.status_id || '');
-    setRestoreModeloId(number.dados_anteriores?.modelo_id || '');
+    // Não pré-preenche - usuário deve escolher novamente
+    setRestoreStatusId('');
+    setRestoreModeloId('');
+    setRestoreTipoWhatsapp('');
     setRestoreObservacoes('');
     setRestoreDialogOpen(true);
   };
@@ -238,6 +244,7 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
     setSelectedNumber(null);
     setRestoreStatusId('');
     setRestoreModeloId('');
+    setRestoreTipoWhatsapp('');
     setRestoreObservacoes('');
   };
 
@@ -251,11 +258,16 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
       toast.error('Selecione um modelo');
       return;
     }
+    if (!restoreTipoWhatsapp) {
+      toast.error('Selecione o tipo de WhatsApp');
+      return;
+    }
 
     restoreNumber.mutate({
       deletedRecord: selectedNumber,
       statusId: restoreStatusId,
       modeloId: restoreModeloId,
+      tipoWhatsapp: restoreTipoWhatsapp,
       observacoes: restoreObservacoes,
     });
   };
@@ -428,6 +440,19 @@ export function RestoreNumbersTab({ statusList, modelosList }: RestoreNumbersTab
                 searchPlaceholder="Buscar modelo..."
                 emptyMessage="Nenhum modelo encontrado."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo WhatsApp *</Label>
+              <Select value={restoreTipoWhatsapp} onValueChange={(v) => setRestoreTipoWhatsapp(v as 'normal' | 'business')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
+                  <SelectItem value="business">💼 WhatsApp Business</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

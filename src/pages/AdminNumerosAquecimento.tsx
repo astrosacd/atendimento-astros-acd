@@ -937,7 +937,7 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
-  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
@@ -962,6 +962,11 @@ function CreateNumeroDialog({
   const handleSubmit = () => {
     if (!numero) {
       toast.error('Número é obrigatório');
+      return;
+    }
+
+    if (!tipoWhatsapp) {
+      toast.error('Tipo de WhatsApp é obrigatório');
       return;
     }
 
@@ -1005,7 +1010,7 @@ function CreateNumeroDialog({
         setNumero('');
         setModeloId('');
         setStatusId('');
-        setTipoWhatsapp('normal');
+        setTipoWhatsapp('');
         setObservacoes('');
       }
     });
@@ -1037,7 +1042,7 @@ function CreateNumeroDialog({
             <Label>Tipo WhatsApp *</Label>
             <Select value={tipoWhatsapp} onValueChange={(v) => setTipoWhatsapp(v as 'normal' | 'business')}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="normal">📱 WhatsApp Normal</SelectItem>
