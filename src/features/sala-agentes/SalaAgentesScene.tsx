@@ -320,11 +320,13 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
                 {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
                 {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
               </Badge>
-              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">
-                <Upload className="h-3.5 w-3.5" />
-                {isUploadingLogo ? 'Enviando...' : 'Upload Logo'}
-                <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
-              </label>
+              {!isPublic && (
+                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">
+                  <Upload className="h-3.5 w-3.5" />
+                  {isUploadingLogo ? 'Enviando...' : 'Upload Logo'}
+                  <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
+                </label>
+              )}
             </div>
           </div>
         )}
