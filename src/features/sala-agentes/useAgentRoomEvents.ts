@@ -194,8 +194,9 @@ export function useAgentRoomEvents() {
         newOnes.reverse().forEach((row, idx) => {
           const agentId = agentForActivity(row.resource_type, row.action);
           if (!agentId) return;
-          const msg = (row.action || 'evento').replace(/_/g, ' ');
-          const detail = row.details || `${row.action} em ${row.resource_type}`;
+          const actionLabel = (row.action || 'evento').replace(/_/g, ' ');
+          const msg = `Processando: ${actionLabel}`;
+          const detail = row.details || `Módulo executando ${actionLabel} em ${row.resource_type}`;
           setTimeout(() => dispatchEvent(agentId, 'working', msg, detail), idx * 500);
         });
       } catch (e) {
