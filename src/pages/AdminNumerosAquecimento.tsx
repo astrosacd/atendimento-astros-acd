@@ -937,7 +937,7 @@ function CreateNumeroDialog({
   const [numero, setNumero] = useState('');
   const [modeloId, setModeloId] = useState<string>('');
   const [statusId, setStatusId] = useState<string>('');
-  const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>('normal');
+  const [tipoWhatsapp, setTipoWhatsapp] = useState<'' | 'normal' | 'business'>('');
   const [observacoes, setObservacoes] = useState('');
 
   // Normalize number for comparison (remove spaces, dashes, parentheses)
