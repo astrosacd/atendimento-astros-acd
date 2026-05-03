@@ -99,12 +99,12 @@ export function SalaAgentesScene() {
 
       // Detecta se estamos no domínio lovable.app ou similar para construir a URL correta
       const currentUrl = window.location.href;
-      const isLovableDev = currentUrl.includes('lovable.dev');
+      const isLovableDev = currentUrl.includes('lovable.dev') || currentUrl.includes('lovable.app');
       
       let baseUrl = window.location.origin;
       
-      // Se estivermos no editor, tentamos pegar a URL de preview se possível,
-      // mas o ideal é que o usuário use isso no site publicado.
+      // Ajuste crucial: Se estivermos no preview do Lovable, precisamos usar o domínio do Lovable app
+      // mas garantindo que o link seja /public/...
       const url = `${baseUrl}/public/sala-agentes?token=${token}`;
       
       await navigator.clipboard.writeText(url);
