@@ -30,7 +30,7 @@ function StatusDot({ status }: { status: keyof typeof STATUS_HEX }) {
   );
 }
 
-export function SalaAgentesScene() {
+export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = {}) {
   const navigate = useNavigate();
   const { runtime, history } = useAgentRoomEvents();
   const [selected, setSelected] = useState<AgentDef | null>(null);
