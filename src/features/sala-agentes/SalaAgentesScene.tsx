@@ -75,7 +75,9 @@ export function SalaAgentesScene() {
   };
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#f5ecd9] to-[#e6d8be]">
+    <div className={`relative h-[calc(100vh-4rem)] w-full overflow-hidden rounded-xl transition-colors duration-1000 ${
+      isNight ? 'bg-[#1a1c2c]' : 'bg-gradient-to-b from-[#f5ecd9] to-[#e6d8be]'
+    }`}>
       {/* Canvas 3D */}
       <Canvas
         shadows
@@ -83,41 +85,53 @@ export function SalaAgentesScene() {
         dpr={[1, 1.8]}
         gl={{ antialias: true, alpha: false }}
       >
-        <color attach="background" args={['#f5ecd9']} />
-        <fog attach="fog" args={['#f5ecd9', 28, 55]} />
+        <color attach="background" args={[isNight ? '#1a1c2c' : '#f5ecd9']} />
+        <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 28, 55]} />
 
-        {/* Iluminação aconchegante */}
-        <ambientLight intensity={0.55} />
+        {/* Iluminação dinâmica */}
+        <ambientLight intensity={isNight ? 0.25 : 0.55} />
         <directionalLight
           position={[10, 18, 10]}
-          intensity={1.1}
+          intensity={isNight ? 0.4 : 1.1}
+          color={isNight ? '#a8c8ff' : '#ffffff'}
           castShadow
           shadow-mapSize={[1024, 1024]}
-          shadow-camera-left={-15}
-          shadow-camera-right={15}
-          shadow-camera-top={15}
-          shadow-camera-bottom={-15}
         />
-        <pointLight position={[0, 5, 0]} intensity={0.4} color="#ffd9a8" />
-        <pointLight position={[-8, 4, -8]} intensity={0.3} color="#a8c8ff" />
-
+        
+        {isNight && (
+          <pointLight position={[0, 4, 0]} intensity={0.6} color="#4c6ef5" />
+        )}
+        
         <Suspense fallback={null}>
-          <Room />
+          <Room isNight={isNight} />
+          
+          {/* Estações de trabalho (estáticas) */}
+          {AGENTS.map((agent) => (
+            <Workstation
+              key={`ws-${agent.id}`}
+              agent={agent}
+              isBusy={runtime[agent.id]?.status !== 'idle'}
+            />
+          ))}
+
+          {/* Agentes (dinâmicos/móveis) */}
           {AGENTS.map((agent) => {
             const st = runtime[agent.id];
             return (
-              <Workstation
-                key={agent.id}
+              <VoxelAgent
+                key={`agent-${agent.id}`}
                 agent={agent}
                 status={st?.status || 'idle'}
+                position={st?.position || agent.position}
                 message={st?.message}
-                onSelect={setSelected}
+                onClick={() => setSelected(agent)}
               />
             );
           })}
+
           <ContactShadows
             position={[0, 0.01, 0]}
-            opacity={0.35}
+            opacity={isNight ? 0.6 : 0.35}
             scale={28}
             blur={2.4}
             far={6}
