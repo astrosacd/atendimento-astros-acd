@@ -180,12 +180,12 @@ export function SalaAgentesScene() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 gap-2 bg-white/50" 
+                className="h-8 gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50" 
                 onClick={handleShare}
                 disabled={isGeneratingLink}
               >
                 {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                Compartilhar
+                Compartilhar Link
               </Button>
             </div>
           </div>
