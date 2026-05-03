@@ -19,6 +19,7 @@ import { useAgentRoomEvents } from './useAgentRoomEvents';
 import { AGENT_HEX, STATUS_HEX } from './colors';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { copyToClipboard } from '@/utils/clipboard';
 
 function StatusDot({ status }: { status: keyof typeof STATUS_HEX }) {
   return (
