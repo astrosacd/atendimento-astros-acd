@@ -57,13 +57,13 @@ export function SalaAgentesScene() {
 
       const { error } = await supabase.from('shared_access_tokens').insert({
         token,
-        target_url: window.location.pathname,
+        target_url: '/public/sala-agentes',
         expires_at: expiresAt.toISOString()
       });
 
       if (error) throw error;
 
-      const url = `${window.location.origin}${window.location.pathname}?token=${token}`;
+      const url = `${window.location.origin}/public/sala-agentes?token=${token}`;
       await navigator.clipboard.writeText(url);
       toast.success('Link de acesso temporário (24h) copiado!');
     } catch (err) {
