@@ -283,29 +283,31 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
                   Visão ao vivo dos módulos do CRM trabalhando.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <select 
-                  className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-primary"
-                  value={shareExpiration}
-                  onChange={(e) => setShareExpiration(e.target.value)}
-                >
-                  <option value="1h">1 hora</option>
-                  <option value="2h">2 horas</option>
-                  <option value="24h">24 horas</option>
-                  <option value="2d">2 dias</option>
-                  <option value="10d">10 dias</option>
-                </select>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="h-8 gap-2 bg-slate-900 text-white hover:bg-slate-800" 
-                  onClick={handleShare}
-                  disabled={isGeneratingLink}
-                >
-                  {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                  Compartilhar
-                </Button>
-              </div>
+              {!isPublic && (
+                <div className="flex items-center gap-2">
+                  <select 
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[11px] text-slate-700 outline-none focus:ring-1 focus:ring-primary"
+                    value={shareExpiration}
+                    onChange={(e) => setShareExpiration(e.target.value)}
+                  >
+                    <option value="1h">1 hora</option>
+                    <option value="2h">2 horas</option>
+                    <option value="24h">24 horas</option>
+                    <option value="2d">2 dias</option>
+                    <option value="10d">10 dias</option>
+                  </select>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="h-8 gap-2 bg-slate-900 text-white hover:bg-slate-800" 
+                    onClick={handleShare}
+                    disabled={isGeneratingLink}
+                  >
+                    {isGeneratingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+                    Compartilhar
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="mt-2 flex items-center gap-2 text-[11px]">
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
