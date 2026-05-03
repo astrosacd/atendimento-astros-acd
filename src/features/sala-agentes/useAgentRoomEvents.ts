@@ -15,6 +15,7 @@ interface AgentRuntimeState {
   status: AgentStatus;
   message?: string;
   busyUntil: number; // timestamp em ms
+  position: [number, number]; // [x, z] atual
 }
 
 const VALID_AGENT_IDS = new Set(AGENTS.map(a => a.id));
@@ -93,7 +94,11 @@ export function useAgentRoomEvents() {
   const [runtime, setRuntime] = useState<Record<string, AgentRuntimeState>>(() => {
     const init: Record<string, AgentRuntimeState> = {};
     AGENTS.forEach(a => {
-      init[a.id] = { status: 'idle', busyUntil: 0 };
+      init[a.id] = { 
+        status: 'idle', 
+        busyUntil: 0, 
+        position: [...a.position] as [number, number] 
+      };
     });
     return init;
   });
@@ -116,7 +121,14 @@ export function useAgentRoomEvents() {
     setHistory(prev => [evt, ...prev].slice(0, RECENT_EVENTS_KEEP));
     setRuntime(prev => ({
       ...prev,
-      [agentId]: { status, message, busyUntil: now + BUSY_DURATION_MS },
+      [agentId]: { 
+        ...prev[agentId], 
+        status, 
+        message, 
+        busyUntil: now + BUSY_DURATION_MS,
+        // Ao receber evento, volta para a mesa
+        position: [...AGENTS.find(a => a.id === agentId)!.position] as [number, number]
+      },
     }));
   }, []);
 
@@ -217,23 +229,55 @@ export function useAgentRoomEvents() {
     return () => clearInterval(id);
   }, []);
 
-  // Demo: dispara um eventozinho leve a cada ~12s pra sala não ficar vazia
+  // Movimento aleatório: agentes ociosos passeiam pela sala
   useEffect(() => {
     const id = setInterval(() => {
-      // Só preenche se quase ninguém estiver ocupado
+      setRuntime(prev => {
+        const next = { ...prev };
+        let changed = false;
+
+        AGENTS.forEach(agent => {
+          const st = prev[agent.id];
+          if (st.status === 'idle' && Math.random() < 0.15) { // 15% de chance de mover se estiver idle
+            // Sorteia um destino: ou a mesa original ou um ponto no "tapete central"
+            const onTable = Math.random() > 0.6;
+            const newPos: [number, number] = onTable 
+              ? [...agent.position] as [number, number]
+              : [(Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4]; // área central
+            
+            next[agent.id] = { ...st, position: newPos };
+            changed = true;
+          }
+        });
+
+        return changed ? next : prev;
+      });
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Demo: dispara um eventozinho leve a cada ~12s
+  useEffect(() => {
+    const id = setInterval(() => {
       setRuntime(prev => {
         const busyCount = Object.values(prev).filter(s => s.status !== 'idle').length;
-        if (busyCount >= 2) return prev;
+        if (busyCount >= 3) return prev;
         const idleAgents = AGENTS.filter(a => prev[a.id]?.status === 'idle');
         if (idleAgents.length === 0) return prev;
         const pick = idleAgents[Math.floor(Math.random() * idleAgents.length)];
         const now = Date.now();
         return {
           ...prev,
-          [pick.id]: { status: 'thinking', busyUntil: now + 2500, message: 'Verificando...' },
+          [pick.id]: { 
+            ...prev[pick.id],
+            status: 'thinking', 
+            busyUntil: now + 2500, 
+            message: 'Verificando...',
+            position: [...pick.position] as [number, number] // volta p/ mesa
+          },
         };
       });
-    }, 12000);
+    }, 15000);
     return () => clearInterval(id);
   }, []);
 
