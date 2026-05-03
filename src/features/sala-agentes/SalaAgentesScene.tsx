@@ -72,28 +72,34 @@ export function SalaAgentesScene() {
     }
   };
 
-  // Simulação de chat entre agentes baseada no histórico de eventos
+  // Simulação de chat entre agentes baseada no histórico de eventos REALTIME
   useEffect(() => {
     if (history.length > 0) {
       const last = history[0];
       const agent = AGENTS.find(a => a.id === last.agentId);
-      if (agent && Math.random() > 0.6) {
+      
+      // Só dispara mensagem de chat se for um evento recente (últimos 3 segundos)
+      const isRecent = (Date.now() - last.ts) < 3000;
+      
+      if (agent && isRecent) {
         const responses = [
-          "Ok, estou verificando isso agora.",
-          "Dados atualizados com sucesso.",
-          "Processando a requisição...",
-          "Tudo certo por aqui!",
-          "Vou reportar isso para o admin.",
-          "Novo registro detectado.",
-          "IA confirmou os dados."
+          `Confirmado! Processando ${last.message.toLowerCase()}.`,
+          "Entendido, alteração registrada no banco.",
+          `Módulo ${agent.module} operando normalmente.`,
+          "Ação concluída com sucesso.",
+          "Notifiquei o restante do sistema.",
+          "Dados sincronizados agora mesmo.",
+          "IA validou o processo."
         ];
+        
         const msg = {
           id: Math.random().toString(),
           sender: agent.name,
           text: responses[Math.floor(Math.random() * responses.length)],
-          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         };
-        setChatMessages(prev => [msg, ...prev].slice(0, 5));
+        
+        setChatMessages(prev => [msg, ...prev].slice(0, 8));
       }
     }
   }, [history]);
@@ -310,8 +316,8 @@ export function SalaAgentesScene() {
                 {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
                 {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
               </Badge>
-              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] hover:bg-slate-50">
-                <Upload className="h-3 w-3" />
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">
+                <Upload className="h-3.5 w-3.5" />
                 {isUploadingLogo ? 'Enviando...' : 'Upload Logo'}
                 <input type="file" className="hidden" onChange={handleLogoUpload} accept="image/*" />
               </label>
