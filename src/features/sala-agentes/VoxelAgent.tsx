@@ -108,41 +108,41 @@ export function VoxelAgent({ agent, status, position, message, onClick }: Props)
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { document.body.style.cursor = 'auto'; }}
     >
-      {/* Tronco */}
+      {/* Tronco — Estilo Bloco Roblox */}
       <mesh castShadow position={[0, 0.45, 0]}>
-        <boxGeometry args={[0.55, 0.55, 0.35]} />
+        <boxGeometry args={[0.6, 0.6, 0.35]} />
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
-      {/* Cabeça */}
-      <mesh ref={headRef} castShadow position={[0, 1.0, 0]}>
-        <boxGeometry args={[0.48, 0.45, 0.45]} />
+      {/* Cabeça — Bloco mais quadrado */}
+      <mesh ref={headRef} castShadow position={[0, 1.05, 0]}>
+        <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial color="#f1d2b0" roughness={0.6} />
       </mesh>
-      {/* Olhos */}
-      <mesh position={[-0.1, 1.05, 0.23]}>
-        <boxGeometry args={[0.07, 0.07, 0.02]} />
+      {/* Olhos — Mais destacados estilo avatar */}
+      <mesh position={[-0.12, 1.1, 0.26]}>
+        <boxGeometry args={[0.08, 0.08, 0.02]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
-      <mesh position={[0.1, 1.05, 0.23]}>
-        <boxGeometry args={[0.07, 0.07, 0.02]} />
+      <mesh position={[0.12, 1.1, 0.26]}>
+        <boxGeometry args={[0.08, 0.08, 0.02]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
-      {/* Braços */}
-      <mesh ref={leftArmRef} castShadow position={[-0.36, 0.55, 0]}>
-        <boxGeometry args={[0.16, 0.5, 0.18]} />
+      {/* Braços — Blocos retangulares Roblox */}
+      <mesh ref={leftArmRef} castShadow position={[-0.4, 0.55, 0]}>
+        <boxGeometry args={[0.2, 0.55, 0.2]} />
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
-      <mesh ref={rightArmRef} castShadow position={[0.36, 0.55, 0]}>
-        <boxGeometry args={[0.16, 0.5, 0.18]} />
+      <mesh ref={rightArmRef} castShadow position={[0.4, 0.55, 0]}>
+        <boxGeometry args={[0.2, 0.55, 0.2]} />
         <meshStandardMaterial color={bodyColor} roughness={0.7} />
       </mesh>
-      {/* Pernas */}
-      <mesh ref={leftLegRef} castShadow position={[-0.13, 0.05, 0]}>
-        <boxGeometry args={[0.2, 0.4, 0.2]} />
+      {/* Pernas — Blocos retangulares Roblox */}
+      <mesh ref={leftLegRef} castShadow position={[-0.15, 0.05, 0]}>
+        <boxGeometry args={[0.25, 0.5, 0.25]} />
         <meshStandardMaterial color="#2c3340" roughness={0.7} />
       </mesh>
-      <mesh ref={rightLegRef} castShadow position={[0.13, 0.05, 0]}>
-        <boxGeometry args={[0.2, 0.4, 0.2]} />
+      <mesh ref={rightLegRef} castShadow position={[0.15, 0.05, 0]}>
+        <boxGeometry args={[0.25, 0.5, 0.25]} />
         <meshStandardMaterial color="#2c3340" roughness={0.7} />
       </mesh>
 
