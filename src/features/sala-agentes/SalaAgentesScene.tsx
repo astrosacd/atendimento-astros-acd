@@ -33,6 +33,8 @@ export function SalaAgentesScene() {
   const { runtime, history } = useAgentRoomEvents();
   const [selected, setSelected] = useState<AgentDef | null>(null);
   const [showHistory, setShowHistory] = useState(true);
+  const [showStatus, setShowStatus] = useState(true);
+  const [showHUD, setShowHUD] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
