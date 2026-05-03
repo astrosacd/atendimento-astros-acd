@@ -435,6 +435,7 @@ export default function Dashboard() {
         billingErrors,
         chamadosAbertos,
         chamadosEmAndamento,
+        chamadosAguardandoCliente,
         tarefasPendentes,
         tarefasEmAndamento,
         tarefasAtrasadas,
