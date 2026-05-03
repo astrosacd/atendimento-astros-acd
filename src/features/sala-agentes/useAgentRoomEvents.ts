@@ -219,7 +219,7 @@ export function useAgentRoomEvents() {
         const next: Record<string, AgentRuntimeState> = { ...prev };
         for (const [aid, st] of Object.entries(prev)) {
           if (st.status !== 'idle' && st.busyUntil < now) {
-            next[aid] = { status: 'idle', busyUntil: 0 };
+            next[aid] = { ...st, status: 'idle', busyUntil: 0 };
             changed = true;
           }
         }
