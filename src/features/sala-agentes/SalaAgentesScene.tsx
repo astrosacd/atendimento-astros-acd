@@ -9,12 +9,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, Activity, Sparkles, X, ExternalLink, 
   Share2, ChevronDown, ChevronUp, Clock, Sun, Moon,
-  Upload, MessageSquare
+  Upload, MessageSquare, Cloud, CloudRain, CloudLightning
 } from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
 import { Workstation } from './Workstation';
 import { VoxelAgent } from './VoxelAgent';
+import { Weather, pickWeather, type WeatherKind } from './Weather';
+import { BigScreen } from './BigScreen';
+import { LeisureAreas } from './LeisureAreas';
 import { useAgentRoomEvents } from './useAgentRoomEvents';
 import { AGENT_HEX, STATUS_HEX } from './colors';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +42,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
   const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('activity');
   const [showHistory, setShowHistory] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  const [weather, setWeather] = useState<WeatherKind>(() => pickWeather());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -129,9 +133,11 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
     }, 8000);
 
     const hourTimer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    const weatherTimer = setInterval(() => setWeather(pickWeather()), 60000);
     return () => {
       clearInterval(demoTimer);
       clearInterval(hourTimer);
+      clearInterval(weatherTimer);
     };
   }, [runtime]);
 
@@ -210,6 +216,9 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         
         <Suspense fallback={null}>
           <Room isNight={isNight} logoUrl={logoUrl} />
+          <Weather weather={weather} isNight={isNight} />
+          <LeisureAreas isNight={isNight} />
+          <BigScreen busyCount={busyCount} totalAgents={AGENTS.length} />
           
           {/* Estações de trabalho (estáticas) */}
           {AGENTS.map((agent) => (
@@ -319,6 +328,13 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
               <Badge variant="outline" className={`${isNight ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                 {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
                 {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
+              </Badge>
+              <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 capitalize">
+                {weather === 'sunny' && <Sun className="mr-1 h-3 w-3" />}
+                {weather === 'cloudy' && <Cloud className="mr-1 h-3 w-3" />}
+                {weather === 'rainy' && <CloudRain className="mr-1 h-3 w-3" />}
+                {weather === 'storm' && <CloudLightning className="mr-1 h-3 w-3" />}
+                {weather === 'sunny' ? 'Ensolarado' : weather === 'cloudy' ? 'Nublado' : weather === 'rainy' ? 'Chuvoso' : 'Tempestade'}
               </Badge>
               {!isPublic && (
                 <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">

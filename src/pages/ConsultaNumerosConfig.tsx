@@ -340,8 +340,6 @@ export default function ConsultaNumerosConfig() {
     addObsTagMutation.mutate({ nome: newTagName.trim(), cor: newTagColor });
   };
 
-  const isLoading = loadingConfig || loadingMaskedFields || loadingObsTags;
-
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6">
@@ -356,26 +354,8 @@ export default function ConsultaNumerosConfig() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-64" />
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-72" />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <Skeleton className="h-10 w-48" />
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
+        {(
+
           <Tabs defaultValue="connection" className="space-y-6">
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="connection" className="gap-2">
