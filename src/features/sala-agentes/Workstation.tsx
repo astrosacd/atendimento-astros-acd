@@ -1,10 +1,24 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ROOM_PALETTE } from './colors';
 import type { AgentDef, AgentStatus } from './agents';
 import { VoxelAgent } from './VoxelAgent';
+
+const TYPING_LINES: Record<string, string[]> = {
+  default: [
+    '> SELECT * FROM clientes WHERE ativo=true;',
+    '> processando lote #4821...',
+    '> sync_baserow.run() OK',
+    '> 12 registros atualizados',
+    '> verificando cache...',
+    '> webhook → n8n.dispatch()',
+    '> AI.classify(lead) = quente',
+    '> sending notification...',
+    '> commit eb91f2 saved',
+  ],
+};
 
 interface Props {
   agent: AgentDef;
