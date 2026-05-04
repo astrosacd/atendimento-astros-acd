@@ -42,6 +42,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
   const [activeTab, setActiveTab] = useState<'activity' | 'chat'>('activity');
   const [showHistory, setShowHistory] = useState(true);
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  const [weather, setWeather] = useState<WeatherKind>(() => pickWeather());
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [shareExpiration, setShareExpiration] = useState('24h');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
