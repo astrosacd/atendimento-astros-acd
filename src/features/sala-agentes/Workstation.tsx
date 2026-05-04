@@ -128,3 +128,52 @@ export function Workstation({ agent, isBusy }: Props) {
     </group>
   );
 }
+
+function TypingScreen({ seed, active }: { seed: string; active: boolean }) {
+  const lines = TYPING_LINES.default;
+  // Pseudo-aleatório estável por agente
+  const offset = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 9999;
+    return h;
+  }, [seed]);
+  const tickRef = useRef(0);
+  const charRef = useRef(0);
+  const lineIdxRef = useRef(0);
+  const displayRef = useRef<HTMLDivElement>(null);
+  const linesShownRef = useRef<string[]>([]);
+
+  useFrame(({ clock }) => {
+    if (!displayRef.current) return;
+    const speed = active ? 0.04 : 0.12;
+    const t = clock.getElapsedTime();
+    if (t - tickRef.current < speed) return;
+    tickRef.current = t;
+
+    const currentLine = lines[(lineIdxRef.current + offset) % lines.length];
+    charRef.current++;
+    if (charRef.current > currentLine.length) {
+      linesShownRef.current = [...linesShownRef.current, currentLine].slice(-6);
+      charRef.current = 0;
+      lineIdxRef.current++;
+    }
+    const partial = currentLine.slice(0, charRef.current);
+    const html =
+      linesShownRef.current.map((l) => `<div>${l}</div>`).join('') +
+      `<div>${partial}<span class="text-emerald-400">▌</span></div>`;
+    displayRef.current.innerHTML = html;
+  });
+
+  return (
+    <div className="h-full w-full overflow-hidden rounded-sm bg-[#0a1428] p-1 font-mono text-[7px] leading-tight text-emerald-300 ring-1 ring-blue-500/30">
+      <div className="mb-1 flex items-center gap-1 border-b border-white/10 pb-0.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="ml-1 text-[6px] text-slate-400">~/astros</span>
+      </div>
+      <div ref={displayRef} className="space-y-0.5" />
+    </div>
+  );
+}
+
