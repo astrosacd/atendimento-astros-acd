@@ -216,6 +216,9 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         
         <Suspense fallback={null}>
           <Room isNight={isNight} logoUrl={logoUrl} />
+          <Weather weather={weather} isNight={isNight} />
+          <LeisureAreas isNight={isNight} />
+          <BigScreen busyCount={busyCount} totalAgents={AGENTS.length} />
           
           {/* Estações de trabalho (estáticas) */}
           {AGENTS.map((agent) => (
