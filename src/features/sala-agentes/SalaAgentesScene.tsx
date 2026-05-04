@@ -133,9 +133,11 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
     }, 8000);
 
     const hourTimer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    const weatherTimer = setInterval(() => setWeather(pickWeather()), 60000);
     return () => {
       clearInterval(demoTimer);
       clearInterval(hourTimer);
+      clearInterval(weatherTimer);
     };
   }, [runtime]);
 
