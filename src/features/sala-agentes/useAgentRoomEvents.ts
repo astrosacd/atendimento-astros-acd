@@ -102,6 +102,17 @@ export function useAgentRoomEvents() {
     return () => clearInterval(id);
   }, [dispatchEvent, runtime]);
 
+  // Pontos de lazer onde agentes ociosos vão de vez em quando
+  const LEISURE_SPOTS: [number, number][] = [
+    [10, 7],   // copa
+    [11, 6.5], // copa - cafeteira
+    [-10, 7],  // academia
+    [-9, 6.5], // academia
+    [0, 7],    // sala reunião
+    [-2, 7],   // sala reunião
+    [11, -8],  // banheiro
+  ];
+
   useEffect(() => {
     const id = setInterval(() => {
       setRuntime(prev => {
@@ -109,19 +120,29 @@ export function useAgentRoomEvents() {
         let changed = false;
         AGENTS.forEach(agent => {
           const st = prev[agent.id];
-          if (st.status === 'idle' && Math.random() < 0.3) {
+          if (st.status === 'idle' && Math.random() < 0.35) {
             const rand = Math.random();
             let newPos: [number, number];
-            if (rand < 0.4) newPos = [...agent.position] as [number, number];
-            else if (rand < 0.7) newPos = [(Math.random() - 0.5) * 6, (Math.random() - 0.5) * 5];
-            else newPos = [agent.position[0] + (Math.random() - 0.5) * 2, agent.position[1] + (Math.random() - 0.5) * 2];
+            if (rand < 0.35) {
+              // volta pra mesa
+              newPos = [...agent.position] as [number, number];
+            } else if (rand < 0.65) {
+              // vai para lazer
+              newPos = [...LEISURE_SPOTS[Math.floor(Math.random() * LEISURE_SPOTS.length)]] as [number, number];
+            } else if (rand < 0.85) {
+              // anda perto da mesa
+              newPos = [agent.position[0] + (Math.random() - 0.5) * 2, agent.position[1] + (Math.random() - 0.5) * 2];
+            } else {
+              // passeia pelo centro
+              newPos = [(Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4];
+            }
             next[agent.id] = { ...st, position: newPos };
             changed = true;
           }
         });
         return changed ? next : prev;
       });
-    }, 6000);
+    }, 7000);
     return () => clearInterval(id);
   }, []);
 
