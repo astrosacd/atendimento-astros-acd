@@ -329,6 +329,13 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
                 {isNight ? <Moon className="mr-1 h-3 w-3" /> : <Sun className="mr-1 h-3 w-3" />}
                 {currentHour}h {isNight ? '(Noite)' : '(Dia)'}
               </Badge>
+              <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 capitalize">
+                {weather === 'sunny' && <Sun className="mr-1 h-3 w-3" />}
+                {weather === 'cloudy' && <Cloud className="mr-1 h-3 w-3" />}
+                {weather === 'rainy' && <CloudRain className="mr-1 h-3 w-3" />}
+                {weather === 'storm' && <CloudLightning className="mr-1 h-3 w-3" />}
+                {weather === 'sunny' ? 'Ensolarado' : weather === 'cloudy' ? 'Nublado' : weather === 'rainy' ? 'Chuvoso' : 'Tempestade'}
+              </Badge>
               {!isPublic && (
                 <label className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">
                   <Upload className="h-3.5 w-3.5" />
