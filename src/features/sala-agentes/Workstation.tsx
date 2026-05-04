@@ -73,6 +73,16 @@ export function Workstation({ agent, isBusy }: Props) {
           emissiveIntensity={0.15}
         />
       </mesh>
+      {/* Tela do código sendo "digitado" */}
+      <Html
+        position={[0, 1.2, -0.795]}
+        transform
+        distanceFactor={2.6}
+        occlude={false}
+        style={{ width: '210px', height: '125px', pointerEvents: 'none' }}
+      >
+        <TypingScreen seed={agent.id} active={isBusy} />
+      </Html>
       <mesh position={[0, 0.85, -0.85]}>
         <boxGeometry args={[0.1, 0.15, 0.05]} />
         <meshStandardMaterial color={ROOM_PALETTE.monitor} />
