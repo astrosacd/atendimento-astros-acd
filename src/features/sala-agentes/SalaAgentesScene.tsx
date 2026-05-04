@@ -9,12 +9,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, Activity, Sparkles, X, ExternalLink, 
   Share2, ChevronDown, ChevronUp, Clock, Sun, Moon,
-  Upload, MessageSquare
+  Upload, MessageSquare, Cloud, CloudRain, CloudLightning
 } from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
 import { Workstation } from './Workstation';
 import { VoxelAgent } from './VoxelAgent';
+import { Weather, pickWeather, type WeatherKind } from './Weather';
+import { BigScreen } from './BigScreen';
+import { LeisureAreas } from './LeisureAreas';
 import { useAgentRoomEvents } from './useAgentRoomEvents';
 import { AGENT_HEX, STATUS_HEX } from './colors';
 import { supabase } from '@/integrations/supabase/client';
