@@ -90,8 +90,8 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
         {/* Halteres */}
         {[-0.7, -0.3, 0.1].map((z, i) => (
           <group key={i} position={[-1, 0.15, z]}>
-            <mesh castShadow>
-              <cylinderGeometry args={[0.15, 0.15, 0.1, 12]} rotation={[0, 0, Math.PI / 2]} />
+            <mesh castShadow rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.15, 0.15, 0.1, 12]} />
               <meshStandardMaterial color="#374151" metalness={0.7} />
             </mesh>
           </group>
@@ -115,8 +115,8 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
           <boxGeometry args={[0.1, 2.4, 1]} />
           <meshStandardMaterial color="#0f766e" />
         </mesh>
-        <mesh position={[-0.06, 1.2, 0]}>
-          <planeGeometry args={[0.6, 0.6]} rotation={[0, Math.PI / 2, 0]} />
+        <mesh position={[-0.06, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.6, 0.6]} />
           <meshStandardMaterial color="#fff" />
         </mesh>
         <Html position={[0.2, 2.7, 0]} center distanceFactor={12}>
