@@ -85,50 +85,71 @@ export function Weather({ weather, isNight }: WeatherProps) {
   const showRain = weather === 'rainy' || weather === 'storm';
   const showHeavyClouds = weather === 'cloudy' || weather === 'storm' || weather === 'rainy';
 
-  // Window backdrop "world": clouds floating + rain only behind windows (z far)
-  const cloudColor = isNight ? '#3b3f55' : '#f0f4ff';
+  // Painted sky backdrop visible only through windows (placed behind the back wall).
+  const skyColor = isNight
+    ? (showRain ? '#0a0f1f' : '#0f1c3a')
+    : weather === 'sunny'
+    ? '#7ec0ee'
+    : weather === 'cloudy'
+    ? '#8fa1b8'
+    : weather === 'rainy'
+    ? '#6b7a90'
+    : '#3f4a5e';
 
+  // Z position of windows is roughly -8.9 (wall at -9). Put backdrop just behind it,
+  // and constrain to the window strip height so clouds never appear inside the room.
   return (
     <group>
-      {/* Skydome backdrop visible through windows — placed far behind the back wall */}
-      <mesh position={[0, 6, -11]}>
-        <planeGeometry args={[40, 14]} />
-        <meshBasicMaterial
-          color={
-            isNight
-              ? showRain
-                ? '#0a0f1f'
-                : '#0f1c3a'
-              : weather === 'sunny'
-              ? '#7ec0ee'
-              : weather === 'cloudy'
-              ? '#9aa9bd'
-              : '#5d6b80'
-          }
-        />
+      {/* Sky strip directly behind windows only (matches window band: y≈4, height≈2.5) */}
+      <mesh position={[0, 4, -9.05]}>
+        <planeGeometry args={[24, 2.5]} />
+        <meshBasicMaterial color={skyColor} />
       </mesh>
 
-      {/* Clouds drifting behind windows */}
-      <group position={[0, 5.5, -10.5]}>
-        <FloatingCloud position={[-6, 1.5, 0]} scale={showHeavyClouds ? 1.4 : 0.9} color={cloudColor} drift={0.4} />
-        <FloatingCloud position={[2, 2, 0]} scale={showHeavyClouds ? 1.6 : 1} color={cloudColor} drift={0.3} />
-        {showHeavyClouds && (
-          <>
-            <FloatingCloud position={[6, 1, 0]} scale={1.3} color={cloudColor} drift={0.5} />
-            <FloatingCloud position={[-2, 0.5, 0]} scale={1.1} color={cloudColor} drift={0.6} />
-          </>
-        )}
-      </group>
-
-      {/* Rain particles only in window plane area */}
-      {showRain && (
-        <group position={[0, 0, -10]}>
-          <Rain count={weather === 'storm' ? 800 : 400} area={[14, 1]} intensity={weather === 'storm' ? 1 : 0.6} />
+      {/* Painted clouds as flat sprites on the sky strip — cloudy/rainy/storm only */}
+      {showHeavyClouds && (
+        <group position={[0, 4, -9.04]}>
+          <PaintedCloud x={-8} y={0.6} scale={0.9} isNight={isNight} />
+          <PaintedCloud x={-2} y={0.2} scale={1.1} isNight={isNight} />
+          <PaintedCloud x={4} y={0.7} scale={1} isNight={isNight} />
+          <PaintedCloud x={9} y={0.3} scale={0.8} isNight={isNight} />
         </group>
       )}
 
-      {/* Lightning flash for storm */}
+      {/* Rain confined to the window strip behind glass */}
+      {showRain && (
+        <group position={[0, 0, -9.03]}>
+          <Rain count={weather === 'storm' ? 500 : 280} area={[12, 0.4]} intensity={weather === 'storm' ? 1 : 0.6} />
+        </group>
+      )}
+
+      {/* Lightning flash visible through windows */}
       {weather === 'storm' && <Lightning />}
+    </group>
+  );
+}
+
+function PaintedCloud({ x, y, scale, isNight }: { x: number; y: number; scale: number; isNight: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    ref.current.position.x = x + Math.sin(clock.getElapsedTime() * 0.04 + x) * 0.6;
+  });
+  const color = isNight ? '#4a5168' : '#e8eef7';
+  return (
+    <group ref={ref} position={[x, y, 0]} scale={scale}>
+      {[
+        [0, 0, 0.55],
+        [0.55, 0.05, 0.4],
+        [-0.55, 0.05, 0.42],
+        [0.25, 0.22, 0.35],
+        [-0.25, 0.2, 0.32],
+      ].map(([cx, cy, r], i) => (
+        <mesh key={i} position={[cx as number, cy as number, 0]}>
+          <circleGeometry args={[r as number, 16]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      ))}
     </group>
   );
 }
