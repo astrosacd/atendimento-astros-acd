@@ -16,6 +16,7 @@ import ExcluirCliente from "./pages/ExcluirCliente";
 import GerenciarUsuarios from "./pages/GerenciarUsuarios";
 import Admin from "./pages/Admin";
 import AdminRecuperacaoSenha from "./pages/AdminRecuperacaoSenha";
+import AdminRecaptcha from "./pages/AdminRecaptcha";
 import AdminWebhooks from "./pages/AdminWebhooks";
 import AdminApiKeys from "./pages/AdminApiKeys";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
