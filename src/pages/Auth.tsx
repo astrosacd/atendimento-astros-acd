@@ -588,10 +588,15 @@ export default function Auth() {
                     required
                   />
                 </div>
+                {recaptcha.enabled && recaptcha.siteKey && (
+                  <div className="flex justify-center pt-1">
+                    <div id="recaptcha-login-container" />
+                  </div>
+                )}
                 <Button 
                   type="submit" 
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading}
+                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
