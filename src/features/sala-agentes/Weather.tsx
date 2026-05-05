@@ -154,40 +154,6 @@ function PaintedCloud({ x, y, scale, isNight }: { x: number; y: number; scale: n
   );
 }
 
-function FloatingCloud({
-  position,
-  scale,
-  color,
-  drift,
-}: {
-  position: [number, number, number];
-  scale: number;
-  color: string;
-  drift: number;
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const startX = position[0];
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const t = clock.getElapsedTime();
-    ref.current.position.x = startX + Math.sin(t * 0.05 * drift) * 2;
-  });
-  return (
-    <group ref={ref} position={position} scale={scale}>
-      {[
-        [0, 0, 0, 1.2],
-        [1, 0.1, 0, 0.9],
-        [-1, 0.05, 0, 0.95],
-      ].map(([x, y, z, s], i) => (
-        <mesh key={i} position={[x as number, y as number, z as number]}>
-          <sphereGeometry args={[s as number, 10, 10]} />
-          <meshStandardMaterial color={color} roughness={1} emissive={color} emissiveIntensity={0.05} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
 function Lightning() {
   const ref = useRef<THREE.PointLight>(null);
   useFrame(({ clock }) => {
