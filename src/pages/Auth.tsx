@@ -49,6 +49,63 @@ export default function Auth() {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ name: '', email: '', phone: '' });
 
+  // reCAPTCHA v2 ("I'm not a robot") — config carregada do banco via RPC pública
+  const [recaptcha, setRecaptcha] = useState<{ enabled: boolean; siteKey: string }>({ enabled: false, siteKey: '' });
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaWidgetId, setRecaptchaWidgetId] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc('get_recaptcha_public_config');
+      const cfg = (data as any) || {};
+      if (cfg.enabled && cfg.site_key) {
+        setRecaptcha({ enabled: true, siteKey: cfg.site_key });
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!recaptcha.enabled || !recaptcha.siteKey) return;
+    const ensureScript = () =>
+      new Promise<void>((resolve) => {
+        if ((window as any).grecaptcha?.render) return resolve();
+        if (!document.getElementById('recaptcha-v2-script')) {
+          const s = document.createElement('script');
+          s.id = 'recaptcha-v2-script';
+          s.src = 'https://www.google.com/recaptcha/api.js?render=explicit';
+          s.async = true;
+          s.defer = true;
+          document.head.appendChild(s);
+        }
+        const wait = setInterval(() => {
+          if ((window as any).grecaptcha?.render) { clearInterval(wait); resolve(); }
+        }, 150);
+      });
+
+    ensureScript().then(() => {
+      const el = document.getElementById('recaptcha-login-container');
+      if (!el || el.childElementCount > 0) return;
+      try {
+        const id = (window as any).grecaptcha.render(el, {
+          sitekey: recaptcha.siteKey,
+          callback: (token: string) => setRecaptchaToken(token),
+          'expired-callback': () => setRecaptchaToken(null),
+          'error-callback': () => setRecaptchaToken(null),
+        });
+        setRecaptchaWidgetId(id);
+      } catch (e) {
+        console.warn('reCAPTCHA render error', e);
+      }
+    });
+  }, [recaptcha]);
+
+  const resetRecaptcha = () => {
+    setRecaptchaToken(null);
+    if (recaptchaWidgetId !== null && (window as any).grecaptcha?.reset) {
+      try { (window as any).grecaptcha.reset(recaptchaWidgetId); } catch {}
+    }
+  };
+
   // Buscar o código de acesso correto
   useEffect(() => {
     const fetchCorrectCode = async () => {
@@ -124,6 +181,16 @@ export default function Auth() {
       return;
     }
 
+    if (recaptcha.enabled && !recaptchaToken) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Marque "Não sou um robô" para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+
     setIsLoading(true);
     const { error } = await signIn(loginData.email, loginData.password);
     setIsLoading(false);
@@ -140,6 +207,7 @@ export default function Auth() {
         description: message,
         variant: 'destructive',
       });
+      resetRecaptcha();
     }
   };
 
@@ -521,10 +589,15 @@ export default function Auth() {
                     required
                   />
                 </div>
+                {recaptcha.enabled && recaptcha.siteKey && (
+                  <div className="flex justify-center pt-1">
+                    <div id="recaptcha-login-container" />
+                  </div>
+                )}
                 <Button 
                   type="submit" 
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading}
+                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
