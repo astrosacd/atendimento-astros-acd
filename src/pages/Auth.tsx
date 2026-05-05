@@ -207,6 +207,7 @@ export default function Auth() {
         description: message,
         variant: 'destructive',
       });
+      resetRecaptcha();
     }
   };
 
