@@ -181,6 +181,23 @@ export default function Auth() {
       return;
     }
 
+    if (recaptcha.enabled && !recaptchaToken) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Marque "Não sou um robô" para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!result.success) {
+      toast({
+        title: 'Erro de validação',
+        description: result.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     const { error } = await signIn(loginData.email, loginData.password);
     setIsLoading(false);
