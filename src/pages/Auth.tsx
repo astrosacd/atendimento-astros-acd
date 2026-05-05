@@ -189,14 +189,7 @@ export default function Auth() {
       });
       return;
     }
-    if (!result.success) {
-      toast({
-        title: 'Erro de validação',
-        description: result.error.errors[0].message,
-        variant: 'destructive',
-      });
-      return;
-    }
+
 
     setIsLoading(true);
     const { error } = await signIn(loginData.email, loginData.password);
