@@ -63,6 +63,14 @@ const Admin = () => {
       color: 'from-pink-500/20 to-pink-600/10',
     },
     {
+      key: 'recaptcha',
+      title: 'Google reCAPTCHA',
+      description: 'Habilitar/desabilitar e configurar credenciais do reCAPTCHA v2 na tela de login.',
+      icon: Shield,
+      path: '/admin/recaptcha',
+      color: 'from-red-500/20 to-red-600/10',
+    },
+    {
       key: 'configurationGuide',
       title: t('admin.modules.configurationGuide.title'),
       description: t('admin.modules.configurationGuide.description'),
