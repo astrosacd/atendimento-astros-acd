@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info, Webhook } from "lucide-react";
 import { format, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
