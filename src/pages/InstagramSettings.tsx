@@ -314,6 +314,30 @@ const InstagramSettings = () => {
               )}
             </Button>
           </CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Webhook className="h-5 w-5 text-primary" />
+              Notificação de Renovação (n8n)
+            </CardTitle>
+            <CardDescription>
+              URL do Webhook para receber o novo token após renovação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="webhook">URL do Webhook</Label>
+              <Input
+                id="webhook"
+                placeholder="https://seu-n8n.com/webhook/..."
+                value={settings.renewal_webhook}
+                onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                O sistema enviará um POST JSON com `new_token` e `expires_at` sempre que o token for renovado com sucesso.
+              </p>
+            </div>
+          </CardContent>
         </Card>
 
         <div className="space-y-6">
