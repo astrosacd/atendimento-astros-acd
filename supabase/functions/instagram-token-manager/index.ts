@@ -33,7 +33,7 @@ serve(async (req) => {
 
     if (settingsError || !settings) throw new Error("Configurações do Instagram não encontradas");
 
-    const { access_token, app_id, app_secret } = settings;
+    const { access_token, app_id, app_secret, manager_numbers, notify_whatsapp, renewal_webhook_url } = settings;
     if (!access_token) throw new Error("Token de acesso não configurado");
 
     const graphHost = "https://graph.facebook.com/v23.0";
@@ -110,20 +110,16 @@ serve(async (req) => {
         .update({ 
           access_token: newAccessToken,
           token_expires_at: expirationDate,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          last_renewal_notification_at: new Date().toISOString()
         })
         .eq('user_id', user.id);
 
-      // Webhook Notification for n8n
-      const { data: webhookConfig } = await supabase
-        .from('billing_config')
-        .select('config_value')
-        .eq('config_key', 'instagram_renewal_webhook')
-        .maybeSingle();
-
-      if (webhookConfig?.config_value) {
+      // 1. Webhook Notification for n8n
+      const webhookUrl = renewal_webhook_url;
+      if (webhookUrl) {
         try {
-          await fetch(webhookConfig.config_value, {
+          await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -135,7 +131,49 @@ serve(async (req) => {
             })
           });
         } catch (webhookErr) {
-          console.error("Error calling n8n webhook:", webhookErr);
+          console.error("Error calling renewal webhook:", webhookErr);
+        }
+      }
+
+      // 2. WhatsApp Notification
+      if (notify_whatsapp && manager_numbers && Array.isArray(manager_numbers) && manager_numbers.length > 0) {
+        const { data: evolutionConfig } = await supabase
+          .from('billing_config')
+          .select('config_key, config_value')
+          .like('config_key', 'evolution_%');
+
+        const configMap: Record<string, string> = {};
+        evolutionConfig?.forEach(c => configMap[c.config_key] = c.config_value);
+
+        const apiUrl = configMap['evolution_api_url'];
+        const apiKey = configMap['evolution_api_key'];
+        const instanceName = configMap['evolution_instance_name'];
+
+        if (apiUrl && apiKey && instanceName) {
+          const dateStr = expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada';
+          const message = `*🔄 Token Instagram Renovado*\n\nSeu Meta Access Token foi renovado com sucesso!\n\n📅 *Nova Validade:* ${dateStr}\n👤 *Usuário:* ${user.email}\n\nO novo token já está ativo no CRM e foi enviado para o n8n.`;
+
+          for (const number of manager_numbers) {
+            const cleanNumber = number.replace(/\D/g, '');
+            if (!cleanNumber) continue;
+
+            try {
+              await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': apiKey
+                },
+                body: JSON.stringify({
+                  number: cleanNumber,
+                  text: message,
+                  delay: 1200
+                })
+              });
+            } catch (waErr) {
+              console.error(`Error sending WA notification to ${number}:`, waErr);
+            }
+          }
         }
       }
 

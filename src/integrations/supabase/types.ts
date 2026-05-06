@@ -3971,7 +3971,11 @@ export type Database = {
           app_secret: string | null
           created_at: string
           ig_user_id: string | null
+          last_renewal_notification_at: string | null
+          manager_numbers: Json | null
+          notify_whatsapp: boolean | null
           page_id: string | null
+          renewal_webhook_url: string | null
           token_expires_at: string | null
           updated_at: string
           user_id: string
@@ -3983,7 +3987,11 @@ export type Database = {
           app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
+          last_renewal_notification_at?: string | null
+          manager_numbers?: Json | null
+          notify_whatsapp?: boolean | null
           page_id?: string | null
+          renewal_webhook_url?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id: string
@@ -3995,7 +4003,11 @@ export type Database = {
           app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
+          last_renewal_notification_at?: string | null
+          manager_numbers?: Json | null
+          notify_whatsapp?: boolean | null
           page_id?: string | null
+          renewal_webhook_url?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string

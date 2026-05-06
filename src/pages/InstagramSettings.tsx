@@ -5,16 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info, Webhook } from "lucide-react";
+import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info, Webhook, Bell, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { format, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const InstagramSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [newManagerNumber, setNewManagerNumber] = useState("");
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -24,6 +29,8 @@ const InstagramSettings = () => {
     app_secret: "",
     token_expires_at: null as string | null,
     renewal_webhook: "",
+    notify_whatsapp: false,
+    manager_numbers: [] as string[],
   });
 
   useEffect(() => {
@@ -57,6 +64,8 @@ const InstagramSettings = () => {
         app_secret: data?.app_secret || "",
         token_expires_at: data?.token_expires_at || null,
         renewal_webhook: webhookConfig?.config_value || "",
+        notify_whatsapp: data?.notify_whatsapp || false,
+        manager_numbers: (data?.manager_numbers as string[]) || [],
       });
     }
   };
@@ -83,7 +92,7 @@ const InstagramSettings = () => {
         title: action === "debug" ? "Token Verificado" : "Token Renovado",
         description: action === "debug" 
           ? "Informações do token atualizadas." 
-          : "Seu token foi renovado por mais 60 dias.",
+          : "Seu token foi renovado e as notificações enviadas.",
       });
 
       fetchSettings(); // Refresh UI
@@ -115,6 +124,23 @@ const InstagramSettings = () => {
 
   const expirationStatus = getExpirationStatus();
 
+  const handleAddNumber = () => {
+    if (newManagerNumber.trim()) {
+      setSettings(prev => ({
+        ...prev,
+        manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
+      }));
+      setNewManagerNumber("");
+    }
+  };
+
+  const handleRemoveNumber = (index: number) => {
+    setSettings(prev => ({
+      ...prev,
+      manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -127,6 +153,8 @@ const InstagramSettings = () => {
         app_id: settings.app_id,
         app_secret: settings.app_secret,
         updated_at: new Date().toISOString(),
+        notify_whatsapp: settings.notify_whatsapp,
+        manager_numbers: settings.manager_numbers,
       });
 
       if (settingsError) throw settingsError;
@@ -140,15 +168,12 @@ const InstagramSettings = () => {
 
       if (webhookError) throw webhookError;
 
-      // Automatically check token validity if App ID and Secret are provided
-      if (settings.app_id && settings.app_secret && settings.access_token) {
-        await handleTokenAction("debug");
-      } else {
-        toast({
-          title: "Sucesso!",
-          description: "Configurações do Instagram salvas.",
-        });
-      }
+      toast({
+        title: "Sucesso!",
+        description: "Configurações salvas.",
+      });
+      
+      fetchSettings();
     } catch (error: any) {
       toast({
         title: "Erro ao salvar",
@@ -162,205 +187,352 @@ const InstagramSettings = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="meta-api" className="w-full">
+        <TabsList className="bg-muted p-1 mb-6">
+          <TabsTrigger value="meta-api" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> API Meta
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" /> Notificações
+          </TabsTrigger>
+          <TabsTrigger value="help" className="gap-2">
+            <Info className="h-4 w-4" /> Ajuda
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Credenciais da API Meta
-            </CardTitle>
-            <CardDescription>
-              Insira os dados obtidos no Portal de Desenvolvedores da Meta.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="app_id">Meta App ID</Label>
-                <Input
-                  id="app_id"
-                  placeholder="ID do seu App Meta"
-                  value={settings.app_id}
-                  onChange={(e) => setSettings({ ...settings, app_id: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="app_secret">Meta App Secret</Label>
-                <Input
-                  id="app_secret"
-                  type="password"
-                  placeholder="Secret do seu App Meta"
-                  value={settings.app_secret}
-                  onChange={(e) => setSettings({ ...settings, app_secret: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ig_id">Instagram User ID (Obrigatório)</Label>
-                <Input
-                  id="ig_id"
-                  placeholder="ID da conta Instagram Business"
-                  value={settings.ig_user_id}
-                  onChange={(e) => setSettings({ ...settings, ig_user_id: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="page_id">Facebook Page ID (Opcional)</Label>
-                <Input
-                  id="page_id"
-                  placeholder="ID da página vinculada"
-                  value={settings.page_id}
-                  onChange={(e) => setSettings({ ...settings, page_id: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username">@Username (Opcional)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-muted-foreground">@</span>
-                <Input
-                  id="username"
-                  className="pl-7"
-                  placeholder="seu_perfil"
-                  value={settings.account_username}
-                  onChange={(e) => setSettings({ ...settings, account_username: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="token">Meta Access Token</Label>
-              <div className="relative">
-                <Input
-                  id="token"
-                  type={showToken ? "text" : "password"}
-                  placeholder="Token de acesso (long-lived)"
-                  value={settings.access_token}
-                  onChange={(e) => setSettings({ ...settings, access_token: e.target.value })}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(!showToken)}
-                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  {showToken ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Recomendamos usar um Token de Sistema com permissões `instagram_basic`, `instagram_content_publish`, e `ads_management`.
-              </p>
-
-              {expirationStatus && (
-                <div className={`flex items-center gap-3 p-3 rounded-lg border ${
-                  expirationStatus.isExpired 
-                    ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400" 
-                    : expirationStatus.isWarning 
-                    ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
-                    : "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
-                }`}>
-                  {expirationStatus.isExpired ? (
-                    <AlertTriangle className="h-5 w-5 shrink-0" />
-                  ) : expirationStatus.isWarning ? (
-                    <Info className="h-5 w-5 shrink-0" />
-                  ) : (
-                    <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  )}
-                  <div className="flex-1 text-sm">
-                    <p className="font-semibold">
-                      {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
-                    </p>
-                    <p>Expira em: {expirationStatus.date}</p>
+        <TabsContent value="meta-api">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 border-primary/20 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <ShieldCheck className="h-6 w-6 text-primary" />
                   </div>
-                  {!expirationStatus.isExpired && (
+                  <div>
+                    <CardTitle className="text-xl">Credenciais da API Meta</CardTitle>
+                    <CardDescription>
+                      Configure a conexão oficial para agendar publicações.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="app_id">Meta App ID</Label>
+                    <Input
+                      id="app_id"
+                      placeholder="ID do seu App Meta"
+                      value={settings.app_id}
+                      onChange={(e) => setSettings({ ...settings, app_id: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="app_secret">Meta App Secret</Label>
+                    <Input
+                      id="app_secret"
+                      type="password"
+                      placeholder="Secret do seu App Meta"
+                      value={settings.app_secret}
+                      onChange={(e) => setSettings({ ...settings, app_secret: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="ig_id">Instagram User ID (Obrigatório)</Label>
+                    <Input
+                      id="ig_id"
+                      placeholder="ID da conta Instagram Business"
+                      value={settings.ig_user_id}
+                      onChange={(e) => setSettings({ ...settings, ig_user_id: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="page_id">Facebook Page ID (Opcional)</Label>
+                    <Input
+                      id="page_id"
+                      placeholder="ID da página vinculada"
+                      value={settings.page_id}
+                      onChange={(e) => setSettings({ ...settings, page_id: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="username">@Username (Opcional)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground font-medium">@</span>
+                    <Input
+                      id="username"
+                      className="pl-8"
+                      placeholder="seu_perfil"
+                      value={settings.account_username}
+                      onChange={(e) => setSettings({ ...settings, account_username: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4 border-t border-border/50">
+                  <Label htmlFor="token" className="text-base font-semibold">Meta Access Token</Label>
+                  <div className="relative">
+                    <Input
+                      id="token"
+                      type={showToken ? "text" : "password"}
+                      placeholder="Token de acesso (long-lived)"
+                      value={settings.access_token}
+                      onChange={(e) => setSettings({ ...settings, access_token: e.target.value })}
+                      className="pr-12 h-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowToken(!showToken)}
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showToken ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+
+                  {expirationStatus && (
+                    <div className={cn(
+                      "flex items-center gap-3 p-4 rounded-xl border-2 transition-all",
+                      expirationStatus.isExpired 
+                        ? "bg-red-50/50 border-red-200 text-red-700 dark:bg-red-900/10 dark:border-red-800" 
+                        : expirationStatus.isWarning 
+                        ? "bg-amber-50/50 border-amber-200 text-amber-700 dark:bg-amber-900/10 dark:border-amber-800"
+                        : "bg-green-50/50 border-green-200 text-green-700 dark:bg-green-900/10 dark:border-green-800"
+                    )}>
+                      {expirationStatus.isExpired ? (
+                        <AlertTriangle className="h-6 w-6 shrink-0" />
+                      ) : expirationStatus.isWarning ? (
+                        <Info className="h-6 w-6 shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="h-6 w-6 shrink-0" />
+                      )}
+                      <div className="flex-1 text-sm">
+                        <p className="font-bold text-base">
+                          {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
+                        </p>
+                        <p className="opacity-90">Expira em: {expirationStatus.date}</p>
+                      </div>
+                      {!expirationStatus.isExpired && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleTokenAction("refresh")}
+                          disabled={loading}
+                          className="bg-background/50 hover:bg-background border-current"
+                        >
+                          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                          Renovar Agora
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {settings.access_token && !expirationStatus && (
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => handleTokenAction("refresh")}
+                      onClick={() => handleTokenAction("debug")}
                       disabled={loading}
-                      className="ml-auto"
+                      className="w-full h-11 border-dashed"
                     >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                      Renovar
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      Verificar Validade do Token
                     </Button>
                   )}
                 </div>
-              )}
 
-              {settings.access_token && !expirationStatus && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleTokenAction("debug")}
-                  disabled={loading}
-                  className="w-full sm:w-auto"
-                >
-                  <ShieldCheck className="h-4 w-4 mr-2" />
-                  Verificar Validade do Token
-                </Button>
-              )}
+                <div className="flex justify-end gap-3 pt-4">
+                   <Button onClick={handleSave} disabled={loading} className="px-8 h-11 shadow-lg shadow-primary/20">
+                    {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Salvar Configurações
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-6">
+               <Card className="bg-primary/5 border-primary/10">
+                <CardHeader>
+                  <CardTitle className="text-sm uppercase tracking-wider text-primary font-bold">Status da Conexão</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">App Meta:</span>
+                    <Badge variant={settings.app_id ? "outline" : "secondary"}>
+                      {settings.app_id ? "Configurado" : "Pendente"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Token:</span>
+                    <Badge variant={settings.access_token ? "outline" : "secondary"}>
+                      {settings.access_token ? "Ativo" : "Ausente"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Instagram ID:</span>
+                    <Badge variant={settings.ig_user_id ? "outline" : "secondary"}>
+                      {settings.ig_user_id ? "Vínculo OK" : "Pendente"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+          </div>
+        </TabsContent>
 
-            <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
-              {loading ? "Salvando..." : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar Configurações
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+        <TabsContent value="notifications">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-green-500/20 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-500/10 p-2 rounded-lg">
+                      <MessageSquare className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">Confirmações via WhatsApp</CardTitle>
+                      <CardDescription>Notifique gestores sobre a renovação do token.</CardDescription>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={settings.notify_whatsapp} 
+                    onCheckedChange={(v) => setSettings({...settings, notify_whatsapp: v})} 
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <Label>Números dos Gestores</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: 5511999998888"
+                      value={newManagerNumber}
+                      onChange={(e) => setNewManagerNumber(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddNumber()}
+                    />
+                    <Button variant="outline" size="icon" onClick={handleAddNumber}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid gap-2">
+                    {settings.manager_numbers.map((num, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
+                        <span className="font-mono text-sm">{num}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemoveNumber(i)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {settings.manager_numbers.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4 italic border border-dashed rounded-lg">
+                        Nenhum número cadastrado.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <Button onClick={handleSave} disabled={loading}>
+                    <Save className="h-4 w-4 mr-2" /> Salvar WhatsApp
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Webhook className="h-5 w-5 text-primary" />
-              Notificação de Renovação (n8n)
-            </CardTitle>
-            <CardDescription>
-              URL do Webhook para receber o novo token após renovação.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="webhook">URL do Webhook</Label>
-              <Input
-                id="webhook"
-                placeholder="https://seu-n8n.com/webhook/..."
-                value={settings.renewal_webhook}
-                onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                O sistema enviará um POST JSON com `new_token` e `expires_at` sempre que o token for renovado com sucesso.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <Webhook className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Integração Webhook (n8n)</CardTitle>
+                    <CardDescription>Envie o novo token para automações externas.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="webhook">URL do Webhook</Label>
+                  <Input
+                    id="webhook"
+                    placeholder="https://seu-n8n.com/webhook/..."
+                    value={settings.renewal_webhook}
+                    onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground leading-relaxed italic">
+                    Sempre que você clicar em "Renovar", enviaremos um POST com o novo token, data de expiração e usuário.
+                  </p>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <Button onClick={handleSave} disabled={loading}>
+                    <Save className="h-4 w-4 mr-2" /> Salvar Webhook
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-        <div className="space-y-6">
-          <Card className="bg-muted/50 border-none">
+        <TabsContent value="help">
+          <Card className="bg-muted/30 border-dashed">
             <CardHeader>
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Ajuda rápida</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="bg-muted p-2 rounded-lg">
+                  <Info className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Como configurar seu App</CardTitle>
+                  <CardDescription>Passo a passo para obter as credenciais na Meta.</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="text-sm space-y-4">
-              <p>
-                Para obter esses dados, acesse o <a href="https://developers.facebook.com/" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium">Meta for Developers</a>.
-              </p>
-              <ul className="list-disc pl-4 space-y-2 text-muted-foreground">
-                <li>Crie um App do tipo "Business"</li>
-                <li>Adicione o produto "Instagram Graph API"</li>
-                <li>Gere um Token de Acesso no Explorador da API Graph</li>
-                <li>Certifique-se que o Instagram está vinculado a uma Página do Facebook</li>
-              </ul>
+            <CardContent className="text-sm space-y-6">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">1</div>
+                    Portal de Desenvolvedores
+                  </h4>
+                  <p className="text-muted-foreground">
+                    Acesse o <a href="https://developers.facebook.com/" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">Meta for Developers</a> e crie um App do tipo <strong>"Business"</strong>.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">2</div>
+                    Adicionar Produtos
+                  </h4>
+                  <p className="text-muted-foreground">
+                    Dentro do App, adicione o produto <strong>"Instagram Graph API"</strong> e configure o login do Facebook.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">3</div>
+                    Gerar Token de Longa Duração
+                  </h4>
+                  <p className="text-muted-foreground">
+                    Use o <strong>Explorador da API Graph</strong> para gerar um token de sistema ou de usuário e troque-o por um token de 60 dias.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary flex items-center gap-2">
+                    <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">4</div>
+                    Vínculo de Contas
+                  </h4>
+                  <p className="text-muted-foreground">
+                    Sua conta do Instagram deve ser <strong>Business</strong> e estar vinculada a uma Página do Facebook que você administra.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
