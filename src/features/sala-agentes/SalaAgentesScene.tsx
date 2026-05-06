@@ -623,3 +623,36 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
     </div>
   );
 }
+
+/**
+ * Componente interno para gerenciar a transição suave da câmera durante o tour
+ */
+function TourManager({ active, targetIndex, points, cameraRef, onReachedTarget }: { 
+  active: boolean, 
+  targetIndex: number, 
+  points: any[], 
+  cameraRef: React.RefObject<THREE.PerspectiveCamera>,
+  onReachedTarget: () => void 
+}) {
+  const targetPos = useMemo(() => new THREE.Vector3(...points[targetIndex].pos), [targetIndex, points]);
+  const targetLook = useMemo(() => new THREE.Vector3(...points[targetIndex].target), [targetIndex, points]);
+  
+  useFrame((state) => {
+    if (!active || !cameraRef.current) return;
+
+    // Interpola posição da câmera
+    cameraRef.current.position.lerp(targetPos, 0.05);
+    
+    // Pegamos o controle via a cena
+    const controls = (state as any).controls;
+    if (controls) {
+      controls.target.lerp(targetLook, 0.05);
+      if (cameraRef.current.position.distanceTo(targetPos) < 0.1 && controls.target.distanceTo(targetLook) < 0.1) {
+        onReachedTarget();
+      }
+    }
+  });
+
+  return null;
+}
+
