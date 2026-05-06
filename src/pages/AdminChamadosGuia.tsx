@@ -383,7 +383,7 @@ const AdminChamadosGuia = () => {
                       Cada chamado possui sua própria hash de acesso, que pode ser usada para acessar diretamente aquele chamado específico:
                     </p>
                     <div className="p-2 bg-background rounded font-mono text-xs break-all">
-                      {window.location.origin}/chamados?hash=a1b2c3d4e5f6...
+                      {siteUrl}/chamados?hash=a1b2c3d4e5f6...
                     </div>
                     <p>
                       O cliente pode acessar o chamado através dessa hash sem precisar fazer login ou verificação por email.
