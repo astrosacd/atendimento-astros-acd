@@ -18,6 +18,9 @@ const InstagramSettings = () => {
     page_id: "",
     account_username: "",
     access_token: "",
+    app_id: "",
+    app_secret: "",
+    token_expires_at: null as string | null,
   });
 
   useEffect(() => {
