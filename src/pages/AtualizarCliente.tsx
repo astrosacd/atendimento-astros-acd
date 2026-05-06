@@ -330,33 +330,35 @@ export default function AtualizarCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-3`}>
-                <div className="flex items-center gap-2">
-                  <h3 className={`font-semibold text-lg ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
+              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-4`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className={`font-semibold text-lg break-words ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
                   {isClienteVitalicio && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
                       {t('clients.registrationOnly')}
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf}</span></p>
-                  <div className="flex items-center gap-1">
-                    <p className="text-muted-foreground">{t('clients.product')}:</p>
-                    <div className="flex-1">
-                      <ProductSelector 
-                        value={newEditProduto} 
-                        onChange={setNewEditProduto} 
-                        category={isClienteVitalicio ? 'registro' : 'mensal'}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {!isClienteVitalicio && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <p className="text-muted-foreground min-w-0 break-words">
+                    {t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf || '-'}</span>
                   </p>
-                )}
+                  {!isClienteVitalicio && (
+                    <p className="text-muted-foreground sm:text-right">
+                      {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('clients.product')}</Label>
+                  <ProductSelector
+                    value={newEditProduto}
+                    onChange={setNewEditProduto}
+                    category={isClienteVitalicio ? 'registro' : 'mensal'}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
