@@ -3967,27 +3967,36 @@ export type Database = {
         Row: {
           access_token: string | null
           account_username: string | null
+          app_id: string | null
+          app_secret: string | null
           created_at: string
           ig_user_id: string | null
           page_id: string | null
+          token_expires_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           access_token?: string | null
           account_username?: string | null
+          app_id?: string | null
+          app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           access_token?: string | null
           account_username?: string | null
+          app_id?: string | null
+          app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
