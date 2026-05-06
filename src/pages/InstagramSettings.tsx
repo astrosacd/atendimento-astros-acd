@@ -72,14 +72,14 @@ const InstagramSettings = () => {
   };
 
   return (
-    <div className=\"space-y-6\">
-      <div className=\"flex items-center gap-3 mb-6\">
-        <div className=\"bg-pink-100 p-3 rounded-xl dark:bg-pink-900/30\">
-          <Instagram className=\"h-8 w-8 text-pink-600\" />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="bg-pink-100 p-3 rounded-xl dark:bg-pink-900/30">
+          <Instagram className="h-8 w-8 text-pink-600" />
         </div>
         <div>
-          <h2 className=\"text-2xl font-bold tracking-tight\">Configurações Instagram</h2>
-          <p className=\"text-muted-foreground\">Vincule sua conta Instagram Business para agendar publicações.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Configurações Instagram</h2>
+          <p className="text-muted-foreground">Vincule sua conta Instagram Business para agendar publicações.</p>
         </div>
       </div>
 
