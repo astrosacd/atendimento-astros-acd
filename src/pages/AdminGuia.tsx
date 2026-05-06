@@ -401,6 +401,14 @@ const AdminGuia = () => {
       color: "text-teal-400",
       categories: ["automacoes-visao-geral"],
       permissionKey: "view_guia_automacoes"
+    },
+    {
+      id: "instagram-grupo",
+      title: "Instagram",
+      icon: Instagram,
+      color: "text-pink-400",
+      categories: ["instagram"],
+      permissionKey: "view_guia_instagram"
     }
   ];
 
