@@ -114,7 +114,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
       </group>
 
       {/* ÁREA PRIVATIVA / WC — fundo */}
-      <group position={[12.5, 0, -8]}>
+      <group position={[19, 0, -12]}>
         <mesh castShadow position={[0, 1.25, 0]}>
           <boxGeometry args={[0.15, 2.5, 1.2]} />
           <meshStandardMaterial color="#1e293b" />
