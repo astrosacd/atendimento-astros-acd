@@ -197,6 +197,7 @@ function AppRoutes() {
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
+      <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
