@@ -39,17 +39,24 @@ const InstagramSettings = () => {
       .eq("user_id", user?.id)
       .maybeSingle();
 
+    const { data: webhookConfig } = await supabase
+      .from('billing_config')
+      .select('config_value')
+      .eq('config_key', 'instagram_renewal_webhook')
+      .maybeSingle();
+
     if (error) {
       console.error("Error fetching settings:", error);
-    } else if (data) {
+    } else {
       setSettings({
-        ig_user_id: data.ig_user_id || "",
-        page_id: data.page_id || "",
-        account_username: data.account_username || "",
-        access_token: data.access_token || "",
-        app_id: data.app_id || "",
-        app_secret: data.app_secret || "",
-        token_expires_at: data.token_expires_at || null,
+        ig_user_id: data?.ig_user_id || "",
+        page_id: data?.page_id || "",
+        account_username: data?.account_username || "",
+        access_token: data?.access_token || "",
+        app_id: data?.app_id || "",
+        app_secret: data?.app_secret || "",
+        token_expires_at: data?.token_expires_at || null,
+        renewal_webhook: webhookConfig?.config_value || "",
       });
     }
   };
