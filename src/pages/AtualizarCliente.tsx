@@ -222,7 +222,7 @@ export default function AtualizarCliente() {
   return (
     <DashboardLayout>
       <div className="flex items-center justify-center p-4">
-      <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+      <Card className="w-full max-w-2xl bg-card border-border shadow-xl">
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-center gap-3">
             <div className="p-2.5 rounded-xl bg-update/10">
