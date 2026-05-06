@@ -220,21 +220,33 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </group>
       ))}
 
-      {/* Quadros corporativos nas paredes laterais */}
+      {/* TVs nas paredes laterais — apenas a TV (moldura + tela viva) */}
       {[-1, 1].map(side => (
         <group key={`quadro-${side}`} position={[side * 11.9, 2.5, 0]} rotation={[0, side > 0 ? -Math.PI/2 : Math.PI/2, 0]}>
-          <mesh>
-            <boxGeometry args={[2.5, 1.5, 0.05]} />
-            <meshStandardMaterial color="#1e293b" />
+          {/* Moldura */}
+          <mesh castShadow>
+            <boxGeometry args={[2.8, 1.7, 0.08]} />
+            <meshStandardMaterial color="#0a0f1c" metalness={0.7} roughness={0.3} />
           </mesh>
-          <mesh position={[0, 0, 0.03]}>
-            <planeGeometry args={[2.3, 1.3]} />
+          {/* Tela base com brilho */}
+          <mesh position={[0, 0, 0.045]}>
+            <planeGeometry args={[2.6, 1.5]} />
             <meshStandardMaterial 
-              color={side > 0 ? '#3b82f6' : '#10b981'} 
-              emissive={side > 0 ? '#3b82f6' : '#10b981'} 
-              emissiveIntensity={isNight ? 0.6 : 0.3}
+              color="#020617"
+              emissive={side > 0 ? '#10b981' : '#3b82f6'}
+              emissiveIntensity={isNight ? 0.55 : 0.35}
             />
           </mesh>
+          {/* Conteúdo HTML ao vivo na TV */}
+          <Html
+            position={[0, 0, 0.05]}
+            transform
+            distanceFactor={3.2}
+            occlude={false}
+            style={{ width: '320px', height: '180px', pointerEvents: 'none' }}
+          >
+            <WallTvContent variant={side > 0 ? 'metrics' : 'logs'} />
+          </Html>
         </group>
       ))}
 
