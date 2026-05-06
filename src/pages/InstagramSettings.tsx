@@ -236,6 +236,55 @@ const InstagramSettings = () => {
               <p className="text-xs text-muted-foreground">
                 Recomendamos usar um Token de Sistema com permissões `instagram_basic`, `instagram_content_publish`, e `ads_management`.
               </p>
+
+              {expirationStatus && (
+                <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  expirationStatus.isExpired 
+                    ? "bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400" 
+                    : expirationStatus.isWarning 
+                    ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400"
+                    : "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                }`}>
+                  {expirationStatus.isExpired ? (
+                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                  ) : expirationStatus.isWarning ? (
+                    <Info className="h-5 w-5 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  )}
+                  <div className="flex-1 text-sm">
+                    <p className="font-semibold">
+                      {expirationStatus.isExpired ? "Token Expirado" : "Validade do Token"}
+                    </p>
+                    <p>Expira em: {expirationStatus.date}</p>
+                  </div>
+                  {!expirationStatus.isExpired && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleTokenAction("refresh")}
+                      disabled={loading}
+                      className="ml-auto"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                      Renovar
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {settings.access_token && !expirationStatus && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleTokenAction("debug")}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Verificar Validade do Token
+                </Button>
+              )}
             </div>
 
             <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
