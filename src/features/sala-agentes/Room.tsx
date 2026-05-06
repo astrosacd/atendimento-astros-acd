@@ -344,10 +344,10 @@ function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
       try {
         if (cancelled) return;
         if (variant === 'metrics') {
-          const { data: c, count: cc } = await supabase.from('clientes').select('valor_mensal', { count: 'exact' });
+          const { data: c, count: cc } = await supabase.from('clientes').select('valor', { count: 'exact' });
           const { count: pc } = await supabase.from('proposals').select('*', { count: 'exact', head: true });
           
-          const mrr = (c || []).reduce((s, r) => s + (Number(r.valor_mensal) || 0), 0);
+          const mrr = (c || []).reduce((s, r) => s + (Number(r.valor) || 0), 0);
           setMetrics({ clientes: cc || 0, leads: 0, propostas: pc || 0, mrr });
         } else {
           const { data } = await supabase
