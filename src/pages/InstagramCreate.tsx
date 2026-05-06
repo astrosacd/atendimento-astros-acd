@@ -181,9 +181,9 @@ const InstagramCreate = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         {/* Lado Esquerdo: Configurações do Post */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Tipo de Conteúdo</CardTitle>
@@ -325,14 +325,14 @@ const InstagramCreate = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="flex-1 flex flex-col">
             <CardHeader>
               <CardTitle className="text-lg">Legenda</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col">
               <Textarea 
                 placeholder="Escreva algo interessante..." 
-                className="h-32"
+                className="flex-1 min-h-32 resize-none"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
               />
