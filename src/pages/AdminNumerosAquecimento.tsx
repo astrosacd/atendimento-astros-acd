@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,8 +28,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { 
   Smartphone, Plus, Search, Download, MoreHorizontal, Edit, Trash2, 
   History, Settings, Webhook, Key, FileCode, Copy, Eye, EyeOff,
-  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock, RotateCcw
+  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock, RotateCcw,
+  BarChart3, PieChart
 } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
 import {
