@@ -273,56 +273,80 @@ const AdminChamados = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-border/40 bg-card/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-blue-500/5 group">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.total')}</p>
+                  <p className="text-3xl font-bold tracking-tight">{stats.total}</p>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Ticket className="h-6 w-6 text-blue-500" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('tickets.total')}</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
+              </div>
+              <div className="mt-4 h-1 w-full bg-blue-500/10 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }} />
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40 bg-card/50">
+
+          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-amber-500/5 group">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.open')}</p>
+                  <p className="text-3xl font-bold tracking-tight text-amber-500">{stats.abertos}</p>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <AlertCircle className="h-6 w-6 text-amber-500" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('tickets.open')}</p>
-                  <p className="text-2xl font-bold">{stats.abertos}</p>
-                </div>
+              </div>
+              <div className="mt-4 h-1 w-full bg-amber-500/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 rounded-full transition-all duration-1000" 
+                  style={{ width: `${stats.total > 0 ? (stats.abertos / stats.total) * 100 : 0}%` }} 
+                />
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40 bg-card/50">
+
+          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-purple-500/5 group">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.inProgress')}</p>
+                  <p className="text-3xl font-bold tracking-tight text-purple-500">{stats.emAndamento}</p>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Clock className="h-6 w-6 text-purple-500" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('tickets.inProgress')}</p>
-                  <p className="text-2xl font-bold">{stats.emAndamento}</p>
-                </div>
+              </div>
+              <div className="mt-4 h-1 w-full bg-purple-500/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-purple-500 rounded-full transition-all duration-1000" 
+                  style={{ width: `${stats.total > 0 ? (stats.emAndamento / stats.total) * 100 : 0}%` }} 
+                />
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/40 bg-card/50">
+
+          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-emerald-500/5 group">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.resolved')}</p>
+                  <p className="text-3xl font-bold tracking-tight text-emerald-500">{stats.resolvidos}</p>
+                </div>
+                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <CheckCircle className="h-6 w-6 text-emerald-500" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('tickets.resolved')}</p>
-                  <p className="text-2xl font-bold">{stats.resolvidos}</p>
-                </div>
+              </div>
+              <div className="mt-4 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                  style={{ width: `${stats.total > 0 ? (stats.resolvidos / stats.total) * 100 : 0}%` }} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -335,8 +359,16 @@ const AdminChamados = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{t('tickets.title')}</CardTitle>
-                  <Button variant="ghost" size="icon" onClick={() => refetch()}>
-                    <RefreshCw className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => {
+                      refetch();
+                      toast.success("Lista de chamados atualizada");
+                    }}
+                    className="hover:bg-primary/10 transition-colors"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin text-primary' : ''}`} />
                   </Button>
                 </div>
                 <div className="flex gap-4 mt-4">
@@ -385,47 +417,49 @@ const AdminChamados = () => {
                         <div
                           key={chamado.id}
                           onClick={() => setSelectedChamado(chamado)}
-                          className={`p-4 rounded-lg border cursor-pointer transition-all relative ${
+                          className={`p-4 rounded-xl border cursor-pointer transition-all relative group ${
                             selectedChamado?.id === chamado.id 
-                              ? 'border-primary bg-primary/5' 
-                              : 'border-border/40 hover:border-primary/50 hover:bg-muted/30'
-                          } ${clientResponded ? 'ring-2 ring-orange-500/50' : ''}`}
+                              ? 'border-primary bg-primary/5 shadow-md shadow-primary/5' 
+                              : 'border-border/40 hover:border-primary/40 hover:bg-muted/30'
+                          } ${clientResponded ? 'ring-2 ring-orange-500/30' : ''}`}
                         >
                           {/* Alerta de resposta do cliente */}
                           {clientResponded && (
-                            <div className="absolute -top-2 -right-2 bg-orange-500 text-white rounded-full p-1 animate-pulse">
-                              <Bell className="h-3 w-3" />
+                            <div className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white rounded-full p-1 shadow-lg shadow-orange-500/20 animate-bounce z-10">
+                              <Bell className="h-3.5 w-3.5" />
                             </div>
                           )}
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-mono text-sm font-semibold text-primary">
-                                  {chamado.codigo}
+                              <div className="flex items-center flex-wrap gap-2 mb-2">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
+                                  #{chamado.codigo}
                                 </span>
-                                <Badge variant="outline" className={prioridadeInfo.color}>
+                                <Badge variant="outline" className={`${prioridadeInfo.color} border-none font-bold text-[10px] uppercase`}>
                                   {prioridadeInfo.label}
                                 </Badge>
                                 {clientResponded && (
-                                  <Badge className="bg-orange-500 text-white text-xs">
-                                    Cliente respondeu
+                                  <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold uppercase border-none">
+                                    Nova Resposta
                                   </Badge>
                                 )}
                               </div>
-                              <p className="font-medium truncate">{chamado.nome}</p>
-                              <p className="text-sm text-muted-foreground truncate">{chamado.motivo}</p>
-                              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
+                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{chamado.nome}</p>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{chamado.motivo}</p>
+                              
+                              <div className="flex items-center gap-4 mt-3 text-[10px] font-medium text-muted-foreground/70">
+                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
                                   <Mail className="h-3 w-3" />
                                   {chamado.email}
                                 </span>
-                                <span>
-                                  {format(new Date(chamado.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(chamado.created_at), "dd MMM, HH:mm", { locale: ptBR })}
                                 </span>
                               </div>
                             </div>
-                            <Badge variant="outline" className={statusInfo.color}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
+                            <Badge variant="outline" className={`${statusInfo.color} border-none font-bold text-[10px] uppercase py-1 px-2`}>
+                              <StatusIcon className="h-3 w-3 mr-1.5" />
                               {statusInfo.label}
                             </Badge>
                           </div>
