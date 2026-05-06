@@ -74,6 +74,9 @@ import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
+import InstagramCreate from "./pages/InstagramCreate";
+import InstagramHistory from "./pages/InstagramHistory";
+import InstagramSettings from "./pages/InstagramSettings";
 
 const queryClient = new QueryClient();
 
@@ -175,6 +178,11 @@ function AppRoutes() {
       <Route path="/grafo-clientes" element={<ProtectedRoute permission="view_client_graph"><GrafoClientes /></ProtectedRoute>} />
       <Route path="/central-ajuda" element={<ProtectedRoute permission="view_central_ajuda"><CentralAjuda /></ProtectedRoute>} />
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+      
+      {/* Instagram Routes */}
+      <Route path="/instagram" element={<ProtectedRoute permission="manage_instagram"><InstagramCreate /></ProtectedRoute>} />
+      <Route path="/instagram/history" element={<ProtectedRoute permission="manage_instagram"><InstagramHistory /></ProtectedRoute>} />
+      <Route path="/instagram/settings" element={<ProtectedRoute permission="manage_instagram"><InstagramSettings /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
