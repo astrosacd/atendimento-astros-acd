@@ -747,6 +747,17 @@ export default function Dashboard() {
           pulse: false,
         }
       : null,
+    isAdmin && stats.instagramTokenExpiring
+      ? {
+          id: 'instagram-token',
+          title: 'Token do Instagram Expirando',
+          description: `O seu Meta Access Token expira em ${stats.instagramTokenExpiryDate ? new Date(stats.instagramTokenExpiryDate).toLocaleDateString('pt-BR') : 'breve'}. Renove nas configurações do módulo.`,
+          onClick: () => navigate('/instagram'),
+          tone: 'warning' as const,
+          icon: Instagram,
+          pulse: true,
+        }
+      : null,
     failedFollowups.length > 0
       ? {
           id: 'followups-failed',
