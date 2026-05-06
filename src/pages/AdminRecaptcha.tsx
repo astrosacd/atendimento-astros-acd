@@ -73,7 +73,11 @@ export default function AdminRecaptcha() {
               <a
                 href="https://www.google.com/recaptcha/admin"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open('https://www.google.com/recaptcha/admin/create', '_blank', 'noopener,noreferrer');
+                }}
                 className="inline-flex items-center gap-1 text-primary underline"
               >
                 https://www.google.com/recaptcha/admin <ExternalLink className="h-3 w-3" />
