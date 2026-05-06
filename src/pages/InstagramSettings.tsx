@@ -122,6 +122,23 @@ const InstagramSettings = () => {
 
   const expirationStatus = getExpirationStatus();
 
+  const handleAddNumber = () => {
+    if (newManagerNumber.trim()) {
+      setSettings(prev => ({
+        ...prev,
+        manager_numbers: [...prev.manager_numbers, newManagerNumber.trim()]
+      }));
+      setNewManagerNumber("");
+    }
+  };
+
+  const handleRemoveNumber = (index: number) => {
+    setSettings(prev => ({
+      ...prev,
+      manager_numbers: prev.manager_numbers.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -134,6 +151,8 @@ const InstagramSettings = () => {
         app_id: settings.app_id,
         app_secret: settings.app_secret,
         updated_at: new Date().toISOString(),
+        notify_whatsapp: settings.notify_whatsapp,
+        manager_numbers: settings.manager_numbers,
       });
 
       if (settingsError) throw settingsError;
