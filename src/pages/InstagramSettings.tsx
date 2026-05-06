@@ -159,6 +159,28 @@ const InstagramSettings = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="app_id">Meta App ID</Label>
+                <Input
+                  id="app_id"
+                  placeholder="ID do seu App Meta"
+                  value={settings.app_id}
+                  onChange={(e) => setSettings({ ...settings, app_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="app_secret">Meta App Secret</Label>
+                <Input
+                  id="app_secret"
+                  type="password"
+                  placeholder="Secret do seu App Meta"
+                  value={settings.app_secret}
+                  onChange={(e) => setSettings({ ...settings, app_secret: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="ig_id">Instagram User ID (Obrigatório)</Label>
                 <Input
                   id="ig_id"
