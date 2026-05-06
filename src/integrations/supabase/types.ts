@@ -3963,6 +3963,36 @@ export type Database = {
         }
         Relationships: []
       }
+      instagram_settings: {
+        Row: {
+          access_token: string | null
+          account_username: string | null
+          created_at: string
+          ig_user_id: string | null
+          page_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_username?: string | null
+          created_at?: string
+          ig_user_id?: string | null
+          page_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_username?: string | null
+          created_at?: string
+          ig_user_id?: string | null
+          page_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_hunter_baserow_config: {
         Row: {
           api_token: string | null
@@ -5059,6 +5089,89 @@ export type Database = {
           nome?: string
           updated_at?: string
           valor?: number
+        }
+        Relationships: []
+      }
+      post_logs: {
+        Row: {
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["log_level"]
+          message: string
+          post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message: string
+          post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message?: string
+          post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_logs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          ig_media_id: string | null
+          media_urls: string[]
+          permalink: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["post_status"]
+          type: Database["public"]["Enums"]["post_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ig_media_id?: string | null
+          media_urls?: string[]
+          permalink?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          type?: Database["public"]["Enums"]["post_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          ig_media_id?: string | null
+          media_urls?: string[]
+          permalink?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["post_status"]
+          type?: Database["public"]["Enums"]["post_type"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -6847,6 +6960,15 @@ export type Database = {
         | "aguardando_cliente"
         | "resolvido"
         | "fechado"
+      log_level: "info" | "success" | "error"
+      post_status:
+        | "draft"
+        | "scheduled"
+        | "publishing"
+        | "published"
+        | "failed"
+        | "cancelled"
+      post_type: "feed" | "reels" | "carousel" | "stories"
       proposal_status: "draft" | "sent" | "viewed" | "accepted" | "rejected"
     }
     CompositeTypes: {
@@ -6984,6 +7106,16 @@ export const Constants = {
         "resolvido",
         "fechado",
       ],
+      log_level: ["info", "success", "error"],
+      post_status: [
+        "draft",
+        "scheduled",
+        "publishing",
+        "published",
+        "failed",
+        "cancelled",
+      ],
+      post_type: ["feed", "reels", "carousel", "stories"],
       proposal_status: ["draft", "sent", "viewed", "accepted", "rejected"],
     },
   },
