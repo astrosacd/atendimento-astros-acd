@@ -228,36 +228,40 @@ export default function AdminNumerosAquecimento() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Stats Cards and Chart */}
-          <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatsCard title={t('numberStatus.total')} value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
-            <StatsCard title={t('numberStatus.active')} value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
-            <StatsCard title={t('numberStatus.warmingUp')} value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
-            <StatsCard title={t('numberStatus.blocked')} value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
-            <StatsCard title={t('numberStatus.sold')} value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
-          </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatsCard title={t('numberStatus.total')} value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
+          <StatsCard title={t('numberStatus.active')} value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
+          <StatsCard title={t('numberStatus.warmingUp')} value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
+          <StatsCard title={t('numberStatus.blocked')} value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
+          <StatsCard title={t('numberStatus.sold')} value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
+        </div>
 
-          <Card className="lg:col-span-4 lg:row-span-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <PieChart className="h-4 w-4" />
-                Distribuição de Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[140px] w-full">
-                {stats.total > 0 ? (
+        {/* Chart */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <PieChart className="h-4 w-4 text-primary" />
+              Distribuição de Status
+            </CardTitle>
+            <CardDescription>Visão percentual da composição do estoque de números</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {stats.total > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
                         data={chartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={40}
-                        outerRadius={60}
-                        paddingAngle={5}
+                        innerRadius={55}
+                        outerRadius={90}
+                        paddingAngle={3}
                         dataKey="value"
+                        stroke="hsl(var(--background))"
+                        strokeWidth={2}
                       >
                         {chartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -265,23 +269,54 @@ export default function AdminNumerosAquecimento() {
                       </Pie>
                       <RechartsTooltip 
                         contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
+                          backgroundColor: 'hsl(var(--popover))', 
                           borderColor: 'hsl(var(--border))',
                           borderRadius: '8px',
-                          fontSize: '12px'
+                          fontSize: '12px',
+                          color: 'hsl(var(--popover-foreground))'
                         }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                        labelStyle={{ color: 'hsl(var(--popover-foreground))', fontWeight: 600 }}
+                        formatter={(value: number, name: string) => [
+                          `${value} (${((value / stats.total) * 100).toFixed(1)}%)`, 
+                          name
+                        ]}
                       />
                     </RechartsPieChart>
                   </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground italic">
-                    Sem dados para exibir
-                  </div>
-                )}
+                </div>
+                <div className="space-y-3">
+                  {chartData.map((item) => {
+                    const pct = ((item.value / stats.total) * 100).toFixed(1);
+                    return (
+                      <div key={item.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full" style={{ background: item.color }} />
+                            <span className="font-medium text-foreground">{item.name}</span>
+                          </div>
+                          <span className="font-mono tabular-nums text-muted-foreground">
+                            {item.value} <span className="text-xs">({pct}%)</span>
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all" 
+                            style={{ width: `${pct}%`, background: item.color }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground italic">
+                Sem dados para exibir
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>

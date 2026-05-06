@@ -200,6 +200,8 @@ export default function Dashboard() {
       const nextWeekStr = `${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth() + 1).padStart(2, '0')}-${String(nextWeekDate.getDate()).padStart(2, '0')}`;
       const renovacoesProximas = clientes?.filter(c => {
         if (!c.data_renovacao) return false;
+        // Apenas clientes recorrentes (cobrança ativa) — registros não renovam
+        if (c.cobranca_ativa !== true) return false;
         // data_renovacao is stored as 'YYYY-MM-DD' string; compare lexicographically (timezone-safe)
         const renovacaoStr = String(c.data_renovacao).slice(0, 10);
         return renovacaoStr >= todayStr && renovacaoStr <= nextWeekStr;
