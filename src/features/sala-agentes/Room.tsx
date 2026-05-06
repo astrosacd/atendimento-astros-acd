@@ -317,11 +317,10 @@ function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
         </div>
         <div className="mt-1.5 grid grid-cols-2 gap-1.5">
           <Tile label="Clientes" value={metrics.clientes.toString()} c="text-emerald-300" />
-          <Tile label="Leads" value={metrics.leads.toString()} c="text-blue-300" />
           <Tile label="Propostas" value={metrics.propostas.toString()} c="text-amber-300" />
           <Tile label="MRR (R$)" value={metrics.mrr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} c="text-fuchsia-300" />
-          <Tile label="Propostas" value={metrics.propostas.toString()} c="text-amber-300" />
           <Tile label="Online" value={'24/7'} c="text-blue-300" />
+        </div>
       </div>
     );
   }
