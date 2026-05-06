@@ -170,14 +170,14 @@ const InstagramCreate = () => {
   };
 
   return (
-    <div className=\"space-y-8\">
-      <div className=\"flex items-center gap-3 mb-2\">
-        <div className=\"bg-pink-100 p-3 rounded-xl dark:bg-pink-900/30\">
-          <Sparkles className=\"h-8 w-8 text-pink-600\" />
+    <div className="space-y-8">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="bg-pink-100 p-3 rounded-xl dark:bg-pink-900/30">
+          <Sparkles className="h-8 w-8 text-pink-600" />
         </div>
         <div>
-          <h2 className=\"text-2xl font-bold tracking-tight\">Criar Publicação</h2>
-          <p className=\"text-muted-foreground\">Crie e agende conteúdo incrível para o seu Instagram.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Criar Publicação</h2>
+          <p className="text-muted-foreground">Crie e agende conteúdo incrível para o seu Instagram.</p>
         </div>
       </div>
 
