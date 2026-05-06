@@ -412,5 +412,11 @@ export function usePermissions() {
     // Central de Ajuda
     canViewCentralAjuda,
     canManagePredefinedProducts,
+    canViewInstagram,
+    canCreateInstagramPost,
+    canManageInstagramSettings,
+    canViewInstagramHistory,
+    canManageTemporaryAccess,
+    canViewGuiaInstagram,
   };
 }
