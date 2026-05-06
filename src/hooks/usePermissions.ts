@@ -418,5 +418,6 @@ export function usePermissions() {
     canViewInstagramHistory,
     canManageTemporaryAccess,
     canViewGuiaInstagram,
+    canViewInstagramReports: () => hasPermission('view_instagram_reports'),
   };
 }
