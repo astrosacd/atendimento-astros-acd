@@ -72,6 +72,7 @@ import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
 import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
+import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
