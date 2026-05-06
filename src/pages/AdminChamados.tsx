@@ -11,6 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useSystemActivities } from '@/hooks/useSystemActivities';
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { 
   ArrowLeft, 
   Ticket, 
@@ -28,9 +31,15 @@ import {
   Mail,
   Phone,
   RefreshCw,
-  Bell
+  Bell,
+  MoreVertical,
+  History,
+  Send,
+  Lock,
+  Eye,
+  Calendar
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type ChamadoStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
