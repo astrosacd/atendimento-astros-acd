@@ -95,7 +95,7 @@ const InstagramModule = () => {
   };
 
   const copyLink = (token: string) => {
-    const url = `${window.location.origin}/access/${token}`;
+    const url = `${siteUrl}/access/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado para a área de transferência!");
   };
