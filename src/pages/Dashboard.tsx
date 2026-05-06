@@ -134,6 +134,8 @@ export default function Dashboard() {
     billingSkipped: 0,
     billingErrorsUnresolved: 0,
     churnRate: 0,
+    instagramTokenExpiring: false,
+    instagramTokenExpiryDate: null,
   });
 
   useEffect(() => {
