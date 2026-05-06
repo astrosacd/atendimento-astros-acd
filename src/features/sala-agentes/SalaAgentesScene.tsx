@@ -198,7 +198,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         gl={{ antialias: true, alpha: false }}
       >
         <color attach="background" args={[isNight ? '#1a1c2c' : '#f5ecd9']} />
-        <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 28, 55]} />
+        <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 40, 80]} />
 
         {/* Iluminação dinâmica */}
         <ambientLight intensity={isNight ? 0.25 : 0.55} />
