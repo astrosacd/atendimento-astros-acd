@@ -62,6 +62,8 @@ const InstagramSettings = () => {
         app_secret: data?.app_secret || "",
         token_expires_at: data?.token_expires_at || null,
         renewal_webhook: webhookConfig?.config_value || "",
+        notify_whatsapp: data?.notify_whatsapp || false,
+        manager_numbers: (data?.manager_numbers as string[]) || [],
       });
     }
   };
