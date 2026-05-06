@@ -577,7 +577,7 @@ export default function Auth() {
               Verificando status da sua conta…
             </div>
           )}
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeAuthTab} onValueChange={(v) => setActiveAuthTab(v as 'login' | 'signup')} className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary">
               <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 Login
