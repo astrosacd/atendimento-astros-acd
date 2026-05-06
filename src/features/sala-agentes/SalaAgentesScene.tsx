@@ -247,7 +247,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
           <ContactShadows
             position={[0, 0.01, 0]}
             opacity={isNight ? 0.6 : 0.35}
-            scale={28}
+            scale={42}
             blur={2.4}
             far={6}
           />
@@ -255,8 +255,8 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
 
         <OrbitControls
           enablePan
-          minDistance={8}
-          maxDistance={28}
+          minDistance={10}
+          maxDistance={42}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           target={[0, 1, 0]}
