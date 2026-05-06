@@ -3967,6 +3967,8 @@ export type Database = {
         Row: {
           access_token: string | null
           account_username: string | null
+          app_id: string | null
+          app_secret: string | null
           created_at: string
           ig_user_id: string | null
           page_id: string | null
@@ -3977,6 +3979,8 @@ export type Database = {
         Insert: {
           access_token?: string | null
           account_username?: string | null
+          app_id?: string | null
+          app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
@@ -3987,6 +3991,8 @@ export type Database = {
         Update: {
           access_token?: string | null
           account_username?: string | null
+          app_id?: string | null
+          app_secret?: string | null
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
