@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
-// ... keep existing code
 import { Workstation } from './Workstation';
 import { VoxelAgent } from './VoxelAgent';
 import { Weather, pickWeather, type WeatherKind } from './Weather';
@@ -67,7 +66,6 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
     { pos: [-15, 3, 10], target: [-17, 1, 10], label: "Data Center" },
     { pos: [0, 15, 0], target: [0, 0, 0], label: "Vista Superior" }
   ], []);
-// ... keep existing code
 
   useEffect(() => {
     const fetchLogo = async () => {
