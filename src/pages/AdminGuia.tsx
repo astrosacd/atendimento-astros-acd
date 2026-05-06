@@ -5020,6 +5020,13 @@ Menu lateral → **Link de Pagamento**`
 5. O sistema validará automaticamente e mostrará a data de expiração.`
         },
         {
+          title: "Renovação de Token",
+          content: `O token do Instagram expira a cada 60 dias. 
+1. O sistema monitora a validade e exibe alertas coloridos (Verde, Amarelo, Vermelho).
+2. Se você preencher o **App ID** e **App Secret**, poderá clicar em **"Renovar Token"** nas configurações.
+3. Isso obterá um novo token de 60 dias automaticamente via API da Meta.`
+        },
+        {
           title: "Agendamento de Posts",
           content: `1. Na aba **Criar Post**, faça o upload de imagem ou vídeo.
 2. Escreva sua legenda.
