@@ -53,6 +53,7 @@ export default function Auth() {
   const [recaptcha, setRecaptcha] = useState<{ enabled: boolean; siteKey: string }>({ enabled: false, siteKey: '' });
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [recaptchaWidgetId, setRecaptchaWidgetId] = useState<number | null>(null);
+  const [activeAuthTab, setActiveAuthTab] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
     (async () => {
@@ -66,6 +67,8 @@ export default function Auth() {
 
   useEffect(() => {
     if (!recaptcha.enabled || !recaptcha.siteKey) return;
+    const containerId = activeAuthTab === 'login' ? 'recaptcha-login-container' : 'recaptcha-signup-container';
+
     const ensureScript = () =>
       new Promise<void>((resolve) => {
         if ((window as any).grecaptcha?.render) return resolve();
@@ -82,22 +85,34 @@ export default function Auth() {
         }, 150);
       });
 
+    let cancelled = false;
     ensureScript().then(() => {
-      const el = document.getElementById('recaptcha-login-container');
-      if (!el || el.childElementCount > 0) return;
-      try {
-        const id = (window as any).grecaptcha.render(el, {
-          sitekey: recaptcha.siteKey,
-          callback: (token: string) => setRecaptchaToken(token),
-          'expired-callback': () => setRecaptchaToken(null),
-          'error-callback': () => setRecaptchaToken(null),
-        });
-        setRecaptchaWidgetId(id);
-      } catch (e) {
-        console.warn('reCAPTCHA render error', e);
-      }
+      if (cancelled) return;
+      // Aguarda o container existir no DOM (após mudança de tab)
+      const tryRender = (attempt = 0) => {
+        const el = document.getElementById(containerId);
+        if (!el) {
+          if (attempt < 20) setTimeout(() => tryRender(attempt + 1), 100);
+          return;
+        }
+        if (el.childElementCount > 0) return;
+        try {
+          setRecaptchaToken(null);
+          const id = (window as any).grecaptcha.render(el, {
+            sitekey: recaptcha.siteKey,
+            callback: (token: string) => setRecaptchaToken(token),
+            'expired-callback': () => setRecaptchaToken(null),
+            'error-callback': () => setRecaptchaToken(null),
+          });
+          setRecaptchaWidgetId(id);
+        } catch (e) {
+          console.warn('reCAPTCHA render error', e);
+        }
+      };
+      tryRender();
     });
-  }, [recaptcha]);
+    return () => { cancelled = true; };
+  }, [recaptcha, activeAuthTab]);
 
   const resetRecaptcha = () => {
     setRecaptchaToken(null);
@@ -219,6 +234,15 @@ export default function Auth() {
       toast({
         title: 'Erro de validação',
         description: result.error.errors[0].message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (recaptcha.enabled && !recaptchaToken) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Marque "Não sou um robô" para continuar.',
         variant: 'destructive',
       });
       return;
@@ -553,7 +577,7 @@ export default function Auth() {
               Verificando status da sua conta…
             </div>
           )}
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeAuthTab} onValueChange={(v) => setActiveAuthTab(v as 'login' | 'signup')} className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-secondary">
               <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 Login
@@ -654,10 +678,15 @@ export default function Auth() {
                   />
                   <p className="text-xs text-muted-foreground">Apenas números, com DDD</p>
                 </div>
+                {recaptcha.enabled && recaptcha.siteKey && (
+                  <div className="flex justify-center pt-1">
+                    <div id="recaptcha-signup-container" />
+                  </div>
+                )}
                 <Button 
                   type="submit" 
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading}
+                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
                 >
                   {isLoading ? 'Enviando solicitação...' : 'Solicitar Acesso'}
                 </Button>
