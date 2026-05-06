@@ -475,6 +475,8 @@ export default function Dashboard() {
         billingSkipped: billingSkippedCount,
         billingErrorsUnresolved: billingErrorsUnresolvedCount,
         churnRate,
+        instagramTokenExpiring,
+        instagramTokenExpiryDate,
       });
     };
 
