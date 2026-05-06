@@ -3970,6 +3970,7 @@ export type Database = {
           created_at: string
           ig_user_id: string | null
           page_id: string | null
+          token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3979,6 +3980,7 @@ export type Database = {
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -3988,6 +3990,7 @@ export type Database = {
           created_at?: string
           ig_user_id?: string | null
           page_id?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }

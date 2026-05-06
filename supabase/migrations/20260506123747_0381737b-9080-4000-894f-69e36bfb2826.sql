@@ -1,0 +1,1 @@
+ALTER TABLE public.instagram_settings ADD COLUMN token_expires_at TIMESTAMP WITH TIME ZONE;
