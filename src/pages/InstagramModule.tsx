@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 import { format, addHours, addDays } from "date-fns";
 import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
@@ -24,6 +25,8 @@ const InstagramModule = () => {
     canViewInstagramHistory,
     canManageTemporaryAccess
   } = usePermissions();
+
+  const siteUrl = useSiteUrl();
 
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
