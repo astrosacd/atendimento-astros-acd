@@ -1,4 +1,6 @@
 // App.tsx - Main application router
+import InstagramModule from \"./pages/InstagramModule\";
+// ... keep existing imports
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
