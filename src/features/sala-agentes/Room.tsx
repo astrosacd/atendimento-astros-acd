@@ -266,3 +266,93 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
     </group>
   );
 }
+
+function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
+  const [metrics, setMetrics] = useState({ clientes: 0, leads: 0, propostas: 0, mrr: 0 });
+  const [logs, setLogs] = useState<{ msg: string; ts: string }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        if (variant === 'metrics') {
+          const [c, l, p] = await Promise.all([
+            supabase.from('clientes').select('id, valor_mensal', { count: 'exact', head: false }).limit(500),
+            supabase.from('leads').select('id', { count: 'exact', head: true }),
+            supabase.from('proposals').select('id', { count: 'exact', head: true }),
+          ] as any);
+          if (cancelled) return;
+          const cs: any[] = (c as any).data ?? [];
+          const mrr = cs.reduce((s, r) => s + (Number(r.valor_mensal) || 0), 0);
+          setMetrics({
+            clientes: (c as any).count ?? cs.length,
+            leads: (l as any).count ?? 0,
+            propostas: (p as any).count ?? 0,
+            mrr,
+          });
+        } else {
+          const { data } = await supabase
+            .from('system_activities')
+            .select('description, created_at')
+            .order('created_at', { ascending: false })
+            .limit(8);
+          if (cancelled) return;
+          setLogs((data ?? []).map((r: any) => ({
+            msg: String(r.description ?? '').slice(0, 60),
+            ts: new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          })));
+        }
+      } catch {}
+    }
+    load();
+    const id = setInterval(load, 12000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [variant]);
+
+  if (variant === 'metrics') {
+    return (
+      <div className="h-full w-full rounded bg-gradient-to-br from-slate-900 to-emerald-950 p-2 font-mono text-white ring-1 ring-emerald-500/40">
+        <div className="flex items-center justify-between border-b border-white/10 pb-1">
+          <span className="text-[10px] font-bold tracking-widest text-emerald-300">▣ CRM · MÉTRICAS</span>
+          <span className="text-[8px] text-emerald-400">● LIVE</span>
+        </div>
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+          <Tile label="Clientes" value={metrics.clientes.toString()} c="text-emerald-300" />
+          <Tile label="Leads" value={metrics.leads.toString()} c="text-blue-300" />
+          <Tile label="Propostas" value={metrics.propostas.toString()} c="text-amber-300" />
+          <Tile label="MRR (R$)" value={metrics.mrr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} c="text-fuchsia-300" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full rounded bg-[#020617] p-2 font-mono text-emerald-300 ring-1 ring-blue-500/40">
+      <div className="flex items-center justify-between border-b border-white/10 pb-1">
+        <span className="text-[10px] font-bold tracking-widest text-blue-300">▣ SYS · LOGS</span>
+        <span className="text-[8px] text-emerald-400">● LIVE</span>
+      </div>
+      <div className="mt-1 space-y-0.5 text-[8px] leading-tight">
+        {logs.length === 0 ? (
+          <div className="text-slate-500 italic">aguardando eventos...</div>
+        ) : (
+          logs.map((l, i) => (
+            <div key={i} className="truncate">
+              <span className="text-slate-500">{l.ts}</span>{' '}
+              <span className="text-emerald-300">›</span> {l.msg}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Tile({ label, value, c }: { label: string; value: string; c: string }) {
+  return (
+    <div className="rounded bg-black/40 px-1.5 py-1 ring-1 ring-white/5">
+      <p className="text-[7px] uppercase tracking-widest text-slate-400">{label}</p>
+      <p className={`text-base font-extrabold leading-none ${c}`}>{value}</p>
+    </div>
+  );
+}
