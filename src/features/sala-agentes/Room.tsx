@@ -148,19 +148,12 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       </Html>
 
       {/* --- JANELAS PANORÂMICAS --- */}
-      {[-8.5, 0, 8.5].map((x) => (
+      {[-15, -7.5, 0, 7.5, 15].map((x) => (
         <group key={`window-${x}`} position={[x, 3.2, -D / 2 + 0.11]}>
-          {/* Vidro da Janela */}
           <mesh>
             <boxGeometry args={[5, 3.2, 0.02]} />
-            <meshPhysicalMaterial 
-              color="#bae0ff" 
-              transparent 
-              opacity={0.2} 
-              transmission={0.8}
-            />
+            <meshPhysicalMaterial color="#bae0ff" transparent opacity={0.2} transmission={0.8} />
           </mesh>
-          {/* Moldura da Janela */}
           <mesh>
             <boxGeometry args={[5.2, 3.4, 0.1]} />
             <meshStandardMaterial color="#1e293b" />
