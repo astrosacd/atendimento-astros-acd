@@ -23,6 +23,7 @@ const InstagramSettings = () => {
     app_id: "",
     app_secret: "",
     token_expires_at: null as string | null,
+    renewal_webhook: "",
   });
 
   useEffect(() => {
