@@ -618,13 +618,15 @@ export default function Auth() {
                     <div id="recaptcha-login-container" />
                   </div>
                 )}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
-                >
-                  {isLoading ? 'Entrando...' : 'Entrar'}
-                </Button>
+                {(!recaptcha.enabled || !!recaptchaToken) && (
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green animate-in fade-in duration-300"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Entrando...' : 'Entrar'}
+                  </Button>
+                )}
                 
                 <div className="text-center pt-2">
                   <Button 
