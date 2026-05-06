@@ -9,7 +9,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
   return (
     <group>
       {/* COPA — canto direito frontal */}
-      <group position={[11, 0, 7]}>
+      <group position={[17, 0, 11]}>
         {/* Tapete de borracha high-tech */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[4, 4]} />
