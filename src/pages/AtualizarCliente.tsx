@@ -281,32 +281,77 @@ export default function AtualizarCliente() {
                           {cliente.produto}
                         </p>
                       </button>
-                      {cliente.observacao && cliente.observacao.trim() && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-update"
-                              onClick={(e) => e.stopPropagation()}
-                              title={t('clients.observations')}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-72 bg-popover border-border" align="end">
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                {t('clients.observations')}
-                              </p>
-                              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
-                                {cliente.observacao}
-                              </p>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      )}
+                          {cliente.observacao && cliente.observacao.trim() && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-update"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title={t('clients.observations')}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                className="w-80 sm:w-96 bg-popover border-border shadow-2xl p-0 overflow-hidden" 
+                                align="end"
+                                side="top"
+                                sideOffset={10}
+                              >
+                                <div className="p-4 border-b border-border bg-muted/30">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                                      {t('clients.observations')}
+                                    </p>
+                                    <FileText className="w-3.5 h-3.5 text-update" />
+                                  </div>
+                                  <div className="relative">
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                    <Input
+                                      placeholder="Pesquisar na observação (ex: número)..."
+                                      className="h-8 pl-8 text-xs bg-background border-border"
+                                      onChange={(e) => {
+                                        const term = e.target.value.toLowerCase();
+                                        const content = document.getElementById(`obs-${cliente.id}`);
+                                        if (!content) return;
+                                        
+                                        const originalText = cliente.observacao || '';
+                                        if (!term) {
+                                          content.innerText = originalText;
+                                          return;
+                                        }
+
+                                        const regex = new RegExp(`(${term})`, 'gi');
+                                        const parts = originalText.split(regex);
+                                        content.innerHTML = parts.map(part => 
+                                          part.toLowerCase() === term 
+                                            ? `<mark class="bg-update text-update-foreground rounded-sm px-0.5">${part}</mark>` 
+                                            : part
+                                        ).join('');
+                                        
+                                        // Scroll to first match
+                                        const firstMatch = content.querySelector('mark');
+                                        if (firstMatch) {
+                                          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="max-h-[300px] overflow-y-auto p-4 bg-card">
+                                  <p 
+                                    id={`obs-${cliente.id}`}
+                                    className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed"
+                                  >
+                                    {cliente.observacao}
+                                  </p>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
                     </div>
                   ))}
                 </div>
