@@ -98,38 +98,25 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </mesh>
       </group>
 
-      {/* --- DIVISÓRIAS DE VIDRO CORPORATIVAS --- */}
+      {/* --- DIVISÓRIAS DE VIDRO CORPORATIVAS (4 departamentos) --- */}
       <group>
-        {/* Vidro Lateral com moldura preta */}
-        {[-4.5, 4.5].map(x => (
-          <group key={`glass-${x}`} position={[x, 1.5, -2]}>
+        {[-5, 5].map(x => (
+          <group key={`glass-${x}`} position={[x, 1.5, -3]}>
             <mesh>
-              <boxGeometry args={[0.05, 3, 10]} />
-              <meshPhysicalMaterial 
-                color="#e0f2fe" 
-                transparent 
-                opacity={0.15} 
-                transmission={0.9} 
-                thickness={0.1}
-                roughness={0}
-              />
+              <boxGeometry args={[0.05, 3, 14]} />
+              <meshPhysicalMaterial color="#e0f2fe" transparent opacity={0.15} transmission={0.9} thickness={0.1} roughness={0} />
             </mesh>
             <mesh position={[0, 1.5, 0]}>
-              <boxGeometry args={[0.1, 0.1, 10]} />
+              <boxGeometry args={[0.1, 0.1, 14]} />
               <meshStandardMaterial color="#0f172a" />
             </mesh>
           </group>
         ))}
-        {/* Vidro Fundo */}
+        {/* Vidro Fundo (separa operacional) */}
         <group position={[0, 1.5, 3]}>
           <mesh>
             <boxGeometry args={[W, 3, 0.05]} />
-            <meshPhysicalMaterial 
-              color="#e0f2fe" 
-              transparent 
-              opacity={0.1} 
-              transmission={0.9} 
-            />
+            <meshPhysicalMaterial color="#e0f2fe" transparent opacity={0.1} transmission={0.9} />
           </mesh>
           <mesh position={[0, 1.5, 0]}>
             <boxGeometry args={[W, 0.1, 0.1]} />
@@ -138,20 +125,25 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </group>
       </group>
 
-      {/* Rótulos das Salas Minimalistas */}
-      <Html position={[-9, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      {/* Rótulos das Salas */}
+      <Html position={[-11, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           DEPT. COMERCIAL
         </div>
       </Html>
-      <Html position={[0, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-blue-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      <Html position={[0, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-blue-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           CENTRO SMART IA
         </div>
       </Html>
-      <Html position={[9, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-emerald-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      <Html position={[11, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-emerald-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           FINANCEIRO
+        </div>
+      </Html>
+      <Html position={[0, 4.5, 9]} center distanceFactor={14}>
+        <div className="rounded-full bg-orange-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
+          OPERAÇÕES & SUPORTE
         </div>
       </Html>
 
