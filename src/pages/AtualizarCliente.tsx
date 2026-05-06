@@ -257,14 +257,57 @@ export default function AtualizarCliente() {
                 <div className="space-y-2">
                   <Label className="text-muted-foreground text-sm">{t('clients.selectClient')}:</Label>
                   {searchResults.map((cliente) => (
-                    <Button
+                    <div
                       key={cliente.id}
-                      onClick={() => handleSelectCliente(cliente)}
-                      variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-update/10 hover:border-update/50 h-12"
+                      className="group relative flex items-center gap-2 w-full p-3 rounded-lg border border-border bg-card hover:bg-update/10 hover:border-update/50 transition-colors"
                     >
-                      {cliente.nome} {cliente.cpf ? `- ${cliente.cpf}` : ''} - {cliente.produto}
-                    </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCliente(cliente)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="font-medium text-foreground truncate">
+                            {cliente.nome}{cliente.cpf ? ` - ${cliente.cpf}` : ''}
+                          </span>
+                          {cliente.cobranca_ativa && cliente.data_renovacao && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-update/15 text-update font-medium shrink-0">
+                              <Calendar className="w-3 h-3" />
+                              {formatDate(cliente.data_renovacao)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {cliente.produto}
+                        </p>
+                      </button>
+                      {cliente.observacao && cliente.observacao.trim() && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-update"
+                              onClick={(e) => e.stopPropagation()}
+                              title={t('clients.observations')}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-72 bg-popover border-border" align="end">
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                {t('clients.observations')}
+                              </p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                                {cliente.observacao}
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : searchPerformed ? (
