@@ -123,10 +123,15 @@ const InstagramSettings = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Sucesso!",
-        description: "Configurações do Instagram salvas.",
-      });
+      // Automatically check token validity if App ID and Secret are provided
+      if (settings.app_id && settings.app_secret && settings.access_token) {
+        await handleTokenAction("debug");
+      } else {
+        toast({
+          title: "Sucesso!",
+          description: "Configurações do Instagram salvas.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao salvar",
