@@ -656,3 +656,81 @@ function TourManager({ active, targetIndex, points, cameraRef, onReachedTarget }
   return null;
 }
 
+
+/**
+ * Partículas flutuantes ambientais para dar vida à sala
+ */
+function FloatingParticles({ count = 60, isNight = false }: { count?: number; isNight?: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const particles = useMemo(() => {
+    return new Array(count).fill(0).map(() => ({
+      x: (Math.random() - 0.5) * 36,
+      y: 1 + Math.random() * 6,
+      z: (Math.random() - 0.5) * 24,
+      speed: 0.2 + Math.random() * 0.5,
+      offset: Math.random() * Math.PI * 2,
+    }));
+  }, [count]);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    particles.forEach((p, i) => {
+      dummy.position.set(
+        p.x + Math.sin(t * p.speed + p.offset) * 1.5,
+        p.y + Math.sin(t * p.speed * 0.7 + p.offset) * 0.6,
+        p.z + Math.cos(t * p.speed + p.offset) * 1.5,
+      );
+      dummy.scale.setScalar(0.08 + Math.sin(t * 2 + p.offset) * 0.03);
+      dummy.updateMatrix();
+      meshRef.current!.setMatrixAt(i, dummy.matrix);
+    });
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+      <sphereGeometry args={[1, 6, 6]} />
+      <meshBasicMaterial
+        color={isNight ? '#7dd3fc' : '#fbbf24'}
+        transparent
+        opacity={isNight ? 0.7 : 0.5}
+      />
+    </instancedMesh>
+  );
+}
+
+/**
+ * Faróis pulsantes nos cantos da sala
+ */
+function PulsingBeacons() {
+  const beaconsRef = useRef<THREE.Group>(null);
+  const positions: [number, number, number][] = [
+    [-17, 0.2, -11], [17, 0.2, -11], [-17, 0.2, 11], [17, 0.2, 11],
+  ];
+
+  useFrame((state) => {
+    if (!beaconsRef.current) return;
+    const t = state.clock.elapsedTime;
+    beaconsRef.current.children.forEach((child, i) => {
+      const scale = 1 + Math.sin(t * 2 + i * 0.5) * 0.4;
+      child.scale.setScalar(scale);
+    });
+  });
+
+  return (
+    <group ref={beaconsRef}>
+      {positions.map((pos, i) => (
+        <mesh key={i} position={pos}>
+          <cylinderGeometry args={[0.3, 0.5, 0.2, 12]} />
+          <meshStandardMaterial
+            color="#3b82f6"
+            emissive="#3b82f6"
+            emissiveIntensity={1.5}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
