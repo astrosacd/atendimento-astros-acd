@@ -207,6 +207,43 @@ const InstagramModule = () => {
               </DialogContent>
             </Dialog>
           )}
+
+          <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-500" />
+                  Link Gerado!
+                </DialogTitle>
+                <DialogDescription>
+                  O link de acesso provisório está pronto. Copie e envie para o assistente.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2 py-4">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">Link</Label>
+                  <Input
+                    id="link"
+                    defaultValue={generatedLink}
+                    readOnly
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <Button size="sm" className="px-3" onClick={() => {
+                  copyToClipboard(generatedLink);
+                  toast.success("Link copiado!");
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setIsSuccessDialogOpen(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Tabs defaultValue="create" className="space-y-6">
