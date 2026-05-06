@@ -9,12 +9,15 @@ import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, Ch
 import { format, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const InstagramSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
+  const [newManagerNumber, setNewManagerNumber] = useState("");
   const [settings, setSettings] = useState({
     ig_user_id: "",
     page_id: "",
@@ -24,6 +27,8 @@ const InstagramSettings = () => {
     app_secret: "",
     token_expires_at: null as string | null,
     renewal_webhook: "",
+    notify_whatsapp: false,
+    manager_numbers: [] as string[],
   });
 
   useEffect(() => {
