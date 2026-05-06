@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Html, Float, Text, Image } from '@react-three/drei';
 import { ROOM_PALETTE } from './colors';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Sala — chão, paredes, vigas e detalhes (plantas, janelas).
