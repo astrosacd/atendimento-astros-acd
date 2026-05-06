@@ -1,7 +1,8 @@
-import { Suspense, useState, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows } from '@react-three/drei';
+import { Suspense, useState, useMemo, useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, ContactShadows, PerspectiveCamera } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
+import * as THREE from 'three';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,10 +10,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, Activity, Sparkles, X, ExternalLink, 
   Share2, ChevronDown, ChevronUp, Clock, Sun, Moon,
-  Upload, MessageSquare, Cloud, CloudRain, CloudLightning
+  Upload, MessageSquare, Cloud, CloudRain, CloudLightning,
+  Map, User, Camera, Play, Pause, RotateCcw
 } from 'lucide-react';
 import { AGENTS, type AgentDef } from './agents';
 import { Room } from './Room';
+// ... keep existing code
 import { Workstation } from './Workstation';
 import { VoxelAgent } from './VoxelAgent';
 import { Weather, pickWeather, type WeatherKind } from './Weather';
@@ -48,6 +51,23 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ id: string, sender: string, text: string, time: string }[]>([]);
+  
+  // Controle de Tour 360 / Passeio
+  const [isTourActive, setIsTourActive] = useState(false);
+  const [tourTargetIndex, setTourTargetIndex] = useState(0);
+  const tourCameraRef = useRef<THREE.PerspectiveCamera>(null);
+  const tourControlsRef = useRef<any>(null);
+  const tourPoints = useMemo(() => [
+    { pos: [22, 12, 22], target: [0, 0, 0], label: "Visão Geral" },
+    { pos: [-15, 3, -10], target: [-10, 1, -5], label: "Setor Comercial" },
+    { pos: [0, 3, -12], target: [0, 2, -7], label: "Centro Smart IA" },
+    { pos: [15, 3, -10], target: [10, 1, -5], label: "Financeiro" },
+    { pos: [0, 3, 10], target: [0, 1, 5], label: "Operações & Suporte" },
+    { pos: [0, 4, 1.5], target: [0, 1, 1.5], label: "Praça Central" },
+    { pos: [-15, 3, 10], target: [-17, 1, 10], label: "Data Center" },
+    { pos: [0, 15, 0], target: [0, 0, 0], label: "Vista Superior" }
+  ], []);
+// ... keep existing code
 
   useEffect(() => {
     const fetchLogo = async () => {
@@ -193,10 +213,28 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
       {/* Canvas 3D */}
       <Canvas
         shadows
-        camera={{ position: [22, 20, 22], fov: 42 }}
         dpr={[1, 1.8]}
         gl={{ antialias: true, alpha: false }}
       >
+        <PerspectiveCamera 
+          makeDefault 
+          ref={tourCameraRef} 
+          position={[22, 20, 22]} 
+          fov={42} 
+        />
+        
+        <TourManager 
+          active={isTourActive} 
+          targetIndex={tourTargetIndex} 
+          points={tourPoints} 
+          cameraRef={tourCameraRef}
+          onReachedTarget={() => {
+            if (isTourActive) {
+              // Poderia rotacionar automaticamente aqui se quisesse
+            }
+          }}
+        />
+
         <color attach="background" args={[isNight ? '#1a1c2c' : '#f5ecd9']} />
         <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 40, 80]} />
 
@@ -209,6 +247,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
+// ... keep existing code
         
         {isNight && (
           <pointLight position={[0, 4, 0]} intensity={0.6} color="#4c6ef5" />
@@ -254,14 +293,72 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         </Suspense>
 
         <OrbitControls
-          enablePan
-          minDistance={10}
+          ref={tourControlsRef}
+          enablePan={!isTourActive}
+          enableRotate={true}
+          minDistance={isTourActive ? 1 : 10}
           maxDistance={42}
           minPolarAngle={Math.PI / 6}
-          maxPolarAngle={Math.PI / 2.2}
+          maxPolarAngle={Math.PI / 1.8}
           target={[0, 1, 0]}
+          makeDefault
         />
       </Canvas>
+
+      {/* Seletor de Tour (Floating Bottom Center) */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3">
+        {isTourActive && (
+          <div className="flex items-center gap-2 rounded-full bg-slate-900/90 p-1.5 backdrop-blur-md shadow-2xl ring-1 ring-white/20 animate-in fade-in slide-in-from-bottom-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full text-white hover:bg-white/10"
+              onClick={() => setTourTargetIndex(prev => (prev > 0 ? prev - 1 : tourPoints.length - 1))}
+            >
+              <ChevronDown className="h-5 w-5 rotate-90" />
+            </Button>
+            
+            <div className="px-4 py-1 text-center min-w-[140px]">
+              <span className="block text-[10px] uppercase tracking-widest text-slate-400 font-bold">Explorando</span>
+              <span className="block text-xs font-black text-white">{tourPoints[tourTargetIndex].label}</span>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full text-white hover:bg-white/10"
+              onClick={() => setTourTargetIndex(prev => (prev + 1) % tourPoints.length)}
+            >
+              <ChevronUp className="h-5 w-5 rotate-90" />
+            </Button>
+            
+            <div className="h-6 w-px bg-white/10 mx-1" />
+            
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-9 rounded-full px-4 font-bold"
+              onClick={() => setIsTourActive(false)}
+            >
+              Sair do Tour
+            </Button>
+          </div>
+        )}
+
+        {!isTourActive && (
+          <Button
+            className="group flex h-11 items-center gap-3 rounded-full bg-blue-600 px-6 font-bold text-white shadow-2xl transition-all hover:bg-blue-500 hover:scale-105 active:scale-95"
+            onClick={() => {
+              setIsTourActive(true);
+              setTourTargetIndex(1); // Começa pelo comercial
+            }}
+          >
+            <Map className="h-5 w-5 animate-pulse" />
+            Fazer Tour 360°
+          </Button>
+        )}
+      </div>
+// ... keep existing code
 
       {/* HUD topo-esquerda — título + métricas + compartilhamento */}
       <div className="pointer-events-none absolute left-4 top-4 flex flex-col gap-3">
