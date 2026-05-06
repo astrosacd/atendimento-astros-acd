@@ -114,14 +114,14 @@ const InstagramHistory = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-100 p-3 rounded-xl dark:bg-indigo-900/30">
             <History className="h-8 w-8 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Histórico de Posts</h1>
+            <h2 className="text-2xl font-bold tracking-tight">Histórico de Posts</h2>
             <p className="text-muted-foreground">Gerencie suas publicações e agendamentos.</p>
           </div>
         </div>

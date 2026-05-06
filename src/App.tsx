@@ -1,4 +1,5 @@
 // App.tsx - Main application router
+import InstagramModule from "./pages/InstagramModule";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -179,10 +180,8 @@ function AppRoutes() {
       <Route path="/central-ajuda" element={<ProtectedRoute permission="view_central_ajuda"><CentralAjuda /></ProtectedRoute>} />
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
       
-      {/* Instagram Routes */}
-      <Route path="/instagram" element={<ProtectedRoute permission="manage_instagram"><InstagramCreate /></ProtectedRoute>} />
-      <Route path="/instagram/history" element={<ProtectedRoute permission="manage_instagram"><InstagramHistory /></ProtectedRoute>} />
-      <Route path="/instagram/settings" element={<ProtectedRoute permission="manage_instagram"><InstagramSettings /></ProtectedRoute>} />
+      {/* Instagram Module */}
+      <Route path="/instagram" element={<ProtectedRoute permission="manage_instagram"><InstagramModule /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
