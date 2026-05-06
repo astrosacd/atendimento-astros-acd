@@ -46,71 +46,73 @@ export function Workstation({ agent, isBusy }: Props) {
   // Mesa virada para o centro (sul) — agente fica entre câmera e mesa
   return (
     <group position={[agent.position[0], 0, agent.position[1]]}>
-      {/* Mesa (tampo + 2 pés) */}
-      <mesh castShadow receiveShadow position={[0, 0.7, -0.6]}>
-        <boxGeometry args={[1.6, 0.08, 0.7]} />
-        <meshStandardMaterial color={ROOM_PALETTE.deskTop} roughness={0.6} />
+      {/* Mesa Minimalista Corporativa */}
+      <mesh castShadow receiveShadow position={[0, 0.72, -0.6]}>
+        <boxGeometry args={[1.7, 0.08, 0.8]} />
+        <meshPhysicalMaterial 
+          color="#1e293b" 
+          roughness={0.1} 
+          metalness={0.2} 
+          clearcoat={1}
+        />
       </mesh>
-      <mesh castShadow position={[-0.65, 0.35, -0.6]}>
-        <boxGeometry args={[0.08, 0.7, 0.6]} />
-        <meshStandardMaterial color={ROOM_PALETTE.desk} />
+      
+      {/* Pés da mesa (laterais em metal) */}
+      <mesh castShadow position={[-0.75, 0.36, -0.6]}>
+        <boxGeometry args={[0.06, 0.72, 0.7]} />
+        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
       </mesh>
-      <mesh castShadow position={[0.65, 0.35, -0.6]}>
-        <boxGeometry args={[0.08, 0.7, 0.6]} />
-        <meshStandardMaterial color={ROOM_PALETTE.desk} />
+      <mesh castShadow position={[0.75, 0.36, -0.6]}>
+        <boxGeometry args={[0.06, 0.72, 0.7]} />
+        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Monitor */}
-      <mesh castShadow position={[0, 1.2, -0.85]}>
-        <boxGeometry args={[0.9, 0.55, 0.05]} />
-        <meshStandardMaterial color={ROOM_PALETTE.monitor} />
+      {/* Monitor Ultrawide */}
+      <mesh castShadow position={[0, 1.25, -0.9]}>
+        <boxGeometry args={[1.1, 0.5, 0.04]} />
+        <meshStandardMaterial color="#000000" metalness={0.8} roughness={0.2} />
       </mesh>
-      <mesh ref={screenRef} position={[0, 1.2, -0.82]}>
-        <boxGeometry args={[0.82, 0.48, 0.02]} />
+      <mesh ref={screenRef} position={[0, 1.25, -0.87]}>
+        <boxGeometry args={[1.05, 0.45, 0.02]} />
         <meshStandardMaterial
           color={ROOM_PALETTE.monitorScreen}
           emissive={ROOM_PALETTE.monitorScreen}
-          emissiveIntensity={0.15}
+          emissiveIntensity={0.2}
         />
       </mesh>
-      {/* Tela do código sendo "digitado" */}
+      
+      {/* Tela do código */}
       <Html
-        position={[0, 1.2, -0.795]}
+        position={[0, 1.25, -0.85]}
         transform
-        distanceFactor={2.6}
+        distanceFactor={2.8}
         occlude={false}
-        style={{ width: '210px', height: '125px', pointerEvents: 'none' }}
+        style={{ width: '280px', height: '120px', pointerEvents: 'none' }}
       >
         <TypingScreen seed={agent.id} active={isBusy} />
       </Html>
-      <mesh position={[0, 0.85, -0.85]}>
-        <boxGeometry args={[0.1, 0.15, 0.05]} />
-        <meshStandardMaterial color={ROOM_PALETTE.monitor} />
+
+      {/* Suporte do Monitor */}
+      <mesh position={[0, 0.88, -0.9]}>
+        <cylinderGeometry args={[0.03, 0.04, 0.25]} />
+        <meshStandardMaterial color="#334155" metalness={0.9} />
       </mesh>
 
-      {/* Holograma flutuante (só quando ocupado) */}
-      {isBusy && (
-        <mesh position={[0, 1.85, -0.6]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.55, 0.35, 0.02]} />
-          <meshStandardMaterial
-            color={ROOM_PALETTE.hologram}
-            emissive={ROOM_PALETTE.hologram}
-            emissiveIntensity={0.6}
-            transparent
-            opacity={0.55}
-          />
+      {/* Cadeira Office Ergonômica */}
+      <group position={[0, 0, 0.3]}>
+        <mesh castShadow position={[0, 0.5, 0]}>
+          <boxGeometry args={[0.55, 0.1, 0.55]} />
+          <meshStandardMaterial color="#111827" roughness={0.6} />
         </mesh>
-      )}
-
-      {/* Cadeira (atrás do agente) */}
-      <mesh castShadow position={[0, 0.45, 0.2]}>
-        <boxGeometry args={[0.5, 0.08, 0.5]} />
-        <meshStandardMaterial color={ROOM_PALETTE.chair} />
-      </mesh>
-      <mesh castShadow position={[0, 0.85, 0.4]}>
-        <boxGeometry args={[0.5, 0.7, 0.08]} />
-        <meshStandardMaterial color={ROOM_PALETTE.chair} />
-      </mesh>
+        <mesh castShadow position={[0, 1, 0.25]}>
+          <boxGeometry args={[0.55, 0.9, 0.1]} />
+          <meshStandardMaterial color="#111827" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.25, 0]}>
+          <cylinderGeometry args={[0.04, 0.05, 0.5]} />
+          <meshStandardMaterial color="#444" metalness={0.8} />
+        </mesh>
+      </group>
 
       {/* Plaquinha do módulo (em cima da mesa) */}
       <Html

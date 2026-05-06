@@ -85,71 +85,75 @@ export function Weather({ weather, isNight }: WeatherProps) {
   const showRain = weather === 'rainy' || weather === 'storm';
   const showHeavyClouds = weather === 'cloudy' || weather === 'storm' || weather === 'rainy';
 
-  // Painted sky backdrop visible only through windows (placed behind the back wall).
+  // Cores de céu mais naturais
   const skyColor = isNight
-    ? (showRain ? '#0a0f1f' : '#0f1c3a')
+    ? (showRain ? '#050a1a' : '#080e1f')
     : weather === 'sunny'
-    ? '#7ec0ee'
+    ? '#4fa3e0'
     : weather === 'cloudy'
-    ? '#8fa1b8'
+    ? '#7c8ea6'
     : weather === 'rainy'
-    ? '#6b7a90'
-    : '#3f4a5e';
+    ? '#5d6b7d'
+    : '#2d3745';
 
-  // Z position of windows is roughly -8.9 (wall at -9). Put backdrop just behind it,
-  // and constrain to the window strip height so clouds never appear inside the room.
   return (
     <group>
-      {/* Sky strip directly behind windows only (matches window band: y≈4, height≈2.5) */}
-      <mesh position={[0, 4, -9.05]}>
-        <planeGeometry args={[24, 2.5]} />
+      {/* Background do Céu (Fundo das janelas) */}
+      <mesh position={[0, 3.2, -9.1]}>
+        <planeGeometry args={[26, 4]} />
         <meshBasicMaterial color={skyColor} />
       </mesh>
 
-      {/* Painted clouds as flat sprites on the sky strip — cloudy/rainy/storm only */}
+      {/* Estrelas (apenas se noite e sem nuvens pesadas) */}
+      {isNight && weather === 'sunny' && (
+        <group position={[0, 3.2, -9.09]}>
+          {[...Array(40)].map((_, i) => (
+            <mesh key={i} position={[Math.random() * 20 - 10, Math.random() * 3 - 1.5, 0]}>
+              <sphereGeometry args={[0.015, 8, 8]} />
+              <meshBasicMaterial color="white" />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* Nuvens Suaves (substituindo os círculos por algo mais etéreo) */}
       {showHeavyClouds && (
-        <group position={[0, 4, -9.04]}>
-          <PaintedCloud x={-8} y={0.6} scale={0.9} isNight={isNight} />
-          <PaintedCloud x={-2} y={0.2} scale={1.1} isNight={isNight} />
-          <PaintedCloud x={4} y={0.7} scale={1} isNight={isNight} />
-          <PaintedCloud x={9} y={0.3} scale={0.8} isNight={isNight} />
+        <group position={[0, 3.2, -9.08]}>
+          <SoftCloud x={-10} y={0.5} scale={1.2} opacity={0.4} isNight={isNight} />
+          <SoftCloud x={-4} y={-0.2} scale={1.5} opacity={0.3} isNight={isNight} />
+          <SoftCloud x={3} y={0.6} scale={1.3} opacity={0.4} isNight={isNight} />
+          <SoftCloud x={10} y={0.1} scale={1.1} opacity={0.3} isNight={isNight} />
         </group>
       )}
 
-      {/* Rain confined to the window strip behind glass */}
+      {/* Chuva (confinada à área externa das janelas) */}
       {showRain && (
-        <group position={[0, 0, -9.03]}>
-          <Rain count={weather === 'storm' ? 500 : 280} area={[12, 0.4]} intensity={weather === 'storm' ? 1 : 0.6} />
+        <group position={[0, 0, -9.05]}>
+          <Rain count={weather === 'storm' ? 600 : 300} area={[13, 0.5]} intensity={weather === 'storm' ? 1 : 0.6} />
         </group>
       )}
 
-      {/* Lightning flash visible through windows */}
+      {/* Clarão de relâmpago */}
       {weather === 'storm' && <Lightning />}
     </group>
   );
 }
 
-function PaintedCloud({ x, y, scale, isNight }: { x: number; y: number; scale: number; isNight: boolean }) {
+function SoftCloud({ x, y, scale, opacity, isNight }: any) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    ref.current.position.x = x + Math.sin(clock.getElapsedTime() * 0.04 + x) * 0.6;
+    ref.current.position.x = x + Math.sin(clock.getElapsedTime() * 0.05 + x) * 0.8;
   });
-  const color = isNight ? '#4a5168' : '#e8eef7';
+
+  const color = isNight ? '#2a3142' : '#ffffff';
+  
   return (
     <group ref={ref} position={[x, y, 0]} scale={scale}>
-      {[
-        [0, 0, 0.55],
-        [0.55, 0.05, 0.4],
-        [-0.55, 0.05, 0.42],
-        [0.25, 0.22, 0.35],
-        [-0.25, 0.2, 0.32],
-      ].map(([cx, cy, r], i) => (
-        <mesh key={i} position={[cx as number, cy as number, 0]}>
-          <circleGeometry args={[r as number, 16]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
-      ))}
+      <mesh>
+        <planeGeometry args={[3, 1.5]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} />
+      </mesh>
     </group>
   );
 }
@@ -159,9 +163,8 @@ function Lightning() {
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.getElapsedTime();
-    // random flash every few seconds
-    const flash = Math.sin(t * 0.3) > 0.97 ? Math.random() * 4 : 0;
+    const flash = Math.sin(t * 0.4) > 0.98 ? Math.random() * 5 : 0;
     ref.current.intensity = flash;
   });
-  return <pointLight ref={ref} position={[0, 8, -9]} color="#bcd4ff" distance={30} intensity={0} />;
+  return <pointLight ref={ref} position={[0, 6, -9]} color="#d0e0ff" distance={30} intensity={0} />;
 }

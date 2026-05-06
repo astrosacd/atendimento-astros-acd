@@ -9,119 +9,123 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
   return (
     <group>
       {/* COPA — canto direito frontal */}
-      <group position={[10, 0, 7]}>
-        {/* Tapete */}
+      <group position={[11, 0, 7]}>
+        {/* Tapete de borracha high-tech */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-          <planeGeometry args={[3.5, 3.5]} />
-          <meshStandardMaterial color={isNight ? '#1f2937' : '#fde68a'} transparent opacity={0.4} />
+          <planeGeometry args={[4, 4]} />
+          <meshStandardMaterial color="#111827" roughness={0.9} />
         </mesh>
-        {/* Vending machine refri */}
-        <group position={[-1, 0, -1.2]}>
+        {/* Vending machine refri premium */}
+        <group position={[-1.2, 0, -1]}>
           <mesh castShadow position={[0, 1, 0]}>
-            <boxGeometry args={[0.9, 2, 0.7]} />
-            <meshStandardMaterial color="#dc2626" metalness={0.4} roughness={0.4} />
+            <boxGeometry args={[1, 2.1, 0.8]} />
+            <meshPhysicalMaterial color="#991b1b" metalness={0.7} roughness={0.1} />
           </mesh>
-          <mesh position={[0, 1.2, 0.36]}>
-            <planeGeometry args={[0.6, 1.2]} />
-            <meshStandardMaterial color="#0f172a" emissive="#3b82f6" emissiveIntensity={0.4} />
+          <mesh position={[0, 1.2, 0.41]}>
+            <planeGeometry args={[0.7, 1.3]} />
+            <meshStandardMaterial color="#020617" emissive="#ef4444" emissiveIntensity={0.2} />
           </mesh>
-          <mesh position={[0, 1.85, 0.36]}>
-            <planeGeometry args={[0.7, 0.15]} />
-            <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={0.6} />
+          <mesh position={[0, 1.95, 0.41]}>
+            <planeGeometry args={[0.8, 0.2]} />
+            <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={0.8} />
           </mesh>
         </group>
         {/* Vending machine snacks */}
-        <group position={[0.1, 0, -1.2]}>
+        <group position={[0.1, 0, -1]}>
           <mesh castShadow position={[0, 1, 0]}>
-            <boxGeometry args={[0.9, 2, 0.7]} />
-            <meshStandardMaterial color="#1d4ed8" metalness={0.4} roughness={0.4} />
+            <boxGeometry args={[1, 2.1, 0.8]} />
+            <meshPhysicalMaterial color="#1e3a8a" metalness={0.7} roughness={0.1} />
           </mesh>
-          <mesh position={[0, 1.2, 0.36]}>
-            <planeGeometry args={[0.6, 1.2]} />
-            <meshStandardMaterial color="#0f172a" emissive="#10b981" emissiveIntensity={0.3} />
+          <mesh position={[0, 1.2, 0.41]}>
+            <planeGeometry args={[0.7, 1.3]} />
+            <meshStandardMaterial color="#020617" emissive="#3b82f6" emissiveIntensity={0.2} />
           </mesh>
         </group>
-        {/* Mesinha */}
-        <mesh castShadow position={[1, 0.5, 0.5]}>
-          <cylinderGeometry args={[0.5, 0.5, 0.08, 16]} />
-          <meshStandardMaterial color="#fafaf9" />
+        {/* Balcão de Café Moderno */}
+        <mesh castShadow position={[1.4, 0.5, 0.5]}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshPhysicalMaterial color="#ffffff" roughness={0.05} metalness={0.1} />
         </mesh>
-        <mesh position={[1, 0.25, 0.5]}>
-          <cylinderGeometry args={[0.05, 0.05, 0.5, 8]} />
-          <meshStandardMaterial color="#1f2937" />
-        </mesh>
-        {/* Cafeteira */}
-        <mesh castShadow position={[1, 0.65, 0.4]}>
-          <boxGeometry args={[0.2, 0.25, 0.18]} />
-          <meshStandardMaterial color="#374151" metalness={0.6} />
-        </mesh>
-        <Html position={[0, 2.6, 0]} center distanceFactor={14}>
-          <div className="rounded bg-amber-600/80 px-2 py-0.5 text-[10px] font-bold text-white whitespace-nowrap">
-            ☕ COPA
+        {/* Máquina de Café Espresso */}
+        <group position={[1.4, 1.1, 0.5]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 0.5, 0.4]} />
+            <meshStandardMaterial color="#1a1a1a" metalness={0.8} />
+          </mesh>
+          <pointLight position={[0, 0, 0.3]} intensity={0.5} color="#3b82f6" distance={1} />
+        </group>
+        <Html position={[0, 2.8, 0]} center distanceFactor={14}>
+          <div className="rounded-full bg-amber-600/90 px-3 py-1 text-[9px] font-bold text-white border border-white/20 shadow-lg">
+            LOUNGE & CAFÉ
           </div>
         </Html>
       </group>
 
-      {/* ACADEMIA — canto esquerdo frontal */}
-      <group position={[-10, 0, 7]}>
+      {/* ACADEMIA EXECUTIVA — canto esquerdo frontal */}
+      <group position={[-11, 0, 7]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-          <planeGeometry args={[3.5, 3.5]} />
-          <meshStandardMaterial color={isNight ? '#1f2937' : '#cffafe'} transparent opacity={0.4} />
+          <planeGeometry args={[4, 4]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.8} />
         </mesh>
-        {/* Esteira */}
+        {/* Esteira Profissional */}
         <group position={[0.5, 0, -0.8]}>
           <mesh castShadow position={[0, 0.15, 0]}>
-            <boxGeometry args={[0.7, 0.1, 1.6]} />
-            <meshStandardMaterial color="#111827" />
+            <boxGeometry args={[0.8, 0.15, 1.8]} />
+            <meshStandardMaterial color="#111827" metalness={0.5} />
           </mesh>
-          <mesh position={[0, 0.18, 0]}>
-            <boxGeometry args={[0.55, 0.02, 1.4]} />
-            <meshStandardMaterial color="#0a0a0a" />
+          <mesh castShadow position={[0, 0.7, -0.8]}>
+            <boxGeometry args={[0.8, 1.2, 0.1]} />
+            <meshStandardMaterial color="#1f2937" metalness={0.8} />
           </mesh>
-          <mesh castShadow position={[0, 0.7, -0.7]}>
-            <boxGeometry args={[0.7, 1.1, 0.08]} />
-            <meshStandardMaterial color="#1f2937" />
-          </mesh>
-          <mesh position={[0, 1.2, -0.66]}>
-            <planeGeometry args={[0.45, 0.25]} />
-            <meshStandardMaterial color="#0a0a0a" emissive="#10b981" emissiveIntensity={0.6} />
+          <mesh position={[0, 1.3, -0.74]}>
+            <planeGeometry args={[0.6, 0.3]} />
+            <meshStandardMaterial color="#000" emissive="#10b981" emissiveIntensity={0.5} />
           </mesh>
         </group>
-        {/* Halteres */}
-        {[-0.7, -0.3, 0.1].map((z, i) => (
-          <group key={i} position={[-1, 0.15, z]}>
-            <mesh castShadow rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.15, 0.15, 0.1, 12]} />
-              <meshStandardMaterial color="#374151" metalness={0.7} />
+        {/* Suporte de Halteres */}
+        <group position={[-1.2, 0.3, -0.5]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.4, 0.6, 1.5]} />
+            <meshStandardMaterial color="#334155" />
+          </mesh>
+          {[0, 0.4, -0.4].map((z, i) => (
+            <mesh key={i} position={[0, 0.35, z]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.12, 0.12, 0.6]} />
+              <meshStandardMaterial color="#000" metalness={0.9} />
             </mesh>
-          </group>
-        ))}
-        {/* Espelho */}
-        <mesh position={[1.6, 1.2, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <planeGeometry args={[2, 1.8]} />
-          <meshStandardMaterial color="#bae6fd" metalness={0.9} roughness={0.1} transparent opacity={0.5} />
+          ))}
+        </group>
+        {/* Espelho de Parede Realista */}
+        <mesh position={[-1.9, 1.5, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[3, 2.5]} />
+          <meshPhysicalMaterial 
+            color="#bae6fd" 
+            metalness={1} 
+            roughness={0} 
+            transmission={0} 
+            reflectivity={1}
+          />
         </mesh>
-        <Html position={[0, 2.6, 0]} center distanceFactor={14}>
-          <div className="rounded bg-cyan-600/80 px-2 py-0.5 text-[10px] font-bold text-white whitespace-nowrap">
-            💪 ACADEMIA
+        <Html position={[0, 2.8, 0]} center distanceFactor={14}>
+          <div className="rounded-full bg-cyan-600/90 px-3 py-1 text-[9px] font-bold text-white border border-white/20 shadow-lg">
+            WELLNESS CENTER
           </div>
         </Html>
       </group>
 
-      {/* BANHEIRO — canto direito do fundo */}
-      <group position={[11.5, 0, -8]}>
-        {/* Porta */}
-        <mesh castShadow position={[0, 1.2, 0]}>
-          <boxGeometry args={[0.1, 2.4, 1]} />
-          <meshStandardMaterial color="#0f766e" />
+      {/* ÁREA PRIVATIVA / WC — fundo */}
+      <group position={[12.5, 0, -8]}>
+        <mesh castShadow position={[0, 1.25, 0]}>
+          <boxGeometry args={[0.15, 2.5, 1.2]} />
+          <meshStandardMaterial color="#1e293b" />
         </mesh>
-        <mesh position={[-0.06, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[0.6, 0.6]} />
+        <mesh position={[-0.08, 1.5, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.5, 0.5]} />
           <meshStandardMaterial color="#fff" />
         </mesh>
-        <Html position={[0.2, 2.7, 0]} center distanceFactor={12}>
-          <div className="rounded bg-teal-700/80 px-2 py-0.5 text-[10px] font-bold text-white whitespace-nowrap">
-            🚻 WC
+        <Html position={[0, 2.8, 0]} center distanceFactor={12}>
+          <div className="rounded-full bg-slate-700/90 px-3 py-1 text-[9px] font-bold text-white border border-white/20 shadow-lg">
+            ÁREA PRIVATIVA
           </div>
         </Html>
       </group>
