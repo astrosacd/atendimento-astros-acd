@@ -85,6 +85,24 @@ export const AGENTS: AgentDef[] = [
     position: [11, 5], room: 'operacional', route: '/admin/webhooks', watches: ['webhooks'] },
   { id: 'audit', name: 'Audi', role: 'Auditoria e logs', module: 'Auditoria', color: 'blue',
     position: [14, 5], room: 'operacional', route: '/admin/audit-logs', watches: ['system_activities'] },
+
+  // ===== NOVOS MÓDULOS (fileira frontal: z = 9) =====
+  { id: 'boas-vindas', name: 'Vindi', role: 'Mensagens de boas-vindas', module: 'Boas-Vindas', color: 'green',
+    position: [-13, 9], room: 'comercial', route: '/admin/boas-vindas', watches: ['system_activities'] },
+  { id: 'chat-config', name: 'Chati', role: 'Configura chat interno', module: 'Chat Config', color: 'pink',
+    position: [-9, 9], room: 'smart', route: '/admin/chat-config', watches: ['system_activities'] },
+  { id: 'permissoes', name: 'Perm', role: 'Gerencia permissões e papéis', module: 'Permissões', color: 'purple',
+    position: [-5, 9], room: 'administrativo', route: '/admin/permissoes', watches: ['system_activities'] },
+  { id: 'api-keys', name: 'Keys', role: 'Gera e revoga API Keys', module: 'API Keys', color: 'cyan',
+    position: [-1, 9], room: 'smart', route: '/admin/api-keys', watches: ['system_activities'] },
+  { id: 'planos', name: 'Plano', role: 'Cuida dos planos do revendedor', module: 'Planos', color: 'green',
+    position: [3, 9], room: 'administrativo', route: '/admin/planos-revendedor', watches: ['system_activities'] },
+  { id: 'recuperacao', name: 'Recu', role: 'Recupera senhas dos usuários', module: 'Recuperação', color: 'orange',
+    position: [7, 9], room: 'administrativo', route: '/admin/recuperacao-senha', watches: ['system_activities'] },
+  { id: 'perfil', name: 'Perfi', role: 'Perfil do usuário', module: 'Meu Perfil', color: 'blue',
+    position: [11, 9], room: 'administrativo', route: '/perfil', watches: ['system_activities'] },
+  { id: 'central-help', name: 'Guia', role: 'Guia interativo', module: 'Guia', color: 'cyan',
+    position: [14, 9], room: 'smart', route: '/central-ajuda', watches: ['system_activities'] },
 ];
 
 // Mapeia eventos do banco -> id do agente que deve animar
