@@ -72,6 +72,7 @@ import ValidacaoSmsPublica from "./pages/public/ValidacaoSmsPublica";
 import ResultadoSmsPublico from "./pages/public/ResultadoSmsPublico";
 import SharedKanban from "./pages/public/SharedKanban";
 import SalaAgentesPublica from "./pages/public/SalaAgentesPublica";
+import TemporaryAccessHandler from "./pages/public/TemporaryAccessHandler";
 import NotFound from "./pages/NotFound";
 import Perfil from "./pages/Perfil";
 import SalaAgentes from "./pages/SalaAgentes";
@@ -181,7 +182,7 @@ function AppRoutes() {
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
       
       {/* Instagram Module */}
-      <Route path="/instagram" element={<ProtectedRoute permission="manage_instagram"><InstagramModule /></ProtectedRoute>} />
+      <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
@@ -196,6 +197,7 @@ function AppRoutes() {
       <Route path="/validacao-sms/:token" element={<ValidacaoSmsPublica />} />
       <Route path="/resultado-sms/:token" element={<ResultadoSmsPublico />} />
       <Route path="/public/pipeline/:token" element={<SharedKanban />} />
+      <Route path="/access/:token" element={<TemporaryAccessHandler />} />
       <Route path="/public/sala-agentes" element={<SalaAgentesPublica />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

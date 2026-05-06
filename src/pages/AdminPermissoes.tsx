@@ -348,6 +348,7 @@ export default function AdminPermissoes() {
     'Vendas': 'Vendas',
     'Conexões': 'Conexões',
     'Sala dos Agentes': 'Sala dos Agentes',
+    'Instagram': 'Instagram',
   });
 
   const colorOptions = getColorOptions(t);

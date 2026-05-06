@@ -235,6 +235,14 @@ export function usePermissions() {
   // Gestão de Produtos Predefinidos
   const canManagePredefinedProducts = () => hasPermission('manage_predefined_products');
 
+  // Instagram permissions
+  const canViewInstagram = () => hasPermission('view_instagram');
+  const canCreateInstagramPost = () => hasPermission('create_instagram_post');
+  const canManageInstagramSettings = () => hasPermission('manage_instagram_settings');
+  const canViewInstagramHistory = () => hasPermission('view_instagram_history');
+  const canManageTemporaryAccess = () => hasPermission('manage_temporary_access');
+  const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
+
   return {
     permissions,
     hasPermission,
@@ -404,5 +412,11 @@ export function usePermissions() {
     // Central de Ajuda
     canViewCentralAjuda,
     canManagePredefinedProducts,
+    canViewInstagram,
+    canCreateInstagramPost,
+    canManageInstagramSettings,
+    canViewInstagramHistory,
+    canManageTemporaryAccess,
+    canViewGuiaInstagram,
   };
 }

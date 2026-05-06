@@ -6489,6 +6489,42 @@ export type Database = {
         }
         Relationships: []
       }
+      temporary_access_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          target_path: string
+          token: string
+          uses: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          target_path: string
+          token: string
+          uses?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          target_path?: string
+          token?: string
+          uses?: number | null
+        }
+        Relationships: []
+      }
       user_login_history: {
         Row: {
           browser: string | null
