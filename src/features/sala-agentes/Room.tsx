@@ -276,9 +276,8 @@ function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
     async function load() {
       try {
         if (variant === 'metrics') {
-          const [c, l, p] = await Promise.all([
+          const [c, p] = await Promise.all([
             supabase.from('clientes').select('id, valor_mensal', { count: 'exact', head: false }).limit(500),
-            supabase.from('leads').select('id', { count: 'exact', head: true }),
             supabase.from('proposals').select('id', { count: 'exact', head: true }),
           ] as any);
           if (cancelled) return;
@@ -286,7 +285,7 @@ function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
           const mrr = cs.reduce((s, r) => s + (Number(r.valor_mensal) || 0), 0);
           setMetrics({
             clientes: (c as any).count ?? cs.length,
-            leads: (l as any).count ?? 0,
+            leads: 0,
             propostas: (p as any).count ?? 0,
             mrr,
           });
