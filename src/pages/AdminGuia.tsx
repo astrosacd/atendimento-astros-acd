@@ -5002,6 +5002,44 @@ Menu lateral → **Link de Pagamento**`
         "Monitore os logs de execução para garantir que tudo funciona",
         "Evite criar regras conflitantes para o mesmo gatilho"
       ]
+    },
+    {
+      id: "instagram",
+      title: "Configuração do Instagram",
+      icon: Instagram,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500/10",
+      description: "Aprenda a configurar e usar o módulo de agendamento do Instagram",
+      steps: [
+        {
+          title: "Configuração da API Meta",
+          content: `1. Acesse **developers.facebook.com** e crie um App Business.
+2. No módulo Instagram do CRM, vá em **Configurações**.
+3. Preencha o **App ID** e **App Secret** da sua aplicação Meta.
+4. Gere um token de acesso de longa duração e salve.
+5. O sistema validará automaticamente e mostrará a data de expiração.`
+        },
+        {
+          title: "Agendamento de Posts",
+          content: `1. Na aba **Criar Post**, faça o upload de imagem ou vídeo.
+2. Escreva sua legenda.
+3. Selecione o tipo de post (Feed, Reels ou Stories).
+4. Clique em **Publicar Agora** ou aguarde a automação de agendamento.`
+        },
+        {
+          title: "Acesso Provisório para Assistentes",
+          content: `Se você tem um assistente que cuidará apenas do Instagram:
+1. Clique no botão **Acesso Provisório** no topo do módulo.
+2. Defina o tempo de validade (ex: 4 horas ou 7 dias).
+3. Copie o link e envie para o assistente.
+4. Ele poderá acessar o módulo sem precisar de login completo.`
+        }
+      ],
+      tips: [
+        "Sempre verifique a validade do token nas configurações",
+        "Vídeos de Reels devem ter formato vertical (9:16)",
+        "Você pode revogar links de acesso provisório a qualquer momento"
+      ]
     }
   ];
 
