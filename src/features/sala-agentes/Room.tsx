@@ -31,7 +31,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       
       {/* Grid discreto (apenas para senso de escala) */}
       <gridHelper 
-        args={[W, 26, isNight ? '#1e293b' : '#cbd5e1', isNight ? '#0f172a' : '#f1f5f9']} 
+        args={[W, 40, isNight ? '#1e293b' : '#cbd5e1', isNight ? '#0f172a' : '#f1f5f9']} 
         position={[0, 0.01, 0]} 
       />
 
