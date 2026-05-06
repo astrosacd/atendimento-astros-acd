@@ -119,6 +119,137 @@ export type Database = {
         }
         Relationships: []
       }
+      atomicat_forms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          field_overrides: Json
+          form_id: string | null
+          form_name: string | null
+          id: string
+          identifier_type: string
+          instance_name: string | null
+          is_active: boolean
+          message_template: string
+          nome: string
+          page_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          field_overrides?: Json
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          identifier_type: string
+          instance_name?: string | null
+          is_active?: boolean
+          message_template: string
+          nome: string
+          page_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          field_overrides?: Json
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          identifier_type?: string
+          instance_name?: string | null
+          is_active?: boolean
+          message_template?: string
+          nome?: string
+          page_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      atomicat_settings: {
+        Row: {
+          api_key: string | null
+          api_url: string | null
+          default_instance_name: string | null
+          enabled: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          api_url?: string | null
+          default_instance_name?: string | null
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string | null
+          default_instance_name?: string | null
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      atomicat_submissions: {
+        Row: {
+          atomicat_form_id: string | null
+          atomicat_form_name: string | null
+          created_at: string
+          error_message: string | null
+          extracted_email: string | null
+          extracted_nome: string | null
+          extracted_telefone: string | null
+          form_config_id: string | null
+          id: string
+          page_url: string | null
+          payload: Json
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          atomicat_form_id?: string | null
+          atomicat_form_name?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_email?: string | null
+          extracted_nome?: string | null
+          extracted_telefone?: string | null
+          form_config_id?: string | null
+          id?: string
+          page_url?: string | null
+          payload: Json
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          atomicat_form_id?: string | null
+          atomicat_form_name?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_email?: string | null
+          extracted_nome?: string | null
+          extracted_telefone?: string | null
+          form_config_id?: string | null
+          id?: string
+          page_url?: string | null
+          payload?: Json
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atomicat_submissions_form_config_id_fkey"
+            columns: ["form_config_id"]
+            isOneToOne: false
+            referencedRelation: "atomicat_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
