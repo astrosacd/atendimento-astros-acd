@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSiteUrl } from "@/hooks/useSiteUrl";
 import { format, addHours, addDays } from "date-fns";
+import { copyToClipboard } from "@/utils/clipboard";
 import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
@@ -29,6 +30,8 @@ const InstagramModule = () => {
   const siteUrl = useSiteUrl();
 
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
   const [newAccess, setNewAccess] = useState({
