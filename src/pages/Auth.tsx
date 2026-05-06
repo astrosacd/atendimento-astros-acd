@@ -239,6 +239,15 @@ export default function Auth() {
       return;
     }
 
+    if (recaptcha.enabled && !recaptchaToken) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Marque "Não sou um robô" para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     // Check if email already exists and was rejected
