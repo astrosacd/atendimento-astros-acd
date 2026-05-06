@@ -62,7 +62,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
       </group>
 
       {/* ACADEMIA EXECUTIVA — canto esquerdo frontal */}
-      <group position={[-11, 0, 7]}>
+      <group position={[-17, 0, 11]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[4, 4]} />
           <meshStandardMaterial color="#0f172a" roughness={0.8} />
