@@ -315,7 +315,29 @@ export default function Dashboard() {
       let billingErrorsUnresolvedCount = 0;
       let churnRate = 0;
 
+      let instagramTokenExpiring = false;
+      let instagramTokenExpiryDate = null;
+
       if (isAdmin) {
+        // Check Instagram token status
+        const { data: igSettings } = await supabase
+          .from('instagram_settings')
+          .select('token_expires_at')
+          .limit(1)
+          .maybeSingle();
+
+        if (igSettings?.token_expires_at) {
+          const expiryDate = new Date(igSettings.token_expires_at);
+          const now = new Date();
+          const warningThreshold = new Date(now);
+          warningThreshold.setDate(now.getDate() + 10); // 10 days warning
+          
+          if (expiryDate <= warningThreshold) {
+            instagramTokenExpiring = true;
+            instagramTokenExpiryDate = igSettings.token_expires_at;
+          }
+        }
+
         // Calculate Churn Rate (last 30 days) - Customer Centric (Unique CPF/Nome)
         const { data: allHistory } = await supabase
           .from('client_history')
