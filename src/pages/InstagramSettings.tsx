@@ -118,7 +118,7 @@ const InstagramSettings = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.from("instagram_settings").upsert({
+      const { error: settingsError } = await supabase.from("instagram_settings").upsert({
         user_id: user?.id,
         ig_user_id: settings.ig_user_id,
         page_id: settings.page_id,
@@ -129,7 +129,16 @@ const InstagramSettings = () => {
         updated_at: new Date().toISOString(),
       });
 
-      if (error) throw error;
+      if (settingsError) throw settingsError;
+
+      const { error: webhookError } = await supabase
+        .from('billing_config')
+        .upsert({
+          config_key: 'instagram_renewal_webhook',
+          config_value: settings.renewal_webhook
+        });
+
+      if (webhookError) throw webhookError;
 
       // Automatically check token validity if App ID and Secret are provided
       if (settings.app_id && settings.app_secret && settings.access_token) {
