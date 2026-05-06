@@ -77,9 +77,11 @@ const InstagramModule = () => {
 
       if (error) throw error;
 
-      toast.success("Link de acesso provisório criado!");
-      fetchTokens();
+      const fullUrl = `${siteUrl}/access/${token}`;
+      setGeneratedLink(fullUrl);
+      setIsSuccessDialogOpen(true);
       setIsAccessDialogOpen(false);
+      fetchTokens();
     } catch (error: any) {
       toast.error("Erro ao criar link: " + error.message);
     } finally {
@@ -99,8 +101,8 @@ const InstagramModule = () => {
 
   const copyLink = (token: string) => {
     const url = `${siteUrl}/access/${token}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copiado para a área de transferência!");
+    copyToClipboard(url);
+    toast.success("Link copiado!");
   };
 
   if (!canViewInstagram()) {
