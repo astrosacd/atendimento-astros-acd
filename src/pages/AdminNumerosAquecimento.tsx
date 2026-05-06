@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,8 +28,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { 
   Smartphone, Plus, Search, Download, MoreHorizontal, Edit, Trash2, 
   History, Settings, Webhook, Key, FileCode, Copy, Eye, EyeOff,
-  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock, RotateCcw
+  CheckCircle, AlertCircle, Clock, XCircle, ShoppingCart, Lock, RotateCcw,
+  BarChart3, PieChart
 } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTranslation } from 'react-i18next';
 import {
@@ -183,6 +185,16 @@ export default function AdminNumerosAquecimento() {
     toast.success('CSV exportado com sucesso');
   };
 
+  // Prepare chart data
+  const chartData = useMemo(() => {
+    return [
+      { name: 'Ativos', value: stats.ativos, color: '#22c55e' },
+      { name: 'Em Aquecimento', value: stats.aquecimento, color: '#f59e0b' },
+      { name: 'Bloqueados', value: stats.bloqueados, color: '#ef4444' },
+      { name: 'Vendidos', value: stats.vendidos, color: '#3b82f6' },
+    ].filter(d => d.value > 0);
+  }, [stats]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-4 md:p-6">
@@ -216,13 +228,59 @@ export default function AdminNumerosAquecimento() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatsCard title={t('numberStatus.total')} value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
-          <StatsCard title={t('numberStatus.active')} value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
-          <StatsCard title={t('numberStatus.warmingUp')} value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
-          <StatsCard title={t('numberStatus.blocked')} value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
-          <StatsCard title={t('numberStatus.sold')} value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Stats Cards and Chart */}
+          <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatsCard title={t('numberStatus.total')} value={stats.total} icon={<Smartphone className="h-4 w-4" />} />
+            <StatsCard title={t('numberStatus.active')} value={stats.ativos} icon={<CheckCircle className="h-4 w-4 text-green-500" />} />
+            <StatsCard title={t('numberStatus.warmingUp')} value={stats.aquecimento} icon={<Clock className="h-4 w-4 text-amber-500" />} />
+            <StatsCard title={t('numberStatus.blocked')} value={stats.bloqueados} icon={<XCircle className="h-4 w-4 text-red-500" />} />
+            <StatsCard title={t('numberStatus.sold')} value={stats.vendidos} icon={<ShoppingCart className="h-4 w-4 text-blue-500" />} />
+          </div>
+
+          <Card className="lg:col-span-4 lg:row-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                Distribuição de Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[140px] w-full">
+                {stats.total > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground italic">
+                    Sem dados para exibir
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tabs */}
