@@ -685,13 +685,15 @@ export default function Auth() {
                     <div id="recaptcha-signup-container" />
                   </div>
                 )}
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
-                >
-                  {isLoading ? 'Enviando solicitação...' : 'Solicitar Acesso'}
-                </Button>
+                {(!recaptcha.enabled || !!recaptchaToken) && (
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green animate-in fade-in duration-300"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Enviando solicitação...' : 'Solicitar Acesso'}
+                  </Button>
+                )}
               </form>
             </TabsContent>
           </Tabs>
