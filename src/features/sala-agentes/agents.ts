@@ -19,60 +19,72 @@ export interface AgentDef {
   watches: string[];
 }
 
-// Sala de 18x12: agentes distribuídos em 4 fileiras de mesas viradas para o centro.
-// Convenção: x varia -8..+8, z varia -5..+5. Y é vertical (não usado aqui).
+// Sala AMPLA de 36x24: agentes distribuídos em 4 grandes departamentos virados ao centro.
+// Convenção: x varia -16..+16, z varia -10..+10. Y é vertical (não usado aqui).
 export const AGENTS: AgentDef[] = [
-  // ===== COMERCIAL (Sala 1: x < -4) =====
+  // ===== COMERCIAL (lado esquerdo: x < -5) =====
   { id: 'cadastrar', name: 'Cadu', role: 'Recebe novos clientes', module: 'Cadastrar', color: 'green',
-    position: [-9, -4], room: 'comercial', route: '/cadastrar', watches: ['clientes'] },
-  { id: 'kanban', name: 'Kana', role: 'Move leads no funil', module: 'Pipeline', color: 'cyan',
-    position: [-9, -1], room: 'comercial', route: '/kanban', watches: ['clientes'] },
-  { id: 'propostas', name: 'Propi', role: 'Envia propostas comerciais', module: 'Propostas', color: 'green',
-    position: [-9, 2], room: 'comercial', route: '/propostas', watches: ['proposals'] },
-  { id: 'lead-hunter', name: 'Hunt', role: 'Caça novos leads', module: 'Lead Hunter', color: 'orange',
-    position: [-6, -4], room: 'comercial', route: '/lead-hunter', watches: ['lead_hunter_leads'] },
-
-  // ===== SMART / IA (Sala 2: -3 < x < 3) =====
-  { id: 'ia', name: 'Lyra', role: 'IA do sistema', module: 'IA & Insights', color: 'purple',
-    position: [-1.5, -4], room: 'smart', route: '/admin/ia', watches: ['system_activities'] },
-  { id: 'grafo', name: 'Nexo', role: 'Mapa 360° de relações', module: 'Mapa 360°', color: 'cyan',
-    position: [1.5, -4], room: 'smart', route: '/grafo-clientes', watches: ['clientes'] },
-  { id: 'divulgador', name: 'Diva', role: 'Gerencia grupos WhatsApp', module: 'Divulgador', color: 'pink',
-    position: [0, 2], room: 'smart', route: '/admin/divulgador', watches: ['system_activities'] },
-
-  // ===== ADMINISTRATIVO / FINANCEIRO (Sala 3: x > 4) =====
-  { id: 'cobranca', name: 'Cobi', role: 'Dispara cobranças automáticas', module: 'Cobrança', color: 'orange',
-    position: [6, -4], room: 'administrativo', route: '/admin/cobranca', watches: ['client_payments'] },
-  { id: 'pagamentos', name: 'Pix', role: 'Confere comprovantes', module: 'Segurança Pgto', color: 'green',
-    position: [9, -4], room: 'administrativo', route: '/admin/seguranca-pagamento', watches: ['client_payments'] },
-  { id: 'despesas', name: 'Dexa', role: 'Lança despesas mensais', module: 'Despesas', color: 'orange',
-    position: [6, -1], room: 'administrativo', route: '/despesas', watches: ['despesas'] },
-  { id: 'relatorios', name: 'Repo', role: 'Gera relatórios', module: 'Relatórios', color: 'blue',
-    position: [9, -1], room: 'administrativo', route: '/admin/relatorios', watches: ['system_activities'] },
-  { id: 'usuarios', name: 'Usui', role: 'Cuida dos usuários', module: 'Usuários', color: 'pink',
-    position: [7.5, 2], room: 'administrativo', route: '/usuarios', watches: ['system_activities'] },
-
-  // ===== OPERACIONAL (Fundo: z > 4) =====
-  { id: 'consulta-numeros', name: 'Tel', role: 'Consulta status de números', module: 'Consulta Núm', color: 'blue',
-    position: [-7, 5], room: 'operacional', route: '/admin/consulta-numeros', watches: ['consulta_numeros_history'] },
-  { id: 'numeros-aquecimento', name: 'Aqui', role: 'Aquece chips ativos', module: 'Núm. Aquecimento', color: 'green',
-    position: [-3.5, 5], room: 'operacional', route: '/admin/numeros', watches: ['numeros_aquecimento'] },
-  { id: 'chamados', name: 'Chami', role: 'Atende chamados', module: 'Chamados', color: 'orange',
-    position: [0, 5], room: 'operacional', route: '/admin/chamados', watches: ['chamados'] },
-  { id: 'tarefas', name: 'Tafa', role: 'Cuida das tarefas', module: 'Tarefas', color: 'orange',
-    position: [3.5, 5], room: 'operacional', route: '/tarefas', watches: ['client_tasks'] },
-  { id: 'webhooks', name: 'Hooky', role: 'Dispara webhooks p/ n8n', module: 'Webhooks', color: 'cyan',
-    position: [7, 5], room: 'operacional', route: '/admin/webhooks', watches: ['webhooks'] },
-
-  // Adicionais para preencher
+    position: [-14, -7], room: 'comercial', route: '/cadastrar', watches: ['clientes'] },
   { id: 'consultar', name: 'Lupa', role: 'Consulta e edita clientes', module: 'Consultar', color: 'blue',
-    position: [-6, -1], room: 'comercial', route: '/consultar', watches: ['clientes'] },
+    position: [-14, -3], room: 'comercial', route: '/consultar', watches: ['clientes'] },
   { id: 'atualizar', name: 'Atta', role: 'Atualiza dados em massa', module: 'Atualizar', color: 'purple',
-    position: [-6, 2], room: 'comercial', route: '/atualizar', watches: ['clientes'] },
+    position: [-14, 1], room: 'comercial', route: '/atualizar', watches: ['clientes'] },
+  { id: 'kanban', name: 'Kana', role: 'Move leads no funil', module: 'Pipeline', color: 'cyan',
+    position: [-11, -7], room: 'comercial', route: '/kanban', watches: ['clientes'] },
+  { id: 'propostas', name: 'Propi', role: 'Envia propostas comerciais', module: 'Propostas', color: 'green',
+    position: [-11, -3], room: 'comercial', route: '/propostas', watches: ['proposals'] },
+  { id: 'lead-hunter', name: 'Hunt', role: 'Caça novos leads', module: 'Lead Hunter', color: 'orange',
+    position: [-11, 1], room: 'comercial', route: '/lead-hunter', watches: ['lead_hunter_leads'] },
+  { id: 'gateway', name: 'Gato', role: 'Vende no checkout', module: 'Gateway', color: 'green',
+    position: [-8, -7], room: 'comercial', route: '/gateway', watches: ['gateway_orders'] },
+  { id: 'link-pagamento', name: 'Linki', role: 'Gera links de pagamento', module: 'Gerador Link', color: 'cyan',
+    position: [-8, -3], room: 'comercial', route: '/gerador-link-pagamento', watches: ['system_activities'] },
+
+  // ===== SMART / IA (centro: -4 < x < 4) =====
+  { id: 'ia', name: 'Lyra', role: 'IA do sistema', module: 'IA & Insights', color: 'purple',
+    position: [-3, -7], room: 'smart', route: '/admin/ia', watches: ['system_activities'] },
+  { id: 'grafo', name: 'Nexo', role: 'Mapa 360° de relações', module: 'Mapa 360°', color: 'cyan',
+    position: [0, -7], room: 'smart', route: '/grafo-clientes', watches: ['clientes'] },
+  { id: 'central-ajuda', name: 'Helpi', role: 'Central de ajuda IA', module: 'Central Ajuda', color: 'blue',
+    position: [3, -7], room: 'smart', route: '/central-ajuda', watches: ['system_activities'] },
+  { id: 'instagram', name: 'Insta', role: 'Cria publicações Instagram', module: 'Instagram', color: 'pink',
+    position: [-3, -3], room: 'smart', route: '/instagram', watches: ['system_activities'] },
+  { id: 'divulgador', name: 'Diva', role: 'Gerencia grupos WhatsApp', module: 'Divulgador', color: 'pink',
+    position: [0, -3], room: 'smart', route: '/admin/divulgador', watches: ['system_activities'] },
+  { id: 'recaptcha', name: 'Cap', role: 'Valida reCAPTCHA', module: 'reCAPTCHA', color: 'purple',
+    position: [3, -3], room: 'smart', route: '/admin/recaptcha', watches: ['system_activities'] },
+
+  // ===== ADMINISTRATIVO / FINANCEIRO (lado direito: x > 5) =====
+  { id: 'cobranca', name: 'Cobi', role: 'Dispara cobranças automáticas', module: 'Cobrança', color: 'orange',
+    position: [8, -7], room: 'administrativo', route: '/admin/cobranca', watches: ['client_payments'] },
+  { id: 'pagamentos', name: 'Pix', role: 'Confere comprovantes', module: 'Segurança Pgto', color: 'green',
+    position: [11, -7], room: 'administrativo', route: '/admin/seguranca-pagamento', watches: ['client_payments'] },
+  { id: 'despesas', name: 'Dexa', role: 'Lança despesas mensais', module: 'Despesas', color: 'orange',
+    position: [14, -7], room: 'administrativo', route: '/despesas', watches: ['despesas'] },
+  { id: 'relatorios', name: 'Repo', role: 'Gera relatórios', module: 'Relatórios', color: 'blue',
+    position: [8, -3], room: 'administrativo', route: '/admin/relatorios', watches: ['system_activities'] },
+  { id: 'usuarios', name: 'Usui', role: 'Cuida dos usuários', module: 'Usuários', color: 'pink',
+    position: [11, -3], room: 'administrativo', route: '/usuarios', watches: ['system_activities'] },
+  { id: 'tags', name: 'Taggi', role: 'Organiza tags e categorias', module: 'Tags', color: 'purple',
+    position: [14, -3], room: 'administrativo', route: '/admin/tags', watches: ['system_activities'] },
+
+  // ===== OPERACIONAL (Fundo: z > 3) =====
+  { id: 'consulta-numeros', name: 'Tel', role: 'Consulta status de números', module: 'Consulta Núm', color: 'blue',
+    position: [-13, 5], room: 'operacional', route: '/admin/consulta-numeros', watches: ['consulta_numeros_history'] },
+  { id: 'numeros-aquecimento', name: 'Aqui', role: 'Aquece chips ativos', module: 'Núm. Aquecimento', color: 'green',
+    position: [-9, 5], room: 'operacional', route: '/admin/numeros', watches: ['numeros_aquecimento'] },
+  { id: 'chamados', name: 'Chami', role: 'Atende chamados', module: 'Chamados', color: 'orange',
+    position: [-5, 5], room: 'operacional', route: '/admin/chamados', watches: ['chamados'] },
+  { id: 'tarefas', name: 'Tafa', role: 'Cuida das tarefas', module: 'Tarefas', color: 'orange',
+    position: [-1, 5], room: 'operacional', route: '/tarefas', watches: ['client_tasks'] },
   { id: 'agenda', name: 'Aga', role: 'Agenda eventos e reuniões', module: 'Agenda', color: 'cyan',
-    position: [-3, 2], room: 'operacional', route: '/agenda', watches: ['system_activities'] },
+    position: [3, 5], room: 'operacional', route: '/agenda', watches: ['system_activities'] },
   { id: 'followups', name: 'Folly', role: 'Reengaja clientes', module: 'Follow-up', color: 'purple',
-    position: [3, 2], room: 'operacional', route: '/followups', watches: ['system_activities'] },
+    position: [7, 5], room: 'operacional', route: '/followups', watches: ['system_activities'] },
+  { id: 'webhooks', name: 'Hooky', role: 'Dispara webhooks p/ n8n', module: 'Webhooks', color: 'cyan',
+    position: [11, 5], room: 'operacional', route: '/admin/webhooks', watches: ['webhooks'] },
+  { id: 'audit', name: 'Audi', role: 'Auditoria e logs', module: 'Auditoria', color: 'blue',
+    position: [14, 5], room: 'operacional', route: '/admin/audit-logs', watches: ['system_activities'] },
 ];
 
 // Mapeia eventos do banco -> id do agente que deve animar
