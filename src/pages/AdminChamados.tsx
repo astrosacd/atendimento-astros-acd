@@ -407,16 +407,30 @@ const AdminChamados = () => {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 p-4 rounded-xl border border-border/40">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-[250px]" />
+                          <Skeleton className="h-4 w-[200px]" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : filteredChamados?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {t('tickets.noTicketsFound')}
+                  <div className="text-center py-20 bg-muted/20 rounded-2xl border border-dashed border-border/60">
+                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                      <Ticket className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">{t('tickets.noTicketsFound')}</h3>
+                    <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-1">
+                      Não encontramos nenhum chamado com os filtros aplicados.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                      {filteredChamados?.map((chamado) => {
+                    {filteredChamados?.map((chamado) => {
                       const statusInfo = statusConfig[chamado.status];
                       const StatusIcon = statusInfo.icon;
                       const prioridadeInfo = prioridadeConfig[chamado.prioridade];
@@ -426,51 +440,57 @@ const AdminChamados = () => {
                         <div
                           key={chamado.id}
                           onClick={() => setSelectedChamado(chamado)}
-                          className={`p-4 rounded-xl border cursor-pointer transition-all relative group ${
+                          className={`group p-4 rounded-xl border transition-all relative overflow-hidden ${
                             selectedChamado?.id === chamado.id 
-                              ? 'border-primary bg-primary/5 shadow-md shadow-primary/5' 
-                              : 'border-border/40 hover:border-primary/40 hover:bg-muted/30'
-                          } ${clientResponded ? 'ring-2 ring-orange-500/30' : ''}`}
+                              ? 'border-primary bg-primary/[0.03] shadow-sm' 
+                              : 'border-border/40 hover:border-primary/30 hover:bg-muted/30'
+                          }`}
                         >
-                          {/* Alerta de resposta do cliente */}
-                          {clientResponded && (
-                            <div className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white rounded-full p-1 shadow-lg shadow-orange-500/20 animate-bounce z-10">
-                              <Bell className="h-3.5 w-3.5" />
-                            </div>
-                          )}
+                          {/* Priority Indicator Line */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${prioridadeInfo.indicator}`} />
+                          
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center flex-wrap gap-2 mb-2">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
+                                <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                                   #{chamado.codigo}
                                 </span>
-                                <Badge variant="outline" className={`${prioridadeInfo.color} border-none font-bold text-[10px] uppercase`}>
-                                  {prioridadeInfo.label}
+                                <Badge variant="secondary" className={`${statusInfo.color} border font-semibold text-[10px] uppercase py-0 px-2 h-5`}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
+                                  {statusInfo.label}
                                 </Badge>
                                 {clientResponded && (
-                                  <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold uppercase border-none">
-                                    Nova Resposta
-                                  </Badge>
+                                  <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
                                 )}
                               </div>
-                              <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{chamado.nome}</p>
-                              <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{chamado.motivo}</p>
                               
-                              <div className="flex items-center gap-4 mt-3 text-[10px] font-medium text-muted-foreground/70">
-                                <span className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
-                                  <Mail className="h-3 w-3" />
-                                  {chamado.email}
+                              <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                                {chamado.nome}
+                                {clientResponded && (
+                                  <Badge className="bg-orange-500 hover:bg-orange-600 text-[9px] h-4 px-1.5">NOVA RESPOSTA</Badge>
+                                )}
+                              </h4>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mt-1 font-medium italic">
+                                "{chamado.motivo}"
+                              </p>
+                              
+                              <div className="flex items-center gap-4 mt-3">
+                                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+                                  <Calendar className="h-3.5 w-3.5" />
+                                  {formatDistanceToNow(new Date(chamado.created_at), { addSuffix: true, locale: ptBR })}
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {format(new Date(chamado.created_at), "dd MMM, HH:mm", { locale: ptBR })}
+                                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+                                  <MessageSquare className="h-3.5 w-3.5" />
+                                  {chamado.chamados_comentarios?.length || 0}
                                 </span>
                               </div>
                             </div>
-                            <Badge variant="outline" className={`${statusInfo.color} border-none font-bold text-[10px] uppercase py-1 px-2`}>
-                              <StatusIcon className="h-3 w-3 mr-1.5" />
-                              {statusInfo.label}
-                            </Badge>
+                            
+                            <div className="text-right flex flex-col items-end gap-2">
+                              <Badge variant="outline" className={`${prioridadeInfo.color} border-none font-bold text-[10px] px-2 py-0.5 rounded-full`}>
+                                {prioridadeInfo.label}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       );
