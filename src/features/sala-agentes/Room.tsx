@@ -43,13 +43,13 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </mesh>
         
         {/* Vigas Estruturais */}
-        {[-8, -4, 0, 4, 8].map(x => (
+        {[-16, -12, -8, -4, 0, 4, 8, 12, 16].map(x => (
           <mesh key={`beam-v-${x}`} position={[x, -0.1, 0]}>
             <boxGeometry args={[0.2, 0.2, D]} />
             <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
           </mesh>
         ))}
-        {[-6, 0, 6].map(z => (
+        {[-10, -5, 0, 5, 10].map(z => (
           <mesh key={`beam-h-${z}`} position={[0, -0.1, z]}>
             <boxGeometry args={[W, 0.2, 0.2]} />
             <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
@@ -57,7 +57,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         ))}
 
         {/* Painéis de Luz LED Embutidos */}
-        {[-6, 6].map(x => [-4, 4].map(z => (
+        {[-12, -6, 0, 6, 12].map(x => [-7, 0, 7].map(z => (
           <group key={`light-${x}-${z}`} position={[x, -0.05, z]}>
             <mesh>
               <boxGeometry args={[2, 0.05, 1]} />
