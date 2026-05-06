@@ -141,3 +141,6 @@ verify_jwt = false
 
 [functions.validate-sms-numbers]
 verify_jwt = false
+
+[functions.atomicat-webhook]
+verify_jwt = false
