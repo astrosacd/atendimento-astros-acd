@@ -16,6 +16,9 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
   const { user, isAdmin, isApproved, isLoading, isBlocked, blockedReason, signOut } = useAuth();
   const { hasPermission } = usePermissions();
 
+  // Allow bypass if a valid temporary token exists in sessionStorage
+  const hasTempAccess = !!sessionStorage.getItem("temp_access_token");
+
   const isPrivateArea =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/usuarios') ||
@@ -32,6 +35,11 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
         <div className="animate-pulse text-primary">Carregando...</div>
       </div>
     );
+  }
+
+  // If we have temporary access, let them through
+  if (hasTempAccess) {
+    return <>{children}</>;
   }
 
   // IMPORTANT: se alguém sem login tentar acessar área privada,
