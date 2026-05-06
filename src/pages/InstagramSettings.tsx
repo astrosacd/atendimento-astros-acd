@@ -112,7 +112,12 @@ const InstagramSettings = () => {
     try {
       const { error } = await supabase.from("instagram_settings").upsert({
         user_id: user?.id,
-        ...settings,
+        ig_user_id: settings.ig_user_id,
+        page_id: settings.page_id,
+        account_username: settings.account_username,
+        access_token: settings.access_token,
+        app_id: settings.app_id,
+        app_secret: settings.app_secret,
         updated_at: new Date().toISOString(),
       });
 
