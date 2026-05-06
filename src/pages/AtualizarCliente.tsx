@@ -266,17 +266,26 @@ export default function AtualizarCliente() {
                         onClick={() => handleSelectCliente(cliente)}
                         className="flex-1 min-w-0 text-left"
                       >
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <span className="font-medium text-foreground truncate">
-                            {cliente.nome}{cliente.cpf ? ` - ${cliente.cpf}` : ''}
-                          </span>
-                          {cliente.cobranca_ativa && cliente.data_renovacao && (
-                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-update/15 text-update font-medium shrink-0">
-                              <Calendar className="w-3 h-3" />
-                              {formatDate(cliente.data_renovacao)}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-foreground truncate">
+                              {cliente.nome}{cliente.cpf ? ` - ${cliente.cpf}` : ''}
                             </span>
-                          )}
-                        </div>
+                            <div className="flex gap-1 shrink-0">
+                              <span className={`inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                cliente.cobranca_ativa 
+                                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/20' 
+                                  : 'bg-amber-500/15 text-amber-500 border border-amber-500/20'
+                              }`}>
+                                {cliente.cobranca_ativa ? t('clients.monthly') : t('clients.registrationOnly')}
+                              </span>
+                              {cliente.cobranca_ativa && cliente.data_renovacao && (
+                                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-update/15 text-update font-bold border border-update/20 shrink-0">
+                                  <Calendar className="w-2.5 h-2.5" />
+                                  {formatDate(cliente.data_renovacao)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {cliente.produto}
                         </p>
