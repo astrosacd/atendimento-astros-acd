@@ -1,267 +1,334 @@
-import { useEffect, useState } from 'react';
-import { Html, Float, Text, Image } from '@react-three/drei';
+import { useEffect, useState, useRef } from 'react';
+import { Html, Float, Text, Image, useHelper } from '@react-three/drei';
+import * as THREE from 'three';
 import { ROOM_PALETTE } from './colors';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Sala — chão, paredes, vigas e detalhes (plantas, janelas).
- * Tudo estático. Dimensões: 22 (x) x 18 (z), centro em 0,0.
+ * Reformulada para um visual mais realista e empresarial.
  */
 export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string | null }) {
-  const W = 24;
+  const W = 26;
   const D = 18;
+  const ceilingHeight = 5;
 
   return (
     <group>
-      {/* Chão Principal com Grid Tech */}
+      {/* --- CHÃO PREMIUM --- */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[W, D]} />
-        <meshStandardMaterial color={isNight ? '#0f172a' : '#f8fafc'} roughness={0.8} />
+        {/* Usando MeshPhysicalMaterial para reflexões e visual mais "limpo" */}
+        <meshPhysicalMaterial 
+          color={isNight ? '#0a101f' : '#f0f4f8'} 
+          roughness={0.15} 
+          metalness={0.05}
+          reflectivity={0.8}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
+        />
       </mesh>
-      <gridHelper args={[W, 20, isNight ? '#1e293b' : '#e2e8f0', isNight ? '#0f172a' : '#f1f5f9']} position={[0, 0.01, 0]} />
+      
+      {/* Grid discreto (apenas para senso de escala) */}
+      <gridHelper 
+        args={[W, 26, isNight ? '#1e293b' : '#cbd5e1', isNight ? '#0f172a' : '#f1f5f9']} 
+        position={[0, 0.01, 0]} 
+      />
 
-      {/* Divisórias de Vidro (Salas) */}
+      {/* --- TETO COM PAINÉIS LED --- */}
+      <group position={[0, ceilingHeight, 0]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[W, D]} />
+          <meshStandardMaterial color={isNight ? '#0f172a' : '#ffffff'} />
+        </mesh>
+        
+        {/* Vigas Estruturais */}
+        {[-8, -4, 0, 4, 8].map(x => (
+          <mesh key={`beam-v-${x}`} position={[x, -0.1, 0]}>
+            <boxGeometry args={[0.2, 0.2, D]} />
+            <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
+          </mesh>
+        ))}
+        {[-6, 0, 6].map(z => (
+          <mesh key={`beam-h-${z}`} position={[0, -0.1, z]}>
+            <boxGeometry args={[W, 0.2, 0.2]} />
+            <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
+          </mesh>
+        ))}
+
+        {/* Painéis de Luz LED Embutidos */}
+        {[-6, 6].map(x => [-4, 4].map(z => (
+          <group key={`light-${x}-${z}`} position={[x, -0.05, z]}>
+            <mesh>
+              <boxGeometry args={[2, 0.05, 1]} />
+              <meshStandardMaterial 
+                color="#ffffff" 
+                emissive="#ffffff" 
+                emissiveIntensity={isNight ? 0.3 : 1} 
+              />
+            </mesh>
+            <rectAreaLight 
+              width={2} 
+              height={1} 
+              intensity={isNight ? 0.5 : 2} 
+              color="#ffffff" 
+              position={[0, -0.1, 0]} 
+              rotation={[-Math.PI / 2, 0, 0]} 
+            />
+          </group>
+        )))}
+      </group>
+
+      {/* --- PAREDES --- */}
       <group>
-        {/* Comercial vs Smart */}
-        <mesh position={[-4, 1.5, -2]}>
-          <boxGeometry args={[0.1, 3, 12]} />
-          <meshStandardMaterial color="#bae0ff" transparent opacity={0.2} />
+        {/* Parede Fundo (com janelas) */}
+        <mesh position={[0, 2.5, -D/2]}>
+          <boxGeometry args={[W, 5, 0.2]} />
+          <meshStandardMaterial color={isNight ? '#0f172a' : '#cbd5e1'} />
         </mesh>
-        {/* Smart vs Administrativo */}
-        <mesh position={[4, 1.5, -2]}>
-          <boxGeometry args={[0.1, 3, 12]} />
-          <meshStandardMaterial color="#bae0ff" transparent opacity={0.2} />
+        {/* Parede Lateral Direita */}
+        <mesh position={[W/2, 2.5, 0]}>
+          <boxGeometry args={[0.2, 5, D]} />
+          <meshStandardMaterial color={isNight ? '#0f172a' : '#cbd5e1'} />
         </mesh>
-        {/* Fundo (Operacional) */}
-        <mesh position={[0, 1.5, 4]}>
-          <boxGeometry args={[W, 3, 0.1]} />
-          <meshStandardMaterial color="#bae0ff" transparent opacity={0.2} />
+        {/* Parede Lateral Esquerda */}
+        <mesh position={[-W/2, 2.5, 0]}>
+          <boxGeometry args={[0.2, 5, D]} />
+          <meshStandardMaterial color={isNight ? '#0f172a' : '#cbd5e1'} />
         </mesh>
       </group>
 
-      {/* Rótulos das Salas */}
-      <Html position={[-8, 3.5, -7]} center distanceFactor={12}>
-        <div className="rounded bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
-          COMERCIAL
+      {/* --- DIVISÓRIAS DE VIDRO CORPORATIVAS --- */}
+      <group>
+        {/* Vidro Lateral com moldura preta */}
+        {[-4.5, 4.5].map(x => (
+          <group key={`glass-${x}`} position={[x, 1.5, -2]}>
+            <mesh>
+              <boxGeometry args={[0.05, 3, 10]} />
+              <meshPhysicalMaterial 
+                color="#e0f2fe" 
+                transparent 
+                opacity={0.15} 
+                transmission={0.9} 
+                thickness={0.1}
+                roughness={0}
+              />
+            </mesh>
+            <mesh position={[0, 1.5, 0]}>
+              <boxGeometry args={[0.1, 0.1, 10]} />
+              <meshStandardMaterial color="#0f172a" />
+            </mesh>
+          </group>
+        ))}
+        {/* Vidro Fundo */}
+        <group position={[0, 1.5, 3]}>
+          <mesh>
+            <boxGeometry args={[W, 3, 0.05]} />
+            <meshPhysicalMaterial 
+              color="#e0f2fe" 
+              transparent 
+              opacity={0.1} 
+              transmission={0.9} 
+            />
+          </mesh>
+          <mesh position={[0, 1.5, 0]}>
+            <boxGeometry args={[W, 0.1, 0.1]} />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Rótulos das Salas Minimalistas */}
+      <Html position={[-9, 3.8, -7]} center distanceFactor={12}>
+        <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+          DEPT. COMERCIAL
         </div>
       </Html>
-      <Html position={[0, 3.5, -7]} center distanceFactor={12}>
-        <div className="rounded bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
-          SMART IA
+      <Html position={[0, 3.8, -7]} center distanceFactor={12}>
+        <div className="rounded-full bg-blue-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+          CENTRO SMART IA
         </div>
       </Html>
-      <Html position={[8, 3.5, -7]} center distanceFactor={12}>
-        <div className="rounded bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
+      <Html position={[9, 3.8, -7]} center distanceFactor={12}>
+        <div className="rounded-full bg-emerald-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
           FINANCEIRO
         </div>
       </Html>
-      <Html position={[0, 3.5, 6]} center distanceFactor={12}>
-        <div className="rounded bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
-          OPERACIONAL
-        </div>
-      </Html>
 
-      {/* Tapetes das Salas com bordas brilhantes */}
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-8, 0.02, -2]}>
-        <planeGeometry args={[7.2, 10.2]} />
-        <meshStandardMaterial color="#3b82f6" transparent opacity={0.1} />
-      </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -2]}>
-        <planeGeometry args={[7.2, 10.2]} />
-        <meshStandardMaterial color="#8b5cf6" transparent opacity={0.1} />
-      </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[8, 0.02, -2]}>
-        <planeGeometry args={[7.2, 10.2]} />
-        <meshStandardMaterial color="#10b981" transparent opacity={0.1} />
-      </mesh>
-
-      {/* Janelas com Céu Dinâmico */}
-      {[-8, 0, 8].map((x) => (
-        <group key={`win-group-${x}`} position={[x, 4, -D / 2 + 0.1]}>
+      {/* --- JANELAS PANORÂMICAS --- */}
+      {[-8.5, 0, 8.5].map((x) => (
+        <group key={`window-${x}`} position={[x, 3.2, -D / 2 + 0.11]}>
+          {/* Vidro da Janela */}
           <mesh>
-            <boxGeometry args={[4, 2.5, 0.1]} />
-            <meshStandardMaterial 
-              color={isNight ? '#0a192f' : '#87ceeb'} 
-              emissive={isNight ? '#1a2c4e' : '#bae0ff'} 
-              emissiveIntensity={isNight ? 1.2 : 0.4} 
+            <boxGeometry args={[5, 3.2, 0.02]} />
+            <meshPhysicalMaterial 
+              color="#bae0ff" 
+              transparent 
+              opacity={0.2} 
+              transmission={0.8}
             />
           </mesh>
-          {/* Sol ou Lua na Janela */}
-          <mesh position={[isNight ? -1 : 1, 0.5, 0.1]}>
-            <sphereGeometry args={[0.3, 16, 16]} />
-            <meshBasicMaterial color={isNight ? '#fdfcf0' : '#ffcf33'} />
+          {/* Moldura da Janela */}
+          <mesh>
+            <boxGeometry args={[5.2, 3.4, 0.1]} />
+            <meshStandardMaterial color="#1e293b" />
           </mesh>
-          {isNight && (
-            <group>
-              {[...Array(5)].map((_, i) => (
-                <mesh key={i} position={[Math.random() * 3 - 1.5, Math.random() * 1.5 - 0.75, 0.15]}>
-                  <sphereGeometry args={[0.02, 8, 8]} />
-                  <meshBasicMaterial color="white" />
-                </mesh>
-              ))}
-            </group>
-          )}
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[5, 3.2, 0.05]} />
+            <meshStandardMaterial color="#0f172a" wireframe />
+          </mesh>
         </group>
       ))}
 
-      {/* Servidor Central (HUB de Integração) */}
+      {/* --- SERVIDOR CENTRAL (HUB DE DADOS) --- */}
       <group position={[0, 0, -2]}>
-        <mesh castShadow position={[0, 0.8, 0]}>
-          <boxGeometry args={[1.5, 1.6, 1.5]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.9} />
+        <mesh castShadow position={[0, 0.9, 0]}>
+          <boxGeometry args={[1.6, 1.8, 1.6]} />
+          <meshPhysicalMaterial 
+            color="#020617" 
+            roughness={0.05} 
+            metalness={0.95} 
+            emissive="#1e3a8a" 
+            emissiveIntensity={0.1}
+          />
         </mesh>
-        {/* Luzes pulsantes no servidor */}
-        {[...Array(12)].map((_, i) => (
-          <mesh key={i} position={[0.76, 1.4 - i * 0.12, 0]}>
-            <boxGeometry args={[0.02, 0.05, 0.6]} />
+        {/* Luzes de Atividade */}
+        {[...Array(15)].map((_, i) => (
+          <mesh key={i} position={[0.81, 1.6 - i * 0.1, 0.2]}>
+            <boxGeometry args={[0.02, 0.04, 0.8]} />
             <meshStandardMaterial 
-              color={i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : '#f59e0b'} 
-              emissive={i % 3 === 0 ? '#3b82f6' : i % 3 === 1 ? '#10b981' : '#f59e0b'} 
+              color={Math.random() > 0.5 ? '#60a5fa' : '#34d399'} 
+              emissive={Math.random() > 0.5 ? '#60a5fa' : '#34d399'} 
               emissiveIntensity={2} 
             />
           </mesh>
         ))}
         
-        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-          <group position={[0, 2.8, 0]}>
+        <Float speed={2.5} rotationIntensity={0.4} floatIntensity={0.6}>
+          <group position={[0, 3.2, 0]}>
             {logoUrl ? (
-              <Image 
-                url={logoUrl} 
-                scale={[2, 0.8]} 
-                transparent 
-                toneMapped={false}
-              />
+              <Image url={logoUrl} scale={[2.4, 1]} transparent toneMapped={false} />
             ) : (
-              <>
-                <mesh rotation={[0, 0, 0]}>
-                  <boxGeometry args={[1.8, 0.6, 0.1]} />
-                  <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
-                </mesh>
-                <Text
-                  position={[0, 0, 0.06]}
-                  fontSize={0.2}
-                  color="#60a5fa"
-                  anchorX="center"
-                  anchorY="middle"
-                >
-                  ASTROS CRM
-                </Text>
-              </>
+              <Text fontSize={0.25} color="#60a5fa" font="/fonts/Inter-Bold.woff">
+                ASTROS CRM
+              </Text>
             )}
-            <pointLight position={[0, -0.5, 0]} intensity={1} color="#60a5fa" distance={3} />
+            <pointLight position={[0, -0.5, 0]} intensity={1.5} color="#3b82f6" distance={4} />
           </group>
         </Float>
 
-        {/* Holograma central */}
-        <mesh position={[0, 2, 0]}>
-          <octahedronGeometry args={[0.4]} />
-          <meshStandardMaterial color="#60a5fa" transparent opacity={0.6} emissive="#60a5fa" emissiveIntensity={2} wireframe />
+        {/* Holograma Core */}
+        <mesh position={[0, 2.2, 0]}>
+          <sphereGeometry args={[0.4, 32, 32]} />
+          <meshStandardMaterial 
+            color="#60a5fa" 
+            transparent 
+            opacity={0.3} 
+            emissive="#60a5fa" 
+            emissiveIntensity={3} 
+            wireframe 
+          />
         </mesh>
       </group>
 
-      {/* Sala de Reunião (frontal) — mesa oval + cadeiras */}
-      <group position={[0, 0, 7]}>
-        {/* Tapete */}
-        <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0,0.02,0]}>
-          <planeGeometry args={[8, 4]} />
-          <meshStandardMaterial color={isNight ? '#1e293b' : '#fef3c7'} transparent opacity={0.4} />
+      {/* --- SALA DE REUNIÃO EXECUTIVA --- */}
+      <group position={[0, 0, 6]}>
+        {/* Tapete de Luxo */}
+        <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0, 0.02, 0]}>
+          <planeGeometry args={[10, 5]} />
+          <meshStandardMaterial color={isNight ? '#0f172a' : '#f1f5f9'} />
         </mesh>
-        {/* Mesa oval */}
-        <mesh castShadow receiveShadow position={[0, 0.7, 0]}>
-          <cylinderGeometry args={[1.6, 1.6, 0.12, 32]} />
-          <meshStandardMaterial color="#7c4a2a" roughness={0.4} metalness={0.2} />
+        {/* Mesa de Vidro/Mármore */}
+        <mesh castShadow receiveShadow position={[0, 0.75, 0]}>
+          <cylinderGeometry args={[2, 1.8, 0.1, 48]} />
+          <meshPhysicalMaterial 
+            color="#ffffff" 
+            roughness={0.1} 
+            transmission={0.6} 
+            thickness={0.5} 
+          />
         </mesh>
+        {/* Base da Mesa */}
         <mesh position={[0, 0.35, 0]}>
-          <cylinderGeometry args={[0.15, 0.15, 0.7, 12]} />
-          <meshStandardMaterial color="#1f2937" metalness={0.8} />
+          <cylinderGeometry args={[0.8, 1, 0.7, 32]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} />
         </mesh>
-        {/* Cadeiras ao redor */}
-        {[0, 60, 120, 180, 240, 300].map(deg => {
-          const r = 2.2;
+        {/* Cadeiras Office Pro */}
+        {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => {
+          const r = 2.8;
           const rad = (deg * Math.PI) / 180;
           return (
             <group key={deg} position={[Math.cos(rad)*r, 0, Math.sin(rad)*r]} rotation={[0, -rad + Math.PI/2, 0]}>
               <mesh castShadow position={[0, 0.5, 0]}>
-                <boxGeometry args={[0.5, 0.1, 0.5]} />
-                <meshStandardMaterial color="#334155" />
+                <boxGeometry args={[0.6, 0.1, 0.6]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
               </mesh>
-              <mesh castShadow position={[0, 0.85, -0.2]}>
-                <boxGeometry args={[0.5, 0.7, 0.1]} />
-                <meshStandardMaterial color="#334155" />
+              <mesh castShadow position={[0, 1, -0.25]}>
+                <boxGeometry args={[0.6, 1, 0.1]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.25, 0]}>
+                <cylinderGeometry args={[0.05, 0.05, 0.5]} />
+                <meshStandardMaterial color="#444" metalness={0.9} />
               </mesh>
             </group>
           );
         })}
-        {/* Laptop sobre a mesa */}
-        <mesh castShadow position={[0.6, 0.78, 0]} rotation={[0, -0.3, 0]}>
-          <boxGeometry args={[0.5, 0.02, 0.35]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.8} />
-        </mesh>
-        <Html position={[0, 2.5, 0]} center distanceFactor={14}>
-          <div className="rounded bg-amber-500/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur whitespace-nowrap">
-            🤝 SALA DE REUNIÃO
-          </div>
-        </Html>
       </group>
 
-      {/* Plantas decorativas nos cantos */}
-      {[[-11, -8], [11, -8], [-11, 8], [11, 8]].map(([x, z], i) => (
+      {/* --- PAISAGISMO CORPORATIVO --- */}
+      {[[-11.5, -7], [11.5, -7], [-11.5, 7], [11.5, 7]].map(([x, z], i) => (
         <group key={`plant-${i}`} position={[x, 0, z]}>
-          <mesh castShadow position={[0, 0.3, 0]}>
-            <cylinderGeometry args={[0.35, 0.4, 0.6, 12]} />
-            <meshStandardMaterial color="#92400e" />
+          {/* Vaso Moderno */}
+          <mesh castShadow position={[0, 0.4, 0]}>
+            <cylinderGeometry args={[0.5, 0.4, 0.8, 24]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.5} />
           </mesh>
-          <mesh castShadow position={[0, 1, 0]}>
-            <sphereGeometry args={[0.6, 12, 12]} />
-            <meshStandardMaterial color="#15803d" roughness={0.9} />
-          </mesh>
-          <mesh castShadow position={[0.2, 1.4, 0.1]}>
-            <sphereGeometry args={[0.4, 10, 10]} />
-            <meshStandardMaterial color="#22c55e" roughness={0.9} />
-          </mesh>
+          {/* Folhagens (várias camadas) */}
+          <group position={[0, 0.8, 0]}>
+            {[1.2, 1.8, 2.4].map((h, j) => (
+              <mesh key={j} position={[0, h/3, 0]} rotation={[0, j * 0.5, 0]}>
+                <coneGeometry args={[0.7 - j*0.15, h, 8]} />
+                <meshStandardMaterial color={j === 0 ? "#14532d" : "#166534"} roughness={0.8} />
+              </mesh>
+            ))}
+          </group>
         </group>
       ))}
 
-      {/* TVs nas paredes laterais — apenas a TV (moldura + tela viva) */}
+      {/* --- TVS LATERAIS (DASHBOARDS) --- */}
       {[-1, 1].map(side => (
-        <group key={`quadro-${side}`} position={[side * 11.9, 2.5, 0]} rotation={[0, side > 0 ? -Math.PI/2 : Math.PI/2, 0]}>
-          {/* Moldura */}
+        <group key={`tv-${side}`} position={[side * (W/2 - 0.15), 2.8, 0]} rotation={[0, side > 0 ? -Math.PI/2 : Math.PI/2, 0]}>
           <mesh castShadow>
-            <boxGeometry args={[2.8, 1.7, 0.08]} />
-            <meshStandardMaterial color="#0a0f1c" metalness={0.7} roughness={0.3} />
+            <boxGeometry args={[4, 2.2, 0.1]} />
+            <meshStandardMaterial color="#000000" metalness={0.8} roughness={0.2} />
           </mesh>
-          {/* Tela base com brilho */}
-          <mesh position={[0, 0, 0.045]}>
-            <planeGeometry args={[2.6, 1.5]} />
-            <meshStandardMaterial 
-              color="#020617"
-              emissive={side > 0 ? '#10b981' : '#3b82f6'}
-              emissiveIntensity={isNight ? 0.55 : 0.35}
-            />
+          <mesh position={[0, 0, 0.06]}>
+            <planeGeometry args={[3.8, 2]} />
+            <meshStandardMaterial color="#020617" emissive={side > 0 ? '#10b981' : '#3b82f6'} emissiveIntensity={0.2} />
           </mesh>
-          {/* Conteúdo HTML ao vivo na TV */}
           <Html
-            position={[0, 0, 0.05]}
+            position={[0, 0, 0.07]}
             transform
-            distanceFactor={3.2}
-            occlude={false}
-            style={{ width: '320px', height: '180px', pointerEvents: 'none' }}
+            distanceFactor={4}
+            style={{ width: '400px', height: '220px', pointerEvents: 'none' }}
           >
             <WallTvContent variant={side > 0 ? 'metrics' : 'logs'} />
           </Html>
         </group>
       ))}
 
-      {/* Recepção / balcão na entrada */}
-      <group position={[0, 0, 8.5]}>
+      {/* --- RECEPÇÃO / BALCÃO --- */}
+      <group position={[0, 0, 8.2]}>
         <mesh castShadow position={[0, 0.5, 0]}>
-          <boxGeometry args={[3, 1, 0.6]} />
-          <meshStandardMaterial color="#1e40af" metalness={0.3} roughness={0.5} />
+          <boxGeometry args={[4, 1.1, 0.8]} />
+          <meshPhysicalMaterial color="#1e3a8a" roughness={0.1} metalness={0.2} />
         </mesh>
-        <mesh position={[0, 1.05, 0]}>
-          <boxGeometry args={[3.2, 0.1, 0.7]} />
-          <meshStandardMaterial color="#fafafa" metalness={0.5} />
+        <mesh position={[0, 1.1, 0]}>
+          <boxGeometry args={[4.2, 0.08, 0.9]} />
+          <meshPhysicalMaterial color="#ffffff" metalness={0.5} roughness={0.1} />
         </mesh>
+        <pointLight position={[0, 1.5, 0]} intensity={1} color="#ffffff" distance={3} />
       </group>
     </group>
   );
@@ -275,83 +342,67 @@ function WallTvContent({ variant }: { variant: 'metrics' | 'logs' }) {
     let cancelled = false;
     async function load() {
       try {
+        if (cancelled) return;
         if (variant === 'metrics') {
-          const [c, p] = await Promise.all([
-            supabase.from('clientes').select('id, valor_mensal', { count: 'exact', head: false }).limit(500),
-            supabase.from('proposals').select('id', { count: 'exact', head: true }),
-          ] as any);
-          if (cancelled) return;
-          const cs: any[] = (c as any).data ?? [];
-          const mrr = cs.reduce((s, r) => s + (Number(r.valor_mensal) || 0), 0);
-          setMetrics({
-            clientes: (c as any).count ?? cs.length,
-            leads: 0,
-            propostas: (p as any).count ?? 0,
-            mrr,
-          });
+          const { data: c, count: cc } = await supabase.from('clientes').select('valor_mensal', { count: 'exact' });
+          const { count: pc } = await supabase.from('proposals').select('*', { count: 'exact', head: true });
+          
+          const mrr = (c || []).reduce((s, r) => s + (Number(r.valor_mensal) || 0), 0);
+          setMetrics({ clientes: cc || 0, leads: 0, propostas: pc || 0, mrr });
         } else {
           const { data } = await supabase
             .from('system_activities')
             .select('description, created_at')
             .order('created_at', { ascending: false })
-            .limit(8);
-          if (cancelled) return;
-          setLogs((data ?? []).map((r: any) => ({
-            msg: String(r.description ?? '').slice(0, 60),
-            ts: new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            .limit(10);
+          setLogs((data || []).map((r: any) => ({
+            msg: String(r.description || '').slice(0, 50),
+            ts: new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
           })));
         }
       } catch {}
     }
     load();
-    const id = setInterval(load, 12000);
+    const id = setInterval(load, 15000);
     return () => { cancelled = true; clearInterval(id); };
   }, [variant]);
 
-  if (variant === 'metrics') {
-    return (
-      <div className="h-full w-full rounded bg-gradient-to-br from-slate-900 to-emerald-950 p-2 font-mono text-white ring-1 ring-emerald-500/40">
-        <div className="flex items-center justify-between border-b border-white/10 pb-1">
-          <span className="text-[10px] font-bold tracking-widest text-emerald-300">▣ CRM · MÉTRICAS</span>
-          <span className="text-[8px] text-emerald-400">● LIVE</span>
-        </div>
-        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-          <Tile label="Clientes" value={metrics.clientes.toString()} c="text-emerald-300" />
-          <Tile label="Propostas" value={metrics.propostas.toString()} c="text-amber-300" />
-          <Tile label="MRR (R$)" value={metrics.mrr.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} c="text-fuchsia-300" />
-          <Tile label="Online" value={'24/7'} c="text-blue-300" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full w-full rounded bg-[#020617] p-2 font-mono text-emerald-300 ring-1 ring-blue-500/40">
-      <div className="flex items-center justify-between border-b border-white/10 pb-1">
-        <span className="text-[10px] font-bold tracking-widest text-blue-300">▣ SYS · LOGS</span>
-        <span className="text-[8px] text-emerald-400">● LIVE</span>
+    <div className={`h-full w-full rounded p-3 font-mono text-white ${variant === 'metrics' ? 'bg-gradient-to-br from-slate-900 to-blue-950' : 'bg-black'} border border-white/10 shadow-2xl`}>
+      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+        <span className="text-xs font-black tracking-widest opacity-80">{variant === 'metrics' ? 'DATA·CENTER' : 'SYSTEM·MONITOR'}</span>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="text-[10px] font-bold">LIVE</span>
+        </div>
       </div>
-      <div className="mt-1 space-y-0.5 text-[8px] leading-tight">
-        {logs.length === 0 ? (
-          <div className="text-slate-500 italic">aguardando eventos...</div>
-        ) : (
-          logs.map((l, i) => (
-            <div key={i} className="truncate">
-              <span className="text-slate-500">{l.ts}</span>{' '}
-              <span className="text-emerald-300">›</span> {l.msg}
+      
+      {variant === 'metrics' ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Stat label="CLIENTES" val={metrics.clientes} color="text-blue-400" />
+          <Stat label="PROPOSTAS" val={metrics.propostas} color="text-emerald-400" />
+          <Stat label="MRR ESTIMADO" val={`R$ ${metrics.mrr.toLocaleString('pt-BR')}`} color="text-amber-400" full />
+        </div>
+      ) : (
+        <div className="space-y-1 text-[9px]">
+          {logs.map((l, i) => (
+            <div key={i} className="flex gap-2 opacity-90 border-l border-blue-500/30 pl-2">
+              <span className="text-slate-500">{l.ts}</span>
+              <span className="truncate">{l.msg}</span>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function Tile({ label, value, c }: { label: string; value: string; c: string }) {
+function Stat({ label, val, color, full }: any) {
   return (
-    <div className="rounded bg-black/40 px-1.5 py-1 ring-1 ring-white/5">
-      <p className="text-[7px] uppercase tracking-widest text-slate-400">{label}</p>
-      <p className={`text-base font-extrabold leading-none ${c}`}>{value}</p>
+    <div className={`bg-white/5 p-2 rounded border border-white/5 ${full ? 'col-span-2' : ''}`}>
+      <div className="text-[8px] opacity-50 font-bold">{label}</div>
+      <div className={`text-xl font-black ${color}`}>{val}</div>
     </div>
   );
 }
+
