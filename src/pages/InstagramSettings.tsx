@@ -46,9 +46,66 @@ const InstagramSettings = () => {
         page_id: data.page_id || "",
         account_username: data.account_username || "",
         access_token: data.access_token || "",
+        app_id: data.app_id || "",
+        app_secret: data.app_secret || "",
+        token_expires_at: data.token_expires_at || null,
       });
     }
   };
+
+  const handleTokenAction = async (action: "debug" | "refresh") => {
+    if (!settings.app_id || !settings.app_secret) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "App ID e App Secret são necessários para esta ação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("instagram-token-manager", {
+        body: { action },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: action === "debug" ? "Token Verificado" : "Token Renovado",
+        description: action === "debug" 
+          ? "Informações do token atualizadas." 
+          : "Seu token foi renovado por mais 60 dias.",
+      });
+
+      fetchSettings(); // Refresh UI
+    } catch (error: any) {
+      toast({
+        title: "Erro na operação",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getExpirationStatus = () => {
+    if (!settings.token_expires_at) return null;
+    
+    const expiryDate = new Date(settings.token_expires_at);
+    const now = new Date();
+    const isExpired = isBefore(expiryDate, now);
+    const isWarning = isBefore(expiryDate, addDays(now, 15)); // 15 days warning
+
+    return {
+      date: format(expiryDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
+      isExpired,
+      isWarning,
+    };
+  };
+
+  const expirationStatus = getExpirationStatus();
 
   const handleSave = async () => {
     setLoading(true);
