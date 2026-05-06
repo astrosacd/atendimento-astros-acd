@@ -612,10 +612,10 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
         </div>
       )}
 
-      {/* Dica de interação */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
-        <div className="rounded-full bg-slate-900/70 px-3 py-1 text-[10px] font-medium text-white backdrop-blur">
-          Arraste para girar · scroll para zoom · clique no agente para ver detalhes
+      {/* Dica de interação — movida para o topo-centro para não colidir com Tour e Chat */}
+      <div className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 z-10">
+        <div className="rounded-full bg-slate-900/70 px-3 py-1 text-[10px] font-medium text-white backdrop-blur shadow-md ring-1 ring-white/10 whitespace-nowrap">
+          Arraste para girar · scroll para zoom · clique no agente
         </div>
       </div>
     </div>
