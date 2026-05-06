@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package } from 'lucide-react';
+import { ArrowLeft, Search, Check, RefreshCw, FileText, Repeat, DollarSign, Phone, Store, AlertCircle, Mail, ShieldCheck, Package, Eye, Calendar } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/DashboardLayout';
@@ -221,7 +222,7 @@ export default function AtualizarCliente() {
   return (
     <DashboardLayout>
       <div className="flex items-center justify-center p-4">
-      <Card className="w-full max-w-xl bg-card border-border shadow-xl">
+      <Card className="w-full max-w-2xl bg-card border-border shadow-xl">
         <CardHeader className="border-b border-border pb-6">
           <div className="flex items-center justify-center gap-3">
             <div className="p-2.5 rounded-xl bg-update/10">
@@ -256,14 +257,57 @@ export default function AtualizarCliente() {
                 <div className="space-y-2">
                   <Label className="text-muted-foreground text-sm">{t('clients.selectClient')}:</Label>
                   {searchResults.map((cliente) => (
-                    <Button
+                    <div
                       key={cliente.id}
-                      onClick={() => handleSelectCliente(cliente)}
-                      variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-update/10 hover:border-update/50 h-12"
+                      className="group relative flex items-center gap-2 w-full p-3 rounded-lg border border-border bg-card hover:bg-update/10 hover:border-update/50 transition-colors"
                     >
-                      {cliente.nome} {cliente.cpf ? `- ${cliente.cpf}` : ''} - {cliente.produto}
-                    </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCliente(cliente)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="font-medium text-foreground truncate">
+                            {cliente.nome}{cliente.cpf ? ` - ${cliente.cpf}` : ''}
+                          </span>
+                          {cliente.cobranca_ativa && cliente.data_renovacao && (
+                            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-update/15 text-update font-medium shrink-0">
+                              <Calendar className="w-3 h-3" />
+                              {formatDate(cliente.data_renovacao)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {cliente.produto}
+                        </p>
+                      </button>
+                      {cliente.observacao && cliente.observacao.trim() && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-update"
+                              onClick={(e) => e.stopPropagation()}
+                              title={t('clients.observations')}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-72 bg-popover border-border" align="end">
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                {t('clients.observations')}
+                              </p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                                {cliente.observacao}
+                              </p>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : searchPerformed ? (
@@ -286,33 +330,35 @@ export default function AtualizarCliente() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-3`}>
-                <div className="flex items-center gap-2">
-                  <h3 className={`font-semibold text-lg ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
+              <div className={`${isClienteVitalicio ? 'bg-amber-500/10 border-amber-500/30' : 'bg-update/5 border-update/20'} border rounded-xl p-5 space-y-4`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className={`font-semibold text-lg break-words ${isClienteVitalicio ? 'text-amber-500' : 'text-update'}`}>{selectedCliente.nome}</h3>
                   {isClienteVitalicio && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-500 rounded-full">
                       {t('clients.registrationOnly')}
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <p className="text-muted-foreground">{t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf}</span></p>
-                  <div className="flex items-center gap-1">
-                    <p className="text-muted-foreground">{t('clients.product')}:</p>
-                    <div className="flex-1">
-                      <ProductSelector 
-                        value={newEditProduto} 
-                        onChange={setNewEditProduto} 
-                        category={isClienteVitalicio ? 'registro' : 'mensal'}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {!isClienteVitalicio && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <p className="text-muted-foreground min-w-0 break-words">
+                    {t('clients.cpfCnpj')}: <span className="text-foreground">{selectedCliente.cpf || '-'}</span>
                   </p>
-                )}
+                  {!isClienteVitalicio && (
+                    <p className="text-muted-foreground sm:text-right">
+                      {t('clients.currentDate')}: <span className="text-update font-medium">{formatDate(selectedCliente.data_renovacao)}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('clients.product')}</Label>
+                  <ProductSelector
+                    value={newEditProduto}
+                    onChange={setNewEditProduto}
+                    category={isClienteVitalicio ? 'registro' : 'mensal'}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
