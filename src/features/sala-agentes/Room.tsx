@@ -217,7 +217,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       </group>
 
       {/* --- SALA DE REUNIÃO EXECUTIVA --- */}
-      <group position={[0, 0, 6]}>
+      <group position={[0, 0, 10]}>
         {/* Tapete de Luxo */}
         <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[10, 5]} />
