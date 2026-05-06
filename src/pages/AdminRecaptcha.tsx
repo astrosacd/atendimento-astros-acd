@@ -71,12 +71,17 @@ export default function AdminRecaptcha() {
             <CardDescription>
               Obtenha suas chaves em{' '}
               <a
-                href="https://www.google.com/recaptcha/admin"
+                href="https://www.google.com/recaptcha/admin/create"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault();
-                  window.open('https://www.google.com/recaptcha/admin/create', '_blank', 'noopener,noreferrer');
+                  const url = 'https://www.google.com/recaptcha/admin/create';
+                  try {
+                    (window.top || window).open(url, '_blank', 'noopener,noreferrer');
+                  } catch {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }
                 }}
                 className="inline-flex items-center gap-1 text-primary underline"
               >
