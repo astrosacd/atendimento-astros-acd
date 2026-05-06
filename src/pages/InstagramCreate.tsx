@@ -414,44 +414,83 @@ const InstagramCreate = () => {
 
               <div className="pt-6 border-t mt-4">
                 <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold mb-4">Preview Mobile</p>
-                <div className="mx-auto w-[240px] border-8 border-black rounded-[30px] aspect-[9/18.5] overflow-hidden bg-white shadow-2xl flex flex-col">
-                  {/* Phone UI header */}
-                  <div className="h-6 w-full flex items-center justify-between px-4 pt-1">
-                    <span className="text-[8px] font-bold">9:41</span>
-                    <div className="flex gap-0.5">
-                      <div className="w-2 h-1 bg-black rounded-full" />
-                      <div className="w-2 h-1 bg-black rounded-full opacity-20" />
-                    </div>
-                  </div>
-                  
-                  {/* IG Header */}
-                  <div className="p-2 border-b flex items-center gap-1">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1px]">
-                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                        <div className="w-4 h-4 rounded-full bg-muted" />
+                <div className={cn(
+                  "mx-auto border-8 border-black rounded-[30px] overflow-hidden bg-black shadow-2xl flex flex-col transition-all duration-300",
+                  postType === 'feed' ? "w-[240px] aspect-square" : "w-[240px] aspect-[9/18.5]"
+                )}>
+                  {postType === 'feed' || postType === 'carousel' ? (
+                    <div className="bg-white h-full flex flex-col">
+                      {/* IG Header (Feed) */}
+                      <div className="p-2 border-b flex items-center gap-1">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1px]">
+                          <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                            <div className="w-4 h-4 rounded-full bg-muted" />
+                          </div>
+                        </div>
+                        <span className="text-[8px] font-bold text-black">seu_perfil</span>
+                      </div>
+                      
+                      {/* Content Area */}
+                      <div className="flex-1 bg-muted/20 relative">
+                        {mediaUrls.length > 0 ? (
+                          <div className="w-full h-full">
+                            <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
+                            {postType === 'carousel' && mediaUrls.length > 1 && (
+                              <div className="absolute top-2 right-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                                1/{mediaUrls.length}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
+                            <Instagram className="h-8 w-8 mb-2" />
+                            <span className="text-[10px]">Preview</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* IG Interactions */}
+                      <div className="p-2 flex gap-2">
+                        <div className="w-3 h-3 rounded-full border border-black/20" />
+                        <div className="w-3 h-3 rounded-full border border-black/20" />
+                        <div className="w-3 h-3 rounded-full border border-black/20" />
                       </div>
                     </div>
-                    <span className="text-[8px] font-bold">seu_perfil</span>
-                  </div>
-
-                  {/* IG Content */}
-                  <div className="flex-1 bg-muted/20 relative">
-                    {mediaUrls.length > 0 ? (
-                      <img src={mediaUrls[0]} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">
-                        <Instagram className="h-8 w-8 mb-2" />
-                        <span className="text-[10px]">Preview</span>
+                  ) : (
+                    /* Reels / Stories (Full Screen) */
+                    <div className="h-full relative bg-neutral-900">
+                      {mediaUrls.length > 0 ? (
+                        mediaUrls[0].toLowerCase().includes('.mp4') || mediaUrls[0].toLowerCase().includes('.mov') ? (
+                          <video src={mediaUrls[0]} className="w-full h-full object-cover" autoPlay muted loop />
+                        ) : (
+                          <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
+                        )
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-white/30">
+                          <Instagram className="h-8 w-8 mb-2" />
+                          <span className="text-[10px]">Preview Full</span>
+                        </div>
+                      )}
+                      
+                      {/* Overlays for Reels/Stories */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
+                      
+                      <div className="absolute top-4 left-4 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-muted border border-white/20" />
+                        <span className="text-[10px] font-bold text-white">seu_perfil</span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* IG Interactions */}
-                  <div className="p-2 flex gap-2">
-                    <div className="w-3 h-3 border border-black rounded-full" />
-                    <div className="w-3 h-3 border border-black rounded-full" />
-                    <div className="w-3 h-3 border border-black rounded-full" />
-                  </div>
+                      <div className="absolute bottom-12 left-4 right-12">
+                        <p className="text-[10px] text-white line-clamp-2">{caption || 'Sua legenda aqui...'}</p>
+                      </div>
+
+                      <div className="absolute bottom-12 right-2 flex flex-col gap-4 items-center">
+                        <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm" />
+                        <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm" />
+                        <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

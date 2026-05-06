@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useSiteUrl } from "@/hooks/useSiteUrl";
 import { format, addHours, addDays } from "date-fns";
+import { copyToClipboard } from "@/utils/clipboard";
 import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
@@ -29,6 +30,8 @@ const InstagramModule = () => {
   const siteUrl = useSiteUrl();
 
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
   const [newAccess, setNewAccess] = useState({
@@ -74,9 +77,11 @@ const InstagramModule = () => {
 
       if (error) throw error;
 
-      toast.success("Link de acesso provisório criado!");
-      fetchTokens();
+      const fullUrl = `${siteUrl}/access/${token}`;
+      setGeneratedLink(fullUrl);
+      setIsSuccessDialogOpen(true);
       setIsAccessDialogOpen(false);
+      fetchTokens();
     } catch (error: any) {
       toast.error("Erro ao criar link: " + error.message);
     } finally {
@@ -96,8 +101,8 @@ const InstagramModule = () => {
 
   const copyLink = (token: string) => {
     const url = `${siteUrl}/access/${token}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copiado para a área de transferência!");
+    copyToClipboard(url);
+    toast.success("Link copiado!");
   };
 
   if (!canViewInstagram()) {
@@ -202,6 +207,43 @@ const InstagramModule = () => {
               </DialogContent>
             </Dialog>
           )}
+
+          <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-500" />
+                  Link Gerado!
+                </DialogTitle>
+                <DialogDescription>
+                  O link de acesso provisório está pronto. Copie e envie para o assistente.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2 py-4">
+                <div className="grid flex-1 gap-2">
+                  <Label htmlFor="link" className="sr-only">Link</Label>
+                  <Input
+                    id="link"
+                    defaultValue={generatedLink}
+                    readOnly
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <Button size="sm" className="px-3" onClick={() => {
+                  copyToClipboard(generatedLink);
+                  toast.success("Link copiado!");
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setIsSuccessDialogOpen(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Tabs defaultValue="create" className="space-y-6">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Instagram, Save, Eye, EyeOff, ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, Info, Webhook } from "lucide-react";
 import { format, isBefore, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,7 @@ const InstagramSettings = () => {
     app_id: "",
     app_secret: "",
     token_expires_at: null as string | null,
+    renewal_webhook: "",
   });
 
   useEffect(() => {
@@ -38,17 +39,24 @@ const InstagramSettings = () => {
       .eq("user_id", user?.id)
       .maybeSingle();
 
+    const { data: webhookConfig } = await supabase
+      .from('billing_config')
+      .select('config_value')
+      .eq('config_key', 'instagram_renewal_webhook')
+      .maybeSingle();
+
     if (error) {
       console.error("Error fetching settings:", error);
-    } else if (data) {
+    } else {
       setSettings({
-        ig_user_id: data.ig_user_id || "",
-        page_id: data.page_id || "",
-        account_username: data.account_username || "",
-        access_token: data.access_token || "",
-        app_id: data.app_id || "",
-        app_secret: data.app_secret || "",
-        token_expires_at: data.token_expires_at || null,
+        ig_user_id: data?.ig_user_id || "",
+        page_id: data?.page_id || "",
+        account_username: data?.account_username || "",
+        access_token: data?.access_token || "",
+        app_id: data?.app_id || "",
+        app_secret: data?.app_secret || "",
+        token_expires_at: data?.token_expires_at || null,
+        renewal_webhook: webhookConfig?.config_value || "",
       });
     }
   };
@@ -110,7 +118,7 @@ const InstagramSettings = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.from("instagram_settings").upsert({
+      const { error: settingsError } = await supabase.from("instagram_settings").upsert({
         user_id: user?.id,
         ig_user_id: settings.ig_user_id,
         page_id: settings.page_id,
@@ -121,7 +129,16 @@ const InstagramSettings = () => {
         updated_at: new Date().toISOString(),
       });
 
-      if (error) throw error;
+      if (settingsError) throw settingsError;
+
+      const { error: webhookError } = await supabase
+        .from('billing_config')
+        .upsert({
+          config_key: 'instagram_renewal_webhook',
+          config_value: settings.renewal_webhook
+        });
+
+      if (webhookError) throw webhookError;
 
       // Automatically check token validity if App ID and Secret are provided
       if (settings.app_id && settings.app_secret && settings.access_token) {
@@ -296,6 +313,32 @@ const InstagramSettings = () => {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Webhook className="h-5 w-5 text-primary" />
+              Notificação de Renovação (n8n)
+            </CardTitle>
+            <CardDescription>
+              URL do Webhook para receber o novo token após renovação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="webhook">URL do Webhook</Label>
+              <Input
+                id="webhook"
+                placeholder="https://seu-n8n.com/webhook/..."
+                value={settings.renewal_webhook}
+                onChange={(e) => setSettings({ ...settings, renewal_webhook: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                O sistema enviará um POST JSON com `new_token` e `expires_at` sempre que o token for renovado com sucesso.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

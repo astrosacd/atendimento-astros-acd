@@ -114,9 +114,34 @@ serve(async (req) => {
         })
         .eq('user_id', user.id);
 
+      // Webhook Notification for n8n
+      const { data: webhookConfig } = await supabase
+        .from('billing_config')
+        .select('config_value')
+        .eq('config_key', 'instagram_renewal_webhook')
+        .maybeSingle();
+
+      if (webhookConfig?.config_value) {
+        try {
+          await fetch(webhookConfig.config_value, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'instagram_token_renewed',
+              user_id: user.id,
+              new_token: newAccessToken,
+              expires_at: expirationDate,
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (webhookErr) {
+          console.error("Error calling n8n webhook:", webhookErr);
+        }
+      }
+
       return new Response(JSON.stringify({ 
         success: true, 
-        message: "Token renovado com sucesso",
+        message: "Token renovado com sucesso! Nova validade: " + (expirationDate ? new Date(expirationDate).toLocaleDateString('pt-BR') : 'indeterminada'),
         data: {
           expires_at: expirationDate
         } 

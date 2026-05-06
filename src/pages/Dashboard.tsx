@@ -10,7 +10,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
-  Wallet, Phone, Headphones, ThumbsUp, User
+  Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -82,6 +82,8 @@ interface ClienteStats {
   billingSkipped: number;
   billingErrorsUnresolved: number;
   churnRate: number;
+  instagramTokenExpiring: boolean;
+  instagramTokenExpiryDate: string | null;
 }
 
 // Removed unused interface
@@ -134,6 +136,8 @@ export default function Dashboard() {
     billingSkipped: 0,
     billingErrorsUnresolved: 0,
     churnRate: 0,
+    instagramTokenExpiring: false,
+    instagramTokenExpiryDate: null,
   });
 
   useEffect(() => {
@@ -311,7 +315,29 @@ export default function Dashboard() {
       let billingErrorsUnresolvedCount = 0;
       let churnRate = 0;
 
+      let instagramTokenExpiring = false;
+      let instagramTokenExpiryDate = null;
+
       if (isAdmin) {
+        // Check Instagram token status
+        const { data: igSettings } = await supabase
+          .from('instagram_settings')
+          .select('token_expires_at')
+          .limit(1)
+          .maybeSingle();
+
+        if (igSettings?.token_expires_at) {
+          const expiryDate = new Date(igSettings.token_expires_at);
+          const now = new Date();
+          const warningThreshold = new Date(now);
+          warningThreshold.setDate(now.getDate() + 10); // 10 days warning
+          
+          if (expiryDate <= warningThreshold) {
+            instagramTokenExpiring = true;
+            instagramTokenExpiryDate = igSettings.token_expires_at;
+          }
+        }
+
         // Calculate Churn Rate (last 30 days) - Customer Centric (Unique CPF/Nome)
         const { data: allHistory } = await supabase
           .from('client_history')
@@ -449,6 +475,8 @@ export default function Dashboard() {
         billingSkipped: billingSkippedCount,
         billingErrorsUnresolved: billingErrorsUnresolvedCount,
         churnRate,
+        instagramTokenExpiring,
+        instagramTokenExpiryDate,
       });
     };
 
@@ -717,6 +745,17 @@ export default function Dashboard() {
           tone: 'warning' as const,
           icon: AlertTriangle,
           pulse: false,
+        }
+      : null,
+    isAdmin && stats.instagramTokenExpiring
+      ? {
+          id: 'instagram-token',
+          title: 'Token do Instagram Expirando',
+          description: `O seu Meta Access Token expira em ${stats.instagramTokenExpiryDate ? new Date(stats.instagramTokenExpiryDate).toLocaleDateString('pt-BR') : 'breve'}. Renove nas configurações do módulo.`,
+          onClick: () => navigate('/instagram'),
+          tone: 'warning' as const,
+          icon: Instagram,
+          pulse: true,
         }
       : null,
     failedFollowups.length > 0

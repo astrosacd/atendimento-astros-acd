@@ -6760,6 +6760,10 @@ export type Database = {
     Functions: {
       can_approve_order: { Args: { user_uuid: string }; Returns: boolean }
       check_profile_safe_update: { Args: never; Returns: boolean }
+      check_temp_token_validity: {
+        Args: { token_val: string }
+        Returns: boolean
+      }
       create_password_reset_token: {
         Args: {
           p_email: string
