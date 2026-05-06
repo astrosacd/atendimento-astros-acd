@@ -325,14 +325,14 @@ const InstagramCreate = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="flex-1 flex flex-col">
             <CardHeader>
               <CardTitle className="text-lg">Legenda</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col">
               <Textarea 
                 placeholder="Escreva algo interessante..." 
-                className="h-32"
+                className="flex-1 min-h-32 resize-none"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
               />
