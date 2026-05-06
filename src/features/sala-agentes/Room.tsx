@@ -166,7 +166,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       ))}
 
       {/* --- SERVIDOR CENTRAL (HUB DE DADOS) --- */}
-      <group position={[0, 0, -2]}>
+      <group position={[0, 0, -11]}>
         <mesh castShadow position={[0, 0.9, 0]}>
           <boxGeometry args={[1.6, 1.8, 1.6]} />
           <meshPhysicalMaterial 
