@@ -16,7 +16,7 @@ import {
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
   Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
   MessageSquare, Send, UserMinus, BarChart3, Database, ShoppingCart,
-  Award, Share2, Phone, Crosshair, Globe, Search
+  Award, Share2, Phone, Crosshair, Globe, Search, Instagram
 } from 'lucide-react';
 import {
   Dialog,
