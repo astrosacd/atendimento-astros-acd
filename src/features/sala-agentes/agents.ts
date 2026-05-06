@@ -105,7 +105,10 @@ export function agentForEvent(table: string, action?: string): string | null {
   if (t === 'numeros_aquecimento') return 'numeros-aquecimento';
   if (t === 'despesas') return 'despesas';
   if (t === 'webhooks') return 'webhooks';
-  if (t === 'automation_logs') return 'automations';
+  if (t === 'automation_logs') return 'webhooks';
+  if (t === 'instagram_posts' || t === 'instagram_settings') return 'instagram';
+  if (t === 'gateway_orders' || t === 'gateway_products') return 'gateway';
+  if (t === 'audit_logs') return 'audit';
   return null;
 }
 
