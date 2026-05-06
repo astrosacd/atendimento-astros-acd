@@ -272,8 +272,6 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
         { title: t('sidebar.leadhunter'), icon: Crosshair, path: '/lead-hunter', color: 'text-orange-500', gradient: 'from-orange-500 to-red-500' },
         { title: t('sidebar.broadcaster'), icon: Megaphone, path: '/admin/divulgador', adminOnly: !canViewDivulgador(), color: 'text-amber-500', gradient: 'from-amber-500 to-yellow-500' },
         { title: 'Instagram', icon: Instagram, path: '/instagram', color: 'text-pink-500', gradient: 'from-pink-500 to-rose-500' },
-        { title: 'Histórico IG', icon: History, path: '/instagram/history', color: 'text-indigo-400', gradient: 'from-indigo-400 to-blue-500' },
-        { title: 'Config IG', icon: Instagram, path: '/instagram/settings', color: 'text-slate-400', gradient: 'from-slate-400 to-zinc-500' },
         { title: t('sidebar.proposals'), icon: FileSignature, path: '/propostas', adminOnly: !canViewProposals(), color: 'text-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
         { title: t('sidebar.paymentlink'), icon: Link2, path: '/link-pagamento', adminOnly: !canViewPaymentLinks(), color: 'text-green-500', gradient: 'from-green-500 to-emerald-500' },
       ]
