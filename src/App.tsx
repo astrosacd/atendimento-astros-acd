@@ -182,7 +182,7 @@ function AppRoutes() {
       <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
       
       {/* Instagram Module */}
-      <Route path="/instagram" element={<ProtectedRoute permission="manage_instagram"><InstagramModule /></ProtectedRoute>} />
+      <Route path="/instagram" element={<ProtectedRoute permission="view_instagram"><InstagramModule /></ProtectedRoute>} />
       
       {/* Public Routes - NO AUTH */}
       <Route path="/chamados" element={<ChamadosPublico />} />
