@@ -159,6 +159,7 @@ const categoryToPermission: Record<string, string> = {
   'servidores-compartilhamento': 'view_guia_servidores',
   'aprovacoes-visao-geral': 'view_guia_aprovacoes',
   'automacoes-visao-geral': 'view_guia_automacoes',
+  'instagram': 'view_guia_instagram',
 };
 
 const AdminGuia = () => {
