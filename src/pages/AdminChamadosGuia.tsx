@@ -6,9 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen, ExternalLink, Copy, Code, Webhook, Key, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard as __copyToClipboard } from '@/utils/clipboard';
+import { useSiteUrl } from "@/hooks/useSiteUrl";
 
 const AdminChamadosGuia = () => {
   const navigate = useNavigate();
+  const siteUrl = useSiteUrl();
   const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
   const copyToClipboard = (text: string) => {
@@ -337,13 +339,13 @@ const AdminChamadosGuia = () => {
                     Este é o link único e fixo que você deve enviar para seus clientes acessarem o sistema de chamados:
                   </p>
                   <div className="flex items-center gap-2 p-3 bg-background rounded-lg font-mono text-sm">
-                    <span className="flex-1 break-all">{window.location.origin}/chamados</span>
+                    <span className="flex-1 break-all">{siteUrl}/chamados</span>
                     <Button 
                       variant="default" 
                       size="sm" 
                       className="shrink-0"
                       onClick={() => {
-                        copyToClipboard(`${window.location.origin}/chamados`);
+                        copyToClipboard(`${siteUrl}/chamados`);
                       }}
                     >
                       <Copy className="h-4 w-4 mr-2" />
@@ -381,7 +383,7 @@ const AdminChamadosGuia = () => {
                       Cada chamado possui sua própria hash de acesso, que pode ser usada para acessar diretamente aquele chamado específico:
                     </p>
                     <div className="p-2 bg-background rounded font-mono text-xs break-all">
-                      {window.location.origin}/chamados?hash=a1b2c3d4e5f6...
+                      {siteUrl}/chamados?hash=a1b2c3d4e5f6...
                     </div>
                     <p>
                       O cliente pode acessar o chamado através dessa hash sem precisar fazer login ou verificação por email.

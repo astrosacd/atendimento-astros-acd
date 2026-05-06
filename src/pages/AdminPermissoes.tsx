@@ -16,7 +16,7 @@ import {
   CreditCard, Webhook, Key, FileText, Settings, LayoutDashboard,
   Plus, Save, X, Check, Pencil, Download, Tag, Megaphone,
   MessageSquare, Send, UserMinus, BarChart3, Database, ShoppingCart,
-  Award, Share2, Phone, Crosshair, Globe, Search
+  Award, Share2, Phone, Crosshair, Globe, Search, Instagram
 } from 'lucide-react';
 import {
   Dialog,
@@ -106,6 +106,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Vendas': <BarChart3 className="h-4 w-4" />,
   'Conexões': <Globe className="h-4 w-4" />,
   'Sala dos Agentes': <Eye className="h-4 w-4" />,
+  'Instagram': <Instagram className="h-4 w-4" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
