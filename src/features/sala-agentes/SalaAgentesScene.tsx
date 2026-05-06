@@ -193,7 +193,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
       {/* Canvas 3D */}
       <Canvas
         shadows
-        camera={{ position: [14, 13, 14], fov: 38 }}
+        camera={{ position: [22, 20, 22], fov: 42 }}
         dpr={[1, 1.8]}
         gl={{ antialias: true, alpha: false }}
       >
