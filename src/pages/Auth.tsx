@@ -678,10 +678,15 @@ export default function Auth() {
                   />
                   <p className="text-xs text-muted-foreground">Apenas números, com DDD</p>
                 </div>
+                {recaptcha.enabled && recaptcha.siteKey && (
+                  <div className="flex justify-center pt-1">
+                    <div id="recaptcha-signup-container" />
+                  </div>
+                )}
                 <Button 
                   type="submit" 
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-green"
-                  disabled={isLoading}
+                  disabled={isLoading || (recaptcha.enabled && !recaptchaToken)}
                 >
                   {isLoading ? 'Enviando solicitação...' : 'Solicitar Acesso'}
                 </Button>
