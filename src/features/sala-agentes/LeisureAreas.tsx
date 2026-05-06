@@ -9,7 +9,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
   return (
     <group>
       {/* COPA — canto direito frontal */}
-      <group position={[11, 0, 7]}>
+      <group position={[17, 0, 11]}>
         {/* Tapete de borracha high-tech */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[4, 4]} />
@@ -62,7 +62,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
       </group>
 
       {/* ACADEMIA EXECUTIVA — canto esquerdo frontal */}
-      <group position={[-11, 0, 7]}>
+      <group position={[-17, 0, 11]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[4, 4]} />
           <meshStandardMaterial color="#0f172a" roughness={0.8} />
@@ -114,7 +114,7 @@ export function LeisureAreas({ isNight }: { isNight: boolean }) {
       </group>
 
       {/* ÁREA PRIVATIVA / WC — fundo */}
-      <group position={[12.5, 0, -8]}>
+      <group position={[19, 0, -12]}>
         <mesh castShadow position={[0, 1.25, 0]}>
           <boxGeometry args={[0.15, 2.5, 1.2]} />
           <meshStandardMaterial color="#1e293b" />

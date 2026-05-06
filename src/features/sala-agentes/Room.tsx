@@ -9,9 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
  * Reformulada para um visual mais realista e empresarial.
  */
 export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string | null }) {
-  const W = 26;
-  const D = 18;
-  const ceilingHeight = 5;
+  const W = 40;
+  const D = 28;
+  const ceilingHeight = 6;
 
   return (
     <group>
@@ -31,7 +31,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       
       {/* Grid discreto (apenas para senso de escala) */}
       <gridHelper 
-        args={[W, 26, isNight ? '#1e293b' : '#cbd5e1', isNight ? '#0f172a' : '#f1f5f9']} 
+        args={[W, 40, isNight ? '#1e293b' : '#cbd5e1', isNight ? '#0f172a' : '#f1f5f9']} 
         position={[0, 0.01, 0]} 
       />
 
@@ -43,13 +43,13 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </mesh>
         
         {/* Vigas Estruturais */}
-        {[-8, -4, 0, 4, 8].map(x => (
+        {[-16, -12, -8, -4, 0, 4, 8, 12, 16].map(x => (
           <mesh key={`beam-v-${x}`} position={[x, -0.1, 0]}>
             <boxGeometry args={[0.2, 0.2, D]} />
             <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
           </mesh>
         ))}
-        {[-6, 0, 6].map(z => (
+        {[-10, -5, 0, 5, 10].map(z => (
           <mesh key={`beam-h-${z}`} position={[0, -0.1, z]}>
             <boxGeometry args={[W, 0.2, 0.2]} />
             <meshStandardMaterial color={isNight ? '#1e293b' : '#e2e8f0'} />
@@ -57,7 +57,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         ))}
 
         {/* Painéis de Luz LED Embutidos */}
-        {[-6, 6].map(x => [-4, 4].map(z => (
+        {[-12, -6, 0, 6, 12].map(x => [-7, 0, 7].map(z => (
           <group key={`light-${x}-${z}`} position={[x, -0.05, z]}>
             <mesh>
               <boxGeometry args={[2, 0.05, 1]} />
@@ -98,38 +98,25 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </mesh>
       </group>
 
-      {/* --- DIVISÓRIAS DE VIDRO CORPORATIVAS --- */}
+      {/* --- DIVISÓRIAS DE VIDRO CORPORATIVAS (4 departamentos) --- */}
       <group>
-        {/* Vidro Lateral com moldura preta */}
-        {[-4.5, 4.5].map(x => (
-          <group key={`glass-${x}`} position={[x, 1.5, -2]}>
+        {[-5, 5].map(x => (
+          <group key={`glass-${x}`} position={[x, 1.5, -3]}>
             <mesh>
-              <boxGeometry args={[0.05, 3, 10]} />
-              <meshPhysicalMaterial 
-                color="#e0f2fe" 
-                transparent 
-                opacity={0.15} 
-                transmission={0.9} 
-                thickness={0.1}
-                roughness={0}
-              />
+              <boxGeometry args={[0.05, 3, 14]} />
+              <meshPhysicalMaterial color="#e0f2fe" transparent opacity={0.15} transmission={0.9} thickness={0.1} roughness={0} />
             </mesh>
             <mesh position={[0, 1.5, 0]}>
-              <boxGeometry args={[0.1, 0.1, 10]} />
+              <boxGeometry args={[0.1, 0.1, 14]} />
               <meshStandardMaterial color="#0f172a" />
             </mesh>
           </group>
         ))}
-        {/* Vidro Fundo */}
+        {/* Vidro Fundo (separa operacional) */}
         <group position={[0, 1.5, 3]}>
           <mesh>
             <boxGeometry args={[W, 3, 0.05]} />
-            <meshPhysicalMaterial 
-              color="#e0f2fe" 
-              transparent 
-              opacity={0.1} 
-              transmission={0.9} 
-            />
+            <meshPhysicalMaterial color="#e0f2fe" transparent opacity={0.1} transmission={0.9} />
           </mesh>
           <mesh position={[0, 1.5, 0]}>
             <boxGeometry args={[W, 0.1, 0.1]} />
@@ -138,37 +125,35 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </group>
       </group>
 
-      {/* Rótulos das Salas Minimalistas */}
-      <Html position={[-9, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      {/* Rótulos das Salas */}
+      <Html position={[-11, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           DEPT. COMERCIAL
         </div>
       </Html>
-      <Html position={[0, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-blue-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      <Html position={[0, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-blue-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           CENTRO SMART IA
         </div>
       </Html>
-      <Html position={[9, 3.8, -7]} center distanceFactor={12}>
-        <div className="rounded-full bg-emerald-600/80 px-3 py-1 text-[9px] font-bold text-white backdrop-blur-md border border-white/20">
+      <Html position={[11, 4.5, -10]} center distanceFactor={14}>
+        <div className="rounded-full bg-emerald-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
           FINANCEIRO
+        </div>
+      </Html>
+      <Html position={[0, 4.5, 9]} center distanceFactor={14}>
+        <div className="rounded-full bg-orange-600/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
+          OPERAÇÕES & SUPORTE
         </div>
       </Html>
 
       {/* --- JANELAS PANORÂMICAS --- */}
-      {[-8.5, 0, 8.5].map((x) => (
+      {[-15, -7.5, 0, 7.5, 15].map((x) => (
         <group key={`window-${x}`} position={[x, 3.2, -D / 2 + 0.11]}>
-          {/* Vidro da Janela */}
           <mesh>
             <boxGeometry args={[5, 3.2, 0.02]} />
-            <meshPhysicalMaterial 
-              color="#bae0ff" 
-              transparent 
-              opacity={0.2} 
-              transmission={0.8}
-            />
+            <meshPhysicalMaterial color="#bae0ff" transparent opacity={0.2} transmission={0.8} />
           </mesh>
-          {/* Moldura da Janela */}
           <mesh>
             <boxGeometry args={[5.2, 3.4, 0.1]} />
             <meshStandardMaterial color="#1e293b" />
@@ -181,7 +166,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       ))}
 
       {/* --- SERVIDOR CENTRAL (HUB DE DADOS) --- */}
-      <group position={[0, 0, -2]}>
+      <group position={[0, 0, -11]}>
         <mesh castShadow position={[0, 0.9, 0]}>
           <boxGeometry args={[1.6, 1.8, 1.6]} />
           <meshPhysicalMaterial 
@@ -232,7 +217,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       </group>
 
       {/* --- SALA DE REUNIÃO EXECUTIVA --- */}
-      <group position={[0, 0, 6]}>
+      <group position={[0, 0, 10]}>
         {/* Tapete de Luxo */}
         <mesh receiveShadow rotation={[-Math.PI/2,0,0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[10, 5]} />
@@ -277,7 +262,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       </group>
 
       {/* --- PAISAGISMO CORPORATIVO --- */}
-      {[[-11.5, -7], [11.5, -7], [-11.5, 7], [11.5, 7]].map(([x, z], i) => (
+      {[[-18, -12], [18, -12], [-18, 12], [18, 12], [-18, 0], [18, 0]].map(([x, z], i) => (
         <group key={`plant-${i}`} position={[x, 0, z]}>
           {/* Vaso Moderno */}
           <mesh castShadow position={[0, 0.4, 0]}>
@@ -318,17 +303,86 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
         </group>
       ))}
 
-      {/* --- RECEPÇÃO / BALCÃO --- */}
-      <group position={[0, 0, 8.2]}>
+      {/* --- RECEPÇÃO / BALCÃO (frente) --- */}
+      <group position={[0, 0, 13]}>
         <mesh castShadow position={[0, 0.5, 0]}>
-          <boxGeometry args={[4, 1.1, 0.8]} />
+          <boxGeometry args={[5, 1.1, 0.8]} />
           <meshPhysicalMaterial color="#1e3a8a" roughness={0.1} metalness={0.2} />
         </mesh>
         <mesh position={[0, 1.1, 0]}>
-          <boxGeometry args={[4.2, 0.08, 0.9]} />
+          <boxGeometry args={[5.2, 0.08, 0.9]} />
           <meshPhysicalMaterial color="#ffffff" metalness={0.5} roughness={0.1} />
         </mesh>
-        <pointLight position={[0, 1.5, 0]} intensity={1} color="#ffffff" distance={3} />
+        <pointLight position={[0, 1.5, 0]} intensity={1} color="#ffffff" distance={4} />
+      </group>
+
+      {/* --- JARDIM INTERNO + BANCOS (centro entre depto e operações) --- */}
+      <group position={[0, 0, 1.5]}>
+        {/* Tapete circular verde */}
+        <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.02, 0]}>
+          <circleGeometry args={[2.5, 32]} />
+          <meshStandardMaterial color={isNight ? '#022c22' : '#86efac'} roughness={0.9} />
+        </mesh>
+        {/* Árvore central */}
+        <mesh castShadow position={[0, 0.6, 0]}>
+          <cylinderGeometry args={[0.18, 0.22, 1.2, 12]} />
+          <meshStandardMaterial color="#7c5a3a" roughness={0.9} />
+        </mesh>
+        {[1.4, 2.0, 2.6].map((h, i) => (
+          <mesh key={i} castShadow position={[0, 1 + h/3, 0]} rotation={[0, i * 0.7, 0]}>
+            <coneGeometry args={[1.1 - i*0.2, h, 10]} />
+            <meshStandardMaterial color={i === 0 ? '#15803d' : '#16a34a'} roughness={0.85} />
+          </mesh>
+        ))}
+        {/* Bancos ao redor */}
+        {[0, 90, 180, 270].map(deg => {
+          const rad = (deg * Math.PI) / 180;
+          const r = 2.0;
+          return (
+            <group key={deg} position={[Math.cos(rad)*r, 0, Math.sin(rad)*r]} rotation={[0, -rad, 0]}>
+              <mesh castShadow position={[0, 0.3, 0]}>
+                <boxGeometry args={[1.2, 0.1, 0.4]} />
+                <meshStandardMaterial color="#1e293b" />
+              </mesh>
+              <mesh position={[-0.55, 0.15, 0]}>
+                <boxGeometry args={[0.1, 0.3, 0.4]} />
+                <meshStandardMaterial color="#475569" metalness={0.7} />
+              </mesh>
+              <mesh position={[0.55, 0.15, 0]}>
+                <boxGeometry args={[0.1, 0.3, 0.4]} />
+                <meshStandardMaterial color="#475569" metalness={0.7} />
+              </mesh>
+            </group>
+          );
+        })}
+        <Html position={[0, 4, 0]} center distanceFactor={16}>
+          <div className="rounded-full bg-emerald-700/90 px-3 py-1 text-[9px] font-bold text-white border border-white/20 shadow-lg">
+            🌿 PRAÇA CENTRAL
+          </div>
+        </Html>
+      </group>
+
+      {/* --- SALA DE SERVIDORES (rack farm canto fundo esquerdo) --- */}
+      <group position={[-17, 0, -10]}>
+        {[0, 1, 2].map(i => (
+          <group key={i} position={[i * 0.9, 0, 0]}>
+            <mesh castShadow position={[0, 1.1, 0]}>
+              <boxGeometry args={[0.7, 2.2, 0.7]} />
+              <meshPhysicalMaterial color="#0f172a" metalness={0.85} roughness={0.2} />
+            </mesh>
+            {[...Array(8)].map((_, k) => (
+              <mesh key={k} position={[0, 1.9 - k*0.22, 0.36]}>
+                <boxGeometry args={[0.6, 0.06, 0.02]} />
+                <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={Math.random() > 0.5 ? 1.2 : 0.3} />
+              </mesh>
+            ))}
+          </group>
+        ))}
+        <Html position={[1, 3, 0]} center distanceFactor={14}>
+          <div className="rounded-full bg-cyan-700/90 px-3 py-1 text-[9px] font-bold text-white border border-white/20">
+            DATA CENTER
+          </div>
+        </Html>
       </group>
     </group>
   );

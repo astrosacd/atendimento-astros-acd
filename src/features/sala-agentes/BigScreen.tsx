@@ -15,7 +15,7 @@ interface Props {
  * Usa Html para texto crisp, mas apoiada em uma moldura 3D.
  */
 export function BigScreen({
-  position = [0, 4, -8.9],
+  position = [0, 4.5, -13.9],
   rotation = [0, 0, 0],
   busyCount,
   totalAgents,

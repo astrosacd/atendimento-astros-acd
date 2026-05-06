@@ -193,12 +193,12 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
       {/* Canvas 3D */}
       <Canvas
         shadows
-        camera={{ position: [14, 13, 14], fov: 38 }}
+        camera={{ position: [22, 20, 22], fov: 42 }}
         dpr={[1, 1.8]}
         gl={{ antialias: true, alpha: false }}
       >
         <color attach="background" args={[isNight ? '#1a1c2c' : '#f5ecd9']} />
-        <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 28, 55]} />
+        <fog attach="fog" args={[isNight ? '#1a1c2c' : '#f5ecd9', 40, 80]} />
 
         {/* Iluminação dinâmica */}
         <ambientLight intensity={isNight ? 0.25 : 0.55} />
@@ -247,7 +247,7 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
           <ContactShadows
             position={[0, 0.01, 0]}
             opacity={isNight ? 0.6 : 0.35}
-            scale={28}
+            scale={42}
             blur={2.4}
             far={6}
           />
@@ -255,8 +255,8 @@ export function SalaAgentesScene({ isPublic = false }: { isPublic?: boolean } = 
 
         <OrbitControls
           enablePan
-          minDistance={8}
-          maxDistance={28}
+          minDistance={10}
+          maxDistance={42}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           target={[0, 1, 0]}
