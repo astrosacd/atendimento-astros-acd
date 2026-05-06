@@ -262,7 +262,7 @@ export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string
       </group>
 
       {/* --- PAISAGISMO CORPORATIVO --- */}
-      {[[-11.5, -7], [11.5, -7], [-11.5, 7], [11.5, 7]].map(([x, z], i) => (
+      {[[-18, -12], [18, -12], [-18, 12], [18, 12], [-18, 0], [18, 0]].map(([x, z], i) => (
         <group key={`plant-${i}`} position={[x, 0, z]}>
           {/* Vaso Moderno */}
           <mesh castShadow position={[0, 0.4, 0]}>
