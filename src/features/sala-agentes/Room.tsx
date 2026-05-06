@@ -9,9 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
  * Reformulada para um visual mais realista e empresarial.
  */
 export function Room({ isNight, logoUrl }: { isNight?: boolean; logoUrl?: string | null }) {
-  const W = 26;
-  const D = 18;
-  const ceilingHeight = 5;
+  const W = 40;
+  const D = 28;
+  const ceilingHeight = 6;
 
   return (
     <group>
