@@ -339,13 +339,13 @@ const AdminChamadosGuia = () => {
                     Este é o link único e fixo que você deve enviar para seus clientes acessarem o sistema de chamados:
                   </p>
                   <div className="flex items-center gap-2 p-3 bg-background rounded-lg font-mono text-sm">
-                    <span className="flex-1 break-all">{window.location.origin}/chamados</span>
+                    <span className="flex-1 break-all">{siteUrl}/chamados</span>
                     <Button 
                       variant="default" 
                       size="sm" 
                       className="shrink-0"
                       onClick={() => {
-                        copyToClipboard(`${window.location.origin}/chamados`);
+                        copyToClipboard(`${siteUrl}/chamados`);
                       }}
                     >
                       <Copy className="h-4 w-4 mr-2" />
