@@ -69,18 +69,18 @@ interface Chamado {
 }
 
 const statusConfig: Record<ChamadoStatus, { label: string; color: string; icon: React.ElementType }> = {
-  aberto: { label: 'Aberto', color: 'bg-blue-500/10 text-blue-500 border-blue-500/30', icon: AlertCircle },
-  em_andamento: { label: 'Em Andamento', color: 'bg-amber-500/10 text-amber-500 border-amber-500/30', icon: Clock },
-  aguardando_cliente: { label: 'Aguardando Cliente', color: 'bg-purple-500/10 text-purple-500 border-purple-500/30', icon: User },
-  resolvido: { label: 'Resolvido', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30', icon: CheckCircle },
-  fechado: { label: 'Fechado', color: 'bg-muted text-muted-foreground border-border', icon: XCircle },
+  aberto: { label: 'Aberto', color: 'bg-blue-500/10 text-blue-600 border-blue-200', icon: AlertCircle },
+  em_andamento: { label: 'Em Atendimento', color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: Clock },
+  aguardando_cliente: { label: 'Aguardando Cliente', color: 'bg-purple-500/10 text-purple-600 border-purple-200', icon: User },
+  resolvido: { label: 'Resolvido', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200', icon: CheckCircle },
+  fechado: { label: 'Fechado', color: 'bg-slate-100 text-slate-500 border-slate-200', icon: XCircle },
 };
 
-const prioridadeConfig: Record<ChamadoPrioridade, { label: string; color: string }> = {
-  baixa: { label: 'Baixa', color: 'bg-slate-500/10 text-slate-500' },
-  media: { label: 'Média', color: 'bg-blue-500/10 text-blue-500' },
-  alta: { label: 'Alta', color: 'bg-orange-500/10 text-orange-500' },
-  urgente: { label: 'Urgente', color: 'bg-red-500/10 text-red-500' },
+const prioridadeConfig: Record<ChamadoPrioridade, { label: string; color: string; indicator: string }> = {
+  baixa: { label: 'Baixa', color: 'bg-slate-100 text-slate-600', indicator: 'bg-slate-400' },
+  media: { label: 'Média', color: 'bg-blue-100 text-blue-600', indicator: 'bg-blue-500' },
+  alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600', indicator: 'bg-orange-500' },
+  urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600', indicator: 'bg-red-500' },
 };
 
 const AdminChamados = () => {
