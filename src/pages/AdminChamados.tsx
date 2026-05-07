@@ -329,17 +329,17 @@ const AdminChamados = () => {
                     </ScrollArea>
                   </div>
                   {(selectedChamado.status === 'resolvido' || selectedChamado.status === 'fechado') ? (
-                    <div className="rounded-2xl border-2 border-dashed border-emerald-500/30 bg-emerald-500/5 p-6 text-center space-y-2">
-                      <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                        <Lock className="h-5 w-5 text-emerald-500" />
+                    <div className="shrink-0 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <Lock className="h-4 w-4 text-emerald-500" />
                       </div>
-                      <p className="text-sm font-bold text-emerald-500 uppercase tracking-widest">Chamado Encerrado</p>
-                      <p className="text-xs text-muted-foreground max-w-[280px] mx-auto">
-                        Este chamado foi marcado como <span className="font-bold">{statusConfig[selectedChamado.status].label}</span> e não pode mais ser alterado ou receber novas mensagens.
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Chamado Encerrado</p>
+                        <p className="text-[11px] text-muted-foreground">Status <span className="font-bold">{statusConfig[selectedChamado.status].label}</span> — não pode ser alterado.</p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-4 pt-4 border-t border-border/40">
+                    <div className="shrink-0 space-y-3 pt-3 border-t border-border/40">
                       <div className="flex gap-2">
                         <Button size="sm" variant={commentType === 'publico' ? 'default' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('publico')}><Eye className="h-3 w-3 mr-1" /> PÚBLICO</Button>
                         <Button size="sm" variant={commentType === 'interno' ? 'secondary' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('interno')}><Lock className="h-3 w-3 mr-1" /> INTERNO</Button>
@@ -362,21 +362,19 @@ const AdminChamados = () => {
                           <Send className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="flex gap-2 pt-2">
-                        <Select 
-                          value={selectedChamado.status} 
-                          onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
-                        >
-                          <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(statusConfig).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <Select 
+                        value={selectedChamado.status} 
+                        onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
+                      >
+                        <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(statusConfig).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </CardContent>
