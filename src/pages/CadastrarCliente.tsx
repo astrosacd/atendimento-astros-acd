@@ -97,7 +97,7 @@ export default function CadastrarCliente() {
     data_renovacao: '',
     email: '',
     cpf: '',
-    plano: 'Individual',
+    plano: '',
     valor: 0,
     moeda: undefined,
     observacao: '',
