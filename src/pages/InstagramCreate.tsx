@@ -411,15 +411,31 @@ const InstagramCreate = () => {
               <CardTitle className="text-lg">Legenda</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
-              <Textarea 
-                placeholder="Escreva algo interessante..." 
-                className="flex-1 min-h-32 resize-none"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-              />
-              <p className="text-[10px] text-muted-foreground mt-2">
-                Dica: Use hashtags para aumentar o alcance.
-              </p>
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-muted-foreground">
+                    {postType === 'stories' ? "Legenda (não visível em Stories)" : "Legenda do Post"}
+                  </Label>
+                  <span className={cn(
+                    "text-[10px] font-mono",
+                    caption.length > 2200 ? "text-destructive" : "text-muted-foreground"
+                  )}>
+                    {caption.length}/2200
+                  </span>
+                </div>
+                <Textarea 
+                  placeholder={postType === 'stories' ? "Legenda não é enviada para Stories via API..." : "Escreva algo interessante..."} 
+                  className="flex-1 min-h-32 resize-none"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value.substring(0, 2200))}
+                  disabled={postType === 'stories'}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {postType === 'stories' 
+                    ? "A API do Instagram não permite enviar legendas para Stories." 
+                    : "Dica: Use hashtags para aumentar o alcance (máx. 30)."}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
