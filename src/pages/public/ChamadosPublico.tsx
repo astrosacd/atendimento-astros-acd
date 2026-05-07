@@ -173,7 +173,7 @@ export default function ChamadosPublico() {
       });
 
       if (error) {
-        // supabase.functions.invoke marca non-2xx como erro; tenta extrair body
+        setChamado(null);
         const ctx = (error as any)?.context;
         let msg = error.message || "Erro ao buscar chamado";
         try {
@@ -186,6 +186,7 @@ export default function ChamadosPublico() {
         return;
       }
       if (!data || data.error) {
+        setChamado(null);
         toast.error(data?.error || "Chamado não encontrado");
         return;
       }
