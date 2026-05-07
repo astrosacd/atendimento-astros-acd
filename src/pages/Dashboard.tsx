@@ -438,6 +438,14 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aguardando_cliente');
         chamadosAguardandoCliente = aguardandoC || 0;
+
+        if (canViewPaymentSecurity()) {
+          const { count: pendingPayments } = await supabase
+            .from('client_payments')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending_approval');
+          pagamentosPendentes = pendingPayments || 0;
+        }
       }
 
       // Task stats (only for users with task permission)
