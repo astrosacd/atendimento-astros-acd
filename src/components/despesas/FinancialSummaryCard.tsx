@@ -41,6 +41,7 @@ export function FinancialSummaryCard({ stats }: FinancialSummaryCardProps) {
       const today = new Date();
       const toleranciaDias = 7;
       const dataLimiteMrr = new Date(today);
+      dataLimiteMrr.setHours(0, 0, 0, 0);
       dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
 
       const CICLO_MESES: Record<string, number> = {
