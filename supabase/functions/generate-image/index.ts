@@ -89,9 +89,10 @@ serve(async (req) => {
 
     for (let i = 0; i < Math.min(safeCount, variations.length); i++) {
       const styleHint = variations[i].style;
+      const briefHint = variations[i].brief;
       const fullPrompt = referenceImage 
-        ? `Use the attached reference image only as visual guidance. Create a new Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial, and do not copy private details unless explicitly requested. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
-        : `Create an Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
+        ? `Use the attached reference image only as visual guidance. ${briefHint}. User idea: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}.`
+        : `${briefHint}. User idea: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}.`;
 
       let messageContent: string | Array<Record<string, unknown>> = fullPrompt;
       
