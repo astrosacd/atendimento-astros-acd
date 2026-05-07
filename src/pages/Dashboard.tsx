@@ -83,9 +83,10 @@ interface ClienteStats {
   billingSkipped: number;
   billingErrorsUnresolved: number;
   churnRate: number;
-  instagramTokenExpiring: boolean;
-  instagramTokenExpiryDate: string | null;
-}
+    instagramTokenExpiring: boolean;
+    instagramTokenExpiryDate: string | null;
+    pagamentosPendentes: number;
+  }
 
 // Removed unused interface
 
