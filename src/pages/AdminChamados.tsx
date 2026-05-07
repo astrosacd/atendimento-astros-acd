@@ -242,130 +242,88 @@ const AdminChamados = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <header className="border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => navigate('/admin')}
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/10 transition-all rounded-full"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
                 <Ticket className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">{t('tickets.system')}</h1>
-                <p className="text-sm text-muted-foreground">{t('tickets.systemDesc')}</p>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Central de Atendimento</h1>
+                <p className="text-xs text-slate-500 font-medium">Gestão profissional de suporte</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')}>
-              <Settings className="h-4 w-4 mr-2" />
-              {t('tickets.config')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/webhooks')}>
-              <Webhook className="h-4 w-4 mr-2" />
-              {t('tickets.webhooks')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/api')}>
-              <Key className="h-4 w-4 mr-2" />
-              {t('tickets.apiKeys')}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')}>
+            <div className="hidden md:flex items-center gap-2 border-r pr-4 mr-2 border-slate-200">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/chamados/config')} className="text-slate-600 font-semibold hover:bg-slate-100">
+                <Settings className="h-4 w-4 mr-2" />
+                Configurar
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/chamados/webhooks')} className="text-slate-600 font-semibold hover:bg-slate-100">
+                <Webhook className="h-4 w-4 mr-2" />
+                Webhooks
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')} className="font-bold">
               <BookOpen className="h-4 w-4 mr-2" />
-              {t('tickets.guide')}
+              Guia
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-blue-500/5 group">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.total')}</p>
-                  <p className="text-3xl font-bold tracking-tight">{stats.total}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Ticket className="h-6 w-6 text-blue-500" />
-                </div>
-              </div>
-              <div className="mt-4 h-1 w-full bg-blue-500/10 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-amber-500/5 group">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.open')}</p>
-                  <p className="text-3xl font-bold tracking-tight text-amber-500">{stats.abertos}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <AlertCircle className="h-6 w-6 text-amber-500" />
-                </div>
-              </div>
-              <div className="mt-4 h-1 w-full bg-amber-500/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-amber-500 rounded-full transition-all duration-1000" 
-                  style={{ width: `${stats.total > 0 ? (stats.abertos / stats.total) * 100 : 0}%` }} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-purple-500/5 group">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.inProgress')}</p>
-                  <p className="text-3xl font-bold tracking-tight text-purple-500">{stats.emAndamento}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Clock className="h-6 w-6 text-purple-500" />
-                </div>
-              </div>
-              <div className="mt-4 h-1 w-full bg-purple-500/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-purple-500 rounded-full transition-all duration-1000" 
-                  style={{ width: `${stats.total > 0 ? (stats.emAndamento / stats.total) * 100 : 0}%` }} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/40 bg-card/50 hover:bg-card/80 transition-all hover:shadow-lg hover:shadow-emerald-500/5 group">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">{t('tickets.resolved')}</p>
-                  <p className="text-3xl font-bold tracking-tight text-emerald-500">{stats.resolvidos}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CheckCircle className="h-6 w-6 text-emerald-500" />
-                </div>
-              </div>
-              <div className="mt-4 h-1 w-full bg-emerald-500/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
-                  style={{ width: `${stats.total > 0 ? (stats.resolvidos / stats.total) * 100 : 0}%` }} 
-                />
-              </div>
-            </CardContent>
-          </Card>
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Stats Section with Animations */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          {[
+            { label: 'Total', value: stats.total, icon: Ticket, color: 'blue' },
+            { label: 'Abertos', value: stats.abertos, icon: AlertCircle, color: 'amber' },
+            { label: 'Em Atendimento', value: stats.emAndamento, icon: Clock, color: 'purple' },
+            { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, color: 'emerald' }
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <Card className="border-none shadow-sm hover:shadow-md transition-all duration-300 bg-white overflow-hidden group">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                      <p className={`text-3xl font-extrabold tracking-tight text-${stat.color}-600`}>{stat.value}</p>
+                    </div>
+                    <div className={`h-12 w-12 rounded-2xl bg-${stat.color}-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className={`h-6 w-6 text-${stat.color}-500`} />
+                    </div>
+                  </div>
+                  <div className={`mt-4 h-1 w-full bg-${stat.color}-50 rounded-full overflow-hidden`}>
+                    <motion.div 
+                      className={`h-full bg-${stat.color}-500`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stats.total > 0 ? (stat.value / stats.total) * 100 : 0}%` }}
+                      transition={{ duration: 1, delay: 0.5 }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Lista de Chamados */}
