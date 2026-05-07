@@ -680,8 +680,11 @@ export default function ChamadosPublico() {
                       Aberto em {new Date(chamado.created_at).toLocaleString("pt-BR")}
                     </CardDescription>
                   </div>
-                  <Badge className={statusColors[chamado.status]}>
-                    {statusLabels[chamado.status]}
+                  <Badge className={`px-3 py-1 ${statusConfig[chamado.status].bg} ${statusConfig[chamado.status].color}`}>
+                    <span className="flex items-center gap-1.5">
+                      {(() => { const Icon = statusConfig[chamado.status].icon; return <Icon className="h-3.5 w-3.5" />; })()}
+                      {statusConfig[chamado.status].label}
+                    </span>
                   </Badge>
                 </div>
               </CardHeader>
