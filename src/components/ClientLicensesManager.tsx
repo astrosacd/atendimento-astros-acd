@@ -333,6 +333,7 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
             </div>
           </DialogContent>
         </Dialog>
+      )}
       </CardHeader>
       <CardContent>
         {/* License summary by tool */}
