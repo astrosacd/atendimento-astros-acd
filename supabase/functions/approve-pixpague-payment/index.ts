@@ -143,8 +143,8 @@ serve(async (req) => {
       .update({
         status: "paid",
         paid_at: paidAt,
-        approved_by: userData.user.id,
-        approved_by_email: userData.user.email ?? null,
+        approved_by: user.id,
+        approved_by_email: user.email ?? null,
         approval_reason: trimmedReason || null,
         approval_override: isSuspicious,
       })
