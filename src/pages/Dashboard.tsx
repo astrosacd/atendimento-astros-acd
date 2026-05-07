@@ -96,7 +96,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
-  const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
+  const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, canViewPaymentSecurity, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
   const canViewCharts = hasPermission('view_dashboard_charts');
