@@ -547,90 +547,101 @@ export default function ChamadosPublico() {
                 </TabsContent>
 
                 <TabsContent value="consultar" className="mt-6 space-y-6">
-                  {/* Busca por código */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Buscar por Código do Chamado</h3>
-                      {emailBusca && (
-                        <span className="text-xs text-muted-foreground">Desativado — limpe o email para usar</span>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        value={codigoBusca}
-                        onChange={(e) => setCodigoBusca(e.target.value)}
-                        placeholder="ACD-20251222153045"
-                        className="flex-1"
-                        disabled={!!emailBusca || aguardandoCodigo}
-                      />
-                      <Button
-                        onClick={handleBuscarPorCodigo}
-                        disabled={loading || !!emailBusca || aguardandoCodigo || !codigoBusca.trim()}
-                      >
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
+                  <div className="flex flex-col gap-4">
+                    <Label className="text-sm font-medium">Método de Consulta</Label>
+                    <Tabs value={searchMethod} onValueChange={(v) => setSearchMethod(v as "codigo" | "email")} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="codigo" className="text-xs">Código do Chamado</TabsTrigger>
+                        <TabsTrigger value="email" className="text-xs">Email do Cliente</TabsTrigger>
+                      </TabsList>
 
-                  <Separator />
-
-                  {/* Busca por email */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Buscar por Email</h3>
-                      {codigoBusca && (
-                        <span className="text-xs text-muted-foreground">Desativado — limpe o código para usar</span>
-                      )}
-                    </div>
-                    {!aguardandoCodigo ? (
-                      <div className="flex gap-2">
-                        <Input
-                          type="email"
-                          value={emailBusca}
-                          onChange={(e) => setEmailBusca(e.target.value)}
-                          placeholder="seu@email.com"
-                          className="flex-1"
-                          disabled={!!codigoBusca}
-                        />
-                        <Button
-                          onClick={handleEnviarCodigoVerificacao}
-                          disabled={loading || !!codigoBusca || !emailBusca.trim()}
-                        >
-                          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Digite o código de 6 dígitos enviado para {emailBusca}
-                        </p>
-                        <div className="flex gap-2">
-                          <Input
-                            value={codigoVerificacao}
-                            onChange={(e) => setCodigoVerificacao(e.target.value)}
-                            placeholder="000000"
-                            maxLength={6}
-                            className="flex-1"
-                          />
-                          <Button onClick={handleVerificarCodigo} disabled={loading}>
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
-                          </Button>
-                          <Button variant="outline" onClick={() => setAguardandoCodigo(false)}>
-                            Voltar
-                          </Button>
+                      <TabsContent value="codigo" className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="codigoBusca">Código do Chamado</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="codigoBusca"
+                              value={codigoBusca}
+                              onChange={(e) => {
+                                setCodigoBusca(e.target.value);
+                                setEmailBusca("");
+                                setAguardandoCodigo(false);
+                              }}
+                              placeholder="ACD-20251222153045"
+                              className="flex-1"
+                              disabled={aguardandoCodigo}
+                            />
+                            <Button
+                              onClick={handleBuscarPorCodigo}
+                              disabled={loading || !codigoBusca.trim()}
+                            >
+                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      </TabsContent>
+
+                      <TabsContent value="email" className="space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="emailBusca">Email cadastrado</Label>
+                          {!aguardandoCodigo ? (
+                            <div className="flex gap-2">
+                              <Input
+                                id="emailBusca"
+                                type="email"
+                                value={emailBusca}
+                                onChange={(e) => {
+                                  setEmailBusca(e.target.value);
+                                  setCodigoBusca("");
+                                }}
+                                placeholder="seu@email.com"
+                                className="flex-1"
+                              />
+                              <Button
+                                onClick={handleEnviarCodigoVerificacao}
+                                disabled={loading || !emailBusca.trim()}
+                              >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-md">
+                                Digite o código de 6 dígitos enviado para <span className="font-semibold text-foreground">{emailBusca}</span>
+                              </p>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={codigoVerificacao}
+                                  onChange={(e) => setCodigoVerificacao(e.target.value)}
+                                  placeholder="000000"
+                                  maxLength={6}
+                                  className="flex-1"
+                                />
+                                <Button onClick={handleVerificarCodigo} disabled={loading}>
+                                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+                                </Button>
+                                <Button variant="outline" onClick={() => setAguardandoCodigo(false)}>
+                                  Voltar
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
 
-                  {hashBusca && (
+                  {hashBusca && !chamado && (
                     <>
                       <Separator />
                       <div className="space-y-4">
-                        <h3 className="font-medium">Acesso via Link Seguro</h3>
-                        <Button onClick={handleBuscarPorHash} disabled={loading} className="w-full">
+                        <div className="flex items-center gap-2 text-primary">
+                          <AlertCircle className="h-4 w-4" />
+                          <h3 className="font-medium">Link de acesso rápido detectado</h3>
+                        </div>
+                        <Button onClick={handleBuscarPorHash} disabled={loading} className="w-full" variant="secondary">
                           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                          Acessar Chamado
+                          Abrir chamado pendente
                         </Button>
                       </div>
                     </>
