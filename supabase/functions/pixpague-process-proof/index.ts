@@ -302,11 +302,12 @@ serve(async (req) => {
         // Fetch payment + client + submitter info for full traceability
         const { data: payment } = await supabase
           .from('client_payments')
-          .select('amount, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto)')
+          .select('amount, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
           .eq('id', paymentId)
           .single();
 
         const cliente: any = payment?.cliente;
+        const typeLabel = cliente?.cobranca_ativa === false ? 'Apenas Registro' : 'Mensal';
         let icon = '✅';
         let label = 'Validado';
         if (ocrStatus === 'mismatch') { icon = '⚠️'; label = `DIVERGENTE (IA leu R$ ${ocr.amount?.toFixed(2)})`; }
