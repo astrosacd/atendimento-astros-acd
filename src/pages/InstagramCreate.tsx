@@ -84,31 +84,73 @@ const InstagramCreate = () => {
     setCarouselPreviewIndex((current) => Math.min(current, Math.max(mediaUrls.length - 1, 0)));
   }, [mediaUrls.length]);
 
+  // Regras por tipo de conteúdo
+  const typeRules = {
+    feed:     { accept: "image/*",         multiple: false, max: 1,  label: "1 imagem (proporção 1:1)" },
+    reels:    { accept: "video/mp4,video/quicktime", multiple: false, max: 1, label: "1 vídeo (9:16, MP4/MOV)" },
+    carousel: { accept: "image/*",         multiple: true,  max: 10, label: "Até 10 imagens" },
+    stories:  { accept: "image/*,video/*", multiple: false, max: 1,  label: "1 imagem ou vídeo" },
+  } as const;
+  const currentRule = typeRules[postType];
+
+  // Reseta mídia ao trocar tipo (evita arquivos incompatíveis)
+  useEffect(() => {
+    setMediaUrls([]);
+    setVariations([]);
+    setSelectedVariation(null);
+  }, [postType]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const rule = typeRules[postType];
+    let filesToUpload = Array.from(files);
+
+    // Bloqueia múltiplos arquivos quando não permitido
+    if (!rule.multiple && filesToUpload.length > 1) {
+      toast({ title: "Apenas um arquivo", description: `Para ${postType === 'feed' ? 'Feed' : postType === 'reels' ? 'Reels' : 'Stories'} envie somente 1 arquivo.`, variant: "destructive" });
+      filesToUpload = [filesToUpload[0]];
+    }
+
+    // Aplica limite total (carrossel)
+    const remaining = rule.max - mediaUrls.length;
+    if (remaining <= 0) {
+      toast({ title: "Limite atingido", description: `Você já adicionou o máximo permitido (${rule.max}).`, variant: "destructive" });
+      return;
+    }
+    if (filesToUpload.length > remaining) {
+      toast({ title: "Limite excedido", description: `Apenas ${remaining} arquivo(s) restantes. Os demais foram ignorados.` });
+      filesToUpload = filesToUpload.slice(0, remaining);
+    }
+
+    // Validação de tipo MIME
+    for (const f of filesToUpload) {
+      const isImg = f.type.startsWith("image/");
+      const isVid = f.type.startsWith("video/");
+      if (postType === 'feed' && !isImg) { toast({ title: "Tipo inválido", description: "Feed aceita apenas imagens.", variant: "destructive" }); return; }
+      if (postType === 'reels' && !isVid) { toast({ title: "Tipo inválido", description: "Reels aceita apenas vídeos.", variant: "destructive" }); return; }
+      if (postType === 'carousel' && !isImg) { toast({ title: "Tipo inválido", description: "Carrossel aceita apenas imagens.", variant: "destructive" }); return; }
+    }
+
     setLoading(true);
-    const uploadedUrls = [];
+    const uploadedUrls: string[] = [];
 
     try {
-      for (const file of Array.from(files)) {
-        // Log file info for debugging
-        console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
-        
-        if (file.size > 50 * 1024 * 1024) { // 50MB limit
-           toast({ title: "Arquivo muito grande", description: `${file.name} excede o limite de 50MB.`, variant: "destructive" });
+      for (const file of filesToUpload) {
+        if (file.size > 50 * 1024 * 1024) {
+           toast({ title: "Arquivo muito grande", description: `${file.name} excede 50MB.`, variant: "destructive" });
            continue;
         }
 
         const fileName = `${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from("instagram-media")
           .upload(fileName, file);
 
         if (error) {
-          console.error("Upload error details:", error);
-          toast({ title: "Erro no upload", description: `Falha ao subir ${file.name}: ${error.message}`, variant: "destructive" });
+          console.error("Upload error:", error);
+          toast({ title: "Erro no upload", description: `${file.name}: ${error.message}`, variant: "destructive" });
           continue;
         }
 
@@ -119,7 +161,7 @@ const InstagramCreate = () => {
         uploadedUrls.push(publicUrl);
       }
 
-      setMediaUrls([...mediaUrls, ...uploadedUrls]);
+      setMediaUrls(rule.multiple ? [...mediaUrls, ...uploadedUrls] : uploadedUrls);
     } catch (err) {
       console.error("General upload error:", err);
     } finally {
@@ -127,6 +169,7 @@ const InstagramCreate = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
 
   const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
