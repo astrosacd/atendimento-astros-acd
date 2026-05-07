@@ -216,10 +216,10 @@ const AdminChamados = () => {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
-            { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', textColor: 'text-blue-600' },
-            { label: 'Abertos', value: stats.abertos, icon: AlertCircle, iconBg: 'bg-amber-50', iconColor: 'text-amber-500', textColor: 'text-amber-600' },
-            { label: 'Em Andamento', value: stats.emAndamento, icon: Clock, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', textColor: 'text-purple-600' },
-            { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', textColor: 'text-emerald-600' }
+            { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', textColor: 'text-blue-500' },
+            { label: 'Abertos', value: stats.abertos, icon: AlertCircle, iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500', textColor: 'text-amber-500' },
+            { label: 'Em Andamento', value: stats.emAndamento, icon: Clock, iconBg: 'bg-purple-500/10', iconColor: 'text-purple-500', textColor: 'text-purple-500' },
+            { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-500', textColor: 'text-emerald-500' }
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
               <Card className="border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all">
