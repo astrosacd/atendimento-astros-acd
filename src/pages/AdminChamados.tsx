@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useSystemActivities } from '@/hooks/useSystemActivities';
+import { DashboardLayout } from '@/components/DashboardLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -185,24 +186,34 @@ const AdminChamados = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <DashboardLayout>
+      <div className="p-4 md:p-8 space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/admin')} className="rounded-full hover:bg-primary/10 transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')} className="rounded-full"><ArrowLeft className="h-5 w-5" /></Button>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg"><Ticket className="h-5 w-5 text-white" /></div>
-              <div><h1 className="text-xl font-bold text-slate-900 tracking-tight">Atendimento</h1></div>
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Ticket className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Central de Atendimento</h1>
+              <p className="text-sm text-muted-foreground">Gerencie seus chamados e suporte</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/chamados/config')}><Settings className="h-4 w-4 mr-2" /> Config</Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')}><BookOpen className="h-4 w-4 mr-2" /> Guia</Button>
-          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')} className="border-border/40 hover:bg-primary/5">
+            <Settings className="h-4 w-4 mr-2" /> Configurações
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')} className="border-border/40 hover:bg-primary/5">
+            <BookOpen className="h-4 w-4 mr-2" /> Guia
+          </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', textColor: 'text-blue-600' },
@@ -211,11 +222,11 @@ const AdminChamados = () => {
             { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', textColor: 'text-emerald-600' }
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className="border-none shadow-sm bg-white">
+              <Card className="border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{s.label}</p>
                       <p className={`text-3xl font-extrabold mt-1 ${s.textColor}`}>{s.value}</p>
                     </div>
                     <div className={`h-12 w-12 rounded-2xl ${s.iconBg} flex items-center justify-center`}>
@@ -231,15 +242,15 @@ const AdminChamados = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            <Card className="border-none shadow-sm bg-white">
+            <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input placeholder="Pesquisar chamados..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10 border-slate-100 bg-slate-50/50" />
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Pesquisar chamados..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10 border-border/40 bg-background/50" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px] h-10 border-slate-100 bg-slate-50/50"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectTrigger className="w-[180px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os Status</SelectItem>
                       <SelectItem value="aberto">Abertos</SelectItem>
@@ -258,16 +269,16 @@ const AdminChamados = () => {
                           const conf = statusConfig[c.status];
                           const selected = selectedChamado?.id === c.id;
                           return (
-                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selected ? 'border-primary bg-primary/5' : 'border-slate-50 bg-white hover:border-slate-100'}`}>
+                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
                               <div className="flex justify-between items-start">
                                 <div>
                                   <div className="flex items-center gap-2 mb-1.5">
-                                    <span className="text-[10px] font-bold text-slate-400 font-mono">#{c.codigo}</span>
+                                    <span className="text-[10px] font-bold text-muted-foreground font-mono">#{c.codigo}</span>
                                     <Badge className={`${conf.bg} ${conf.color} border-none font-bold text-[9px] uppercase px-2`}>{conf.label}</Badge>
                                     {hasClientResponse(c) && <Badge className="bg-orange-500 text-white animate-pulse text-[9px]">NOVA RESPOSTA</Badge>}
                                   </div>
-                                  <h4 className="font-bold text-slate-900">{c.nome}</h4>
-                                  <p className="text-xs text-slate-500 line-clamp-1 mt-1">{c.motivo}</p>
+                                  <h4 className="font-bold text-foreground">{c.nome}</h4>
+                                  <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{c.motivo}</p>
                                 </div>
                                 <Badge variant="outline" className="text-[9px] uppercase font-bold">{prioridadeConfig[c.prioridade].label}</Badge>
                               </div>
@@ -284,28 +295,28 @@ const AdminChamados = () => {
 
           <div className="h-fit lg:sticky lg:top-24">
             {selectedChamado ? (
-              <Card className="border-none shadow-xl bg-white overflow-hidden">
-                <div className="h-1.5 w-full bg-slate-100"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2">
+                <div className="h-1.5 w-full bg-border/20"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="outline" className="text-[10px] font-bold text-primary">{selectedChamado.codigo}</Badge>
                     <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => updateStatusMutation.mutate({ id: selectedChamado.id, status: 'resolvido' })}>RESOLVER</Button>
                   </div>
                   <CardTitle className="text-xl font-bold">{selectedChamado.nome}</CardTitle>
-                  <p className="text-xs text-slate-500 flex items-center gap-2 mt-1"><Mail className="h-3 w-3" />{selectedChamado.email}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3" />{selectedChamado.email}</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Motivo</p><p className="text-sm text-slate-700 font-medium whitespace-pre-wrap">{selectedChamado.motivo}</p></div>
+                  <div className="p-4 rounded-xl bg-background/50 border border-border/40"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Motivo</p><p className="text-sm text-foreground font-medium whitespace-pre-wrap">{selectedChamado.motivo}</p></div>
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center"><h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Conversa</h3><Badge variant="secondary" className="text-[10px]">{selectedChamado.chamados_comentarios?.length || 0} interações</Badge></div>
+                    <div className="flex justify-between items-center"><h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Conversa</h3><Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">{selectedChamado.chamados_comentarios?.length || 0} interações</Badge></div>
                     <ScrollArea className="h-[300px] pr-4">
                       <div className="space-y-4">
                         {selectedChamado.chamados_comentarios?.map(comm => {
                           const isTech = comm.tipo === 'interno' || comm.autor_nome?.includes('Astros');
                           return (
                             <div key={comm.id} className={`flex flex-col ${isTech ? 'items-end' : 'items-start'}`}>
-                              <span className="text-[9px] font-bold text-slate-400 uppercase mb-1 px-1">{comm.autor_nome}</span>
-                              <div className={`p-3 rounded-2xl text-sm max-w-[90%] ${isTech ? 'bg-primary text-white rounded-tr-none' : 'bg-slate-100 text-slate-700 rounded-tl-none'} ${comm.tipo === 'interno' ? 'bg-amber-100 text-amber-900 border border-amber-200' : ''}`}>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase mb-1 px-1">{comm.autor_nome}</span>
+                              <div className={`p-3 rounded-2xl text-sm max-w-[90%] ${isTech ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted/50 text-foreground rounded-tl-none'} ${comm.tipo === 'interno' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : ''}`}>
                                 {comm.tipo === 'interno' && <Lock className="h-3 w-3 inline mr-2" />}
                                 {comm.conteudo}
                               </div>
@@ -315,13 +326,13 @@ const AdminChamados = () => {
                       </div>
                     </ScrollArea>
                   </div>
-                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="space-y-4 pt-4 border-t border-border/40">
                     <div className="flex gap-2">
                       <Button size="sm" variant={commentType === 'publico' ? 'default' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('publico')}><Eye className="h-3 w-3 mr-1" /> PÚBLICO</Button>
                       <Button size="sm" variant={commentType === 'interno' ? 'secondary' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('interno')}><Lock className="h-3 w-3 mr-1" /> INTERNO</Button>
                     </div>
                     <div className="relative">
-                      <Input placeholder="Escreva aqui..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="pr-10 h-11 rounded-xl" onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} />
+                      <Input placeholder="Escreva aqui..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="pr-10 h-11 rounded-xl bg-background/50 border-border/40" onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} />
                       <Button size="icon" variant="ghost" className="absolute right-1 top-1 h-9 w-9 text-primary" onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}><Send className="h-4 w-4" /></Button>
                     </div>
                     <div className="flex gap-2 pt-2">
