@@ -36,6 +36,7 @@ import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCar
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
+import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
