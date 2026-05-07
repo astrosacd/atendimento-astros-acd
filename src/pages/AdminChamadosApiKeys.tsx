@@ -84,7 +84,7 @@ const AdminChamadosApiKeys = () => {
               <div><h1 className="text-xl font-bold text-slate-900 tracking-tight">API Keys</h1><p className="text-xs text-slate-500 font-medium">Acesso programático seguro</p></div>
             </div>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={o => { setIsDialogOpen(open); if (!o) setNewApiKey(null); }}>
+          <Dialog open={isDialogOpen} onOpenChange={o => { setIsDialogOpen(o); if (!o) setNewApiKey(null); }}>
             <DialogTrigger asChild><Button className="font-bold shadow-lg shadow-amber-200"><Plus className="h-4 w-4 mr-2" /> Gerar Nova Chave</Button></DialogTrigger>
             <DialogContent className="sm:max-w-[500px] border-none shadow-2xl">
               <DialogHeader><DialogTitle className="text-xl font-extrabold flex items-center gap-2">{newApiKey ? <ShieldCheck className="h-6 w-6 text-emerald-500" /> : <Zap className="h-5 w-5 text-amber-500" />} {newApiKey ? "Chave Gerada!" : "Nova API Key"}</DialogTitle><DialogDescription>{newApiKey ? "Copie a chave agora, ela não será exibida novamente por segurança." : "Crie chaves exclusivas para integrações externas."}</DialogDescription></DialogHeader>
