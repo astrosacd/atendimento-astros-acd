@@ -300,7 +300,9 @@ const AdminChamados = () => {
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="outline" className="text-[10px] font-bold text-primary">{selectedChamado.codigo}</Badge>
-                    <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => updateStatusMutation.mutate({ id: selectedChamado.id, status: 'resolvido' })}>RESOLVER</Button>
+                    {selectedChamado.status !== 'resolvido' && (
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => updateStatusMutation.mutate({ id: selectedChamado.id, status: 'resolvido' })}>RESOLVER</Button>
+                    )}
                   </div>
                   <CardTitle className="text-xl font-bold">{selectedChamado.nome}</CardTitle>
                   <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3" />{selectedChamado.email}</p>
@@ -332,14 +334,39 @@ const AdminChamados = () => {
                       <Button size="sm" variant={commentType === 'interno' ? 'secondary' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('interno')}><Lock className="h-3 w-3 mr-1" /> INTERNO</Button>
                     </div>
                     <div className="relative">
-                      <Input placeholder="Escreva aqui..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="pr-10 h-11 rounded-xl bg-background/50 border-border/40" onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} />
-                      <Button size="icon" variant="ghost" className="absolute right-1 top-1 h-9 w-9 text-primary" onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}><Send className="h-4 w-4" /></Button>
+                      <Input 
+                        placeholder={selectedChamado.status === 'resolvido' ? "Chamado resolvido - Chat desativado" : "Escreva aqui..."} 
+                        value={newComment} 
+                        onChange={(e) => setNewComment(e.target.value)} 
+                        className="pr-10 h-11 rounded-xl bg-background/50 border-border/40" 
+                        disabled={selectedChamado.status === 'resolvido'}
+                        onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} 
+                      />
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="absolute right-1 top-1 h-9 w-9 text-primary" 
+                        disabled={selectedChamado.status === 'resolvido' || !newComment.trim()}
+                        onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <Select value={selectedChamado.status} onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}>
-                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue /></SelectTrigger>
+                      <Select 
+                        value={selectedChamado.status} 
+                        onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
+                        disabled={selectedChamado.status === 'resolvido'}
+                      >
+                        <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(statusConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                          {Object.entries(statusConfig).map(([k, v]) => (
+                            <SelectItem key={k} value={k} disabled={selectedChamado.status === 'resolvido' && k !== 'resolvido'}>
+                              {v.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
