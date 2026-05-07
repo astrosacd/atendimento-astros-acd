@@ -29,7 +29,8 @@ import {
   ChevronRight,
   History,
   Info,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
