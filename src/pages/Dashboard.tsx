@@ -251,6 +251,7 @@ export default function Dashboard() {
       // Separate by currency - only from clients with future renewal (or up to 7 days overdue)
       const toleranciaDias = 7;
       const dataLimiteMrr = new Date(today);
+      dataLimiteMrr.setHours(0, 0, 0, 0);
       dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
 
       const clientesAtivosMRR = clientes?.filter(c => {
