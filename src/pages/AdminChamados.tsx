@@ -336,10 +336,20 @@ const AdminChamados = () => {
                       <Button size="icon" variant="ghost" className="absolute right-1 top-1 h-9 w-9 text-primary" onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}><Send className="h-4 w-4" /></Button>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <Select value={selectedChamado.status} onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}>
-                        <SelectTrigger className="h-10 text-xs font-bold"><SelectValue /></SelectTrigger>
+                      <Select 
+                        value={selectedChamado.status} 
+                        onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
+                        disabled={selectedChamado.status === 'resolvido'}
+                      >
+                        <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(statusConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                          {Object.entries(statusConfig).map(([k, v]) => (
+                            <SelectItem key={k} value={k} disabled={selectedChamado.status === 'resolvido' && k !== 'resolvido'}>
+                              {v.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
