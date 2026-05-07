@@ -421,8 +421,8 @@ export default function AtualizarCliente() {
                   <Label htmlFor="plano" className="text-foreground font-medium">{t('clients.resellerPlan')}</Label>
                 </div>
                 <Select
-                  value={newPlano || 'none'}
-                  onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
+                  value={newPlano || 'Individual'}
+                  onValueChange={(value) => setNewPlano(value)}
                 >
                   <SelectTrigger className="bg-secondary border-border text-foreground h-12">
                     <SelectValue placeholder={t('clients.selectPlan')} />
