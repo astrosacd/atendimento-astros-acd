@@ -472,125 +472,160 @@ export default function ChamadosPublico() {
                 </TabsList>
 
 
-                <TabsContent value="abrir" className="mt-6">
-                  <form onSubmit={handleAbrirChamado} className="space-y-4">
-                    {!aberturaAguardandoCodigo ? (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="nome">Nome Completo *</Label>
-                            <Input
-                              id="nome"
-                              value={nome}
-                              onChange={(e) => setNome(e.target.value)}
-                              placeholder="Seu nome completo"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email *</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={email}
-                              onChange={(e) => {
-                                setEmail(e.target.value);
-                                setAberturaEmailVerificado(false);
-                                setAberturaAguardandoCodigo(false);
-                                setCodigoVerificacaoAbertura("");
-                              }}
-                              placeholder="seu@email.com"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="contato">Telefone/WhatsApp *</Label>
-                          <Input
-                            id="contato"
-                            value={contato}
-                            onChange={(e) => setContato(e.target.value)}
-                            placeholder="(11) 99999-9999"
-                            required
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="motivo">Descrição do Problema *</Label>
-                          <Textarea
-                            id="motivo"
-                            value={motivo}
-                            onChange={(e) => setMotivo(e.target.value)}
-                            placeholder="Descreva detalhadamente o problema ou solicitação..."
-                            rows={5}
-                            required
-                          />
-                        </div>
-
-                        <Button type="submit" className="w-full" disabled={loading}>
-                          {loading ? (
+                <div className="mt-8 pb-8">
+                  <AnimatePresence mode="wait">
+                    {activeTab === "abrir" && (
+                      <motion.div
+                        key="abrir-tab"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <form onSubmit={handleAbrirChamado} className="space-y-6">
+                          {!aberturaAguardandoCodigo ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando código...
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                  <Label htmlFor="nome" className="text-sm font-bold text-slate-700">Seu Nome Completo</Label>
+                                  <div className="relative">
+                                    <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                    <Input
+                                      id="nome"
+                                      value={nome}
+                                      onChange={(e) => setNome(e.target.value)}
+                                      placeholder="Ex: João da Silva"
+                                      className="pl-10 h-11 border-slate-200 focus:border-primary focus:ring-primary/20"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="email" className="text-sm font-bold text-slate-700">Seu Melhor Email</Label>
+                                  <div className="relative">
+                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                    <Input
+                                      id="email"
+                                      type="email"
+                                      value={email}
+                                      onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setAberturaEmailVerificado(false);
+                                        setAberturaAguardandoCodigo(false);
+                                        setCodigoVerificacaoAbertura("");
+                                      }}
+                                      placeholder="contato@empresa.com"
+                                      className="pl-10 h-11 border-slate-200 focus:border-primary focus:ring-primary/20"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="contato" className="text-sm font-bold text-slate-700">WhatsApp / Telefone</Label>
+                                <div className="relative">
+                                  <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                  <Input
+                                    id="contato"
+                                    value={contato}
+                                    onChange={(e) => setContato(e.target.value)}
+                                    placeholder="(00) 00000-0000"
+                                    className="pl-10 h-11 border-slate-200 focus:border-primary focus:ring-primary/20"
+                                    required
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="motivo" className="text-sm font-bold text-slate-700">O que está acontecendo?</Label>
+                                <Textarea
+                                  id="motivo"
+                                  value={motivo}
+                                  onChange={(e) => setMotivo(e.target.value)}
+                                  placeholder="Descreva detalhadamente sua dúvida ou problema para que possamos ajudar da melhor forma..."
+                                  className="min-h-[150px] border-slate-200 focus:border-primary focus:ring-primary/20 resize-none"
+                                  required
+                                />
+                              </div>
+
+                              <Button type="submit" className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]" disabled={loading}>
+                                {loading ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Processando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="mr-2 h-5 w-5" />
+                                    Abrir Chamado Agora
+                                  </>
+                                )}
+                              </Button>
+
+                              <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 text-xs text-slate-500 border border-slate-100">
+                                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                                <p>
+                                  Sua segurança é prioridade. Ao clicar em abrir chamado, enviaremos um código de verificação para o seu email para garantir que você tenha acesso exclusivo à sua solicitação.
+                                </p>
+                              </div>
                             </>
                           ) : (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Abrir Chamado
-                            </>
-                          )}
-                        </Button>
+                            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4">
+                              <div className="flex items-start gap-4">
+                                <div className="rounded-full bg-primary/10 p-2">
+                                  <Mail className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-bold text-slate-900">Verifique seu Email</h3>
+                                  <p className="text-sm text-slate-600">
+                                    Enviamos um código de 6 dígitos para <span className="font-bold text-primary">{email}</span>. Insira-o abaixo para confirmar.
+                                  </p>
+                                </div>
+                              </div>
 
-                        <p className="text-xs text-muted-foreground">
-                          Ao clicar em <strong>Abrir Chamado</strong>, enviaremos um código para seu email.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-                          <div className="flex items-start gap-2">
-                            <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                            <div>
-                              <p className="font-medium">Confirmação por Email</p>
-                              <p className="text-sm text-muted-foreground">
-                                Digite o código de 6 dígitos enviado para <span className="font-medium">{email}</span>
-                              </p>
+                              <div className="flex gap-3">
+                                <Input
+                                  value={codigoVerificacaoAbertura}
+                                  onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
+                                  placeholder="000 000"
+                                  maxLength={6}
+                                  className="flex-1 h-12 text-center text-xl font-bold tracking-[0.5em] border-primary/30 focus:border-primary focus:ring-primary/20"
+                                />
+                                <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading} className="h-12 px-6">
+                                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirmar"}
+                                </Button>
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full text-slate-500 hover:text-primary"
+                                onClick={() => {
+                                  setAberturaAguardandoCodigo(false);
+                                  setCodigoVerificacaoAbertura("");
+                                }}
+                                disabled={loading}
+                              >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Voltar para editar email
+                              </Button>
                             </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Input
-                              value={codigoVerificacaoAbertura}
-                              onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
-                              placeholder="000000"
-                              maxLength={6}
-                              className="flex-1"
-                            />
-                            <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading}>
-                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
-                            </Button>
-                          </div>
-
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              setAberturaAguardandoCodigo(false);
-                              setCodigoVerificacaoAbertura("");
-                            }}
-                            disabled={loading}
-                          >
-                            Voltar e editar
-                          </Button>
-                        </div>
-                      </>
+                          )}
+                        </form>
+                      </motion.div>
                     )}
-                  </form>
-                </TabsContent>
 
-                <TabsContent value="consultar" className="mt-6 space-y-6">
+                    {activeTab === "consultar" && (
+                      <motion.div
+                        key="consultar-tab"
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-6"
+                      >
+
                   <div className="flex flex-col gap-4">
                     <Label className="text-sm font-medium">Método de Consulta</Label>
                     <Tabs value={searchMethod} onValueChange={(v) => setSearchMethod(v as "codigo" | "email")} className="w-full">
