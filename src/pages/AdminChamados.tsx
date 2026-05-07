@@ -37,10 +37,16 @@ import {
   Send,
   Lock,
   Eye,
-  Calendar
+  Calendar,
+  ExternalLink,
+  ChevronRight,
+  Filter,
+  ArrowUpRight
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 type ChamadoStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
 type ChamadoPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
