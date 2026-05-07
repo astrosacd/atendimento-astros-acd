@@ -60,11 +60,11 @@ interface Comentario {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any; bg: string }> = {
-  aberto: { label: "Aberto", color: "text-blue-600", bg: "bg-blue-50", icon: AlertCircle },
-  em_andamento: { label: "Em Atendimento", color: "text-amber-600", bg: "bg-amber-50", icon: Clock },
-  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-600", bg: "bg-purple-50", icon: User },
-  resolvido: { label: "Resolvido", color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle },
-  fechado: { label: "Fechado", color: "text-gray-600", bg: "bg-gray-100", icon: ShieldCheck },
+  aberto: { label: "Aberto", color: "text-blue-400", bg: "bg-blue-500/10", icon: AlertCircle },
+  em_andamento: { label: "Em Atendimento", color: "text-amber-400", bg: "bg-amber-500/10", icon: Clock },
+  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-400", bg: "bg-purple-500/10", icon: User },
+  resolvido: { label: "Resolvido", color: "text-emerald-400", bg: "bg-emerald-500/10", icon: CheckCircle },
+  fechado: { label: "Fechado", color: "text-slate-400", bg: "bg-slate-500/10", icon: ShieldCheck },
 };
 
 export default function ChamadosPublico() {
