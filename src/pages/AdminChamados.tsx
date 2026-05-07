@@ -347,16 +347,20 @@ const AdminChamados = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="h-[500px] flex flex-col items-center justify-center text-center border-2 border-dashed rounded-3xl bg-slate-50/50 p-8">
-                <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center shadow-sm border mb-6"><Ticket className="h-8 w-8 text-slate-300" /></div>
-                <h3 className="text-lg font-bold text-slate-800">Selecione um chamado</h3>
-                <p className="text-sm text-slate-500 max-w-[200px] mx-auto mt-2">Clique em um chamado da lista para ver os detalhes e responder.</p>
-              </div>
+              <Card className="border-border/40 bg-card/40 backdrop-blur-md border-2 border-dashed">
+                <CardContent className="h-[600px] flex flex-col items-center justify-center p-12 text-center">
+                  <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center shadow-lg mb-6">
+                    <Ticket className="h-8 w-8 text-primary/40" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground">Nenhum Chamado Selecionado</h3>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-[200px]">Selecione um chamado da lista para ver os detalhes e responder.</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
