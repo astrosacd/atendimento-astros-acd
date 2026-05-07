@@ -419,6 +419,18 @@ export default function AdminSegurancaPagamento() {
                                 <span className="font-medium text-sm truncate">
                                   {payment.cliente?.nome || 'N/A'}
                                 </span>
+                                {payment.cliente?.cobranca_ativa !== undefined && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-[10px] h-4 px-1.5 w-fit font-medium mb-1 ${
+                                      payment.cliente.cobranca_ativa === false 
+                                        ? "bg-slate-50 text-slate-500 border-slate-200" 
+                                        : "bg-blue-50 text-blue-600 border-blue-200"
+                                    }`}
+                                  >
+                                    {payment.cliente.cobranca_ativa === false ? "Apenas Registro" : "Mensal"}
+                                  </Badge>
+                                )}
                                 {payment.cliente?.email && (
                                   <span className="text-[11px] text-muted-foreground truncate">
                                     {payment.cliente.email}
@@ -587,6 +599,18 @@ export default function AdminSegurancaPagamento() {
                               <p className="font-semibold text-sm truncate">
                                 {payment.cliente?.nome || 'N/A'}
                               </p>
+                              {payment.cliente?.cobranca_ativa !== undefined && (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[9px] h-3.5 px-1 w-fit font-medium mb-1 ${
+                                    payment.cliente.cobranca_ativa === false 
+                                      ? "bg-slate-50 text-slate-500 border-slate-200" 
+                                      : "bg-blue-50 text-blue-600 border-blue-200"
+                                  }`}
+                                >
+                                  {payment.cliente.cobranca_ativa === false ? "Apenas Registro" : "Mensal"}
+                                </Badge>
+                              )}
                               {payment.cliente?.email && (
                                 <p className="text-[11px] text-muted-foreground truncate">
                                   ✉️ {payment.cliente.email}
