@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, format, model, count = 1 } = await req.json();
+    const { prompt, format, model, count = 1, referenceImage = null } = await req.json();
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {

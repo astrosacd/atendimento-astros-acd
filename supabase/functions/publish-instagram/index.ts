@@ -173,13 +173,13 @@ serve(async (req) => {
 
 async function waitForProcessing(host: string, containerId: string, token: string) {
   let attempts = 0;
-  const maxAttempts = 20; // 2 minutes approx
+  const maxAttempts = 60; // Increased to 60 (10 minutes approx) for larger Reels/Videos
   while (attempts < maxAttempts) {
     const res = await fetch(`${host}/${containerId}?fields=status_code&access_token=${token}`);
     const data = await res.json();
     if (data.status_code === 'FINISHED') return;
     if (data.status_code === 'ERROR') throw new Error(`Video processing failed: ${data.status_message}`);
-    await new Promise(r => setTimeout(r, 10000));
+    await new Promise(r => setTimeout(r, 15000)); // Polling every 15s instead of 10s to be safer with Meta limits
     attempts++;
   }
   throw new Error("Video processing timed out");

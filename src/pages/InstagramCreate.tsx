@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,10 @@ import {
   Smartphone,
   Trash2,
   Loader2,
-  Check
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +31,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const InstagramCreate = () => {
   const { user } = useAuth();
@@ -48,6 +52,10 @@ const InstagramCreate = () => {
   const [aiModel, setAiModel] = useState("gemini-2.0-flash-exp");
   const [variations, setVariations] = useState<{ url: string; name: string }[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [isUploadingReference, setIsUploadingReference] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const carouselScrollRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -56,26 +64,67 @@ const InstagramCreate = () => {
     setLoading(true);
     const uploadedUrls = [];
 
-    for (const file of Array.from(files)) {
-      const fileName = `${user?.id}/${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
+    try {
+      for (const file of Array.from(files)) {
+        // Log file info for debugging
+        console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+        
+        if (file.size > 50 * 1024 * 1024) { // 50MB limit
+           toast({ title: "Arquivo muito grande", description: `${file.name} excede o limite de 50MB.`, variant: "destructive" });
+           continue;
+        }
+
+        const fileName = `${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const { data, error } = await supabase.storage
+          .from("instagram-media")
+          .upload(fileName, file);
+
+        if (error) {
+          console.error("Upload error details:", error);
+          toast({ title: "Erro no upload", description: `Falha ao subir ${file.name}: ${error.message}`, variant: "destructive" });
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("instagram-media")
+          .getPublicUrl(fileName);
+        
+        uploadedUrls.push(publicUrl);
+      }
+
+      setMediaUrls([...mediaUrls, ...uploadedUrls]);
+    } catch (err) {
+      console.error("General upload error:", err);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingReference(true);
+    try {
+      const fileName = `reference/${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const { error } = await supabase.storage
         .from("instagram-media")
         .upload(fileName, file);
 
-      if (error) {
-        toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
-        continue;
-      }
+      if (error) throw error;
 
       const { data: { publicUrl } } = supabase.storage
         .from("instagram-media")
         .getPublicUrl(fileName);
       
-      uploadedUrls.push(publicUrl);
+      setReferenceImageUrl(publicUrl);
+      toast({ title: "Imagem de referência enviada" });
+    } catch (error: any) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploadingReference(false);
     }
-
-    setMediaUrls([...mediaUrls, ...uploadedUrls]);
-    setLoading(false);
   };
 
   const generateAIImages = async () => {
@@ -94,7 +143,8 @@ const InstagramCreate = () => {
           prompt, 
           format: postType, 
           model: aiModel,
-          count: 3 
+          count: 3,
+          referenceImage: referenceImageUrl
         }
       });
 
