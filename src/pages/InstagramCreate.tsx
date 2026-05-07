@@ -399,7 +399,7 @@ const InstagramCreate = () => {
                         </Button>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Não precisa colocar API key de OpenAI/Grok: este botão usa Lovable AI já configurado no projeto.
+                        {AI_IMAGE_MODELS.find((model) => model.value === aiModel)?.hint} Não precisa colocar API key de OpenAI/Grok.
                       </p>
                     </div>
                   </div>
