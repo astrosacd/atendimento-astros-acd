@@ -33,6 +33,24 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
+const AI_IMAGE_MODELS = [
+  {
+    value: "google/gemini-3.1-flash-image-preview",
+    label: "Lovable AI — rápido e caprichado",
+    hint: "Melhor padrão para posts, carrosséis e variações com referência.",
+  },
+  {
+    value: "google/gemini-2.5-flash-image",
+    label: "Lovable AI — econômico",
+    hint: "Bom para testar ideias com menor custo.",
+  },
+  {
+    value: "google/gemini-3-pro-image-preview",
+    label: "Lovable AI — qualidade máxima",
+    hint: "Mais lento, ideal para artes finais importantes.",
+  },
+];
+
 const InstagramCreate = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,12 +67,14 @@ const InstagramCreate = () => {
   
   // AI State
   const [prompt, setPrompt] = useState("");
-  const [aiModel, setAiModel] = useState("gemini-2.0-flash-exp");
+  const [aiModel, setAiModel] = useState(AI_IMAGE_MODELS[0].value);
   const [variations, setVariations] = useState<{ url: string; name: string }[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
+  const [carouselPreviewIndex, setCarouselPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
   const carouselScrollRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,12 +125,23 @@ const InstagramCreate = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!user?.id) {
+      toast({ title: "Login necessário", description: "Entre na sua conta antes de enviar uma imagem de referência.", variant: "destructive" });
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "A referência precisa ser uma imagem.", variant: "destructive" });
+      return;
+    }
+
     setIsUploadingReference(true);
     try {
-      const fileName = `reference/${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const fileName = `${user.id}/references/${Date.now()}-${safeName}`;
       const { error } = await supabase.storage
         .from("instagram-media")
-        .upload(fileName, file);
+        .upload(fileName, file, { upsert: true, contentType: file.type });
 
       if (error) throw error;
 
@@ -124,6 +155,7 @@ const InstagramCreate = () => {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
     } finally {
       setIsUploadingReference(false);
+      if (referenceInputRef.current) referenceInputRef.current.value = "";
     }
   };
 
