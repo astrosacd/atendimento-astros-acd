@@ -935,11 +935,11 @@ export default function CadastrarCliente() {
                   </>
                 )}
               </div>
-              {/* Licenses Manager - only for monthly clients with a plan (not Individual) and after creation */}
-              {clienteType === 'mensal' && createdClienteId && formData.plano && formData.plano !== 'Individual' && (
+              {/* Licenses Manager - only for monthly clients with a plan (not Individual) */}
+              {clienteType === 'mensal' && formData.plano && formData.plano !== 'Individual' && (
                 <div className="mt-6 border-t border-border pt-4">
                    <ClientLicensesManager 
-                      clienteId={createdClienteId} 
+                      clienteId={createdClienteId || "preview"} 
                       clientePlano={formData.plano}
                     />
                 </div>
