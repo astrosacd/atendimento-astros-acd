@@ -200,11 +200,11 @@ export default function ConsultarCliente() {
     return data.filter(cliente => {
       // Inadimplente filter (overdue clients)
       if (filterInadimplente) {
-        if (!cliente.cobranca_ativa) return false;
+        if (!cliente.cobranca_ativa || !cliente.data_renovacao) return false;
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const renewalDate = new Date(cliente.data_renovacao);
-        if (renewalDate >= today) return false;
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+        if (renovacaoStr >= todayStr) return false;
       }
       
       // Renovação próxima filter (clients renewing in next 7 days) - timezone-safe
