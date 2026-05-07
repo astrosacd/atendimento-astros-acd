@@ -257,14 +257,19 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
             </Badge>
           )}
         </CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Licença
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        {clienteId !== "preview" && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Licença
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              {/* ... existing content ... */}
+            </DialogContent>
+          </Dialog>
+        )}
             <DialogHeader>
               <DialogTitle>Registrar Nova Licença</DialogTitle>
             </DialogHeader>
