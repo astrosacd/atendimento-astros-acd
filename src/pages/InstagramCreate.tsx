@@ -320,68 +320,84 @@ const InstagramCreate = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+                  <div className="space-y-1">
                     <Label className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-pink-500" />
+                      <Sparkles className="h-4 w-4 text-primary" />
                       Gerar com IA (Lovable AI)
                     </Label>
-                    
-                    <div className="flex items-center gap-2">
-                       {referenceImageUrl ? (
-                         <div className="relative w-8 h-8 rounded border overflow-hidden group">
-                           <img src={referenceImageUrl} className="w-full h-full object-cover" />
-                           <button 
-                             onClick={() => setReferenceImageUrl(null)}
-                             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                           >
-                             <Trash2 className="h-3 w-3 text-white" />
-                           </button>
-                         </div>
-                       ) : (
-                         <div className="relative">
-                            <input 
-                              type="file" 
-                              className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8" 
-                              accept="image/*"
-                              onChange={handleReferenceUpload}
-                              disabled={isUploadingReference}
-                            />
-                            <Button variant="outline" size="icon" className="h-8 w-8" title="Usar imagem de referência">
-                              {isUploadingReference ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />}
-                            </Button>
-                         </div>
-                       )}
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Descreva a arte e, se quiser, envie uma imagem modelo para a IA seguir o estilo.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Textarea 
-                      placeholder={referenceImageUrl ? "Descreva como você quer modelar a imagem de referência..." : "Descreva a imagem que você deseja criar..."} 
-                      className="h-24 resize-none"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Select value={aiModel} onValueChange={setAiModel}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Modelo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini (OpenAI)</SelectItem>
-                          <SelectItem value="openai/gpt-4o">GPT-4o (OpenAI)</SelectItem>
-                          <SelectItem value="x-ai/grok-2-vision-1212">Grok 2 Vision (xAI)</SelectItem>
-                          <SelectItem value="dalle-3">DALL-E 3 (Direct)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        onClick={generateAIImages} 
-                        disabled={generating || !prompt} 
-                        variant="secondary"
-                        className="shrink-0"
-                      >
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar"}
-                      </Button>
+
+                  <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Imagem modelo</Label>
+                      {referenceImageUrl ? (
+                        <div className="relative h-24 w-24 overflow-hidden rounded-lg border group">
+                          <img src={referenceImageUrl} className="h-full w-full object-cover" alt="Imagem de referência" />
+                          <button
+                            type="button"
+                            onClick={() => setReferenceImageUrl(null)}
+                            className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="relative h-24 w-24 flex-col gap-2 overflow-hidden border-dashed text-xs"
+                          disabled={isUploadingReference}
+                          onClick={() => referenceInputRef.current?.click()}
+                        >
+                          {isUploadingReference ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                          Referência
+                        </Button>
+                      )}
+                      <input
+                        ref={referenceInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleReferenceUpload}
+                        disabled={isUploadingReference}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Textarea
+                        placeholder={referenceImageUrl ? "Ex: use esta imagem como estilo, mas crie uma arte nova com fundo premium e texto visual limpo..." : "Ex: crie uma arte para feed sobre promoção de atendimento via WhatsApp, visual moderno e chamativo..."}
+                        className="h-24 resize-none"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                      />
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Select value={aiModel} onValueChange={setAiModel}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AI_IMAGE_MODELS.map((model) => (
+                              <SelectItem key={model.value} value={model.value}>{model.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={generateAIImages}
+                          disabled={generating || !prompt.trim()}
+                          variant="secondary"
+                          className="shrink-0"
+                        >
+                          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {generating ? "Gerando..." : "Gerar artes"}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Não precisa colocar API key de OpenAI/Grok: este botão usa Lovable AI já configurado no projeto.
+                      </p>
                     </div>
                   </div>
                 </div>
