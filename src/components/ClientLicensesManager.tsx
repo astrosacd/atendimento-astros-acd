@@ -63,6 +63,10 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
   }, [clienteId, clientePlano]);
 
   const fetchData = async () => {
+    if (clienteId === "preview") {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Fetch licenses
