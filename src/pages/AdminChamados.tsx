@@ -240,7 +240,7 @@ const AdminChamados = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-2 space-y-4">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
@@ -293,7 +293,7 @@ const AdminChamados = () => {
             </Card>
           </div>
 
-          <div className="h-fit lg:sticky lg:top-24">
+          <div className="lg:col-span-3 h-fit lg:sticky lg:top-24">
             {selectedChamado ? (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2">
                 <div className="h-1.5 w-full bg-border/20"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
