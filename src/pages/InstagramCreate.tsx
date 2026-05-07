@@ -349,119 +349,134 @@ const InstagramCreate = () => {
               <CardTitle className="text-lg">Mídia e Design</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Upload area */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <Label>Fazer Upload</Label>
-                  <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer relative">
+              {/* Banner de regra do tipo selecionado */}
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  <strong className="capitalize">{postType === 'feed' ? 'Feed' : postType === 'reels' ? 'Reels' : postType === 'carousel' ? 'Carrossel' : 'Stories'}:</strong>{' '}
+                  {currentRule.label}. {mediaUrls.length > 0 && `(${mediaUrls.length}/${currentRule.max} adicionado${mediaUrls.length > 1 ? 's' : ''})`}
+                </AlertDescription>
+              </Alert>
+
+              {/* Tabs: Upload x Gerar com IA */}
+              <Tabs defaultValue="upload" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload" className="gap-2">
+                    <Upload className="h-4 w-4" /> Fazer Upload
+                  </TabsTrigger>
+                  <TabsTrigger value="ai" className="gap-2">
+                    <Sparkles className="h-4 w-4" /> Gerar com IA
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="mt-4">
+                  <div
+                    className="border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer relative"
+                    onClick={() => !loading && fileInputRef.current?.click()}
+                  >
                     <input 
                       ref={fileInputRef}
                       type="file" 
                       className="absolute inset-0 opacity-0 cursor-pointer" 
-                      multiple={postType === 'carousel'}
-                      accept="image/*,video/*"
+                      multiple={currentRule.multiple}
+                      accept={currentRule.accept}
                       onChange={handleFileUpload}
-                      disabled={loading}
+                      disabled={loading || mediaUrls.length >= currentRule.max}
                     />
                     {loading ? (
                       <Loader2 className="h-10 w-10 animate-spin text-primary" />
                     ) : (
                       <>
                         <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">Clique ou arraste arquivos</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">Imagens ou Vídeos (MP4/MOV)</p>
+                        <p className="text-sm font-medium">Clique ou arraste arquivos aqui</p>
+                        <p className="text-xs text-muted-foreground mt-1">{currentRule.label}</p>
                       </>
                     )}
                   </div>
-                </div>
+                </TabsContent>
 
-                <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-                  <div className="space-y-1">
-                    <Label className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      Gerar com IA (Lovable AI)
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Descreva a arte e, se quiser, envie uma imagem modelo para a IA seguir o estilo.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Imagem modelo</Label>
-                      {referenceImageUrl ? (
-                        <div className="relative h-24 w-24 overflow-hidden rounded-lg border group">
-                          <img src={referenceImageUrl} className="h-full w-full object-cover" alt="Imagem de referência" />
-                          <button
-                            type="button"
-                            onClick={() => setReferenceImageUrl(null)}
-                            className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity group-hover:opacity-100"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </button>
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="relative h-24 w-24 flex-col gap-2 overflow-hidden border-dashed text-xs"
-                          disabled={isUploadingReference}
-                          onClick={() => referenceInputRef.current?.click()}
-                        >
-                          {isUploadingReference ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
-                          Referência
-                        </Button>
-                      )}
-                      <input
-                        ref={referenceInputRef}
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleReferenceUpload}
-                        disabled={isUploadingReference}
-                      />
+                <TabsContent value="ai" className="mt-4">
+                  <div className="space-y-4 rounded-xl border bg-muted/20 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <Label className="flex items-center gap-2 text-sm font-semibold">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          Gerar arte com Lovable AI
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Descreva a arte desejada. Sem necessidade de API key.
+                        </p>
+                      </div>
+                      <Select value={aiModel} onValueChange={setAiModel}>
+                        <SelectTrigger className="w-[200px] h-9 text-xs">
+                          <SelectValue placeholder="Qualidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AI_IMAGE_MODELS.map((model) => (
+                            <SelectItem key={model.value} value={model.value} className="text-xs">{model.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <div className="space-y-3">
-                      <Textarea
-                        placeholder={referenceImageUrl ? "Ex: use esta imagem como estilo, mas crie uma arte nova com fundo premium e texto visual limpo..." : "Ex: crie uma arte para feed sobre promoção de atendimento via WhatsApp, visual moderno e chamativo..."}
-                        className="h-24 resize-none"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                      />
-                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <Select value={aiModel} onValueChange={setAiModel}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Modelo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {AI_IMAGE_MODELS.map((model) => (
-                              <SelectItem key={model.value} value={model.value}>{model.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <div className="grid gap-4 md:grid-cols-[120px_1fr]">
+                      {/* Imagem modelo */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Imagem modelo (opcional)</Label>
+                        {referenceImageUrl ? (
+                          <div className="relative h-28 w-28 overflow-hidden rounded-lg border group">
+                            <img src={referenceImageUrl} className="h-full w-full object-cover" alt="Referência" />
+                            <button
+                              type="button"
+                              onClick={() => setReferenceImageUrl(null)}
+                              className="absolute inset-0 flex items-center justify-center bg-background/80 opacity-0 transition-opacity group-hover:opacity-100"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="h-28 w-28 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs text-muted-foreground hover:bg-muted/40 transition disabled:opacity-50"
+                            disabled={isUploadingReference}
+                            onClick={() => referenceInputRef.current?.click()}
+                          >
+                            {isUploadingReference ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                            <span>Enviar</span>
+                          </button>
+                        )}
+                        <input
+                          ref={referenceInputRef}
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleReferenceUpload}
+                          disabled={isUploadingReference}
+                        />
+                      </div>
+
+                      {/* Prompt */}
+                      <div className="space-y-3">
+                        <Textarea
+                          placeholder={referenceImageUrl ? "Ex: use esta imagem como estilo, mas crie uma arte nova..." : "Ex: arte para feed sobre promoção de atendimento via WhatsApp, visual moderno..."}
+                          className="h-28 resize-none"
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                        />
                         <Button
                           onClick={generateAIImages}
                           disabled={generating || !prompt.trim()}
-                          variant="secondary"
-                          className="shrink-0"
+                          className="w-full"
                         >
-                          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                          {generating ? "Gerando..." : "Gerar artes"}
+                          {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {generating ? "Gerando 3 variações..." : "Gerar artes com IA"}
                         </Button>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        {AI_IMAGE_MODELS.find((model) => model.value === aiModel)?.hint} Não precisa colocar API key de OpenAI/Grok.
-                      </p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
 
-              {/* AI Variations Result */}
-              {variations.length > 0 && (
-                <div className="space-y-3 pt-4 border-t">
-                  <Label>Escolha uma variação gerada:</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {variations.map((v, i) => (
                       <div 
