@@ -839,5 +839,6 @@ export default function ChamadosPublico() {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 }
