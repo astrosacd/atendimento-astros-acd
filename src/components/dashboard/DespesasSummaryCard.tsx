@@ -26,6 +26,7 @@ export function DespesasSummaryCard() {
   useEffect(() => {
     const fetchSummary = async () => {
       const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
 
