@@ -60,19 +60,19 @@ serve(async (req) => {
       }
     }
 
-    // Get MP access token
+    // Get MP access token (maybeSingle so missing row doesn't throw)
     const { data: configRow } = await supabase
       .from("billing_config")
       .select("config_value")
       .eq("config_key", "mp_access_token")
-      .single();
+      .maybeSingle();
 
-    // Get Stripe secret key
+    // Get Stripe secret key (maybeSingle so missing row doesn't throw)
     const { data: stripeConfig } = await supabase
       .from("billing_stripe_config")
       .select("stripe_secret_key, stripe_enabled")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const mpAccessToken = configRow?.config_value || "";
     const stripeSecretKey = stripeConfig?.stripe_secret_key || "";
