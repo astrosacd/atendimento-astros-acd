@@ -373,8 +373,10 @@ export default function ChamadosPublico() {
   const [searchMethod, setSearchMethod] = useState<"codigo" | "email">("codigo");
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="relative overflow-hidden bg-primary py-16 text-primary-foreground md:py-24">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(var(--primary),0.05),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(var(--primary),0.05),transparent)] pointer-events-none" />
+      <div className="relative overflow-hidden bg-primary/10 border-b border-white/5 py-16 text-foreground md:py-24">
         <div className="absolute inset-0 z-0 opacity-10">
           <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 100 C 20 0 50 0 100 100" stroke="currentColor" strokeWidth="0.5" />
@@ -383,11 +385,11 @@ export default function ChamadosPublico() {
         </div>
         <div className="container relative z-10 mx-auto px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
-            <div className="mb-6 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+            <div className="mb-6 rounded-3xl bg-primary/20 p-5 backdrop-blur-xl border border-primary/30 shadow-2xl shadow-primary/20">
               <Ticket className="h-10 w-10 md:h-12 md:w-12" />
             </div>
-            <h1 className="mb-4 text-3xl font-extrabold tracking-tight md:text-5xl">Central de Suporte</h1>
-            <p className="mx-auto max-w-2xl text-lg text-primary-foreground/80 md:text-xl">Estamos aqui para ajudar com suas dúvidas e solicitações.</p>
+            <h1 className="mb-4 text-4xl font-extrabold tracking-tight md:text-6xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Central de Suporte</h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl font-medium">Estamos aqui para ajudar com suas dúvidas e solicitações.</p>
           </motion.div>
         </div>
       </div>
@@ -395,15 +397,15 @@ export default function ChamadosPublico() {
       <div className="container mx-auto -mt-8 px-4 pb-20 md:-mt-12">
         <div className="mx-auto max-w-4xl">
           {!chamado ? (
-            <Card className="border-none bg-white/70 shadow-2xl shadow-slate-200/50 backdrop-blur-xl">
+            <Card className="border-white/10 bg-card/40 shadow-2xl shadow-black/50 backdrop-blur-3xl border-2">
               <CardHeader className="pb-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-slate-100/50 p-1">
-                    <TabsTrigger value="abrir" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 border border-white/5">
+                    <TabsTrigger value="abrir" className="flex items-center gap-2 rounded-xl transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       <Plus className="h-4 w-4" />
                       <span className="font-semibold">Abrir Chamado</span>
                     </TabsTrigger>
-                    <TabsTrigger value="consultar" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <TabsTrigger value="consultar" className="flex items-center gap-2 rounded-xl transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       <Search className="h-4 w-4" />
                       <span className="font-semibold">Consultar</span>
                     </TabsTrigger>
@@ -417,32 +419,32 @@ export default function ChamadosPublico() {
                               <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Nome Completo</Label>
+                                    <Label className="text-sm font-bold text-foreground/80">Nome Completo</Label>
                                     <div className="relative">
-                                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                      <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João da Silva" className="pl-10 h-11" required />
+                                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                      <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João da Silva" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                     </div>
                                   </div>
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Email</Label>
+                                    <Label className="text-sm font-bold text-foreground/80">Email</Label>
                                     <div className="relative">
-                                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 h-11" required />
+                                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                     </div>
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm font-bold text-slate-700">WhatsApp / Telefone</Label>
+                                  <Label className="text-sm font-bold text-foreground/80">WhatsApp / Telefone</Label>
                                   <div className="relative">
-                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                    <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="(00) 00000-0000" className="pl-10 h-11" required />
+                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="(00) 00000-0000" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm font-bold text-slate-700">Sua Mensagem</Label>
-                                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva sua solicitação..." className="min-h-[150px] resize-none" required />
+                                  <Label className="text-sm font-bold text-foreground/80">Sua Mensagem</Label>
+                                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva sua solicitação..." className="min-h-[150px] resize-none bg-white/5 border-white/10" required />
                                 </div>
-                                <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+                                <Button type="submit" className="w-full h-14 text-lg font-bold shadow-xl shadow-primary/20" disabled={loading}>
                                   {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Plus className="mr-2 h-5 w-5" /> Abrir Chamado Agora</>}
                                 </Button>
                               </>
