@@ -58,11 +58,32 @@ serve(async (req) => {
     }
 
     const aspect_ratio = format === "stories" || format === "reels" ? "9:16" : "1:1";
-    const variations = [
-      { name: "Vibrante", style: "vibrant colors, high saturation, energetic lighting" },
-      { name: "Minimalista", style: "minimalist, clean lines, plenty of whitespace, professional" },
-      { name: "Cinematográfico", style: "cinematic lighting, shallow depth of field, dramatic atmosphere" }
-    ];
+
+    // Variações por tipo de conteúdo - cada formato tem briefing próprio
+    const variationsByFormat: Record<string, { name: string; style: string; brief: string }[]> = {
+      feed: [
+        { name: "Vibrante",       style: "vibrant colors, high saturation, energetic lighting", brief: "post quadrado para feed do Instagram, composição centralizada, foco no produto/mensagem" },
+        { name: "Minimalista",    style: "minimalist, clean lines, plenty of whitespace, professional", brief: "post quadrado clean, tipografia respirada, ideal para marca premium" },
+        { name: "Cinematográfico",style: "cinematic lighting, shallow depth of field, dramatic atmosphere", brief: "post quadrado com mood cinematográfico, contraste forte" },
+      ],
+      carousel: [
+        { name: "Capa impactante", style: "bold typography, strong contrast, eye-catching", brief: "primeira tela de carrossel: precisa parar o scroll, com gancho visual claro" },
+        { name: "Educativo",       style: "infographic style, organized layout, clear hierarchy", brief: "slide de carrossel educativo, espaço para texto curto, ícones limpos" },
+        { name: "Storytelling",    style: "narrative composition, warm tones, human connection", brief: "slide de carrossel emocional, foco em conexão e storytelling" },
+      ],
+      stories: [
+        { name: "Vertical impacto",  style: "9:16 vertical, bold focal point, mobile-first", brief: "story vertical 9:16, espaço seguro topo/rodapé livre para stickers do Instagram" },
+        { name: "Bastidores",        style: "candid, behind-the-scenes feel, authentic", brief: "story vertical autêntico, estilo bastidor/dia-a-dia" },
+        { name: "Promoção",          style: "promotional, CTA-driven, high-energy", brief: "story vertical promocional, espaço central para chamada de ação" },
+      ],
+      reels: [
+        { name: "Capa Reels Vibrante",   style: "9:16 vertical, vibrant, motion-feel", brief: "thumbnail/capa para Reels 9:16 (a IA não gera vídeo - apenas a capa estática)" },
+        { name: "Capa Reels Minimal",    style: "9:16 vertical, minimalist, bold title space", brief: "capa de Reels com espaço claro para título grande" },
+        { name: "Capa Reels Cinema",     style: "9:16 vertical, cinematic, atmospheric", brief: "capa de Reels com mood cinematográfico" },
+      ],
+    };
+
+    const variations = variationsByFormat[format] ?? variationsByFormat.feed;
 
     const results = [];
 
