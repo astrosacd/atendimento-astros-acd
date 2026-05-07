@@ -370,29 +370,44 @@ const InstagramCreate = () => {
                 </TabsList>
 
                 <TabsContent value="upload" className="mt-4">
-                  <div
-                    className="border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer relative"
-                    onClick={() => !loading && fileInputRef.current?.click()}
-                  >
-                    <input 
-                      ref={fileInputRef}
-                      type="file" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      multiple={currentRule.multiple}
-                      accept={currentRule.accept}
-                      onChange={handleFileUpload}
-                      disabled={loading || mediaUrls.length >= currentRule.max}
-                    />
-                    {loading ? (
-                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    ) : (
-                      <>
-                        <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
-                        <p className="text-sm font-medium">Clique ou arraste arquivos aqui</p>
-                        <p className="text-xs text-muted-foreground mt-1">{currentRule.label}</p>
-                      </>
-                    )}
-                  </div>
+                  {mediaUrls.length >= currentRule.max ? (
+                    <Alert variant="destructive">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        Limite atingido ({currentRule.max}). Remova uma mídia abaixo para enviar outra.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        "border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors",
+                        loading ? "cursor-wait opacity-60" : "cursor-pointer"
+                      )}
+                      onClick={() => !loading && fileInputRef.current?.click()}
+                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !loading) fileInputRef.current?.click(); }}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        multiple={currentRule.multiple}
+                        accept={currentRule.accept}
+                        onChange={handleFileUpload}
+                        disabled={loading}
+                      />
+                      {loading ? (
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                      ) : (
+                        <>
+                          <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="text-sm font-medium">Clique para selecionar arquivos</p>
+                          <p className="text-xs text-muted-foreground mt-1">{currentRule.label}</p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="ai" className="mt-4">
