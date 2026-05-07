@@ -241,7 +241,7 @@ const AdminChamados = () => {
 
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-4 space-y-4">
+          <div className="lg:col-span-5 space-y-4">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
@@ -293,7 +293,7 @@ const AdminChamados = () => {
             </Card>
           </div>
 
-          <div className="lg:col-span-8 h-fit lg:sticky lg:top-24">
+          <div className="lg:col-span-7 h-fit lg:sticky lg:top-24">
             {selectedChamado ? (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2">
                 <div className="h-1.5 w-full bg-border/20"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
@@ -328,49 +328,57 @@ const AdminChamados = () => {
                       </div>
                     </ScrollArea>
                   </div>
-                  <div className="space-y-4 pt-4 border-t border-border/40">
-                    <div className="flex gap-2">
-                      <Button size="sm" variant={commentType === 'publico' ? 'default' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('publico')}><Eye className="h-3 w-3 mr-1" /> PÚBLICO</Button>
-                      <Button size="sm" variant={commentType === 'interno' ? 'secondary' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('interno')}><Lock className="h-3 w-3 mr-1" /> INTERNO</Button>
+                  {(selectedChamado.status === 'resolvido' || selectedChamado.status === 'fechado') ? (
+                    <div className="rounded-2xl border-2 border-dashed border-emerald-500/30 bg-emerald-500/5 p-6 text-center space-y-2">
+                      <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+                        <Lock className="h-5 w-5 text-emerald-500" />
+                      </div>
+                      <p className="text-sm font-bold text-emerald-500 uppercase tracking-widest">Chamado Encerrado</p>
+                      <p className="text-xs text-muted-foreground max-w-[280px] mx-auto">
+                        Este chamado foi marcado como <span className="font-bold">{statusConfig[selectedChamado.status].label}</span> e não pode mais ser alterado ou receber novas mensagens.
+                      </p>
                     </div>
-                    <div className="relative">
-                      <Input 
-                        placeholder={selectedChamado.status === 'resolvido' ? "Chamado resolvido - Chat desativado" : "Escreva aqui..."} 
-                        value={newComment} 
-                        onChange={(e) => setNewComment(e.target.value)} 
-                        className="pr-10 h-11 rounded-xl bg-background/50 border-border/40" 
-                        disabled={selectedChamado.status === 'resolvido'}
-                        onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} 
-                      />
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="absolute right-1 top-1 h-9 w-9 text-primary" 
-                        disabled={selectedChamado.status === 'resolvido' || !newComment.trim()}
-                        onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                  ) : (
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <div className="flex gap-2">
+                        <Button size="sm" variant={commentType === 'publico' ? 'default' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('publico')}><Eye className="h-3 w-3 mr-1" /> PÚBLICO</Button>
+                        <Button size="sm" variant={commentType === 'interno' ? 'secondary' : 'ghost'} className="h-7 text-[10px] font-bold" onClick={() => setCommentType('interno')}><Lock className="h-3 w-3 mr-1" /> INTERNO</Button>
+                      </div>
+                      <div className="relative">
+                        <Input 
+                          placeholder="Escreva aqui..." 
+                          value={newComment} 
+                          onChange={(e) => setNewComment(e.target.value)} 
+                          className="pr-10 h-11 rounded-xl bg-background/50 border-border/40" 
+                          onKeyDown={e => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })} 
+                        />
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="absolute right-1 top-1 h-9 w-9 text-primary" 
+                          disabled={!newComment.trim()}
+                          onClick={() => newComment.trim() && addCommentMutation.mutate({ chamadoId: selectedChamado.id, conteudo: newComment, tipo: commentType })}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Select 
+                          value={selectedChamado.status} 
+                          onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
+                        >
+                          <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(statusConfig).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="flex gap-2 pt-2">
-                      <Select 
-                        value={selectedChamado.status} 
-                        onValueChange={v => updateStatusMutation.mutate({ id: selectedChamado.id, status: v as any })}
-                        disabled={selectedChamado.status === 'resolvido'}
-                      >
-                        <SelectTrigger className="h-10 text-xs font-bold bg-background/50">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(statusConfig).map(([k, v]) => (
-                            <SelectItem key={k} value={k} disabled={selectedChamado.status === 'resolvido' && k !== 'resolvido'}>
-                              {v.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
