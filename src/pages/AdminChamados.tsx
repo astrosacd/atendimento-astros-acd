@@ -205,23 +205,29 @@ const AdminChamados = () => {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
-            { label: 'Total', value: stats.total, color: 'blue', icon: Ticket },
-            { label: 'Abertos', value: stats.abertos, color: 'amber', icon: AlertCircle },
-            { label: 'Em Andamento', value: stats.emAndamento, color: 'purple', icon: Clock },
-            { label: 'Resolvidos', value: stats.resolvidos, color: 'emerald', icon: CheckCircle }
+            { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', textColor: 'text-blue-600' },
+            { label: 'Abertos', value: stats.abertos, icon: AlertCircle, iconBg: 'bg-amber-50', iconColor: 'text-amber-500', textColor: 'text-amber-600' },
+            { label: 'Em Andamento', value: stats.emAndamento, icon: Clock, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', textColor: 'text-purple-600' },
+            { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-500', textColor: 'text-emerald-600' }
           ].map((s, i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
               <Card className="border-none shadow-sm bg-white">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-center">
-                    <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p><p className="text-3xl font-extrabold mt-1">{s.value}</p></div>
-                    <div className={`h-12 w-12 rounded-2xl bg-${s.color}-50 flex items-center justify-center`}><s.icon className={`h-6 w-6 text-${s.color}-500`} /></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                      <p className={`text-3xl font-extrabold mt-1 ${s.textColor}`}>{s.value}</p>
+                    </div>
+                    <div className={`h-12 w-12 rounded-2xl ${s.iconBg} flex items-center justify-center`}>
+                      <s.icon className={`h-6 w-6 ${s.iconColor}`} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
