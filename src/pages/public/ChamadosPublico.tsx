@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,29 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Ticket, Search, Plus, MessageSquare, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { 
+  Ticket, 
+  Search, 
+  Plus, 
+  MessageSquare, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  Loader2, 
+  ArrowLeft, 
+  User, 
+  Mail, 
+  Phone, 
+  Send,
+  HelpCircle,
+  ShieldCheck,
+  ChevronRight,
+  History,
+  Info
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Chamado {
   id: string;
@@ -35,21 +57,14 @@ interface Comentario {
   created_at: string;
 }
 
-const statusColors: Record<string, string> = {
-  aberto: "bg-blue-500",
-  em_andamento: "bg-yellow-500",
-  aguardando_cliente: "bg-orange-500",
-  resolvido: "bg-green-500",
-  fechado: "bg-gray-500",
+const statusConfig: Record<string, { label: string; color: string; icon: any; bg: string }> = {
+  aberto: { label: "Aberto", color: "text-blue-600", bg: "bg-blue-50", icon: AlertCircle },
+  em_andamento: { label: "Em Atendimento", color: "text-amber-600", bg: "bg-amber-50", icon: Clock },
+  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-600", bg: "bg-purple-50", icon: User },
+  resolvido: { label: "Resolvido", color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle },
+  fechado: { label: "Fechado", color: "text-gray-600", bg: "bg-gray-100", icon: ShieldCheck },
 };
 
-const statusLabels: Record<string, string> = {
-  aberto: "Aberto",
-  em_andamento: "Em Andamento",
-  aguardando_cliente: "Aguardando Cliente",
-  resolvido: "Resolvido",
-  fechado: "Fechado",
-};
 
 export default function ChamadosPublico() {
   const [searchParams] = useSearchParams();
