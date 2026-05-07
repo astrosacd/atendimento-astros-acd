@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Max-Age": "86400",
 };
 
 const ALLOWED_IMAGE_MODELS = new Set([
@@ -57,19 +58,41 @@ serve(async (req) => {
     }
 
     const aspect_ratio = format === "stories" || format === "reels" ? "9:16" : "1:1";
-    const variations = [
-      { name: "Vibrante", style: "vibrant colors, high saturation, energetic lighting" },
-      { name: "Minimalista", style: "minimalist, clean lines, plenty of whitespace, professional" },
-      { name: "Cinematográfico", style: "cinematic lighting, shallow depth of field, dramatic atmosphere" }
-    ];
+
+    // Variações por tipo de conteúdo - cada formato tem briefing próprio
+    const variationsByFormat: Record<string, { name: string; style: string; brief: string }[]> = {
+      feed: [
+        { name: "Vibrante",       style: "vibrant colors, high saturation, energetic lighting", brief: "post quadrado para feed do Instagram, composição centralizada, foco no produto/mensagem" },
+        { name: "Minimalista",    style: "minimalist, clean lines, plenty of whitespace, professional", brief: "post quadrado clean, tipografia respirada, ideal para marca premium" },
+        { name: "Cinematográfico",style: "cinematic lighting, shallow depth of field, dramatic atmosphere", brief: "post quadrado com mood cinematográfico, contraste forte" },
+      ],
+      carousel: [
+        { name: "Capa impactante", style: "bold typography, strong contrast, eye-catching", brief: "primeira tela de carrossel: precisa parar o scroll, com gancho visual claro" },
+        { name: "Educativo",       style: "infographic style, organized layout, clear hierarchy", brief: "slide de carrossel educativo, espaço para texto curto, ícones limpos" },
+        { name: "Storytelling",    style: "narrative composition, warm tones, human connection", brief: "slide de carrossel emocional, foco em conexão e storytelling" },
+      ],
+      stories: [
+        { name: "Vertical impacto",  style: "9:16 vertical, bold focal point, mobile-first", brief: "story vertical 9:16, espaço seguro topo/rodapé livre para stickers do Instagram" },
+        { name: "Bastidores",        style: "candid, behind-the-scenes feel, authentic", brief: "story vertical autêntico, estilo bastidor/dia-a-dia" },
+        { name: "Promoção",          style: "promotional, CTA-driven, high-energy", brief: "story vertical promocional, espaço central para chamada de ação" },
+      ],
+      reels: [
+        { name: "Capa Reels Vibrante",   style: "9:16 vertical, vibrant, motion-feel", brief: "thumbnail/capa para Reels 9:16 (a IA não gera vídeo - apenas a capa estática)" },
+        { name: "Capa Reels Minimal",    style: "9:16 vertical, minimalist, bold title space", brief: "capa de Reels com espaço claro para título grande" },
+        { name: "Capa Reels Cinema",     style: "9:16 vertical, cinematic, atmospheric", brief: "capa de Reels com mood cinematográfico" },
+      ],
+    };
+
+    const variations = variationsByFormat[format] ?? variationsByFormat.feed;
 
     const results = [];
 
     for (let i = 0; i < Math.min(safeCount, variations.length); i++) {
       const styleHint = variations[i].style;
+      const briefHint = variations[i].brief;
       const fullPrompt = referenceImage 
-        ? `Use the attached reference image only as visual guidance. Create a new Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial, and do not copy private details unless explicitly requested. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
-        : `Create an Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
+        ? `Use the attached reference image only as visual guidance. ${briefHint}. User idea: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}.`
+        : `${briefHint}. User idea: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}.`;
 
       let messageContent: string | Array<Record<string, unknown>> = fullPrompt;
       
