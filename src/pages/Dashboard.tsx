@@ -10,6 +10,7 @@ import {
   UserPlus, Search, Edit, Trash2, Users, Settings, ChevronRight, TrendingUp, 
   Webhook, DollarSign, Clock, AlertTriangle, 
   Bell, Database, MessageSquare, Loader2, ListTodo, CheckCircle2, AlertCircle,
+  ShieldCheck, 
   Wallet, Phone, Headphones, ThumbsUp, User, Instagram
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
@@ -82,9 +83,10 @@ interface ClienteStats {
   billingSkipped: number;
   billingErrorsUnresolved: number;
   churnRate: number;
-  instagramTokenExpiring: boolean;
-  instagramTokenExpiryDate: string | null;
-}
+    instagramTokenExpiring: boolean;
+    instagramTokenExpiryDate: string | null;
+    pagamentosPendentes: number;
+  }
 
 // Removed unused interface
 
@@ -94,7 +96,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, userRole, isAdmin, isApproved } = useAuth();
   const { isSupported, permission, requestPermission } = useNotifications();
-  const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, hasPermission } = usePermissions();
+  const { canManageTasks, canViewChamados, canViewProposalsDashboard, canViewDespesas, canViewPaymentSecurity, hasPermission } = usePermissions();
   const { getTaskStats, getUrgentTasks } = useClientTasks();
   const canViewClients = hasPermission('view_clients');
   const canViewCharts = hasPermission('view_dashboard_charts');
@@ -138,6 +140,7 @@ export default function Dashboard() {
     churnRate: 0,
     instagramTokenExpiring: false,
     instagramTokenExpiryDate: null,
+    pagamentosPendentes: 0,
   });
 
   useEffect(() => {
@@ -323,6 +326,7 @@ export default function Dashboard() {
 
       let instagramTokenExpiring = false;
       let instagramTokenExpiryDate = null;
+      let pagamentosPendentes = 0;
 
       if (isAdmin) {
         // Check Instagram token status
@@ -434,6 +438,14 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aguardando_cliente');
         chamadosAguardandoCliente = aguardandoC || 0;
+
+        if (canViewPaymentSecurity()) {
+          const { count: pendingPayments } = await supabase
+            .from('client_payments')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending_approval');
+          pagamentosPendentes = pendingPayments || 0;
+        }
       }
 
       // Task stats (only for users with task permission)
@@ -483,6 +495,7 @@ export default function Dashboard() {
         churnRate,
         instagramTokenExpiring,
         instagramTokenExpiryDate,
+        pagamentosPendentes,
       });
     };
 
@@ -1104,6 +1117,36 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {canViewPaymentSecurity() && stats.pagamentosPendentes > 0 && (
+                  <>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2 mt-6">
+                      <span className="h-4 w-0.5 bg-destructive rounded-full"></span>
+                      Segurança de Pagamento
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Card 
+                        className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
+                        onClick={() => navigate('/admin/seguranca-pagamento')}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center animate-pulse">
+                                <ShieldCheck className="h-6 w-6 text-destructive" />
+                              </div>
+                              <div>
+                                <p className="text-3xl font-bold text-foreground font-display">{stats.pagamentosPendentes}</p>
+                                <p className="text-xs text-muted-foreground">Aguardando Aprovação</p>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
