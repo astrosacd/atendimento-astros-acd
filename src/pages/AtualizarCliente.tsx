@@ -634,7 +634,7 @@ export default function AtualizarCliente() {
               </div>
 
               {/* Licenses Manager - show when any plan is selected */}
-              {newPlano && (
+              {newPlano && newPlano !== 'Individual' && (
                 <ClientLicensesManager 
                   clienteId={selectedCliente.id} 
                   clientePlano={newPlano}
