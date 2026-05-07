@@ -144,3 +144,6 @@ verify_jwt = false
 
 [functions.atomicat-webhook]
 verify_jwt = false
+
+[functions.approve-pixpague-payment]
+verify_jwt = false
