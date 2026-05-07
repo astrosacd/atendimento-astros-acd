@@ -495,6 +495,7 @@ export default function Dashboard() {
         churnRate,
         instagramTokenExpiring,
         instagramTokenExpiryDate,
+        pagamentosPendentes,
       });
     };
 
