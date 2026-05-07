@@ -62,11 +62,11 @@ export default function AtualizarCliente() {
   const [isOriginallyReseller, setIsOriginallyReseller] = useState(false);
 
   const normalizePlano = (plano?: string | null) => {
-    if (!plano) return null;
+    if (!plano) return 'Individual';
     const cleaned = plano.trim();
-    if (!cleaned) return null;
-    if (cleaned.toLowerCase() === 'none') return null;
-    if (cleaned.toLowerCase() === 'nenhum') return null;
+    if (!cleaned) return 'Individual';
+    if (cleaned.toLowerCase() === 'none') return 'Individual';
+    if (cleaned.toLowerCase() === 'nenhum') return 'Individual';
     return cleaned;
   };
 
@@ -118,7 +118,7 @@ export default function AtualizarCliente() {
     setNewEditProduto(cliente.produto || '');
     setNewNumero(cliente.numero || '');
     setNewEmail(cliente.email || '');
-    setNewPlano(planoNormalizado);
+    setNewPlano(planoNormalizado || 'Individual');
     setIsOriginallyReseller(clienteIsReseller);
     setNewTipo(cliente.tipo || 'cliente');
     setNewExcluirMetricas(cliente.excluir_metricas || false);

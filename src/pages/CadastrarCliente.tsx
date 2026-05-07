@@ -96,7 +96,7 @@ export default function CadastrarCliente() {
     data_renovacao: '',
     email: '',
     cpf: '',
-    plano: '',
+    plano: 'Individual',
     valor: 0,
     moeda: undefined,
     observacao: '',
@@ -106,7 +106,7 @@ export default function CadastrarCliente() {
     tipo: '',
     excluir_metricas: false,
   });
-  
+
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
@@ -591,7 +591,7 @@ export default function CadastrarCliente() {
       data_renovacao: '',
       email: '',
       cpf: '',
-      plano: '',
+      plano: 'Individual',
       valor: 0,
       moeda: undefined,
       observacao: '',
@@ -871,7 +871,7 @@ export default function CadastrarCliente() {
                     <div className="space-y-2">
                       <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
                       <Select
-                        value={formData.plano}
+                        value={formData.plano || 'Individual'}
                         onValueChange={(value) => setFormData({ ...formData, plano: value })}
                       >
                         <SelectTrigger className="bg-secondary border-border text-foreground h-11">
