@@ -63,6 +63,10 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
   }, [clienteId, clientePlano]);
 
   const fetchData = async () => {
+    if (clienteId === "preview") {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Fetch licenses
@@ -253,17 +257,18 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
             </Badge>
           )}
         </CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Licença
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Registrar Nova Licença</DialogTitle>
-            </DialogHeader>
+        {clienteId !== "preview" && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Licença
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Registrar Nova Licença</DialogTitle>
+              </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Ferramenta *</Label>
@@ -328,6 +333,7 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
             </div>
           </DialogContent>
         </Dialog>
+      )}
       </CardHeader>
       <CardContent>
         {/* License summary by tool */}

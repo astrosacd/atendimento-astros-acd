@@ -97,7 +97,7 @@ export default function CadastrarCliente() {
     data_renovacao: '',
     email: '',
     cpf: '',
-    plano: 'Individual',
+    plano: '',
     valor: 0,
     moeda: undefined,
     observacao: '',
@@ -870,10 +870,11 @@ export default function CadastrarCliente() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                      <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor <span className="text-destructive">*</span></Label>
                       <Select
-                        value={formData.plano || 'Individual'}
+                        value={formData.plano || ''}
                         onValueChange={(value) => setFormData({ ...formData, plano: value })}
+                        required
                       >
                         <SelectTrigger className="bg-secondary border-border text-foreground h-11">
                           <SelectValue placeholder="Selecione o plano" />
@@ -934,11 +935,11 @@ export default function CadastrarCliente() {
                   </>
                 )}
               </div>
-              {/* Licenses Manager - only for monthly clients with a plan (not Individual) and after creation */}
-              {clienteType === 'mensal' && createdClienteId && formData.plano && formData.plano !== 'Individual' && (
+              {/* Licenses Manager - only for monthly clients with a plan (not Individual) */}
+              {clienteType === 'mensal' && formData.plano && formData.plano !== 'Individual' && (
                 <div className="mt-6 border-t border-border pt-4">
                    <ClientLicensesManager 
-                      clienteId={createdClienteId} 
+                      clienteId={createdClienteId || "preview"} 
                       clientePlano={formData.plano}
                     />
                 </div>
