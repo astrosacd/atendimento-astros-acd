@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,31 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Ticket, Search, Plus, MessageSquare, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { 
+  Ticket, 
+  Search, 
+  Plus, 
+  MessageSquare, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  Loader2, 
+  ArrowLeft, 
+  User, 
+  Mail, 
+  Phone, 
+  Send,
+  HelpCircle,
+  ShieldCheck,
+  ChevronRight,
+  History,
+  Info,
+  ExternalLink,
+  Lock
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Chamado {
   id: string;
@@ -35,20 +59,12 @@ interface Comentario {
   created_at: string;
 }
 
-const statusColors: Record<string, string> = {
-  aberto: "bg-blue-500",
-  em_andamento: "bg-yellow-500",
-  aguardando_cliente: "bg-orange-500",
-  resolvido: "bg-green-500",
-  fechado: "bg-gray-500",
-};
-
-const statusLabels: Record<string, string> = {
-  aberto: "Aberto",
-  em_andamento: "Em Andamento",
-  aguardando_cliente: "Aguardando Cliente",
-  resolvido: "Resolvido",
-  fechado: "Fechado",
+const statusConfig: Record<string, { label: string; color: string; icon: any; bg: string }> = {
+  aberto: { label: "Aberto", color: "text-blue-600", bg: "bg-blue-50", icon: AlertCircle },
+  em_andamento: { label: "Em Atendimento", color: "text-amber-600", bg: "bg-amber-50", icon: Clock },
+  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-600", bg: "bg-purple-50", icon: User },
+  resolvido: { label: "Resolvido", color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle },
+  fechado: { label: "Fechado", color: "text-gray-600", bg: "bg-gray-100", icon: ShieldCheck },
 };
 
 export default function ChamadosPublico() {
@@ -104,12 +120,9 @@ export default function ChamadosPublico() {
       if (error) throw new Error(await extractInvokeError(error, "Erro ao criar chamado"));
       if (data?.error) throw new Error(data.error);
 
-      // A API retorna { success, chamado: {...} }
       const chamadoData = data?.chamado || data;
-
       toast.success(`Chamado criado com sucesso! Código: ${chamadoData.codigo}`);
 
-      // Buscar dados completos pelo hash (via backend), para garantir datas/relacionamentos
       const { data: chamadoCompleto, error: errCompleto } = await supabase.functions.invoke("api-chamados", {
         method: "POST",
         body: { action: "buscar_por_hash", hash: chamadoData.hash_acesso },
@@ -138,14 +151,11 @@ export default function ChamadosPublico() {
 
   const handleAbrirChamado = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Primeiro clique em "Abrir Chamado" = envia o código e mostra o campo para validar
     if (!aberturaEmailVerificado) {
       if (!email) {
         toast.error("Informe o email");
         return;
       }
-
       if (!aberturaAguardandoCodigo) {
         await handleEnviarCodigoVerificacaoAbertura();
       } else {
@@ -153,8 +163,6 @@ export default function ChamadosPublico() {
       }
       return;
     }
-
-    // Depois de verificado, cria o chamado
     await criarChamado();
   };
 
@@ -174,15 +182,7 @@ export default function ChamadosPublico() {
 
       if (error) {
         setChamado(null);
-        const ctx = (error as any)?.context;
-        let msg = error.message || "Erro ao buscar chamado";
-        try {
-          if (ctx && typeof ctx.json === "function") {
-            const j = await ctx.json();
-            if (j?.error) msg = j.error;
-          }
-        } catch { /* ignore */ }
-        toast.error(msg);
+        toast.error(await extractInvokeError(error, "Erro ao buscar chamado"));
         return;
       }
       if (!data || data.error) {
@@ -219,7 +219,7 @@ export default function ChamadosPublico() {
       if (data?.success === false) throw new Error(data.error || "Nenhum chamado encontrado para este email");
       if (data?.error) throw new Error(data.error);
 
-      toast.success(data?.message || "Código de verificação processado");
+      toast.success(data?.message || "Código enviado com sucesso");
       setAguardandoCodigo(true);
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar código");
@@ -249,9 +249,8 @@ export default function ChamadosPublico() {
         setChamadosDoEmail(data.chamados);
         setChamado(data.chamados[0]);
         setHashBusca(data.chamados[0].hash_acesso || "");
-        const comentariosPublicos = data.chamados[0].chamados_comentarios || [];
-        setComentarios(comentariosPublicos);
-        toast.success(`Encontramos ${data.chamados.length} chamado(s) para este email.`);
+        setComentarios(data.chamados[0].chamados_comentarios || []);
+        toast.success(`Encontramos ${data.chamados.length} chamado(s).`);
       } else {
         setChamadosDoEmail([]);
         toast.success("Email confirmado com sucesso");
@@ -279,7 +278,7 @@ export default function ChamadosPublico() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success(data?.message || "Código de verificação processado");
+      toast.success(data?.message || "Código enviado com sucesso");
       setAberturaAguardandoCodigo(true);
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar código");
@@ -306,7 +305,7 @@ export default function ChamadosPublico() {
       if (data?.error) throw new Error(data.error);
 
       setAberturaEmailVerificado(true);
-      toast.success("Email confirmado. Enviando o chamado...");
+      toast.success("Email confirmado.");
       await criarChamado();
     } catch (error: any) {
       toast.error(error.message || "Código inválido ou expirado");
@@ -316,24 +315,18 @@ export default function ChamadosPublico() {
   };
 
   const handleBuscarPorHash = async () => {
-    if (!hashBusca) {
-      toast.error("Hash de acesso não informado");
-      return;
-    }
-
+    if (!hashBusca) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("api-chamados", {
         method: "POST",
         body: { action: "buscar_por_hash", hash: hashBusca },
       });
-
       if (error) throw error;
       if (!data) {
         toast.error("Chamado não encontrado");
         return;
       }
-
       setChamadosDoEmail([]);
       setChamado(data);
       setComentarios(data.chamados_comentarios || []);
@@ -344,24 +337,8 @@ export default function ChamadosPublico() {
     }
   };
 
-  const carregarComentarios = async (chamadoId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("chamados_comentarios")
-        .select("*")
-        .eq("chamado_id", chamadoId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setComentarios(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar comentários:", error);
-    }
-  };
-
   const handleEnviarComentario = async () => {
     if (!novoComentario.trim() || !chamado) return;
-
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("chamados-comentario", {
@@ -373,14 +350,10 @@ export default function ChamadosPublico() {
           autor_nome: chamado.nome,
         },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       toast.success("Comentário enviado");
       setNovoComentario("");
-      
-      // Adicionar o comentário retornado diretamente ao estado local
       if (data?.comentario) {
         setComentarios(prev => [...prev, data.comentario]);
       }
@@ -391,413 +364,243 @@ export default function ChamadosPublico() {
     }
   };
 
-  // Auto-buscar por hash na URL
-  useState(() => {
+  useEffect(() => {
     if (hashFromUrl) {
-      setChamadosDoEmail([]);
       handleBuscarPorHash();
     }
-  });
+  }, [hashFromUrl]);
 
   const [searchMethod, setSearchMethod] = useState<"codigo" | "email">("codigo");
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Ticket className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Central de Chamados</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Abra ou consulte seus chamados de suporte
-          </p>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="relative overflow-hidden bg-primary py-16 text-primary-foreground md:py-24">
+        <div className="absolute inset-0 z-0 opacity-10">
+          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 100 C 20 0 50 0 100 100" stroke="currentColor" strokeWidth="0.5" />
+            <path d="M0 0 C 30 100 70 100 100 0" stroke="currentColor" strokeWidth="0.5" />
+          </svg>
         </div>
+        <div className="container relative z-10 mx-auto px-4 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
+            <div className="mb-6 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+              <Ticket className="h-10 w-10 md:h-12 md:w-12" />
+            </div>
+            <h1 className="mb-4 text-3xl font-extrabold tracking-tight md:text-5xl">Central de Suporte</h1>
+            <p className="mx-auto max-w-2xl text-lg text-primary-foreground/80 md:text-xl">Estamos aqui para ajudar com suas dúvidas e solicitações.</p>
+          </motion.div>
+        </div>
+      </div>
 
-        {!chamado ? (
-          <Card>
-            <CardHeader>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="abrir" className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Abrir Chamado
-                  </TabsTrigger>
-                  <TabsTrigger value="consultar" className="flex items-center gap-2">
-                    <Search className="h-4 w-4" />
-                    Consultar Chamado
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="abrir" className="mt-6">
-                  <form onSubmit={handleAbrirChamado} className="space-y-4">
-                    {!aberturaAguardandoCodigo ? (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="nome">Nome Completo *</Label>
-                            <Input
-                              id="nome"
-                              value={nome}
-                              onChange={(e) => setNome(e.target.value)}
-                              placeholder="Seu nome completo"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email *</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={email}
-                              onChange={(e) => {
-                                setEmail(e.target.value);
-                                setAberturaEmailVerificado(false);
-                                setAberturaAguardandoCodigo(false);
-                                setCodigoVerificacaoAbertura("");
-                              }}
-                              placeholder="seu@email.com"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="contato">Telefone/WhatsApp *</Label>
-                          <Input
-                            id="contato"
-                            value={contato}
-                            onChange={(e) => setContato(e.target.value)}
-                            placeholder="(11) 99999-9999"
-                            required
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="motivo">Descrição do Problema *</Label>
-                          <Textarea
-                            id="motivo"
-                            value={motivo}
-                            onChange={(e) => setMotivo(e.target.value)}
-                            placeholder="Descreva detalhadamente o problema ou solicitação..."
-                            rows={5}
-                            required
-                          />
-                        </div>
-
-                        <Button type="submit" className="w-full" disabled={loading}>
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando código...
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Abrir Chamado
-                            </>
-                          )}
-                        </Button>
-
-                        <p className="text-xs text-muted-foreground">
-                          Ao clicar em <strong>Abrir Chamado</strong>, enviaremos um código para seu email.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-                          <div className="flex items-start gap-2">
-                            <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                            <div>
-                              <p className="font-medium">Confirmação por Email</p>
-                              <p className="text-sm text-muted-foreground">
-                                Digite o código de 6 dígitos enviado para <span className="font-medium">{email}</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Input
-                              value={codigoVerificacaoAbertura}
-                              onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)}
-                              placeholder="000000"
-                              maxLength={6}
-                              className="flex-1"
-                            />
-                            <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading}>
-                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
-                            </Button>
-                          </div>
-
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => {
-                              setAberturaAguardandoCodigo(false);
-                              setCodigoVerificacaoAbertura("");
-                            }}
-                            disabled={loading}
-                          >
-                            Voltar e editar
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </form>
-                </TabsContent>
-
-                <TabsContent value="consultar" className="mt-6 space-y-6">
-                  <div className="flex flex-col gap-4">
-                    <Label className="text-sm font-medium">Método de Consulta</Label>
-                    <Tabs value={searchMethod} onValueChange={(v) => setSearchMethod(v as "codigo" | "email")} className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="codigo" className="text-xs">Código do Chamado</TabsTrigger>
-                        <TabsTrigger value="email" className="text-xs">Email do Cliente</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="codigo" className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="codigoBusca">Código do Chamado</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="codigoBusca"
-                              value={codigoBusca}
-                              onChange={(e) => {
-                                setCodigoBusca(e.target.value);
-                                setEmailBusca("");
-                                setAguardandoCodigo(false);
-                              }}
-                              placeholder="ACD-20251222153045"
-                              className="flex-1"
-                              disabled={aguardandoCodigo}
-                            />
-                            <Button
-                              onClick={handleBuscarPorCodigo}
-                              disabled={loading || !codigoBusca.trim()}
-                            >
-                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="email" className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor="emailBusca">Email cadastrado</Label>
-                          {!aguardandoCodigo ? (
-                            <div className="flex gap-2">
-                              <Input
-                                id="emailBusca"
-                                type="email"
-                                value={emailBusca}
-                                onChange={(e) => {
-                                  setEmailBusca(e.target.value);
-                                  setCodigoBusca("");
-                                }}
-                                placeholder="seu@email.com"
-                                className="flex-1"
-                              />
-                              <Button
-                                onClick={handleEnviarCodigoVerificacao}
-                                disabled={loading || !emailBusca.trim()}
-                              >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <p className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-md">
-                                Digite o código de 6 dígitos enviado para <span className="font-semibold text-foreground">{emailBusca}</span>
-                              </p>
-                              <div className="flex gap-2">
-                                <Input
-                                  value={codigoVerificacao}
-                                  onChange={(e) => setCodigoVerificacao(e.target.value)}
-                                  placeholder="000000"
-                                  maxLength={6}
-                                  className="flex-1"
-                                />
-                                <Button onClick={handleVerificarCodigo} disabled={loading}>
-                                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+      <div className="container mx-auto -mt-8 px-4 pb-20 md:-mt-12">
+        <div className="mx-auto max-w-4xl">
+          {!chamado ? (
+            <Card className="border-none bg-white/70 shadow-2xl shadow-slate-200/50 backdrop-blur-xl">
+              <CardHeader className="pb-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-slate-100/50 p-1">
+                    <TabsTrigger value="abrir" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      <Plus className="h-4 w-4" />
+                      <span className="font-semibold">Abrir Chamado</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="consultar" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      <Search className="h-4 w-4" />
+                      <span className="font-semibold">Consultar</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  <div className="mt-8 pb-8">
+                    <AnimatePresence mode="wait">
+                      {activeTab === "abrir" && (
+                        <motion.div key="abrir" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+                          <form onSubmit={handleAbrirChamado} className="space-y-6">
+                            {!aberturaAguardandoCodigo ? (
+                              <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-slate-700">Nome Completo</Label>
+                                    <div className="relative">
+                                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                      <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João da Silva" className="pl-10 h-11" required />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-sm font-bold text-slate-700">Email</Label>
+                                    <div className="relative">
+                                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 h-11" required />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-bold text-slate-700">WhatsApp / Telefone</Label>
+                                  <div className="relative">
+                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                    <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="(00) 00000-0000" className="pl-10 h-11" required />
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-bold text-slate-700">Sua Mensagem</Label>
+                                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva sua solicitação..." className="min-h-[150px] resize-none" required />
+                                </div>
+                                <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+                                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Plus className="mr-2 h-5 w-5" /> Abrir Chamado Agora</>}
                                 </Button>
-                                <Button variant="outline" onClick={() => setAguardandoCodigo(false)}>
-                                  Voltar
-                                </Button>
+                              </>
+                            ) : (
+                              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4">
+                                <div className="flex items-start gap-4">
+                                  <div className="rounded-full bg-primary/10 p-2"><Mail className="h-6 w-6 text-primary" /></div>
+                                  <div>
+                                    <h3 className="text-lg font-bold">Verifique seu Email</h3>
+                                    <p className="text-sm text-slate-600">Código enviado para <span className="font-bold text-primary">{email}</span>.</p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-3">
+                                  <Input value={codigoVerificacaoAbertura} onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest" />
+                                  <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading} className="h-12 px-6">Verificar</Button>
+                                </div>
+                                <Button type="button" variant="ghost" className="w-full" onClick={() => setAberturaAguardandoCodigo(false)} disabled={loading}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
+                            )}
+                          </form>
+                        </motion.div>
+                      )}
+                      {activeTab === "consultar" && (
+                        <motion.div key="consultar" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} className="space-y-6">
+                          <Tabs value={searchMethod} onValueChange={(v) => setSearchMethod(v as any)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 mb-4 bg-slate-100/50">
+                              <TabsTrigger value="codigo" className="text-xs font-semibold uppercase">Pelo Código</TabsTrigger>
+                              <TabsTrigger value="email" className="text-xs font-semibold uppercase">Pelo Email</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="codigo" className="space-y-4 pt-2">
+                              <Label className="text-sm font-bold text-slate-700">Código do Chamado</Label>
+                              <div className="flex gap-2">
+                                <Input value={codigoBusca} onChange={(e) => setCodigoBusca(e.target.value)} placeholder="Ex: ACD-123456" className="h-12" />
+                                <Button onClick={handleBuscarPorCodigo} disabled={loading} className="h-12 w-12 p-0"><Search className="h-5 w-5" /></Button>
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="email" className="space-y-4 pt-2">
+                              {!aguardandoCodigo ? (
+                                <>
+                                  <Label className="text-sm font-bold text-slate-700">Email Cadastrado</Label>
+                                  <div className="flex gap-2">
+                                    <Input value={emailBusca} onChange={(e) => setEmailBusca(e.target.value)} placeholder="seu@email.com" className="h-12" />
+                                    <Button onClick={handleEnviarCodigoVerificacao} disabled={loading} className="h-12">Enviar Código</Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="space-y-4">
+                                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-100">
+                                    <p className="text-sm text-slate-600 font-medium">Digite o código enviado para <span className="text-primary font-bold">{emailBusca}</span></p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Input value={codigoVerificacao} onChange={(e) => setCodigoVerificacao(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest" />
+                                    <Button onClick={handleVerificarCodigo} disabled={loading} className="h-12">Verificar</Button>
+                                    <Button variant="outline" onClick={() => setAguardandoCodigo(false)} className="h-12">Voltar</Button>
+                                  </div>
+                                </div>
+                              )}
+                            </TabsContent>
+                          </Tabs>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-
-                  {hashBusca && !chamado && (
-                    <>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-primary">
-                          <AlertCircle className="h-4 w-4" />
-                          <h3 className="font-medium">Link de acesso rápido detectado</h3>
-                        </div>
-                        <Button onClick={handleBuscarPorHash} disabled={loading} className="w-full" variant="secondary">
-                          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                          Abrir chamado pendente
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardHeader>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Ticket className="h-5 w-5" />
-                      {chamado.codigo}
-                    </CardTitle>
-                    <CardDescription>
-                      Aberto em {new Date(chamado.created_at).toLocaleString("pt-BR")}
-                    </CardDescription>
-                  </div>
-                  <Badge className={statusColors[chamado.status]}>
-                    {statusLabels[chamado.status]}
-                  </Badge>
-                </div>
+                </Tabs>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {chamadosDoEmail.length > 1 && (
-                  <div className="rounded-lg border border-border bg-muted/20 p-3">
-                    <Label className="text-muted-foreground">Seus chamados ({chamadosDoEmail.length})</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {chamadosDoEmail.map((c) => (
-                        <Button
-                          key={c.id}
-                          type="button"
-                          size="sm"
-                          variant={c.id === chamado.id ? "default" : "outline"}
-                          onClick={() => {
-                            setChamado(c);
-                            setHashBusca(c.hash_acesso || "");
-                            setComentarios(c.chamados_comentarios || []);
-                          }}
-                        >
-                          {c.codigo}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground">Nome</Label>
-                    <p className="font-medium">{chamado.nome}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Email</Label>
-                    <p className="font-medium">{chamado.email}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Contato</Label>
-                    <p className="font-medium">{chamado.contato}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Última Atualização</Label>
-                    <p className="font-medium">{new Date(chamado.updated_at).toLocaleString("pt-BR")}</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label className="text-muted-foreground">Descrição do Problema</Label>
-                  <p className="mt-1 whitespace-pre-wrap">{chamado.motivo}</p>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setChamado(null);
-                    setChamadosDoEmail([]);
-                    setComentarios([]);
-                    setCodigoBusca("");
-                    setEmailBusca("");
-                    setCodigoVerificacao("");
-                    setAguardandoCodigo(false);
-                  }}
-                  className="w-full"
-                >
-                  Voltar
-                </Button>
-              </CardContent>
             </Card>
-
-            {/* Comentários */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Comentários
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {comentarios.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    Nenhum comentário ainda
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {comentarios.map((c) => (
-                      <div
-                        key={c.id}
-                        className={`p-4 rounded-lg ${
-                          c.tipo === "cliente" ? "bg-primary/10 ml-4" : "bg-muted mr-4"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-sm">{c.autor_nome}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(c.created_at).toLocaleString("pt-BR")}
-                          </span>
+          ) : (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
+              <Card className="border-none bg-white shadow-xl">
+                <CardHeader className="border-b bg-slate-50/50">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="rounded-xl bg-white p-2.5 shadow-sm border"><Ticket className="h-6 w-6 text-primary" /></div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-bold tracking-tight text-slate-900">{chamado.codigo}</h2>
+                          <Badge className={`${statusConfig[chamado.status].bg} ${statusConfig[chamado.status].color} border-none font-bold uppercase text-[10px]`}>
+                            {statusConfig[chamado.status].label}
+                          </Badge>
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{c.conteudo}</p>
+                        <p className="text-xs text-slate-500 font-medium mt-1">Aberto em {format(new Date(chamado.created_at), "PPP 'às' p", { locale: ptBR })}</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
-                  <div className="space-y-2 pt-4 border-t">
-                    <Textarea
-                      value={novoComentario}
-                      onChange={(e) => setNovoComentario(e.target.value)}
-                      placeholder="Digite seu comentário..."
-                      rows={3}
-                    />
-                    <Button onClick={handleEnviarComentario} disabled={loading || !novoComentario.trim()}>
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Enviar Comentário
+                    </div>
+                    <Button variant="outline" onClick={() => { setChamado(null); setChamadosDoEmail([]); setComentarios([]); setAguardandoCodigo(false); }} className="gap-2 font-semibold">
+                      <ArrowLeft className="h-4 w-4" /> Voltar
                     </Button>
                   </div>
-                ) : (
-                  <div className="pt-4 border-t">
-                    <p className="text-center text-muted-foreground py-4 bg-muted/50 rounded-lg">
-                      {chamado.status === "resolvido" 
-                        ? "Este chamado foi resolvido. Não é possível adicionar novos comentários."
-                        : "Este chamado está fechado. Não é possível adicionar novos comentários."}
-                    </p>
+                </CardHeader>
+                <CardContent className="pt-8 space-y-8">
+                  {chamadosDoEmail.length > 1 && (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Seus Chamados Ativos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {chamadosDoEmail.map(c => (
+                          <Button key={c.id} size="sm" variant={c.id === chamado.id ? "default" : "outline"} onClick={() => { setChamado(c); setComentarios(c.chamados_comentarios || []); }} className="rounded-full h-8 px-4 font-bold text-xs">
+                            {c.codigo}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</p><p className="font-bold text-slate-800">{chamado.nome}</p></div>
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contato</p><p className="font-bold text-slate-800">{chamado.contato}</p></div>
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</p><Badge variant="outline" className="font-bold capitalize">{chamado.prioridade}</Badge></div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+
+                  <div className="rounded-xl border border-slate-100 p-6 bg-slate-50/30">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Descrição da Solicitação</p>
+                    <p className="text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{chamado.motivo}</p>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h3 className="font-bold text-slate-900">Conversa e Atualizações</h3></div>
+                      <Badge variant="secondary" className="font-bold text-[10px] uppercase">{comentarios.length} Interações</Badge>
+                    </div>
+
+                    <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                      {comentarios.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50"><HelpCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" /><p className="text-sm text-slate-400 font-medium">Aguardando primeira resposta técnica...</p></div>
+                      ) : (
+                        comentarios.map((c) => {
+                          const isTech = c.tipo !== "cliente";
+                          return (
+                            <div key={c.id} className={`flex flex-col ${isTech ? "items-start" : "items-end"}`}>
+                              <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${isTech ? "bg-white border border-slate-100 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none"}`}>
+                                <div className="flex items-center justify-between gap-8 mb-2">
+                                  <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isTech ? "text-primary" : "text-primary-foreground/80"}`}>{isTech ? "Suporte Técnico" : "Você"}</span>
+                                  <span className={`text-[10px] font-medium opacity-60`}>{format(new Date(c.created_at), "HH:mm")}</span>
+                                </div>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{c.conteudo}</p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
+                      <div className="relative pt-2">
+                        <Textarea value={novoComentario} onChange={(e) => setNovoComentario(e.target.value)} placeholder="Escreva sua resposta aqui..." className="min-h-[100px] p-4 pr-20 rounded-2xl border-slate-200 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm" />
+                        <Button onClick={handleEnviarComentario} disabled={loading || !novoComentario.trim()} className="absolute bottom-4 right-4 h-10 w-10 p-0 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all">
+                          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl bg-slate-100 p-4 text-center border border-dashed border-slate-300"><Lock className="h-5 w-5 mx-auto mb-2 text-slate-400" /><p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Este chamado foi {chamado.status} e está encerrado.</p></div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </div>
       </div>
     </div>
   );
