@@ -80,6 +80,18 @@ export default function ChamadosPublico() {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [novoComentario, setNovoComentario] = useState("");
 
+  const extractInvokeError = async (error: any, fallback: string) => {
+    let msg = error?.message || fallback;
+    try {
+      const ctx = error?.context;
+      if (ctx && typeof ctx.json === "function") {
+        const j = await ctx.json();
+        if (j?.error) msg = j.error;
+      }
+    } catch { /* ignore */ }
+    return msg;
+  };
+
   const criarChamado = async () => {
     setLoading(true);
 
@@ -89,7 +101,8 @@ export default function ChamadosPublico() {
         body: { nome, email, motivo, contato },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error, "Erro ao criar chamado"));
+      if (data?.error) throw new Error(data.error);
 
       // A API retorna { success, chamado: {...} }
       const chamadoData = data?.chamado || data;
@@ -102,7 +115,7 @@ export default function ChamadosPublico() {
         body: { action: "buscar_por_hash", hash: chamadoData.hash_acesso },
       });
 
-      if (errCompleto) throw errCompleto;
+      if (errCompleto) throw new Error(await extractInvokeError(errCompleto, "Erro ao buscar chamado"));
 
       setChamado(chamadoCompleto);
       setHashBusca(chamadoData.hash_acesso);
@@ -146,7 +159,8 @@ export default function ChamadosPublico() {
   };
 
   const handleBuscarPorCodigo = async () => {
-    if (!codigoBusca) {
+    const codigoLimpo = codigoBusca.trim().toUpperCase();
+    if (!codigoLimpo) {
       toast.error("Informe o código do chamado");
       return;
     }
@@ -155,12 +169,24 @@ export default function ChamadosPublico() {
     try {
       const { data, error } = await supabase.functions.invoke("api-chamados", {
         method: "POST",
-        body: { action: "buscar_por_codigo", codigo: codigoBusca },
+        body: { action: "buscar_por_codigo", codigo: codigoLimpo },
       });
 
-      if (error) throw error;
-      if (!data) {
-        toast.error("Chamado não encontrado");
+      if (error) {
+        // supabase.functions.invoke marca non-2xx como erro; tenta extrair body
+        const ctx = (error as any)?.context;
+        let msg = error.message || "Erro ao buscar chamado";
+        try {
+          if (ctx && typeof ctx.json === "function") {
+            const j = await ctx.json();
+            if (j?.error) msg = j.error;
+          }
+        } catch { /* ignore */ }
+        toast.error(msg);
+        return;
+      }
+      if (!data || data.error) {
+        toast.error(data?.error || "Chamado não encontrado");
         return;
       }
 
@@ -521,15 +547,24 @@ export default function ChamadosPublico() {
                 <TabsContent value="consultar" className="mt-6 space-y-6">
                   {/* Busca por código */}
                   <div className="space-y-4">
-                    <h3 className="font-medium">Buscar por Código do Chamado</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Buscar por Código do Chamado</h3>
+                      {emailBusca && (
+                        <span className="text-xs text-muted-foreground">Desativado — limpe o email para usar</span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <Input
                         value={codigoBusca}
                         onChange={(e) => setCodigoBusca(e.target.value)}
                         placeholder="ACD-20251222153045"
                         className="flex-1"
+                        disabled={!!emailBusca || aguardandoCodigo}
                       />
-                      <Button onClick={handleBuscarPorCodigo} disabled={loading}>
+                      <Button
+                        onClick={handleBuscarPorCodigo}
+                        disabled={loading || !!emailBusca || aguardandoCodigo || !codigoBusca.trim()}
+                      >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                       </Button>
                     </div>
@@ -539,7 +574,12 @@ export default function ChamadosPublico() {
 
                   {/* Busca por email */}
                   <div className="space-y-4">
-                    <h3 className="font-medium">Buscar por Email</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Buscar por Email</h3>
+                      {codigoBusca && (
+                        <span className="text-xs text-muted-foreground">Desativado — limpe o código para usar</span>
+                      )}
+                    </div>
                     {!aguardandoCodigo ? (
                       <div className="flex gap-2">
                         <Input
@@ -548,8 +588,12 @@ export default function ChamadosPublico() {
                           onChange={(e) => setEmailBusca(e.target.value)}
                           placeholder="seu@email.com"
                           className="flex-1"
+                          disabled={!!codigoBusca}
                         />
-                        <Button onClick={handleEnviarCodigoVerificacao} disabled={loading}>
+                        <Button
+                          onClick={handleEnviarCodigoVerificacao}
+                          disabled={loading || !!codigoBusca || !emailBusca.trim()}
+                        >
                           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
                         </Button>
                       </div>
