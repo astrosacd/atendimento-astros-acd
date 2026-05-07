@@ -192,6 +192,9 @@ const InstagramSettings = () => {
           <TabsTrigger value="meta-api" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> API Meta
           </TabsTrigger>
+          <TabsTrigger value="ai-config" className="gap-2">
+            <Sparkles className="h-4 w-4" /> Configurações IA
+          </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" /> Notificações
           </TabsTrigger>
@@ -382,6 +385,36 @@ const InstagramSettings = () => {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="ai-config">
+          <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Configurações de IA</CardTitle>
+                  <CardDescription>
+                    O sistema utiliza a **Lovable AI Gateway** por padrão. Não é necessário configurar chaves individuais da OpenAI ou xAI (Grok) manualmente aqui, pois elas são gerenciadas pela infraestrutura do projeto.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg border border-dashed text-sm text-muted-foreground">
+                <p><strong>Observação:</strong> Ao selecionar modelos como GPT-4o ou Grok no módulo de criação, as requisições são roteadas automaticamente. Certifique-se apenas de que seu projeto tem créditos disponíveis no Lovable.</p>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <div className="space-y-1">
+                  <p className="font-bold">Modelagem de Imagem (Vision)</p>
+                  <p className="text-xs text-muted-foreground">Os modelos Grok 2 Vision e GPT-4o suportam análise de imagem de referência.</p>
+                </div>
+                <Badge variant="outline" className="border-primary/30 text-primary">Ativo</Badge>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="notifications">
