@@ -237,9 +237,11 @@ export default function Dashboard() {
       // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {
         // Skip clients that have billing disabled (Cliente Registro)
-        if (!c.cobranca_ativa) return false;
-        const renovacao = new Date(c.data_renovacao);
-        return renovacao < today;
+        if (!c.cobranca_ativa || !c.data_renovacao) return false;
+        
+        // Use string comparison to be timezone-safe and avoid counting "today" as overdue
+        const renovacaoStr = String(c.data_renovacao).slice(0, 10);
+        return renovacaoStr < todayStr;
       }).length || 0;
 
       // Calculate delinquency rate (based on recurrent clients only)
@@ -249,6 +251,7 @@ export default function Dashboard() {
       // Separate by currency - only from clients with future renewal (or up to 7 days overdue)
       const toleranciaDias = 7;
       const dataLimiteMrr = new Date(today);
+      dataLimiteMrr.setHours(0, 0, 0, 0);
       dataLimiteMrr.setDate(dataLimiteMrr.getDate() - toleranciaDias);
 
       const clientesAtivosMRR = clientes?.filter(c => {
@@ -272,10 +275,13 @@ export default function Dashboard() {
       }, 0);
 
       // Revenue forecast (clients renewing in next 30 days) - separated by currency
-      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const nextMonthDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30);
+      const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
+      
       const clientesRenovando30d = clientes?.filter(c => {
-        const renovacao = new Date(c.data_renovacao);
-        return renovacao >= today && renovacao <= nextMonth;
+        if (!c.data_renovacao) return false;
+        const renovacaoStr = String(c.data_renovacao).slice(0, 10);
+        return renovacaoStr >= todayStr && renovacaoStr <= nextMonthStr;
       }) || [];
 
       const previsaoFaturamento = clientesRenovando30d

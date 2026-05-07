@@ -26,6 +26,7 @@ export function DespesasSummaryCard() {
   useEffect(() => {
     const fetchSummary = async () => {
       const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
 
@@ -61,14 +62,14 @@ export function DespesasSummaryCard() {
       // Update status for counting
       const despesasPendentes = despesasDoMes.filter(d => {
         if (d.status === 'pago') return false;
-        const venc = new Date(d.data_vencimento);
-        return venc >= today;
+        const vencStr = String(d.data_vencimento).slice(0, 10);
+        return vencStr >= todayStr;
       }).length;
 
       const despesasAtrasadas = despesasDoMes.filter(d => {
         if (d.status === 'pago') return false;
-        const venc = new Date(d.data_vencimento);
-        return venc < today;
+        const vencStr = String(d.data_vencimento).slice(0, 10);
+        return vencStr < todayStr;
       }).length;
 
       // Calculate MRR
