@@ -243,7 +243,12 @@ const InstagramCreate = () => {
 
   const useVariation = (url: string) => {
     setSelectedVariation(url);
-    if (postType === 'carousel') {
+    const rule = typeRules[postType];
+    if (rule.multiple) {
+      if (mediaUrls.length >= rule.max) {
+        toast({ title: "Limite atingido", description: `Máximo de ${rule.max} imagens no carrossel.`, variant: "destructive" });
+        return;
+      }
       setMediaUrls([...mediaUrls, url]);
     } else {
       setMediaUrls([url]);
