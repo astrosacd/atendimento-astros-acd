@@ -360,6 +360,7 @@ const AdminChamados = () => {
           </div>
         </div>
       </div>
+    </div>
     </DashboardLayout>
   );
 };
