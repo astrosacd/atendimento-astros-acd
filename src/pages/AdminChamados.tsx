@@ -261,7 +261,7 @@ const AdminChamados = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[600px] pr-4">
+                <ScrollArea className="h-[680px] pr-4">
                   {isLoading ? <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div> : (
                     <div className="space-y-3">
                       <AnimatePresence>
