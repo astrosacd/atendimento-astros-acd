@@ -140,6 +140,7 @@ export default function Dashboard() {
     churnRate: 0,
     instagramTokenExpiring: false,
     instagramTokenExpiryDate: null,
+    pagamentosPendentes: 0,
   });
 
   useEffect(() => {
