@@ -292,8 +292,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[check-payment-link-status] Error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro" }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Erro ao consultar pagamento", not_found: true }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
