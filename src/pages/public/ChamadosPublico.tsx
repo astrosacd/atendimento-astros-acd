@@ -60,11 +60,11 @@ interface Comentario {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any; bg: string }> = {
-  aberto: { label: "Aberto", color: "text-blue-600", bg: "bg-blue-50", icon: AlertCircle },
-  em_andamento: { label: "Em Atendimento", color: "text-amber-600", bg: "bg-amber-50", icon: Clock },
-  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-600", bg: "bg-purple-50", icon: User },
-  resolvido: { label: "Resolvido", color: "text-emerald-600", bg: "bg-emerald-50", icon: CheckCircle },
-  fechado: { label: "Fechado", color: "text-gray-600", bg: "bg-gray-100", icon: ShieldCheck },
+  aberto: { label: "Aberto", color: "text-blue-400", bg: "bg-blue-500/10", icon: AlertCircle },
+  em_andamento: { label: "Em Atendimento", color: "text-amber-400", bg: "bg-amber-500/10", icon: Clock },
+  aguardando_cliente: { label: "Aguardando Você", color: "text-purple-400", bg: "bg-purple-500/10", icon: User },
+  resolvido: { label: "Resolvido", color: "text-emerald-400", bg: "bg-emerald-500/10", icon: CheckCircle },
+  fechado: { label: "Fechado", color: "text-slate-400", bg: "bg-slate-500/10", icon: ShieldCheck },
 };
 
 export default function ChamadosPublico() {
@@ -373,8 +373,10 @@ export default function ChamadosPublico() {
   const [searchMethod, setSearchMethod] = useState<"codigo" | "email">("codigo");
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="relative overflow-hidden bg-primary py-16 text-primary-foreground md:py-24">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(var(--primary),0.05),transparent)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(var(--primary),0.05),transparent)] pointer-events-none" />
+      <div className="relative overflow-hidden bg-primary/10 border-b border-white/5 py-16 text-foreground md:py-24">
         <div className="absolute inset-0 z-0 opacity-10">
           <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 100 C 20 0 50 0 100 100" stroke="currentColor" strokeWidth="0.5" />
@@ -383,11 +385,11 @@ export default function ChamadosPublico() {
         </div>
         <div className="container relative z-10 mx-auto px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center">
-            <div className="mb-6 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+            <div className="mb-6 rounded-3xl bg-primary/20 p-5 backdrop-blur-xl border border-primary/30 shadow-2xl shadow-primary/20">
               <Ticket className="h-10 w-10 md:h-12 md:w-12" />
             </div>
-            <h1 className="mb-4 text-3xl font-extrabold tracking-tight md:text-5xl">Central de Suporte</h1>
-            <p className="mx-auto max-w-2xl text-lg text-primary-foreground/80 md:text-xl">Estamos aqui para ajudar com suas dúvidas e solicitações.</p>
+            <h1 className="mb-4 text-4xl font-extrabold tracking-tight md:text-6xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Central de Suporte</h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl font-medium">Estamos aqui para ajudar com suas dúvidas e solicitações.</p>
           </motion.div>
         </div>
       </div>
@@ -395,15 +397,15 @@ export default function ChamadosPublico() {
       <div className="container mx-auto -mt-8 px-4 pb-20 md:-mt-12">
         <div className="mx-auto max-w-4xl">
           {!chamado ? (
-            <Card className="border-none bg-white/70 shadow-2xl shadow-slate-200/50 backdrop-blur-xl">
+            <Card className="border-white/10 bg-card/40 shadow-2xl shadow-black/50 backdrop-blur-3xl border-2">
               <CardHeader className="pb-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 bg-slate-100/50 p-1">
-                    <TabsTrigger value="abrir" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 border border-white/5">
+                    <TabsTrigger value="abrir" className="flex items-center gap-2 rounded-xl transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       <Plus className="h-4 w-4" />
                       <span className="font-semibold">Abrir Chamado</span>
                     </TabsTrigger>
-                    <TabsTrigger value="consultar" className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <TabsTrigger value="consultar" className="flex items-center gap-2 rounded-xl transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                       <Search className="h-4 w-4" />
                       <span className="font-semibold">Consultar</span>
                     </TabsTrigger>
@@ -417,46 +419,46 @@ export default function ChamadosPublico() {
                               <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Nome Completo</Label>
+                                    <Label className="text-sm font-bold text-foreground/80">Nome Completo</Label>
                                     <div className="relative">
-                                      <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                      <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João da Silva" className="pl-10 h-11" required />
+                                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                      <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: João da Silva" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                     </div>
                                   </div>
                                   <div className="space-y-2">
-                                    <Label className="text-sm font-bold text-slate-700">Email</Label>
+                                    <Label className="text-sm font-bold text-foreground/80">Email</Label>
                                     <div className="relative">
-                                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 h-11" required />
+                                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                     </div>
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm font-bold text-slate-700">WhatsApp / Telefone</Label>
+                                  <Label className="text-sm font-bold text-foreground/80">WhatsApp / Telefone</Label>
                                   <div className="relative">
-                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                                    <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="(00) 00000-0000" className="pl-10 h-11" required />
+                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="(00) 00000-0000" className="pl-10 h-11 bg-white/5 border-white/10" required />
                                   </div>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm font-bold text-slate-700">Sua Mensagem</Label>
-                                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva sua solicitação..." className="min-h-[150px] resize-none" required />
+                                  <Label className="text-sm font-bold text-foreground/80">Sua Mensagem</Label>
+                                  <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Descreva sua solicitação..." className="min-h-[150px] resize-none bg-white/5 border-white/10" required />
                                 </div>
-                                <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+                                <Button type="submit" className="w-full h-14 text-lg font-bold shadow-xl shadow-primary/20" disabled={loading}>
                                   {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Plus className="mr-2 h-5 w-5" /> Abrir Chamado Agora</>}
                                 </Button>
                               </>
                             ) : (
-                              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4">
+                              <div className="rounded-2xl border border-primary/30 bg-primary/10 p-6 space-y-4 backdrop-blur-xl">
                                 <div className="flex items-start gap-4">
-                                  <div className="rounded-full bg-primary/10 p-2"><Mail className="h-6 w-6 text-primary" /></div>
+                                  <div className="rounded-full bg-primary/20 p-2 border border-primary/30"><Mail className="h-6 w-6 text-primary" /></div>
                                   <div>
-                                    <h3 className="text-lg font-bold">Verifique seu Email</h3>
-                                    <p className="text-sm text-slate-600">Código enviado para <span className="font-bold text-primary">{email}</span>.</p>
+                                    <h3 className="text-lg font-bold text-foreground">Verifique seu Email</h3>
+                                    <p className="text-sm text-muted-foreground">Código enviado para <span className="font-bold text-primary">{email}</span>.</p>
                                   </div>
                                 </div>
                                 <div className="flex gap-3">
-                                  <Input value={codigoVerificacaoAbertura} onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest" />
+                                  <Input value={codigoVerificacaoAbertura} onChange={(e) => setCodigoVerificacaoAbertura(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest bg-white/5 border-white/10" />
                                   <Button type="button" onClick={handleVerificarCodigoAbertura} disabled={loading} className="h-12 px-6">Verificar</Button>
                                 </div>
                                 <Button type="button" variant="ghost" className="w-full" onClick={() => setAberturaAguardandoCodigo(false)} disabled={loading}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button>
@@ -468,33 +470,33 @@ export default function ChamadosPublico() {
                       {activeTab === "consultar" && (
                         <motion.div key="consultar" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }} className="space-y-6">
                           <Tabs value={searchMethod} onValueChange={(v) => setSearchMethod(v as any)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 mb-4 bg-slate-100/50">
+                            <TabsList className="grid w-full grid-cols-2 mb-4 bg-white/5 border border-white/5">
                               <TabsTrigger value="codigo" className="text-xs font-semibold uppercase">Pelo Código</TabsTrigger>
                               <TabsTrigger value="email" className="text-xs font-semibold uppercase">Pelo Email</TabsTrigger>
                             </TabsList>
                             <TabsContent value="codigo" className="space-y-4 pt-2">
-                              <Label className="text-sm font-bold text-slate-700">Código do Chamado</Label>
+                              <Label className="text-sm font-bold text-foreground/80">Código do Chamado</Label>
                               <div className="flex gap-2">
-                                <Input value={codigoBusca} onChange={(e) => setCodigoBusca(e.target.value)} placeholder="Ex: ACD-123456" className="h-12" />
+                                <Input value={codigoBusca} onChange={(e) => setCodigoBusca(e.target.value)} placeholder="Ex: ACD-123456" className="h-12 bg-white/5 border-white/10" />
                                 <Button onClick={handleBuscarPorCodigo} disabled={loading} className="h-12 w-12 p-0"><Search className="h-5 w-5" /></Button>
                               </div>
                             </TabsContent>
                             <TabsContent value="email" className="space-y-4 pt-2">
                               {!aguardandoCodigo ? (
                                 <>
-                                  <Label className="text-sm font-bold text-slate-700">Email Cadastrado</Label>
+                                  <Label className="text-sm font-bold text-foreground/80">Email Cadastrado</Label>
                                   <div className="flex gap-2">
-                                    <Input value={emailBusca} onChange={(e) => setEmailBusca(e.target.value)} placeholder="seu@email.com" className="h-12" />
+                                    <Input value={emailBusca} onChange={(e) => setEmailBusca(e.target.value)} placeholder="seu@email.com" className="h-12 bg-white/5 border-white/10" />
                                     <Button onClick={handleEnviarCodigoVerificacao} disabled={loading} className="h-12">Enviar Código</Button>
                                   </div>
                                 </>
                               ) : (
                                 <div className="space-y-4">
-                                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-100">
-                                    <p className="text-sm text-slate-600 font-medium">Digite o código enviado para <span className="text-primary font-bold">{emailBusca}</span></p>
+                                  <div className="rounded-lg bg-white/5 p-4 border border-white/10">
+                                    <p className="text-sm text-muted-foreground font-medium">Digite o código enviado para <span className="text-primary font-bold">{emailBusca}</span></p>
                                   </div>
                                   <div className="flex gap-2">
-                                    <Input value={codigoVerificacao} onChange={(e) => setCodigoVerificacao(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest" />
+                                    <Input value={codigoVerificacao} onChange={(e) => setCodigoVerificacao(e.target.value)} placeholder="000000" maxLength={6} className="flex-1 h-12 text-center text-xl font-bold tracking-widest bg-white/5 border-white/10" />
                                     <Button onClick={handleVerificarCodigo} disabled={loading} className="h-12">Verificar</Button>
                                     <Button variant="outline" onClick={() => setAguardandoCodigo(false)} className="h-12">Voltar</Button>
                                   </div>
@@ -511,19 +513,19 @@ export default function ChamadosPublico() {
             </Card>
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-              <Card className="border-none bg-white shadow-xl">
-                <CardHeader className="border-b bg-slate-50/50">
+              <Card className="border-white/10 bg-card/60 shadow-2xl backdrop-blur-3xl border-2">
+                <CardHeader className="border-b border-white/5 bg-white/5">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="rounded-xl bg-white p-2.5 shadow-sm border"><Ticket className="h-6 w-6 text-primary" /></div>
+                      <div className="rounded-2xl bg-primary/20 p-2.5 shadow-lg border border-primary/30"><Ticket className="h-6 w-6 text-primary" /></div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h2 className="text-xl font-bold tracking-tight text-slate-900">{chamado.codigo}</h2>
+                          <h2 className="text-2xl font-bold tracking-tight text-foreground">{chamado.codigo}</h2>
                           <Badge className={`${statusConfig[chamado.status].bg} ${statusConfig[chamado.status].color} border-none font-bold uppercase text-[10px]`}>
                             {statusConfig[chamado.status].label}
                           </Badge>
                         </div>
-                        <p className="text-xs text-slate-500 font-medium mt-1">Aberto em {format(new Date(chamado.created_at), "PPP 'às' p", { locale: ptBR })}</p>
+                        <p className="text-xs text-muted-foreground font-medium mt-1">Aberto em {format(new Date(chamado.created_at), "PPP 'às' p", { locale: ptBR })}</p>
                       </div>
                     </div>
                     <Button variant="outline" onClick={() => { setChamado(null); setChamadosDoEmail([]); setComentarios([]); setAguardandoCodigo(false); }} className="gap-2 font-semibold">
@@ -533,8 +535,8 @@ export default function ChamadosPublico() {
                 </CardHeader>
                 <CardContent className="pt-8 space-y-8">
                   {chamadosDoEmail.length > 1 && (
-                    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Seus Chamados Ativos</p>
+                    <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-inner">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Seus Chamados Ativos</p>
                       <div className="flex flex-wrap gap-2">
                         {chamadosDoEmail.map(c => (
                           <Button key={c.id} size="sm" variant={c.id === chamado.id ? "default" : "outline"} onClick={() => { setChamado(c); setComentarios(c.chamados_comentarios || []); }} className="rounded-full h-8 px-4 font-bold text-xs">
@@ -546,33 +548,33 @@ export default function ChamadosPublico() {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</p><p className="font-bold text-slate-800">{chamado.nome}</p></div>
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contato</p><p className="font-bold text-slate-800">{chamado.contato}</p></div>
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</p><Badge variant="outline" className="font-bold capitalize">{chamado.prioridade}</Badge></div>
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Responsável</p><p className="font-bold text-foreground">{chamado.nome}</p></div>
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Contato</p><p className="font-bold text-foreground">{chamado.contato}</p></div>
+                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prioridade</p><Badge variant="outline" className="font-bold capitalize border-white/10">{chamado.prioridade}</Badge></div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-100 p-6 bg-slate-50/30">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Descrição da Solicitação</p>
-                    <p className="text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{chamado.motivo}</p>
+                  <div className="rounded-2xl border border-white/5 p-6 bg-white/5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Descrição da Solicitação</p>
+                    <p className="text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap">{chamado.motivo}</p>
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-white/5" />
 
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h3 className="font-bold text-slate-900">Conversa e Atualizações</h3></div>
+                      <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h3 className="font-bold text-foreground">Conversa e Atualizações</h3></div>
                       <Badge variant="secondary" className="font-bold text-[10px] uppercase">{comentarios.length} Interações</Badge>
                     </div>
 
-                    <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                    <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
                       {comentarios.length === 0 ? (
-                        <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-slate-50/50"><HelpCircle className="h-10 w-10 text-slate-300 mx-auto mb-3" /><p className="text-sm text-slate-400 font-medium">Aguardando primeira resposta técnica...</p></div>
+                        <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-2xl bg-white/5"><HelpCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-sm text-muted-foreground font-medium">Aguardando primeira resposta técnica...</p></div>
                       ) : (
                         comentarios.map((c) => {
                           const isTech = c.tipo !== "cliente";
                           return (
                             <div key={c.id} className={`flex flex-col ${isTech ? "items-start" : "items-end"}`}>
-                              <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${isTech ? "bg-white border border-slate-100 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none"}`}>
+                              <div className={`max-w-[85%] rounded-2xl p-4 shadow-xl border ${isTech ? "bg-card border-white/5 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none"}`}>
                                 <div className="flex items-center justify-between gap-8 mb-2">
                                   <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isTech ? "text-primary" : "text-primary-foreground/80"}`}>{isTech ? "Suporte Técnico" : "Você"}</span>
                                   <span className={`text-[10px] font-medium opacity-60`}>{format(new Date(c.created_at), "HH:mm")}</span>
@@ -587,13 +589,13 @@ export default function ChamadosPublico() {
 
                     {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
                       <div className="relative pt-2">
-                        <Textarea value={novoComentario} onChange={(e) => setNovoComentario(e.target.value)} placeholder="Escreva sua resposta aqui..." className="min-h-[100px] p-4 pr-20 rounded-2xl border-slate-200 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-sm" />
+                        <Textarea value={novoComentario} onChange={(e) => setNovoComentario(e.target.value)} placeholder="Escreva sua resposta aqui..." className="min-h-[100px] p-4 pr-20 rounded-2xl border-white/10 bg-white/5 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-inner" />
                         <Button onClick={handleEnviarComentario} disabled={loading || !novoComentario.trim()} className="absolute bottom-4 right-4 h-10 w-10 p-0 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all">
                           {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-4 w-4" />}
                         </Button>
                       </div>
                     ) : (
-                      <div className="rounded-xl bg-slate-100 p-4 text-center border border-dashed border-slate-300"><Lock className="h-5 w-5 mx-auto mb-2 text-slate-400" /><p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Este chamado foi {chamado.status} e está encerrado.</p></div>
+                      <div className="rounded-2xl bg-white/5 p-6 text-center border border-dashed border-white/10 shadow-inner"><Lock className="h-6 w-6 mx-auto mb-3 text-muted-foreground/50" /><p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Este chamado foi {chamado.status} e está encerrado.</p></div>
                     )}
                   </div>
                 </CardContent>
