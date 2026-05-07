@@ -933,6 +933,16 @@ export default function CadastrarCliente() {
                   </>
                 )}
               </div>
+              {/* Licenses Manager - show when any plan is selected except Individual */}
+              {formData.plano && formData.plano !== 'Individual' && (
+                <div className="mt-6 border-t border-border pt-4">
+                   <ClientLicensesManager 
+                      clienteId={createdClienteId || ''} 
+                      clientePlano={formData.plano}
+                    />
+                </div>
+              )}
+
 
               {/* Meio de Pagamento */}
               <div className="space-y-4 pt-4 border-t border-border">
