@@ -295,23 +295,23 @@ const AdminChamados = () => {
 
           <div className="lg:col-span-7 h-fit lg:sticky lg:top-24">
             {selectedChamado ? (
-              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2">
-                <div className="h-1.5 w-full bg-border/20"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
-                <CardHeader className="pb-4">
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col h-[760px]">
+                <div className="h-1.5 w-full bg-border/20 shrink-0"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
+                <CardHeader className="pb-4 shrink-0">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="outline" className="text-[10px] font-bold text-primary">{selectedChamado.codigo}</Badge>
-                    {selectedChamado.status !== 'resolvido' && (
+                    {selectedChamado.status !== 'resolvido' && selectedChamado.status !== 'fechado' && (
                       <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => updateStatusMutation.mutate({ id: selectedChamado.id, status: 'resolvido' })}>RESOLVER</Button>
                     )}
                   </div>
                   <CardTitle className="text-xl font-bold">{selectedChamado.nome}</CardTitle>
                   <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1"><Mail className="h-3 w-3" />{selectedChamado.email}</p>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="p-4 rounded-xl bg-background/50 border border-border/40"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Motivo</p><p className="text-sm text-foreground font-medium whitespace-pre-wrap">{selectedChamado.motivo}</p></div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center"><h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Conversa</h3><Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">{selectedChamado.chamados_comentarios?.length || 0} interações</Badge></div>
-                    <ScrollArea className="h-[300px] pr-4">
+                <CardContent className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
+                  <div className="p-4 rounded-xl bg-background/50 border border-border/40 shrink-0"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Motivo</p><p className="text-sm text-foreground font-medium whitespace-pre-wrap line-clamp-3">{selectedChamado.motivo}</p></div>
+                  <div className="flex-1 min-h-0 flex flex-col gap-3">
+                    <div className="flex justify-between items-center shrink-0"><h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Conversa</h3><Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">{selectedChamado.chamados_comentarios?.length || 0} interações</Badge></div>
+                    <ScrollArea className="flex-1 min-h-0 pr-4">
                       <div className="space-y-4">
                         {selectedChamado.chamados_comentarios?.map(comm => {
                           const isTech = comm.tipo === 'interno' || comm.autor_nome?.includes('Astros');
