@@ -1117,6 +1117,36 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {canViewPaymentSecurity() && stats.pagamentosPendentes > 0 && (
+                  <>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2 mt-6">
+                      <span className="h-4 w-0.5 bg-destructive rounded-full"></span>
+                      Segurança de Pagamento
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Card 
+                        className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-colors cursor-pointer group"
+                        onClick={() => navigate('/admin/seguranca-pagamento')}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center animate-pulse">
+                                <ShieldCheck className="h-6 w-6 text-destructive" />
+                              </div>
+                              <div>
+                                <p className="text-3xl font-bold text-foreground font-display">{stats.pagamentosPendentes}</p>
+                                <p className="text-xs text-muted-foreground">Aguardando Aprovação</p>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-destructive transition-colors" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
