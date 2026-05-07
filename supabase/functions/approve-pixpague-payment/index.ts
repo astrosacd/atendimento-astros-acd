@@ -47,19 +47,35 @@ serve(async (req) => {
     // Validate caller (must be authenticated admin/gerente/financeiro)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      console.error("Missing Authorization header");
+      return new Response(JSON.stringify({ error: "Missing Authorization" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData } = await supabase.auth.getUser(token);
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("Auth error or no user found:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized", details: authError?.message }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: canApprove } = await supabase.rpc("can_approve_order", { user_uuid: userData.user.id });
+
+    console.log("User authenticated:", user.email, user.id);
+
+    const { data: canApprove, error: rpcError } = await supabase.rpc("can_approve_order", { user_uuid: user.id });
+    
+    if (rpcError) {
+      console.error("RPC error (can_approve_order):", rpcError);
+      return new Response(JSON.stringify({ error: "Internal Server Error during permission check" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!canApprove) {
+      console.warn("User forbidden:", user.email);
       return new Response(JSON.stringify({ error: "Forbidden: not allowed to approve payments" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
