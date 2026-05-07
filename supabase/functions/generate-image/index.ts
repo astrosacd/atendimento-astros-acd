@@ -71,13 +71,13 @@ serve(async (req) => {
         ? `Use the attached reference image only as visual guidance. Create a new Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial, and do not copy private details unless explicitly requested. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
         : `Create an Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
 
-      const messageContent: any[] = [{ type: "text", text: fullPrompt }];
+      let messageContent: string | Array<Record<string, unknown>> = fullPrompt;
       
       if (referenceImage) {
-        messageContent.push({
-          type: "image_url",
-          image_url: { url: referenceImage }
-        });
+        messageContent = [
+          { type: "text", text: fullPrompt },
+          { type: "image_url", image_url: { url: referenceImage } },
+        ];
       }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
