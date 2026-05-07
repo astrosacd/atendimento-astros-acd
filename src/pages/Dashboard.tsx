@@ -275,10 +275,13 @@ export default function Dashboard() {
       }, 0);
 
       // Revenue forecast (clients renewing in next 30 days) - separated by currency
-      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const nextMonthDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30);
+      const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-${String(nextMonthDate.getDate()).padStart(2, '0')}`;
+      
       const clientesRenovando30d = clientes?.filter(c => {
-        const renovacao = new Date(c.data_renovacao);
-        return renovacao >= today && renovacao <= nextMonth;
+        if (!c.data_renovacao) return false;
+        const renovacaoStr = String(c.data_renovacao).slice(0, 10);
+        return renovacaoStr >= todayStr && renovacaoStr <= nextMonthStr;
       }) || [];
 
       const previsaoFaturamento = clientesRenovando30d
