@@ -451,19 +451,26 @@ export default function ChamadosPublico() {
 
 
         {!chamado ? (
-          <Card>
-            <CardHeader>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="abrir" className="flex items-center gap-2">
+          <Card className="border-none bg-white/70 shadow-xl shadow-slate-200/50 backdrop-blur-xl">
+            <CardHeader className="pb-0">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-100/50 p-1">
+                  <TabsTrigger 
+                    value="abrir" 
+                    className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
                     <Plus className="h-4 w-4" />
-                    Abrir Chamado
+                    <span className="font-semibold">Abrir Chamado</span>
                   </TabsTrigger>
-                  <TabsTrigger value="consultar" className="flex items-center gap-2">
+                  <TabsTrigger 
+                    value="consultar" 
+                    className="flex items-center gap-2 rounded-md transition-all data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
                     <Search className="h-4 w-4" />
-                    Consultar Chamado
+                    <span className="font-semibold">Consultar</span>
                   </TabsTrigger>
                 </TabsList>
+
 
                 <TabsContent value="abrir" className="mt-6">
                   <form onSubmit={handleAbrirChamado} className="space-y-4">
