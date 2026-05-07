@@ -62,11 +62,11 @@ export default function AtualizarCliente() {
   const [isOriginallyReseller, setIsOriginallyReseller] = useState(false);
 
   const normalizePlano = (plano?: string | null) => {
-    if (!plano) return null;
+    if (!plano) return 'Individual';
     const cleaned = plano.trim();
-    if (!cleaned) return null;
-    if (cleaned.toLowerCase() === 'none') return null;
-    if (cleaned.toLowerCase() === 'nenhum') return null;
+    if (!cleaned) return 'Individual';
+    if (cleaned.toLowerCase() === 'none') return 'Individual';
+    if (cleaned.toLowerCase() === 'nenhum') return 'Individual';
     return cleaned;
   };
 
@@ -107,7 +107,7 @@ export default function AtualizarCliente() {
 
   const handleSelectCliente = (cliente: Cliente) => {
     const planoNormalizado = normalizePlano(cliente.plano);
-    const clienteIsReseller = planoNormalizado !== null;
+    const clienteIsReseller = planoNormalizado !== 'Individual';
 
     setSelectedCliente(cliente);
     setNewDate(cliente.data_renovacao);
@@ -118,7 +118,7 @@ export default function AtualizarCliente() {
     setNewEditProduto(cliente.produto || '');
     setNewNumero(cliente.numero || '');
     setNewEmail(cliente.email || '');
-    setNewPlano(planoNormalizado);
+    setNewPlano(planoNormalizado || 'Individual');
     setIsOriginallyReseller(clienteIsReseller);
     setNewTipo(cliente.tipo || 'cliente');
     setNewExcluirMetricas(cliente.excluir_metricas || false);
@@ -421,14 +421,14 @@ export default function AtualizarCliente() {
                   <Label htmlFor="plano" className="text-foreground font-medium">{t('clients.resellerPlan')}</Label>
                 </div>
                 <Select
-                  value={newPlano || 'none'}
-                  onValueChange={(value) => setNewPlano(value === 'none' ? null : value)}
+                  value={newPlano || 'Individual'}
+                  onValueChange={(value) => setNewPlano(value)}
                 >
                   <SelectTrigger className="bg-secondary border-border text-foreground h-12">
                     <SelectValue placeholder={t('clients.selectPlan')} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="none">{t('clients.noPlan')}</SelectItem>
+                    <SelectItem value="Individual">Individual</SelectItem>
                     {availablePlanos.map(plano => (
                       <SelectItem key={plano.id} value={plano.nome}>
                         {plano.nome}
