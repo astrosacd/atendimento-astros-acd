@@ -237,9 +237,11 @@ export default function Dashboard() {
       // Calculate overdue clients (inadimplentes) - exclude "Cliente Registro" (cobranca_ativa = false)
       const inadimplentes = clientes?.filter(c => {
         // Skip clients that have billing disabled (Cliente Registro)
-        if (!c.cobranca_ativa) return false;
-        const renovacao = new Date(c.data_renovacao);
-        return renovacao < today;
+        if (!c.cobranca_ativa || !c.data_renovacao) return false;
+        
+        // Use string comparison to be timezone-safe and avoid counting "today" as overdue
+        const renovacaoStr = String(c.data_renovacao).slice(0, 10);
+        return renovacaoStr < todayStr;
       }).length || 0;
 
       // Calculate delinquency rate (based on recurrent clients only)
