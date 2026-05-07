@@ -24,7 +24,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, action, approvalReason, rejectionReason } = await req.json();
+    const rawBody = await req.text();
+    console.log("Request body:", rawBody);
+    const { paymentId, action, approvalReason, rejectionReason } = JSON.parse(rawBody);
     if (!paymentId || !action) {
       return new Response(JSON.stringify({ error: "paymentId and action required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
