@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useEffect, useState, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,24 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
+const AI_IMAGE_MODELS = [
+  {
+    value: "google/gemini-3.1-flash-image-preview",
+    label: "Lovable AI — rápido e caprichado",
+    hint: "Melhor padrão para posts, carrosséis e variações com referência.",
+  },
+  {
+    value: "google/gemini-2.5-flash-image",
+    label: "Lovable AI — econômico",
+    hint: "Bom para testar ideias com menor custo.",
+  },
+  {
+    value: "google/gemini-3-pro-image-preview",
+    label: "Lovable AI — qualidade máxima",
+    hint: "Mais lento, ideal para artes finais importantes.",
+  },
+];
 
 const InstagramCreate = () => {
   const { user } = useAuth();
@@ -49,13 +66,19 @@ const InstagramCreate = () => {
   
   // AI State
   const [prompt, setPrompt] = useState("");
-  const [aiModel, setAiModel] = useState("gemini-2.0-flash-exp");
+  const [aiModel, setAiModel] = useState(AI_IMAGE_MODELS[0].value);
   const [variations, setVariations] = useState<{ url: string; name: string }[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
+  const [carouselPreviewIndex, setCarouselPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const referenceInputRef = useRef<HTMLInputElement>(null);
   const carouselScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCarouselPreviewIndex((current) => Math.min(current, Math.max(mediaUrls.length - 1, 0)));
+  }, [mediaUrls.length]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -105,12 +128,23 @@ const InstagramCreate = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!user?.id) {
+      toast({ title: "Login necessário", description: "Entre na sua conta antes de enviar uma imagem de referência.", variant: "destructive" });
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "A referência precisa ser uma imagem.", variant: "destructive" });
+      return;
+    }
+
     setIsUploadingReference(true);
     try {
-      const fileName = `reference/${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const fileName = `${user.id}/references/${Date.now()}-${safeName}`;
       const { error } = await supabase.storage
         .from("instagram-media")
-        .upload(fileName, file);
+        .upload(fileName, file, { upsert: true, contentType: file.type });
 
       if (error) throw error;
 
@@ -124,6 +158,7 @@ const InstagramCreate = () => {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
     } finally {
       setIsUploadingReference(false);
+      if (referenceInputRef.current) referenceInputRef.current.value = "";
     }
   };
 
@@ -288,68 +323,84 @@ const InstagramCreate = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+                  <div className="space-y-1">
                     <Label className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-pink-500" />
+                      <Sparkles className="h-4 w-4 text-primary" />
                       Gerar com IA (Lovable AI)
                     </Label>
-                    
-                    <div className="flex items-center gap-2">
-                       {referenceImageUrl ? (
-                         <div className="relative w-8 h-8 rounded border overflow-hidden group">
-                           <img src={referenceImageUrl} className="w-full h-full object-cover" />
-                           <button 
-                             onClick={() => setReferenceImageUrl(null)}
-                             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                           >
-                             <Trash2 className="h-3 w-3 text-white" />
-                           </button>
-                         </div>
-                       ) : (
-                         <div className="relative">
-                            <input 
-                              type="file" 
-                              className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8" 
-                              accept="image/*"
-                              onChange={handleReferenceUpload}
-                              disabled={isUploadingReference}
-                            />
-                            <Button variant="outline" size="icon" className="h-8 w-8" title="Usar imagem de referência">
-                              {isUploadingReference ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />}
-                            </Button>
-                         </div>
-                       )}
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Descreva a arte e, se quiser, envie uma imagem modelo para a IA seguir o estilo.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Textarea 
-                      placeholder={referenceImageUrl ? "Descreva como você quer modelar a imagem de referência..." : "Descreva a imagem que você deseja criar..."} 
-                      className="h-24 resize-none"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Select value={aiModel} onValueChange={setAiModel}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Modelo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini (OpenAI)</SelectItem>
-                          <SelectItem value="openai/gpt-4o">GPT-4o (OpenAI)</SelectItem>
-                          <SelectItem value="x-ai/grok-2-vision-1212">Grok 2 Vision (xAI)</SelectItem>
-                          <SelectItem value="dalle-3">DALL-E 3 (Direct)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        onClick={generateAIImages} 
-                        disabled={generating || !prompt} 
-                        variant="secondary"
-                        className="shrink-0"
-                      >
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar"}
-                      </Button>
+
+                  <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Imagem modelo</Label>
+                      {referenceImageUrl ? (
+                        <div className="relative h-24 w-24 overflow-hidden rounded-lg border group">
+                          <img src={referenceImageUrl} className="h-full w-full object-cover" alt="Imagem de referência" />
+                          <button
+                            type="button"
+                            onClick={() => setReferenceImageUrl(null)}
+                            className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="relative h-24 w-24 flex-col gap-2 overflow-hidden border-dashed text-xs"
+                          disabled={isUploadingReference}
+                          onClick={() => referenceInputRef.current?.click()}
+                        >
+                          {isUploadingReference ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                          Referência
+                        </Button>
+                      )}
+                      <input
+                        ref={referenceInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleReferenceUpload}
+                        disabled={isUploadingReference}
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Textarea
+                        placeholder={referenceImageUrl ? "Ex: use esta imagem como estilo, mas crie uma arte nova com fundo premium e texto visual limpo..." : "Ex: crie uma arte para feed sobre promoção de atendimento via WhatsApp, visual moderno e chamativo..."}
+                        className="h-24 resize-none"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                      />
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <Select value={aiModel} onValueChange={setAiModel}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AI_IMAGE_MODELS.map((model) => (
+                              <SelectItem key={model.value} value={model.value}>{model.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={generateAIImages}
+                          disabled={generating || !prompt.trim()}
+                          variant="secondary"
+                          className="shrink-0"
+                        >
+                          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                          {generating ? "Gerando..." : "Gerar artes"}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {AI_IMAGE_MODELS.find((model) => model.value === aiModel)?.hint} Não precisa colocar API key de OpenAI/Grok.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -538,14 +589,64 @@ const InstagramCreate = () => {
                       </div>
                       
                       {/* Content Area */}
-                      <div className="flex-1 bg-muted/20 relative">
+                      <div className="flex-1 bg-muted/20 relative overflow-hidden">
                         {mediaUrls.length > 0 ? (
                           <div className="w-full h-full">
-                            <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
-                            {postType === 'carousel' && mediaUrls.length > 1 && (
-                              <div className="absolute top-2 right-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
-                                1/{mediaUrls.length}
+                            {postType === 'carousel' ? (
+                              <div
+                                ref={carouselScrollRef}
+                                className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                onScroll={(e) => {
+                                  const nextIndex = Math.round(e.currentTarget.scrollLeft / Math.max(e.currentTarget.clientWidth, 1));
+                                  setCarouselPreviewIndex(nextIndex);
+                                }}
+                              >
+                                {mediaUrls.map((url, index) => (
+                                  <img key={`${url}-${index}`} src={url} className="h-full w-full shrink-0 snap-center object-cover" alt={`Preview ${index + 1}`} />
+                                ))}
                               </div>
+                            ) : (
+                              <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
+                            )}
+                            {postType === 'carousel' && mediaUrls.length > 1 && (
+                              <>
+                                <div className="absolute top-2 right-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                                  {carouselPreviewIndex + 1}/{mediaUrls.length}
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="secondary"
+                                  className="absolute left-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-background/80"
+                                  disabled={carouselPreviewIndex === 0}
+                                  onClick={() => {
+                                    const nextIndex = Math.max(carouselPreviewIndex - 1, 0);
+                                    setCarouselPreviewIndex(nextIndex);
+                                    carouselScrollRef.current?.scrollTo({ left: nextIndex * carouselScrollRef.current.clientWidth, behavior: 'smooth' });
+                                  }}
+                                >
+                                  <ChevronLeft className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="secondary"
+                                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-background/80"
+                                  disabled={carouselPreviewIndex >= mediaUrls.length - 1}
+                                  onClick={() => {
+                                    const nextIndex = Math.min(carouselPreviewIndex + 1, mediaUrls.length - 1);
+                                    setCarouselPreviewIndex(nextIndex);
+                                    carouselScrollRef.current?.scrollTo({ left: nextIndex * carouselScrollRef.current.clientWidth, behavior: 'smooth' });
+                                  }}
+                                >
+                                  <ChevronRight className="h-3 w-3" />
+                                </Button>
+                                <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+                                  {mediaUrls.map((_, index) => (
+                                    <span key={index} className={cn("h-1.5 w-1.5 rounded-full", index === carouselPreviewIndex ? "bg-background" : "bg-background/40")} />
+                                  ))}
+                                </div>
+                              </>
                             )}
                           </div>
                         ) : (

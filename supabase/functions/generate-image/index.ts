@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ALLOWED_IMAGE_MODELS = new Set([
+  "google/gemini-2.5-flash-image",
+  "google/gemini-3-pro-image-preview",
+  "google/gemini-3.1-flash-image-preview",
+]);
+
+const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -13,6 +27,16 @@ serve(async (req) => {
 
   try {
     const { prompt, format, model, count = 1, referenceImage = null } = await req.json();
+
+    if (typeof prompt !== "string" || prompt.trim().length < 5 || prompt.length > 1500) {
+      return jsonResponse({ error: "Descreva a imagem com pelo menos 5 caracteres e no máximo 1500." }, 400);
+    }
+
+    const safeModel = typeof model === "string" && ALLOWED_IMAGE_MODELS.has(model)
+      ? model
+      : DEFAULT_IMAGE_MODEL;
+
+    const safeCount = Math.min(Math.max(Number(count) || 1, 1), 3);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -41,19 +65,19 @@ serve(async (req) => {
 
     const results = [];
 
-    for (let i = 0; i < Math.min(count, variations.length); i++) {
+    for (let i = 0; i < Math.min(safeCount, variations.length); i++) {
       const styleHint = variations[i].style;
       const fullPrompt = referenceImage 
-        ? `Based on the attached reference image, generate a new image that: ${prompt}. Maintain the style/subject where appropriate but create a new unique composition. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
-        : `${prompt}. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
+        ? `Use the attached reference image only as visual guidance. Create a new Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial, and do not copy private details unless explicitly requested. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
+        : `Create an Instagram-ready image: ${prompt.trim()}. Keep it polished, readable, commercial. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
 
-      const messageContent: any[] = [{ type: "text", text: fullPrompt }];
+      let messageContent: string | Array<Record<string, unknown>> = fullPrompt;
       
       if (referenceImage) {
-        messageContent.push({
-          type: "image_url",
-          image_url: { url: referenceImage }
-        });
+        messageContent = [
+          { type: "text", text: fullPrompt },
+          { type: "image_url", image_url: { url: referenceImage } },
+        ];
       }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -63,7 +87,7 @@ serve(async (req) => {
           "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
         },
         body: JSON.stringify({
-          model: model || "gemini-2.0-flash-exp",
+          model: safeModel,
           messages: [
             {
               role: "user",
@@ -75,26 +99,26 @@ serve(async (req) => {
       });
 
       if (response.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again later.");
+        throw new Error("Limite de IA excedido. Tente novamente em alguns instantes.");
       }
       if (response.status === 402) {
-        throw new Error("Insufficient credits for image generation.");
+        throw new Error("Créditos insuficientes para gerar imagem com IA.");
       }
       if (!response.ok) {
         const errorText = await response.text();
         console.error("AI Gateway error:", errorText);
-        throw new Error(`AI Gateway error: ${response.status}`);
+        throw new Error(`A IA não conseguiu gerar a imagem agora. Código: ${response.status}`);
       }
 
       const data = await response.json();
       const image_url = data.choices[0]?.message?.images?.[0]?.image_url?.url;
 
       if (!image_url) {
-        throw new Error("No image generated in response");
+        throw new Error("A IA não retornou uma imagem. Tente ajustar a descrição.");
       }
 
       // Extract base64
-      const base64Data = image_url.split(",")[1];
+      const base64Data = image_url.includes(",") ? image_url.split(",")[1] : image_url;
       const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
       const fileName = `${user.id}/${Date.now()}-${i}.png`;
