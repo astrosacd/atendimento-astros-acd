@@ -870,10 +870,11 @@ export default function CadastrarCliente() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor</Label>
+                      <Label htmlFor="plano" className="text-foreground font-medium">Plano Revendedor <span className="text-destructive">*</span></Label>
                       <Select
-                        value={formData.plano || 'Individual'}
+                        value={formData.plano || ''}
                         onValueChange={(value) => setFormData({ ...formData, plano: value })}
+                        required
                       >
                         <SelectTrigger className="bg-secondary border-border text-foreground h-11">
                           <SelectValue placeholder="Selecione o plano" />
