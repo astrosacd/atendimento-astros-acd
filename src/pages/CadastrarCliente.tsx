@@ -25,6 +25,7 @@ import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
 import { ProductSelector } from '@/components/kanban/ProductSelector';
+import { ClientLicensesManager } from "@/components/ClientLicensesManager";
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
@@ -933,6 +934,16 @@ export default function CadastrarCliente() {
                   </>
                 )}
               </div>
+              {/* Licenses Manager - show when any plan is selected except Individual */}
+              {formData.plano && formData.plano !== 'Individual' && (
+                <div className="mt-6 border-t border-border pt-4">
+                   <ClientLicensesManager 
+                      clienteId={createdClienteId || ''} 
+                      clientePlano={formData.plano}
+                    />
+                </div>
+              )}
+
 
               {/* Meio de Pagamento */}
               <div className="space-y-4 pt-4 border-t border-border">
