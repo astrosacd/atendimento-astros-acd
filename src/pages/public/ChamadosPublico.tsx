@@ -417,17 +417,38 @@ export default function ChamadosPublico() {
   const [searchMethod, setSearchMethod] = useState<"codigo" | "email">("codigo");
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Ticket className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Central de Chamados</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Abra ou consulte seus chamados de suporte
-          </p>
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Professional Hero Section */}
+      <div className="relative overflow-hidden bg-primary py-16 text-primary-foreground md:py-24">
+        <div className="absolute inset-0 z-0 opacity-20">
+          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 100 C 20 0 50 0 100 100" stroke="currentColor" strokeWidth="0.5" />
+            <path d="M0 0 C 30 100 70 100 100 0" stroke="currentColor" strokeWidth="0.5" />
+          </svg>
         </div>
+        <div className="container relative z-10 mx-auto px-4 text-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center"
+          >
+            <div className="mb-6 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
+              <Ticket className="h-10 w-10 md:h-12 md:w-12" />
+            </div>
+            <h1 className="mb-4 text-3xl font-extrabold tracking-tight md:text-5xl">
+              Central de Atendimento
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg text-primary-foreground/80 md:text-xl">
+              Estamos aqui para ajudar. Abra um novo chamado ou acompanhe o progresso de suas solicitações existentes.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="container mx-auto -mt-8 px-4 pb-20 md:-mt-12">
+        <div className="mx-auto max-w-4xl">
+
 
         {!chamado ? (
           <Card>
