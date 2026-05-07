@@ -25,7 +25,6 @@ const InstagramModule = () => {
     canManageInstagramSettings, 
     canViewInstagramHistory,
     canManageTemporaryAccess,
-    isAdmin
   } = usePermissions();
 
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
