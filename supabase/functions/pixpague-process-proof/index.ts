@@ -324,7 +324,7 @@ serve(async (req) => {
           ? `\n📝 Motivo: ${ocr.reason}`
           : '';
 
-        const message = `${icon} *PixPague — Pagamento Recebido*\n\n` +
+        const message = `${icon} *PixPague — Pagamento para Análise*\n\n` +
           `👤 Cliente: ${cliente?.nome || 'N/A'}\n` +
           `📦 Produto: ${cliente?.produto || 'N/A'}\n` +
           `💰 Valor digitado: R$ ${Number(declaredAmount || payment?.amount || 0).toFixed(2)}\n` +
@@ -333,7 +333,7 @@ serve(async (req) => {
           reasonLine +
           submitterLine +
           (isDuplicate ? `\n\n⚠️ Esse ID já foi usado em outro pagamento!` : '') +
-          `\n\n👉 Acesse "Segurança de Pagamento" para revisar.`;
+          `\n\n👉 Acesse o módulo *Segurança de Pagamento* para analisar e aprovar.`;
 
         const phones = String(cfg.approver_phones).split(',').map((p: string) => p.trim()).filter(Boolean);
         for (const phone of phones) {
