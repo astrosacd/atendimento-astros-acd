@@ -266,13 +266,9 @@ export const ClientLicensesManager = ({ clienteId, clientePlano }: ClientLicense
               </Button>
             </DialogTrigger>
             <DialogContent>
-              {/* ... existing content ... */}
-            </DialogContent>
-          </Dialog>
-        )}
-            <DialogHeader>
-              <DialogTitle>Registrar Nova Licença</DialogTitle>
-            </DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Registrar Nova Licença</DialogTitle>
+              </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Ferramenta *</Label>
