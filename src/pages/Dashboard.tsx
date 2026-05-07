@@ -326,6 +326,7 @@ export default function Dashboard() {
 
       let instagramTokenExpiring = false;
       let instagramTokenExpiryDate = null;
+      let pagamentosPendentes = 0;
 
       if (isAdmin) {
         // Check Instagram token status
