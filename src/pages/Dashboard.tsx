@@ -36,6 +36,7 @@ import { ConversionFunnelCard } from '@/components/dashboard/ConversionFunnelCar
 import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
+import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -1017,7 +1018,8 @@ export default function Dashboard() {
           </CollapsibleSection>
         )}
 
-        {/* Alert Banner for Numeros Aquecimento */}
+        {/* Alert Banners */}
+        <PaymentSecurityAlertBanner />
         <NumerosAquecimentoAlertBanner />
 
         {/* ===================== ÁREA OPERACIONAL ===================== */}
@@ -1132,7 +1134,7 @@ export default function Dashboard() {
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center animate-pulse">
+                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center">
                                 <ShieldCheck className="h-6 w-6 text-destructive" />
                               </div>
                               <div>
