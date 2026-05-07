@@ -80,6 +80,18 @@ export default function ChamadosPublico() {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [novoComentario, setNovoComentario] = useState("");
 
+  const extractInvokeError = async (error: any, fallback: string) => {
+    let msg = error?.message || fallback;
+    try {
+      const ctx = error?.context;
+      if (ctx && typeof ctx.json === "function") {
+        const j = await ctx.json();
+        if (j?.error) msg = j.error;
+      }
+    } catch { /* ignore */ }
+    return msg;
+  };
+
   const criarChamado = async () => {
     setLoading(true);
 
@@ -89,7 +101,8 @@ export default function ChamadosPublico() {
         body: { nome, email, motivo, contato },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error, "Erro ao criar chamado"));
+      if (data?.error) throw new Error(data.error);
 
       // A API retorna { success, chamado: {...} }
       const chamadoData = data?.chamado || data;
@@ -102,7 +115,7 @@ export default function ChamadosPublico() {
         body: { action: "buscar_por_hash", hash: chamadoData.hash_acesso },
       });
 
-      if (errCompleto) throw errCompleto;
+      if (errCompleto) throw new Error(await extractInvokeError(errCompleto, "Erro ao buscar chamado"));
 
       setChamado(chamadoCompleto);
       setHashBusca(chamadoData.hash_acesso);
