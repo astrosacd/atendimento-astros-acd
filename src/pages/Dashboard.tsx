@@ -1134,7 +1134,7 @@ export default function Dashboard() {
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center animate-pulse">
+                              <div className="h-12 w-12 rounded-xl bg-destructive/20 flex items-center justify-center">
                                 <ShieldCheck className="h-6 w-6 text-destructive" />
                               </div>
                               <div>
