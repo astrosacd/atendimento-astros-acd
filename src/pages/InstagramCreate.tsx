@@ -589,14 +589,64 @@ const InstagramCreate = () => {
                       </div>
                       
                       {/* Content Area */}
-                      <div className="flex-1 bg-muted/20 relative">
+                      <div className="flex-1 bg-muted/20 relative overflow-hidden">
                         {mediaUrls.length > 0 ? (
                           <div className="w-full h-full">
-                            <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
-                            {postType === 'carousel' && mediaUrls.length > 1 && (
-                              <div className="absolute top-2 right-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
-                                1/{mediaUrls.length}
+                            {postType === 'carousel' ? (
+                              <div
+                                ref={carouselScrollRef}
+                                className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                onScroll={(e) => {
+                                  const nextIndex = Math.round(e.currentTarget.scrollLeft / Math.max(e.currentTarget.clientWidth, 1));
+                                  setCarouselPreviewIndex(nextIndex);
+                                }}
+                              >
+                                {mediaUrls.map((url, index) => (
+                                  <img key={`${url}-${index}`} src={url} className="h-full w-full shrink-0 snap-center object-cover" alt={`Preview ${index + 1}`} />
+                                ))}
                               </div>
+                            ) : (
+                              <img src={mediaUrls[0]} className="w-full h-full object-cover" alt="Preview" />
+                            )}
+                            {postType === 'carousel' && mediaUrls.length > 1 && (
+                              <>
+                                <div className="absolute top-2 right-2 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                                  {carouselPreviewIndex + 1}/{mediaUrls.length}
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="secondary"
+                                  className="absolute left-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-background/80"
+                                  disabled={carouselPreviewIndex === 0}
+                                  onClick={() => {
+                                    const nextIndex = Math.max(carouselPreviewIndex - 1, 0);
+                                    setCarouselPreviewIndex(nextIndex);
+                                    carouselScrollRef.current?.scrollTo({ left: nextIndex * carouselScrollRef.current.clientWidth, behavior: 'smooth' });
+                                  }}
+                                >
+                                  <ChevronLeft className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="secondary"
+                                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full bg-background/80"
+                                  disabled={carouselPreviewIndex >= mediaUrls.length - 1}
+                                  onClick={() => {
+                                    const nextIndex = Math.min(carouselPreviewIndex + 1, mediaUrls.length - 1);
+                                    setCarouselPreviewIndex(nextIndex);
+                                    carouselScrollRef.current?.scrollTo({ left: nextIndex * carouselScrollRef.current.clientWidth, behavior: 'smooth' });
+                                  }}
+                                >
+                                  <ChevronRight className="h-3 w-3" />
+                                </Button>
+                                <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+                                  {mediaUrls.map((_, index) => (
+                                    <span key={index} className={cn("h-1.5 w-1.5 rounded-full", index === carouselPreviewIndex ? "bg-background" : "bg-background/40")} />
+                                  ))}
+                                </div>
+                              </>
                             )}
                           </div>
                         ) : (
