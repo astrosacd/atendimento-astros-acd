@@ -477,6 +477,10 @@ const InstagramCreate = () => {
                 </TabsContent>
               </Tabs>
 
+              {/* AI Variations Result */}
+              {variations.length > 0 && (
+                <div className="space-y-3 pt-4 border-t">
+                  <Label>Escolha uma variação gerada:</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {variations.map((v, i) => (
                       <div 
