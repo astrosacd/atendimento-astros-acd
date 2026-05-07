@@ -25,6 +25,7 @@ import { usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { DuplicateClientWarning } from '@/components/DuplicateClientWarning';
 import { AlertTriangle, Package } from 'lucide-react';
 import { ProductSelector } from '@/components/kanban/ProductSelector';
+import { ClientLicensesManager } from "@/components/ClientLicensesManager";
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   numero: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
