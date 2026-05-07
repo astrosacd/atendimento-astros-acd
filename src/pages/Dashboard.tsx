@@ -1018,7 +1018,8 @@ export default function Dashboard() {
           </CollapsibleSection>
         )}
 
-        {/* Alert Banner for Numeros Aquecimento */}
+        {/* Alert Banners */}
+        <PaymentSecurityAlertBanner />
         <NumerosAquecimentoAlertBanner />
 
         {/* ===================== ÁREA OPERACIONAL ===================== */}
