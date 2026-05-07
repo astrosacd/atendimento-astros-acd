@@ -534,15 +534,24 @@ export default function ChamadosPublico() {
                 <TabsContent value="consultar" className="mt-6 space-y-6">
                   {/* Busca por código */}
                   <div className="space-y-4">
-                    <h3 className="font-medium">Buscar por Código do Chamado</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Buscar por Código do Chamado</h3>
+                      {emailBusca && (
+                        <span className="text-xs text-muted-foreground">Desativado — limpe o email para usar</span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <Input
                         value={codigoBusca}
                         onChange={(e) => setCodigoBusca(e.target.value)}
                         placeholder="ACD-20251222153045"
                         className="flex-1"
+                        disabled={!!emailBusca || aguardandoCodigo}
                       />
-                      <Button onClick={handleBuscarPorCodigo} disabled={loading}>
+                      <Button
+                        onClick={handleBuscarPorCodigo}
+                        disabled={loading || !!emailBusca || aguardandoCodigo || !codigoBusca.trim()}
+                      >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                       </Button>
                     </div>
@@ -552,7 +561,12 @@ export default function ChamadosPublico() {
 
                   {/* Busca por email */}
                   <div className="space-y-4">
-                    <h3 className="font-medium">Buscar por Email</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Buscar por Email</h3>
+                      {codigoBusca && (
+                        <span className="text-xs text-muted-foreground">Desativado — limpe o código para usar</span>
+                      )}
+                    </div>
                     {!aguardandoCodigo ? (
                       <div className="flex gap-2">
                         <Input
@@ -561,8 +575,12 @@ export default function ChamadosPublico() {
                           onChange={(e) => setEmailBusca(e.target.value)}
                           placeholder="seu@email.com"
                           className="flex-1"
+                          disabled={!!codigoBusca}
                         />
-                        <Button onClick={handleEnviarCodigoVerificacao} disabled={loading}>
+                        <Button
+                          onClick={handleEnviarCodigoVerificacao}
+                          disabled={loading || !!codigoBusca || !emailBusca.trim()}
+                        >
                           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Código"}
                         </Button>
                       </div>
