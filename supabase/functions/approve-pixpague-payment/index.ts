@@ -107,8 +107,8 @@ serve(async (req) => {
         .update({
           status: "rejected",
           ocr_status: payment.ocr_status === "pending" ? "rejected_manual" : payment.ocr_status,
-          approved_by: userData.user.id,
-          approved_by_email: userData.user.email ?? null,
+          approved_by: user.id,
+          approved_by_email: user.email ?? null,
           approval_reason: rejectionReason ?? null,
         })
         .eq("id", paymentId);
