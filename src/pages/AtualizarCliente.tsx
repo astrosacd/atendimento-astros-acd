@@ -107,7 +107,7 @@ export default function AtualizarCliente() {
 
   const handleSelectCliente = (cliente: Cliente) => {
     const planoNormalizado = normalizePlano(cliente.plano);
-    const clienteIsReseller = planoNormalizado !== null;
+    const clienteIsReseller = planoNormalizado !== 'Individual';
 
     setSelectedCliente(cliente);
     setNewDate(cliente.data_renovacao);
@@ -428,7 +428,7 @@ export default function AtualizarCliente() {
                     <SelectValue placeholder={t('clients.selectPlan')} />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="none">{t('clients.noPlan')}</SelectItem>
+                    <SelectItem value="Individual">Individual</SelectItem>
                     {availablePlanos.map(plano => (
                       <SelectItem key={plano.id} value={plano.nome}>
                         {plano.nome}
