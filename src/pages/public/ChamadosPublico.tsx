@@ -547,56 +547,84 @@ export default function ChamadosPublico() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Responsável</p><p className="font-bold text-foreground">{chamado.nome}</p></div>
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Contato</p><p className="font-bold text-foreground">{chamado.contato}</p></div>
-                    <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prioridade</p><Badge variant="outline" className="font-bold capitalize border-white/10">{chamado.prioridade}</Badge></div>
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                    <div className="space-y-6 flex flex-col">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1 p-3 rounded-xl bg-white/5 border border-white/5">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Responsável</p>
+                          <p className="font-bold text-foreground truncate">{chamado.nome}</p>
+                        </div>
+                        <div className="space-y-1 p-3 rounded-xl bg-white/5 border border-white/5">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Contato</p>
+                          <p className="font-bold text-foreground truncate">{chamado.contato}</p>
+                        </div>
+                        <div className="sm:col-span-2 space-y-1 p-3 rounded-xl bg-white/5 border border-white/5">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Prioridade</p>
+                          <Badge variant="outline" className="font-bold capitalize border-white/10">{chamado.prioridade}</Badge>
+                        </div>
+                      </div>
 
-                  <div className="rounded-2xl border border-white/5 p-6 bg-white/5">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Descrição da Solicitação</p>
-                    <p className="text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap">{chamado.motivo}</p>
-                  </div>
-
-                  <Separator className="bg-white/5" />
-
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h3 className="font-bold text-foreground">Conversa e Atualizações</h3></div>
-                      <Badge variant="secondary" className="font-bold text-[10px] uppercase">{comentarios.length} Interações</Badge>
+                      <div className="flex-1 rounded-2xl border border-white/5 p-6 bg-white/5">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Descrição da Solicitação</p>
+                        <p className="text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap text-sm">{chamado.motivo}</p>
+                      </div>
                     </div>
 
-                    <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                      {comentarios.length === 0 ? (
-                        <div className="text-center py-12 border-2 border-dashed border-white/10 rounded-2xl bg-white/5"><HelpCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" /><p className="text-sm text-muted-foreground font-medium">Aguardando primeira resposta técnica...</p></div>
-                      ) : (
-                        comentarios.map((c) => {
-                          const isTech = c.tipo !== "cliente";
-                          return (
-                            <div key={c.id} className={`flex flex-col ${isTech ? "items-start" : "items-end"}`}>
-                              <div className={`max-w-[85%] rounded-2xl p-4 shadow-xl border ${isTech ? "bg-card border-white/5 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none"}`}>
-                                <div className="flex items-center justify-between gap-8 mb-2">
-                                  <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isTech ? "text-primary" : "text-primary-foreground/80"}`}>{isTech ? "Suporte Técnico" : "Você"}</span>
-                                  <span className={`text-[10px] font-medium opacity-60`}>{format(new Date(c.created_at), "HH:mm")}</span>
+                    <div className="space-y-4 flex flex-col min-h-[500px]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-primary" />
+                          <h3 className="font-bold text-foreground">Conversa</h3>
+                        </div>
+                        <Badge variant="secondary" className="font-bold text-[10px] uppercase">{comentarios.length} Interações</Badge>
+                      </div>
+
+                      <div className="flex-1 space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                        {comentarios.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center text-center py-12 border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
+                            <HelpCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground font-medium">Aguardando resposta técnica...</p>
+                          </div>
+                        ) : (
+                          comentarios.map((c) => {
+                            const isTech = c.tipo !== "cliente";
+                            return (
+                              <div key={c.id} className={`flex flex-col ${isTech ? "items-start" : "items-end"}`}>
+                                <div className={`max-w-[90%] rounded-2xl p-4 shadow-xl border ${isTech ? "bg-card border-white/5 rounded-tl-none" : "bg-primary text-primary-foreground rounded-tr-none"}`}>
+                                  <div className="flex items-center justify-between gap-8 mb-2">
+                                    <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isTech ? "text-primary" : "text-primary-foreground/80"}`}>{isTech ? "Suporte" : "Você"}</span>
+                                    <span className={`text-[10px] font-medium opacity-60`}>{format(new Date(c.created_at), "HH:mm")}</span>
+                                  </div>
+                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{c.conteudo}</p>
                                 </div>
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{c.conteudo}</p>
                               </div>
-                            </div>
-                          );
-                        })
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
+                        <div className="relative pt-2">
+                          <Textarea 
+                            value={novoComentario} 
+                            onChange={(e) => setNovoComentario(e.target.value)} 
+                            placeholder="Sua resposta..." 
+                            className="min-h-[100px] p-4 pr-14 rounded-2xl border-white/10 bg-white/5 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-inner text-sm" 
+                          />
+                          <Button 
+                            onClick={handleEnviarComentario} 
+                            disabled={loading || !novoComentario.trim()} 
+                            className="absolute bottom-4 right-4 h-10 w-10 p-0 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all"
+                          >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl bg-white/5 p-4 text-center border border-dashed border-white/10">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Chamado encerrado</p>
+                        </div>
                       )}
                     </div>
-
-                    {chamado.status !== "fechado" && chamado.status !== "resolvido" ? (
-                      <div className="relative pt-2">
-                        <Textarea value={novoComentario} onChange={(e) => setNovoComentario(e.target.value)} placeholder="Escreva sua resposta aqui..." className="min-h-[100px] p-4 pr-20 rounded-2xl border-white/10 bg-white/5 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-inner" />
-                        <Button onClick={handleEnviarComentario} disabled={loading || !novoComentario.trim()} className="absolute bottom-4 right-4 h-10 w-10 p-0 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all">
-                          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl bg-white/5 p-6 text-center border border-dashed border-white/10 shadow-inner"><Lock className="h-6 w-6 mx-auto mb-3 text-muted-foreground/50" /><p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Este chamado foi {chamado.status} e está encerrado.</p></div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
