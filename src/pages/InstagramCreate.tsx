@@ -412,14 +412,22 @@ const InstagramCreate = () => {
 
                 <TabsContent value="ai" className="mt-4">
                   <div className="space-y-4 rounded-xl border bg-muted/20 p-5">
+                    {postType === 'reels' && (
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                          Reels exige vídeo. A IA gera apenas a <strong>capa estática</strong> 9:16 — você precisa enviar o vídeo final manualmente na aba "Fazer Upload".
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1">
                         <Label className="flex items-center gap-2 text-sm font-semibold">
                           <Sparkles className="h-4 w-4 text-primary" />
-                          Gerar arte com Lovable AI
+                          Gerar arte para {postType === 'feed' ? 'Feed' : postType === 'reels' ? 'capa do Reels' : postType === 'carousel' ? 'Carrossel' : 'Stories'}
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Descreva a arte desejada. Sem necessidade de API key.
+                          Cada tipo gera variações com briefing e proporção próprios ({postType === 'feed' || postType === 'carousel' ? '1:1' : '9:16'}).
                         </p>
                       </div>
                       <Select value={aiModel} onValueChange={setAiModel}>
