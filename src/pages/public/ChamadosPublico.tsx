@@ -146,7 +146,8 @@ export default function ChamadosPublico() {
   };
 
   const handleBuscarPorCodigo = async () => {
-    if (!codigoBusca) {
+    const codigoLimpo = codigoBusca.trim().toUpperCase();
+    if (!codigoLimpo) {
       toast.error("Informe o código do chamado");
       return;
     }
@@ -155,12 +156,24 @@ export default function ChamadosPublico() {
     try {
       const { data, error } = await supabase.functions.invoke("api-chamados", {
         method: "POST",
-        body: { action: "buscar_por_codigo", codigo: codigoBusca },
+        body: { action: "buscar_por_codigo", codigo: codigoLimpo },
       });
 
-      if (error) throw error;
-      if (!data) {
-        toast.error("Chamado não encontrado");
+      if (error) {
+        // supabase.functions.invoke marca non-2xx como erro; tenta extrair body
+        const ctx = (error as any)?.context;
+        let msg = error.message || "Erro ao buscar chamado";
+        try {
+          if (ctx && typeof ctx.json === "function") {
+            const j = await ctx.json();
+            if (j?.error) msg = j.error;
+          }
+        } catch { /* ignore */ }
+        toast.error(msg);
+        return;
+      }
+      if (!data || data.error) {
+        toast.error(data?.error || "Chamado não encontrado");
         return;
       }
 
