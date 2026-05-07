@@ -143,11 +143,11 @@ export default function ConsultarCliente() {
     const filter = searchParams.get('filter');
     if (filter === 'inadimplente') {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const filtered = data.filter(cliente => {
-        if (!cliente.cobranca_ativa) return false; // Only active billing clients
-        const renewalDate = new Date(cliente.data_renovacao);
-        return renewalDate < today;
+        if (!cliente.cobranca_ativa || !cliente.data_renovacao) return false;
+        const renovacaoStr = String(cliente.data_renovacao).slice(0, 10);
+        return renovacaoStr < todayStr;
       });
       setResults(filtered);
     } else if (filter === 'registro-sem-valor') {
