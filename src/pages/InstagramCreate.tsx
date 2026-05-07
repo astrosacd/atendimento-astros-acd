@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,10 @@ import {
   Smartphone,
   Trash2,
   Loader2,
-  Check
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +31,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const InstagramCreate = () => {
   const { user } = useAuth();
@@ -48,6 +52,10 @@ const InstagramCreate = () => {
   const [aiModel, setAiModel] = useState("gemini-2.0-flash-exp");
   const [variations, setVariations] = useState<{ url: string; name: string }[]>([]);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [isUploadingReference, setIsUploadingReference] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const carouselScrollRef = useRef<HTMLDivElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -56,26 +64,67 @@ const InstagramCreate = () => {
     setLoading(true);
     const uploadedUrls = [];
 
-    for (const file of Array.from(files)) {
-      const fileName = `${user?.id}/${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
+    try {
+      for (const file of Array.from(files)) {
+        // Log file info for debugging
+        console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+        
+        if (file.size > 50 * 1024 * 1024) { // 50MB limit
+           toast({ title: "Arquivo muito grande", description: `${file.name} excede o limite de 50MB.`, variant: "destructive" });
+           continue;
+        }
+
+        const fileName = `${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const { data, error } = await supabase.storage
+          .from("instagram-media")
+          .upload(fileName, file);
+
+        if (error) {
+          console.error("Upload error details:", error);
+          toast({ title: "Erro no upload", description: `Falha ao subir ${file.name}: ${error.message}`, variant: "destructive" });
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("instagram-media")
+          .getPublicUrl(fileName);
+        
+        uploadedUrls.push(publicUrl);
+      }
+
+      setMediaUrls([...mediaUrls, ...uploadedUrls]);
+    } catch (err) {
+      console.error("General upload error:", err);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingReference(true);
+    try {
+      const fileName = `reference/${user?.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+      const { error } = await supabase.storage
         .from("instagram-media")
         .upload(fileName, file);
 
-      if (error) {
-        toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
-        continue;
-      }
+      if (error) throw error;
 
       const { data: { publicUrl } } = supabase.storage
         .from("instagram-media")
         .getPublicUrl(fileName);
       
-      uploadedUrls.push(publicUrl);
+      setReferenceImageUrl(publicUrl);
+      toast({ title: "Imagem de referência enviada" });
+    } catch (error: any) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploadingReference(false);
     }
-
-    setMediaUrls([...mediaUrls, ...uploadedUrls]);
-    setLoading(false);
   };
 
   const generateAIImages = async () => {
@@ -94,7 +143,8 @@ const InstagramCreate = () => {
           prompt, 
           format: postType, 
           model: aiModel,
-          count: 3 
+          count: 3,
+          referenceImage: referenceImageUrl
         }
       });
 
@@ -218,25 +268,63 @@ const InstagramCreate = () => {
                   <Label>Fazer Upload</Label>
                   <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer relative">
                     <input 
+                      ref={fileInputRef}
                       type="file" 
                       className="absolute inset-0 opacity-0 cursor-pointer" 
                       multiple={postType === 'carousel'}
                       accept="image/*,video/*"
                       onChange={handleFileUpload}
+                      disabled={loading}
                     />
-                    <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Clique ou arraste arquivos</p>
+                    {loading ? (
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    ) : (
+                      <>
+                        <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">Clique ou arraste arquivos</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Imagens ou Vídeos (MP4/MOV)</p>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <Label className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-pink-500" />
-                    Gerar com IA (Lovable AI)
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-pink-500" />
+                      Gerar com IA (Lovable AI)
+                    </Label>
+                    
+                    <div className="flex items-center gap-2">
+                       {referenceImageUrl ? (
+                         <div className="relative w-8 h-8 rounded border overflow-hidden group">
+                           <img src={referenceImageUrl} className="w-full h-full object-cover" />
+                           <button 
+                             onClick={() => setReferenceImageUrl(null)}
+                             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                           >
+                             <Trash2 className="h-3 w-3 text-white" />
+                           </button>
+                         </div>
+                       ) : (
+                         <div className="relative">
+                            <input 
+                              type="file" 
+                              className="absolute inset-0 opacity-0 cursor-pointer w-8 h-8" 
+                              accept="image/*"
+                              onChange={handleReferenceUpload}
+                              disabled={isUploadingReference}
+                            />
+                            <Button variant="outline" size="icon" className="h-8 w-8" title="Usar imagem de referência">
+                              {isUploadingReference ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />}
+                            </Button>
+                         </div>
+                       )}
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Textarea 
-                      placeholder="Descreva a imagem que você deseja criar..." 
+                      placeholder={referenceImageUrl ? "Descreva como você quer modelar a imagem de referência..." : "Descreva a imagem que você deseja criar..."} 
                       className="h-24 resize-none"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
@@ -248,12 +336,15 @@ const InstagramCreate = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="dalle-3">DALL-E 3</SelectItem>
+                          <SelectItem value="openai/gpt-4o-mini">GPT-4o Mini (OpenAI)</SelectItem>
+                          <SelectItem value="openai/gpt-4o">GPT-4o (OpenAI)</SelectItem>
+                          <SelectItem value="x-ai/grok-2-vision-1212">Grok 2 Vision (xAI)</SelectItem>
+                          <SelectItem value="dalle-3">DALL-E 3 (Direct)</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button 
                         onClick={generateAIImages} 
-                        disabled={generating} 
+                        disabled={generating || !prompt} 
                         variant="secondary"
                         className="shrink-0"
                       >

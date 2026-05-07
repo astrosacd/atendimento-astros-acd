@@ -24,8 +24,17 @@ const InstagramModule = () => {
     canCreateInstagramPost, 
     canManageInstagramSettings, 
     canViewInstagramHistory,
-    canManageTemporaryAccess
+    canManageTemporaryAccess,
   } = usePermissions();
+
+  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+
+  // Force permissions for temporary access
+  const effectiveCanViewInstagram = canViewInstagram() || isTempAccess;
+  const effectiveCanCreatePost = canCreateInstagramPost() || isTempAccess;
+  const effectiveCanViewHistory = canViewInstagramHistory() || isTempAccess;
+  const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
+  const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
 
   const siteUrl = useSiteUrl();
 
@@ -40,10 +49,10 @@ const InstagramModule = () => {
   });
 
   useEffect(() => {
-    if (canManageTemporaryAccess()) {
+    if (effectiveCanManageTempAccess) {
       fetchTokens();
     }
-  }, [canManageTemporaryAccess]);
+  }, [effectiveCanManageTempAccess]);
 
   const fetchTokens = async () => {
     const { data, error } = await supabase
@@ -105,7 +114,7 @@ const InstagramModule = () => {
     toast.success("Link copiado!");
   };
 
-  if (!canViewInstagram()) {
+  if (!effectiveCanViewInstagram) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
@@ -133,7 +142,7 @@ const InstagramModule = () => {
             </div>
           </div>
 
-          {canManageTemporaryAccess() && (
+          {effectiveCanManageTempAccess && (
             <Dialog open={isAccessDialogOpen} onOpenChange={setIsAccessDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
@@ -248,17 +257,17 @@ const InstagramModule = () => {
 
         <Tabs defaultValue="create" className="space-y-6">
           <TabsList className="bg-muted p-1">
-            {canCreateInstagramPost() && (
+            {effectiveCanCreatePost && (
               <TabsTrigger value="create" className="gap-2">
                 <Sparkles className="h-4 w-4" /> Criar Post
               </TabsTrigger>
             )}
-            {canViewInstagramHistory() && (
+            {effectiveCanViewHistory && (
               <TabsTrigger value="history" className="gap-2">
                 <History className="h-4 w-4" /> Histórico
               </TabsTrigger>
             )}
-            {canManageInstagramSettings() && (
+            {effectiveCanManageSettings && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4" /> Configurações
               </TabsTrigger>

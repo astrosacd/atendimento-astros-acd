@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, format, model, count = 1 } = await req.json();
+    const { prompt, format, model, count = 1, referenceImage = null } = await req.json();
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -43,7 +43,18 @@ serve(async (req) => {
 
     for (let i = 0; i < Math.min(count, variations.length); i++) {
       const styleHint = variations[i].style;
-      const fullPrompt = `${prompt}. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
+      const fullPrompt = referenceImage 
+        ? `Based on the attached reference image, generate a new image that: ${prompt}. Maintain the style/subject where appropriate but create a new unique composition. Style hint: ${styleHint}. Aspect ratio: ${aspect_ratio}`
+        : `${prompt}. Style: ${styleHint}. Aspect ratio: ${aspect_ratio}`;
+
+      const messageContent: any[] = [{ type: "text", text: fullPrompt }];
+      
+      if (referenceImage) {
+        messageContent.push({
+          type: "image_url",
+          image_url: { url: referenceImage }
+        });
+      }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -56,9 +67,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: [
-                { type: "text", text: fullPrompt },
-              ],
+              content: messageContent,
             },
           ],
           modalities: ["image", "text"],
