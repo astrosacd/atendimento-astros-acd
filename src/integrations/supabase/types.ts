@@ -89,6 +89,48 @@ export type Database = {
         }
         Relationships: []
       }
+      api_quotas: {
+        Row: {
+          alert_threshold: number | null
+          api_name: string
+          created_at: string
+          current_value: number
+          display_name: string
+          id: string
+          is_active: boolean | null
+          last_updated: string | null
+          limit_type: string
+          max_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          alert_threshold?: number | null
+          api_name: string
+          created_at?: string
+          current_value?: number
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          last_updated?: string | null
+          limit_type: string
+          max_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alert_threshold?: number | null
+          api_name?: string
+          created_at?: string
+          current_value?: number
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_updated?: string | null
+          limit_type?: string
+          max_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       approval_history: {
         Row: {
           action: string
@@ -4142,6 +4184,75 @@ export type Database = {
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      integration_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          integration_name: string
+          message: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          integration_name: string
+          message?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          integration_name?: string
+          message?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      integration_status: {
+        Row: {
+          category: string
+          created_at: string
+          display_name: string
+          error_message: string | null
+          id: string
+          integration_name: string
+          last_check: string | null
+          metadata: Json | null
+          response_time_ms: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          display_name: string
+          error_message?: string | null
+          id?: string
+          integration_name: string
+          last_check?: string | null
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          display_name?: string
+          error_message?: string | null
+          id?: string
+          integration_name?: string
+          last_check?: string | null
+          metadata?: Json | null
+          response_time_ms?: number | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

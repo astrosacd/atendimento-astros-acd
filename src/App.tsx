@@ -49,6 +49,7 @@ import AdminChamadosApiKeys from "./pages/AdminChamadosApiKeys";
 import AdminChamadosGuia from "./pages/AdminChamadosGuia";
 import AdminRelatorios from "./pages/AdminRelatorios";
 import AdminIA from "./pages/AdminIA";
+import AdminHealthDashboard from "./pages/AdminHealthDashboard";
 import AdminSegurancaPagamento from "./pages/AdminSegurancaPagamento";
 import Tarefas from "./pages/Tarefas";
 import Propostas from "./pages/Propostas";
@@ -161,6 +162,7 @@ function AppRoutes() {
       
       {/* AI Intelligence Route */}
       <Route path="/admin/ia" element={<ProtectedRoute permission="view_sales_forecast"><AdminIA /></ProtectedRoute>} />
+      <Route path="/admin/saude" element={<ProtectedRoute permission="manage_settings"><AdminHealthDashboard /></ProtectedRoute>} />
       
       {/* Tarefas Route */}
       <Route path="/tarefas" element={<ProtectedRoute permission="manage_tasks"><Tarefas /></ProtectedRoute>} />
