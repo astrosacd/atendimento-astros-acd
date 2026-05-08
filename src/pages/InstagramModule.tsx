@@ -182,7 +182,7 @@ const InstagramModule = () => {
                     <Label>Duração do Acesso (Horas)</Label>
                     <Select 
                       value={newAccess.duration} 
-                      onValueChange={(v) => setNewAccess({...newAccess, duration: v})}
+                      onValueChange={(v) => setNewAccess(prev => ({...prev, duration: v}))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a duração" />
@@ -193,6 +193,7 @@ const InstagramModule = () => {
                         <SelectItem value="12">12 horas</SelectItem>
                         <SelectItem value="24">24 horas</SelectItem>
                         <SelectItem value="168">7 dias</SelectItem>
+                        <SelectItem value="480">20 dias</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -201,8 +202,11 @@ const InstagramModule = () => {
                     <Input 
                       type="number" 
                       value={newAccess.max_uses} 
-                      onChange={(e) => setNewAccess({...newAccess, max_uses: e.target.value})}
+                      onChange={(e) => setNewAccess(prev => ({...prev, max_uses: e.target.value}))}
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Define quantas vezes o link pode ser usado antes de expirar (ex: 1 = uso único).
+                    </p>
                   </div>
 
                   <div className="pt-4 space-y-2">
