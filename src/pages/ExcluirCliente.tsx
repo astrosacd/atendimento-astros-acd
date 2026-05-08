@@ -143,6 +143,14 @@ export default function ExcluirCliente() {
                   <p className="text-muted-foreground">Produto: <span className="text-foreground">{selectedCliente.produto}</span></p>
                   <p className="text-muted-foreground col-span-2">Email: <span className="text-foreground">{selectedCliente.email}</span></p>
                 </div>
+                {selectedCliente.observacao && selectedCliente.observacao.trim() && (
+                  <div className="mt-3 pt-3 border-t border-destructive/20">
+                    <p className="text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Observação do cadastro</p>
+                    <div className="bg-background/60 border border-border rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                      {selectedCliente.observacao}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
