@@ -182,7 +182,7 @@ const InstagramModule = () => {
                     <Label>Duração do Acesso (Horas)</Label>
                     <Select 
                       value={newAccess.duration} 
-                      onValueChange={(v) => setNewAccess({...newAccess, duration: v})}
+                      onValueChange={(v) => setNewAccess(prev => ({...prev, duration: v}))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a duração" />
@@ -193,6 +193,7 @@ const InstagramModule = () => {
                         <SelectItem value="12">12 horas</SelectItem>
                         <SelectItem value="24">24 horas</SelectItem>
                         <SelectItem value="168">7 dias</SelectItem>
+                        <SelectItem value="480">20 dias</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
