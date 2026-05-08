@@ -195,30 +195,32 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const instaId = data?.instagram_business_account_id;
   
-  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela instagram_settings.' };
+  if (!token) {
+    return { status: 'warning', message: 'Configuração não encontrada (Instagram Graph API).' };
+  }
   
   try {
     const url = instaId 
       ? `https://graph.facebook.com/v21.0/${instaId}?fields=username,name&access_token=${token}`
       : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
-
+ 
     const res = await withTimeout(fetch(url), 8000, 'InstagramMeta');
     const responseData = await res.json();
-
+ 
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
-
+ 
     return { 
       status: 'online', 
       message: `Conectado: @${responseData.username || responseData.name || 'Conta Instagram Ativa'}`,
       details: { instagram_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
+    return { status: 'offline', message: `Erro de conexão com Instagram Meta: ${e.message}` };
   }
 }
 
