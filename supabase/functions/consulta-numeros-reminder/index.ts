@@ -631,67 +631,70 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch fields metadata to get select options (reliable; does not depend on existing rows)
-      // Use timeout to prevent hanging when Baserow is slow/down.
-      // If the fields endpoint is slow/unreachable, fall back to inferring from recent rows.
+      // Strategy: try the rows endpoint FIRST (same endpoint used by the
+      // "Testar Conexão" button which we know works for this user). The
+      // /fields endpoint requires extra DB-level token permissions and is
+      // often slow on self-hosted Baserow, which was causing this tab to
+      // show a connection error even when the connection is fine.
       let statuses: string[] = [];
+
       try {
-        const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-        const fieldsResp = await fetchWithTimeout(
-          fieldsUrl,
+        const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
+        const rowsResp = await fetchWithTimeout(
+          rowsUrl,
           {
             headers: {
               'Authorization': `Token ${baserowConfig.api_token}`,
               'Content-Type': 'application/json',
             },
           },
-          12_000
+          15_000
         );
 
-        if (!fieldsResp.ok) {
-          const errTxt = sanitizePII(await fieldsResp.text());
-          console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses):', errTxt);
-          // continue to fallback below
+        if (!rowsResp.ok) {
+          const errTxt = sanitizePII(await rowsResp.text());
+          console.error('[consulta-numeros-reminder] Baserow rows fetch failed (list_statuses):', errTxt);
         } else {
-          const fields = await fieldsResp.json();
-          const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
-          const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
-          statuses = options.map((o) => o.value).filter(Boolean).sort();
+          const json = await rowsResp.json();
+          const results = (json?.results || []) as any[];
+          const set = new Set<string>();
+          for (const row of results) {
+            const s = row?.excluido_da_base?.value || row?.excluido_da_base || row?.Status?.value || row?.Status || row?.status?.value || row?.status;
+            if (typeof s === 'string' && s.trim()) set.add(s.trim());
+          }
+          statuses = Array.from(set).sort();
         }
       } catch (e: any) {
-        console.error('[consulta-numeros-reminder] Baserow connection timeout (list_statuses):', String(e?.message || e));
+        console.error('[consulta-numeros-reminder] Baserow rows timeout (list_statuses):', String(e?.message || e));
       }
 
-      // Fallback: infer from recent rows (works even when /fields is timing out)
+      // Fallback: try fields metadata endpoint (richer — returns options
+      // even when no rows currently use them).
       if (statuses.length === 0) {
         try {
-          const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
-          const rowsResp = await fetchWithTimeout(
-            rowsUrl,
+          const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+          const fieldsResp = await fetchWithTimeout(
+            fieldsUrl,
             {
               headers: {
                 'Authorization': `Token ${baserowConfig.api_token}`,
                 'Content-Type': 'application/json',
               },
             },
-            15_000
+            12_000
           );
 
-          if (!rowsResp.ok) {
-            const errTxt = sanitizePII(await rowsResp.text());
-            console.error('[consulta-numeros-reminder] Baserow rows fetch failed (list_statuses fallback):', errTxt);
+          if (!fieldsResp.ok) {
+            const errTxt = sanitizePII(await fieldsResp.text());
+            console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses fallback):', errTxt);
           } else {
-            const json = await rowsResp.json();
-            const results = (json?.results || []) as any[];
-            const set = new Set<string>();
-            for (const row of results) {
-              const s = row?.excluido_da_base?.value || row?.excluido_da_base || row?.Status?.value || row?.Status || row?.status?.value || row?.status;
-              if (typeof s === 'string' && s.trim()) set.add(s.trim());
-            }
-            statuses = Array.from(set).sort();
+            const fields = await fieldsResp.json();
+            const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
+            const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
+            statuses = options.map((o) => o.value).filter(Boolean).sort();
           }
         } catch (e: any) {
-          console.error('[consulta-numeros-reminder] Baserow connection timeout (list_statuses fallback):', String(e?.message || e));
+          console.error('[consulta-numeros-reminder] Baserow fields timeout (list_statuses fallback):', String(e?.message || e));
         }
       }
 
