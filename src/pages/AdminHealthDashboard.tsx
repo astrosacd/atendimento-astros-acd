@@ -24,6 +24,10 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 const CHECK_DESCRIPTIONS: Record<string, { desc: string; module: string }> = {
+  system_integrity: { 
+    desc: 'Monitora falhas críticas em todos os módulos nas últimas 24 horas.', 
+    module: 'Logs Globais do Sistema' 
+  },
   whatsapp_official: { 
     desc: 'Validação real do WhatsApp Cloud API consultando o status do número configurado na Meta.', 
     module: 'Tabela: meta_credentials' 
@@ -35,6 +39,14 @@ const CHECK_DESCRIPTIONS: Record<string, { desc: string; module: string }> = {
   evolution_api: { 
     desc: 'Testa a URL e Chave da instância de disparos.', 
     module: 'Configurações de Envio / proposal_send_config' 
+  },
+  baserow_api: { 
+    desc: 'Valida a conexão com o banco de dados Baserow usado na consulta de números.', 
+    module: 'Consulta Números > Configurações / consulta_numeros_config' 
+  },
+  sync_status: { 
+    desc: 'Verifica se a sincronização interna entre Baserow e CRM está funcionando.', 
+    module: 'Processo Automático / consulta_numeros_sync_status' 
   },
   google_calendar: { 
     desc: 'Valida Client ID, Secret e Refresh Token da Agenda.', 
