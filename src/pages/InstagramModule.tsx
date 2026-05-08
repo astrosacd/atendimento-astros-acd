@@ -180,7 +180,7 @@ const InstagramModule = () => {
                   <LinkIcon className="h-4 w-4" /> Acesso Provisório
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
                 {accessStep === "initial" ? (
                   <>
                     <DialogHeader>
