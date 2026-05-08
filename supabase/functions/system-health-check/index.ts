@@ -156,7 +156,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const phoneId = data?.phone_number_id;
   
-  if (!token) return { status: 'warning', message: 'WhatsApp Cloud API não configurada na tabela meta_credentials.' };
+  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela meta_credentials.' };
   
   try {
     const url = phoneId 
@@ -169,7 +169,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
     
@@ -188,7 +188,7 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const instaId = data?.instagram_business_account_id;
   
-  if (!token) return { status: 'warning', message: 'Instagram Graph API não configurada na tabela instagram_settings.' };
+  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela instagram_settings.' };
   
   try {
     const url = instaId 
@@ -201,7 +201,7 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
 
