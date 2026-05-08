@@ -1451,7 +1451,7 @@ export default function CadastrarCliente() {
                   disabled={isLoading || isUploading || isSaving || (dupCheck.hasAnyDuplicate && !duplicateAcknowledged)}
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  {isLoading || isUploading ? 'Salvando...' : 'Confirmar'}
+                  {isLoading || isUploading || isSaving ? 'Salvando...' : 'Confirmar'}
                 </Button>
                 <Button 
                   onClick={handleCancel}
