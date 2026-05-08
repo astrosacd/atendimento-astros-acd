@@ -74,6 +74,8 @@ function normalizeStatusValue(value: unknown): string {
 function extractReminderStatus(row: Record<string, unknown>): string {
   return (
     normalizeStatusValue(row?.excluido_da_base) ||
+    normalizeStatusValue(row?.['Excluido da Base']) ||
+    normalizeStatusValue(row?.['Excluída da Base']) ||
     normalizeStatusValue(row?.Excluido_Da_Base) ||
     normalizeStatusValue(row?.Status) ||
     normalizeStatusValue(row?.status)
