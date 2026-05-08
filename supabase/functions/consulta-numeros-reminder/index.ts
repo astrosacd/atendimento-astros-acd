@@ -684,6 +684,55 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Action: manual run from the UI. Return immediately and do the heavy work in
+    // the background so the browser does not hit the Supabase JS client timeout
+    // ("failed to send a request to the Edge Function").
+    if (action === 'run_now') {
+      console.log('[consulta-numeros-reminder] Manual async run requested - responding immediately');
+
+      EdgeRuntime.waitUntil(
+        (async () => {
+          await supabase.from('consulta_numeros_reminder_logs').insert({
+            channel: 'cron_check',
+            status: 'triggered',
+            numbers_count: 0,
+            status_monitored: 'Execução manual iniciada',
+          });
+
+          const result = await processReminder(true);
+          if (!result.success) {
+            await supabase.from('consulta_numeros_reminder_logs').insert({
+              channel: 'cron_check',
+              status: 'error',
+              numbers_count: 0,
+              error_message: sanitizePII(result.message || 'Erro ao executar lembrete manual').substring(0, 500),
+            });
+          }
+        })().catch(async (err) => {
+          console.error('[consulta-numeros-reminder] Manual background processing error:', err);
+          try {
+            await supabase.from('consulta_numeros_reminder_logs').insert({
+              channel: 'cron_check',
+              status: 'error',
+              numbers_count: 0,
+              error_message: sanitizePII(String(err)).substring(0, 500),
+            });
+          } catch (e) {
+            console.error('[consulta-numeros-reminder] Failed to write manual background error log:', e);
+          }
+        })
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          started: true,
+          message: 'Execução iniciada em segundo plano. Acompanhe o resultado no histórico.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Action: list available statuses from Baserow (field: excluido_da_base)
     if (action === 'list_statuses') {
       // Get Baserow config

@@ -370,15 +370,19 @@ export function ReminderConfigTab() {
   const handleTestReminder = async () => {
     setTestLoading(true);
     try {
-      // Executa AGORA (sem depender de "hora cheia") e espera o processamento.
-      // Mantém o comportamento do cron (forceRun=false é usado só no automático),
-      // mas aqui precisamos aguardar o resultado para você ver se enviou mesmo.
+      // Executa AGORA sem travar a tela. A função responde rápido e continua o
+      // processamento no backend, evitando timeout do navegador/Chatwoot.
       const { data, error } = await supabase.functions.invoke('consulta-numeros-reminder', {
-        body: { forceRun: true, source: 'manual_run' },
+        body: { action: 'run_now' },
       });
       if (error) throw error;
 
-      if (data?.success && (data?.results?.length ?? 0) > 0) {
+      if (data?.started) {
+        toast({
+          title: 'Execução iniciada!',
+          description: 'O lembrete está rodando em segundo plano. O resultado vai aparecer no Histórico de Envios.',
+        });
+      } else if (data?.success && (data?.results?.length ?? 0) > 0) {
         toast({
           title: 'Execução manual concluída!',
           description: `Encontrados ${data.count || 0} números. ${data.results
@@ -398,8 +402,14 @@ export function ReminderConfigTab() {
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+      await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
+      [3000, 10000, 25000, 45000].forEach((delay) => {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+          queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
+        }, delay);
+      });
     } catch (error) {
       console.error('Manual run error:', error);
       toast({ title: 'Erro ao executar agora', description: String(error), variant: 'destructive' });
