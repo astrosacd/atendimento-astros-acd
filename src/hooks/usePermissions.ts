@@ -421,5 +421,6 @@ export function usePermissions() {
     canManageTemporaryAccess,
     canViewGuiaInstagram,
     canViewInstagramReports: () => hasPermission('view_instagram_reports'),
+    canManageSystemHealth,
   };
 }
