@@ -316,7 +316,15 @@ const InstagramCreate = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      {isTempAccess && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Acesso somente leitura:</strong> você pode visualizar conteúdos e o histórico, mas não pode criar, editar ou publicar. Solicite ao administrador qualquer alteração.
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch", isTempAccess && "pointer-events-none opacity-60")}>
         {/* Lado Esquerdo: Configurações do Post */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
