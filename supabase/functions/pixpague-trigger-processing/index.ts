@@ -37,18 +37,18 @@ serve(async (req) => {
 
     const backgroundTask = (async () => {
       try {
-        console.log("[pixpague-trigger] Invoking pixpague-process-proof...");
+        console.log("[pixpague-trigger] Invoking pixpague-process-proof for payment:", paymentId);
+        
+        // We invoke with Service Role permissions and NO user header 
+        // to ensure it can read config/instances even if triggered by a regular user.
         const { data, error } = await supabase.functions.invoke("pixpague-process-proof", {
           body: { paymentId, proofUrl, declaredAmount, manualReview },
-          headers: {
-            "Authorization": req.headers.get("Authorization") || ""
-          }
         });
         
         if (error) {
-          console.error("[pixpague-trigger] Background processing error:", error);
+          console.error("[pixpague-trigger] Background processing invocation error:", error);
         } else {
-          console.log("[pixpague-trigger] Background processing finished:", JSON.stringify(data));
+          console.log("[pixpague-trigger] Background processing response:", JSON.stringify(data));
         }
       } catch (e) {
         console.error("[pixpague-trigger] Background exception during invoke:", e);
