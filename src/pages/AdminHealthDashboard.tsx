@@ -24,14 +24,13 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 const CHECK_DESCRIPTIONS: Record<string, string> = {
-  meta_whatsapp: 'Verifica se o token oficial da Meta (WhatsApp Business API) está configurado nos Segredos / Cobrança.',
-  evolution_api: 'Faz uma chamada real em /instance/fetchInstances usando EVOLUTION_API_URL e EVOLUTION_API_KEY e conta as instâncias ativas.',
-  google_calendar: 'Consulta a tabela de tokens OAuth dos usuários conectados ao Google e verifica se algum token expirado precisa ser renovado.',
-  mercadopago: 'Faz GET em api.mercadopago.com/users/me com o MERCADOPAGO_ACCESS_TOKEN. Se devolver 401/403, o token está inválido ou expirado.',
-  stripe: 'Faz GET em api.stripe.com/v1/balance usando a STRIPE_SECRET_KEY (Secrets ou Cobrança → Stripe). HTTP 200 = chave válida.',
-  serper_api: 'Envia uma busca mínima (q="health check") no google.serper.dev e lê o header de créditos restantes.',
-  manychat: 'Faz GET em api.manychat.com/fb/page/getInfo com MANYCHAT_API_KEY para confirmar autenticação.',
-  gmail: 'Confirma que GMAIL_USER e GMAIL_APP_PASSWORD estão presentes nos Segredos (usado para enviar emails do CRM).',
+  meta_official: 'Verifica o token da Meta (WhatsApp Oficial / Instagram) configurado no módulo de integrações do CRM.',
+  evolution_api: 'Faz uma chamada real usando a URL e Chave configuradas no módulo de instâncias/envio de propostas.',
+  google_calendar: 'Valida as credenciais da Agenda (Client ID, Secret e Refresh Token) configuradas no módulo de Agenda.',
+  mercadopago: 'Valida o Access Token do Mercado Pago configurado no módulo Financeiro/Configurações.',
+  stripe: 'Verifica a validade da Secret Key do Stripe configurada no módulo de Cobrança.',
+  serper_api: 'Verifica a chave e créditos restantes do SerpApi/Serper configurada no Lead Hunter.',
+  gmail: 'Confirma as credenciais de e-mail (SMTP) configuradas para disparos automáticos.',
 };
 
 const AdminHealthDashboard = () => {
