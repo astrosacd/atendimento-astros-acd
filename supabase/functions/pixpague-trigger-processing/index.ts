@@ -17,10 +17,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, proofUrl, declaredAmount, manualReview } = await req.json();
+    const body = await req.json();
+    console.log("[pixpague-trigger] Received request body:", JSON.stringify(body));
+    const { paymentId, proofUrl, declaredAmount, manualReview } = body;
 
-    if (!paymentId || (!proofUrl && !manualReview)) {
-      return new Response(JSON.stringify({ error: "paymentId and proofUrl required" }), {
+    if (!paymentId) {
+      console.error("[pixpague-trigger] Missing paymentId");
+      return new Response(JSON.stringify({ error: "paymentId required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

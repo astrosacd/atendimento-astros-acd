@@ -491,7 +491,7 @@ export function usePaymentStatus() {
 
       // 5) Insert as pending_approval so it appears in Segurança de Pagamento
       const paymentId = `manual_link_${Date.now()}`;
-      const { error: insertError } = await supabase
+      const { data: insertedPayment, error: insertError } = await supabase
         .from('client_payments')
         .insert({
           cliente_id: clienteId,
@@ -508,9 +508,27 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Fire WhatsApp notification to approvers (manual review path for link)
+      if (insertedPayment?.id) {
+        try {
+          await supabase.functions.invoke('pixpague-trigger-processing', {
+            body: {
+              paymentId: insertedPayment.id,
+              proofUrl: linkUrlToStore || 'link-review',
+              declaredAmount,
+              manualReview: true,
+            },
+          });
+        } catch (notifyErr) {
+          console.error('[registerLinkPayment] notify error:', notifyErr);
+        }
+      }
 
       toast({
         title: '📨 Enviado para aprovação',
