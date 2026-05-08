@@ -305,7 +305,7 @@ const InstagramModule = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </Wrapper>
   );
 };
 
