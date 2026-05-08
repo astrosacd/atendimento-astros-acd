@@ -166,11 +166,13 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     return { status: 'warning', message: 'Sem Access Token da Meta.' };
   }
   
+  if (!phoneId) {
+    await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
+    return { status: 'warning', message: 'Phone Number ID não configurado (necessário para limites reais).' };
+  }
+  
   try {
-    const url = phoneId 
-      ? `https://graph.facebook.com/v21.0/${phoneId}?access_token=${token}`
-      : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
-      
+    const url = `https://graph.facebook.com/v21.0/${phoneId}?fields=display_phone_number,verified_name,messaging_limit_tier,quality_rating&access_token=${token}`;
     const res = await withTimeout(fetch(url), 8000, 'WhatsAppMeta');
     const responseData = await res.json();
     
@@ -182,10 +184,33 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
       };
     }
     
+    const tierMap: Record<string, number> = {
+      'TIER_50': 50, 'TIER_250': 250, 'TIER_1K': 1000,
+      'TIER_10K': 10000, 'TIER_100K': 100000, 'TIER_UNLIMITED': 999999,
+    };
+    const tier = responseData.messaging_limit_tier as string | undefined;
+    const maxConversations = tier ? (tierMap[tier] ?? 0) : 0;
+    
+    if (tier) {
+      await supabase.from('api_quotas').upsert({
+        api_name: 'meta_whatsapp',
+        display_name: 'WhatsApp Cloud (Conversas/24h)',
+        current_value: maxConversations,
+        max_value: maxConversations,
+        limit_type: 'conversations_24h',
+        last_updated: new Date().toISOString()
+      }, { onConflict: 'api_name' });
+    } else {
+      await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
+    }
+    
+    const tierLabel = tier ? tier.replace('TIER_', '').replace('K', ' mil').replace('UNLIMITED', 'Ilimitado') : 'N/A';
+    const quality = responseData.quality_rating || 'UNKNOWN';
+    
     return { 
       status: 'online', 
-      message: `Número: ${responseData.display_phone_number || 'Ativo'} (ID: ${responseData.id})`,
-      details: { account_id: responseData.id }
+      message: `${responseData.display_phone_number || 'Ativo'} • Tier: ${tierLabel} conversas/24h • Qualidade: ${quality}`,
+      details: { phone: responseData.display_phone_number, tier, max_conversations_24h: maxConversations, quality_rating: quality }
     };
   } catch (e: any) {
     return { status: 'offline', message: `Falha na requisição Meta: ${e.message}` };
