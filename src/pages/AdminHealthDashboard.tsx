@@ -123,11 +123,15 @@ const AdminHealthDashboard = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, message?: string) => {
+    if (status === 'warning' && (message?.toLowerCase().includes('não configurado') || message?.toLowerCase().includes('sem') || message?.toLowerCase().includes('não encontrada'))) {
+      return <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20">Não Configurado</Badge>;
+    }
+    
     switch (status) {
-      case 'online': return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Online</Badge>;
-      case 'warning': return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Alerta</Badge>;
-      case 'offline': return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Offline</Badge>;
+      case 'online': return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Ativo</Badge>;
+      case 'warning': return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Atenção</Badge>;
+      case 'offline': return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Erro de Conexão</Badge>;
       default: return <Badge variant="secondary">Desconhecido</Badge>;
     }
   };
@@ -209,7 +213,7 @@ const AdminHealthDashboard = () => {
                   <CardContent>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs text-muted-foreground capitalize">{integration.category}</span>
-                      {getStatusBadge(integration.status)}
+                      {getStatusBadge(integration.status, integration.error_message)}
                     </div>
                     {integration.last_check && (
                       <p className="text-[10px] text-muted-foreground mt-2">
@@ -280,16 +284,16 @@ const AdminHealthDashboard = () => {
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-sm">{quota.display_name}</CardTitle>
                       <CardDescription className="text-xs">
-                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis (Sincronizado via API)' : 'Uso de API'}
+                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis' : 'Uso de API'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="flex justify-between items-end mb-2">
-                        <span className={`text-lg font-bold ${isCritical ? 'text-red-500' : 'text-foreground'}`}>
+                        <span className={`text-lg font-bold ${isCritical ? 'text-red-500' : 'text-emerald-500'}`}>
                           {quota.current_value.toLocaleString()}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          de {quota.max_value?.toLocaleString() || '∞'}
+                          de {quota.max_value?.toLocaleString()} total
                         </span>
                       </div>
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">

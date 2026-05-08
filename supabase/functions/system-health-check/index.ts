@@ -17,37 +17,37 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 
 async function checkEvolution(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('proposal_send_config').select('evolution_api_url, evolution_api_key').limit(1).maybeSingle();
-  let url = data?.evolution_api_url || Deno.env.get('EVOLUTION_API_URL');
-  let key = data?.evolution_api_key || Deno.env.get('EVOLUTION_API_KEY');
+  let url = data?.evolution_api_url;
+  let key = data?.evolution_api_key;
 
-  if (!url || !key) return { status: 'warning', message: 'Evolution API não configurada no CRM.' };
+  if (!url || !key) return { status: 'warning', message: 'Sem URL/Chave no CRM.' };
   
   try {
     const res = await withTimeout(fetch(`${url.replace(/\/$/, '')}/instance/fetchInstances`, {
       headers: { 'apikey': key }
     }), 8000, 'Evolution');
-    if (!res.ok) return { status: 'offline', message: `Servidor respondeu HTTP ${res.status}.` };
+    if (!res.ok) return { status: 'offline', message: `Erro HTTP ${res.status} (Chave incorreta?)` };
     const data = await res.json().catch(() => null);
     const count = Array.isArray(data) ? data.length : 0;
-    return { status: 'online', message: `Conectado. ${count} instância(s) ativa(s).`, details: { instances: count } };
+    return { status: 'online', message: `Conectado. ${count} instâncias ativas.`, details: { instances: count } };
   } catch (e: any) {
-    return { status: 'offline', message: e.message || 'Erro de conexão com Evolution.' };
+    return { status: 'offline', message: `Falha de conexão: ${e.message}` };
   }
 }
 
 async function checkMercadoPago(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('billing_config').select('config_value').eq('config_key', 'mp_access_token').maybeSingle();
-  const token = data?.config_value || Deno.env.get('MERCADOPAGO_ACCESS_TOKEN');
+  const token = data?.config_value;
   
-  if (!token) return { status: 'warning', message: 'Mercado Pago não configurado no CRM.' };
+  if (!token) return { status: 'warning', message: 'Access Token não configurado no Financeiro.' };
   
   try {
     const res = await withTimeout(fetch('https://api.mercadopago.com/users/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     }), 8000, 'MercadoPago');
-    if (!res.ok) return { status: 'offline', message: `Token inválido ou erro HTTP ${res.status}. Verifique as credenciais no Financeiro.` };
+    if (!res.ok) return { status: 'offline', message: `Token rejeitado pelo Mercado Pago (HTTP ${res.status}).` };
     const data = await res.json();
-    return { status: 'online', message: `Conta: ${data.nickname || data.email || 'OK'}` };
+    return { status: 'online', message: `Conta vinculada: ${data.email || data.nickname}` };
   } catch (e: any) {
     return { status: 'offline', message: e.message };
   }
@@ -55,16 +55,16 @@ async function checkMercadoPago(supabase: any): Promise<CheckResult> {
 
 async function checkStripe(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('billing_stripe_config').select('stripe_secret_key').limit(1).maybeSingle();
-  const key = data?.stripe_secret_key || Deno.env.get('STRIPE_SECRET_KEY');
+  const key = data?.stripe_secret_key;
   
-  if (!key) return { status: 'warning', message: 'Stripe não configurado no CRM.' };
+  if (!key) return { status: 'warning', message: 'Secret Key não configurada no Financeiro.' };
   
   try {
     const res = await withTimeout(fetch('https://api.stripe.com/v1/balance', {
       headers: { 'Authorization': `Bearer ${key}` }
     }), 8000, 'Stripe');
-    if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}.` };
-    return { status: 'online', message: 'Conexão validada com Stripe.' };
+    if (!res.ok) return { status: 'offline', message: `Chave Stripe inválida (HTTP ${res.status}).` };
+    return { status: 'online', message: 'Conexão validada com sucesso.' };
   } catch (e: any) {
     return { status: 'offline', message: e.message };
   }
@@ -72,12 +72,11 @@ async function checkStripe(supabase: any): Promise<CheckResult> {
 
 async function checkSerper(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('lead_hunter_config').select('config_value').eq('config_key', 'serp_api_key').maybeSingle();
-  const key = data?.config_value || Deno.env.get('SERPER_API_KEY');
+  const key = data?.config_value;
   
   if (!key) {
-    // Remove quota if not configured
     await supabase.from('api_quotas').delete().eq('api_name', 'serper_api');
-    return { status: 'warning', message: 'Chave SerpApi não configurada no Lead Hunter.' };
+    return { status: 'warning', message: 'Chave não encontrada no Lead Hunter.' };
   }
   
   try {
@@ -85,39 +84,41 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
-      return { status: 'offline', message: `Token Inválido ou expirado. Erro: ${data.error || 'Unauthorized'}` };
+      await supabase.from('api_quotas').delete().eq('api_name', 'serper_api');
+      return { status: 'offline', message: `API Key inválida. Erro: ${data.error || 'Unauthorized'}` };
     }
     
-    const credits = data.total_searches_left ?? 0;
-    const max = data.searches_per_month ?? 0;
+    // Os campos reais da SerpApi conforme o JSON fornecido pelo usuário
+    const creditsLeft = data.total_searches_left ?? 0;
+    const monthlyMax = data.searches_per_month ?? 0;
     
     await supabase.from('api_quotas').upsert({
       api_name: 'serper_api',
-      display_name: 'Créditos SerpApi (Lead Hunter)',
-      current_value: credits,
-      max_value: max,
+      display_name: 'Buscas SerpApi (Lead Hunter)',
+      current_value: creditsLeft,
+      max_value: monthlyMax,
       limit_type: 'credits',
       last_updated: new Date().toISOString()
     }, { onConflict: 'api_name' });
 
     return { 
       status: 'online', 
-      message: `Plano: ${data.plan_name || 'Ativo'} • Créditos: ${credits.toLocaleString()}`, 
-      details: { credits, max_value: max, plan: data.plan_name } 
+      message: `Plano ${data.plan_name || 'Ativo'}: ${creditsLeft.toLocaleString()} buscas restantes.`, 
+      details: { credits: creditsLeft, max_value: monthlyMax, plan: data.plan_name } 
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro ao validar SerpApi: ${e.message}` };
+    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
   }
 }
 
 async function checkGmail(supabase: any): Promise<CheckResult> {
   const { data: billing } = await supabase.from('billing_config').select('config_key, config_value').in('config_key', ['billing_gmail_user', 'billing_gmail_password']);
   
-  const user = billing?.find((c: any) => c.config_key === 'billing_gmail_user')?.config_value || Deno.env.get('GMAIL_USER');
-  const pass = billing?.find((c: any) => c.config_key === 'billing_gmail_password')?.config_value || Deno.env.get('GMAIL_APP_PASSWORD');
+  const user = billing?.find((c: any) => c.config_key === 'billing_gmail_user')?.config_value;
+  const pass = billing?.find((c: any) => c.config_key === 'billing_gmail_password')?.config_value;
   
-  if (!user || !pass) return { status: 'warning', message: 'Gmail não configurado no CRM.' };
-  return { status: 'online', message: `Configurado para ${user}.` };
+  if (!user || !pass) return { status: 'warning', message: 'E-mail ou Senha de App não configurados.' };
+  return { status: 'online', message: `Pronto para disparos via ${user}.` };
 }
 
 async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
@@ -128,7 +129,7 @@ async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
   const refreshToken = data?.find((c: any) => c.config_key === 'google_refresh_token')?.config_value;
 
   if (!clientId || !clientSecret || !refreshToken) {
-    return { status: 'warning', message: 'Google Calendar (Agenda) não configurado no CRM.' };
+    return { status: 'warning', message: 'Credenciais OAuth (Client ID/Secret) não encontradas.' };
   }
 
   try {
@@ -145,12 +146,12 @@ async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      return { status: 'offline', message: `Erro na Agenda: ${errorData.error_description || errorData.error || 'Token inválido'}` };
+      return { status: 'offline', message: `Token inválido ou expirado: ${errorData.error_description || errorData.error}` };
     }
 
-    return { status: 'online', message: 'Credenciais da Agenda validadas com sucesso.' };
+    return { status: 'online', message: 'Acesso à Agenda Google validado.' };
   } catch (e: any) {
-    return { status: 'offline', message: e.message };
+    return { status: 'offline', message: `Erro de autenticação: ${e.message}` };
   }
 }
 
@@ -160,9 +161,8 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
   const phoneId = data?.phone_number_id;
   
   if (!token) {
-    // Remove meta_whatsapp quota if not configured
     await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
-    return { status: 'warning', message: 'Configuração não encontrada (WhatsApp Cloud API).' };
+    return { status: 'warning', message: 'Sem Access Token da Meta.' };
   }
   
   try {
@@ -174,19 +174,20 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     const responseData = await res.json();
     
     if (!res.ok) {
+      await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
       return { 
         status: 'offline', 
-        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token rejeitado pela Meta: ${responseData.error?.message || `Erro HTTP ${res.status}`}` 
       };
     }
     
     return { 
       status: 'online', 
-      message: `Conectado: ${responseData.display_phone_number || responseData.name || 'Conta WhatsApp Ativa'}`,
+      message: `Número: ${responseData.display_phone_number || 'Ativo'} (ID: ${responseData.id})`,
       details: { account_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão com WhatsApp Meta: ${e.message}` };
+    return { status: 'offline', message: `Falha na requisição Meta: ${e.message}` };
   }
 }
 
@@ -196,7 +197,7 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   const instaId = data?.instagram_business_account_id;
   
   if (!token) {
-    return { status: 'warning', message: 'Configuração não encontrada (Instagram Graph API).' };
+    return { status: 'warning', message: 'Sem Access Token do Instagram.' };
   }
   
   try {
@@ -210,17 +211,17 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token rejeitado pelo Instagram: ${responseData.error?.message || `Erro HTTP ${res.status}`}` 
       };
     }
  
     return { 
       status: 'online', 
-      message: `Conectado: @${responseData.username || responseData.name || 'Conta Instagram Ativa'}`,
+      message: `Perfil: @${responseData.username || 'Ativo'} (ID: ${responseData.id})`,
       details: { instagram_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão com Instagram Meta: ${e.message}` };
+    return { status: 'offline', message: `Falha na requisição Instagram: ${e.message}` };
   }
 }
 
@@ -233,50 +234,52 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const checks: Record<string, () => Promise<CheckResult>> = {
-      whatsapp_official: () => checkWhatsAppOfficial(supabase),
-      instagram_api: () => checkInstagramAPI(supabase),
-      evolution_api: () => checkEvolution(supabase),
-      google_calendar: () => checkGoogleCalendar(supabase),
-      mercadopago: () => checkMercadoPago(supabase),
-      stripe: () => checkStripe(supabase),
-      serper_api: () => checkSerper(supabase),
-      gmail: () => checkGmail(supabase),
+    const checks: Record<string, { fn: (supabase: any) => Promise<CheckResult>, display: string, category: string }> = {
+      whatsapp_official: { fn: checkWhatsAppOfficial, display: 'WhatsApp Cloud API', category: 'meta' },
+      instagram_api: { fn: checkInstagramAPI, display: 'Instagram Graph API', category: 'meta' },
+      evolution_api: { fn: checkEvolution, display: 'Evolution API (Disparos)', category: 'whatsapp' },
+      google_calendar: { fn: checkGoogleCalendar, display: 'Google Calendar (Agenda)', category: 'google' },
+      mercadopago: { fn: checkMercadoPago, display: 'Mercado Pago (Checkout)', category: 'financeiro' },
+      stripe: { fn: checkStripe, display: 'Stripe (Cartão)', category: 'financeiro' },
+      serper_api: { fn: checkSerper, display: 'SerpApi (Lead Hunter)', category: 'leads' },
+      gmail: { fn: checkGmail, display: 'Gmail Integration', category: 'email' },
     };
 
+    // Obter todos os IDs atuais no banco para limpar o que não está mais na lista
+    const currentKeys = Object.keys(checks);
+    await supabase.from('integration_status').delete().not('integration_name', 'in', `(${currentKeys.join(',')})`);
+
     const results: any[] = [];
-    for (const [name, fn] of Object.entries(checks)) {
+    for (const [name, config] of Object.entries(checks)) {
       const start = Date.now();
       let result: CheckResult;
       try {
-        result = await fn();
+        result = await config.fn(supabase);
       } catch (e: any) {
-        result = { status: 'offline', message: e.message || 'Erro desconhecido na verificação.' };
+        result = { status: 'offline', message: `Erro fatal: ${e.message}` };
       }
       const responseTime = Date.now() - start;
 
-      const { data: prev } = await supabase
-        .from('integration_status')
-        .select('status')
-        .eq('integration_name', name)
-        .maybeSingle();
-
+      // Upsert status
       await supabase
         .from('integration_status')
-        .update({
+        .upsert({
+          integration_name: name,
+          display_name: config.display,
+          category: config.category,
           status: result.status,
           error_message: result.status === 'online' ? null : result.message,
           response_time_ms: responseTime,
           last_check: new Date().toISOString(),
           metadata: result.details || {},
-        })
-        .eq('integration_name', name);
+        }, { onConflict: 'integration_name' });
 
-      if (!prev || prev.status !== result.status || result.status !== 'online') {
+      // Só logar se houver erro ou mudança significativa
+      if (result.status !== 'online') {
         await supabase.from('integration_logs').insert({
           integration_name: name,
           status: result.status,
-          message: result.message || `Verificação: ${result.status}`,
+          message: result.message || `Verificação retornou ${result.status}`,
           details: { response_time_ms: responseTime, ...(result.details || {}) }
         });
       }
