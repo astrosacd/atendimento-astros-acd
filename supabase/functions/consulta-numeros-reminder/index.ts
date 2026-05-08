@@ -62,6 +62,24 @@ function sanitizePII(message: string): string {
     .replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '[CPF_REDACTED]');
 }
 
+function normalizeStatusValue(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (value && typeof value === 'object') {
+    const candidate = (value as Record<string, unknown>).value ?? (value as Record<string, unknown>).name;
+    return typeof candidate === 'string' ? candidate.trim() : '';
+  }
+  return '';
+}
+
+function extractReminderStatus(row: Record<string, unknown>): string {
+  return (
+    normalizeStatusValue(row?.excluido_da_base) ||
+    normalizeStatusValue(row?.Excluido_Da_Base) ||
+    normalizeStatusValue(row?.Status) ||
+    normalizeStatusValue(row?.status)
+  );
+}
+
 // Declare EdgeRuntime for TypeScript
 declare const EdgeRuntime: {
   waitUntil: (promise: Promise<unknown>) => void;
