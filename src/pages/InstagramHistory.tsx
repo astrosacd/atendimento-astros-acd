@@ -34,18 +34,25 @@ const InstagramHistory = () => {
   const [logs, setLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user) {
+    if (user || isTempAccess) {
       fetchPosts();
     }
-  }, [user]);
+  }, [user, isTempAccess]);
 
   const fetchPosts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("posts")
       .select("*")
-      .eq("user_id", user?.id)
       .order("created_at", { ascending: false });
+
+    // Temp access vê histórico de todos os usuários do módulo;
+    // usuário autenticado vê somente o próprio histórico.
+    if (!isTempAccess && user?.id) {
+      query = query.eq("user_id", user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast({ title: "Erro", description: "Falha ao carregar histórico.", variant: "destructive" });
