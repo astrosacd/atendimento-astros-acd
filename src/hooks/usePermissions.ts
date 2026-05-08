@@ -26,6 +26,7 @@ export function usePermissions() {
     enabled: !!userRole,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent refetch on navigation
     gcTime: 10 * 60 * 1000,   // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false, // Prevent flickering when switching tabs
   });
 
   const hasPermission = (permissionKey: string): boolean => {
