@@ -404,10 +404,12 @@ export function ReminderConfigTab() {
 
       await queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
       queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
-        queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
-      }, 6000);
+      [3000, 10000, 25000, 45000].forEach((delay) => {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-logs'] });
+          queryClient.invalidateQueries({ queryKey: ['consulta-numeros-reminder-cron-health'] });
+        }, delay);
+      });
     } catch (error) {
       console.error('Manual run error:', error);
       toast({ title: 'Erro ao executar agora', description: String(error), variant: 'destructive' });
