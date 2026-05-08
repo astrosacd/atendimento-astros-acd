@@ -38,8 +38,8 @@ const InstagramModule = () => {
 
   const siteUrl = useSiteUrl();
 
+  const [accessStep, setAccessStep] = useState<"initial" | "success">("initial");
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
