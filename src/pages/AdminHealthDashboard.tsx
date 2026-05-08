@@ -25,11 +25,11 @@ import { toast } from 'sonner';
 
 const CHECK_DESCRIPTIONS: Record<string, { desc: string; module: string }> = {
   whatsapp_official: { 
-    desc: 'Verifica o token do WhatsApp Cloud API configurado.', 
+    desc: 'Validação real do WhatsApp Cloud API consultando o status do número configurado na Meta.', 
     module: 'Tabela: meta_credentials' 
   },
   instagram_api: { 
-    desc: 'Valida o token da Instagram Graph API para automações.', 
+    desc: 'Validação real da Instagram Graph API consultando o perfil comercial vinculado.', 
     module: 'Tabela: instagram_settings' 
   },
   evolution_api: { 
