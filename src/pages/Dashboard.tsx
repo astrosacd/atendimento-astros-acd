@@ -845,7 +845,10 @@ export default function Dashboard() {
 
         <QuickActions />
 
-        <SecurityAlertsCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <SecurityAlertsCard />
+          <SystemHealthCard />
+        </div>
 
         {priorityAlerts.length > 0 && (
           <section className="mb-8 space-y-4">
