@@ -798,6 +798,18 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
+    isAdmin && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
+      ? {
+          id: 'system-health',
+          title: 'Saúde do Sistema com Alertas',
+          description: `${stats.offlineIntegrations > 0 ? `${stats.offlineIntegrations} integração(ões) offline. ` : ''}${stats.criticalQuotas > 0 ? `${stats.criticalQuotas} cota(s) crítica(s).` : ''}`,
+          count: stats.offlineIntegrations + stats.criticalQuotas,
+          onClick: () => navigate('/admin/saude'),
+          tone: stats.offlineIntegrations > 0 ? 'critical' as const : 'warning' as const,
+          icon: ShieldCheck,
+          pulse: true,
+        }
+      : null,
     failedFollowups.length > 0
       ? {
           id: 'followups-failed',
