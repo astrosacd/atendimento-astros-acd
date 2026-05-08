@@ -1448,7 +1448,7 @@ export default function CadastrarCliente() {
                       ? 'bg-amber-500 text-white hover:bg-amber-600' 
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}
-                  disabled={isLoading || isUploading || (dupCheck.hasAnyDuplicate && !duplicateAcknowledged)}
+                  disabled={isLoading || isUploading || isSaving || (dupCheck.hasAnyDuplicate && !duplicateAcknowledged)}
                 >
                   <Check className="w-4 h-4 mr-2" />
                   {isLoading || isUploading ? 'Salvando...' : 'Confirmar'}
