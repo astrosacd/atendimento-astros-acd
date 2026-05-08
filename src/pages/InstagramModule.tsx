@@ -88,9 +88,8 @@ const InstagramModule = () => {
 
       const fullUrl = `${siteUrl}/access/${token}`;
       setGeneratedLink(fullUrl);
-      setIsAccessDialogOpen(false);
-      // Wait for the close animation to finish before opening the success dialog
-      setTimeout(() => setIsSuccessDialogOpen(true), 220);
+      setAccessStep("success");
+      fetchTokens();
       fetchTokens();
     } catch (error: any) {
       toast.error("Erro ao criar link: " + error.message);
