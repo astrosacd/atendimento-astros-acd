@@ -201,14 +201,19 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, proofUrl, declaredAmount } = await req.json();
-    if (!paymentId || !proofUrl) {
-      return new Response(JSON.stringify({ error: 'paymentId and proofUrl required' }), {
+    const { paymentId, proofUrl, declaredAmount, manualReview } = await req.json();
+    if (!paymentId) {
+      return new Response(JSON.stringify({ error: 'paymentId required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!proofUrl && !manualReview) {
+      return new Response(JSON.stringify({ error: 'proofUrl required (or set manualReview=true)' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount);
+    console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount, 'manualReview:', !!manualReview);
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
