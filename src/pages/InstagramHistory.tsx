@@ -116,7 +116,11 @@ const InstagramHistory = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end mb-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <History className="h-5 w-5 text-primary" />
+          Seu Histórico
+        </h2>
         <Button variant="outline" onClick={fetchPosts} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
