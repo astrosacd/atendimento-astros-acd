@@ -186,23 +186,19 @@ const InstagramModule = () => {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label>Duração do Acesso (Horas)</Label>
-                        <Select 
-                          value={newAccess.duration} 
-                          onValueChange={(v) => setNewAccess(prev => ({...prev, duration: v}))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a duração" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 hora</SelectItem>
-                            <SelectItem value="4">4 horas</SelectItem>
-                            <SelectItem value="12">12 horas</SelectItem>
-                            <SelectItem value="24">24 horas</SelectItem>
-                            <SelectItem value="168">7 dias</SelectItem>
-                            <SelectItem value="480">20 dias</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <Label>Duração do Acesso (Horas)</Label>
+                    <select 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={newAccess.duration} 
+                      onChange={(e) => setNewAccess(prev => ({...prev, duration: e.target.value}))}
+                    >
+                      <option value="1">1 hora</option>
+                      <option value="4">4 horas</option>
+                      <option value="12">12 horas</option>
+                      <option value="24">24 horas</option>
+                      <option value="168">7 dias</option>
+                      <option value="480">20 dias</option>
+                    </select>
                       </div>
                       <div className="space-y-2">
                         <Label>Limite de Usos</Label>
