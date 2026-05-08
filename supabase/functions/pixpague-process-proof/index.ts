@@ -306,7 +306,7 @@ serve(async (req) => {
         // Fetch payment + client + submitter info for full traceability
         const { data: payment } = await supabase
           .from('client_payments')
-          .select('amount, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
+          .select('amount, payment_type, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
           .eq('id', paymentId)
           .single();
 
@@ -319,7 +319,13 @@ serve(async (req) => {
         else if (ocrStatus === 'invalid') { icon = '❌'; label = 'COMPROVANTE INVÁLIDO (não é PIX)'; }
         else if (ocrStatus === 'error') { icon = '⚠️'; label = 'ERRO ao processar OCR'; }
         else if (ocrStatus === 'skipped') { icon = '📨'; label = 'OCR desativado — revisão manual'; }
-        else if (ocrStatus === 'manual_review') { icon = '📝'; label = 'PAGAMENTO MANUAL — Aguardando aprovação'; }
+        else if (ocrStatus === 'manual_review') { 
+          icon = '📝'; 
+          const pType = payment?.payment_type;
+          label = (pType === 'link_pagamento' || pType === 'cartao' || pType === 'stripe' || pType === 'mercado_pago')
+            ? 'LINK DE PAGAMENTO — Aguardando aprovação'
+            : 'PAGAMENTO MANUAL — Aguardando aprovação'; 
+        }
         else if (ocrStatus === 'pending') { icon = '⏳'; label = 'Aguardando processamento'; }
 
         const submitterLine = payment?.submitted_by_name || payment?.submitted_by_email
@@ -330,18 +336,24 @@ serve(async (req) => {
           ? `\n📝 Motivo: ${ocr.reason}`
           : '';
 
+        const proofLine = (manualReview && proofUrl && (proofUrl.startsWith('http://') || proofUrl.startsWith('https://')) && !proofUrl.includes('supabase.co/storage'))
+          ? `\n🔗 Link: ${proofUrl}`
+          : '';
+
         const message = `${icon} *PixPague — Pagamento para Análise*\n\n` +
           `👤 Cliente: ${cliente?.nome || 'N/A'}\n` +
           `📝 Tipo: ${typeLabel}\n` +
           `📦 Produto: ${cliente?.produto || 'N/A'}\n` +
           `💰 Valor digitado: R$ ${Number(declaredAmount || payment?.amount || 0).toFixed(2)}\n` +
           `🔍 Status: ${label}` +
+          proofLine +
           (ocr.transactionId ? `\n🆔 TX: ${ocr.transactionId}` : '') +
           reasonLine +
           submitterLine +
           (isDuplicate ? `\n\n⚠️ Esse ID já foi usado em outro pagamento!` : '') +
           `\n\n👉 Acesse o módulo *Segurança de Pagamento* para analisar e aprovar.`;
 
+        console.log('[pixpague] Message to be sent:', message);
         const phones = String(cfg.approver_phones).split(',').map((p: string) => p.trim()).filter(Boolean);
         for (const phone of phones) {
           try {

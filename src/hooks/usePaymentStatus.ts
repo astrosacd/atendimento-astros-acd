@@ -715,14 +715,17 @@ export function usePaymentStatus() {
         .eq('id', paymentId);
       if (updateError) throw updateError;
 
-      // Trigger background analysis (OCR / link validation) when there is a file
-      if (comprovante) {
+      // Trigger background analysis (OCR / link validation) or simple notification
+      if (comprovanteUrl) {
         try {
           await supabase.functions.invoke('pixpague-trigger-processing', {
             body: {
               paymentId,
               proofUrl: comprovanteUrl,
               declaredAmount: existing.amount,
+              // If it's just a text reference (link/ID) and not a file upload, 
+              // we treat it as manual review to skip OCR and send the notification.
+              manualReview: !comprovante,
             },
           });
         } catch (err) {
