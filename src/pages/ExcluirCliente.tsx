@@ -113,9 +113,9 @@ export default function ExcluirCliente() {
                       key={cliente.id}
                       onClick={() => handleSelectCliente(cliente)}
                       variant="outline"
-                      className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 h-12"
+                      className="w-full justify-start border-border text-foreground hover:bg-destructive/10 hover:border-destructive/50 min-h-12 h-auto py-3 whitespace-normal break-words text-left"
                     >
-                      {cliente.nome} - {cliente.cpf} - {cliente.produto}
+                      <span className="block w-full">{cliente.nome} - {cliente.cpf} - {cliente.produto}</span>
                     </Button>
                   ))}
                 </div>
