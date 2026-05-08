@@ -23,6 +23,8 @@ import {
 const Admin = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { hasPermission } = usePermissions();
+
 
   const adminModules = [
     {
