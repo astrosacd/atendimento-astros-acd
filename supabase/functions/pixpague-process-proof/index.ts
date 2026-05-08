@@ -214,30 +214,34 @@ serve(async (req) => {
     }
     
     const authHeader = req.headers.get('Authorization');
-    console.log('[pixpague-process-proof] Auth header present:', !!authHeader);
+    console.log('[pixpague-process-proof] Request details:', { paymentId, manualReview, hasAuth: !!authHeader });
 
-    const supabase = createClient(
+    // Client with Service Role to bypass RLS for config and status updates
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      {
-        global: {
-          headers: authHeader ? { Authorization: authHeader } : {}
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Load PixPague config
-    const { data: cfgRow } = await supabase
+    // Load PixPague config - using Admin client to ensure RLS doesn't block it
+    const { data: cfgRow, error: cfgError } = await supabaseAdmin
       .from('billing_config')
       .select('config_value')
       .eq('config_key', 'pixpague_config')
       .single();
 
+    if (cfgError) {
+      console.warn('[pixpague] Error loading config (using defaults):', cfgError);
+    }
+
     const cfg = cfgRow?.config_value
       ? (typeof cfgRow.config_value === 'string' ? JSON.parse(cfgRow.config_value) : cfgRow.config_value)
       : {
-          ocr_enabled: true, duplicate_check: true, whatsapp_notifications: false,
-          approver_phones: '', ai_provider: 'lovable', ai_model: 'google/gemini-2.5-flash',
+          ocr_enabled: true, 
+          duplicate_check: true, 
+          whatsapp_notifications: true, // Default to true if config missing but record exists
+          approver_phones: '', 
+          ai_provider: 'lovable', 
+          ai_model: 'google/gemini-2.5-flash',
         };
 
     console.log('[pixpague] Config:', { ...cfg, openai_api_key: cfg.openai_api_key ? '***' : '', groq_api_key: cfg.groq_api_key ? '***' : '' });
@@ -261,7 +265,7 @@ serve(async (req) => {
     let isDuplicate = false;
     let duplicatePayment: any = null;
     if (cfg.duplicate_check !== false && ocr.transactionId) {
-      const { data: dup } = await supabase
+      const { data: dup } = await supabaseAdmin
         .from('client_payments')
         .select('id, cliente_id, amount, paid_at')
         .eq('pix_transaction_id', ocr.transactionId)
@@ -296,7 +300,7 @@ serve(async (req) => {
     if (ocr.transactionId) updateData.pix_transaction_id = ocr.transactionId;
     if (ocr.amount != null) updateData.ocr_amount = ocr.amount;
 
-    await supabase
+    await supabaseAdmin
       .from('client_payments')
       .update(updateData)
       .eq('id', paymentId);
@@ -304,16 +308,20 @@ serve(async (req) => {
     // Send WhatsApp notification if enabled — notify for ALL statuses (including invalid/error/pending)
     // so admins are alerted immediately, even when proof is fake/wrong/unreadable.
     if (cfg.whatsapp_notifications && cfg.approver_phones) {
-      const { data: instance } = await supabase
+      console.log('[pixpague] WhatsApp notifications enabled. Looking for instance...');
+      const { data: instance, error: instError } = await supabaseAdmin
         .from('billing_whatsapp_instances')
         .select('api_url, api_key, instance_name')
         .eq('is_active', true)
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (instError) console.error('[pixpague] Error loading instance:', instError);
 
       if (instance) {
-        // Fetch payment + client + submitter info for full traceability
-        const { data: payment } = await supabase
+        console.log('[pixpague] Active instance found:', instance.instance_name);
+        // Fetch payment + client + submitter info
+        const { data: payment, error: payError } = await supabaseAdmin
           .from('client_payments')
           .select('amount, payment_type, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
           .eq('id', paymentId)
