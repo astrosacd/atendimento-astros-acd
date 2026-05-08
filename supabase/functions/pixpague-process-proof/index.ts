@@ -215,7 +215,15 @@ serve(async (req) => {
 
     console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount, 'manualReview:', !!manualReview);
 
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! }
+        }
+      }
+    );
 
     // Load PixPague config
     const { data: cfgRow } = await supabase
