@@ -114,25 +114,27 @@ const InstagramModule = () => {
     toast.success("Link copiado!");
   };
 
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    isTempAccess ? (
-      <div className="min-h-screen bg-background">
-        <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
-          <div className="container mx-auto max-w-7xl flex items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-2">
-              <Instagram className="h-5 w-5 text-pink-600" />
-              <span className="font-semibold">Módulo Instagram</span>
+  const Wrapper = React.useMemo(() => {
+    return ({ children }: { children: React.ReactNode }) =>
+      isTempAccess ? (
+        <div className="min-h-screen bg-background">
+          <div className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
+            <div className="container mx-auto max-w-7xl flex items-center justify-between px-6 py-3">
+              <div className="flex items-center gap-2">
+                <Instagram className="h-5 w-5 text-pink-600" />
+                <span className="font-semibold">Módulo Instagram</span>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                <Clock className="h-3 w-3" /> Acesso Provisório
+              </span>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-              <Clock className="h-3 w-3" /> Acesso Provisório
-            </span>
           </div>
+          {children}
         </div>
-        {children}
-      </div>
-    ) : (
-      <DashboardLayout>{children}</DashboardLayout>
-    );
+      ) : (
+        <DashboardLayout>{children}</DashboardLayout>
+      );
+  }, [isTempAccess]);
 
   if (!effectiveCanViewInstagram) {
     return (
