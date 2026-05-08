@@ -134,34 +134,66 @@ async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
 }
 
 async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
-  const { data } = await supabase.from('meta_credentials').select('access_token').limit(1).maybeSingle();
+  const { data } = await supabase.from('meta_credentials').select('access_token, phone_number_id').limit(1).maybeSingle();
   const token = data?.access_token;
+  const phoneId = data?.phone_number_id;
   
-  if (!token) return { status: 'warning', message: 'WhatsApp Cloud API não configurada.' };
+  if (!token) return { status: 'warning', message: 'WhatsApp Cloud API não configurada na tabela meta_credentials.' };
   
   try {
-    const res = await withTimeout(fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`), 8000, 'WhatsAppMeta');
-    if (!res.ok) return { status: 'offline', message: `Token inválido ou expirado (HTTP ${res.status}).` };
-    const data = await res.json();
-    return { status: 'online', message: `Conectado: ${data.name || 'OK'}` };
+    const url = phoneId 
+      ? `https://graph.facebook.com/v21.0/${phoneId}?access_token=${token}`
+      : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
+      
+    const res = await withTimeout(fetch(url), 8000, 'WhatsAppMeta');
+    const responseData = await res.json();
+    
+    if (!res.ok) {
+      return { 
+        status: 'offline', 
+        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+      };
+    }
+    
+    return { 
+      status: 'online', 
+      message: `Conectado: ${responseData.display_phone_number || responseData.name || 'Conta WhatsApp Ativa'}`,
+      details: { account_id: responseData.id }
+    };
   } catch (e: any) {
-    return { status: 'offline', message: e.message };
+    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
   }
 }
 
 async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
-  const { data } = await supabase.from('instagram_settings').select('access_token').limit(1).maybeSingle();
+  const { data } = await supabase.from('instagram_settings').select('access_token, instagram_business_account_id').limit(1).maybeSingle();
   const token = data?.access_token;
+  const instaId = data?.instagram_business_account_id;
   
-  if (!token) return { status: 'warning', message: 'Instagram Graph API não configurada.' };
+  if (!token) return { status: 'warning', message: 'Instagram Graph API não configurada na tabela instagram_settings.' };
   
   try {
-    const res = await withTimeout(fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`), 8000, 'InstagramMeta');
-    if (!res.ok) return { status: 'offline', message: `Token inválido ou expirado (HTTP ${res.status}).` };
-    const data = await res.json();
-    return { status: 'online', message: `Conectado: ${data.name || 'OK'}` };
+    const url = instaId 
+      ? `https://graph.facebook.com/v21.0/${instaId}?fields=username,name&access_token=${token}`
+      : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
+
+    const res = await withTimeout(fetch(url), 8000, 'InstagramMeta');
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      return { 
+        status: 'offline', 
+        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+      };
+    }
+
+    return { 
+      status: 'online', 
+      message: `Conectado: @${responseData.username || responseData.name || 'Conta Instagram Ativa'}`,
+      details: { instagram_id: responseData.id }
+    };
   } catch (e: any) {
-    return { status: 'offline', message: e.message };
+    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
   }
 }
 
