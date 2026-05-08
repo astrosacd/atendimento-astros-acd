@@ -153,7 +153,7 @@ export function ReminderConfigTab() {
       return (data?.statuses as string[]) || [];
     },
     retry: 1,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch logs
