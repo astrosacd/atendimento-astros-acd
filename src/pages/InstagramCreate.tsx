@@ -62,7 +62,7 @@ const InstagramCreate = () => {
   const [generating, setGenerating] = useState(false);
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const blockEdit = () => {
-    toast({ title: "Acesso somente leitura", description: "Acesso provisório não permite alterações. Solicite ao administrador.", variant: "destructive" });
+    toast({ title: "Ação não permitida", description: "O acesso provisório só permite publicar novos posts, não alterar configurações.", variant: "destructive" });
   };
   
   // Form State
@@ -105,7 +105,8 @@ const InstagramCreate = () => {
   }, [postType]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow file upload even in temp access for creation
+    // if (isTempAccess) { blockEdit(); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -177,7 +178,8 @@ const InstagramCreate = () => {
 
 
   const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow reference upload for AI generation
+    // if (isTempAccess) { blockEdit(); return; }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -216,7 +218,8 @@ const InstagramCreate = () => {
   };
 
   const generateAIImages = async () => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow AI image generation
+    // if (isTempAccess) { blockEdit(); return; }
     if (!prompt) {
       toast({ title: "Aviso", description: "Digite um prompt para gerar imagens." });
       return;
@@ -267,7 +270,8 @@ const InstagramCreate = () => {
   };
 
   const handleSubmit = async (publishNow: boolean) => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow submitting new posts
+    // if (isTempAccess) { blockEdit(); return; }
     if (mediaUrls.length === 0) {
       toast({ title: "Erro", description: "Selecione ao menos uma mídia.", variant: "destructive" });
       return;
@@ -317,14 +321,14 @@ const InstagramCreate = () => {
   return (
     <div className="space-y-6">
       {isTempAccess && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            <strong>Acesso somente leitura:</strong> você pode visualizar conteúdos e o histórico, mas não pode criar, editar ou publicar. Solicite ao administrador qualquer alteração.
+        <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-900/30">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-xs text-blue-700 dark:text-blue-400">
+            <strong>Acesso Provisório Ativo:</strong> Você pode criar e publicar novos conteúdos (Feed, Reels, Carrossel ou Stories). Alterações em agendamentos existentes no histórico não são permitidas.
           </AlertDescription>
         </Alert>
       )}
-      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch", isTempAccess && "pointer-events-none opacity-60")}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Lado Esquerdo: Configurações do Post */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>

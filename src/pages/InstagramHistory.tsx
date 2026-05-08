@@ -15,7 +15,8 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,7 +117,11 @@ const InstagramHistory = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end mb-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <History className="h-5 w-5 text-primary" />
+          Seu Histórico
+        </h2>
         <Button variant="outline" onClick={fetchPosts} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
@@ -124,6 +129,12 @@ const InstagramHistory = () => {
       </div>
 
       <div className="grid gap-4">
+        {loading && posts.length === 0 && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
         {posts.length === 0 && !loading && (
           <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
             <Instagram className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
