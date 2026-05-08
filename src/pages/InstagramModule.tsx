@@ -202,8 +202,11 @@ const InstagramModule = () => {
                     <Input 
                       type="number" 
                       value={newAccess.max_uses} 
-                      onChange={(e) => setNewAccess({...newAccess, max_uses: e.target.value})}
+                      onChange={(e) => setNewAccess(prev => ({...prev, max_uses: e.target.value}))}
                     />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Define quantas vezes o link pode ser usado antes de expirar (ex: 1 = uso único).
+                    </p>
                   </div>
 
                   <div className="pt-4 space-y-2">
