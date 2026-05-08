@@ -336,12 +336,17 @@ serve(async (req) => {
           ? `\n📝 Motivo: ${ocr.reason}`
           : '';
 
+        const proofLine = (manualReview && proofUrl && (proofUrl.startsWith('http://') || proofUrl.startsWith('https://')) && !proofUrl.includes('supabase.co/storage'))
+          ? `\n🔗 Link: ${proofUrl}`
+          : '';
+
         const message = `${icon} *PixPague — Pagamento para Análise*\n\n` +
           `👤 Cliente: ${cliente?.nome || 'N/A'}\n` +
           `📝 Tipo: ${typeLabel}\n` +
           `📦 Produto: ${cliente?.produto || 'N/A'}\n` +
           `💰 Valor digitado: R$ ${Number(declaredAmount || payment?.amount || 0).toFixed(2)}\n` +
           `🔍 Status: ${label}` +
+          proofLine +
           (ocr.transactionId ? `\n🆔 TX: ${ocr.transactionId}` : '') +
           reasonLine +
           submitterLine +
