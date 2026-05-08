@@ -649,12 +649,30 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Strategy: try the rows endpoint FIRST (same endpoint used by the
-      // "Testar Conexão" button which we know works for this user). The
-      // /fields endpoint requires extra DB-level token permissions and is
-      // often slow on self-hosted Baserow, which was causing this tab to
-      // show a connection error even when the connection is fine.
-      let statuses: string[] = [];
+      // Use local cache first. The reminders themselves already read from
+      // consulta_numeros_cache, so the settings page should not depend on a
+      // live Baserow call just to open. This prevents the red error toast
+      // when Baserow is slow, while keeping reminders functional.
+      const statusesSet = new Set<string>();
+
+      const { data: cacheRows, error: cacheError } = await supabase
+        .from('consulta_numeros_cache')
+        .select('row_data')
+        .limit(5000);
+
+      if (cacheError) {
+        console.error('[consulta-numeros-reminder] Cache status fetch failed (list_statuses):', cacheError.message);
+      } else {
+        for (const cached of cacheRows || []) {
+          const status = extractReminderStatus((cached as any)?.row_data || {});
+          if (status) statusesSet.add(status);
+        }
+      }
+
+      let statuses = Array.from(statusesSet).sort();
+
+      // Fallback: only call Baserow when cache does not contain statuses.
+      // Try the rows endpoint first (same endpoint used by "Testar Conexão").
 
       try {
         const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
