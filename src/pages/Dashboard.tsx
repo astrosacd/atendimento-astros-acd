@@ -88,6 +88,8 @@ interface ClienteStats {
     instagramTokenExpiring: boolean;
     instagramTokenExpiryDate: string | null;
     pagamentosPendentes: number;
+    offlineIntegrations: number;
+    criticalQuotas: number;
   }
 
 // Removed unused interface
