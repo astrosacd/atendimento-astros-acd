@@ -107,6 +107,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Conexões': <Globe className="h-4 w-4" />,
   'Sala dos Agentes': <Eye className="h-4 w-4" />,
   'Instagram': <Instagram className="h-4 w-4" />,
+  'Segurança de Pagamento': <Shield className="h-4 w-4" />,
 };
 
 // Icons removed from individual permissions — only category titles have icons
@@ -350,6 +351,7 @@ export default function AdminPermissoes() {
     'Conexões': 'Conexões',
     'Sala dos Agentes': 'Sala dos Agentes',
     'Instagram': 'Instagram',
+    'Segurança de Pagamento': 'Segurança de Pagamento',
   });
 
   const colorOptions = getColorOptions(t);
