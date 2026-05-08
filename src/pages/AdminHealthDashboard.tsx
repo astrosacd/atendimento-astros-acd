@@ -123,11 +123,15 @@ const AdminHealthDashboard = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, message?: string) => {
+    if (status === 'warning' && (message?.toLowerCase().includes('não configurado') || message?.toLowerCase().includes('sem') || message?.toLowerCase().includes('não encontrada'))) {
+      return <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20">Não Configurado</Badge>;
+    }
+    
     switch (status) {
-      case 'online': return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Online</Badge>;
-      case 'warning': return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Alerta</Badge>;
-      case 'offline': return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Offline</Badge>;
+      case 'online': return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Ativo</Badge>;
+      case 'warning': return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Atenção</Badge>;
+      case 'offline': return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Erro de Conexão</Badge>;
       default: return <Badge variant="secondary">Desconhecido</Badge>;
     }
   };
