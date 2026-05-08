@@ -105,6 +105,7 @@ const InstagramCreate = () => {
   }, [postType]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isTempAccess) { blockEdit(); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
