@@ -128,6 +128,12 @@ const InstagramHistory = () => {
       </div>
 
       <div className="grid gap-4">
+        {loading && posts.length === 0 && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
         {posts.length === 0 && !loading && (
           <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed">
             <Instagram className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
