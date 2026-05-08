@@ -253,29 +253,56 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
 
   // Try to fetch live data from Baserow first (for real-time accuracy)
   // but fallback to local cache if Baserow is slow/down.
+  // Important: fetch ALL pages. The reminder statuses can be on later Baserow pages;
+  // fetching only the first page makes "Rodar agora" report zero numbers even when
+  // the cache/full sync contains matching rows.
   let allRows: any[] = [];
   let usedSource = 'cache';
 
   try {
-    const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
-    const rowsResp = await fetchWithTimeout(
-      rowsUrl,
-      {
-        headers: {
-          'Authorization': `Token ${baserowConfig.api_token}`,
-          'Content-Type': 'application/json',
-        },
-      },
-      15000 // 15s timeout for live rows
-    );
+    const pageSize = 200;
+    let page = 1;
+    let hasMore = true;
+    const startedAt = Date.now();
 
-    if (rowsResp.ok) {
-      const json = await rowsResp.json();
-      if (json && json.results) {
-        allRows = json.results;
-        usedSource = 'baserow';
-        console.log(`[consulta-numeros-reminder] Fetched ${allRows.length} rows live from Baserow`);
+    while (hasMore) {
+      if (Date.now() - startedAt > 22000) {
+        console.warn('[consulta-numeros-reminder] Live Baserow fetch approaching runtime limit, stopping pagination');
+        break;
       }
+
+      const rowsUrl = new URL(`${baserowConfig.api_url.replace(/\/+$/, '')}/api/database/rows/table/${baserowConfig.table_id}/`);
+      rowsUrl.searchParams.set('user_field_names', 'true');
+      rowsUrl.searchParams.set('page', String(page));
+      rowsUrl.searchParams.set('size', String(pageSize));
+
+      const rowsResp = await fetchWithTimeout(
+        rowsUrl.toString(),
+        {
+          headers: {
+            'Authorization': `Token ${baserowConfig.api_token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+        10000
+      );
+
+      if (!rowsResp.ok) {
+        const errorText = await rowsResp.text();
+        console.warn(`[consulta-numeros-reminder] Live Baserow page ${page} failed: ${rowsResp.status} ${sanitizePII(errorText).slice(0, 300)}`);
+        break;
+      }
+
+      const json = await rowsResp.json();
+      const results = Array.isArray(json?.results) ? json.results : [];
+      allRows.push(...results);
+      hasMore = Boolean(json?.next);
+      page += 1;
+    }
+
+    if (allRows.length > 0) {
+      usedSource = 'baserow';
+      console.log(`[consulta-numeros-reminder] Fetched ${allRows.length} rows live from Baserow`);
     }
   } catch (e: any) {
     console.warn(`[consulta-numeros-reminder] Live Baserow fetch failed (${e.message}), falling back to cache...`);
