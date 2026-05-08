@@ -218,7 +218,8 @@ const InstagramCreate = () => {
   };
 
   const generateAIImages = async () => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow AI image generation
+    // if (isTempAccess) { blockEdit(); return; }
     if (!prompt) {
       toast({ title: "Aviso", description: "Digite um prompt para gerar imagens." });
       return;
