@@ -673,8 +673,7 @@ Deno.serve(async (req) => {
 
       // Fallback: only call Baserow when cache does not contain statuses.
       // Try the rows endpoint first (same endpoint used by "Testar Conexão").
-
-      try {
+      if (statuses.length === 0) try {
         const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
         const rowsResp = await fetchWithTimeout(
           rowsUrl,
@@ -695,8 +694,8 @@ Deno.serve(async (req) => {
           const results = (json?.results || []) as any[];
           const set = new Set<string>();
           for (const row of results) {
-            const s = row?.excluido_da_base?.value || row?.excluido_da_base || row?.Status?.value || row?.Status || row?.status?.value || row?.status;
-            if (typeof s === 'string' && s.trim()) set.add(s.trim());
+            const s = extractReminderStatus(row || {});
+            if (s) set.add(s);
           }
           statuses = Array.from(set).sort();
         }
