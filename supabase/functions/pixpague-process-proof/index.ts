@@ -201,26 +201,27 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, proofUrl, declaredAmount, manualReview } = await req.json();
+    console.log('[pixpague-process-proof] Received request');
+    const body = await req.json();
+    console.log('[pixpague-process-proof] Body:', JSON.stringify(body));
+    
+    const { paymentId, proofUrl, declaredAmount, manualReview } = body;
     if (!paymentId) {
+      console.error('[pixpague-process-proof] Missing paymentId');
       return new Response(JSON.stringify({ error: 'paymentId required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!proofUrl && !manualReview) {
-      return new Response(JSON.stringify({ error: 'proofUrl required (or set manualReview=true)' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount, 'manualReview:', !!manualReview);
+    
+    const authHeader = req.headers.get('Authorization');
+    console.log('[pixpague-process-proof] Auth header present:', !!authHeader);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! }
+          headers: authHeader ? { Authorization: authHeader } : {}
         }
       }
     );
