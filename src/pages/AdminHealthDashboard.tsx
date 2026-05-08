@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Activity, 
   CheckCircle2, 
@@ -14,12 +15,24 @@ import {
   ShieldCheck,
   Zap,
   History,
-  Info
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+
+const CHECK_DESCRIPTIONS: Record<string, string> = {
+  meta_whatsapp: 'Verifica se o token oficial da Meta (WhatsApp Business API) está configurado nos Segredos / Cobrança.',
+  evolution_api: 'Faz uma chamada real em /instance/fetchInstances usando EVOLUTION_API_URL e EVOLUTION_API_KEY e conta as instâncias ativas.',
+  google_calendar: 'Consulta a tabela de tokens OAuth dos usuários conectados ao Google e verifica se algum token expirado precisa ser renovado.',
+  mercadopago: 'Faz GET em api.mercadopago.com/users/me com o MERCADOPAGO_ACCESS_TOKEN. Se devolver 401/403, o token está inválido ou expirado.',
+  stripe: 'Faz GET em api.stripe.com/v1/balance usando a STRIPE_SECRET_KEY (Secrets ou Cobrança → Stripe). HTTP 200 = chave válida.',
+  serper_api: 'Envia uma busca mínima (q="health check") no google.serper.dev e lê o header de créditos restantes.',
+  manychat: 'Faz GET em api.manychat.com/fb/page/getInfo com MANYCHAT_API_KEY para confirmar autenticação.',
+  gmail: 'Confirma que GMAIL_USER e GMAIL_APP_PASSWORD estão presentes nos Segredos (usado para enviar emails do CRM).',
+};
 
 const AdminHealthDashboard = () => {
   const navigate = useNavigate();
