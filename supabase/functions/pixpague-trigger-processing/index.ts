@@ -32,17 +32,22 @@ serve(async (req) => {
 
     console.log("[pixpague-trigger] Scheduling background processing for:", paymentId, "manualReview:", !!manualReview);
 
-    const backgroundTask = supabase.functions.invoke("pixpague-process-proof", {
-      body: { paymentId, proofUrl, declaredAmount, manualReview },
-    }).then(({ data, error }) => {
-      if (error) {
-        console.error("[pixpague-trigger] Background processing error:", error);
-      } else {
-        console.log("[pixpague-trigger] Background processing finished:", JSON.stringify(data));
+    const backgroundTask = (async () => {
+      try {
+        console.log("[pixpague-trigger] Invoking pixpague-process-proof...");
+        const { data, error } = await supabase.functions.invoke("pixpague-process-proof", {
+          body: { paymentId, proofUrl, declaredAmount, manualReview },
+        });
+        
+        if (error) {
+          console.error("[pixpague-trigger] Background processing error:", error);
+        } else {
+          console.log("[pixpague-trigger] Background processing finished:", JSON.stringify(data));
+        }
+      } catch (e) {
+        console.error("[pixpague-trigger] Background exception during invoke:", e);
       }
-    }).catch((e) => {
-      console.error("[pixpague-trigger] Background exception:", e);
-    });
+    })();
 
     // Garante que o runtime aguarde a tarefa terminar mesmo após responder
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
