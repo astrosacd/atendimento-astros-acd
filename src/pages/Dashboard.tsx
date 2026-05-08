@@ -334,6 +334,9 @@ export default function Dashboard() {
       let instagramTokenExpiryDate = null;
       let pagamentosPendentes = 0;
 
+      let offlineIntegrations = 0;
+      let criticalQuotasCount = 0;
+
       if (isAdmin) {
         // Check Instagram token status
         const { data: igSettings } = await supabase
