@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed unused Select imports
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,8 +38,8 @@ const InstagramModule = () => {
 
   const siteUrl = useSiteUrl();
 
+  const [accessStep, setAccessStep] = useState<"initial" | "success">("initial");
   const [isAccessDialogOpen, setIsAccessDialogOpen] = useState(false);
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
@@ -88,9 +88,8 @@ const InstagramModule = () => {
 
       const fullUrl = `${siteUrl}/access/${token}`;
       setGeneratedLink(fullUrl);
-      setIsAccessDialogOpen(false);
-      // Wait for the close animation to finish before opening the success dialog
-      setTimeout(() => setIsSuccessDialogOpen(true), 220);
+      setAccessStep("success");
+      fetchTokens();
       fetchTokens();
     } catch (error: any) {
       toast.error("Erro ao criar link: " + error.message);
@@ -164,120 +163,124 @@ const InstagramModule = () => {
           </div>
 
           {effectiveCanManageTempAccess && (
-            <Dialog open={isAccessDialogOpen} onOpenChange={setIsAccessDialogOpen}>
+            <Dialog 
+              open={isAccessDialogOpen} 
+              onOpenChange={(open) => {
+                setIsAccessDialogOpen(open);
+                if (!open) setTimeout(() => setAccessStep("initial"), 300);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <LinkIcon className="h-4 w-4" /> Acesso Provisório
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Gerar Link Provisório</DialogTitle>
-                  <DialogDescription>
-                    Crie um link de acesso que expira automaticamente para um assistente.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
+                {accessStep === "initial" ? (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Gerar Link Provisório</DialogTitle>
+                      <DialogDescription>
+                        Crie um link de acesso que expira automaticamente para um assistente.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
                     <Label>Duração do Acesso (Horas)</Label>
-                    <Select 
+                    <select 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={newAccess.duration} 
-                      onValueChange={(v) => setNewAccess(prev => ({...prev, duration: v}))}
+                      onChange={(e) => setNewAccess(prev => ({...prev, duration: e.target.value}))}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a duração" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 hora</SelectItem>
-                        <SelectItem value="4">4 horas</SelectItem>
-                        <SelectItem value="12">12 horas</SelectItem>
-                        <SelectItem value="24">24 horas</SelectItem>
-                        <SelectItem value="168">7 dias</SelectItem>
-                        <SelectItem value="480">20 dias</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Limite de Usos</Label>
-                    <Input 
-                      type="number" 
-                      value={newAccess.max_uses} 
-                      onChange={(e) => setNewAccess(prev => ({...prev, max_uses: e.target.value}))}
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Define quantas vezes o link pode ser usado antes de expirar (ex: 1 = uso único).
-                    </p>
-                  </div>
+                      <option value="1">1 hora</option>
+                      <option value="4">4 horas</option>
+                      <option value="12">12 horas</option>
+                      <option value="24">24 horas</option>
+                      <option value="168">7 dias</option>
+                      <option value="480">20 dias</option>
+                    </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Limite de Usos</Label>
+                        <Input 
+                          type="number" 
+                          value={newAccess.max_uses} 
+                          onChange={(e) => setNewAccess(prev => ({...prev, max_uses: e.target.value}))}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Define quantas vezes o link pode ser usado antes de expirar (ex: 1 = uso único).
+                        </p>
+                      </div>
 
-                  <div className="pt-4 space-y-2">
-                    <Label className="text-xs uppercase text-muted-foreground">Links Ativos</Label>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                      {tokens.map(t => (
-                        <div key={t.id} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
-                          <div className="truncate flex-1 mr-2">
-                            <p className="font-mono text-xs">...{t.token.substring(t.token.length - 8)}</p>
-                            <p className="text-[10px] text-muted-foreground">Expira: {format(new Date(t.expires_at), "dd/MM HH:mm")}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyLink(t.token)}>
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteToken(t.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+                      <div className="pt-4 space-y-2">
+                        <Label className="text-xs uppercase text-muted-foreground">Links Ativos</Label>
+                        <div className="max-h-40 overflow-y-auto space-y-2">
+                          {tokens.map(t => (
+                            <div key={t.id} className="flex items-center justify-between p-2 rounded bg-muted text-sm">
+                              <div className="truncate flex-1 mr-2">
+                                <p className="font-mono text-xs">...{t.token.substring(t.token.length - 8)}</p>
+                                <p className="text-[10px] text-muted-foreground">Expira: {format(new Date(t.expires_at), "dd/MM HH:mm")}</p>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyLink(t.token)}>
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteToken(t.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          {tokens.length === 0 && <p className="text-xs text-center py-2 text-muted-foreground">Nenhum link ativo.</p>}
                         </div>
-                      ))}
-                      {tokens.length === 0 && <p className="text-xs text-center py-2 text-muted-foreground">Nenhum link ativo.</p>}
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsAccessDialogOpen(false)}>Cancelar</Button>
-                  <Button onClick={createTemporaryLink} disabled={loading}>
-                    {loading ? "Gerando..." : "Gerar Link"}
-                  </Button>
-                </DialogFooter>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setIsAccessDialogOpen(false)}>Cancelar</Button>
+                      <Button onClick={createTemporaryLink} disabled={loading}>
+                        {loading ? "Gerando..." : "Gerar Link"}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                ) : (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-green-500" />
+                        Link Gerado!
+                      </DialogTitle>
+                      <DialogDescription>
+                        O link de acesso provisório está pronto. Copie e envie para o assistente.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center space-x-2 py-4">
+                      <div className="grid flex-1 gap-2">
+                        <Label htmlFor="link" className="sr-only">Link</Label>
+                        <Input
+                          id="link"
+                          defaultValue={generatedLink}
+                          readOnly
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <Button size="sm" className="px-3" onClick={() => {
+                        copyToClipboard(generatedLink);
+                        toast.success("Link copiado!");
+                      }}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copiar
+                      </Button>
+                    </div>
+                    <DialogFooter>
+                      <Button type="button" variant="secondary" onClick={() => setIsAccessDialogOpen(false)}>
+                        Fechar
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           )}
-
-          <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  Link Gerado!
-                </DialogTitle>
-                <DialogDescription>
-                  O link de acesso provisório está pronto. Copie e envie para o assistente.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex items-center space-x-2 py-4">
-                <div className="grid flex-1 gap-2">
-                  <Label htmlFor="link" className="sr-only">Link</Label>
-                  <Input
-                    id="link"
-                    defaultValue={generatedLink}
-                    readOnly
-                    className="font-mono text-xs"
-                  />
-                </div>
-                <Button size="sm" className="px-3" onClick={() => {
-                  copyToClipboard(generatedLink);
-                  toast.success("Link copiado!");
-                }}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copiar
-                </Button>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsSuccessDialogOpen(false)}>
-                  Fechar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
         <Tabs defaultValue="create" className="space-y-6">
