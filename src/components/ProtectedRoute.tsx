@@ -27,7 +27,20 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
     location.pathname === '/cadastrar' ||
     location.pathname === '/consultar' ||
     location.pathname === '/atualizar' ||
-    location.pathname === '/excluir';
+    location.pathname === '/excluir' ||
+    location.pathname.startsWith('/perfil') ||
+    location.pathname.startsWith('/tarefas') ||
+    location.pathname.startsWith('/propostas') ||
+    location.pathname.startsWith('/followups') ||
+    location.pathname.startsWith('/despesas') ||
+    location.pathname.startsWith('/kanban') ||
+    location.pathname.startsWith('/lead-hunter') ||
+    location.pathname.startsWith('/agenda') ||
+    location.pathname.startsWith('/link-pagamento') ||
+    location.pathname.startsWith('/grafo-clientes') ||
+    location.pathname.startsWith('/central-ajuda') ||
+    location.pathname.startsWith('/sala-agentes') ||
+    location.pathname.startsWith('/instagram');
 
   if (isLoading) {
     return (
