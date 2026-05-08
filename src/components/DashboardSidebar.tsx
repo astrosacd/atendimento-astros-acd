@@ -169,7 +169,7 @@ export function DashboardSidebar({ onOpenChat, collapsed = false, onCollapsedCha
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, signOut, user } = useAuth();
-  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewPipeline, canViewAgenda, canViewPaymentLinks, canViewSalesForecast, canViewPaymentSecurity, canViewCentralAjuda, canManagePredefinedProducts } = usePermissions();
+  const { canCreateClients, canUpdateClients, canDeleteClients, canViewClientGraph, canManageUsers, canManagePermissions, canManageBilling, canManageWebhooks, canManageApi, canViewLogs, canManageSettings, canViewDivulgador, canViewNumeros, canViewConsultaNumeros, canViewGuia, canViewGateway, canViewChamados, canViewRevendedor, canViewReports, canViewDespesas, canViewFollowups, canViewProposals, canViewPipeline, canViewAgenda, canViewPaymentLinks, canViewSalesForecast, canViewPaymentSecurity, canViewCentralAjuda, canManagePredefinedProducts, canManageSystemHealth } = usePermissions();
   const { t } = useTranslation();
   const navRef = useRef<HTMLDivElement | null>(null);
 
