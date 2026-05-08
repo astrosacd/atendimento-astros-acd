@@ -15,6 +15,7 @@ import {
   BookOpen,
   UserPlus,
   Package,
+  Activity,
 } from 'lucide-react';
 
 const Admin = () => {
