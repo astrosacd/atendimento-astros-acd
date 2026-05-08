@@ -159,7 +159,11 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const phoneId = data?.phone_number_id;
   
-  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela meta_credentials.' };
+  if (!token) {
+    // Remove meta_whatsapp quota if not configured
+    await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
+    return { status: 'warning', message: 'Configuração não encontrada (WhatsApp Cloud API).' };
+  }
   
   try {
     const url = phoneId 
@@ -172,7 +176,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
     
@@ -182,7 +186,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
       details: { account_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
+    return { status: 'offline', message: `Erro de conexão com WhatsApp Meta: ${e.message}` };
   }
 }
 
