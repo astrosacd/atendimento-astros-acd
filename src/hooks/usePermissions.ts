@@ -243,6 +243,7 @@ export function usePermissions() {
   const canViewInstagramHistory = () => hasPermission('view_instagram_history');
   const canManageTemporaryAccess = () => hasPermission('manage_temporary_access');
   const canViewGuiaInstagram = () => hasPermission('view_guia_instagram');
+  const canManageSystemHealth = () => hasPermission('manage_system_health');
 
   return {
     permissions,
