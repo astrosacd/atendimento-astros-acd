@@ -166,9 +166,14 @@ const InstagramModule = () => {
             <Dialog 
               open={isAccessDialogOpen} 
               onOpenChange={(open) => {
-                setIsAccessDialogOpen(open);
-                if (!open) setTimeout(() => setAccessStep("initial"), 300);
+                if (!open) {
+                  setIsAccessDialogOpen(false);
+                  setTimeout(() => setAccessStep("initial"), 300);
+                } else {
+                  setIsAccessDialogOpen(true);
+                }
               }}
+              modal={true}
             >
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
