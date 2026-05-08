@@ -706,22 +706,33 @@ Deno.serve(async (req) => {
 
         if (fieldsResp.ok) {
           const fields = await fieldsResp.json();
+          // Debugging log to see what fields are available
+          console.log(`[consulta-numeros-reminder] list_statuses: Baserow returned ${fields?.length || 0} fields`);
+          
           const exclField = (fields || []).find((f: any) => 
-            f?.name === 'excluido_da_base' || 
-            f?.name === 'Excluido da Base' ||
-            f?.name === 'Status' ||
-            f?.name === 'status'
+            f?.name?.toLowerCase().includes('excluido_da_base') || 
+            f?.name?.toLowerCase().includes('excluido da base') ||
+            f?.name?.toLowerCase().includes('excluída da base') ||
+            f?.name?.toLowerCase() === 'status'
           );
           
-          if (exclField && exclField.select_options) {
-            statuses = exclField.select_options
-              .map((o: any) => o.value)
-              .filter(Boolean)
-              .sort();
-            console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} options from fields metadata`);
+          if (exclField) {
+            console.log(`[consulta-numeros-reminder] list_statuses: found matching field "${exclField.name}" of type ${exclField.type}`);
+            if (exclField.select_options) {
+              statuses = exclField.select_options
+                .map((o: any) => o.value)
+                .filter(Boolean)
+                .sort();
+              console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} options from fields metadata`);
+            } else {
+              console.log(`[consulta-numeros-reminder] list_statuses: field "${exclField.name}" has no select_options (maybe not a single_select?)`);
+            }
+          } else {
+            console.log('[consulta-numeros-reminder] list_statuses: no field matching "excluido_da_base" or similar found in metadata');
           }
         } else {
           fetchError = `Baserow fields error: ${fieldsResp.status}`;
+          console.error(`[consulta-numeros-reminder] list_statuses: Baserow API returned ${fieldsResp.status}`);
         }
       } catch (e: any) {
         fetchError = `Baserow fields timeout/error: ${e.message}`;
