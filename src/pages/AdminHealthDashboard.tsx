@@ -297,6 +297,7 @@ const AdminHealthDashboard = () => {
         </div>
       </main>
     </div>
+    </TooltipProvider>
   );
 };
 
