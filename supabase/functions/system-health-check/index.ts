@@ -225,6 +225,51 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   }
 }
 
+async function checkBaserow(supabase: any): Promise<CheckResult> {
+  const { data: configData } = await supabase.from('consulta_numeros_config').select('config_key, config_value');
+  
+  const url = configData?.find((c: any) => c.config_key === 'baserow_api_url')?.config_value;
+  const token = configData?.find((c: any) => c.config_key === 'baserow_api_token')?.config_value;
+  const tableId = configData?.find((c: any) => c.config_key === 'baserow_table_id')?.config_value;
+
+  if (!url || !token || !tableId) return { status: 'warning', message: 'Credenciais Baserow não configuradas.' };
+
+  try {
+    const res = await withTimeout(fetch(`${url.replace(/\/$/, '')}/api/database/rows/table/${tableId}/?size=1`, {
+      headers: { 'Authorization': `Token ${token}` }
+    }), 8000, 'Baserow');
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      return { status: 'offline', message: `Erro Baserow (HTTP ${res.status}): ${errorText.slice(0, 50)}...` };
+    }
+    
+    const data = await res.json();
+    return { status: 'online', message: `Conectado. ${data.count || 0} registros encontrados.`, details: { count: data.count } };
+  } catch (e: any) {
+    return { status: 'offline', message: `Falha de conexão: ${e.message}` };
+  }
+}
+
+async function checkInternalSync(supabase: any): Promise<CheckResult> {
+  const { data } = await supabase.from('consulta_numeros_sync_status').select('*').limit(1).maybeSingle();
+  
+  if (!data) return { status: 'warning', message: 'Sincronização nunca executada.' };
+  
+  const lastSync = new Date(data.last_sync_at);
+  const diffHours = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
+  
+  if (data.last_sync_status !== 'success') {
+    return { status: 'offline', message: `Última sincronização falhou: ${data.error_message || 'Erro desconhecido'}` };
+  }
+  
+  if (diffHours > 24) {
+    return { status: 'warning', message: `Sincronização atrasada (${Math.round(diffHours)}h atrás).` };
+  }
+  
+  return { status: 'online', message: `Sincronização OK (${data.rows_synced} registros sincronizados).` };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -237,6 +282,8 @@ serve(async (req) => {
     const checks: Record<string, { fn: (supabase: any) => Promise<CheckResult>, display: string, category: string }> = {
       whatsapp_official: { fn: checkWhatsAppOfficial, display: 'WhatsApp Cloud API', category: 'meta' },
       instagram_api: { fn: checkInstagramAPI, display: 'Instagram Graph API', category: 'meta' },
+      baserow_api: { fn: checkBaserow, display: 'Baserow (Consulta Números)', category: 'banco de dados' },
+      sync_status: { fn: checkInternalSync, display: 'Sincronização Interna', category: 'sistema' },
       evolution_api: { fn: checkEvolution, display: 'Evolution API (Disparos)', category: 'whatsapp' },
       google_calendar: { fn: checkGoogleCalendar, display: 'Google Calendar (Agenda)', category: 'google' },
       mercadopago: { fn: checkMercadoPago, display: 'Mercado Pago (Checkout)', category: 'financeiro' },
