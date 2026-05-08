@@ -798,7 +798,7 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
-    isAdmin && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
+    hasPermission('manage_system_health') && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
       ? {
           id: 'system-health',
           title: 'Saúde do Sistema com Alertas',
