@@ -353,6 +353,7 @@ serve(async (req) => {
           (isDuplicate ? `\n\n⚠️ Esse ID já foi usado em outro pagamento!` : '') +
           `\n\n👉 Acesse o módulo *Segurança de Pagamento* para analisar e aprovar.`;
 
+        console.log('[pixpague] Message to be sent:', message);
         const phones = String(cfg.approver_phones).split(',').map((p: string) => p.trim()).filter(Boolean);
         for (const phone of phones) {
           try {
