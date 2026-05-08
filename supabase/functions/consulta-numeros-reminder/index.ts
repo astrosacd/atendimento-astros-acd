@@ -249,22 +249,56 @@ async function processReminder(forceRun: boolean): Promise<{ success: boolean; m
     return { success: false, message: 'Incomplete Baserow config' };
   }
 
-  // Use local cache instead of Baserow directly
-  const { data: cacheData, error: cacheError } = await supabase
-    .from('consulta_numeros_cache')
-    .select('baserow_row_id, row_data');
+  // Try to fetch live data from Baserow first (for real-time accuracy)
+  // but fallback to local cache if Baserow is slow/down.
+  let allRows: any[] = [];
+  let usedSource = 'cache';
 
-  if (cacheError) {
-    console.error('[consulta-numeros-reminder] Error fetching cache:', cacheError);
-    return { success: false, message: 'Cache fetch failed' };
+  try {
+    const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
+    const rowsResp = await fetchWithTimeout(
+      rowsUrl,
+      {
+        headers: {
+          'Authorization': `Token ${baserowConfig.api_token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      15000 // 15s timeout for live rows
+    );
+
+    if (rowsResp.ok) {
+      const json = await rowsResp.json();
+      if (json && json.results) {
+        allRows = json.results;
+        usedSource = 'baserow';
+        console.log(`[consulta-numeros-reminder] Fetched ${allRows.length} rows live from Baserow`);
+      }
+    }
+  } catch (e: any) {
+    console.warn(`[consulta-numeros-reminder] Live Baserow fetch failed (${e.message}), falling back to cache...`);
   }
 
-  const allRows = (cacheData || []).map((row: any) => ({
-    id: row.baserow_row_id,
-    ...row.row_data,
-  }));
+  if (allRows.length === 0) {
+    const { data: cacheData, error: cacheError } = await supabase
+      .from('consulta_numeros_cache')
+      .select('baserow_row_id, row_data')
+      .limit(5000);
 
-  console.log(`[consulta-numeros-reminder] Total rows from cache: ${allRows.length}`);
+    if (!cacheError && cacheData) {
+      allRows = cacheData.map((row: any) => ({
+        id: row.baserow_row_id,
+        ...row.row_data,
+      }));
+      usedSource = 'cache';
+      console.log(`[consulta-numeros-reminder] Loaded ${allRows.length} rows from local cache`);
+    }
+  }
+
+  if (allRows.length === 0) {
+    console.error('[consulta-numeros-reminder] No data found in Baserow or Cache');
+    return { success: false, message: 'No data found (Baserow/Cache)' };
+  }
 
   // Log first row structure for debugging (without PII)
   if (allRows.length > 0) {
