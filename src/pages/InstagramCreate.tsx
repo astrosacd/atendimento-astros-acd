@@ -60,6 +60,10 @@ const InstagramCreate = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const blockEdit = () => {
+    toast({ title: "Acesso somente leitura", description: "Acesso provisório não permite alterações. Solicite ao administrador.", variant: "destructive" });
+  };
   
   // Form State
   const [postType, setPostType] = useState<'feed' | 'reels' | 'carousel' | 'stories'>('feed');
@@ -101,6 +105,7 @@ const InstagramCreate = () => {
   }, [postType]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isTempAccess) { blockEdit(); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -172,6 +177,7 @@ const InstagramCreate = () => {
 
 
   const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isTempAccess) { blockEdit(); return; }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -210,6 +216,7 @@ const InstagramCreate = () => {
   };
 
   const generateAIImages = async () => {
+    if (isTempAccess) { blockEdit(); return; }
     if (!prompt) {
       toast({ title: "Aviso", description: "Digite um prompt para gerar imagens." });
       return;
@@ -260,6 +267,7 @@ const InstagramCreate = () => {
   };
 
   const handleSubmit = async (publishNow: boolean) => {
+    if (isTempAccess) { blockEdit(); return; }
     if (mediaUrls.length === 0) {
       toast({ title: "Erro", description: "Selecione ao menos uma mídia.", variant: "destructive" });
       return;
@@ -308,7 +316,15 @@ const InstagramCreate = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+      {isTempAccess && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Acesso somente leitura:</strong> você pode visualizar conteúdos e o histórico, mas não pode criar, editar ou publicar. Solicite ao administrador qualquer alteração.
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch", isTempAccess && "pointer-events-none opacity-60")}>
         {/* Lado Esquerdo: Configurações do Post */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>

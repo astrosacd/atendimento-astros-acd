@@ -26,6 +26,7 @@ import { ptBR } from "date-fns/locale";
 const InstagramHistory = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
@@ -199,14 +200,14 @@ const InstagramHistory = () => {
                     {expandedLogs === post.id ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
                   </Button>
 
-                  {post.status === 'failed' && (
+                  {!isTempAccess && post.status === 'failed' && (
                     <Button variant="outline" size="sm" onClick={() => handleRetry(post.id)}>
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Tentar Novamente
                     </Button>
                   )}
 
-                  {post.status === 'scheduled' && (
+                  {!isTempAccess && post.status === 'scheduled' && (
                     <Button variant="outline" size="sm" className="text-red-500 hover:text-red-600" onClick={() => handleCancel(post.id)}>
                       <XCircle className="h-4 w-4 mr-2" />
                       Cancelar
