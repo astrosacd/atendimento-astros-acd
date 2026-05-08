@@ -317,14 +317,14 @@ const InstagramCreate = () => {
   return (
     <div className="space-y-6">
       {isTempAccess && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            <strong>Acesso somente leitura:</strong> você pode visualizar conteúdos e o histórico, mas não pode criar, editar ou publicar. Solicite ao administrador qualquer alteração.
+        <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-900/30">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-xs text-blue-700 dark:text-blue-400">
+            <strong>Acesso Provisório Ativo:</strong> Você pode criar e publicar novos conteúdos (Feed, Reels, Carrossel ou Stories). Alterações em agendamentos existentes no histórico não são permitidas.
           </AlertDescription>
         </Alert>
       )}
-      <div className={cn("grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch", isTempAccess && "pointer-events-none opacity-60")}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Lado Esquerdo: Configurações do Post */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
