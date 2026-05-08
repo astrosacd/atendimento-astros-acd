@@ -36,6 +36,14 @@ const CHECK_DESCRIPTIONS: Record<string, { desc: string; module: string }> = {
     desc: 'Testa a URL e Chave da instância de disparos.', 
     module: 'Configurações de Envio / proposal_send_config' 
   },
+  baserow_api: { 
+    desc: 'Valida a conexão com o banco de dados Baserow usado na consulta de números.', 
+    module: 'Consulta Números > Configurações / consulta_numeros_config' 
+  },
+  sync_status: { 
+    desc: 'Verifica se a sincronização interna entre Baserow e CRM está funcionando.', 
+    module: 'Processo Automático / consulta_numeros_sync_status' 
+  },
   google_calendar: { 
     desc: 'Valida Client ID, Secret e Refresh Token da Agenda.', 
     module: 'Módulo Agenda / calendar_config' 
