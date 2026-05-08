@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -76,6 +76,14 @@ interface CronHealthResponse {
   nowUtc: string;
 }
 
+interface BaserowFieldCacheRow {
+  fields_data: Array<{
+    name?: string;
+    type?: string;
+    select_options?: Array<{ value?: string }> | null;
+  }>;
+}
+
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Domingo' },
   { value: '1', label: 'Segunda' },
@@ -85,6 +93,33 @@ const DAYS_OF_WEEK = [
   { value: '5', label: 'Sexta' },
   { value: '6', label: 'Sábado' },
 ];
+
+const normalizeFieldName = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .trim();
+
+const extractStatusesFromFields = (fields?: BaserowFieldCacheRow['fields_data']) => {
+  const statusField = (fields || []).find((field) => {
+    const normalized = normalizeFieldName(field?.name || '');
+    return (
+      field?.type === 'single_select' &&
+      Array.isArray(field?.select_options) &&
+      (normalized === 'excluido_da_base' || normalized === 'status')
+    );
+  });
+
+  return Array.from(
+    new Set(
+      (statusField?.select_options || [])
+        .map((option) => option?.value?.trim())
+        .filter((value): value is string => Boolean(value))
+    )
+  ).sort();
+};
 
 export function ReminderConfigTab() {
   const queryClient = useQueryClient();
