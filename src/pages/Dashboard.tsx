@@ -878,7 +878,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <SecurityAlertsCard />
-          {isAdmin && <SystemHealthCard />}
+          {hasPermission('manage_system_health') && <SystemHealthCard />}
         </div>
 
         {priorityAlerts.length > 0 && (
