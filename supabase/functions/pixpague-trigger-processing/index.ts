@@ -17,9 +17,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, proofUrl, declaredAmount } = await req.json();
+    const { paymentId, proofUrl, declaredAmount, manualReview } = await req.json();
 
-    if (!paymentId || !proofUrl) {
+    if (!paymentId || (!proofUrl && !manualReview)) {
       return new Response(JSON.stringify({ error: "paymentId and proofUrl required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -30,13 +30,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    console.log("[pixpague-trigger] Scheduling background processing for:", paymentId);
+    console.log("[pixpague-trigger] Scheduling background processing for:", paymentId, "manualReview:", !!manualReview);
 
-    // Dispara processamento em BACKGROUND — não espera terminar.
-    // Isso garante que mesmo se o cliente fechar a página, o OCR e
-    // a notificação WhatsApp serão executados.
     const backgroundTask = supabase.functions.invoke("pixpague-process-proof", {
-      body: { paymentId, proofUrl, declaredAmount },
+      body: { paymentId, proofUrl, declaredAmount, manualReview },
     }).then(({ data, error }) => {
       if (error) {
         console.error("[pixpague-trigger] Background processing error:", error);

@@ -584,7 +584,7 @@ export function usePaymentStatus() {
       }
 
       const paymentId = `manual_other_${Date.now()}`;
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('client_payments')
         .insert({
           cliente_id: clienteId,
@@ -600,9 +600,25 @@ export function usePaymentStatus() {
           submitted_by: submitter?.id ?? null,
           submitted_by_email: submitter?.email ?? null,
           submitted_by_name: submittedByName,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Fire WhatsApp notification to approvers (manual review path)
+      try {
+        await supabase.functions.invoke('pixpague-trigger-processing', {
+          body: {
+            paymentId: inserted?.id,
+            proofUrl: proofUrl || 'manual-review',
+            declaredAmount,
+            manualReview: true,
+          },
+        });
+      } catch (notifyErr) {
+        console.error('[registerOtherPayment] notify error:', notifyErr);
+      }
 
       toast({
         title: '📨 Enviado para aprovação',

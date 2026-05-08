@@ -201,14 +201,19 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { paymentId, proofUrl, declaredAmount } = await req.json();
-    if (!paymentId || !proofUrl) {
-      return new Response(JSON.stringify({ error: 'paymentId and proofUrl required' }), {
+    const { paymentId, proofUrl, declaredAmount, manualReview } = await req.json();
+    if (!paymentId) {
+      return new Response(JSON.stringify({ error: 'paymentId required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!proofUrl && !manualReview) {
+      return new Response(JSON.stringify({ error: 'proofUrl required (or set manualReview=true)' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount);
+    console.log('[pixpague] Processing payment:', paymentId, 'declared:', declaredAmount, 'manualReview:', !!manualReview);
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -228,9 +233,9 @@ serve(async (req) => {
 
     console.log('[pixpague] Config:', { ...cfg, openai_api_key: cfg.openai_api_key ? '***' : '', groq_api_key: cfg.groq_api_key ? '***' : '' });
 
-    // Run OCR if enabled
+    // Run OCR if enabled and not a manual-review submission
     let ocr: OcrResult = { amount: null, transactionId: null, status: 'skipped' };
-    if (cfg.ocr_enabled !== false) {
+    if (!manualReview && proofUrl && cfg.ocr_enabled !== false) {
       ocr = await runOcr(
         proofUrl,
         cfg.ai_provider || 'lovable',
@@ -262,17 +267,16 @@ serve(async (req) => {
 
     // Determine status
     let ocrStatus: string = 'pending';
-    if (ocr.status === 'skipped') ocrStatus = 'skipped';
+    if (manualReview) ocrStatus = 'manual_review';
+    else if (ocr.status === 'skipped') ocrStatus = 'skipped';
     else if (ocr.status === 'error') ocrStatus = 'error';
     else if (ocr.status === 'invalid' || ocr.isReceipt === false) ocrStatus = 'invalid';
     else if (isDuplicate) ocrStatus = 'duplicate';
     else if (ocr.amount == null && ocr.transactionId == null) {
-      // IA disse "success" mas não extraiu nada útil → não é comprovante real
       ocrStatus = 'invalid';
     } else if (ocr.amount != null && declaredAmount != null) {
       ocrStatus = Math.abs(ocr.amount - Number(declaredAmount)) < 0.01 ? 'success' : 'mismatch';
     } else if (ocr.amount == null && declaredAmount != null) {
-      // Não conseguiu ler o valor mas tem ID → divergente, requer revisão manual
       ocrStatus = 'mismatch';
     } else if (ocr.status === 'success') ocrStatus = 'success';
 
@@ -315,6 +319,7 @@ serve(async (req) => {
         else if (ocrStatus === 'invalid') { icon = '❌'; label = 'COMPROVANTE INVÁLIDO (não é PIX)'; }
         else if (ocrStatus === 'error') { icon = '⚠️'; label = 'ERRO ao processar OCR'; }
         else if (ocrStatus === 'skipped') { icon = '📨'; label = 'OCR desativado — revisão manual'; }
+        else if (ocrStatus === 'manual_review') { icon = '📝'; label = 'PAGAMENTO MANUAL — Aguardando aprovação'; }
         else if (ocrStatus === 'pending') { icon = '⏳'; label = 'Aguardando processamento'; }
 
         const submitterLine = payment?.submitted_by_name || payment?.submitted_by_email
