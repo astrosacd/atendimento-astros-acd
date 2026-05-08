@@ -337,7 +337,7 @@ export default function Dashboard() {
       let offlineIntegrations = 0;
       let criticalQuotasCount = 0;
 
-      if (isAdmin) {
+      if (hasPermission('manage_system_health')) {
         // Fetch System Health status
         const { data: statusData } = await supabase.from('integration_status').select('status');
         offlineIntegrations = statusData?.filter(s => s.status === 'offline').length || 0;
@@ -347,6 +347,9 @@ export default function Dashboard() {
           const percentage = q.max_value ? (q.current_value / q.max_value) * 100 : 0;
           return percentage > (100 - (q.alert_threshold || 20));
         }).length || 0;
+      }
+
+      if (isAdmin) {
 
         // Check Instagram token status
         const { data: igSettings } = await supabase
@@ -798,7 +801,7 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
-    isAdmin && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
+    hasPermission('manage_system_health') && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
       ? {
           id: 'system-health',
           title: 'Saúde do Sistema com Alertas',
@@ -878,7 +881,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <SecurityAlertsCard />
-          {isAdmin && <SystemHealthCard />}
+          {hasPermission('manage_system_health') && <SystemHealthCard />}
         </div>
 
         {priorityAlerts.length > 0 && (

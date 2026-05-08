@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { usePermissions } from '@/hooks/usePermissions';
 import { 
   Users, 
   KeyRound, 
@@ -21,6 +23,8 @@ import {
 const Admin = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { hasPermission } = usePermissions();
+
 
   const adminModules = [
     {
@@ -169,7 +173,14 @@ const Admin = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {adminModules.map((module) => (
+          {adminModules
+            .filter(module => {
+              if (module.key === 'manageUsers') return hasPermission('manage_users');
+              if (module.key === 'systemPermissions') return hasPermission('manage_permissions');
+              if (module.key === 'systemHealth') return hasPermission('manage_system_health');
+              return true;
+            })
+            .map((module) => (
             <Card
               key={module.key}
               className="border-border/40 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer group"
