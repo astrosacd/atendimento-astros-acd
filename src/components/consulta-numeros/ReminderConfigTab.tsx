@@ -167,9 +167,29 @@ export function ReminderConfigTab() {
     },
   });
 
+  const { data: cachedStatuses = [] } = useQuery({
+    queryKey: ['consulta-numeros-reminder-statuses-cache'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_fields_cache')
+        .select('fields_data')
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to load cached Baserow statuses:', error);
+        return [];
+      }
+
+      return extractStatusesFromFields((data as BaserowFieldCacheRow | null)?.fields_data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Fetch available statuses from Baserow (excluido_da_base)
   const {
-    data: availableStatuses = [],
+    data: liveStatuses = [],
     isLoading: loadingStatuses,
     isFetching: fetchingStatuses,
     refetch: refetchStatuses,
@@ -190,6 +210,10 @@ export function ReminderConfigTab() {
     retry: 1,
     refetchOnWindowFocus: false,
   });
+
+  const availableStatuses = useMemo(() => {
+    return liveStatuses.length > 0 ? liveStatuses : cachedStatuses;
+  }, [liveStatuses, cachedStatuses]);
 
   // Fetch logs
   // Obs: também exibimos eventos do cron (status: triggered) para você conseguir ver que “rodou na hora cheia”,
