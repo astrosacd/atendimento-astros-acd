@@ -234,50 +234,52 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const checks: Record<string, () => Promise<CheckResult>> = {
-      whatsapp_official: () => checkWhatsAppOfficial(supabase),
-      instagram_api: () => checkInstagramAPI(supabase),
-      evolution_api: () => checkEvolution(supabase),
-      google_calendar: () => checkGoogleCalendar(supabase),
-      mercadopago: () => checkMercadoPago(supabase),
-      stripe: () => checkStripe(supabase),
-      serper_api: () => checkSerper(supabase),
-      gmail: () => checkGmail(supabase),
+    const checks: Record<string, { fn: (supabase: any) => Promise<CheckResult>, display: string, category: string }> = {
+      whatsapp_official: { fn: checkWhatsAppOfficial, display: 'WhatsApp Cloud API', category: 'meta' },
+      instagram_api: { fn: checkInstagramAPI, display: 'Instagram Graph API', category: 'meta' },
+      evolution_api: { fn: checkEvolution, display: 'Evolution API (Disparos)', category: 'whatsapp' },
+      google_calendar: { fn: checkGoogleCalendar, display: 'Google Calendar (Agenda)', category: 'google' },
+      mercadopago: { fn: checkMercadoPago, display: 'Mercado Pago (Checkout)', category: 'financeiro' },
+      stripe: { fn: checkStripe, display: 'Stripe (Cartão)', category: 'financeiro' },
+      serper_api: { fn: checkSerper, display: 'SerpApi (Lead Hunter)', category: 'leads' },
+      gmail: { fn: checkGmail, display: 'Gmail Integration', category: 'email' },
     };
 
+    // Obter todos os IDs atuais no banco para limpar o que não está mais na lista
+    const currentKeys = Object.keys(checks);
+    await supabase.from('integration_status').delete().not('integration_name', 'in', `(${currentKeys.join(',')})`);
+
     const results: any[] = [];
-    for (const [name, fn] of Object.entries(checks)) {
+    for (const [name, config] of Object.entries(checks)) {
       const start = Date.now();
       let result: CheckResult;
       try {
-        result = await fn();
+        result = await config.fn(supabase);
       } catch (e: any) {
-        result = { status: 'offline', message: e.message || 'Erro desconhecido na verificação.' };
+        result = { status: 'offline', message: `Erro fatal: ${e.message}` };
       }
       const responseTime = Date.now() - start;
 
-      const { data: prev } = await supabase
-        .from('integration_status')
-        .select('status')
-        .eq('integration_name', name)
-        .maybeSingle();
-
+      // Upsert status
       await supabase
         .from('integration_status')
-        .update({
+        .upsert({
+          integration_name: name,
+          display_name: config.display,
+          category: config.category,
           status: result.status,
           error_message: result.status === 'online' ? null : result.message,
           response_time_ms: responseTime,
           last_check: new Date().toISOString(),
           metadata: result.details || {},
-        })
-        .eq('integration_name', name);
+        }, { onConflict: 'integration_name' });
 
-      if (!prev || prev.status !== result.status || result.status !== 'online') {
+      // Só logar se houver erro ou mudança significativa
+      if (result.status !== 'online') {
         await supabase.from('integration_logs').insert({
           integration_name: name,
           status: result.status,
-          message: result.message || `Verificação: ${result.status}`,
+          message: result.message || `Verificação retornou ${result.status}`,
           details: { response_time_ms: responseTime, ...(result.details || {}) }
         });
       }
