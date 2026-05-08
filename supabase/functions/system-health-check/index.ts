@@ -16,7 +16,6 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 }
 
 async function checkEvolution(supabase: any): Promise<CheckResult> {
-  // Busca do DB (proposal_send_config ou billing_whatsapp_instances)
   const { data } = await supabase.from('proposal_send_config').select('evolution_api_url, evolution_api_key').limit(1).maybeSingle();
   let url = data?.evolution_api_url || Deno.env.get('EVOLUTION_API_URL');
   let key = data?.evolution_api_key || Deno.env.get('EVOLUTION_API_KEY');
@@ -78,14 +77,13 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
   if (!key) return { status: 'warning', message: 'Serper API não configurada no Lead Hunter.' };
   
   try {
-    const res = await withTimeout(fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: 'health check', num: 1 })
-    }), 8000, 'Serper');
-    if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}.` };
-    const credits = res.headers.get('x-ratelimit-remaining') || res.headers.get('x-credits-remaining');
-    return { status: 'online', message: `Conexão OK${credits ? ` • Créditos: ${credits}` : ''}.`, details: { credits } };
+    // Usando serpapi.com conforme verificado manualmente (a chave do usuário é da SerpApi)
+    const res = await withTimeout(fetch(`https://serpapi.com/search.json?engine=google&q=health+check&api_key=${key}`), 8000, 'SerpApi');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}: ${data.error || 'Unauthorized'}` };
+    
+    const credits = data.search_metadata?.remaining_searches || data.search_metadata?.total_searches_left;
+    return { status: 'online', message: `Conectado OK${credits ? ` • Créditos: ${credits}` : ''}.`, details: { credits } };
   } catch (e: any) {
     return { status: 'offline', message: e.message };
   }
@@ -113,7 +111,6 @@ async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
   }
 
   try {
-    // Tenta renovar o token para validar
     const res = await withTimeout(fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -136,17 +133,31 @@ async function checkGoogleCalendar(supabase: any): Promise<CheckResult> {
   }
 }
 
-async function checkMetaOfficial(supabase: any): Promise<CheckResult> {
-  const { data: inst } = await supabase.from('instagram_settings').select('access_token').limit(1).maybeSingle();
-  const { data: meta } = await supabase.from('meta_credentials').select('access_token').limit(1).maybeSingle();
+async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
+  const { data } = await supabase.from('meta_credentials').select('access_token').limit(1).maybeSingle();
+  const token = data?.access_token;
   
-  const token = inst?.access_token || meta?.access_token;
-  
-  if (!token) return { status: 'warning', message: 'Meta (WhatsApp/Instagram) não configurado no CRM.' };
+  if (!token) return { status: 'warning', message: 'WhatsApp Cloud API não configurada.' };
   
   try {
-    const res = await withTimeout(fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`), 8000, 'Meta');
-    if (!res.ok) return { status: 'offline', message: `Token Meta inválido ou expirado (HTTP ${res.status}).` };
+    const res = await withTimeout(fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`), 8000, 'WhatsAppMeta');
+    if (!res.ok) return { status: 'offline', message: `Token inválido ou expirado (HTTP ${res.status}).` };
+    const data = await res.json();
+    return { status: 'online', message: `Conectado: ${data.name || 'OK'}` };
+  } catch (e: any) {
+    return { status: 'offline', message: e.message };
+  }
+}
+
+async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
+  const { data } = await supabase.from('instagram_settings').select('access_token').limit(1).maybeSingle();
+  const token = data?.access_token;
+  
+  if (!token) return { status: 'warning', message: 'Instagram Graph API não configurada.' };
+  
+  try {
+    const res = await withTimeout(fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`), 8000, 'InstagramMeta');
+    if (!res.ok) return { status: 'offline', message: `Token inválido ou expirado (HTTP ${res.status}).` };
     const data = await res.json();
     return { status: 'online', message: `Conectado: ${data.name || 'OK'}` };
   } catch (e: any) {
@@ -164,7 +175,8 @@ serve(async (req) => {
     );
 
     const checks: Record<string, () => Promise<CheckResult>> = {
-      meta_official: () => checkMetaOfficial(supabase),
+      whatsapp_official: () => checkWhatsAppOfficial(supabase),
+      instagram_api: () => checkInstagramAPI(supabase),
       evolution_api: () => checkEvolution(supabase),
       google_calendar: () => checkGoogleCalendar(supabase),
       mercadopago: () => checkMercadoPago(supabase),
