@@ -74,23 +74,26 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('lead_hunter_config').select('config_value').eq('config_key', 'serp_api_key').maybeSingle();
   const key = data?.config_value || Deno.env.get('SERPER_API_KEY');
   
-  if (!key) return { status: 'warning', message: 'Serper API não configurada no Lead Hunter.' };
+  if (!key) {
+    // Remove quota if not configured
+    await supabase.from('api_quotas').delete().eq('api_name', 'serper_api');
+    return { status: 'warning', message: 'Chave SerpApi não configurada no Lead Hunter.' };
+  }
   
   try {
-    // Usando endpoint de conta da serpapi.com conforme documentação fornecida pelo usuário
     const res = await withTimeout(fetch(`https://serpapi.com/account?api_key=${key}`), 8000, 'SerpApi');
     const data = await res.json().catch(() => ({}));
     
-    if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}: ${data.error || 'Unauthorized'}` };
+    if (!res.ok) {
+      return { status: 'offline', message: `Token Inválido ou expirado. Erro: ${data.error || 'Unauthorized'}` };
+    }
     
-    // De acordo com o JSON de exemplo: total_searches_left ou plan_searches_left
-    const credits = data.total_searches_left ?? data.plan_searches_left ?? 0;
+    const credits = data.total_searches_left ?? 0;
     const max = data.searches_per_month ?? 0;
     
-    // Atualiza a tabela api_quotas para refletir os valores reais
     await supabase.from('api_quotas').upsert({
       api_name: 'serper_api',
-      display_name: 'SerpApi Credits',
+      display_name: 'Créditos SerpApi (Lead Hunter)',
       current_value: credits,
       max_value: max,
       limit_type: 'credits',
@@ -103,7 +106,7 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
       details: { credits, max_value: max, plan: data.plan_name } 
     };
   } catch (e: any) {
-    return { status: 'offline', message: e.message };
+    return { status: 'offline', message: `Erro ao validar SerpApi: ${e.message}` };
   }
 }
 
@@ -156,7 +159,11 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const phoneId = data?.phone_number_id;
   
-  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela meta_credentials.' };
+  if (!token) {
+    // Remove meta_whatsapp quota if not configured
+    await supabase.from('api_quotas').delete().eq('api_name', 'meta_whatsapp');
+    return { status: 'warning', message: 'Configuração não encontrada (WhatsApp Cloud API).' };
+  }
   
   try {
     const url = phoneId 
@@ -169,7 +176,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
     
@@ -179,7 +186,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
       details: { account_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
+    return { status: 'offline', message: `Erro de conexão com WhatsApp Meta: ${e.message}` };
   }
 }
 
@@ -188,30 +195,32 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const instaId = data?.instagram_business_account_id;
   
-  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela instagram_settings.' };
+  if (!token) {
+    return { status: 'warning', message: 'Configuração não encontrada (Instagram Graph API).' };
+  }
   
   try {
     const url = instaId 
       ? `https://graph.facebook.com/v21.0/${instaId}?fields=username,name&access_token=${token}`
       : `https://graph.facebook.com/v21.0/me?access_token=${token}`;
-
+ 
     const res = await withTimeout(fetch(url), 8000, 'InstagramMeta');
     const responseData = await res.json();
-
+ 
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token Inválido ou Expirado. Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
-
+ 
     return { 
       status: 'online', 
       message: `Conectado: @${responseData.username || responseData.name || 'Conta Instagram Ativa'}`,
       details: { instagram_id: responseData.id }
     };
   } catch (e: any) {
-    return { status: 'offline', message: `Erro de conexão: ${e.message}` };
+    return { status: 'offline', message: `Erro de conexão com Instagram Meta: ${e.message}` };
   }
 }
 
