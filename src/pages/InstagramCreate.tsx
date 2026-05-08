@@ -267,6 +267,7 @@ const InstagramCreate = () => {
   };
 
   const handleSubmit = async (publishNow: boolean) => {
+    if (isTempAccess) { blockEdit(); return; }
     if (mediaUrls.length === 0) {
       toast({ title: "Erro", description: "Selecione ao menos uma mídia.", variant: "destructive" });
       return;
