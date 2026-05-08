@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Activity, 
   CheckCircle2, 
@@ -14,12 +15,24 @@ import {
   ShieldCheck,
   Zap,
   History,
-  Info
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+
+const CHECK_DESCRIPTIONS: Record<string, string> = {
+  meta_whatsapp: 'Verifica se o token oficial da Meta (WhatsApp Business API) está configurado nos Segredos / Cobrança.',
+  evolution_api: 'Faz uma chamada real em /instance/fetchInstances usando EVOLUTION_API_URL e EVOLUTION_API_KEY e conta as instâncias ativas.',
+  google_calendar: 'Consulta a tabela de tokens OAuth dos usuários conectados ao Google e verifica se algum token expirado precisa ser renovado.',
+  mercadopago: 'Faz GET em api.mercadopago.com/users/me com o MERCADOPAGO_ACCESS_TOKEN. Se devolver 401/403, o token está inválido ou expirado.',
+  stripe: 'Faz GET em api.stripe.com/v1/balance usando a STRIPE_SECRET_KEY (Secrets ou Cobrança → Stripe). HTTP 200 = chave válida.',
+  serper_api: 'Envia uma busca mínima (q="health check") no google.serper.dev e lê o header de créditos restantes.',
+  manychat: 'Faz GET em api.manychat.com/fb/page/getInfo com MANYCHAT_API_KEY para confirmar autenticação.',
+  gmail: 'Confirma que GMAIL_USER e GMAIL_APP_PASSWORD estão presentes nos Segredos (usado para enviar emails do CRM).',
+};
 
 const AdminHealthDashboard = () => {
   const navigate = useNavigate();
@@ -96,6 +109,7 @@ const AdminHealthDashboard = () => {
   };
 
   return (
+    <TooltipProvider>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
@@ -126,11 +140,11 @@ const AdminHealthDashboard = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Resumo de Alertas */}
         {statusData?.some(s => s.status !== 'online') && (
-          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 animate-pulse">
-            <AlertTriangle className="h-6 w-6 text-red-500" />
+          <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-4">
+            <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-red-500">Atenção: Algumas integrações precisam de manutenção</p>
-              <p className="text-sm text-red-400">Verifique os itens marcados como 'Offline' ou 'Alerta' abaixo.</p>
+              <p className="font-bold text-amber-500">Algumas integrações precisam de atenção</p>
+              <p className="text-sm text-amber-400/80">"Alerta" geralmente significa que a credencial é opcional e ainda não foi configurada. "Offline" significa que a credencial existe mas o serviço externo rejeitou.</p>
             </div>
           </div>
         )}
@@ -147,9 +161,19 @@ const AdminHealthDashboard = () => {
               {statusData?.map((integration) => (
                 <Card key={integration.id} className="border-border/40 hover:border-primary/20 transition-all">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {integration.display_name}
-                    </CardTitle>
+                    <div className="flex items-center gap-1.5">
+                      <CardTitle className="text-sm font-medium">
+                        {integration.display_name}
+                      </CardTitle>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-primary cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p className="text-xs">{CHECK_DESCRIPTIONS[integration.integration_name] || 'Verificação genérica do serviço.'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     {getStatusIcon(integration.status)}
                   </CardHeader>
                   <CardContent>
@@ -160,10 +184,13 @@ const AdminHealthDashboard = () => {
                     {integration.last_check && (
                       <p className="text-[10px] text-muted-foreground mt-2">
                         Última verificação: {format(new Date(integration.last_check), "HH:mm:ss 'em' dd/MM", { locale: ptBR })}
+                        {typeof integration.response_time_ms === 'number' && integration.response_time_ms > 0 && (
+                          <span> • {integration.response_time_ms}ms</span>
+                        )}
                       </p>
                     )}
                     {integration.error_message && (
-                      <p className="text-xs text-red-500 mt-2 line-clamp-1 italic">
+                      <p className={`text-xs mt-2 italic ${integration.status === 'offline' ? 'text-red-500' : 'text-amber-500'}`}>
                         {integration.error_message}
                       </p>
                     )}
@@ -270,6 +297,7 @@ const AdminHealthDashboard = () => {
         </div>
       </main>
     </div>
+    </TooltipProvider>
   );
 };
 
