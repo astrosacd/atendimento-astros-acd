@@ -103,7 +103,7 @@ export default function CadastrarCliente() {
     observacao: '',
     tags: [],
     cobranca_ativa: true,
-    ciclo_cobranca: 'mensal',
+    ciclo_cobranca: '' as any,
     tipo: '',
     excluir_metricas: false,
   });
@@ -440,6 +440,16 @@ export default function CadastrarCliente() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validação: Ciclo de Cobrança é obrigatório para mensal
+    if (clienteType === 'mensal' && !formData.ciclo_cobranca) {
+      toast({
+        title: 'Ciclo de Cobrança obrigatório',
+        description: 'Selecione a periodicidade da cobrança para continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validação: Meio de Pagamento é obrigatório
     if (!paymentMethod) {
       toast({
@@ -598,11 +608,11 @@ export default function CadastrarCliente() {
       observacao: '',
       tags: [],
       cobranca_ativa: true,
-      ciclo_cobranca: 'mensal',
+      ciclo_cobranca: '' as any,
     });
     setUploadedFiles([]);
     setPixProof(null);
-    setPaymentMethod('other');
+    setPaymentMethod('');
     setPaymentLinkUrl('');
     setSelectedPaymentLinkId('');
     setLinkValidation({ state: 'idle', message: '' });
@@ -915,12 +925,13 @@ export default function CadastrarCliente() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">Ciclo de Cobrança</Label>
+                      <Label htmlFor="ciclo_cobranca" className="text-foreground font-medium">Ciclo de Cobrança <span className="text-destructive">*</span></Label>
                       <Select
-                        value={formData.ciclo_cobranca || 'mensal'}
+                        value={formData.ciclo_cobranca || ''}
                         onValueChange={(value) => setFormData({ ...formData, ciclo_cobranca: value as CicloCobranca })}
+                        required
                       >
-                        <SelectTrigger className="bg-secondary border-border text-foreground h-11">
+                        <SelectTrigger className={`bg-secondary border-border text-foreground h-11 ${!formData.ciclo_cobranca && 'border-destructive/50'}`}>
                           <SelectValue placeholder="Selecione o ciclo" />
                         </SelectTrigger>
                         <SelectContent className="bg-card border-border">
