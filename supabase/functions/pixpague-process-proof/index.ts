@@ -306,7 +306,7 @@ serve(async (req) => {
         // Fetch payment + client + submitter info for full traceability
         const { data: payment } = await supabase
           .from('client_payments')
-          .select('amount, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
+          .select('amount, payment_type, submitted_by_name, submitted_by_email, cliente:clientes(nome, produto, cobranca_ativa)')
           .eq('id', paymentId)
           .single();
 
