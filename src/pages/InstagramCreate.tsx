@@ -62,7 +62,7 @@ const InstagramCreate = () => {
   const [generating, setGenerating] = useState(false);
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
   const blockEdit = () => {
-    toast({ title: "Acesso somente leitura", description: "Acesso provisório não permite alterações. Solicite ao administrador.", variant: "destructive" });
+    toast({ title: "Ação não permitida", description: "O acesso provisório só permite publicar novos posts, não alterar configurações.", variant: "destructive" });
   };
   
   // Form State
