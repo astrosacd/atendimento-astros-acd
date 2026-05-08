@@ -1,7 +1,7 @@
-// Edge function que dispara o processamento PixPague em BACKGROUND.
-// Retorna imediatamente para o cliente (200 OK) e usa EdgeRuntime.waitUntil
-// para garantir que o OCR + checagem de duplicado + notificação WhatsApp
-// sejam executados mesmo que o navegador do cliente feche a conexão.
+// Edge function que dispara o processamento PixPague de forma confiável.
+// O processamento precisa ser aguardado aqui porque o runtime pode encerrar
+// tarefas em background logo após responder, deixando pagamento preso como
+// "em processamento" e sem notificação WhatsApp.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -9,9 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// @ts-ignore — EdgeRuntime é global no Deno Deploy/Supabase
-declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -33,36 +30,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    console.log("[pixpague-trigger] Scheduling background processing for:", paymentId, "manualReview:", !!manualReview);
+    console.log("[pixpague-trigger] Processing now for:", paymentId, "manualReview:", !!manualReview);
 
-    const backgroundTask = (async () => {
-      try {
-        console.log("[pixpague-trigger] Invoking pixpague-process-proof for payment:", paymentId);
-        
-        // We invoke with Service Role permissions and NO user header 
-        // to ensure it can read config/instances even if triggered by a regular user.
-        const { data, error } = await supabase.functions.invoke("pixpague-process-proof", {
-          body: { paymentId, proofUrl, declaredAmount, manualReview },
-        });
-        
-        if (error) {
-          console.error("[pixpague-trigger] Background processing invocation error:", error);
-        } else {
-          console.log("[pixpague-trigger] Background processing response:", JSON.stringify(data));
-        }
-      } catch (e) {
-        console.error("[pixpague-trigger] Background exception during invoke:", e);
-      }
-    })();
+    const { data, error } = await supabase.functions.invoke("pixpague-process-proof", {
+      body: { paymentId, proofUrl, declaredAmount, manualReview },
+    });
 
-    // Garante que o runtime aguarde a tarefa terminar mesmo após responder
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
-      EdgeRuntime.waitUntil(backgroundTask);
+    if (error) {
+      console.error("[pixpague-trigger] Processing invocation error:", error);
+      return new Response(JSON.stringify({ success: false, paymentId, error: error.message || error }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Resposta imediata
+    console.log("[pixpague-trigger] Processing response:", JSON.stringify(data));
+
     return new Response(
-      JSON.stringify({ success: true, scheduled: true, paymentId }),
+      JSON.stringify({ success: true, processed: true, paymentId, result: data }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
