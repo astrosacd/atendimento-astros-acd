@@ -216,6 +216,7 @@ const InstagramCreate = () => {
   };
 
   const generateAIImages = async () => {
+    if (isTempAccess) { blockEdit(); return; }
     if (!prompt) {
       toast({ title: "Aviso", description: "Digite um prompt para gerar imagens." });
       return;
