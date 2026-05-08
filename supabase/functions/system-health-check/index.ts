@@ -280,6 +280,15 @@ serve(async (req) => {
     );
 
     const checks: Record<string, { fn: (supabase: any) => Promise<CheckResult>, display: string, category: string }> = {
+      system_integrity: { fn: async (sb) => {
+        const { count, error } = await sb.from('integration_logs').select('*', { count: 'exact', head: true }).eq('status', 'offline').gt('created_at', new Date(Date.now() - 3600000).toISOString());
+        if (error) return { status: 'offline', message: `Erro ao consultar logs: ${error.message}` };
+        return { 
+          status: count > 0 ? 'warning' : 'online', 
+          message: count > 0 ? `${count} falhas críticas na última hora.` : 'Nenhuma falha crítica detectada recentemente.',
+          details: { critical_errors_1h: count }
+        };
+      }, display: 'Integridade Geral', category: 'sistema' },
       whatsapp_official: { fn: checkWhatsAppOfficial, display: 'WhatsApp Cloud API', category: 'meta' },
       instagram_api: { fn: checkInstagramAPI, display: 'Instagram Graph API', category: 'meta' },
       baserow_api: { fn: checkBaserow, display: 'Baserow (Consulta Números)', category: 'banco de dados' },
