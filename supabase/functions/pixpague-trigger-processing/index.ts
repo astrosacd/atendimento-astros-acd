@@ -37,6 +37,9 @@ serve(async (req) => {
         console.log("[pixpague-trigger] Invoking pixpague-process-proof...");
         const { data, error } = await supabase.functions.invoke("pixpague-process-proof", {
           body: { paymentId, proofUrl, declaredAmount, manualReview },
+          headers: {
+            "Authorization": req.headers.get("Authorization") || ""
+          }
         });
         
         if (error) {
