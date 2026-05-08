@@ -351,6 +351,7 @@ export default function AdminPermissoes() {
     'Conexões': 'Conexões',
     'Sala dos Agentes': 'Sala dos Agentes',
     'Instagram': 'Instagram',
+    'Segurança de Pagamento': 'Segurança de Pagamento',
   });
 
   const colorOptions = getColorOptions(t);
