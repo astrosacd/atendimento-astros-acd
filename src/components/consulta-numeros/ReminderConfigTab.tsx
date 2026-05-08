@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -76,6 +76,14 @@ interface CronHealthResponse {
   nowUtc: string;
 }
 
+interface BaserowFieldCacheRow {
+  fields_data: Array<{
+    name?: string;
+    type?: string;
+    select_options?: Array<{ value?: string }> | null;
+  }>;
+}
+
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Domingo' },
   { value: '1', label: 'Segunda' },
@@ -85,6 +93,33 @@ const DAYS_OF_WEEK = [
   { value: '5', label: 'Sexta' },
   { value: '6', label: 'Sábado' },
 ];
+
+const normalizeFieldName = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .trim();
+
+const extractStatusesFromFields = (fields?: BaserowFieldCacheRow['fields_data']) => {
+  const statusField = (fields || []).find((field) => {
+    const normalized = normalizeFieldName(field?.name || '');
+    return (
+      field?.type === 'single_select' &&
+      Array.isArray(field?.select_options) &&
+      (normalized === 'excluido_da_base' || normalized === 'status')
+    );
+  });
+
+  return Array.from(
+    new Set(
+      (statusField?.select_options || [])
+        .map((option) => option?.value?.trim())
+        .filter((value): value is string => Boolean(value))
+    )
+  ).sort();
+};
 
 export function ReminderConfigTab() {
   const queryClient = useQueryClient();
@@ -132,9 +167,29 @@ export function ReminderConfigTab() {
     },
   });
 
+  const { data: cachedStatuses = [] } = useQuery({
+    queryKey: ['consulta-numeros-reminder-statuses-cache'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consulta_numeros_fields_cache')
+        .select('fields_data')
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Failed to load cached Baserow statuses:', error);
+        return [];
+      }
+
+      return extractStatusesFromFields((data as BaserowFieldCacheRow | null)?.fields_data);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Fetch available statuses from Baserow (excluido_da_base)
   const {
-    data: availableStatuses = [],
+    data: liveStatuses = [],
     isLoading: loadingStatuses,
     isFetching: fetchingStatuses,
     refetch: refetchStatuses,
@@ -155,6 +210,10 @@ export function ReminderConfigTab() {
     retry: 1,
     refetchOnWindowFocus: false,
   });
+
+  const availableStatuses = useMemo(() => {
+    return liveStatuses.length > 0 ? liveStatuses : cachedStatuses;
+  }, [liveStatuses, cachedStatuses]);
 
   // Fetch logs
   // Obs: também exibimos eventos do cron (status: triggered) para você conseguir ver que “rodou na hora cheia”,
