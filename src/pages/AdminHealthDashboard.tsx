@@ -23,15 +23,39 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
-const CHECK_DESCRIPTIONS: Record<string, string> = {
-  whatsapp_official: 'Verifica o token do WhatsApp Cloud API (Oficial) configurado no módulo de integrações.',
-  instagram_api: 'Valida o token da Instagram Graph API para automações e postagens.',
-  evolution_api: 'Faz uma chamada real usando a URL e Chave configuradas no módulo de instâncias/envio de propostas.',
-  google_calendar: 'Valida as credenciais da Agenda (Client ID, Secret e Refresh Token) configuradas no módulo de Agenda.',
-  mercadopago: 'Valida o Access Token do Mercado Pago configurado no módulo Financeiro/Configurações.',
-  stripe: 'Verifica a validade da Secret Key do Stripe configurada no módulo de Cobrança.',
-  serper_api: 'Verifica a chave e créditos restantes do SerpApi configurada no Lead Hunter.',
-  gmail: 'Confirma as credenciais de e-mail (SMTP) configuradas para disparos automáticos.',
+const CHECK_DESCRIPTIONS: Record<string, { desc: string; module: string }> = {
+  whatsapp_official: { 
+    desc: 'Verifica o token do WhatsApp Cloud API configurado.', 
+    module: 'Tabela: meta_credentials' 
+  },
+  instagram_api: { 
+    desc: 'Valida o token da Instagram Graph API para automações.', 
+    module: 'Tabela: instagram_settings' 
+  },
+  evolution_api: { 
+    desc: 'Testa a URL e Chave da instância de disparos.', 
+    module: 'Configurações de Envio / proposal_send_config' 
+  },
+  google_calendar: { 
+    desc: 'Valida Client ID, Secret e Refresh Token da Agenda.', 
+    module: 'Módulo Agenda / calendar_config' 
+  },
+  mercadopago: { 
+    desc: 'Valida o Access Token para recebimentos automáticos.', 
+    module: 'Financeiro > Configurações / billing_config' 
+  },
+  stripe: { 
+    desc: 'Verifica a Secret Key de pagamentos via cartão.', 
+    module: 'Financeiro > Cobrança / billing_stripe_config' 
+  },
+  serper_api: { 
+    desc: 'Verifica a chave e créditos do buscador (SerpApi).', 
+    module: 'Lead Hunter / lead_hunter_config' 
+  },
+  gmail: { 
+    desc: 'Confirma o usuário e senha de app para disparos de e-mail.', 
+    module: 'Configurações de Envio / billing_config' 
+  },
 };
 
 const AdminHealthDashboard = () => {
@@ -169,8 +193,14 @@ const AdminHealthDashboard = () => {
                         <TooltipTrigger asChild>
                           <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-primary cursor-help" />
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <p className="text-xs">{CHECK_DESCRIPTIONS[integration.integration_name] || 'Verificação genérica do serviço.'}</p>
+                        <TooltipContent side="top" className="max-w-xs p-3 space-y-2">
+                          <p className="text-xs font-semibold">{CHECK_DESCRIPTIONS[integration.integration_name]?.desc || 'Verificação do serviço.'}</p>
+                          <div className="pt-2 border-t border-border/40">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Fonte dos Dados:</p>
+                            <p className="text-[11px] font-mono bg-muted/50 p-1 rounded mt-1">
+                              {CHECK_DESCRIPTIONS[integration.integration_name]?.module || 'Configuração Interna'}
+                            </p>
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     </div>
