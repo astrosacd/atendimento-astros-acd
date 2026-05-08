@@ -547,47 +547,54 @@ export default function CadastrarCliente() {
   };
 
   const handleConfirm = async () => {
-    const cliente = await createCliente({
-      ...formData,
-      valor: Number(formData.valor),
-      moeda: formData.moeda || 'BRL',
-    });
+    if (isSaving) return;
+    setIsSaving(true);
     
-    if (cliente) {
-      setCreatedClienteId(cliente.id);
+    try {
+      const cliente = await createCliente({
+        ...formData,
+        valor: Number(formData.valor),
+        moeda: formData.moeda || 'BRL',
+      });
       
-      // Se for pagamento via Pix, registra o pagamento para análise
-      if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
-        await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
-      }
+      if (cliente) {
+        setCreatedClienteId(cliente.id);
+        
+        // Se for pagamento via Pix, registra o pagamento para análise
+        if (paymentMethod === 'pix' && formData.valor > 0 && pixProof) {
+          await registerEarlyPayment(cliente.id, Number(formData.valor), pixProof);
+        }
 
-      // Se for pagamento via Link, valida e registra para aprovação
-      if (paymentMethod === 'link_pagamento' && formData.valor > 0) {
-        await registerLinkPayment({
-          clienteId: cliente.id,
-          declaredAmount: Number(formData.valor),
-          paymentLinkUrl: paymentLinkUrl.trim() || undefined,
-          paymentLinkId: selectedPaymentLinkId || undefined,
-        });
-      }
+        // Se for pagamento via Link, valida e registra para aprovação
+        if (paymentMethod === 'link_pagamento' && formData.valor > 0) {
+          await registerLinkPayment({
+            clienteId: cliente.id,
+            declaredAmount: Number(formData.valor),
+            paymentLinkUrl: paymentLinkUrl.trim() || undefined,
+            paymentLinkId: selectedPaymentLinkId || undefined,
+          });
+        }
 
-      // Se for Outros / Manual, sempre envia para Segurança de Pagamento (sem OCR)
-      if (paymentMethod === 'other' && formData.valor > 0) {
-        await registerOtherPayment({
-          clienteId: cliente.id,
-          declaredAmount: Number(formData.valor),
-          observation: otherObservation.trim(),
-          proof: otherProof,
-        });
-      }
+        // Se for Outros / Manual, sempre envia para Segurança de Pagamento (sem OCR)
+        if (paymentMethod === 'other' && formData.valor > 0) {
+          await registerOtherPayment({
+            clienteId: cliente.id,
+            declaredAmount: Number(formData.valor),
+            observation: otherObservation.trim(),
+            proof: otherProof,
+          });
+        }
 
-      if (clienteType === 'registro' && uploadedFiles.length > 0) {
-        await uploadFilesToStorage(cliente.id);
+        if (clienteType === 'registro' && uploadedFiles.length > 0) {
+          await uploadFilesToStorage(cliente.id);
+        }
+        
+        setShowConfirmation(false);
+        setShowSuccess(true);
+        logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : 'Mensal'}`);
       }
-      
-      setShowConfirmation(false);
-      setShowSuccess(true);
-      logActivity(`Cadastrou novo cliente: ${formData.nome}`, 'cliente', `Tipo: ${clienteType === 'registro' ? 'Registro' : 'Mensal'}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
