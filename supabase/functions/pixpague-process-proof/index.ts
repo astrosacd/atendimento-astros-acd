@@ -233,9 +233,9 @@ serve(async (req) => {
 
     console.log('[pixpague] Config:', { ...cfg, openai_api_key: cfg.openai_api_key ? '***' : '', groq_api_key: cfg.groq_api_key ? '***' : '' });
 
-    // Run OCR if enabled
+    // Run OCR if enabled and not a manual-review submission
     let ocr: OcrResult = { amount: null, transactionId: null, status: 'skipped' };
-    if (cfg.ocr_enabled !== false) {
+    if (!manualReview && proofUrl && cfg.ocr_enabled !== false) {
       ocr = await runOcr(
         proofUrl,
         cfg.ai_provider || 'lovable',
