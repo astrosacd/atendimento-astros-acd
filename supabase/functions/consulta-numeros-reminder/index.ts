@@ -649,87 +649,98 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Use local cache first. The reminders themselves already read from
-      // consulta_numeros_cache, so the settings page should not depend on a
-      // live Baserow call just to open. This prevents the red error toast
-      // when Baserow is slow, while keeping reminders functional.
-      const statusesSet = new Set<string>();
+      // Action: list available statuses from Baserow (field: excluido_da_base)
+      // We try the "fields" metadata endpoint first because it's the "source of truth"
+      // that returns all defined options even if no rows currently use them.
+      let statuses: string[] = [];
+      let fetchError = '';
 
-      const { data: cacheRows, error: cacheError } = await supabase
-        .from('consulta_numeros_cache')
-        .select('row_data')
-        .limit(5000);
-
-      if (cacheError) {
-        console.error('[consulta-numeros-reminder] Cache status fetch failed (list_statuses):', cacheError.message);
-      } else {
-        for (const cached of cacheRows || []) {
-          const status = extractReminderStatus((cached as any)?.row_data || {});
-          if (status) statusesSet.add(status);
-        }
-      }
-
-      let statuses = Array.from(statusesSet).sort();
-
-      // Fallback: only call Baserow when cache does not contain statuses.
-      // Try the rows endpoint first (same endpoint used by "Testar Conexão").
-      if (statuses.length === 0) try {
-        const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=200`;
-        const rowsResp = await fetchWithTimeout(
-          rowsUrl,
+      try {
+        const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
+        const fieldsResp = await fetchWithTimeout(
+          fieldsUrl,
           {
             headers: {
               'Authorization': `Token ${baserowConfig.api_token}`,
               'Content-Type': 'application/json',
             },
           },
-          15_000
+          8000 // 8s timeout for the fields endpoint
         );
 
-        if (!rowsResp.ok) {
-          const errTxt = sanitizePII(await rowsResp.text());
-          console.error('[consulta-numeros-reminder] Baserow rows fetch failed (list_statuses):', errTxt);
-        } else {
-          const json = await rowsResp.json();
-          const results = (json?.results || []) as any[];
-          const set = new Set<string>();
-          for (const row of results) {
-            const s = extractReminderStatus(row || {});
-            if (s) set.add(s);
+        if (fieldsResp.ok) {
+          const fields = await fieldsResp.json();
+          const exclField = (fields || []).find((f: any) => 
+            f?.name === 'excluido_da_base' || 
+            f?.name === 'Excluido da Base' ||
+            f?.name === 'Status' ||
+            f?.name === 'status'
+          );
+          
+          if (exclField && exclField.select_options) {
+            statuses = exclField.select_options
+              .map((o: any) => o.value)
+              .filter(Boolean)
+              .sort();
+            console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} options from fields metadata`);
           }
-          statuses = Array.from(set).sort();
+        } else {
+          fetchError = `Baserow fields error: ${fieldsResp.status}`;
         }
       } catch (e: any) {
-        console.error('[consulta-numeros-reminder] Baserow rows timeout (list_statuses):', String(e?.message || e));
+        fetchError = `Baserow fields timeout/error: ${e.message}`;
+        console.warn('[consulta-numeros-reminder] list_statuses: fields metadata fetch failed, trying fallbacks...', e.message);
       }
 
-      // Fallback: try fields metadata endpoint (richer — returns options
-      // even when no rows currently use them).
+      // Fallback 1: Try the cache (local database)
       if (statuses.length === 0) {
         try {
-          const fieldsUrl = `${baserowConfig.api_url}/api/database/fields/table/${baserowConfig.table_id}/`;
-          const fieldsResp = await fetchWithTimeout(
-            fieldsUrl,
+          const { data: cacheRows, error: cacheError } = await supabase
+            .from('consulta_numeros_cache')
+            .select('row_data')
+            .limit(2000);
+
+          if (!cacheError && cacheRows && cacheRows.length > 0) {
+            const set = new Set<string>();
+            for (const cached of cacheRows) {
+              const s = extractReminderStatus((cached as any)?.row_data || {});
+              if (s) set.add(s);
+            }
+            statuses = Array.from(set).sort();
+            console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} options from local cache`);
+          }
+        } catch (e: any) {
+          console.error('[consulta-numeros-reminder] list_statuses: cache fallback failed:', e.message);
+        }
+      }
+
+      // Fallback 2: Try fetching a few rows directly from Baserow
+      if (statuses.length === 0) {
+        try {
+          const rowsUrl = `${baserowConfig.api_url}/api/database/rows/table/${baserowConfig.table_id}/?user_field_names=true&size=100`;
+          const rowsResp = await fetchWithTimeout(
+            rowsUrl,
             {
               headers: {
                 'Authorization': `Token ${baserowConfig.api_token}`,
                 'Content-Type': 'application/json',
               },
             },
-            12_000
+            10000
           );
 
-          if (!fieldsResp.ok) {
-            const errTxt = sanitizePII(await fieldsResp.text());
-            console.error('[consulta-numeros-reminder] Baserow fields fetch failed (list_statuses fallback):', errTxt);
-          } else {
-            const fields = await fieldsResp.json();
-            const exclField = (fields || []).find((f: any) => f?.name === 'excluido_da_base');
-            const options = (exclField?.select_options || []) as Array<{ id: number; value: string }>;
-            statuses = options.map((o) => o.value).filter(Boolean).sort();
+          if (rowsResp.ok) {
+            const json = await rowsResp.json();
+            const set = new Set<string>();
+            for (const row of (json?.results || [])) {
+              const s = extractReminderStatus(row || {});
+              if (s) set.add(s);
+            }
+            statuses = Array.from(set).sort();
+            console.log(`[consulta-numeros-reminder] list_statuses: found ${statuses.length} options from live rows`);
           }
         } catch (e: any) {
-          console.error('[consulta-numeros-reminder] Baserow fields timeout (list_statuses fallback):', String(e?.message || e));
+          console.error('[consulta-numeros-reminder] list_statuses: rows fallback failed:', e.message);
         }
       }
 
@@ -737,7 +748,7 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: false,
-            message: 'Baserow connection timeout - server may be slow or unreachable. Try again later.',
+            message: fetchError || 'Could not find any status options. Check your Baserow table fields.',
           }),
           {
             status: 503,
