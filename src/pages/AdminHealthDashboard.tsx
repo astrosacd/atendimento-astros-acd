@@ -124,6 +124,17 @@ const AdminHealthDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Resumo de Alertas */}
+        {statusData?.some(s => s.status !== 'online') && (
+          <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 animate-pulse">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+            <div>
+              <p className="font-bold text-red-500">Atenção: Algumas integrações precisam de manutenção</p>
+              <p className="text-sm text-red-400">Verifique os itens marcados como 'Offline' ou 'Alerta' abaixo.</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Status das Integrações */}
