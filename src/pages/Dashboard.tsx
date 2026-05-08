@@ -515,6 +515,8 @@ export default function Dashboard() {
         instagramTokenExpiring,
         instagramTokenExpiryDate,
         pagamentosPendentes,
+        offlineIntegrations,
+        criticalQuotas: criticalQuotasCount,
       });
     };
 
