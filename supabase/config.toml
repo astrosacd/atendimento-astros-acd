@@ -147,3 +147,9 @@ verify_jwt = false
 
 [functions.approve-pixpague-payment]
 verify_jwt = false
+
+[functions.pixpague-trigger-processing]
+verify_jwt = false
+
+[functions.pixpague-process-proof]
+verify_jwt = false
