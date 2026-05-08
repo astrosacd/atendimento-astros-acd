@@ -64,11 +64,13 @@ const AdminHealthDashboard = () => {
   const handleManualCheck = async () => {
     setIsRefreshing(true);
     try {
-      // Aqui chamaríamos a Edge Function futuramente
-      // Por enquanto, apenas simulamos um refresh
+      const { data, error } = await supabase.functions.invoke('system-health-check');
+      if (error) throw error;
+      
       await Promise.all([refetchStatus(), refetchQuotas(), refetchLogs()]);
       toast.success('Verificação concluída com sucesso');
     } catch (error) {
+      console.error('Erro na verificação:', error);
       toast.error('Erro ao realizar verificação');
     } finally {
       setIsRefreshing(false);
