@@ -319,7 +319,13 @@ serve(async (req) => {
         else if (ocrStatus === 'invalid') { icon = '❌'; label = 'COMPROVANTE INVÁLIDO (não é PIX)'; }
         else if (ocrStatus === 'error') { icon = '⚠️'; label = 'ERRO ao processar OCR'; }
         else if (ocrStatus === 'skipped') { icon = '📨'; label = 'OCR desativado — revisão manual'; }
-        else if (ocrStatus === 'manual_review') { icon = '📝'; label = 'PAGAMENTO MANUAL — Aguardando aprovação'; }
+        else if (ocrStatus === 'manual_review') { 
+          icon = '📝'; 
+          const pType = payment?.payment_type;
+          label = (pType === 'link_pagamento' || pType === 'cartao' || pType === 'stripe' || pType === 'mercado_pago')
+            ? 'LINK DE PAGAMENTO — Aguardando aprovação'
+            : 'PAGAMENTO MANUAL — Aguardando aprovação'; 
+        }
         else if (ocrStatus === 'pending') { icon = '⏳'; label = 'Aguardando processamento'; }
 
         const submitterLine = payment?.submitted_by_name || payment?.submitted_by_email
