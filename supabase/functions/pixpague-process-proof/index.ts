@@ -380,7 +380,11 @@ serve(async (req) => {
         console.warn('[pixpague] No active WhatsApp instance found — skipping notification.');
       }
     } else {
-      console.log('[pixpague] WhatsApp notification skipped. enabled:', cfg.whatsapp_notifications, 'phones:', !!cfg.approver_phones);
+      console.log('[pixpague] WhatsApp notification skipped.', { 
+        whatsapp_notifications: cfg.whatsapp_notifications, 
+        has_approver_phones: !!cfg.approver_phones,
+        approver_phones: cfg.approver_phones
+      });
     }
 
     return new Response(JSON.stringify({
