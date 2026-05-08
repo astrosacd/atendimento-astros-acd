@@ -24,12 +24,13 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 const CHECK_DESCRIPTIONS: Record<string, string> = {
-  meta_official: 'Verifica o token da Meta (WhatsApp Oficial / Instagram) configurado no módulo de integrações do CRM.',
+  whatsapp_official: 'Verifica o token do WhatsApp Cloud API (Oficial) configurado no módulo de integrações.',
+  instagram_api: 'Valida o token da Instagram Graph API para automações e postagens.',
   evolution_api: 'Faz uma chamada real usando a URL e Chave configuradas no módulo de instâncias/envio de propostas.',
   google_calendar: 'Valida as credenciais da Agenda (Client ID, Secret e Refresh Token) configuradas no módulo de Agenda.',
   mercadopago: 'Valida o Access Token do Mercado Pago configurado no módulo Financeiro/Configurações.',
   stripe: 'Verifica a validade da Secret Key do Stripe configurada no módulo de Cobrança.',
-  serper_api: 'Verifica a chave e créditos restantes do SerpApi/Serper configurada no Lead Hunter.',
+  serper_api: 'Verifica a chave e créditos restantes do SerpApi configurada no Lead Hunter.',
   gmail: 'Confirma as credenciais de e-mail (SMTP) configuradas para disparos automáticos.',
 };
 
