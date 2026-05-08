@@ -145,6 +145,8 @@ export default function Dashboard() {
     instagramTokenExpiring: false,
     instagramTokenExpiryDate: null,
     pagamentosPendentes: 0,
+    offlineIntegrations: 0,
+    criticalQuotas: 0,
   });
 
   useEffect(() => {
