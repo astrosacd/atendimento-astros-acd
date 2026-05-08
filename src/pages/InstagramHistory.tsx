@@ -15,7 +15,8 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
