@@ -77,13 +77,31 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
   if (!key) return { status: 'warning', message: 'Serper API não configurada no Lead Hunter.' };
   
   try {
-    // Usando serpapi.com conforme verificado manualmente (a chave do usuário é da SerpApi)
-    const res = await withTimeout(fetch(`https://serpapi.com/search.json?engine=google&q=health+check&api_key=${key}`), 8000, 'SerpApi');
+    // Usando endpoint de conta da serpapi.com conforme documentação fornecida pelo usuário
+    const res = await withTimeout(fetch(`https://serpapi.com/account?api_key=${key}`), 8000, 'SerpApi');
     const data = await res.json().catch(() => ({}));
+    
     if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}: ${data.error || 'Unauthorized'}` };
     
-    const credits = data.search_metadata?.remaining_searches || data.search_metadata?.total_searches_left;
-    return { status: 'online', message: `Conectado OK${credits ? ` • Créditos: ${credits}` : ''}.`, details: { credits } };
+    // De acordo com o JSON de exemplo: total_searches_left ou plan_searches_left
+    const credits = data.total_searches_left ?? data.plan_searches_left ?? 0;
+    const max = data.searches_per_month ?? 0;
+    
+    // Atualiza a tabela api_quotas para refletir os valores reais
+    await supabase.from('api_quotas').upsert({
+      api_name: 'serper_api',
+      display_name: 'SerpApi Credits',
+      current_value: credits,
+      max_value: max,
+      limit_type: 'credits',
+      last_updated: new Date().toISOString()
+    }, { onConflict: 'api_name' });
+
+    return { 
+      status: 'online', 
+      message: `Plano: ${data.plan_name || 'Ativo'} • Créditos: ${credits.toLocaleString()}`, 
+      details: { credits, max_value: max, plan: data.plan_name } 
+    };
   } catch (e: any) {
     return { status: 'offline', message: e.message };
   }
@@ -138,7 +156,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const phoneId = data?.phone_number_id;
   
-  if (!token) return { status: 'warning', message: 'WhatsApp Cloud API não configurada na tabela meta_credentials.' };
+  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela meta_credentials.' };
   
   try {
     const url = phoneId 
@@ -151,7 +169,7 @@ async function checkWhatsAppOfficial(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
     
@@ -170,7 +188,7 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
   const token = data?.access_token;
   const instaId = data?.instagram_business_account_id;
   
-  if (!token) return { status: 'warning', message: 'Instagram Graph API não configurada na tabela instagram_settings.' };
+  if (!token) return { status: 'warning', message: 'Chave não encontrada na tabela instagram_settings.' };
   
   try {
     const url = instaId 
@@ -183,7 +201,7 @@ async function checkInstagramAPI(supabase: any): Promise<CheckResult> {
     if (!res.ok) {
       return { 
         status: 'offline', 
-        message: `Erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
+        message: `Token inválido ou erro na Meta: ${responseData.error?.message || `HTTP ${res.status}`}` 
       };
     }
 

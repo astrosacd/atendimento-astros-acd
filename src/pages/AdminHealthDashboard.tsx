@@ -280,7 +280,7 @@ const AdminHealthDashboard = () => {
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-sm">{quota.display_name}</CardTitle>
                       <CardDescription className="text-xs">
-                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis' : 'Uso de API'}
+                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis (Sincronizado via API)' : 'Uso de API'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
