@@ -178,7 +178,8 @@ const InstagramCreate = () => {
 
 
   const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isTempAccess) { blockEdit(); return; }
+    // Allow reference upload for AI generation
+    // if (isTempAccess) { blockEdit(); return; }
     const file = e.target.files?.[0];
     if (!file) return;
 
