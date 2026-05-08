@@ -37,6 +37,7 @@ import { RevenueGoalCard } from '@/components/dashboard/RevenueGoalCard';
 import { ChurnRateCard } from '@/components/dashboard/ChurnRateCard';
 import { RevenueByCurrencyCard } from '@/components/dashboard/RevenueByCurrencyCard';
 import { PaymentSecurityAlertBanner } from '@/components/dashboard/PaymentSecurityAlertBanner';
+import { SystemHealthCard } from '@/components/dashboard/SystemHealthCard';
 
 // Mapping of billing cycles to months
 const CICLO_MESES: Record<string, number> = {
@@ -87,6 +88,8 @@ interface ClienteStats {
     instagramTokenExpiring: boolean;
     instagramTokenExpiryDate: string | null;
     pagamentosPendentes: number;
+    offlineIntegrations: number;
+    criticalQuotas: number;
   }
 
 // Removed unused interface
@@ -142,6 +145,8 @@ export default function Dashboard() {
     instagramTokenExpiring: false,
     instagramTokenExpiryDate: null,
     pagamentosPendentes: 0,
+    offlineIntegrations: 0,
+    criticalQuotas: 0,
   });
 
   useEffect(() => {
@@ -329,7 +334,20 @@ export default function Dashboard() {
       let instagramTokenExpiryDate = null;
       let pagamentosPendentes = 0;
 
+      let offlineIntegrations = 0;
+      let criticalQuotasCount = 0;
+
       if (isAdmin) {
+        // Fetch System Health status
+        const { data: statusData } = await supabase.from('integration_status').select('status');
+        offlineIntegrations = statusData?.filter(s => s.status === 'offline').length || 0;
+
+        const { data: quotasData } = await supabase.from('api_quotas').select('current_value, max_value, alert_threshold');
+        criticalQuotasCount = quotasData?.filter(q => {
+          const percentage = q.max_value ? (q.current_value / q.max_value) * 100 : 0;
+          return percentage > (100 - (q.alert_threshold || 20));
+        }).length || 0;
+
         // Check Instagram token status
         const { data: igSettings } = await supabase
           .from('instagram_settings')
@@ -497,6 +515,8 @@ export default function Dashboard() {
         instagramTokenExpiring,
         instagramTokenExpiryDate,
         pagamentosPendentes,
+        offlineIntegrations,
+        criticalQuotas: criticalQuotasCount,
       });
     };
 
@@ -778,6 +798,18 @@ export default function Dashboard() {
           pulse: true,
         }
       : null,
+    isAdmin && (stats.offlineIntegrations > 0 || stats.criticalQuotas > 0)
+      ? {
+          id: 'system-health',
+          title: 'Saúde do Sistema com Alertas',
+          description: `${stats.offlineIntegrations > 0 ? `${stats.offlineIntegrations} integração(ões) offline. ` : ''}${stats.criticalQuotas > 0 ? `${stats.criticalQuotas} cota(s) crítica(s).` : ''}`,
+          count: stats.offlineIntegrations + stats.criticalQuotas,
+          onClick: () => navigate('/admin/saude'),
+          tone: stats.offlineIntegrations > 0 ? 'critical' as const : 'warning' as const,
+          icon: ShieldCheck,
+          pulse: true,
+        }
+      : null,
     failedFollowups.length > 0
       ? {
           id: 'followups-failed',
@@ -844,7 +876,10 @@ export default function Dashboard() {
 
         <QuickActions />
 
-        <SecurityAlertsCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <SecurityAlertsCard />
+          {isAdmin && <SystemHealthCard />}
+        </div>
 
         {priorityAlerts.length > 0 && (
           <section className="mb-8 space-y-4">
