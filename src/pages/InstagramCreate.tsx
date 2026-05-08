@@ -60,6 +60,10 @@ const InstagramCreate = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const blockEdit = () => {
+    toast({ title: "Acesso somente leitura", description: "Acesso provisório não permite alterações. Solicite ao administrador.", variant: "destructive" });
+  };
   
   // Form State
   const [postType, setPostType] = useState<'feed' | 'reels' | 'carousel' | 'stories'>('feed');
