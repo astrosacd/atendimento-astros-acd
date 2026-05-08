@@ -42,11 +42,15 @@ const TemporaryAccessHandler = () => {
           return;
         }
 
-        // Increment usage
-        await supabase
-          .from("temporary_access_tokens")
-          .update({ uses: data.uses + 1 })
-          .eq("id", data.id);
+        // Conta como 1 uso por dispositivo/navegador (evita contar múltiplas abas)
+        const usageKey = `temp_access_counted_${token}`;
+        if (!localStorage.getItem(usageKey)) {
+          await supabase
+            .from("temporary_access_tokens")
+            .update({ uses: data.uses + 1 })
+            .eq("id", data.id);
+          localStorage.setItem(usageKey, "1");
+        }
 
         // Store the temporary bypass in session storage or similar
         // For now, since RLS is handled by service role in specific logic or public read,
