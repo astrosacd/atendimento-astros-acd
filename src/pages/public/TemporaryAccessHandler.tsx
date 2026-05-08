@@ -55,6 +55,7 @@ const TemporaryAccessHandler = () => {
         // But the user asked for a "provisional link", so we'll redirect them.
         
         sessionStorage.setItem("temp_access_token", token);
+        sessionStorage.setItem("temp_access_target", data.target_path);
         navigate(data.target_path);
         
       } catch (err: any) {

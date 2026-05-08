@@ -37,8 +37,12 @@ export function ProtectedRoute({ children, adminOnly = false, permission }: Prot
     );
   }
 
-  // If we have temporary access, let them through
+  // If we have temporary access, only allow the exact target_path
   if (hasTempAccess) {
+    const targetPath = sessionStorage.getItem("temp_access_target");
+    if (targetPath && location.pathname !== targetPath) {
+      return <Navigate to={targetPath} replace />;
+    }
     return <>{children}</>;
   }
 
