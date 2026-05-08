@@ -74,23 +74,26 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
   const { data } = await supabase.from('lead_hunter_config').select('config_value').eq('config_key', 'serp_api_key').maybeSingle();
   const key = data?.config_value || Deno.env.get('SERPER_API_KEY');
   
-  if (!key) return { status: 'warning', message: 'Serper API não configurada no Lead Hunter.' };
+  if (!key) {
+    // Remove quota if not configured
+    await supabase.from('api_quotas').delete().eq('api_name', 'serper_api');
+    return { status: 'warning', message: 'Chave SerpApi não configurada no Lead Hunter.' };
+  }
   
   try {
-    // Usando endpoint de conta da serpapi.com conforme documentação fornecida pelo usuário
     const res = await withTimeout(fetch(`https://serpapi.com/account?api_key=${key}`), 8000, 'SerpApi');
     const data = await res.json().catch(() => ({}));
     
-    if (!res.ok) return { status: 'offline', message: `Chave inválida ou erro HTTP ${res.status}: ${data.error || 'Unauthorized'}` };
+    if (!res.ok) {
+      return { status: 'offline', message: `Token Inválido ou expirado. Erro: ${data.error || 'Unauthorized'}` };
+    }
     
-    // De acordo com o JSON de exemplo: total_searches_left ou plan_searches_left
-    const credits = data.total_searches_left ?? data.plan_searches_left ?? 0;
+    const credits = data.total_searches_left ?? 0;
     const max = data.searches_per_month ?? 0;
     
-    // Atualiza a tabela api_quotas para refletir os valores reais
     await supabase.from('api_quotas').upsert({
       api_name: 'serper_api',
-      display_name: 'SerpApi Credits',
+      display_name: 'Créditos SerpApi (Lead Hunter)',
       current_value: credits,
       max_value: max,
       limit_type: 'credits',
@@ -103,7 +106,7 @@ async function checkSerper(supabase: any): Promise<CheckResult> {
       details: { credits, max_value: max, plan: data.plan_name } 
     };
   } catch (e: any) {
-    return { status: 'offline', message: e.message };
+    return { status: 'offline', message: `Erro ao validar SerpApi: ${e.message}` };
   }
 }
 
