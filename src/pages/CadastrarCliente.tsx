@@ -109,6 +109,7 @@ export default function CadastrarCliente() {
   });
 
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const [existingTags, setExistingTags] = useState<string[]>([]);
