@@ -213,7 +213,7 @@ const AdminHealthDashboard = () => {
                   <CardContent>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs text-muted-foreground capitalize">{integration.category}</span>
-                      {getStatusBadge(integration.status)}
+                      {getStatusBadge(integration.status, integration.error_message)}
                     </div>
                     {integration.last_check && (
                       <p className="text-[10px] text-muted-foreground mt-2">
