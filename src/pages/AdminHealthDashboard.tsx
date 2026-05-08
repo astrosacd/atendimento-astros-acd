@@ -284,16 +284,16 @@ const AdminHealthDashboard = () => {
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-sm">{quota.display_name}</CardTitle>
                       <CardDescription className="text-xs">
-                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis (Sincronizado via API)' : 'Uso de API'}
+                        {quota.limit_type === 'credits' ? 'Créditos Disponíveis' : 'Uso de API'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="flex justify-between items-end mb-2">
-                        <span className={`text-lg font-bold ${isCritical ? 'text-red-500' : 'text-foreground'}`}>
+                        <span className={`text-lg font-bold ${isCritical ? 'text-red-500' : 'text-emerald-500'}`}>
                           {quota.current_value.toLocaleString()}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          de {quota.max_value?.toLocaleString() || '∞'}
+                          de {quota.max_value?.toLocaleString()} total
                         </span>
                       </div>
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
