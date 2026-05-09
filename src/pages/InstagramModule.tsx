@@ -105,6 +105,7 @@ const InstagramModule = () => {
         target_path: "/instagram",
         expires_at: expiresAt,
         max_uses: parseInt(newAccess.max_uses),
+        permissions: newAccess.permissions,
       });
 
       if (error) throw error;
