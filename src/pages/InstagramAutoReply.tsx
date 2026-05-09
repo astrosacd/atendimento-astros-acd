@@ -623,7 +623,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.public_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, public_response: e.target.value }))}
                   placeholder="Sua resposta pública no Instagram..."
-                  className="min-h-[100px] text-sm"
+                  className="min-h-[100px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
               </div>
 
