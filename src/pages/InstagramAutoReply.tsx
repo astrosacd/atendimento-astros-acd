@@ -33,6 +33,8 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import InstagramMediaSelector from "@/components/instagram/InstagramMediaSelector";
+
 const InstagramAutoReply = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -262,6 +264,8 @@ const InstagramAutoReply = () => {
               dm_response: "",
               media_type: "all",
               follower_only: false,
+              specific_media_id: "",
+              non_follower_response: "",
             });
             setIsRuleDialogOpen(true);
           }}>
@@ -310,6 +314,11 @@ const InstagramAutoReply = () => {
                     </div>
                     <CardTitle className="text-lg">{rule.name}</CardTitle>
                     <div className="flex flex-wrap gap-1 mt-2">
+                      {rule.specific_media_id && (
+                        <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border-blue-100">
+                          Post Específico
+                        </Badge>
+                      )}
                       {rule.keywords?.map((kw: string, i: number) => (
                         <Badge key={i} variant="outline" className="text-[10px] bg-muted/50">
                           "{kw}"
@@ -487,17 +496,45 @@ const InstagramAutoReply = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="specific-media">ID do Post Específico (Opcional)</Label>
-                <Input 
-                  id="specific-media" 
-                  value={currentRule.specific_media_id} 
-                  onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: e.target.value }))}
-                  placeholder="ID da mídia no Instagram (vazio = todos)"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Se preenchido, a regra só funcionará para este post. Pegue o ID no Histórico.
-                </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Vincular a Post Específico?</Label>
+                  <Switch 
+                    checked={!!currentRule.specific_media_id} 
+                    onCheckedChange={(val) => {
+                      if (!val) {
+                        setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
+                      } else {
+                        // We don't have an ID yet, so it stays empty until selected
+                      }
+                    }}
+                  />
+                </div>
+                
+                {!!currentRule.specific_media_id || (currentRule.id && currentRule.specific_media_id === "") ? (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <InstagramMediaSelector 
+                      selectedId={currentRule.specific_media_id}
+                      onSelect={(id) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }))}
+                    />
+                    {currentRule.specific_media_id && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full text-xs h-7 text-destructive"
+                        onClick={() => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }))}
+                      >
+                        Remover vínculo com post
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
+                    <p className="text-[10px] text-muted-foreground">
+                      Esta regra responderá a <strong>todos</strong> os seus posts do Instagram.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
