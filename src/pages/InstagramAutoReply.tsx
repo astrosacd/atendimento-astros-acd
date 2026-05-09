@@ -44,6 +44,7 @@ const InstagramAutoReply = () => {
   const [activeTab, setActiveTab] = useState("rules");
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
   
   const [globalSettings, setGlobalSettings] = useState({
     auto_reply_enabled: false,
