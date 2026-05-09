@@ -353,7 +353,7 @@ const InstagramModule = () => {
                 <Sparkles className="h-4 w-4" /> Criar Post
               </TabsTrigger>
             )}
-            {effectiveCanCreatePost && (
+            {effectiveCanManageAutoReply && (
               <TabsTrigger value="autoreply" className="gap-2">
                 <Zap className="h-4 w-4" /> Auto-Resposta
               </TabsTrigger>
