@@ -292,28 +292,51 @@ const sendWhatsAppMessage = async (
     
     const url = `${apiUrl}/message/sendText/${instanceName}`;
     console.log(`📱 Enviando recibo por WhatsApp para: ${cleanNumber}`);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': apiKey,
-      },
-      body: JSON.stringify({
-        number: cleanNumber,
-        text: message,
-      }),
-    });
 
-    const responseText = await response.text();
-    
-    if (!response.ok) {
-      console.error(`❌ Erro WhatsApp (${response.status}):`, responseText);
-      return { success: false, error: `HTTP ${response.status}: ${responseText}` };
+    // Retry com backoff exponencial para erros transitórios da Evolution API
+    // (broken pipe, connection reset, timeout, 5xx). 3 tentativas: 0ms, 1.5s, 4s.
+    const MAX_ATTEMPTS = 3;
+    const BACKOFF_MS = [0, 1500, 4000];
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      if (BACKOFF_MS[attempt - 1] > 0) {
+        await new Promise((r) => setTimeout(r, BACKOFF_MS[attempt - 1]));
+        console.log(`🔁 Tentativa ${attempt}/${MAX_ATTEMPTS} para WhatsApp ${cleanNumber}`);
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': apiKey,
+          },
+          body: JSON.stringify({ number: cleanNumber, text: message }),
+        });
+
+        const responseText = await response.text();
+
+        if (response.ok) {
+          console.log(`✅ WhatsApp de recibo enviado para ${cleanNumber} (tentativa ${attempt})`);
+          return { success: true };
+        }
+
+        lastError = `HTTP ${response.status}: ${responseText}`;
+        console.error(`❌ Erro WhatsApp tentativa ${attempt}:`, lastError);
+
+        // Só vale a pena tentar de novo em erros 5xx; 4xx é erro do payload/instância.
+        if (response.status < 500) {
+          return { success: false, error: lastError };
+        }
+      } catch (err: any) {
+        lastError = err?.message || String(err);
+        console.error(`❌ Exceção WhatsApp tentativa ${attempt}:`, lastError);
+        // Erros de rede (broken pipe, reset, timeout, fetch failed) → continuar tentando
+      }
     }
 
-    console.log(`✅ WhatsApp de recibo enviado com sucesso para: ${cleanNumber}`);
-    return { success: true };
+    return { success: false, error: `Falhou após ${MAX_ATTEMPTS} tentativas. Último erro: ${lastError}` };
   } catch (error: any) {
     console.error(`❌ Erro ao enviar WhatsApp de recibo:`, error);
     return { success: false, error: error?.message || 'Erro desconhecido' };
