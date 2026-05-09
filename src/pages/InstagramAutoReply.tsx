@@ -242,35 +242,56 @@ const InstagramAutoReply = () => {
           </h2>
           <p className="text-muted-foreground">Responda comentários e envie DMs automaticamente.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border">
+        <div className="flex items-center gap-3">
+          <div 
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2 rounded-full border-2 transition-all cursor-pointer",
+              globalSettings.auto_reply_enabled 
+                ? "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800" 
+                : "bg-muted border-border"
+            )}
+            title={globalSettings.auto_reply_enabled 
+              ? "Auto-resposta LIGADA: o sistema está respondendo comentários automaticamente. Clique para pausar." 
+              : "Auto-resposta PAUSADA: nenhuma regra está rodando. Clique para ligar."}
+          >
             <Switch 
               checked={globalSettings.auto_reply_enabled} 
               onCheckedChange={handleToggleGlobal} 
               disabled={loading}
             />
-            <span className="text-sm font-medium">
+            <span className={cn(
+              "text-xs font-bold uppercase tracking-wider",
+              globalSettings.auto_reply_enabled ? "text-green-700 dark:text-green-400" : "text-muted-foreground"
+            )}>
               {globalSettings.auto_reply_enabled ? "Ativo" : "Pausado"}
             </span>
           </div>
-          <Button variant="outline" size="icon" onClick={() => setIsConfigDialogOpen(true)}>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => setIsConfigDialogOpen(true)}
+            title="Configurações de Webhook"
+          >
             <Settings2 className="h-4 w-4" />
           </Button>
-          <Button onClick={() => {
-            setCurrentRule({
-              name: "",
-              active: true,
-              keywords: [],
-              public_response: "",
-              dm_response: "",
-              media_type: "all",
-              follower_only: false,
-              specific_media_id: "",
-              non_follower_response: "",
-            });
-            setIsMediaSelectorOpen(false);
-            setIsRuleDialogOpen(true);
-          }}>
+          <Button 
+            className="bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-90 border-none text-white shadow-md"
+            onClick={() => {
+              setCurrentRule({
+                name: "",
+                active: true,
+                keywords: [],
+                public_response: "",
+                dm_response: "",
+                media_type: "all",
+                follower_only: false,
+                specific_media_id: "",
+                non_follower_response: "",
+              });
+              setIsMediaSelectorOpen(false);
+              setIsRuleDialogOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" /> Nova Regra
           </Button>
         </div>
