@@ -68,6 +68,7 @@ const InstagramModule = () => {
   const [newAccess, setNewAccess] = useState({
     duration: "4",
     max_uses: "1",
+    permissions: ["create", "history"] as string[],
   });
 
   useEffect(() => {
