@@ -314,6 +314,11 @@ const InstagramAutoReply = () => {
                     </div>
                     <CardTitle className="text-lg">{rule.name}</CardTitle>
                     <div className="flex flex-wrap gap-1 mt-2">
+                      {rule.specific_media_id && (
+                        <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border-blue-100">
+                          Post Específico
+                        </Badge>
+                      )}
                       {rule.keywords?.map((kw: string, i: number) => (
                         <Badge key={i} variant="outline" className="text-[10px] bg-muted/50">
                           "{kw}"
