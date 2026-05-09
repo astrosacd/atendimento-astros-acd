@@ -268,6 +268,7 @@ const InstagramAutoReply = () => {
               specific_media_id: "",
               non_follower_response: "",
             });
+            setIsMediaSelectorOpen(false);
             setIsRuleDialogOpen(true);
           }}>
             <Plus className="h-4 w-4 mr-2" /> Nova Regra
