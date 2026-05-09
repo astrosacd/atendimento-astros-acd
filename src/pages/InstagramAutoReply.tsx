@@ -651,7 +651,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.non_follower_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, non_follower_response: e.target.value }))}
                   placeholder="Ex: Que legal! Me segue para eu te mandar o link no direct..."
-                  className="min-h-[80px] text-sm"
+                  className="min-h-[80px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Se preenchido, esta mensagem será enviada publicamente caso o usuário não te siga.
