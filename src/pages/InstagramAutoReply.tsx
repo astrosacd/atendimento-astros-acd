@@ -637,7 +637,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.dm_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, dm_response: e.target.value }))}
                   placeholder="Mensagem que será enviada no direct..."
-                  className="min-h-[100px] text-sm"
+                  className="min-h-[100px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
               </div>
 
