@@ -44,6 +44,7 @@ const InstagramAutoReply = () => {
   const [activeTab, setActiveTab] = useState("rules");
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [isMediaSelectorOpen, setIsMediaSelectorOpen] = useState(false);
   
   const [globalSettings, setGlobalSettings] = useState({
     auto_reply_enabled: false,
@@ -267,6 +268,7 @@ const InstagramAutoReply = () => {
               specific_media_id: "",
               non_follower_response: "",
             });
+            setIsMediaSelectorOpen(false);
             setIsRuleDialogOpen(true);
           }}>
             <Plus className="h-4 w-4 mr-2" /> Nova Regra
@@ -303,6 +305,7 @@ const InstagramAutoReply = () => {
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                           setCurrentRule(rule);
+                          setIsMediaSelectorOpen(!!rule.specific_media_id);
                           setIsRuleDialogOpen(true);
                         }}>
                           <Settings2 className="h-4 w-4 text-muted-foreground" />
@@ -477,15 +480,22 @@ const InstagramAutoReply = () => {
 
       {/* Dialog: Nova/Editar Regra */}
       <Dialog open={isRuleDialogOpen} onOpenChange={setIsRuleDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{currentRule.id ? "Editar Regra" : "Nova Regra de Auto-Resposta"}</DialogTitle>
-            <DialogDescription>
-              Defina os gatilhos e as ações que serão executadas automaticamente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div className="space-y-4">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
+          <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 p-6 text-white shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+                <Zap className="h-6 w-6 fill-white" />
+                {currentRule.id ? "Editar Regra de Automação" : "Nova Regra de Auto-Resposta"}
+              </DialogTitle>
+              <DialogDescription className="text-white/80 text-sm">
+                Configure os gatilhos e as respostas automáticas para turbinar seu Instagram.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          <ScrollArea className="flex-1 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="rule-name">Nome da Regra</Label>
                 <Input 
@@ -496,42 +506,52 @@ const InstagramAutoReply = () => {
                 />
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 p-4 bg-muted/20 rounded-xl border border-dashed">
                 <div className="flex items-center justify-between">
-                  <Label>Vincular a Post Específico?</Label>
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Vincular a Post Específico?</Label>
+                    <p className="text-[10px] text-muted-foreground">Escolha um post para que a regra funcione apenas nele.</p>
+                  </div>
                   <Switch 
-                    checked={!!currentRule.specific_media_id} 
+                    checked={isMediaSelectorOpen || !!currentRule.specific_media_id} 
                     onCheckedChange={(val) => {
+                      setIsMediaSelectorOpen(val);
                       if (!val) {
                         setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
-                      } else {
-                        // We don't have an ID yet, so it stays empty until selected
                       }
                     }}
                   />
                 </div>
                 
-                {!!currentRule.specific_media_id || (currentRule.id && currentRule.specific_media_id === "") ? (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                {(isMediaSelectorOpen || !!currentRule.specific_media_id) ? (
+                  <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <InstagramMediaSelector 
                       selectedId={currentRule.specific_media_id}
-                      onSelect={(id) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }))}
+                      onSelect={(id) => {
+                        setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }));
+                        toast({ title: "Post selecionado!", description: `ID: ${id}` });
+                      }}
                     />
                     {currentRule.specific_media_id && (
                       <Button 
-                        variant="ghost" 
+                        variant="outline" 
                         size="sm" 
-                        className="w-full text-xs h-7 text-destructive"
-                        onClick={() => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }))}
+                        className="w-full text-xs h-8 text-destructive border-destructive/20 hover:bg-destructive/10"
+                        onClick={() => {
+                          setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
+                          setIsMediaSelectorOpen(false);
+                        }}
                       >
-                        Remover vínculo com post
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Remover vínculo e responder a todos
                       </Button>
                     )}
                   </div>
                 ) : (
-                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
-                    <p className="text-[10px] text-muted-foreground">
-                      Esta regra responderá a <strong>todos</strong> os seus posts do Instagram.
+                  <div className="flex items-center gap-2 text-primary font-medium bg-primary/5 p-2 rounded-md border border-primary/10">
+                    <Info className="h-4 w-4" />
+                    <p className="text-[11px]">
+                      Esta regra responderá a <strong>TODOS</strong> os seus posts.
                     </p>
                   </div>
                 )}
@@ -638,14 +658,16 @@ const InstagramAutoReply = () => {
                 </p>
               </div>
             </div>
-          </div>
-          <DialogFooter>
+            </div>
+          </ScrollArea>
+          
+          <div className="p-4 bg-muted/30 border-t flex justify-end gap-3 shrink-0">
             <Button variant="ghost" onClick={() => setIsRuleDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveRule} disabled={loading}>
+            <Button onClick={handleSaveRule} disabled={loading} className="px-8 bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-90 border-none">
               {loading && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
-              {currentRule.id ? "Atualizar Regra" : "Salvar Regra"}
+              {currentRule.id ? "Atualizar Regra" : "Criar Regra Agora"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
