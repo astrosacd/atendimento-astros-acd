@@ -298,6 +298,11 @@ const InstagramModule = () => {
                 <Sparkles className="h-4 w-4" /> Criar Post
               </TabsTrigger>
             )}
+            {effectiveCanCreatePost && (
+              <TabsTrigger value="autoreply" className="gap-2">
+                <Zap className="h-4 w-4" /> Auto-Resposta
+              </TabsTrigger>
+            )}
             {effectiveCanViewHistory && (
               <TabsTrigger value="history" className="gap-2">
                 <History className="h-4 w-4" /> Histórico
@@ -312,6 +317,9 @@ const InstagramModule = () => {
           
           <TabsContent value="create">
             <InstagramCreate />
+          </TabsContent>
+          <TabsContent value="autoreply">
+            <InstagramAutoReply />
           </TabsContent>
           <TabsContent value="history">
             <InstagramHistory />
