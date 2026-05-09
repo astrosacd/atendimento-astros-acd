@@ -680,7 +680,7 @@ const InstagramAutoReply = () => {
               </div>
             </div>
             </div>
-          </ScrollArea>
+          </div>
           
           <div className="p-4 bg-muted/30 border-t flex justify-end gap-3 shrink-0">
             <Button variant="ghost" onClick={() => setIsRuleDialogOpen(false)}>Cancelar</Button>
