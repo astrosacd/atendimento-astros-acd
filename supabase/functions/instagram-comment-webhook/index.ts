@@ -88,7 +88,8 @@ serve(async (req) => {
           .from("ig_auto_reply_rules")
           .select("*")
           .eq("user_id", settings.user_id)
-          .eq("active", true);
+          .eq("active", true)
+          .or(`specific_media_id.is.null,specific_media_id.eq.${mediaId}`);
 
         if (!rules || rules.length === 0) continue;
 
