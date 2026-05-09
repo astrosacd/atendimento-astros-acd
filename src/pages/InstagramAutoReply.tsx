@@ -480,15 +480,22 @@ const InstagramAutoReply = () => {
 
       {/* Dialog: Nova/Editar Regra */}
       <Dialog open={isRuleDialogOpen} onOpenChange={setIsRuleDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{currentRule.id ? "Editar Regra" : "Nova Regra de Auto-Resposta"}</DialogTitle>
-            <DialogDescription>
-              Defina os gatilhos e as ações que serão executadas automaticamente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div className="space-y-4">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
+          <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 p-6 text-white shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-white flex items-center gap-2">
+                <Zap className="h-6 w-6 fill-white" />
+                {currentRule.id ? "Editar Regra de Automação" : "Nova Regra de Auto-Resposta"}
+              </DialogTitle>
+              <DialogDescription className="text-white/80 text-sm">
+                Configure os gatilhos e as respostas automáticas para turbinar seu Instagram.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          <ScrollArea className="flex-1 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="rule-name">Nome da Regra</Label>
                 <Input 
