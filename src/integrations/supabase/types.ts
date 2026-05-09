@@ -4136,12 +4136,114 @@ export type Database = {
         }
         Relationships: []
       }
+      ig_auto_reply_history: {
+        Row: {
+          comment_text: string | null
+          created_at: string
+          dm_sent: boolean | null
+          error_message: string | null
+          id: string
+          ig_comment_id: string
+          ig_media_id: string | null
+          ig_user_id: string | null
+          ig_username: string | null
+          public_response_sent: boolean | null
+          rule_id: string | null
+          user_id: string
+        }
+        Insert: {
+          comment_text?: string | null
+          created_at?: string
+          dm_sent?: boolean | null
+          error_message?: string | null
+          id?: string
+          ig_comment_id: string
+          ig_media_id?: string | null
+          ig_user_id?: string | null
+          ig_username?: string | null
+          public_response_sent?: boolean | null
+          rule_id?: string | null
+          user_id: string
+        }
+        Update: {
+          comment_text?: string | null
+          created_at?: string
+          dm_sent?: boolean | null
+          error_message?: string | null
+          id?: string
+          ig_comment_id?: string
+          ig_media_id?: string | null
+          ig_user_id?: string | null
+          ig_username?: string | null
+          public_response_sent?: boolean | null
+          rule_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_auto_reply_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "ig_auto_reply_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ig_auto_reply_rules: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          daily_limit: number | null
+          delay_seconds: number | null
+          dm_response: string | null
+          follower_only: boolean | null
+          id: string
+          keywords: string[] | null
+          media_type: string | null
+          name: string
+          public_response: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          daily_limit?: number | null
+          delay_seconds?: number | null
+          dm_response?: string | null
+          follower_only?: boolean | null
+          id?: string
+          keywords?: string[] | null
+          media_type?: string | null
+          name: string
+          public_response?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          daily_limit?: number | null
+          delay_seconds?: number | null
+          dm_response?: string | null
+          follower_only?: boolean | null
+          id?: string
+          keywords?: string[] | null
+          media_type?: string | null
+          name?: string
+          public_response?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       instagram_settings: {
         Row: {
           access_token: string | null
           account_username: string | null
           app_id: string | null
           app_secret: string | null
+          auto_reply_enabled: boolean | null
           created_at: string
           ig_user_id: string | null
           last_renewal_notification_at: string | null
@@ -4152,12 +4254,14 @@ export type Database = {
           token_expires_at: string | null
           updated_at: string
           user_id: string
+          webhook_verify_token: string | null
         }
         Insert: {
           access_token?: string | null
           account_username?: string | null
           app_id?: string | null
           app_secret?: string | null
+          auto_reply_enabled?: boolean | null
           created_at?: string
           ig_user_id?: string | null
           last_renewal_notification_at?: string | null
@@ -4168,12 +4272,14 @@ export type Database = {
           token_expires_at?: string | null
           updated_at?: string
           user_id: string
+          webhook_verify_token?: string | null
         }
         Update: {
           access_token?: string | null
           account_username?: string | null
           app_id?: string | null
           app_secret?: string | null
+          auto_reply_enabled?: boolean | null
           created_at?: string
           ig_user_id?: string | null
           last_renewal_notification_at?: string | null
@@ -4184,6 +4290,7 @@ export type Database = {
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string
+          webhook_verify_token?: string | null
         }
         Relationships: []
       }
