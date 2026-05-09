@@ -3615,7 +3615,7 @@ const AdminCobranca = () => {
             }
           }}
         >
-          <DialogContent className="bg-card border-border max-w-md">
+          <DialogContent className="bg-card border-border max-w-md sm:max-w-lg">
             {(() => {
               const currentLog = logs.find(l => l.id === resolvingLogId);
               const isError = currentLog?.status === 'error';
@@ -3632,9 +3632,14 @@ const AdminCobranca = () => {
                     </DialogDescription>
                   </DialogHeader>
                   {isError && currentLog?.error_message && (
-                    <div className="mt-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                      <p className="text-xs font-semibold text-red-400 mb-1">Mensagem de erro original:</p>
-                      <p className="text-sm text-red-300 break-words">{currentLog.error_message}</p>
+                    <div className="mt-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 max-h-32 overflow-y-auto">
+                      <p className="text-xs font-semibold text-destructive mb-1 flex items-center gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Mensagem de erro original
+                      </p>
+                      <p className="text-xs text-destructive/90 break-words leading-relaxed font-mono">
+                        {currentLog.error_message}
+                      </p>
                     </div>
                   )}
                   <div className="space-y-4 mt-2">
@@ -3644,7 +3649,7 @@ const AdminCobranca = () => {
                         <SelectTrigger className="bg-secondary border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-card border-border">
+                        <SelectContent className="bg-popover border-border z-[100] shadow-lg">
                           {isError && (
                             <>
                               <SelectItem value="whatsapp_desconectado">WhatsApp desconectado</SelectItem>
