@@ -514,7 +514,7 @@ const InstagramAutoReply = () => {
             </DialogHeader>
           </div>
           
-          <ScrollArea className="flex-1 max-h-[calc(90vh-140px)]">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
               <div className="space-y-2">
