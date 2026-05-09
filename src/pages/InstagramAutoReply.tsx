@@ -57,6 +57,7 @@ const InstagramAutoReply = () => {
     non_follower_response: "",
     media_type: "all",
     follower_only: false,
+    specific_media_id: "",
   });
 
   const [newKeyword, setNewKeyword] = useState("");
