@@ -33,6 +33,8 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import InstagramMediaSelector from "@/components/instagram/InstagramMediaSelector";
+
 const InstagramAutoReply = () => {
   const { user } = useAuth();
   const { toast } = useToast();
