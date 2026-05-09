@@ -305,6 +305,7 @@ const InstagramAutoReply = () => {
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                           setCurrentRule(rule);
+                          setIsMediaSelectorOpen(!!rule.specific_media_id);
                           setIsRuleDialogOpen(true);
                         }}>
                           <Settings2 className="h-4 w-4 text-muted-foreground" />
