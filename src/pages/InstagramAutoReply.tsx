@@ -493,8 +493,8 @@ const InstagramAutoReply = () => {
             </DialogHeader>
           </div>
           
-          <ScrollArea className="flex-1 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <ScrollArea className="flex-1 max-h-[calc(90vh-140px)]">
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="rule-name">Nome da Regra</Label>
@@ -623,7 +623,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.public_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, public_response: e.target.value }))}
                   placeholder="Sua resposta pública no Instagram..."
-                  className="min-h-[100px] text-sm"
+                  className="min-h-[100px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -637,7 +637,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.dm_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, dm_response: e.target.value }))}
                   placeholder="Mensagem que será enviada no direct..."
-                  className="min-h-[100px] text-sm"
+                  className="min-h-[100px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -651,7 +651,7 @@ const InstagramAutoReply = () => {
                   value={currentRule.non_follower_response}
                   onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, non_follower_response: e.target.value }))}
                   placeholder="Ex: Que legal! Me segue para eu te mandar o link no direct..."
-                  className="min-h-[80px] text-sm"
+                  className="min-h-[80px] text-sm focus-visible:ring-1 focus-visible:ring-offset-0"
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Se preenchido, esta mensagem será enviada publicamente caso o usuário não te siga.
