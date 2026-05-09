@@ -658,14 +658,16 @@ const InstagramAutoReply = () => {
                 </p>
               </div>
             </div>
-          </div>
-          <DialogFooter>
+            </div>
+          </ScrollArea>
+          
+          <div className="p-4 bg-muted/30 border-t flex justify-end gap-3 shrink-0">
             <Button variant="ghost" onClick={() => setIsRuleDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveRule} disabled={loading}>
+            <Button onClick={handleSaveRule} disabled={loading} className="px-8 bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-90 border-none">
               {loading && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
-              {currentRule.id ? "Atualizar Regra" : "Salvar Regra"}
+              {currentRule.id ? "Atualizar Regra" : "Criar Regra Agora"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
