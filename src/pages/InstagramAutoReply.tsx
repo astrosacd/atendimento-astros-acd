@@ -54,6 +54,7 @@ const InstagramAutoReply = () => {
     keywords: [] as string[],
     public_response: "",
     dm_response: "",
+    non_follower_response: "",
     media_type: "all",
     follower_only: false,
   });
