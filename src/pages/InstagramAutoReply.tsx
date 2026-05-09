@@ -264,6 +264,8 @@ const InstagramAutoReply = () => {
               dm_response: "",
               media_type: "all",
               follower_only: false,
+              specific_media_id: "",
+              non_follower_response: "",
             });
             setIsRuleDialogOpen(true);
           }}>
