@@ -488,6 +488,19 @@ const InstagramAutoReply = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="specific-media">ID do Post Específico (Opcional)</Label>
+                <Input 
+                  id="specific-media" 
+                  value={currentRule.specific_media_id} 
+                  onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: e.target.value }))}
+                  placeholder="ID da mídia no Instagram (vazio = todos)"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Se preenchido, a regra só funcionará para este post. Pegue o ID no Histórico.
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label>Palavras-chave (Gatilhos)</Label>
                 <div className="flex gap-2">
                   <Input 
