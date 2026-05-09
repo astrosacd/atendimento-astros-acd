@@ -43,15 +43,13 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Received Instagram webhook event:", JSON.stringify(body, null, 2));
 
-    // Basic structure check
     if (body.object !== "instagram" || !body.entry) {
       return new Response("OK", { status: 200 });
     }
 
     for (const entry of body.entry) {
-      const igUserId = entry.id; // The Instagram Business Account ID
+      const igUserId = entry.id;
       
-      // Find settings for this IG User ID
       const { data: settings, error: settingsError } = await supabase
         .from("instagram_settings")
         .select("*")
@@ -59,16 +57,14 @@ serve(async (req) => {
         .maybeSingle();
 
       if (settingsError || !settings || !settings.auto_reply_enabled) {
-        console.log(`Settings not found or auto-reply disabled for IG User ID: ${igUserId}`);
+        console.log(`Settings not found or disabled for ${igUserId}`);
         continue;
       }
 
       const accessToken = settings.access_token;
       if (!accessToken) continue;
 
-      const graphHost = accessToken.startsWith("IGAA") 
-        ? "https://graph.instagram.com/v23.0" 
-        : "https://graph.facebook.com/v23.0";
+      const graphHost = "https://graph.facebook.com/v20.0";
 
       for (const change of entry.changes || []) {
         if (change.field !== "comments") continue;
@@ -80,99 +76,40 @@ serve(async (req) => {
         const commenterUsername = value.from?.username;
         const mediaId = value.media?.id;
 
-        // Ignore own comments
         if (commenterId === igUserId) continue;
 
-        // 3. Find matching rules
+        // Find rules - Prioritize specific post rules
         const { data: rules } = await supabase
           .from("ig_auto_reply_rules")
           .select("*")
           .eq("user_id", settings.user_id)
           .eq("active", true)
-          .or(`specific_media_id.is.null,specific_media_id.eq.${mediaId}`);
+          .order("specific_media_id", { ascending: false }); // Rules with media_id first
 
-        if (!rules || rules.length === 0) continue;
+        if (!rules) continue;
 
         for (const rule of rules) {
-          let matches = false;
+          // Check if rule matches specific post (if defined)
+          if (rule.specific_media_id && rule.specific_media_id !== mediaId) continue;
 
-          // Keyword matching (OR logic: if any keyword matches)
+          let matches = false;
           if (!rule.keywords || rule.keywords.length === 0) {
-            matches = true; // Default match if no keywords defined
+            matches = true;
           } else {
             const lowerComment = commentText.toLowerCase();
             matches = rule.keywords.some(kw => lowerComment.includes(kw.toLowerCase()));
           }
 
           if (matches) {
-            console.log(`Matched rule: ${rule.name} for comment: "${commentText}"`);
+            console.log(`Matched rule: ${rule.name}`);
             
             let publicSent = false;
             let dmSent = false;
             let errorMsg = null;
 
             try {
-              // 4. Action: Public Response (Reply to comment)
-              if (rule.public_response) {
-                const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    message: rule.public_response,
-                    access_token: accessToken,
-                  }),
-                });
-                const replyData = await replyRes.json();
-                if (replyRes.ok) {
-                  publicSent = true;
-                  console.log("Public reply sent!");
-                } else {
-                  console.error("Error sending public reply:", replyData);
-                  errorMsg = `Public reply error: ${JSON.stringify(replyData)}`;
-                }
-              }
-
-              // 5. Action: Followers Check & Response Logic
-              let publicToUse = rule.public_response;
-              let shouldSendDM = !!rule.dm_response;
-
-              if (rule.follower_only && commenterId) {
-                try {
-                  // Check if user follows the page
-                  // NOTE: This usually requires a specific endpoint or checking conversation status
-                  // For Instagram, we check the friendship status if available, 
-                  // but often we rely on the error code from DM if they don't follow.
-                  // Simulating check: if non_follower_response is set, we use it.
-                  
-                  const followRes = await fetch(`${graphHost}/${igUserId}/insights?metric=follower_count&access_token=${accessToken}`);
-                  // Simplified check: if rule.non_follower_response is set, 
-                  // we might need a more complex permission. 
-                  // For now, if they don't follow, we swap the message.
-                } catch (e) {
-                  console.log("Follower check failed, continuing with default");
-                }
-              }
-
-              // Action: Public Response
-              if (publicToUse) {
-                const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    message: publicToUse,
-                    access_token: accessToken,
-                  }),
-                });
-                const replyData = await replyRes.json();
-                if (replyRes.ok) {
-                  publicSent = true;
-                } else {
-                  errorMsg = `Public reply error: ${JSON.stringify(replyData)}`;
-                }
-              }
-
-              // Action: DM Response
-              if (shouldSendDM && commenterId) {
+              // Priority 1: DM (if configured)
+              if (rule.dm_response && commenterId) {
                 const dmRes = await fetch(`${graphHost}/${igUserId}/messages`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -183,13 +120,17 @@ serve(async (req) => {
                   }),
                 });
                 const dmData = await dmRes.json();
+                
                 if (dmRes.ok) {
                   dmSent = true;
                 } else {
-                  // If DM fails because they don't follow/no conversation, 
-                  // and we have a non_follower_response, send that public reply instead
-                  if (rule.non_follower_response && (dmData.error?.code === 400 || dmData.error?.code === 10)) {
-                    await fetch(`${graphHost}/${commentId}/replies`, {
+                  console.error("DM Error:", dmData);
+                  // Error codes for "cannot message this user" (not following, no opt-in)
+                  const isFollowError = [400, 10, 100].includes(dmData.error?.code);
+                  
+                  if (isFollowError && rule.non_follower_response) {
+                    // Send non-follower public response instead
+                    const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -197,14 +138,29 @@ serve(async (req) => {
                         access_token: accessToken,
                       }),
                     });
-                    errorMsg = "User not following. Sent non-follower public message.";
+                    if (replyRes.ok) publicSent = true;
+                    errorMsg = "User not following. Sent follow-request public reply.";
                   } else {
-                    errorMsg = (errorMsg ? errorMsg + " | " : "") + `DM error: ${JSON.stringify(dmData)}`;
+                    errorMsg = `DM Error: ${dmData.error?.message || 'Unknown'}`;
                   }
                 }
               }
 
-              // 6. Log history
+              // Priority 2: Standard Public Response (if configured and not already sent a follow request)
+              if (rule.public_response && !publicSent) {
+                const replyRes = await fetch(`${graphHost}/${commentId}/replies`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    message: rule.public_response,
+                    access_token: accessToken,
+                  }),
+                });
+                if (replyRes.ok) publicSent = true;
+                else if (!errorMsg) errorMsg = "Public reply failed";
+              }
+
+              // Log history
               await supabase.from("ig_auto_reply_history").insert({
                 user_id: settings.user_id,
                 rule_id: rule.id,
@@ -218,32 +174,17 @@ serve(async (req) => {
                 error_message: errorMsg
               });
 
-              // Stop at first matching rule to avoid spamming multiple responses?
-              // Or continue? Usually, one response is enough.
-              break; 
-
+              break; // Stop after first matched rule
             } catch (err) {
-              console.error("Execution error for rule:", rule.name, err);
-              await supabase.from("ig_auto_reply_history").insert({
-                user_id: settings.user_id,
-                rule_id: rule.id,
-                ig_comment_id: commentId,
-                comment_text: commentText,
-                error_message: `Exception: ${err.message}`
-              });
+              console.error("Execution error:", err);
             }
           }
         }
       }
     }
-
     return new Response("OK", { status: 200 });
-
   } catch (error: any) {
-    console.error("Error processing Instagram webhook:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Webhook processing error:", error);
+    return new Response("Error", { status: 400 });
   }
 });
