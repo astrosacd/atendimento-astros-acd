@@ -54,6 +54,7 @@ const InstagramAutoReply = () => {
     keywords: [] as string[],
     public_response: "",
     dm_response: "",
+    non_follower_response: "",
     media_type: "all",
     follower_only: false,
   });
@@ -567,9 +568,22 @@ const InstagramAutoReply = () => {
                   placeholder="Mensagem que será enviada no direct..."
                   className="min-h-[100px] text-sm"
                 />
-                <p className="text-[10px] text-muted-foreground bg-amber-50 p-2 rounded border border-amber-100 flex gap-1.5">
-                  <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" />
-                  <span>DMs automáticas de comentários requerem que sua conta tenha permissões de Mensagens configuradas na Meta.</span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="non-follower-resp" className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-500" /> 
+                  Se não seguir (Opcional)
+                </Label>
+                <Textarea 
+                  id="non-follower-resp"
+                  value={currentRule.non_follower_response}
+                  onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, non_follower_response: e.target.value }))}
+                  placeholder="Ex: Que legal! Me segue para eu te mandar o link no direct..."
+                  className="min-h-[80px] text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Se preenchido, esta mensagem será enviada publicamente caso o usuário não te siga.
                 </p>
               </div>
             </div>

@@ -28,12 +28,33 @@ const InstagramModule = () => {
     canManageTemporaryAccess,
   } = usePermissions();
 
+  const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+
+  useEffect(() => {
+    if (isTempAccess) {
+      const token = sessionStorage.getItem("temp_access_token");
+      supabase
+        .from("temporary_access_tokens")
+        .select("permissions")
+        .eq("token", token)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setTempAccessData(data);
+        });
+    }
+  }, [isTempAccess]);
+
+  const hasPermission = (permission: string) => {
+    if (!isTempAccess) return true;
+    return tempAccessData?.permissions?.includes(permission);
+  };
 
   // Force permissions for temporary access
   const effectiveCanViewInstagram = canViewInstagram() || isTempAccess;
-  const effectiveCanCreatePost = canCreateInstagramPost() || isTempAccess;
-  const effectiveCanViewHistory = canViewInstagramHistory() || isTempAccess;
+  const effectiveCanCreatePost = canCreateInstagramPost() || (isTempAccess && hasPermission("create"));
+  const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
+  const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
 
@@ -47,6 +68,7 @@ const InstagramModule = () => {
   const [newAccess, setNewAccess] = useState({
     duration: "4",
     max_uses: "1",
+    permissions: ["create", "history"] as string[],
   });
 
   useEffect(() => {
@@ -83,6 +105,7 @@ const InstagramModule = () => {
         target_path: "/instagram",
         expires_at: expiresAt,
         max_uses: parseInt(newAccess.max_uses),
+        permissions: newAccess.permissions,
       });
 
       if (error) throw error;
@@ -209,6 +232,38 @@ const InstagramModule = () => {
                     </select>
                       </div>
                       <div className="space-y-2">
+                        <Label>Permissões</Label>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          {[
+                            { id: "create", label: "Criar Post" },
+                            { id: "autoreply", label: "Auto-Resposta" },
+                            { id: "history", label: "Histórico" },
+                          ].map((p) => (
+                            <div key={p.id} className="flex items-center space-x-2">
+                              <input 
+                                type="checkbox"
+                                id={`perm-${p.id}`}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={newAccess.permissions.includes(p.id)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setNewAccess(prev => ({
+                                    ...prev,
+                                    permissions: checked 
+                                      ? [...prev.permissions, p.id]
+                                      : prev.permissions.filter(x => x !== p.id)
+                                  }));
+                                }}
+                              />
+                              <label htmlFor={`perm-${p.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                                {p.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
                         <Label>Limite de Usos</Label>
                         <Input 
                           type="number" 
@@ -298,7 +353,7 @@ const InstagramModule = () => {
                 <Sparkles className="h-4 w-4" /> Criar Post
               </TabsTrigger>
             )}
-            {effectiveCanCreatePost && (
+            {effectiveCanManageAutoReply && (
               <TabsTrigger value="autoreply" className="gap-2">
                 <Zap className="h-4 w-4" /> Auto-Resposta
               </TabsTrigger>

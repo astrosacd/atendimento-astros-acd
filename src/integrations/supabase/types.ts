@@ -4201,6 +4201,7 @@ export type Database = {
           keywords: string[] | null
           media_type: string | null
           name: string
+          non_follower_response: string | null
           public_response: string | null
           updated_at: string
           user_id: string
@@ -4216,6 +4217,7 @@ export type Database = {
           keywords?: string[] | null
           media_type?: string | null
           name: string
+          non_follower_response?: string | null
           public_response?: string | null
           updated_at?: string
           user_id: string
@@ -4231,6 +4233,7 @@ export type Database = {
           keywords?: string[] | null
           media_type?: string | null
           name?: string
+          non_follower_response?: string | null
           public_response?: string | null
           updated_at?: string
           user_id?: string
@@ -6858,6 +6861,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           max_uses: number | null
+          permissions: string[] | null
           target_path: string
           token: string
           uses: number | null
@@ -6869,6 +6873,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
+          permissions?: string[] | null
           target_path: string
           token: string
           uses?: number | null
@@ -6880,6 +6885,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
+          permissions?: string[] | null
           target_path?: string
           token?: string
           uses?: number | null
