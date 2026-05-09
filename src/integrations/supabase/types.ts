@@ -4203,6 +4203,7 @@ export type Database = {
           name: string
           non_follower_response: string | null
           public_response: string | null
+          specific_media_id: string | null
           updated_at: string
           user_id: string
         }
@@ -4219,6 +4220,7 @@ export type Database = {
           name: string
           non_follower_response?: string | null
           public_response?: string | null
+          specific_media_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -4235,6 +4237,7 @@ export type Database = {
           name?: string
           non_follower_response?: string | null
           public_response?: string | null
+          specific_media_id?: string | null
           updated_at?: string
           user_id?: string
         }
