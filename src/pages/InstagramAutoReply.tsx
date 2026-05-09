@@ -230,7 +230,7 @@ const InstagramAutoReply = () => {
     setGlobalSettings(prev => ({ ...prev, webhook_verify_token: token }));
   };
 
-  const webhookUrl = `${window.location.origin}/functions/v1/instagram-comment-webhook`;
+  const webhookUrl = `https://udxaxemoozddkwpitngq.supabase.co/functions/v1/instagram-comment-webhook`;
 
   return (
     <div className="space-y-6">
