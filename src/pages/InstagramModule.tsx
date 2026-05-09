@@ -17,6 +17,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
+import InstagramAutoReply from "./InstagramAutoReply";
 
 const InstagramModule = () => {
   const { 
