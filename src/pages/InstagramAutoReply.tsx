@@ -497,42 +497,52 @@ const InstagramAutoReply = () => {
                 />
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 p-4 bg-muted/20 rounded-xl border border-dashed">
                 <div className="flex items-center justify-between">
-                  <Label>Vincular a Post Específico?</Label>
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Vincular a Post Específico?</Label>
+                    <p className="text-[10px] text-muted-foreground">Escolha um post para que a regra funcione apenas nele.</p>
+                  </div>
                   <Switch 
-                    checked={!!currentRule.specific_media_id} 
+                    checked={isMediaSelectorOpen || !!currentRule.specific_media_id} 
                     onCheckedChange={(val) => {
+                      setIsMediaSelectorOpen(val);
                       if (!val) {
                         setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
-                      } else {
-                        // We don't have an ID yet, so it stays empty until selected
                       }
                     }}
                   />
                 </div>
                 
-                {!!currentRule.specific_media_id || (currentRule.id && currentRule.specific_media_id === "") ? (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                {(isMediaSelectorOpen || !!currentRule.specific_media_id) ? (
+                  <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <InstagramMediaSelector 
                       selectedId={currentRule.specific_media_id}
-                      onSelect={(id) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }))}
+                      onSelect={(id) => {
+                        setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }));
+                        toast({ title: "Post selecionado!", description: `ID: ${id}` });
+                      }}
                     />
                     {currentRule.specific_media_id && (
                       <Button 
-                        variant="ghost" 
+                        variant="outline" 
                         size="sm" 
-                        className="w-full text-xs h-7 text-destructive"
-                        onClick={() => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }))}
+                        className="w-full text-xs h-8 text-destructive border-destructive/20 hover:bg-destructive/10"
+                        onClick={() => {
+                          setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
+                          setIsMediaSelectorOpen(false);
+                        }}
                       >
-                        Remover vínculo com post
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        Remover vínculo e responder a todos
                       </Button>
                     )}
                   </div>
                 ) : (
-                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
-                    <p className="text-[10px] text-muted-foreground">
-                      Esta regra responderá a <strong>todos</strong> os seus posts do Instagram.
+                  <div className="flex items-center gap-2 text-primary font-medium bg-primary/5 p-2 rounded-md border border-primary/10">
+                    <Info className="h-4 w-4" />
+                    <p className="text-[11px]">
+                      Esta regra responderá a <strong>TODOS</strong> os seus posts.
                     </p>
                   </div>
                 )}
