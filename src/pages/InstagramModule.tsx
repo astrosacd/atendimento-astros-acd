@@ -232,6 +232,38 @@ const InstagramModule = () => {
                     </select>
                       </div>
                       <div className="space-y-2">
+                        <Label>Permissões</Label>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          {[
+                            { id: "create", label: "Criar Post" },
+                            { id: "autoreply", label: "Auto-Resposta" },
+                            { id: "history", label: "Histórico" },
+                          ].map((p) => (
+                            <div key={p.id} className="flex items-center space-x-2">
+                              <input 
+                                type="checkbox"
+                                id={`perm-${p.id}`}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={newAccess.permissions.includes(p.id)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setNewAccess(prev => ({
+                                    ...prev,
+                                    permissions: checked 
+                                      ? [...prev.permissions, p.id]
+                                      : prev.permissions.filter(x => x !== p.id)
+                                  }));
+                                }}
+                              />
+                              <label htmlFor={`perm-${p.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                                {p.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
                         <Label>Limite de Usos</Label>
                         <Input 
                           type="number" 
