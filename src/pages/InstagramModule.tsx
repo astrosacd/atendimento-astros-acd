@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X } from "lucide-react";
+import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import InstagramCreate from "./InstagramCreate";
 import InstagramHistory from "./InstagramHistory";
 import InstagramSettings from "./InstagramSettings";
+import InstagramAutoReply from "./InstagramAutoReply";
 
 const InstagramModule = () => {
   const { 
@@ -297,6 +298,11 @@ const InstagramModule = () => {
                 <Sparkles className="h-4 w-4" /> Criar Post
               </TabsTrigger>
             )}
+            {effectiveCanCreatePost && (
+              <TabsTrigger value="autoreply" className="gap-2">
+                <Zap className="h-4 w-4" /> Auto-Resposta
+              </TabsTrigger>
+            )}
             {effectiveCanViewHistory && (
               <TabsTrigger value="history" className="gap-2">
                 <History className="h-4 w-4" /> Histórico
@@ -311,6 +317,9 @@ const InstagramModule = () => {
           
           <TabsContent value="create">
             <InstagramCreate />
+          </TabsContent>
+          <TabsContent value="autoreply">
+            <InstagramAutoReply />
           </TabsContent>
           <TabsContent value="history">
             <InstagramHistory />
