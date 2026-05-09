@@ -28,12 +28,33 @@ const InstagramModule = () => {
     canManageTemporaryAccess,
   } = usePermissions();
 
+  const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+
+  useEffect(() => {
+    if (isTempAccess) {
+      const token = sessionStorage.getItem("temp_access_token");
+      supabase
+        .from("temporary_access_tokens")
+        .select("permissions")
+        .eq("token", token)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setTempAccessData(data);
+        });
+    }
+  }, [isTempAccess]);
+
+  const hasPermission = (permission: string) => {
+    if (!isTempAccess) return true;
+    return tempAccessData?.permissions?.includes(permission);
+  };
 
   // Force permissions for temporary access
   const effectiveCanViewInstagram = canViewInstagram() || isTempAccess;
-  const effectiveCanCreatePost = canCreateInstagramPost() || isTempAccess;
-  const effectiveCanViewHistory = canViewInstagramHistory() || isTempAccess;
+  const effectiveCanCreatePost = canCreateInstagramPost() || (isTempAccess && hasPermission("create"));
+  const effectiveCanManageAutoReply = isTempAccess ? hasPermission("autoreply") : true; 
+  const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
 
