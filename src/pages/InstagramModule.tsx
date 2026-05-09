@@ -346,7 +346,20 @@ const InstagramModule = () => {
           )}
         </div>
 
-        <Tabs defaultValue="create" className="space-y-6">
+        <Tabs 
+          value={
+            !effectiveCanCreatePost && !effectiveCanManageAutoReply && !effectiveCanViewHistory && !effectiveCanManageSettings
+              ? "none" 
+              : undefined // Use default behavior (first tab or initial)
+          } 
+          defaultValue={
+            effectiveCanCreatePost ? "create" : 
+            effectiveCanManageAutoReply ? "autoreply" : 
+            effectiveCanViewHistory ? "history" : 
+            effectiveCanManageSettings ? "settings" : "none"
+          } 
+          className="space-y-6"
+        >
           <TabsList className="bg-muted p-1">
             {effectiveCanCreatePost && (
               <TabsTrigger value="create" className="gap-2">
