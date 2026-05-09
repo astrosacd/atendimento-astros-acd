@@ -489,17 +489,45 @@ const InstagramAutoReply = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="specific-media">ID do Post Específico (Opcional)</Label>
-                <Input 
-                  id="specific-media" 
-                  value={currentRule.specific_media_id} 
-                  onChange={(e) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: e.target.value }))}
-                  placeholder="ID da mídia no Instagram (vazio = todos)"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Se preenchido, a regra só funcionará para este post. Pegue o ID no Histórico.
-                </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Vincular a Post Específico?</Label>
+                  <Switch 
+                    checked={!!currentRule.specific_media_id} 
+                    onCheckedChange={(val) => {
+                      if (!val) {
+                        setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }));
+                      } else {
+                        // We don't have an ID yet, so it stays empty until selected
+                      }
+                    }}
+                  />
+                </div>
+                
+                {!!currentRule.specific_media_id || (currentRule.id && currentRule.specific_media_id === "") ? (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <InstagramMediaSelector 
+                      selectedId={currentRule.specific_media_id}
+                      onSelect={(id) => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: id }))}
+                    />
+                    {currentRule.specific_media_id && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full text-xs h-7 text-destructive"
+                        onClick={() => setCurrentRule((prev: any) => ({ ...prev, specific_media_id: "" }))}
+                      >
+                        Remover vínculo com post
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-muted/30 rounded-lg border border-dashed text-center">
+                    <p className="text-[10px] text-muted-foreground">
+                      Esta regra responderá a <strong>todos</strong> os seus posts do Instagram.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
