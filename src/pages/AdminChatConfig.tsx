@@ -143,7 +143,7 @@ Instruções:
 - Mantenha um tom amigável e profissional`,
     chat_quick_replies: '[]',
     chat_ai_provider: 'lovable',
-    chat_ai_model: 'google/gemini-2.5-flash',
+    chat_ai_model: 'google/gemini-2.0-flash',
     chat_openai_api_key: '',
     chat_groq_api_key: '',
     chat_google_api_key: '',
