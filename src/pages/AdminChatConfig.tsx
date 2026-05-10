@@ -119,8 +119,8 @@ const AdminChatConfig = () => {
   
   const [config, setConfig] = useState({
     chat_enabled: false,
-    chat_name: 'Chatwoot',
-    chat_welcome_message: 'Olá! Sou seu assistente Chatwoot. Como posso ajudar?',
+    chat_name: 'Lyra',
+    chat_welcome_message: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudar?',
     chat_placeholder: 'Digite sua mensagem...',
     chat_response_delay: '0',
     chat_theme_color: 'purple',
@@ -128,7 +128,7 @@ const AdminChatConfig = () => {
     chat_operating_hours_start: '08:00',
     chat_operating_hours_end: '18:00',
     chat_offline_message: 'Estamos fora do horário de atendimento. Retornaremos em breve!',
-    chat_ai_prompt: `Você é o assistente Chatwoot da Astros Comunicação Digital. 
+    chat_ai_prompt: `Você é a Lyra, assistente virtual da Astros Comunicação Digital. 
 Você é amigável, profissional e sempre disposto a ajudar.
 
 Sobre o sistema:

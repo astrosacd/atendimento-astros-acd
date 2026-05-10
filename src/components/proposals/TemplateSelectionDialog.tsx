@@ -42,6 +42,8 @@ export function TemplateSelectionDialog({
 }: TemplateSelectionDialogProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'templates' | 'ai'>('templates');
+  const [isEnteringPrompt, setIsEnteringPrompt] = useState(false);
+  const [textPrompt, setTextPrompt] = useState('');
 
   const handleConfirm = () => {
     const template = proposalTemplates.find((t) => t.id === selectedId);
@@ -51,9 +53,10 @@ export function TemplateSelectionDialog({
   };
 
   const handleTextAI = () => {
-    const prompt = window.prompt("Descreva o que deseja na proposta:");
-    if (prompt && onAISelect) {
-      onAISelect(undefined, prompt);
+    if (textPrompt.trim() && onAISelect) {
+      onAISelect(undefined, textPrompt);
+      setIsEnteringPrompt(false);
+      setTextPrompt('');
     }
   };
 
@@ -147,6 +150,7 @@ export function TemplateSelectionDialog({
                     </p>
                   </div>
                 ) : (
+                  !isEnteringPrompt ? (
                   <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto pt-4">
                     <div className="border rounded-lg bg-background p-4">
                       <AudioRecorder 
@@ -167,13 +171,46 @@ export function TemplateSelectionDialog({
                     <Button 
                       variant="outline" 
                       className="gap-2 h-12"
-                      onClick={handleTextAI}
+                      onClick={() => setIsEnteringPrompt(true)}
                       disabled={isAILoading}
                     >
                       <Sparkles className="h-4 w-4" />
                       Descrever Proposta
                     </Button>
                   </div>
+                ) : (
+                  <div className="space-y-4 max-w-md mx-auto pt-4">
+                    <div className="space-y-2 text-left">
+                      <label className="text-sm font-medium">Instruções para a IA</label>
+                      <textarea
+                        className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Ex: Crie uma proposta para gestão de tráfego pago, orçamento de R$ 2.000/mês, duração de 6 meses..."
+                        value={textPrompt}
+                        onChange={(e) => setTextPrompt(e.target.value)}
+                        disabled={isAILoading}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        className="flex-1"
+                        onClick={() => setIsEnteringPrompt(false)}
+                        disabled={isAILoading}
+                      >
+                        Voltar
+                      </Button>
+                      <Button 
+                        className="flex-1 gap-2"
+                        onClick={handleTextAI}
+                        disabled={isAILoading || !textPrompt.trim()}
+                      >
+                        {isAILoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        Gerar Agora
+                      </Button>
+                    </div>
+                  </div>
+                  )
                 )}
               </div>
             </div>

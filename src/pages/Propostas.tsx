@@ -697,7 +697,7 @@ function ProposalCard({
               <Button
                 variant="outline"
                 size="icon"
-                className="text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
+                className="text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:hover:bg-amber-900/50"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRedoRemarketing();
