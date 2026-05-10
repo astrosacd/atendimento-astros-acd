@@ -327,27 +327,30 @@ function TextEditor({
   disabled: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIGenerate = async (action: 'generate' | 'improve') => {
+  const handleAIGenerate = async (action: 'generate' | 'improve', audioData?: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action,
+          action: audioData ? 'transcribe_and_generate' : action,
           sectionType: 'text',
           currentContent: content.content || '',
           context: '',
+          audioData: audioData || undefined,
         },
       });
 
       if (error) throw error;
       if (data?.text) {
         onChange({ content: data.text });
-        toast.success(action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!');
+        toast.success(audioData ? 'Texto gerado via áudio!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
+        if (audioData) setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
-      toast.error('Erro ao gerar texto. Tente novamente.');
+      toast.error('Erro ao processar com IA.');
     } finally {
       setIsGenerating(false);
     }
@@ -359,6 +362,21 @@ function TextEditor({
         <Label>Conteúdo</Label>
         {!disabled && (
           <div className="flex gap-1">
+            <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs">
+                  <Mic className="h-3 w-3 mr-1" />
+                  Áudio
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Descreva o conteúdo</DialogTitle>
+                </DialogHeader>
+                <AudioRecorder onRecordingComplete={(audio) => handleAIGenerate('generate', audio)} isProcessing={isGenerating} />
+              </DialogContent>
+            </Dialog>
+
             <Button
               type="button"
               variant="ghost"
