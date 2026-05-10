@@ -389,6 +389,7 @@ export default function Propostas() {
                 proposal={proposal}
                 onClick={() => navigate(`/propostas/${proposal.id}`)}
                 onDelete={isAdmin ? () => setDeleteId(proposal.id) : undefined}
+                onRedoRemarketing={() => handleRedoRemarketing(proposal.id)}
                 onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
