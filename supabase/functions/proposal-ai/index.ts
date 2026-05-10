@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const AI_MODEL = "google/gemini-3-flash-preview";
+const AI_MODEL = "gpt-4o-mini";
 
 function safeJsonFromContent(content: string) {
   const cleaned = content
@@ -110,7 +110,9 @@ Instruções: ${context || fullProposalRequest || 'gerar conteúdo profissional'
 Retorne apenas o texto final em Markdown.`;
     }
 
-    console.log("Chamando AI Gateway...");
+    console.log(`Chamando AI Gateway com modelo: ${AI_MODEL}`);
+    console.log("Prompt do sistema:", systemPrompt.substring(0, 100) + "...");
+    console.log("Prompt do usuário:", userPromptContent.substring(0, 100) + "...");
     
     const requestBody: Record<string, unknown> = {
       model: AI_MODEL,
@@ -148,11 +150,13 @@ Retorne apenas o texto final em Markdown.`;
     }
 
     const aiData = await response.json();
+    console.log("Resposta recebida da AI Gateway");
     const content = aiData?.choices?.[0]?.message?.content;
     if (!content) {
+      console.error("Conteúdo ausente na resposta da IA:", JSON.stringify(aiData));
       throw new Error("A IA não retornou conteúdo");
     }
-    console.log("Conteúdo gerado com sucesso");
+    console.log("Conteúdo gerado com sucesso, tamanho:", content.length);
 
     if (action === "generate_full_proposal") {
       const proposalJson = safeJsonFromContent(content);
