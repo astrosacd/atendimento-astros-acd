@@ -36,14 +36,24 @@ export function TemplateSelectionDialog({
   open,
   onOpenChange,
   onSelect,
+  onAISelect,
   isLoading = false,
+  isAILoading = false,
 }: TemplateSelectionDialogProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'templates' | 'ai'>('templates');
 
   const handleConfirm = () => {
     const template = proposalTemplates.find((t) => t.id === selectedId);
     if (template) {
       onSelect(template);
+    }
+  };
+
+  const handleTextAI = () => {
+    const prompt = window.prompt("Descreva o que deseja na proposta:");
+    if (prompt && onAISelect) {
+      onAISelect(undefined, prompt);
     }
   };
 
