@@ -36,6 +36,9 @@ import {
   RefreshCcw,
   Video,
   CalendarClock,
+  Mic,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -53,6 +56,8 @@ import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
 import { ScheduleProposalDialog } from '@/components/proposals/ScheduleProposalDialog';
 import { RemarketingProposalDialog } from '@/components/proposals/RemarketingProposalDialog';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
+import { AudioRecorder } from '@/components/proposals/AudioRecorder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { statusConfig } from '@/types/proposals';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -145,6 +150,67 @@ export default function PropostaEditor() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showRemarketingDialog, setShowRemarketingDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [isGeneratingFullProposal, setIsGeneratingFullProposal] = useState(false);
+  const [isFullProposalAudioOpen, setIsFullProposalAudioOpen] = useState(false);
+
+  const handleFullProposalAI = async (audioData?: string, textRequest?: string) => {
+    if (!id) return;
+    setIsGeneratingFullProposal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'generate_full_proposal',
+          audioData,
+          fullProposalRequest: textRequest,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.title) setTitle(data.title);
+      
+      if (data?.sections && Array.isArray(data.sections)) {
+        // Excluir seções atuais se o usuário confirmar ou se estiver vazio
+        if (sections.length > 0) {
+          const confirm = window.confirm("Deseja substituir as seções atuais pelas geradas pela IA?");
+          if (confirm) {
+            for (const section of sections) {
+              await deleteSection.mutateAsync(section.id);
+            }
+          } else {
+            setIsGeneratingFullProposal(false);
+            return;
+          }
+        }
+
+        // Criar novas seções
+        for (const section of data.sections) {
+          const { data: newSection } = await supabase
+            .from('proposal_sections')
+            .insert({
+              proposal_id: id,
+              section_type: section.type,
+              title: section.title,
+              content: section.content,
+              order_index: data.sections.indexOf(section),
+            })
+            .select()
+            .single();
+          
+          if (newSection) {
+            queryClient.invalidateQueries({ queryKey: ['proposal-sections', id] });
+          }
+        }
+        
+        toast.success('Proposta completa gerada com sucesso!');
+        setIsFullProposalAudioOpen(false);
+      }
+    } catch (error) {
+      console.error('AI Full Proposal error:', error);
+      toast.error('Erro ao gerar proposta completa. Verifique o áudio e tente novamente.');
+    } finally {
+      setIsGeneratingFullProposal(false);
+    }
+  };
 
   // Carregar clientes
   useEffect(() => {
@@ -796,6 +862,67 @@ export default function PropostaEditor() {
                           </Button>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Geração Completa IA */}
+                {canEditProposals() && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Wand2 className="h-4 w-4 text-primary" />
+                        Gerar com IA
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Descreva toda a proposta (serviços, valores e prazos) e a IA criará todas as seções para você.
+                      </p>
+                      
+                      <div className="flex gap-2">
+                        <Dialog open={isFullProposalAudioOpen} onOpenChange={setIsFullProposalAudioOpen}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="default" 
+                              className="flex-1 gap-2" 
+                              disabled={isGeneratingFullProposal}
+                            >
+                              <Mic className="h-4 w-4" />
+                              Gravar Áudio
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Descreva sua proposta</DialogTitle>
+                            </DialogHeader>
+                            <AudioRecorder 
+                              onRecordingComplete={(audio) => handleFullProposalAI(audio)} 
+                              isProcessing={isGeneratingFullProposal} 
+                            />
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 gap-2"
+                          disabled={isGeneratingFullProposal}
+                          onClick={() => {
+                            const prompt = window.prompt("Descreva o que deseja na proposta:");
+                            if (prompt) handleFullProposalAI(undefined, prompt);
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Texto
+                        </Button>
+                      </div>
+
+                      {isGeneratingFullProposal && (
+                        <div className="flex items-center justify-center py-2 gap-2 text-sm text-primary animate-pulse font-medium">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          IA está construindo sua proposta...
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
