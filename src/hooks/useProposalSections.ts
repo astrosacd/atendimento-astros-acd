@@ -15,7 +15,11 @@ export type SectionType =
   | 'gallery' 
   | 'terms' 
   | 'signature'
-  | 'video';
+  | 'video'
+  | 'faq'
+  | 'benefits'
+  | 'process'
+  | 'links';
 
 // Local interface to avoid circular dependencies
 export interface ProposalSection {
@@ -273,6 +277,14 @@ function getDefaultContent(type: SectionType): Record<string, unknown> {
       return { signerName: '', signerRole: '', signerSignature: '' };
     case 'video':
       return { url: '', caption: '' };
+    case 'faq':
+      return { items: [] };
+    case 'benefits':
+      return { items: [] };
+    case 'process':
+      return { steps: [] };
+    case 'links':
+      return { items: [] };
     default:
       return {};
   }
