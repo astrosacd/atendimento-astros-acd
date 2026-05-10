@@ -233,32 +233,86 @@ function CoverEditor({
   onChange: (updates: Record<string, unknown>) => void;
   disabled: boolean;
 }) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
+
+  const handleAIAudio = async (audioData: string) => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'transcribe_and_generate',
+          sectionType: 'cover',
+          audioData,
+          currentContent: `Título: ${content.title || ''}, Subtítulo: ${content.subtitle || ''}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.text) {
+        // Tenta separar título e subtítulo da resposta da IA
+        const lines = data.text.split('\n').filter((l: string) => l.trim().length > 0);
+        const title = lines[0]?.replace(/^Título:\s*/i, '') || content.title;
+        const subtitle = lines[1]?.replace(/^Subtítulo:\s*/i, '') || lines.slice(1).join(' ') || content.subtitle;
+        
+        onChange({ title, subtitle });
+        toast.success('Capa gerada com áudio!');
+        setIsAudioDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+      toast.error('Erro ao processar áudio.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
+      <div className="flex items-center justify-between">
         <Label>Título da Proposta</Label>
-        <DebouncedInput
-          value={content.title || ''}
-          onChange={(value) => onChange({ title: value })}
-          placeholder="Digite o título..."
+        {!disabled && (
+          <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs">
+                <Mic className="h-3 w-3 mr-1" />
+                Áudio IA
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Grave suas instruções</DialogTitle>
+              </DialogHeader>
+              <AudioRecorder onRecordingComplete={handleAIAudio} isProcessing={isGenerating} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <DebouncedInput
+            value={content.title || ''}
+            onChange={(value) => onChange({ title: value })}
+            placeholder="Digite o título..."
+            disabled={disabled}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Subtítulo</Label>
+          <DebouncedInput
+            value={content.subtitle || ''}
+            onChange={(value) => onChange({ subtitle: value })}
+            placeholder="Digite o subtítulo..."
+            disabled={disabled}
+          />
+        </div>
+        <ImageUploadInput
+          value={content.backgroundImage || ''}
+          onChange={(url) => onChange({ backgroundImage: url })}
           disabled={disabled}
+          label="Imagem de Fundo"
         />
       </div>
-      <div className="space-y-2">
-        <Label>Subtítulo</Label>
-        <DebouncedInput
-          value={content.subtitle || ''}
-          onChange={(value) => onChange({ subtitle: value })}
-          placeholder="Digite o subtítulo..."
-          disabled={disabled}
-        />
-      </div>
-      <ImageUploadInput
-        value={content.backgroundImage || ''}
-        onChange={(url) => onChange({ backgroundImage: url })}
-        disabled={disabled}
-        label="Imagem de Fundo"
-      />
     </div>
   );
 }
