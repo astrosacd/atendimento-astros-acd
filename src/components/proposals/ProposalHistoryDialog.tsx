@@ -76,7 +76,11 @@ export function ProposalHistoryDialog({
           ) : (
             <div className="space-y-4">
               {history.map((entry) => {
-                const config = actionConfig[entry.action];
+                const config = actionConfig[entry.action as keyof typeof actionConfig] || { 
+                  label: entry.action, 
+                  icon: <History className="h-4 w-4" />, 
+                  color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' 
+                };
                 return (
                   <div
                     key={entry.id}
