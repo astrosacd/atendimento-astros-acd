@@ -16,7 +16,10 @@ function safeJsonFromContent(content: string) {
     .replace(/\s*```$/i, "")
     .trim();
 
-  const parsed = JSON.parse(cleaned);
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned;
+  const parsed = JSON.parse(jsonText);
   if (!parsed?.title || !Array.isArray(parsed?.sections)) {
     throw new Error("Resposta da IA veio incompleta");
   }
@@ -116,10 +119,6 @@ Retorne apenas o texto final em Markdown.`;
         { role: "user", content: userPromptContent },
       ],
     };
-
-    if (action === "generate_full_proposal") {
-      requestBody.response_format = { type: "json_object" };
-    }
 
     const response = await fetch(LOVABLE_GATEWAY, {
       method: "POST",
