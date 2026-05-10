@@ -29,6 +29,10 @@ import {
   Sparkles,
   Loader2,
   Mic,
+  HelpCircle,
+  Star,
+  Workflow,
+  ExternalLink,
 } from 'lucide-react';
 import { SignatureCanvas } from './SignatureCanvas';
 import { ImageUploadInput } from './ImageUploadInput';
@@ -66,6 +70,10 @@ const sectionIcons: Record<SectionType, React.ReactNode> = {
   terms: <FileText className="h-4 w-4" />,
   signature: <PenTool className="h-4 w-4" />,
   video: <Video className="h-4 w-4" />,
+  faq: <HelpCircle className="h-4 w-4" />,
+  benefits: <Star className="h-4 w-4" />,
+  process: <Workflow className="h-4 w-4" />,
+  links: <ExternalLink className="h-4 w-4" />,
 };
 
 const sectionLabels: Record<SectionType, string> = {
@@ -79,6 +87,10 @@ const sectionLabels: Record<SectionType, string> = {
   terms: 'Termos',
   signature: 'Assinatura',
   video: 'Vídeo',
+  faq: 'FAQ',
+  benefits: 'Diferenciais',
+  process: 'Processo',
+  links: 'Links',
 };
 
 function AIPromptDialog({ 
@@ -202,6 +214,14 @@ export function SectionEditor({
         return <SignatureEditor content={section.content as unknown as SignatureContent} onChange={updateContent} disabled={!canEdit} />;
       case 'video':
         return <VideoEditor content={section.content as unknown as VideoContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'faq':
+        return <FAQEditor content={section.content as unknown as FAQContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'benefits':
+        return <BenefitsEditor content={section.content as unknown as BenefitsContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'process':
+        return <ProcessEditor content={section.content as unknown as ProcessContent} onChange={updateContent} disabled={!canEdit} />;
+      case 'links':
+        return <LinksEditor content={section.content as unknown as LinksContent} onChange={updateContent} disabled={!canEdit} />;
       default:
         return (
           <div className="text-center py-4 text-muted-foreground">

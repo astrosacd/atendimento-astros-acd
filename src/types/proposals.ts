@@ -14,7 +14,11 @@ export type SectionType =
   | 'gallery' 
   | 'terms' 
   | 'signature'
-  | 'video';
+  | 'video'
+  | 'faq'
+  | 'benefits'
+  | 'process'
+  | 'links';
 
 export interface Proposal {
   id: string;
@@ -156,6 +160,47 @@ export interface VideoContent {
   caption?: string;
 }
 
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface FAQContent {
+  items: FAQItem[];
+}
+
+export interface BenefitItem {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface BenefitsContent {
+  items: BenefitItem[];
+}
+
+export interface ProcessStep {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface ProcessContent {
+  steps: ProcessStep[];
+}
+
+export interface LinkItem {
+  id: string;
+  label: string;
+  url: string;
+}
+
+export interface LinksContent {
+  items: LinkItem[];
+}
+
 // Status helpers
 export const statusConfig: Record<ProposalStatus, { label: string; color: string; bgColor: string }> = {
   draft: { label: 'Rascunho', color: 'text-muted-foreground', bgColor: 'bg-muted' },
@@ -176,4 +221,8 @@ export const sectionTypeConfig: Record<SectionType, { label: string; icon: strin
   terms: { label: 'Termos', icon: 'FileText' },
   signature: { label: 'Assinatura', icon: 'PenTool' },
   video: { label: 'Vídeo', icon: 'Video' },
+  faq: { label: 'FAQ', icon: 'HelpCircle' },
+  benefits: { label: 'Diferenciais', icon: 'Star' },
+  process: { label: 'Nosso Processo', icon: 'Workflow' },
+  links: { label: 'Links/Arquivos', icon: 'ExternalLink' },
 };

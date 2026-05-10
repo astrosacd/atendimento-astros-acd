@@ -39,6 +39,10 @@ import {
   Mic,
   Sparkles,
   Wand2,
+  HelpCircle,
+  Star,
+  Workflow,
+  ExternalLink,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -76,6 +80,10 @@ const sectionTypeConfig: Record<SectionType, { label: string; icon: string }> = 
   terms: { label: 'Termos', icon: 'FileText' },
   signature: { label: 'Assinatura', icon: 'PenTool' },
   video: { label: 'Vídeo', icon: 'Video' },
+  faq: { label: 'FAQ', icon: 'HelpCircle' },
+  benefits: { label: 'Diferenciais', icon: 'Star' },
+  process: { label: 'Processo', icon: 'Workflow' },
+  links: { label: 'Links', icon: 'ExternalLink' },
 };
 
 const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
@@ -89,6 +97,10 @@ const sectionButtons: { type: SectionType; icon: React.ReactNode }[] = [
   { type: 'terms', icon: <FileText className="h-5 w-5" /> },
   { type: 'signature', icon: <PenTool className="h-5 w-5" /> },
   { type: 'video', icon: <Video className="h-5 w-5" /> },
+  { type: 'faq', icon: <HelpCircle className="h-5 w-5" /> },
+  { type: 'benefits', icon: <Star className="h-5 w-5" /> },
+  { type: 'process', icon: <Workflow className="h-5 w-5" /> },
+  { type: 'links', icon: <ExternalLink className="h-5 w-5" /> },
 ];
 
 export default function PropostaEditor() {
