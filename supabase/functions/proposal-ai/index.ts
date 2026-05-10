@@ -160,7 +160,9 @@ Regras:
 ${context ? `Contexto: ${context}` : ""}`;
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log(`Chamando AI Gateway com action: ${action}`);
+    
+    const aiResponse = await fetch(LOVABLE_GATEWAY, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
