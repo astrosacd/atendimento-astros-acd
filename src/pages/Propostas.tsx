@@ -73,13 +73,26 @@ export default function Propostas() {
   const [isCreating, setIsCreating] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
 
+  const getAIErrorMessage = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error || '');
+    if (message.includes('429') || message.toLowerCase().includes('muitos pedidos')) {
+      return 'A IA recebeu muitos pedidos agora. Aguarde um pouco e tente novamente.';
+    }
+    if (message.includes('402') || message.toLowerCase().includes('créditos')) {
+      return 'Os créditos de IA acabaram. Adicione créditos em Settings > Workspace > Usage.';
+    }
+    return 'Erro ao gerar proposta com IA. Tente novamente.';
+  };
+
   const handleCreateWithAI = async (audioData?: string, textRequest?: string) => {
     setIsAILoading(true);
+    let createdProposalId: string | null = null;
     try {
       // 1. Criar a proposta inicial
       const result = await createProposal.mutateAsync('Proposta em Geração...');
       
       if (!result?.id) throw new Error('Falha ao criar proposta');
+      createdProposalId = result.id;
 
       // 2. Chamar a Edge Function para gerar o conteúdo
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
@@ -123,7 +136,10 @@ export default function Propostas() {
       navigate(`/propostas/${result.id}`);
     } catch (error) {
       console.error('AI Proposal Creation error:', error);
-      toast.error('Erro ao gerar proposta com IA. Tente novamente.');
+      if (createdProposalId) {
+        await supabase.from('proposals').delete().eq('id', createdProposalId).eq('status', 'draft');
+      }
+      toast.error(getAIErrorMessage(error));
     } finally {
       setIsAILoading(false);
     }
