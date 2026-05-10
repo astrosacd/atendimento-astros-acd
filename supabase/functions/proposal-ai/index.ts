@@ -10,6 +10,7 @@ const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const AI_MODEL = "gpt-4o-mini";
 
 function safeJsonFromContent(content: string) {
+  console.log("Processando conteúdo para JSON...");
   const cleaned = content
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -18,13 +19,26 @@ function safeJsonFromContent(content: string) {
 
   const jsonStart = cleaned.indexOf("{");
   const jsonEnd = cleaned.lastIndexOf("}");
-  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned;
-  const parsed = JSON.parse(jsonText);
-  if (!parsed?.title || !Array.isArray(parsed?.sections)) {
-    throw new Error("Resposta da IA veio incompleta");
+  
+  if (jsonStart === -1 || jsonEnd === -1) {
+    console.error("JSON não encontrado no conteúdo:", content);
+    throw new Error("A IA não retornou um formato JSON válido.");
   }
 
-  return parsed;
+  const jsonText = cleaned.slice(jsonStart, jsonEnd + 1);
+  
+  try {
+    const parsed = JSON.parse(jsonText);
+    if (!parsed?.title || !Array.isArray(parsed?.sections)) {
+      console.error("JSON incompleto:", parsed);
+      throw new Error("Resposta da IA veio incompleta (faltando título ou seções)");
+    }
+    return parsed;
+  } catch (e) {
+    console.error("Erro ao fazer parse do JSON:", e);
+    console.error("Texto que falhou:", jsonText);
+    throw new Error("Erro ao processar dados da IA: " + e.message);
+  }
 }
 
 serve(async (req) => {

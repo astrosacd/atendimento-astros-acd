@@ -73,7 +73,14 @@ export default function Propostas() {
   const [isCreating, setIsCreating] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  const getAIErrorMessage = (error: unknown) => {
+  const getAIErrorMessage = (error: any) => {
+    console.error('AI Error object:', error);
+    
+    // Check if error is from supabase function invoke
+    if (error?.context?.message) {
+      return `Erro da IA: ${error.context.message}`;
+    }
+    
     const message = error instanceof Error ? error.message : String(error || '');
     if (message.includes('429') || message.toLowerCase().includes('muitos pedidos')) {
       return 'A IA recebeu muitos pedidos agora. Aguarde um pouco e tente novamente.';
@@ -81,7 +88,10 @@ export default function Propostas() {
     if (message.includes('402') || message.toLowerCase().includes('créditos')) {
       return 'Os créditos de IA acabaram. Adicione créditos em Settings > Workspace > Usage.';
     }
-    return 'Erro ao gerar proposta com IA. Tente novamente.';
+    if (message.includes('invalid model')) {
+      return 'Erro: Modelo de IA inválido ou não suportado. Reporte ao suporte.';
+    }
+    return message || 'Erro ao gerar proposta com IA. Tente novamente.';
   };
 
   const handleCreateWithAI = async (audioData?: string, textRequest?: string) => {
