@@ -673,6 +673,20 @@ function ProposalCard({
             >
               <BarChart3 className="h-4 w-4" />
             </Button>
+            {proposal.status === 'viewed' && remarketingInfo && remarketingInfo.total >= 3 && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRedoRemarketing();
+                }}
+                title="Refazer Remarketing (Reiniciar campanha)"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            )}
             {onDelete && proposal.status !== 'accepted' && (
               <Button
                 variant="ghost"
