@@ -102,7 +102,7 @@ export default function PropostaEditor() {
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
   const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
-  const canEdit = canEdit && proposal?.status !== 'accepted';
+  const canEdit = canEditProposals() && proposal?.status !== 'accepted';
   const { isAdmin, user } = useAuth();
 
   const updateTimersRef = useRef<Record<string, number>>({});
