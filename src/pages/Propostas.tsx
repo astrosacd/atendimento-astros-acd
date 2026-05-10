@@ -75,6 +75,10 @@ export default function Propostas() {
 
   const getAIErrorMessage = (error: any) => {
     console.error('AI Error object:', error);
+
+    if (error?.message === 'Failed to fetch' || error?.message?.includes('Failed to fetch')) {
+      return 'Erro de conexão com a IA. Atualize a página e tente novamente.';
+    }
     
     // Check if error is from supabase function invoke
     if (error?.context?.message) {
@@ -106,16 +110,26 @@ export default function Propostas() {
       if (!result?.id) throw new Error('Falha ao criar proposta base');
       createdProposalId = result.id;
 
-      // 2. Chamar a Edge Function para gerar o conteúdo
-      console.log('Chamando Edge Function proposal-ai...');
-      const { data, error } = await supabase.functions.invoke('proposal-ai', {
-        body: {
+      // 2. Chamar a função de backend para gerar o conteúdo
+      console.log('Chamando função proposal-ai...');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const functionResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proposal-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${sessionData.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
           action: 'generate_full_proposal',
           fullProposalRequest: textRequest,
-        },
+        }),
       });
 
-      if (error) throw error;
+      const data = await functionResponse.json().catch(() => null);
+      if (!functionResponse.ok) {
+        throw new Error(data?.error || `Erro na IA (${functionResponse.status})`);
+      }
 
       // 3. Atualizar título da proposta
       if (data?.title) {
