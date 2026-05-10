@@ -115,7 +115,11 @@ Formato JSON esperado:
 }
 
 Regras:
-- Tipos de seção permitidos: cover, text, pricing, timeline, terms, gallery.
+- Tipos de seção permitidos: cover, text, pricing, timeline, team, testimonials, gallery, terms, signature, video, faq, benefits, process, links.
+- Se usar "faq", o content deve ter {"items": [{"question": "...", "answer": "..."}]}.
+- Se usar "benefits", o content deve ter {"items": [{"title": "...", "description": "..."}]}.
+- Se usar "process", o content deve ter {"steps": [{"title": "...", "description": "..."}]}.
+- Se usar "links", o content deve ter {"items": [{"label": "...", "url": "..."}]}.
 - Linguagem: Português do Brasil (PT-BR).
 - Tom: Profissional, consultivo e persuasivo.`;
 
