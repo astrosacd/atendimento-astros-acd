@@ -32,7 +32,6 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("Erro de autenticação:", authError);
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -40,23 +39,23 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, context, currentContent, sectionType, audioData, fullProposalRequest } = body;
+    const { action, context, currentContent, sectionType, fullProposalRequest } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY não configurada");
+      console.error("LOVABLE_API_KEY não encontrada");
+      throw new Error("Configuração de IA ausente");
     }
 
     let systemPrompt = "";
-    let userPromptContent: any = "";
+    let userPromptContent = "";
 
     if (action === "generate_full_proposal") {
       systemPrompt = `Você é um especialista em estruturação de propostas comerciais.
-Seu objetivo é analisar as instruções do usuário e retornar um JSON estruturado com as seções recomendadas para compor a proposta completa.
-
-Você deve retornar APENAS um JSON no seguinte formato:
+Retorne APENAS um JSON estruturado.
+O JSON deve seguir este formato EXATO:
 {
-  "title": "Título sugerido para a proposta",
+  "title": "Título da Proposta",
   "sections": [
     {
       "type": "cover",
@@ -65,89 +64,76 @@ Você deve retornar APENAS um JSON no seguinte formato:
     },
     {
       "type": "text",
-      "title": "Sobre Nós",
+      "title": "Apresentação",
       "content": { "content": "Markdown text" }
     },
     {
       "type": "pricing",
       "title": "Investimento",
-      "content": { "items": [{ "description": "...", "quantity": 1, "unitPrice": 1000 }] }
+      "content": { "items": [{ "description": "Item", "quantity": 1, "unitPrice": 1000 }] }
     }
   ]
 }
 
 Regras:
-- Tipos de seção válidos: cover, text, pricing, timeline, terms, gallery.
-- Seja profissional e persuasivo.
-- Retorne APENAS o JSON, sem explicações.`;
+- Tipos válidos: cover, text, pricing, timeline, terms, gallery.
+- Use PT-BR.
+- Retorne apenas o JSON.`;
 
-      userPromptContent = `Crie uma proposta completa baseada nestas instruções: ${fullProposalRequest || context || "Crie uma proposta comercial padrão."}`;
-    } else if (action === "generate" || action === "improve") {
-      systemPrompt = action === "improve" 
-        ? "Você é um especialista em redação comercial. Melhore o texto para ser mais profissional e persuasivo."
-        : "Você é um especialista em propostas comerciais. Gere um texto profissional e persuasivo para a seção solicitada.";
-
-      userPromptContent = `${action === "improve" ? "Melhore este texto" : "Gere conteúdo para a seção " + sectionType}:
-      
-      Conteúdo Atual: ${currentContent || "Nenhum"}
-      Contexto/Instruções: ${context || fullProposalRequest || "Nenhum"}
-      
-      Retorne apenas o texto final.`;
+      userPromptContent = `Instruções do cliente: ${fullProposalRequest || context || "Gere uma proposta comercial genérica e profissional."}`;
     } else {
-      // Fallback para outros casos
-      systemPrompt = "Você é um assistente útil para criação de propostas.";
-      userPromptContent = context || fullProposalRequest || "Ajude-me a criar uma proposta.";
+      systemPrompt = "Você é um especialista em redação de propostas comerciais. Gere ou melhore o conteúdo solicitado de forma profissional e persuasiva.";
+      userPromptContent = `Ação: ${action}
+Tipo de Seção: ${sectionType || 'geral'}
+Conteúdo Atual: ${currentContent || 'vazio'}
+Instruções: ${context || fullProposalRequest || 'gerar conteúdo profissional'}
+
+Retorne apenas o texto final em Markdown.`;
     }
 
-    console.log(`Chamando AI Gateway com action: ${action}`);
+    console.log("Chamando AI Gateway...");
     
-    const aiResponse = await fetch(LOVABLE_GATEWAY, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Usando gpt-4o-mini que é muito estável e suporta JSON mode
+        model: "openai/gpt-5-mini", 
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPromptContent },
         ],
-        max_tokens: 2500,
-        response_format: action === "generate_full_proposal" ? { type: "json_object" } : undefined,
+        response_format: action === "generate_full_proposal" ? { type: "json_object" } : { type: "text" },
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-      throw new Error(`Erro na IA (${aiResponse.status}): ${errorText}`);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Erro na API da OpenAI/Gateway:", response.status, errorData);
+      throw new Error(`Falha na IA (${response.status}): ${errorData}`);
     }
 
-    const data = await aiResponse.json();
-    const generatedContent = data.choices?.[0]?.message?.content || "";
+    const aiData = await response.json();
+    const content = aiData.choices[0].message.content;
+    console.log("Conteúdo gerado com sucesso");
 
     if (action === "generate_full_proposal") {
-      try {
-        const parsed = JSON.parse(generatedContent);
-        return new Response(JSON.stringify(parsed), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      } catch (e) {
-        console.error("Erro ao fazer parse do JSON da IA:", e, generatedContent);
-        throw new Error("A IA não retornou um formato válido. Tente ser mais específico.");
-      }
+      return new Response(content, {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ text: generatedContent.trim() }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ text: content.trim() }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   } catch (error) {
-    console.error("Proposal AI error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno no servidor" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("Erro geral na function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
