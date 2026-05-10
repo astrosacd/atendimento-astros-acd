@@ -65,11 +65,34 @@ const InstagramModule = () => {
   const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
+  const [editingToken, setEditingToken] = useState<any | null>(null);
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [newAccess, setNewAccess] = useState({
     duration: "4",
     max_uses: "1",
     permissions: ["create", "history"] as string[],
   });
+
+  const PERMISSION_OPTIONS = [
+    { id: "create", label: "Criar Post" },
+    { id: "autoreply", label: "Auto-Resposta" },
+    { id: "history", label: "Histórico" },
+  ];
+
+  const updateTokenPermissions = async () => {
+    if (!editingToken) return;
+    const { error } = await supabase
+      .from("temporary_access_tokens")
+      .update({ permissions: editPermissions })
+      .eq("id", editingToken.id);
+    if (error) {
+      toast.error("Erro ao atualizar permissões");
+    } else {
+      toast.success("Permissões atualizadas!");
+      setEditingToken(null);
+      fetchTokens();
+    }
+  };
 
   useEffect(() => {
     if (effectiveCanManageTempAccess) {
@@ -347,11 +370,6 @@ const InstagramModule = () => {
         </div>
 
         <Tabs 
-          value={
-            !effectiveCanCreatePost && !effectiveCanManageAutoReply && !effectiveCanViewHistory && !effectiveCanManageSettings
-              ? "none" 
-              : undefined // Use default behavior (first tab or initial)
-          } 
           defaultValue={
             effectiveCanCreatePost ? "create" : 
             effectiveCanManageAutoReply ? "autoreply" : 
