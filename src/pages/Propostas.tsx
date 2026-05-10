@@ -640,7 +640,7 @@ function ProposalCard({
             >
               <BarChart3 className="h-4 w-4" />
             </Button>
-            {onDelete && (
+            {onDelete && proposal.status !== 'accepted' && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -649,6 +649,7 @@ function ProposalCard({
                   e.stopPropagation();
                   onDelete();
                 }}
+                title="Excluir proposta"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
