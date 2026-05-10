@@ -38,6 +38,7 @@ import { TestimonialsEditor } from './TestimonialsEditor';
 import { markdownHint } from './MarkdownRenderer';
 import { AudioRecorder } from './AudioRecorder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
   CoverContent,
@@ -79,6 +80,72 @@ const sectionLabels: Record<SectionType, string> = {
   signature: 'Assinatura',
   video: 'Vídeo',
 };
+
+function AIPromptDialog({ 
+  onConfirm, 
+  isProcessing, 
+  title = "Instruções para a IA",
+  buttonLabel = "Gerar com IA"
+}: { 
+  onConfirm: (text: string) => void, 
+  isProcessing: boolean,
+  title?: string,
+  buttonLabel?: string
+}) {
+  const [text, setText] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 text-xs">
+          <Sparkles className="h-3 w-3 mr-1" />
+          {buttonLabel}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <Tabs defaultValue="text" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="text">Texto</TabsTrigger>
+            <TabsTrigger value="audio">Voz</TabsTrigger>
+          </TabsList>
+          <TabsContent value="text" className="space-y-4 pt-4">
+            <Textarea 
+              placeholder="Descreva o que deseja nesta seção..." 
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={4}
+            />
+            <Button 
+              className="w-full" 
+              onClick={() => {
+                onConfirm(text);
+                setIsOpen(false);
+                setText('');
+              }}
+              disabled={isProcessing || !text.trim()}
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              Gerar agora
+            </Button>
+          </TabsContent>
+          <TabsContent value="audio" className="pt-4">
+            <AudioRecorder 
+              onRecordingComplete={(transcribed) => {
+                onConfirm(transcribed);
+                setIsOpen(false);
+              }} 
+              isProcessing={isProcessing} 
+            />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 interface SectionEditorProps {
   section: ProposalSection;
@@ -222,8 +289,6 @@ export function SectionEditor({
   );
 }
 
-// Editores específicos por tipo
-
 function CoverEditor({
   content,
   onChange,
@@ -234,7 +299,6 @@ function CoverEditor({
   disabled: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
   const handleAIAudio = async (transcribedText: string) => {
     setIsGenerating(true);
@@ -256,7 +320,6 @@ function CoverEditor({
         
         onChange({ title, subtitle });
         toast.success('Capa gerada!');
-        setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
@@ -271,20 +334,7 @@ function CoverEditor({
       <div className="flex items-center justify-between">
         <Label>Título da Proposta</Label>
         {!disabled && (
-          <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs">
-                <Mic className="h-3 w-3 mr-1" />
-                Áudio IA
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Grave suas instruções</DialogTitle>
-              </DialogHeader>
-              <AudioRecorder onRecordingComplete={handleAIAudio} isProcessing={isGenerating} />
-            </DialogContent>
-          </Dialog>
+          <AIPromptDialog onConfirm={handleAIAudio} isProcessing={isGenerating} title="Gerar Capa com IA" />
         )}
       </div>
       <div className="space-y-4">
@@ -326,7 +376,6 @@ function TextEditor({
   disabled: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
   const handleAIGenerate = async (action: 'generate' | 'improve', transcribedText?: string) => {
     setIsGenerating(true);
@@ -344,7 +393,6 @@ function TextEditor({
       if (data?.text) {
         onChange({ content: data.text });
         toast.success(transcribedText ? 'Texto gerado via voz!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
-        if (transcribedText) setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
@@ -360,36 +408,11 @@ function TextEditor({
         <Label>Conteúdo</Label>
         {!disabled && (
           <div className="flex gap-1">
-            <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs">
-                  <Mic className="h-3 w-3 mr-1" />
-                  Áudio
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Descreva o conteúdo</DialogTitle>
-                </DialogHeader>
-                <AudioRecorder onRecordingComplete={(audio) => handleAIGenerate('generate', audio)} isProcessing={isGenerating} />
-              </DialogContent>
-            </Dialog>
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleAIGenerate('generate')}
-              disabled={isGenerating}
-              className="text-xs h-7"
-            >
-              {isGenerating ? (
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              ) : (
-                <Sparkles className="h-3 w-3 mr-1" />
-              )}
-              Gerar com IA
-            </Button>
+            <AIPromptDialog 
+              onConfirm={(text) => handleAIGenerate('generate', text)} 
+              isProcessing={isGenerating} 
+              title="Gerar texto com IA"
+            />
             {content.content && (
               <Button
                 type="button"
@@ -399,11 +422,7 @@ function TextEditor({
                 disabled={isGenerating}
                 className="text-xs h-7"
               >
-                {isGenerating ? (
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3 mr-1" />
-                )}
+                {isGenerating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
                 Melhorar
               </Button>
             )}
@@ -622,7 +641,6 @@ function TermsEditor({
   disabled: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
   const handleAIAudio = async (transcribedText: string) => {
     setIsGenerating(true);
@@ -640,7 +658,6 @@ function TermsEditor({
       if (data?.text) {
         onChange({ content: data.text });
         toast.success('Termos gerados!');
-        setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
@@ -655,20 +672,7 @@ function TermsEditor({
       <div className="flex items-center justify-between">
         <Label>Termos e Condições</Label>
         {!disabled && (
-          <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs">
-                <Mic className="h-3 w-3 mr-1" />
-                Áudio
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Descreva os termos comerciais</DialogTitle>
-              </DialogHeader>
-              <AudioRecorder onRecordingComplete={handleAIAudio} isProcessing={isGenerating} />
-            </DialogContent>
-          </Dialog>
+          <AIPromptDialog onConfirm={handleAIAudio} isProcessing={isGenerating} title="Gerar Termos com IA" />
         )}
       </div>
       <DebouncedTextarea
@@ -742,17 +746,14 @@ function VideoEditor({
   onChange: (updates: Record<string, unknown>) => void;
   disabled: boolean;
 }) {
-  // Helper to extract video ID for preview
   const getEmbedUrl = (url: string): string | null => {
     if (!url) return null;
     
-    // YouTube
     const youtubeMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (youtubeMatch) {
       return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
     }
     
-    // Vimeo
     const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vimeoMatch) {
       return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
