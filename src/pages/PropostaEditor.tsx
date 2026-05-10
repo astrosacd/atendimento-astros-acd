@@ -150,6 +150,67 @@ export default function PropostaEditor() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showRemarketingDialog, setShowRemarketingDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [isGeneratingFullProposal, setIsGeneratingFullProposal] = useState(false);
+  const [isFullProposalAudioOpen, setIsFullProposalAudioOpen] = useState(false);
+
+  const handleFullProposalAI = async (audioData?: string, textRequest?: string) => {
+    if (!id) return;
+    setIsGeneratingFullProposal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'generate_full_proposal',
+          audioData,
+          fullProposalRequest: textRequest,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.title) setTitle(data.title);
+      
+      if (data?.sections && Array.isArray(data.sections)) {
+        // Excluir seções atuais se o usuário confirmar ou se estiver vazio
+        if (sections.length > 0) {
+          const confirm = window.confirm("Deseja substituir as seções atuais pelas geradas pela IA?");
+          if (confirm) {
+            for (const section of sections) {
+              await deleteSection.mutateAsync(section.id);
+            }
+          } else {
+            setIsGeneratingFullProposal(false);
+            return;
+          }
+        }
+
+        // Criar novas seções
+        for (const section of data.sections) {
+          const { data: newSection } = await supabase
+            .from('proposal_sections')
+            .insert({
+              proposal_id: id,
+              section_type: section.type,
+              title: section.title,
+              content: section.content,
+              order_index: data.sections.indexOf(section),
+            })
+            .select()
+            .single();
+          
+          if (newSection) {
+            queryClient.invalidateQueries({ queryKey: ['proposal-sections', id] });
+          }
+        }
+        
+        toast.success('Proposta completa gerada com sucesso!');
+        setIsFullProposalAudioOpen(false);
+      }
+    } catch (error) {
+      console.error('AI Full Proposal error:', error);
+      toast.error('Erro ao gerar proposta completa. Verifique o áudio e tente novamente.');
+    } finally {
+      setIsGeneratingFullProposal(false);
+    }
+  };
 
   // Carregar clientes
   useEffect(() => {
