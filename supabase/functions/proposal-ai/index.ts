@@ -39,7 +39,6 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    console.log("Body recebido:", JSON.stringify(body));
     const { action, context, currentContent, sectionType, fullProposalRequest } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
