@@ -36,6 +36,9 @@ import {
   RefreshCcw,
   Video,
   CalendarClock,
+  Mic,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -53,6 +56,8 @@ import { SendProposalDialog } from '@/components/proposals/SendProposalDialog';
 import { ScheduleProposalDialog } from '@/components/proposals/ScheduleProposalDialog';
 import { RemarketingProposalDialog } from '@/components/proposals/RemarketingProposalDialog';
 import { ProposalViewsHistory } from '@/components/proposals/ProposalViewsHistory';
+import { AudioRecorder } from '@/components/proposals/AudioRecorder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { statusConfig } from '@/types/proposals';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
