@@ -150,7 +150,7 @@ export function TemplateSelectionDialog({
                   <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto pt-4">
                     <div className="border rounded-lg bg-background p-4">
                       <AudioRecorder 
-                        onRecordingComplete={(audio) => onAISelect?.(audio)} 
+                        onRecordingComplete={(text) => onAISelect?.(undefined, text)} 
                         isProcessing={isAILoading} 
                       />
                     </div>
