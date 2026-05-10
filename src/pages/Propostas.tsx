@@ -73,7 +73,14 @@ export default function Propostas() {
   const [isCreating, setIsCreating] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  const getAIErrorMessage = (error: unknown) => {
+  const getAIErrorMessage = (error: any) => {
+    console.error('AI Error object:', error);
+    
+    // Check if error is from supabase function invoke
+    if (error?.context?.message) {
+      return `Erro da IA: ${error.context.message}`;
+    }
+    
     const message = error instanceof Error ? error.message : String(error || '');
     if (message.includes('429') || message.toLowerCase().includes('muitos pedidos')) {
       return 'A IA recebeu muitos pedidos agora. Aguarde um pouco e tente novamente.';
@@ -81,24 +88,29 @@ export default function Propostas() {
     if (message.includes('402') || message.toLowerCase().includes('créditos')) {
       return 'Os créditos de IA acabaram. Adicione créditos em Settings > Workspace > Usage.';
     }
-    return 'Erro ao gerar proposta com IA. Tente novamente.';
+    if (message.includes('invalid model')) {
+      return 'Erro: Modelo de IA inválido ou não suportado. Reporte ao suporte.';
+    }
+    return message || 'Erro ao gerar proposta com IA. Tente novamente.';
   };
 
   const handleCreateWithAI = async (audioData?: string, textRequest?: string) => {
     setIsAILoading(true);
     let createdProposalId: string | null = null;
+    console.log('Iniciando geração de proposta com IA...', { textRequest });
     try {
       // 1. Criar a proposta inicial
       const result = await createProposal.mutateAsync('Proposta em Geração...');
+      console.log('Proposta inicial criada:', result?.id);
       
-      if (!result?.id) throw new Error('Falha ao criar proposta');
+      if (!result?.id) throw new Error('Falha ao criar proposta base');
       createdProposalId = result.id;
 
       // 2. Chamar a Edge Function para gerar o conteúdo
+      console.log('Chamando Edge Function proposal-ai...');
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
           action: 'generate_full_proposal',
-          audioData,
           fullProposalRequest: textRequest,
         },
       });
@@ -714,12 +726,12 @@ function ProposalCard({
               <Button
                 variant="outline"
                 size="icon"
-                className="text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:hover:bg-amber-900/50"
+                className="bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-600 hover:text-white transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRedoRemarketing();
                 }}
-                title="Refazer Remarketing (Reiniciar campanha)"
+                title="Refazer Remarketing (Reiniciar ciclo)"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>

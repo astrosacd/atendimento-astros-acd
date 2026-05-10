@@ -7,9 +7,10 @@ const corsHeaders = {
 };
 
 const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const AI_MODEL = "google/gemini-3-flash-preview";
+const AI_MODEL = "gpt-4o-mini";
 
 function safeJsonFromContent(content: string) {
+  console.log("Processando conteúdo para JSON...");
   const cleaned = content
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -18,13 +19,26 @@ function safeJsonFromContent(content: string) {
 
   const jsonStart = cleaned.indexOf("{");
   const jsonEnd = cleaned.lastIndexOf("}");
-  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned;
-  const parsed = JSON.parse(jsonText);
-  if (!parsed?.title || !Array.isArray(parsed?.sections)) {
-    throw new Error("Resposta da IA veio incompleta");
+  
+  if (jsonStart === -1 || jsonEnd === -1) {
+    console.error("JSON não encontrado no conteúdo:", content);
+    throw new Error("A IA não retornou um formato JSON válido.");
   }
 
-  return parsed;
+  const jsonText = cleaned.slice(jsonStart, jsonEnd + 1);
+  
+  try {
+    const parsed = JSON.parse(jsonText);
+    if (!parsed?.title || !Array.isArray(parsed?.sections)) {
+      console.error("JSON incompleto:", parsed);
+      throw new Error("Resposta da IA veio incompleta (faltando título ou seções)");
+    }
+    return parsed;
+  } catch (e) {
+    console.error("Erro ao fazer parse do JSON:", e);
+    console.error("Texto que falhou:", jsonText);
+    throw new Error("Erro ao processar dados da IA: " + e.message);
+  }
 }
 
 serve(async (req) => {
@@ -70,47 +84,56 @@ serve(async (req) => {
     let userPromptContent = "";
 
     if (action === "generate_full_proposal") {
-      systemPrompt = `Você é um especialista em estruturação de propostas comerciais.
-Retorne APENAS um JSON estruturado.
-O JSON deve seguir este formato EXATO:
+      systemPrompt = `Você é um especialista em estruturação de propostas comerciais no Brasil.
+Retorne APENAS um JSON válido. Não inclua texto explicativo antes ou depois.
+
+Formato JSON esperado:
 {
-  "title": "Título da Proposta",
+  "title": "Título Profissional da Proposta",
   "sections": [
     {
       "type": "cover",
       "title": "Capa",
-      "content": { "title": "...", "subtitle": "..." }
+      "content": { "title": "Nome do Projeto", "subtitle": "Apresentação de Soluções" }
     },
     {
       "type": "text",
       "title": "Apresentação",
-      "content": { "content": "Markdown text" }
+      "content": { "content": "Texto markdown profissional sobre a empresa e solução..." }
     },
     {
       "type": "pricing",
       "title": "Investimento",
-      "content": { "items": [{ "description": "Item", "quantity": 1, "unitPrice": 1000 }] }
+      "content": { "items": [{ "description": "Serviço X", "quantity": 1, "unitPrice": 1500 }] }
+    },
+    {
+      "type": "terms",
+      "title": "Condições",
+      "content": { "content": "Prazos de entrega, validade da proposta e formas de pagamento..." }
     }
   ]
 }
 
 Regras:
-- Tipos válidos: cover, text, pricing, timeline, terms, gallery.
-- Use PT-BR.
-- Retorne apenas o JSON.`;
+- Tipos de seção permitidos: cover, text, pricing, timeline, terms, gallery.
+- Linguagem: Português do Brasil (PT-BR).
+- Tom: Profissional, consultivo e persuasivo.`;
 
-      userPromptContent = `Instruções do cliente: ${fullProposalRequest || context || "Gere uma proposta comercial genérica e profissional."}`;
+      userPromptContent = `O cliente solicitou uma proposta com estas instruções: ${fullProposalRequest || context || "Gere uma proposta comercial padrão."}
+Baseado nisso, estruture a proposta completa com título e seções relevantes.`;
     } else {
-      systemPrompt = "Você é um especialista em redação de propostas comerciais. Gere ou melhore o conteúdo solicitado de forma profissional e persuasiva.";
-      userPromptContent = `Ação: ${action}
-Tipo de Seção: ${sectionType || 'geral'}
-Conteúdo Atual: ${currentContent || 'vazio'}
-Instruções: ${context || fullProposalRequest || 'gerar conteúdo profissional'}
+      systemPrompt = "Você é um redator sênior de propostas comerciais. Melhore o texto fornecido mantendo um tom profissional e direto. Retorne apenas o texto final em Markdown.";
+      userPromptContent = `Ação solicitada: ${action}
+Tipo da seção: ${sectionType || 'geral'}
+Conteúdo atual: ${currentContent || '(vazio)'}
+Instruções adicionais: ${context || fullProposalRequest || 'Gere um conteúdo profissional e persuasivo para esta seção.'}
 
-Retorne apenas o texto final em Markdown.`;
+Retorne apenas o texto em Markdown.`;
     }
 
-    console.log("Chamando AI Gateway...");
+    console.log(`Chamando AI Gateway com modelo: ${AI_MODEL}`);
+    console.log("Prompt do sistema:", systemPrompt.substring(0, 100) + "...");
+    console.log("Prompt do usuário:", userPromptContent.substring(0, 100) + "...");
     
     const requestBody: Record<string, unknown> = {
       model: AI_MODEL,
@@ -148,11 +171,13 @@ Retorne apenas o texto final em Markdown.`;
     }
 
     const aiData = await response.json();
+    console.log("Resposta recebida da AI Gateway");
     const content = aiData?.choices?.[0]?.message?.content;
     if (!content) {
+      console.error("Conteúdo ausente na resposta da IA:", JSON.stringify(aiData));
       throw new Error("A IA não retornou conteúdo");
     }
-    console.log("Conteúdo gerado com sucesso");
+    console.log("Conteúdo gerado com sucesso, tamanho:", content.length);
 
     if (action === "generate_full_proposal") {
       const proposalJson = safeJsonFromContent(content);
