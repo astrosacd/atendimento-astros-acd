@@ -64,7 +64,7 @@ export default function Propostas() {
   const navigate = useNavigate();
   const { proposals, isLoading, stats, createProposal, deleteProposal, proposalSendChannels } = useProposals();
   const { canCreateProposals } = usePermissions();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
