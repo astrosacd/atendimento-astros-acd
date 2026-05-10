@@ -79,14 +79,14 @@ Retorne apenas o texto final em Markdown.`;
 
     console.log("Chamando AI Gateway...");
     
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o", // Usando gpt-4o para melhor qualidade e suporte JSON
+        model: "gpt-4o-mini", 
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPromptContent },
