@@ -170,7 +170,8 @@ ${context ? `Contexto: ${context}` : ""}`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 1500,
+        max_tokens: 2500,
+        response_format: action === "generate_full_proposal" ? { type: "json_object" } : undefined,
       }),
     });
 
