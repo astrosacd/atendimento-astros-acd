@@ -12,7 +12,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -36,36 +35,8 @@ serve(async (req) => {
       );
     }
 
-    const { action, context, currentContent, sectionType } = await req.json();
-
-    // --- Input validation ---
-    if (!action || typeof action !== 'string' || !['generate', 'improve'].includes(action)) {
-      return new Response(
-        JSON.stringify({ error: "action deve ser 'generate' ou 'improve'" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (context && (typeof context !== 'string' || context.length > 5000)) {
-      return new Response(
-        JSON.stringify({ error: "context muito longo (máx 5000 caracteres)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (currentContent && (typeof currentContent !== 'string' || currentContent.length > 10000)) {
-      return new Response(
-        JSON.stringify({ error: "currentContent muito longo (máx 10000 caracteres)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (sectionType && (typeof sectionType !== 'string' || sectionType.length > 50)) {
-      return new Response(
-        JSON.stringify({ error: "sectionType inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const body = await req.json();
+    const { action, context, currentContent, sectionType, audioData } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -73,9 +44,37 @@ serve(async (req) => {
     }
 
     let systemPrompt = "";
-    let userPrompt = "";
+    let userPrompt: any = "";
 
-    if (action === "generate") {
+    if (action === "transcribe_and_generate") {
+      systemPrompt = `Você é um assistente especializado em criar propostas comerciais.
+Seu objetivo é ouvir o áudio do usuário (fornecido como dados base64) e extrair as informações necessárias para preencher uma seção específica de uma proposta comercial.
+
+Regras:
+- Transforme o que o usuário falou em um texto profissional, persuasivo e bem estruturado.
+- Se for uma seção de 'texto', crie parágrafos atraentes.
+- Se for uma 'capa', crie um título e subtítulo profissionais.
+- Se for 'termos', formalize as condições mencionadas.
+- Ignore ruídos e hesitações, foque no conteúdo útil.
+- Responda apenas com o texto final da seção, sem comentários adicionais.`;
+
+      userPrompt = [
+        {
+          type: "text",
+          text: `Abaixo está um áudio onde o usuário descreve o que quer na seção "${sectionType}" da proposta.
+Por favor, gere o conteúdo final para esta seção com base no que foi dito.
+
+${context ? `Contexto adicional da proposta: ${context}` : ""}
+${currentContent ? `Conteúdo atual (que pode ser substituído ou complementado): ${currentContent}` : ""}`
+        },
+        {
+          type: "media_url",
+          media_url: {
+            url: `data:audio/webm;base64,${audioData}`
+          }
+        }
+      ];
+    } else if (action === "generate") {
       systemPrompt = `Você é um especialista em propostas comerciais. Seu objetivo é gerar textos profissionais, persuasivos e objetivos para propostas comerciais.
 
 Regras:
@@ -115,7 +114,7 @@ Regras:
 ${context ? `Contexto: ${context}` : ""}`;
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -127,29 +126,20 @@ ${context ? `Contexto: ${context}` : ""}`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns instantes." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      throw new Error("Erro ao comunicar com IA");
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI Gateway error:", aiResponse.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "Erro ao comunicar com IA" }),
+        { status: aiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const data = await response.json();
+    const data = await aiResponse.json();
     const generatedText = data.choices?.[0]?.message?.content || "";
 
     return new Response(
