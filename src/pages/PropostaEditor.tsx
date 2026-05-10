@@ -777,7 +777,7 @@ export default function PropostaEditor() {
 
                 {/* Adicionar Seção */}
                 {canEditProposals() && (
-                  <Card>
+                  <Card className="sticky top-[180px] z-0">
                     <CardHeader>
                       <CardTitle className="text-base">Adicionar Seção</CardTitle>
                     </CardHeader>
