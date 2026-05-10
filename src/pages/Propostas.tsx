@@ -97,18 +97,20 @@ export default function Propostas() {
   const handleCreateWithAI = async (audioData?: string, textRequest?: string) => {
     setIsAILoading(true);
     let createdProposalId: string | null = null;
+    console.log('Iniciando geração de proposta com IA...', { textRequest });
     try {
       // 1. Criar a proposta inicial
       const result = await createProposal.mutateAsync('Proposta em Geração...');
+      console.log('Proposta inicial criada:', result?.id);
       
-      if (!result?.id) throw new Error('Falha ao criar proposta');
+      if (!result?.id) throw new Error('Falha ao criar proposta base');
       createdProposalId = result.id;
 
       // 2. Chamar a Edge Function para gerar o conteúdo
+      console.log('Chamando Edge Function proposal-ai...');
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
           action: 'generate_full_proposal',
-          audioData,
           fullProposalRequest: textRequest,
         },
       });
