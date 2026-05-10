@@ -23,6 +23,10 @@ import type {
   TeamContent,
   TestimonialsContent,
   VideoContent,
+  FAQContent,
+  BenefitsContent,
+  ProcessContent,
+  LinksContent,
 } from '@/types/proposals';
 import { useProposalBranding, type ProposalBranding, type SocialLinks, type ClientLogo, type Certification } from '@/hooks/useProposalBranding';
 import { Instagram, Facebook, Linkedin, Twitter, Youtube, Globe, Phone, Mail } from 'lucide-react';
@@ -196,6 +200,14 @@ function renderSection(
       return <SignaturePreview content={section.content as unknown as SignatureContent} client={client} branding={branding} proposal={proposal} />;
     case 'video':
       return <VideoPreview content={section.content as unknown as VideoContent} title={section.title} branding={branding} />;
+    case 'faq':
+      return <FAQPreview content={section.content as unknown as FAQContent} title={section.title} branding={branding} />;
+    case 'benefits':
+      return <BenefitsPreview content={section.content as unknown as BenefitsContent} title={section.title} branding={branding} />;
+    case 'process':
+      return <ProcessPreview content={section.content as unknown as ProcessContent} title={section.title} branding={branding} />;
+    case 'links':
+      return <LinksPreview content={section.content as unknown as LinksContent} title={section.title} branding={branding} />;
     default:
       return (
         <div className="text-center text-muted-foreground">
@@ -829,6 +841,91 @@ function FooterSection({ branding }: { branding: BrandingStyles }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function FAQPreview({ content, title, branding }: { content: FAQContent; title: string | null; branding?: BrandingStyles }) {
+  const items = content.items || [];
+  return (
+    <div>
+      {title && <h2 className="text-xl font-bold mb-4" style={{ color: branding?.primaryColor }}>{title}</h2>}
+      <div className="space-y-4">
+        {items.map((item) => (
+          <div key={item.id} className="border rounded-lg p-4 bg-muted/20">
+            <h3 className="font-semibold mb-2">{item.question}</h3>
+            <p className="text-muted-foreground whitespace-pre-wrap">{item.answer}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BenefitsPreview({ content, title, branding }: { content: BenefitsContent; title: string | null; branding?: BrandingStyles }) {
+  const items = content.items || [];
+  return (
+    <div>
+      {title && <h2 className="text-xl font-bold mb-6" style={{ color: branding?.primaryColor }}>{title}</h2>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {items.map((item) => (
+          <div key={item.id} className="flex gap-4">
+            <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-primary/10 text-primary">
+              <Star className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold mb-1">{item.title}</h3>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProcessPreview({ content, title, branding }: { content: ProcessContent; title: string | null; branding?: BrandingStyles }) {
+  const steps = content.steps || [];
+  return (
+    <div>
+      {title && <h2 className="text-xl font-bold mb-6" style={{ color: branding?.primaryColor }}>{title}</h2>}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {steps.map((step, index) => (
+          <div key={step.id} className="relative">
+            <div className="text-4xl font-black opacity-10 absolute -top-4 -left-2" style={{ color: branding?.primaryColor }}>
+              {index + 1}
+            </div>
+            <div className="relative z-10">
+              <h3 className="font-bold mb-2">{step.title}</h3>
+              <p className="text-sm text-muted-foreground">{step.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinksPreview({ content, title, branding }: { content: LinksContent; title: string | null; branding?: BrandingStyles }) {
+  const items = content.items || [];
+  return (
+    <div>
+      {title && <h2 className="text-xl font-bold mb-4" style={{ color: branding?.primaryColor }}>{title}</h2>}
+      <div className="flex flex-wrap gap-4">
+        {items.map((item) => (
+          <a
+            key={item.id}
+            href={item.url.startsWith('http') ? item.url : `https://${item.url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: branding?.primaryColor }}
+          >
+            <ExternalLink className="h-4 w-4" />
+            {item.label}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
