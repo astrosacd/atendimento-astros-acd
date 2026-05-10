@@ -102,7 +102,7 @@ export default function PropostaEditor() {
   const { sections, isLoading: isLoadingSections, createSection, updateSection, deleteSection, reorderSections } = useProposalSections(id);
   const { fetchClientes } = useClientes();
   const { canShareProposals, canEditProposals } = usePermissions();
-  const canEdit = canEditProposals() && proposal?.status !== 'accepted';
+  const canEdit = canEdit && proposal?.status !== 'accepted';
   const { isAdmin, user } = useAuth();
 
   const updateTimersRef = useRef<Record<string, number>>({});
@@ -514,7 +514,7 @@ export default function PropostaEditor() {
                     : 'border-transparent hover:border-border focus:border-primary'
                 )}
                 placeholder="⚠️ Dê um nome à proposta..."
-                disabled={!canEditProposals()}
+                disabled={!canEdit}
               />
               {proposal && (!title.trim() || title.trim() === 'Nova Proposta') && (
                 <p className="text-xs text-destructive mt-1 pl-1">
@@ -564,7 +564,7 @@ export default function PropostaEditor() {
                 </Button>
               </>
             )}
-            {canEditProposals() && (
+            {canEdit && (
               <>
                 <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving}>
                   {isSaving ? (
@@ -641,7 +641,7 @@ export default function PropostaEditor() {
                               setManualClientEmail('');
                               setManualClientPhone('');
                             }}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                             className="flex-1"
                           >
                             Cadastrado
@@ -654,7 +654,7 @@ export default function PropostaEditor() {
                               setClientMode('manual');
                               setClientId(null);
                             }}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                             className="flex-1"
                           >
                             Manual
@@ -674,7 +674,7 @@ export default function PropostaEditor() {
                             role="combobox"
                             aria-expanded={clientComboboxOpen}
                             className="w-full justify-between"
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                             onClick={() => setClientComboboxOpen(true)}
                           >
                             {selectedClientName || 'Pesquisar cliente...'}
@@ -735,20 +735,20 @@ export default function PropostaEditor() {
                             placeholder="Nome do cliente"
                             value={manualClientName}
                             onChange={(e) => setManualClientName(e.target.value)}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                           />
                           <Input
                             placeholder="E-mail do cliente"
                             type="email"
                             value={manualClientEmail}
                             onChange={(e) => setManualClientEmail(e.target.value)}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                           />
                           <Input
                             placeholder="WhatsApp / Telefone"
                             value={manualClientPhone}
                             onChange={(e) => setManualClientPhone(e.target.value)}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                           />
                         </div>
                       )}
@@ -759,7 +759,7 @@ export default function PropostaEditor() {
                       <Select
                         value={status}
                         onValueChange={(value) => setStatus(value as ProposalStatus)}
-                        disabled={!canEditProposals()}
+                        disabled={!canEdit}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -779,7 +779,7 @@ export default function PropostaEditor() {
                       <Select
                         value={currency}
                         onValueChange={(value) => setCurrency(value as 'BRL' | 'USD')}
-                        disabled={!canEditProposals()}
+                        disabled={!canEdit}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -801,7 +801,7 @@ export default function PropostaEditor() {
                               "w-full justify-start text-left font-normal",
                               !validUntil && "text-muted-foreground"
                             )}
-                            disabled={!canEditProposals()}
+                            disabled={!canEdit}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {validUntil ? format(new Date(validUntil + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione uma data'}
@@ -843,7 +843,7 @@ export default function PropostaEditor() {
                 </Card>
 
                 {/* Adicionar Seção */}
-                {canEditProposals() && (
+                {canEdit && (
                   <Card className="sticky top-[180px] z-0">
                     <CardHeader>
                       <CardTitle className="text-base">Adicionar Seção</CardTitle>
@@ -896,7 +896,7 @@ export default function PropostaEditor() {
                       schedulePersistSectionUpdate(sectionId, updates);
                     }}
                     onDelete={(sectionId) => deleteSection.mutateAsync(sectionId)}
-                    canEdit={canEditProposals()}
+                    canEdit={canEdit}
                     proposalCurrency={currency}
                   />
                 )}
