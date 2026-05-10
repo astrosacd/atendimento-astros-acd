@@ -624,14 +624,14 @@ function TermsEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIAudio = async (audioData: string) => {
+  const handleAIAudio = async (transcribedText: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action: 'transcribe_and_generate',
+          action: 'generate',
           sectionType: 'terms',
-          audioData,
+          context: transcribedText,
           currentContent: content.content || '',
         },
       });
@@ -639,12 +639,12 @@ function TermsEditor({
       if (error) throw error;
       if (data?.text) {
         onChange({ content: data.text });
-        toast.success('Termos gerados via áudio!');
+        toast.success('Termos gerados!');
         setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
-      toast.error('Erro ao processar áudio.');
+      toast.error('Erro ao gerar termos.');
     } finally {
       setIsGenerating(false);
     }
