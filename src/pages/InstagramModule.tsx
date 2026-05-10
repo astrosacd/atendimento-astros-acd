@@ -89,19 +89,19 @@ const InstagramModule = () => {
     effectiveCanManageAutoReply ? "autoreply" : 
     effectiveCanViewHistory ? "history" : 
     effectiveCanManageSettings ? "settings" : "none";
+  const allowedInstagramTabs = [
+    effectiveCanCreatePost && "create",
+    effectiveCanManageAutoReply && "autoreply",
+    effectiveCanViewHistory && "history",
+    effectiveCanManageSettings && "settings",
+  ].filter(Boolean) as string[];
+  const selectedInstagramTab = allowedInstagramTabs.includes(activeInstagramTab) ? activeInstagramTab : firstAllowedTab;
 
   useEffect(() => {
-    const allowedTabs = [
-      effectiveCanCreatePost && "create",
-      effectiveCanManageAutoReply && "autoreply",
-      effectiveCanViewHistory && "history",
-      effectiveCanManageSettings && "settings",
-    ].filter(Boolean) as string[];
-
-    if (!allowedTabs.includes(activeInstagramTab)) {
+    if (!allowedInstagramTabs.includes(activeInstagramTab)) {
       setActiveInstagramTab(firstAllowedTab);
     }
-  }, [activeInstagramTab, firstAllowedTab, effectiveCanCreatePost, effectiveCanManageAutoReply, effectiveCanViewHistory, effectiveCanManageSettings]);
+  }, [activeInstagramTab, firstAllowedTab, allowedInstagramTabs]);
 
   const siteUrl = useSiteUrl();
 
@@ -432,7 +432,7 @@ const InstagramModule = () => {
         </div>
 
         <Tabs 
-          value={activeInstagramTab}
+          value={selectedInstagramTab}
           onValueChange={setActiveInstagramTab}
           className="space-y-6"
         >
