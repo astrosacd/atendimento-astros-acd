@@ -28,6 +28,7 @@ import {
   Video,
   Sparkles,
   Loader2,
+  Mic,
 } from 'lucide-react';
 import { SignatureCanvas } from './SignatureCanvas';
 import { ImageUploadInput } from './ImageUploadInput';
@@ -35,6 +36,8 @@ import { GalleryEditor } from './GalleryEditor';
 import { TeamEditor } from './TeamEditor';
 import { TestimonialsEditor } from './TestimonialsEditor';
 import { markdownHint } from './MarkdownRenderer';
+import { AudioRecorder } from './AudioRecorder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { ProposalSection, SectionType } from '@/hooks/useProposalSections';
 import type { 
   CoverContent,
