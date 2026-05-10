@@ -409,7 +409,9 @@ export default function Propostas() {
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
           onSelect={handleCreateWithTemplate}
+          onAISelect={handleCreateWithAI}
           isLoading={isCreating}
+          isAILoading={isAILoading}
         />
       </div>
     </DashboardLayout>
