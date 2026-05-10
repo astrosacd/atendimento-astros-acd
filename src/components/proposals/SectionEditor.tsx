@@ -623,9 +623,56 @@ function TermsEditor({
   onChange: (updates: Record<string, unknown>) => void;
   disabled: boolean;
 }) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
+
+  const handleAIAudio = async (audioData: string) => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'transcribe_and_generate',
+          sectionType: 'terms',
+          audioData,
+          currentContent: content.content || '',
+        },
+      });
+
+      if (error) throw error;
+      if (data?.text) {
+        onChange({ content: data.text });
+        toast.success('Termos gerados via áudio!');
+        setIsAudioDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+      toast.error('Erro ao processar áudio.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <Label>Termos e Condições</Label>
+      <div className="flex items-center justify-between">
+        <Label>Termos e Condições</Label>
+        {!disabled && (
+          <Dialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs">
+                <Mic className="h-3 w-3 mr-1" />
+                Áudio
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Descreva os termos comerciais</DialogTitle>
+              </DialogHeader>
+              <AudioRecorder onRecordingComplete={handleAIAudio} isProcessing={isGenerating} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
       <DebouncedTextarea
         value={content.content || ''}
         onChange={(value) => onChange({ content: value })}
