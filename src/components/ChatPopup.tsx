@@ -69,8 +69,8 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const [currentModel, setCurrentModel] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [config, setConfig] = useState<ChatConfig>({
-    name: 'Chatwoot',
-    welcomeMessage: 'Olá! Sou seu assistente Chatwoot. Como posso ajudá-lo hoje?',
+    name: 'Lyra',
+    welcomeMessage: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudá-lo hoje?',
     placeholder: 'Digite sua mensagem...',
     themeColor: 'purple',
     operatingHoursEnabled: false,
@@ -78,7 +78,7 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     operatingHoursEnd: '18:00',
     offlineMessage: 'Estamos fora do horário de atendimento.',
     quickReplies: [],
-    aiModel: 'google/gemini-2.5-flash',
+    aiModel: 'google/gemini-2.0-flash',
   });
   const [isOffline, setIsOffline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
