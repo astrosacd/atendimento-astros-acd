@@ -212,29 +212,49 @@ export default function Propostas() {
     }
   };
 
-  const handleRedoRemarketing = async (proposalId: string) => {
+  const handleRedoRemarketing = async (proposal: Proposal) => {
     try {
-      // 1. Deletar logs de remarketing antigos
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', user?.id)
+        .single();
+
+      const senderName = profile?.name || user?.email?.split('@')[0] || 'Atendimento';
+
+      // 1. Deletar logs de remarketing antigos para reiniciar o ciclo
       const { error: deleteError } = await supabase
         .from('proposal_auto_remarketing_logs')
         .delete()
-        .eq('proposal_id', proposalId);
+        .eq('proposal_id', proposal.id);
 
       if (deleteError) throw deleteError;
 
       // 2. Adicionar entrada no histórico
       await supabase.from('proposal_history').insert({
-        proposal_id: proposalId,
-        action: 'remarketing_restarted',
+        proposal_id: proposal.id,
+        action: 'remarketing_restarted' as any,
         user_email: user?.email || 'sistema',
-        user_name: user?.user_metadata?.name || 'Usuário',
-        changes: { note: 'Remarketing reiniciado manualmente' },
+        user_name: senderName,
+        changes: { note: 'Remarketing reiniciado manualmente com mensagem de melhoria' },
       });
 
-      toast.success('Campanha de remarketing reiniciada! Agora você pode ajustar a proposta.');
+      // 3. Mandar mensagem inicial de "melhorando a proposta"
+      const customMessage = `Olá ${proposal.client?.nome || proposal.manual_client_name || 'cliente'}, estamos aqui melhorando a sua proposta para melhor atendê-lo! Logo mais te envio as novidades. enquanto isso, você pode rever o que já conversamos:`;
+
+      await supabase.functions.invoke('send-proposal', {
+        body: {
+          proposalId: proposal.id,
+          channel: 'whatsapp', // Foco no WhatsApp como pedido
+          isRemarketing: true,
+          remarketingMessage: customMessage
+        }
+      });
+
+      toast.success('Campanha reiniciada! Mensagem enviada ao cliente.');
       
-      // 3. Navegar para o editor para ajustes
-      navigate(`/propostas/${proposalId}`);
+      // 4. Navegar para o editor para ajustes
+      navigate(`/propostas/${proposal.id}`);
     } catch (error) {
       console.error('Error restarting remarketing:', error);
       toast.error('Erro ao reiniciar remarketing');
@@ -389,7 +409,7 @@ export default function Propostas() {
                 proposal={proposal}
                 onClick={() => navigate(`/propostas/${proposal.id}`)}
                 onDelete={isAdmin ? () => setDeleteId(proposal.id) : undefined}
-                onRedoRemarketing={() => handleRedoRemarketing(proposal.id)}
+                onRedoRemarketing={() => handleRedoRemarketing(proposal)}
                 onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
