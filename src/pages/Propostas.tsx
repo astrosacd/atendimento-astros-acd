@@ -34,6 +34,7 @@ import {
   Mail,
   MessageSquare,
   Repeat,
+  RefreshCw,
   User,
 } from 'lucide-react';
 import { useProposals } from '@/hooks/useProposals';
@@ -64,7 +65,7 @@ export default function Propostas() {
   const navigate = useNavigate();
   const { proposals, isLoading, stats, createProposal, deleteProposal, proposalSendChannels } = useProposals();
   const { canCreateProposals } = usePermissions();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
@@ -208,6 +209,35 @@ export default function Propostas() {
       toast.error('Erro ao criar proposta');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleRedoRemarketing = async (proposalId: string) => {
+    try {
+      // 1. Deletar logs de remarketing antigos
+      const { error: deleteError } = await supabase
+        .from('proposal_auto_remarketing_logs')
+        .delete()
+        .eq('proposal_id', proposalId);
+
+      if (deleteError) throw deleteError;
+
+      // 2. Adicionar entrada no histórico
+      await supabase.from('proposal_history').insert({
+        proposal_id: proposalId,
+        action: 'remarketing_restarted',
+        user_email: user?.email || 'sistema',
+        user_name: user?.user_metadata?.name || 'Usuário',
+        changes: { note: 'Remarketing reiniciado manualmente' },
+      });
+
+      toast.success('Campanha de remarketing reiniciada! Agora você pode ajustar a proposta.');
+      
+      // 3. Navegar para o editor para ajustes
+      navigate(`/propostas/${proposalId}`);
+    } catch (error) {
+      console.error('Error restarting remarketing:', error);
+      toast.error('Erro ao reiniciar remarketing');
     }
   };
 
@@ -359,6 +389,7 @@ export default function Propostas() {
                 proposal={proposal}
                 onClick={() => navigate(`/propostas/${proposal.id}`)}
                 onDelete={isAdmin ? () => setDeleteId(proposal.id) : undefined}
+                onRedoRemarketing={() => handleRedoRemarketing(proposal.id)}
                 onViewHistory={() => setViewHistoryProposalId(proposal.id)}
                 formatCurrency={formatCurrency}
                 sendChannels={proposalSendChannels[proposal.id] || []}
@@ -423,6 +454,7 @@ function ProposalCard({
   proposal,
   onClick,
   onDelete,
+  onRedoRemarketing,
   onViewHistory,
   formatCurrency,
   sendChannels,
@@ -432,6 +464,7 @@ function ProposalCard({
   proposal: Proposal;
   onClick: () => void;
   onDelete?: () => void;
+  onRedoRemarketing: () => void;
   onViewHistory: () => void;
   formatCurrency: (value: number) => string;
   sendChannels: string[];
@@ -640,6 +673,20 @@ function ProposalCard({
             >
               <BarChart3 className="h-4 w-4" />
             </Button>
+            {proposal.status === 'viewed' && remarketingInfo && remarketingInfo.sent >= 3 && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRedoRemarketing();
+                }}
+                title="Refazer Remarketing (Reiniciar campanha)"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            )}
             {onDelete && proposal.status !== 'accepted' && (
               <Button
                 variant="ghost"

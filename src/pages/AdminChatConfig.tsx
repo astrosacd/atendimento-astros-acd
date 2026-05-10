@@ -77,9 +77,9 @@ const aiProviders = [
 
 const modelsByProvider: Record<string, { name: string; value: string; description: string }[]> = {
   lovable: [
-    { name: 'Gemini 2.5 Flash (Recomendado)', value: 'google/gemini-2.5-flash', description: 'Rápido e eficiente' },
-    { name: 'Gemini 2.5 Pro', value: 'google/gemini-2.5-pro', description: 'Mais poderoso, melhor para tarefas complexas' },
-    { name: 'Gemini 2.5 Flash Lite', value: 'google/gemini-2.5-flash-lite', description: 'Mais rápido e barato' },
+    { name: 'Gemini 2.0 Flash (Recomendado)', value: 'google/gemini-2.0-flash', description: 'Rápido e eficiente' },
+    { name: 'Gemini 2.0 Pro', value: 'google/gemini-2.0-pro-exp-02-05', description: 'Mais poderoso, melhor para tarefas complexas' },
+    { name: 'Gemini 2.0 Flash Lite', value: 'google/gemini-2.0-flash-lite', description: 'Mais rápido e barato' },
     { name: 'GPT-5', value: 'openai/gpt-5', description: 'OpenAI GPT-5, muito poderoso' },
     { name: 'GPT-5 Mini', value: 'openai/gpt-5-mini', description: 'GPT-5 mais rápido e barato' },
     { name: 'GPT-5 Nano', value: 'openai/gpt-5-nano', description: 'GPT-5 mais leve e econômico' },
@@ -143,7 +143,7 @@ Instruções:
 - Mantenha um tom amigável e profissional`,
     chat_quick_replies: '[]',
     chat_ai_provider: 'lovable',
-    chat_ai_model: 'google/gemini-2.5-flash',
+    chat_ai_model: 'google/gemini-2.0-flash',
     chat_openai_api_key: '',
     chat_groq_api_key: '',
     chat_google_api_key: '',
@@ -250,7 +250,7 @@ Instruções:
           chat_ai_prompt: configMap.chat_ai_prompt || config.chat_ai_prompt,
           chat_quick_replies: configMap.chat_quick_replies || '[]',
           chat_ai_provider: configMap.chat_ai_provider || 'lovable',
-          chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.5-flash',
+          chat_ai_model: configMap.chat_ai_model || 'google/gemini-2.0-flash',
           chat_openai_api_key: configMap.chat_openai_api_key || '',
           chat_groq_api_key: configMap.chat_groq_api_key || '',
           chat_google_api_key: configMap.chat_google_api_key || '',

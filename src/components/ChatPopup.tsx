@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search } from 'lucide-react';
+import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search, Wand2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -56,6 +58,8 @@ const themeBgColors: Record<string, string> = {
 
 export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isAILoading, setIsAILoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -372,6 +376,75 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     }
   };
 
+  const handleGenerateProposalFromChat = async () => {
+    if (messages.length === 0) {
+      toast.error('Inicie uma conversa primeiro para gerar a proposta.');
+      return;
+    }
+
+    setIsAILoading(true);
+    try {
+      // 1. Criar a proposta inicial
+      const { data: proposal, error: createError } = await supabase
+        .from('proposals')
+        .insert({
+          title: 'Proposta em Geração...',
+          user_id: user?.id,
+          status: 'draft',
+        })
+        .select('id')
+        .single();
+      
+      if (createError || !proposal?.id) throw new Error('Falha ao criar proposta');
+
+      // 2. Chamar a Edge Function para gerar o conteúdo usando o histórico do chat como contexto
+      const chatContext = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Assistente'}: ${m.content}`).join('\n');
+      
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'generate_full_proposal',
+          fullProposalRequest: `Gere uma proposta baseada nesta conversa:\n\n${chatContext}`,
+        },
+      });
+
+      if (error) throw error;
+
+      // 3. Atualizar título da proposta
+      if (data?.title) {
+        await supabase
+          .from('proposals')
+          .update({ title: data.title })
+          .eq('id', proposal.id);
+      }
+      
+      // 4. Inserir as seções geradas
+      if (data?.sections && Array.isArray(data.sections)) {
+        for (let i = 0; i < data.sections.length; i++) {
+          const section = data.sections[i];
+          await supabase
+            .from('proposal_sections')
+            .insert({
+              proposal_id: proposal.id,
+              section_type: section.type,
+              title: section.title,
+              content: section.content,
+              order_index: i,
+              is_visible: true,
+            });
+        }
+      }
+
+      toast.success('Proposta gerada a partir da conversa!');
+      onClose();
+      navigate(`/propostas/${proposal.id}`);
+    } catch (error) {
+      console.error('Error generating proposal from chat:', error);
+      toast.error('Erro ao gerar proposta. Tente novamente.');
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -409,6 +482,16 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
         <div className="flex items-center gap-1">
           {!showHistory && (
             <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleGenerateProposalFromChat} 
+                className="text-white hover:bg-white/20 h-8 w-8" 
+                title="Gerar proposta desta conversa"
+                disabled={isAILoading || messages.length === 0}
+              >
+                {isAILoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              </Button>
               <Button variant="ghost" size="icon" onClick={startNewChat} className="text-white hover:bg-white/20 h-8 w-8" title="Nova conversa">
                 <Plus className="w-4 h-4" />
               </Button>
