@@ -57,6 +57,14 @@ import type {
   TestimonialsContent,
   GalleryContent,
   VideoContent,
+  FAQContent,
+  FAQItem,
+  BenefitsContent,
+  BenefitItem,
+  ProcessContent,
+  ProcessStep,
+  LinksContent,
+  LinkItem,
 } from '@/types/proposals';
 
 const sectionIcons: Record<SectionType, React.ReactNode> = {
