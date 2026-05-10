@@ -7,6 +7,22 @@ const corsHeaders = {
 };
 
 const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_MODEL = "google/gemini-3-flash-preview";
+
+function safeJsonFromContent(content: string) {
+  const cleaned = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  const parsed = JSON.parse(cleaned);
+  if (!parsed?.title || !Array.isArray(parsed?.sections)) {
+    throw new Error("Resposta da IA veio incompleta");
+  }
+
+  return parsed;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -93,34 +109,55 @@ Retorne apenas o texto final em Markdown.`;
 
     console.log("Chamando AI Gateway...");
     
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const requestBody: Record<string, unknown> = {
+      model: AI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPromptContent },
+      ],
+    };
+
+    if (action === "generate_full_proposal") {
+      requestBody.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch(LOVABLE_GATEWAY, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openai/gpt-5-mini", 
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPromptContent },
-        ],
-        response_format: action === "generate_full_proposal" ? { type: "json_object" } : { type: "text" },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
       console.error("Erro na API da OpenAI/Gateway:", response.status, errorData);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "A IA recebeu muitos pedidos agora. Aguarde um pouco e tente novamente." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Os créditos de IA acabaram. Adicione créditos em Settings > Workspace > Usage." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error(`Falha na IA (${response.status}): ${errorData}`);
     }
 
     const aiData = await response.json();
-    const content = aiData.choices[0].message.content;
+    const content = aiData?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("A IA não retornou conteúdo");
+    }
     console.log("Conteúdo gerado com sucesso");
 
     if (action === "generate_full_proposal") {
-      return new Response(content, {
+      const proposalJson = safeJsonFromContent(content);
+      return new Response(JSON.stringify(proposalJson), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
