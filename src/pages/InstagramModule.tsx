@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap } from "lucide-react";
+import { Instagram, History, Settings, Sparkles, Link as LinkIcon, Plus, Copy, Trash2, Clock, Check, X, Zap, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,21 +28,49 @@ const InstagramModule = () => {
     canManageTemporaryAccess,
   } = usePermissions();
 
-  const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
   const isTempAccess = !!sessionStorage.getItem("temp_access_token");
+  const [tempAccessData, setTempAccessData] = useState<{ permissions?: string[] } | null>(null);
+  const [tempAccessLoading, setTempAccessLoading] = useState(isTempAccess);
+  const [activeInstagramTab, setActiveInstagramTab] = useState("none");
 
   useEffect(() => {
-    if (isTempAccess) {
+    if (!isTempAccess) {
+      setTempAccessLoading(false);
+      return;
+    }
+
+    const loadTemporaryPermissions = async () => {
       const token = sessionStorage.getItem("temp_access_token");
-      supabase
+      if (!token) {
+        setTempAccessData(null);
+        setTempAccessLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from("temporary_access_tokens")
         .select("permissions")
         .eq("token", token)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) setTempAccessData(data);
-        });
-    }
+        .eq("is_active", true)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading temporary permissions:", error);
+      }
+
+      setTempAccessData(data || null);
+      setTempAccessLoading(false);
+    };
+
+    loadTemporaryPermissions();
+    const interval = window.setInterval(loadTemporaryPermissions, 1500);
+    window.addEventListener("focus", loadTemporaryPermissions);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", loadTemporaryPermissions);
+    };
   }, [isTempAccess]);
 
   const hasPermission = (permission: string) => {
@@ -57,6 +85,23 @@ const InstagramModule = () => {
   const effectiveCanViewHistory = canViewInstagramHistory() || (isTempAccess && hasPermission("history"));
   const effectiveCanManageSettings = isTempAccess ? false : canManageInstagramSettings();
   const effectiveCanManageTempAccess = isTempAccess ? false : canManageTemporaryAccess();
+  const firstAllowedTab = effectiveCanCreatePost ? "create" : 
+    effectiveCanManageAutoReply ? "autoreply" : 
+    effectiveCanViewHistory ? "history" : 
+    effectiveCanManageSettings ? "settings" : "none";
+
+  useEffect(() => {
+    const allowedTabs = [
+      effectiveCanCreatePost && "create",
+      effectiveCanManageAutoReply && "autoreply",
+      effectiveCanViewHistory && "history",
+      effectiveCanManageSettings && "settings",
+    ].filter(Boolean) as string[];
+
+    if (!allowedTabs.includes(activeInstagramTab)) {
+      setActiveInstagramTab(firstAllowedTab);
+    }
+  }, [activeInstagramTab, firstAllowedTab, effectiveCanCreatePost, effectiveCanManageAutoReply, effectiveCanViewHistory, effectiveCanManageSettings]);
 
   const siteUrl = useSiteUrl();
 
@@ -192,6 +237,17 @@ const InstagramModule = () => {
           </div>
           <h1 className="text-2xl font-bold">Acesso Negado</h1>
           <p className="text-muted-foreground">Você não tem permissão para acessar este módulo.</p>
+        </div>
+      </Wrapper>
+    );
+  }
+
+  if (isTempAccess && tempAccessLoading) {
+    return (
+      <Wrapper>
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando permissões do acesso provisório...</p>
         </div>
       </Wrapper>
     );
@@ -376,12 +432,8 @@ const InstagramModule = () => {
         </div>
 
         <Tabs 
-          defaultValue={
-            effectiveCanCreatePost ? "create" : 
-            effectiveCanManageAutoReply ? "autoreply" : 
-            effectiveCanViewHistory ? "history" : 
-            effectiveCanManageSettings ? "settings" : "none"
-          } 
+          value={activeInstagramTab}
+          onValueChange={setActiveInstagramTab}
           className="space-y-6"
         >
           <TabsList className="bg-muted p-1">
@@ -407,18 +459,26 @@ const InstagramModule = () => {
             )}
           </TabsList>
           
-          <TabsContent value="create">
-            <InstagramCreate />
-          </TabsContent>
-          <TabsContent value="autoreply">
-            <InstagramAutoReply />
-          </TabsContent>
-          <TabsContent value="history">
-            <InstagramHistory />
-          </TabsContent>
-          <TabsContent value="settings">
-            <InstagramSettings />
-          </TabsContent>
+          {effectiveCanCreatePost && (
+            <TabsContent value="create">
+              <InstagramCreate />
+            </TabsContent>
+          )}
+          {effectiveCanManageAutoReply && (
+            <TabsContent value="autoreply">
+              <InstagramAutoReply isTemporaryAccess={isTempAccess} />
+            </TabsContent>
+          )}
+          {effectiveCanViewHistory && (
+            <TabsContent value="history">
+              <InstagramHistory />
+            </TabsContent>
+          )}
+          {effectiveCanManageSettings && (
+            <TabsContent value="settings">
+              <InstagramSettings />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
