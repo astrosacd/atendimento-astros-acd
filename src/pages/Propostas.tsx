@@ -70,6 +70,62 @@ export default function Propostas() {
   const [viewHistoryProposalId, setViewHistoryProposalId] = useState<string | null>(null);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
+
+  const handleCreateWithAI = async (audioData?: string, textRequest?: string) => {
+    setIsAILoading(true);
+    try {
+      // 1. Criar a proposta inicial
+      const result = await createProposal.mutateAsync('Proposta em Geração...');
+      
+      if (!result?.id) throw new Error('Falha ao criar proposta');
+
+      // 2. Chamar a Edge Function para gerar o conteúdo
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'generate_full_proposal',
+          audioData,
+          fullProposalRequest: textRequest,
+        },
+      });
+
+      if (error) throw error;
+
+      // 3. Atualizar título da proposta
+      if (data?.title) {
+        await supabase
+          .from('proposals')
+          .update({ title: data.title })
+          .eq('id', result.id);
+      }
+      
+      // 4. Inserir as seções geradas
+      if (data?.sections && Array.isArray(data.sections)) {
+        for (let i = 0; i < data.sections.length; i++) {
+          const section = data.sections[i];
+          await supabase
+            .from('proposal_sections')
+            .insert({
+              proposal_id: result.id,
+              section_type: section.type,
+              title: section.title,
+              content: section.content,
+              order_index: i,
+              is_visible: true,
+            });
+        }
+      }
+
+      toast.success('Proposta gerada com IA com sucesso!');
+      setShowTemplateDialog(false);
+      navigate(`/propostas/${result.id}`);
+    } catch (error) {
+      console.error('AI Proposal Creation error:', error);
+      toast.error('Erro ao gerar proposta com IA. Tente novamente.');
+    } finally {
+      setIsAILoading(false);
+    }
+  };
 
   // Fetch all pending scheduled sends
   const proposalIds = proposals.map(p => p.id);
@@ -353,7 +409,9 @@ export default function Propostas() {
           open={showTemplateDialog}
           onOpenChange={setShowTemplateDialog}
           onSelect={handleCreateWithTemplate}
+          onAISelect={handleCreateWithAI}
           isLoading={isCreating}
+          isAILoading={isAILoading}
         />
       </div>
     </DashboardLayout>
