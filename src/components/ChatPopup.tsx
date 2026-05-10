@@ -69,8 +69,8 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const [currentModel, setCurrentModel] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [config, setConfig] = useState<ChatConfig>({
-    name: 'Lyra',
-    welcomeMessage: 'Olá! Sou a Lyra, sua assistente virtual. Como posso ajudá-lo hoje?',
+    name: 'Chatwoot',
+    welcomeMessage: 'Olá! Sou seu assistente Chatwoot. Como posso ajudá-lo hoje?',
     placeholder: 'Digite sua mensagem...',
     themeColor: 'purple',
     operatingHoursEnabled: false,
