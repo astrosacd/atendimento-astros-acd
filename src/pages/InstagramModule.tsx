@@ -306,8 +306,14 @@ const InstagramModule = () => {
                               <div className="truncate flex-1 mr-2">
                                 <p className="font-mono text-xs">...{t.token.substring(t.token.length - 8)}</p>
                                 <p className="text-[10px] text-muted-foreground">Expira: {format(new Date(t.expires_at), "dd/MM HH:mm")}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  Permissões: {(t.permissions || []).map((p: string) => PERMISSION_OPTIONS.find(o => o.id === p)?.label || p).join(", ") || "—"}
+                                </p>
                               </div>
                               <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar permissões" onClick={() => { setEditingToken(t); setEditPermissions(t.permissions || []); }}>
+                                  <Settings className="h-3.5 w-3.5" />
+                                </Button>
                                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyLink(t.token)}>
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
