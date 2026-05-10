@@ -162,6 +162,12 @@ ${context ? `Contexto: ${context}` : ""}`;
 
     console.log(`Chamando AI Gateway com action: ${action}`);
     
+    // Simplificar prompt se não houver audioData
+    let finalUserPrompt = userPrompt;
+    if (action === "generate_full_proposal" && !audioData && Array.isArray(userPrompt)) {
+      finalUserPrompt = userPrompt[0].text;
+    }
+
     const aiResponse = await fetch(LOVABLE_GATEWAY, {
       method: "POST",
       headers: {
@@ -169,10 +175,10 @@ ${context ? `Contexto: ${context}` : ""}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash", // Corrigido para 2.0 que é estável no gateway
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: finalUserPrompt },
         ],
         max_tokens: 2500,
         response_format: action === "generate_full_proposal" ? { type: "json_object" } : undefined,
@@ -190,6 +196,19 @@ ${context ? `Contexto: ${context}` : ""}`;
 
     const data = await aiResponse.json();
     const generatedText = data.choices?.[0]?.message?.content || "";
+
+    // Se for geração de proposta completa, tentar retornar o objeto JSON diretamente
+    if (action === "generate_full_proposal") {
+      try {
+        const parsed = JSON.parse(generatedText);
+        return new Response(
+          JSON.stringify(parsed),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        console.error("Erro ao fazer parse do JSON da IA:", e);
+      }
+    }
 
     return new Response(
       JSON.stringify({ text: generatedText.trim() }),
