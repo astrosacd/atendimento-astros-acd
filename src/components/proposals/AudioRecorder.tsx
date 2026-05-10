@@ -67,7 +67,12 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         if (event.error === 'not-allowed') {
-          toast.error('Permissão de microfone negada. Habilite nas configurações do navegador.');
+          const isIframe = window.self !== window.top;
+          if (isIframe) {
+            toast.error('Permissão de microfone negada. Como o sistema está dentro de um iframe (ex: Chatwoot), verifique se o navegador permite acesso ao microfone para este site.');
+          } else {
+            toast.error('Permissão de microfone negada. Habilite nas configurações do navegador.');
+          }
         } else if (event.error === 'no-speech') {
           // ignore - user just hasn't spoken yet
           return;
