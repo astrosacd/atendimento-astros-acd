@@ -5,12 +5,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileText, Briefcase, Palette, Code, Megaphone, Check } from 'lucide-react';
+import { Loader2, FileText, Briefcase, Palette, Code, Megaphone, Check, Mic, Sparkles, Wand2 } from 'lucide-react';
 import { proposalTemplates, type ProposalTemplate } from '@/data/proposalTemplates';
 import { cn } from '@/lib/utils';
+import { AudioRecorder } from './AudioRecorder';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const iconMap: Record<string, React.ReactNode> = {
   FileText: <FileText className="h-8 w-8" />,
