@@ -29,7 +29,7 @@ import type {
   LinksContent,
 } from '@/types/proposals';
 import { useProposalBranding, type ProposalBranding, type SocialLinks, type ClientLogo, type Certification } from '@/hooks/useProposalBranding';
-import { Instagram, Facebook, Linkedin, Twitter, Youtube, Globe, Phone, Mail } from 'lucide-react';
+import { Instagram, Facebook, Linkedin, Twitter, Youtube, Globe, Phone, Mail, Star, ExternalLink } from 'lucide-react';
 
 interface ProposalPreviewProps {
   proposal: Proposal;
