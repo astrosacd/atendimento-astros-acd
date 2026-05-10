@@ -59,7 +59,7 @@ export function TemplateSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -150,7 +150,7 @@ export function TemplateSelectionDialog({
                   <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto pt-4">
                     <div className="border rounded-lg bg-background p-4">
                       <AudioRecorder 
-                        onRecordingComplete={(audio) => onAISelect?.(audio)} 
+                        onRecordingComplete={(text) => onAISelect?.(undefined, text)} 
                         isProcessing={isAILoading} 
                       />
                     </div>

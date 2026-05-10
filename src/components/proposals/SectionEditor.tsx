@@ -236,32 +236,31 @@ function CoverEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIAudio = async (audioData: string) => {
+  const handleAIAudio = async (transcribedText: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action: 'transcribe_and_generate',
+          action: 'generate',
           sectionType: 'cover',
-          audioData,
-          currentContent: `Título: ${content.title || ''}, Subtítulo: ${content.subtitle || ''}`,
+          context: transcribedText,
+          currentContent: `Título atual: ${content.title || ''}, Subtítulo atual: ${content.subtitle || ''}`,
         },
       });
 
       if (error) throw error;
       if (data?.text) {
-        // Tenta separar título e subtítulo da resposta da IA
         const lines = data.text.split('\n').filter((l: string) => l.trim().length > 0);
         const title = lines[0]?.replace(/^Título:\s*/i, '') || content.title;
         const subtitle = lines[1]?.replace(/^Subtítulo:\s*/i, '') || lines.slice(1).join(' ') || content.subtitle;
         
         onChange({ title, subtitle });
-        toast.success('Capa gerada com áudio!');
+        toast.success('Capa gerada!');
         setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
-      toast.error('Erro ao processar áudio.');
+      toast.error('Erro ao gerar capa.');
     } finally {
       setIsGenerating(false);
     }
@@ -329,24 +328,23 @@ function TextEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIGenerate = async (action: 'generate' | 'improve', audioData?: string) => {
+  const handleAIGenerate = async (action: 'generate' | 'improve', transcribedText?: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action: audioData ? 'transcribe_and_generate' : action,
+          action,
           sectionType: 'text',
           currentContent: content.content || '',
-          context: '',
-          audioData: audioData || undefined,
+          context: transcribedText || '',
         },
       });
 
       if (error) throw error;
       if (data?.text) {
         onChange({ content: data.text });
-        toast.success(audioData ? 'Texto gerado via áudio!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
-        if (audioData) setIsAudioDialogOpen(false);
+        toast.success(transcribedText ? 'Texto gerado via voz!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
+        if (transcribedText) setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
@@ -626,14 +624,14 @@ function TermsEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIAudio = async (audioData: string) => {
+  const handleAIAudio = async (transcribedText: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action: 'transcribe_and_generate',
+          action: 'generate',
           sectionType: 'terms',
-          audioData,
+          context: transcribedText,
           currentContent: content.content || '',
         },
       });
@@ -641,12 +639,12 @@ function TermsEditor({
       if (error) throw error;
       if (data?.text) {
         onChange({ content: data.text });
-        toast.success('Termos gerados via áudio!');
+        toast.success('Termos gerados!');
         setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
-      toast.error('Erro ao processar áudio.');
+      toast.error('Erro ao gerar termos.');
     } finally {
       setIsGenerating(false);
     }
