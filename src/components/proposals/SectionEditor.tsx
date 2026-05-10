@@ -824,3 +824,280 @@ function VideoEditor({
     </div>
   );
 }
+
+function FAQEditor({
+  content,
+  onChange,
+  disabled,
+}: {
+  content: FAQContent;
+  onChange: (updates: Record<string, unknown>) => void;
+  disabled: boolean;
+}) {
+  const items = content.items || [];
+
+  const addItem = () => {
+    onChange({
+      items: [...items, { id: crypto.randomUUID(), question: '', answer: '' }],
+    });
+  };
+
+  const updateItem = (id: string, updates: Partial<FAQItem>) => {
+    onChange({
+      items: items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+    });
+  };
+
+  const removeItem = (id: string) => {
+    onChange({ items: items.filter((item) => item.id !== id) });
+  };
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={item.id} className="space-y-2 p-4 border rounded-lg relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 text-destructive"
+            onClick={() => removeItem(item.id)}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <div className="space-y-2">
+            <Label>Pergunta {index + 1}</Label>
+            <DebouncedInput
+              value={item.question}
+              onChange={(value) => updateItem(item.id, { question: value })}
+              placeholder="Ex: Como funciona o suporte?"
+              disabled={disabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Resposta</Label>
+            <DebouncedTextarea
+              value={item.answer}
+              onChange={(value) => updateItem(item.id, { answer: value })}
+              placeholder="Digite a resposta..."
+              disabled={disabled}
+              rows={3}
+            />
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addItem} disabled={disabled} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
+        Adicionar Pergunta
+      </Button>
+    </div>
+  );
+}
+
+function BenefitsEditor({
+  content,
+  onChange,
+  disabled,
+}: {
+  content: BenefitsContent;
+  onChange: (updates: Record<string, unknown>) => void;
+  disabled: boolean;
+}) {
+  const items = content.items || [];
+
+  const addItem = () => {
+    onChange({
+      items: [...items, { id: crypto.randomUUID(), title: '', description: '', icon: '' }],
+    });
+  };
+
+  const updateItem = (id: string, updates: Partial<BenefitItem>) => {
+    onChange({
+      items: items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+    });
+  };
+
+  const removeItem = (id: string) => {
+    onChange({ items: items.filter((item) => item.id !== id) });
+  };
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={item.id} className="space-y-2 p-4 border rounded-lg relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 text-destructive"
+            onClick={() => removeItem(item.id)}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <div className="space-y-2">
+            <Label>Diferencial {index + 1}</Label>
+            <DebouncedInput
+              value={item.title}
+              onChange={(value) => updateItem(item.id, { title: value })}
+              placeholder="Ex: Suporte 24h"
+              disabled={disabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <DebouncedTextarea
+              value={item.description}
+              onChange={(value) => updateItem(item.id, { description: value })}
+              placeholder="Descreva este benefício..."
+              disabled={disabled}
+              rows={2}
+            />
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addItem} disabled={disabled} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
+        Adicionar Diferencial
+      </Button>
+    </div>
+  );
+}
+
+function ProcessEditor({
+  content,
+  onChange,
+  disabled,
+}: {
+  content: ProcessContent;
+  onChange: (updates: Record<string, unknown>) => void;
+  disabled: boolean;
+}) {
+  const steps = content.steps || [];
+
+  const addStep = () => {
+    onChange({
+      steps: [...steps, { id: crypto.randomUUID(), title: '', description: '' }],
+    });
+  };
+
+  const updateStep = (id: string, updates: Partial<ProcessStep>) => {
+    onChange({
+      steps: steps.map((step) => (step.id === id ? { ...step, ...updates } : step)),
+    });
+  };
+
+  const removeStep = (id: string) => {
+    onChange({ steps: steps.filter((step) => step.id !== id) });
+  };
+
+  return (
+    <div className="space-y-4">
+      {steps.map((step, index) => (
+        <div key={step.id} className="space-y-2 p-4 border rounded-lg relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 text-destructive"
+            onClick={() => removeStep(step.id)}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <div className="space-y-2">
+            <Label>Etapa {index + 1}</Label>
+            <DebouncedInput
+              value={step.title}
+              onChange={(value) => updateStep(step.id, { title: value })}
+              placeholder="Ex: Briefing e Planejamento"
+              disabled={disabled}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <DebouncedTextarea
+              value={step.description}
+              onChange={(value) => updateStep(step.id, { description: value })}
+              placeholder="O que acontece nesta etapa..."
+              disabled={disabled}
+              rows={2}
+            />
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addStep} disabled={disabled} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
+        Adicionar Etapa
+      </Button>
+    </div>
+  );
+}
+
+function LinksEditor({
+  content,
+  onChange,
+  disabled,
+}: {
+  content: LinksContent;
+  onChange: (updates: Record<string, unknown>) => void;
+  disabled: boolean;
+}) {
+  const items = content.items || [];
+
+  const addItem = () => {
+    onChange({
+      items: [...items, { id: crypto.randomUUID(), label: '', url: '' }],
+    });
+  };
+
+  const updateItem = (id: string, updates: Partial<LinkItem>) => {
+    onChange({
+      items: items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
+    });
+  };
+
+  const removeItem = (id: string) => {
+    onChange({ items: items.filter((item) => item.id !== id) });
+  };
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
+          <div className="col-span-5">
+            <Label className="mb-2 block">Texto do Link</Label>
+            <DebouncedInput
+              value={item.label}
+              onChange={(value) => updateItem(item.id, { label: value })}
+              placeholder="Ex: Baixar PDF"
+              disabled={disabled}
+            />
+          </div>
+          <div className="col-span-6">
+            <Label className="mb-2 block">URL</Label>
+            <DebouncedInput
+              value={item.url}
+              onChange={(value) => updateItem(item.id, { url: value })}
+              placeholder="https://..."
+              disabled={disabled}
+            />
+          </div>
+          <div className="col-span-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => removeItem(item.id)}
+              disabled={disabled}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addItem} disabled={disabled} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
+        Adicionar Link
+      </Button>
+    </div>
+  );
+}
