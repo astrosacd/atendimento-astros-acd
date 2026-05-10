@@ -328,24 +328,23 @@ function TextEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
-  const handleAIGenerate = async (action: 'generate' | 'improve', audioData?: string) => {
+  const handleAIGenerate = async (action: 'generate' | 'improve', transcribedText?: string) => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('proposal-ai', {
         body: {
-          action: audioData ? 'transcribe_and_generate' : action,
+          action,
           sectionType: 'text',
           currentContent: content.content || '',
-          context: '',
-          audioData: audioData || undefined,
+          context: transcribedText || '',
         },
       });
 
       if (error) throw error;
       if (data?.text) {
         onChange({ content: data.text });
-        toast.success(audioData ? 'Texto gerado via áudio!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
-        if (audioData) setIsAudioDialogOpen(false);
+        toast.success(transcribedText ? 'Texto gerado via voz!' : (action === 'generate' ? 'Texto gerado!' : 'Texto melhorado!'));
+        if (transcribedText) setIsAudioDialogOpen(false);
       }
     } catch (error) {
       console.error('AI error:', error);
