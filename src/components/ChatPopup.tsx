@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search } from 'lucide-react';
+import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Message {
   role: 'user' | 'assistant';
