@@ -27,7 +27,9 @@ interface TemplateSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (template: ProposalTemplate) => void;
+  onAISelect?: (audioData?: string, textRequest?: string) => void;
   isLoading?: boolean;
+  isAILoading?: boolean;
 }
 
 export function TemplateSelectionDialog({
