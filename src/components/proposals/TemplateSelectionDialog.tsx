@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, FileText, Briefcase, Palette, Code, Megaphone, Check, Mic, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, FileText, Briefcase, Palette, Code, Megaphone, Check, Mic, Sparkles, Wand2, Plus } from 'lucide-react';
 import { proposalTemplates, type ProposalTemplate } from '@/data/proposalTemplates';
 import { cn } from '@/lib/utils';
 import { AudioRecorder } from './AudioRecorder';
