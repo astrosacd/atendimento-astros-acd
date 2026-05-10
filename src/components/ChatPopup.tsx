@@ -482,6 +482,16 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
         <div className="flex items-center gap-1">
           {!showHistory && (
             <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleGenerateProposalFromChat} 
+                className="text-white hover:bg-white/20 h-8 w-8" 
+                title="Gerar proposta desta conversa"
+                disabled={isAILoading || messages.length === 0}
+              >
+                {isAILoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              </Button>
               <Button variant="ghost" size="icon" onClick={startNewChat} className="text-white hover:bg-white/20 h-8 w-8" title="Nova conversa">
                 <Plus className="w-4 h-4" />
               </Button>
