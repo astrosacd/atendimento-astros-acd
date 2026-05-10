@@ -97,8 +97,8 @@ Retorne apenas o texto final em Markdown.`;
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("Erro na API da OpenAI:", errorData);
-      throw new Error(`Falha na IA: ${response.status}`);
+      console.error("Erro na API da OpenAI/Gateway:", response.status, errorData);
+      throw new Error(`Falha na IA (${response.status}): ${errorData}`);
     }
 
     const aiData = await response.json();
