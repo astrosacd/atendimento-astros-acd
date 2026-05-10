@@ -150,67 +150,50 @@ export function TemplateSelectionDialog({
                     </p>
                   </div>
                 ) : (
-                  !isEnteringPrompt ? (
-                  <div className="grid grid-cols-1 gap-3 max-w-sm mx-auto pt-4">
-                    <div className="border rounded-lg bg-background p-4">
-                      <AudioRecorder 
-                        onRecordingComplete={(text) => onAISelect?.(undefined, text)} 
-                        isProcessing={isAILoading} 
-                      />
-                    </div>
-                    
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Ou via texto</span>
-                      </div>
-                    </div>
+                  <div className="space-y-6 pt-4">
+                    <Tabs defaultValue="text" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="text" className="gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          Texto
+                        </TabsTrigger>
+                        <TabsTrigger value="audio" className="gap-2">
+                          <Mic className="h-4 w-4" />
+                          Voz
+                        </TabsTrigger>
+                      </TabsList>
 
-                    <Button 
-                      variant="outline" 
-                      className="gap-2 h-12"
-                      onClick={() => setIsEnteringPrompt(true)}
-                      disabled={isAILoading}
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Descrever Proposta
-                    </Button>
+                      <TabsContent value="text" className="space-y-4">
+                        <div className="space-y-2 text-left">
+                          <label className="text-sm font-medium">O que deve ter na proposta?</label>
+                          <textarea
+                            className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Ex: Proposta para gestão de redes sociais, R$ 1.500/mês, foco em Instagram e Facebook..."
+                            value={textPrompt}
+                            onChange={(e) => setTextPrompt(e.target.value)}
+                            disabled={isAILoading}
+                          />
+                        </div>
+                        <Button 
+                          className="w-full h-12 gap-2"
+                          onClick={handleTextAI}
+                          disabled={isAILoading || !textPrompt.trim()}
+                        >
+                          <Wand2 className="h-5 w-5" />
+                          Gerar Proposta Completa
+                        </Button>
+                      </TabsContent>
+
+                      <TabsContent value="audio">
+                        <div className="border rounded-lg bg-background p-4">
+                          <AudioRecorder 
+                            onRecordingComplete={(text) => onAISelect?.(undefined, text)} 
+                            isProcessing={isAILoading} 
+                          />
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                ) : (
-                  <div className="space-y-4 max-w-md mx-auto pt-4">
-                    <div className="space-y-2 text-left">
-                      <label className="text-sm font-medium">Instruções para a IA</label>
-                      <textarea
-                        className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Ex: Crie uma proposta para gestão de tráfego pago, orçamento de R$ 2.000/mês, duração de 6 meses..."
-                        value={textPrompt}
-                        onChange={(e) => setTextPrompt(e.target.value)}
-                        disabled={isAILoading}
-                        autoFocus
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        className="flex-1"
-                        onClick={() => setIsEnteringPrompt(false)}
-                        disabled={isAILoading}
-                      >
-                        Voltar
-                      </Button>
-                      <Button 
-                        className="flex-1 gap-2"
-                        onClick={handleTextAI}
-                        disabled={isAILoading || !textPrompt.trim()}
-                      >
-                        {isAILoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        Gerar Agora
-                      </Button>
-                    </div>
-                  </div>
-                  )
                 )}
               </div>
             </div>
