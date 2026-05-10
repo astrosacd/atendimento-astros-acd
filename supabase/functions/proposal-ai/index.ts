@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const AI_MODEL = "gpt-4o-mini";
+const AI_MODEL = "google/gemini-3-flash-preview";
 
 function safeJsonFromContent(content: string) {
   console.log("Processando conteúdo para JSON...");
