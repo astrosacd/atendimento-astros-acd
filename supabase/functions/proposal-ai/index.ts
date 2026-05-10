@@ -29,8 +29,10 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("Erro de autenticação:", authError);
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -46,128 +48,59 @@ serve(async (req) => {
     }
 
     let systemPrompt = "";
-    let userPrompt: any = "";
+    let userPromptContent: any = "";
 
     if (action === "generate_full_proposal") {
       systemPrompt = `Você é um especialista em estruturação de propostas comerciais.
-Seu objetivo é analisar as instruções do usuário (em áudio ou texto) e retornar um JSON estruturado com as seções recomendadas para compor a proposta completa.
+Seu objetivo é analisar as instruções do usuário e retornar um JSON estruturado com as seções recomendadas para compor a proposta completa.
 
 Você deve retornar APENAS um JSON no seguinte formato:
 {
   "title": "Título sugerido para a proposta",
   "sections": [
     {
-      "type": "cover" | "text" | "pricing" | "timeline" | "terms" | "gallery",
-      "title": "Título da seção",
-      "content": { 
-        // Conteúdo formatado para o tipo de seção:
-        // cover: { title, subtitle }
-        // text: { content: "Markdown text" }
-        // pricing: { items: [{ description, quantity, unitPrice }] }
-        // timeline: { items: [{ phase, duration, description }] }
-        // terms: { content: "Markdown text" }
-      }
+      "type": "cover",
+      "title": "Capa",
+      "content": { "title": "...", "subtitle": "..." }
+    },
+    {
+      "type": "text",
+      "title": "Sobre Nós",
+      "content": { "content": "Markdown text" }
+    },
+    {
+      "type": "pricing",
+      "title": "Investimento",
+      "content": { "items": [{ "description": "...", "quantity": 1, "unitPrice": 1000 }] }
     }
   ]
 }
 
 Regras:
+- Tipos de seção válidos: cover, text, pricing, timeline, terms, gallery.
 - Seja profissional e persuasivo.
-- Extraia nomes de clientes, valores e prazos se mencionados.
-- Se for áudio, ignore ruídos.
 - Retorne APENAS o JSON, sem explicações.`;
 
-      userPrompt = [
-        {
-          type: "text",
-          text: `Crie uma proposta completa baseada nestas instruções: ${fullProposalRequest || "Siga o áudio anexo."}`
-        }
-      ];
+      userPromptContent = `Crie uma proposta completa baseada nestas instruções: ${fullProposalRequest || context || "Crie uma proposta comercial padrão."}`;
+    } else if (action === "generate" || action === "improve") {
+      systemPrompt = action === "improve" 
+        ? "Você é um especialista em redação comercial. Melhore o texto para ser mais profissional e persuasivo."
+        : "Você é um especialista em propostas comerciais. Gere um texto profissional e persuasivo para a seção solicitada.";
 
-      if (audioData) {
-        userPrompt.push({
-          type: "media_url",
-          media_url: {
-            url: `data:audio/webm;base64,${audioData}`
-          }
-        });
-      }
-    } else if (action === "transcribe_and_generate") {
-      systemPrompt = `Você é um assistente especializado em criar propostas comerciais.
-Seu objetivo é ouvir o áudio do usuário (fornecido como dados base64) e extrair as informações necessárias para preencher uma seção específica de uma proposta comercial.
-
-Regras:
-- Transforme o que o usuário falou em um texto profissional, persuasivo e bem estruturado.
-- Se for uma seção de 'texto', crie parágrafos atraentes.
-- Se for uma 'capa', crie um título e subtítulo profissionais.
-- Se for 'termos', formalize as condições mencionadas.
-- Ignore ruídos e hesitações, foque no conteúdo útil.
-- Responda apenas com o texto final da seção, sem comentários adicionais.`;
-
-      userPrompt = [
-        {
-          type: "text",
-          text: `Abaixo está um áudio onde o usuário descreve o que quer na seção "${sectionType}" da proposta.
-Por favor, gere o conteúdo final para esta seção com base no que foi dito.
-
-${context ? `Contexto adicional da proposta: ${context}` : ""}
-${currentContent ? `Conteúdo atual (que pode ser substituído ou complementado): ${currentContent}` : ""}`
-        },
-        {
-          type: "media_url",
-          media_url: {
-            url: `data:audio/webm;base64,${audioData}`
-          }
-        }
-      ];
-    } else if (action === "generate") {
-      systemPrompt = `Você é um especialista em propostas comerciais. Seu objetivo é gerar textos profissionais, persuasivos e objetivos para propostas comerciais.
-
-Regras:
-- Seja direto e profissional
-- Use linguagem adequada para negócios B2B
-- Estruture o texto de forma clara com parágrafos curtos
-- Evite jargões excessivos
-- Foque em benefícios e valor para o cliente
-- Responda apenas com o texto, sem explicações adicionais`;
-
-      const sectionContexts: Record<string, string> = {
-        text: "um parágrafo de texto descritivo",
-        cover: "título e subtítulo impactantes",
-        terms: "termos e condições comerciais",
-      };
-
-      userPrompt = `Gere ${sectionContexts[sectionType] || "conteúdo"} para uma proposta comercial.
-
-${context ? `Contexto adicional: ${context}` : ""}
-${currentContent ? `Conteúdo atual para melhorar: ${currentContent}` : ""}
-
-Gere um texto profissional e persuasivo.`;
-    } else if (action === "improve") {
-      systemPrompt = `Você é um especialista em redação comercial. Seu objetivo é melhorar textos existentes tornando-os mais profissionais, persuasivos e impactantes.
-
-Regras:
-- Mantenha a essência do texto original
-- Torne mais claro e objetivo
-- Adicione elementos persuasivos
-- Corrija erros gramaticais
-- Responda apenas com o texto melhorado, sem explicações`;
-
-      userPrompt = `Melhore este texto de proposta comercial:
-
-"${currentContent}"
-
-${context ? `Contexto: ${context}` : ""}`;
+      userPromptContent = `${action === "improve" ? "Melhore este texto" : "Gere conteúdo para a seção " + sectionType}:
+      
+      Conteúdo Atual: ${currentContent || "Nenhum"}
+      Contexto/Instruções: ${context || fullProposalRequest || "Nenhum"}
+      
+      Retorne apenas o texto final.`;
+    } else {
+      // Fallback para outros casos
+      systemPrompt = "Você é um assistente útil para criação de propostas.";
+      userPromptContent = context || fullProposalRequest || "Ajude-me a criar uma proposta.";
     }
 
     console.log(`Chamando AI Gateway com action: ${action}`);
     
-    // Simplificar prompt se não houver audioData
-    let finalUserPrompt = userPrompt;
-    if (action === "generate_full_proposal" && !audioData && Array.isArray(userPrompt)) {
-      finalUserPrompt = userPrompt[0].text;
-    }
-
     const aiResponse = await fetch(LOVABLE_GATEWAY, {
       method: "POST",
       headers: {
@@ -175,10 +108,10 @@ ${context ? `Contexto: ${context}` : ""}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash", // Corrigido para 2.0 que é estável no gateway
+        model: "gpt-4o-mini", // Usando gpt-4o-mini que é muito estável e suporta JSON mode
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: finalUserPrompt },
+          { role: "user", content: userPromptContent },
         ],
         max_tokens: 2500,
         response_format: action === "generate_full_proposal" ? { type: "json_object" } : undefined,
@@ -188,36 +121,32 @@ ${context ? `Contexto: ${context}` : ""}`;
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI Gateway error:", aiResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Erro ao comunicar com IA" }),
-        { status: aiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error(`Erro na IA (${aiResponse.status}): ${errorText}`);
     }
 
     const data = await aiResponse.json();
-    const generatedText = data.choices?.[0]?.message?.content || "";
+    const generatedContent = data.choices?.[0]?.message?.content || "";
 
-    // Se for geração de proposta completa, tentar retornar o objeto JSON diretamente
     if (action === "generate_full_proposal") {
       try {
-        const parsed = JSON.parse(generatedText);
-        return new Response(
-          JSON.stringify(parsed),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const parsed = JSON.parse(generatedContent);
+        return new Response(JSON.stringify(parsed), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
       } catch (e) {
-        console.error("Erro ao fazer parse do JSON da IA:", e);
+        console.error("Erro ao fazer parse do JSON da IA:", e, generatedContent);
+        throw new Error("A IA não retornou um formato válido. Tente ser mais específico.");
       }
     }
 
     return new Response(
-      JSON.stringify({ text: generatedText.trim() }),
+      JSON.stringify({ text: generatedContent.trim() }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Proposal AI error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno no servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

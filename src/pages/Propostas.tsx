@@ -100,21 +100,22 @@ export default function Propostas() {
           .eq('id', result.id);
       }
       
-      // 4. Inserir as seções geradas
+      // 4. Inserir as seções geradas em lote para melhor performance
       if (data?.sections && Array.isArray(data.sections)) {
-        for (let i = 0; i < data.sections.length; i++) {
-          const section = data.sections[i];
-          await supabase
-            .from('proposal_sections')
-            .insert({
-              proposal_id: result.id,
-              section_type: section.type,
-              title: section.title,
-              content: section.content,
-              order_index: i,
-              is_visible: true,
-            });
-        }
+        const sectionsToInsert = data.sections.map((section: any, i: number) => ({
+          proposal_id: result.id,
+          section_type: section.type,
+          title: section.title,
+          content: section.content,
+          order_index: i,
+          is_visible: true,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('proposal_sections')
+          .insert(sectionsToInsert);
+
+        if (insertError) throw insertError;
       }
 
       toast.success('Proposta gerada com IA com sucesso!');
