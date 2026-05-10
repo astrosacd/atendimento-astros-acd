@@ -552,7 +552,7 @@ export default function PropostaEditor() {
           <TabsContent value="edit" className="mt-6">
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Coluna Esquerda - Configurações */}
-              <div className="space-y-6">
+              <div className="space-y-6 sticky top-[180px] self-start">
                 {/* Configurações */}
                 <Card>
                   <CardHeader>
