@@ -211,6 +211,35 @@ export default function Propostas() {
     }
   };
 
+  const handleRedoRemarketing = async (proposalId: string) => {
+    try {
+      // 1. Deletar logs de remarketing antigos
+      const { error: deleteError } = await supabase
+        .from('proposal_auto_remarketing_logs')
+        .delete()
+        .eq('proposal_id', proposalId);
+
+      if (deleteError) throw deleteError;
+
+      // 2. Adicionar entrada no histórico
+      await supabase.from('proposal_history').insert({
+        proposal_id: proposalId,
+        action: 'remarketing_restarted',
+        user_email: user?.email || 'sistema',
+        user_name: user?.user_metadata?.name || 'Usuário',
+        changes: { note: 'Remarketing reiniciado manualmente' },
+      });
+
+      toast.success('Campanha de remarketing reiniciada! Agora você pode ajustar a proposta.');
+      
+      // 3. Navegar para o editor para ajustes
+      navigate(`/propostas/${proposalId}`);
+    } catch (error) {
+      console.error('Error restarting remarketing:', error);
+      toast.error('Erro ao reiniciar remarketing');
+    }
+  };
+
   const handleDelete = async () => {
     if (deleteId) {
       await deleteProposal.mutateAsync(deleteId);
