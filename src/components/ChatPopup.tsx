@@ -58,6 +58,8 @@ const themeBgColors: Record<string, string> = {
 
 export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isAILoading, setIsAILoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
