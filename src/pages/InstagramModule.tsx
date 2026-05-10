@@ -65,11 +65,34 @@ const InstagramModule = () => {
   const [generatedLink, setGeneratedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
+  const [editingToken, setEditingToken] = useState<any | null>(null);
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [newAccess, setNewAccess] = useState({
     duration: "4",
     max_uses: "1",
     permissions: ["create", "history"] as string[],
   });
+
+  const PERMISSION_OPTIONS = [
+    { id: "create", label: "Criar Post" },
+    { id: "autoreply", label: "Auto-Resposta" },
+    { id: "history", label: "Histórico" },
+  ];
+
+  const updateTokenPermissions = async () => {
+    if (!editingToken) return;
+    const { error } = await supabase
+      .from("temporary_access_tokens")
+      .update({ permissions: editPermissions })
+      .eq("id", editingToken.id);
+    if (error) {
+      toast.error("Erro ao atualizar permissões");
+    } else {
+      toast.success("Permissões atualizadas!");
+      setEditingToken(null);
+      fetchTokens();
+    }
+  };
 
   useEffect(() => {
     if (effectiveCanManageTempAccess) {
@@ -283,8 +306,14 @@ const InstagramModule = () => {
                               <div className="truncate flex-1 mr-2">
                                 <p className="font-mono text-xs">...{t.token.substring(t.token.length - 8)}</p>
                                 <p className="text-[10px] text-muted-foreground">Expira: {format(new Date(t.expires_at), "dd/MM HH:mm")}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  Permissões: {(t.permissions || []).map((p: string) => PERMISSION_OPTIONS.find(o => o.id === p)?.label || p).join(", ") || "—"}
+                                </p>
                               </div>
                               <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar permissões" onClick={() => { setEditingToken(t); setEditPermissions(t.permissions || []); }}>
+                                  <Settings className="h-3.5 w-3.5" />
+                                </Button>
                                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyLink(t.token)}>
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
@@ -347,11 +376,6 @@ const InstagramModule = () => {
         </div>
 
         <Tabs 
-          value={
-            !effectiveCanCreatePost && !effectiveCanManageAutoReply && !effectiveCanViewHistory && !effectiveCanManageSettings
-              ? "none" 
-              : undefined // Use default behavior (first tab or initial)
-          } 
           defaultValue={
             effectiveCanCreatePost ? "create" : 
             effectiveCanManageAutoReply ? "autoreply" : 
@@ -397,6 +421,45 @@ const InstagramModule = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={!!editingToken} onOpenChange={(open) => !open && setEditingToken(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Permissões do Link</DialogTitle>
+            <DialogDescription>
+              Ajuste o que esse acesso provisório pode ver. As mudanças valem na hora.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Permissões</Label>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {PERMISSION_OPTIONS.map((p) => (
+                <div key={p.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`edit-perm-${p.id}`}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={editPermissions.includes(p.id)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditPermissions((prev) =>
+                        checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)
+                      );
+                    }}
+                  />
+                  <label htmlFor={`edit-perm-${p.id}`} className="text-sm font-medium leading-none cursor-pointer">
+                    {p.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingToken(null)}>Cancelar</Button>
+            <Button onClick={updateTokenPermissions}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Wrapper>
   );
 };
