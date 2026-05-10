@@ -376,6 +376,75 @@ export default function ChatPopup({ isOpen, onClose }: ChatPopupProps) {
     }
   };
 
+  const handleGenerateProposalFromChat = async () => {
+    if (messages.length === 0) {
+      toast.error('Inicie uma conversa primeiro para gerar a proposta.');
+      return;
+    }
+
+    setIsAILoading(true);
+    try {
+      // 1. Criar a proposta inicial
+      const { data: proposal, error: createError } = await supabase
+        .from('proposals')
+        .insert({
+          title: 'Proposta em Geração...',
+          user_id: user?.id,
+          status: 'draft',
+        })
+        .select('id')
+        .single();
+      
+      if (createError || !proposal?.id) throw new Error('Falha ao criar proposta');
+
+      // 2. Chamar a Edge Function para gerar o conteúdo usando o histórico do chat como contexto
+      const chatContext = messages.map(m => `${m.role === 'user' ? 'Cliente' : 'Assistente'}: ${m.content}`).join('\n');
+      
+      const { data, error } = await supabase.functions.invoke('proposal-ai', {
+        body: {
+          action: 'generate_full_proposal',
+          fullProposalRequest: `Gere uma proposta baseada nesta conversa:\n\n${chatContext}`,
+        },
+      });
+
+      if (error) throw error;
+
+      // 3. Atualizar título da proposta
+      if (data?.title) {
+        await supabase
+          .from('proposals')
+          .update({ title: data.title })
+          .eq('id', proposal.id);
+      }
+      
+      // 4. Inserir as seções geradas
+      if (data?.sections && Array.isArray(data.sections)) {
+        for (let i = 0; i < data.sections.length; i++) {
+          const section = data.sections[i];
+          await supabase
+            .from('proposal_sections')
+            .insert({
+              proposal_id: proposal.id,
+              section_type: section.type,
+              title: section.title,
+              content: section.content,
+              order_index: i,
+              is_visible: true,
+            });
+        }
+      }
+
+      toast.success('Proposta gerada a partir da conversa!');
+      onClose();
+      navigate(`/propostas/${proposal.id}`);
+    } catch (error) {
+      console.error('Error generating proposal from chat:', error);
+      toast.error('Erro ao gerar proposta. Tente novamente.');
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
