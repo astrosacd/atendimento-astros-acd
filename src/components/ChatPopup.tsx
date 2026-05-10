@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search, Wand2 } from 'lucide-react';
+import { X, Send, Bot, User, History, Plus, Trash2, ChevronLeft, Search, Wand2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
