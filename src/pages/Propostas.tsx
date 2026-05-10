@@ -454,6 +454,7 @@ function ProposalCard({
   proposal,
   onClick,
   onDelete,
+  onRedoRemarketing,
   onViewHistory,
   formatCurrency,
   sendChannels,
@@ -463,6 +464,7 @@ function ProposalCard({
   proposal: Proposal;
   onClick: () => void;
   onDelete?: () => void;
+  onRedoRemarketing: () => void;
   onViewHistory: () => void;
   formatCurrency: (value: number) => string;
   sendChannels: string[];
