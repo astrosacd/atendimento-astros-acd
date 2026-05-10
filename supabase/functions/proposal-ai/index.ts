@@ -84,44 +84,51 @@ serve(async (req) => {
     let userPromptContent = "";
 
     if (action === "generate_full_proposal") {
-      systemPrompt = `Você é um especialista em estruturação de propostas comerciais.
-Retorne APENAS um JSON estruturado.
-O JSON deve seguir este formato EXATO:
+      systemPrompt = `Você é um especialista em estruturação de propostas comerciais no Brasil.
+Retorne APENAS um JSON válido. Não inclua texto explicativo antes ou depois.
+
+Formato JSON esperado:
 {
-  "title": "Título da Proposta",
+  "title": "Título Profissional da Proposta",
   "sections": [
     {
       "type": "cover",
       "title": "Capa",
-      "content": { "title": "...", "subtitle": "..." }
+      "content": { "title": "Nome do Projeto", "subtitle": "Apresentação de Soluções" }
     },
     {
       "type": "text",
       "title": "Apresentação",
-      "content": { "content": "Markdown text" }
+      "content": { "content": "Texto markdown profissional sobre a empresa e solução..." }
     },
     {
       "type": "pricing",
       "title": "Investimento",
-      "content": { "items": [{ "description": "Item", "quantity": 1, "unitPrice": 1000 }] }
+      "content": { "items": [{ "description": "Serviço X", "quantity": 1, "unitPrice": 1500 }] }
+    },
+    {
+      "type": "terms",
+      "title": "Condições",
+      "content": { "content": "Prazos de entrega, validade da proposta e formas de pagamento..." }
     }
   ]
 }
 
 Regras:
-- Tipos válidos: cover, text, pricing, timeline, terms, gallery.
-- Use PT-BR.
-- Retorne apenas o JSON.`;
+- Tipos de seção permitidos: cover, text, pricing, timeline, terms, gallery.
+- Linguagem: Português do Brasil (PT-BR).
+- Tom: Profissional, consultivo e persuasivo.`;
 
-      userPromptContent = `Instruções do cliente: ${fullProposalRequest || context || "Gere uma proposta comercial genérica e profissional."}`;
+      userPromptContent = `O cliente solicitou uma proposta com estas instruções: ${fullProposalRequest || context || "Gere uma proposta comercial padrão."}
+Baseado nisso, estruture a proposta completa com título e seções relevantes.`;
     } else {
-      systemPrompt = "Você é um especialista em redação de propostas comerciais. Gere ou melhore o conteúdo solicitado de forma profissional e persuasiva.";
-      userPromptContent = `Ação: ${action}
-Tipo de Seção: ${sectionType || 'geral'}
-Conteúdo Atual: ${currentContent || 'vazio'}
-Instruções: ${context || fullProposalRequest || 'gerar conteúdo profissional'}
+      systemPrompt = "Você é um redator sênior de propostas comerciais. Melhore o texto fornecido mantendo um tom profissional e direto. Retorne apenas o texto final em Markdown.";
+      userPromptContent = `Ação solicitada: ${action}
+Tipo da seção: ${sectionType || 'geral'}
+Conteúdo atual: ${currentContent || '(vazio)'}
+Instruções adicionais: ${context || fullProposalRequest || 'Gere um conteúdo profissional e persuasivo para esta seção.'}
 
-Retorne apenas o texto final em Markdown.`;
+Retorne apenas o texto em Markdown.`;
     }
 
     console.log(`Chamando AI Gateway com modelo: ${AI_MODEL}`);

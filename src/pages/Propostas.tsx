@@ -724,12 +724,12 @@ function ProposalCard({
               <Button
                 variant="outline"
                 size="icon"
-                className="text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:hover:bg-amber-900/50"
+                className="bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-600 hover:text-white transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRedoRemarketing();
                 }}
-                title="Refazer Remarketing (Reiniciar campanha)"
+                title="Refazer Remarketing (Reiniciar ciclo)"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
