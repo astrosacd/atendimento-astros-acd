@@ -35,7 +35,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import InstagramMediaSelector from "@/components/instagram/InstagramMediaSelector";
 
-const InstagramAutoReply = () => {
+interface InstagramAutoReplyProps {
+  isTemporaryAccess?: boolean;
+}
+
+const InstagramAutoReply = ({ isTemporaryAccess = false }: InstagramAutoReplyProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -266,14 +270,16 @@ const InstagramAutoReply = () => {
               {globalSettings.auto_reply_enabled ? "Ativo" : "Pausado"}
             </span>
           </div>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => setIsConfigDialogOpen(true)}
-            title="Configurações de Webhook"
-          >
-            <Settings2 className="h-4 w-4" />
-          </Button>
+          {!isTemporaryAccess && (
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setIsConfigDialogOpen(true)}
+              title="Configurações de Webhook"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button 
             className="bg-gradient-to-r from-pink-500 to-orange-500 hover:opacity-90 border-none text-white shadow-md"
             onClick={() => {
