@@ -36,7 +36,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { action, context, currentContent, sectionType, audioData } = body;
+    const { action, context, currentContent, sectionType, audioData, fullProposalRequest } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -46,7 +46,51 @@ serve(async (req) => {
     let systemPrompt = "";
     let userPrompt: any = "";
 
-    if (action === "transcribe_and_generate") {
+    if (action === "generate_full_proposal") {
+      systemPrompt = `Você é um especialista em estruturação de propostas comerciais.
+Seu objetivo é analisar as instruções do usuário (em áudio ou texto) e retornar um JSON estruturado com as seções recomendadas para compor a proposta completa.
+
+Você deve retornar APENAS um JSON no seguinte formato:
+{
+  "title": "Título sugerido para a proposta",
+  "sections": [
+    {
+      "type": "cover" | "text" | "pricing" | "timeline" | "terms" | "gallery",
+      "title": "Título da seção",
+      "content": { 
+        // Conteúdo formatado para o tipo de seção:
+        // cover: { title, subtitle }
+        // text: { content: "Markdown text" }
+        // pricing: { items: [{ description, quantity, unitPrice }] }
+        // timeline: { items: [{ phase, duration, description }] }
+        // terms: { content: "Markdown text" }
+      }
+    }
+  ]
+}
+
+Regras:
+- Seja profissional e persuasivo.
+- Extraia nomes de clientes, valores e prazos se mencionados.
+- Se for áudio, ignore ruídos.
+- Retorne APENAS o JSON, sem explicações.`;
+
+      userPrompt = [
+        {
+          type: "text",
+          text: `Crie uma proposta completa baseada nestas instruções: ${fullProposalRequest || "Siga o áudio anexo."}`
+        }
+      ];
+
+      if (audioData) {
+        userPrompt.push({
+          type: "media_url",
+          media_url: {
+            url: `data:audio/webm;base64,${audioData}`
+          }
+        });
+      }
+    } else if (action === "transcribe_and_generate") {
       systemPrompt = `Você é um assistente especializado em criar propostas comerciais.
 Seu objetivo é ouvir o áudio do usuário (fornecido como dados base64) e extrair as informações necessárias para preencher uma seção específica de uma proposta comercial.
 
