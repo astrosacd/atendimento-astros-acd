@@ -658,6 +658,9 @@ export default function PropostasConfig() {
                             </div>
                           )}
 
+                            </div>
+                          )}
+
                           {/* ElevenLabs TTS */}
                           <div className="mt-4 border border-dashed border-border rounded-lg p-3 space-y-3 bg-muted/30">
                             <div className="flex items-center justify-between">
