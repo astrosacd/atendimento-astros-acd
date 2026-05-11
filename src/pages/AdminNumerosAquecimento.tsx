@@ -1221,6 +1221,7 @@ function NumeroActionsMenu({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmBanOpen, setConfirmBanOpen] = useState(false);
+  const [confirmVoltarEstoqueOpen, setConfirmVoltarEstoqueOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
