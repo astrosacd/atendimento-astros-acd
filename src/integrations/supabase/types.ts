@@ -5928,6 +5928,7 @@ export type Database = {
           evolution_api_url: string | null
           evolution_instance_name: string | null
           ghost_audio_url: string | null
+          ghost_mode_day: number | null
           ghost_mode_enabled: boolean | null
           ghost_video_url: string | null
           ghost_view_threshold: number | null
@@ -5955,6 +5956,7 @@ export type Database = {
           evolution_api_url?: string | null
           evolution_instance_name?: string | null
           ghost_audio_url?: string | null
+          ghost_mode_day?: number | null
           ghost_mode_enabled?: boolean | null
           ghost_video_url?: string | null
           ghost_view_threshold?: number | null
@@ -5982,6 +5984,7 @@ export type Database = {
           evolution_api_url?: string | null
           evolution_instance_name?: string | null
           ghost_audio_url?: string | null
+          ghost_mode_day?: number | null
           ghost_mode_enabled?: boolean | null
           ghost_video_url?: string | null
           ghost_view_threshold?: number | null
