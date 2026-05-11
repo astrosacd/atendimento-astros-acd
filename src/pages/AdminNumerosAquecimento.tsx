@@ -1220,6 +1220,7 @@ function NumeroActionsMenu({
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmBanOpen, setConfirmBanOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState('');
   const [modeloId, setModeloId] = useState(numero.modelo_id || '');
   const [statusId, setStatusId] = useState(numero.status_id || '');
@@ -1349,8 +1350,7 @@ function NumeroActionsMenu({
               <DropdownMenuItem 
                 className="text-destructive font-medium"
                 onClick={() => {
-                  setDeleteMotivo('BANIDO PERMANENTEMENTE');
-                  onDelete('BANIDO PERMANENTEMENTE');
+                  setConfirmBanOpen(true);
                 }}
               >
                 <XCircle className="h-4 w-4 mr-2" />
@@ -1583,6 +1583,36 @@ function NumeroActionsMenu({
             </Button>
             <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim() || !whatsappCliente.trim()}>
               Confirmar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Banido Permanentemente Confirmation Dialog */}
+      <Dialog open={confirmBanOpen} onOpenChange={setConfirmBanOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Confirmar Banimento Permanente
+            </DialogTitle>
+            <DialogDescription>
+              Você confirma que o número <strong>{numero.numero}</strong> foi banido permanentemente? 
+              Ele será movido para a aba de restauração.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmBanOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                onDelete('BANIDO PERMANENTEMENTE');
+                setConfirmBanOpen(false);
+              }}
+            >
+              Confirmar Banimento
             </Button>
           </DialogFooter>
         </DialogContent>
