@@ -307,6 +307,7 @@ export default function PropostasConfig() {
       auto_remarketing_cron_hour: autoRemarketingCronHour,
       ghost_mode_enabled: ghostModeEnabled,
       ghost_view_threshold: ghostViewThreshold,
+      ghost_mode_day: ghostModeDay,
       ghost_audio_url: ghostAudioUrl || null,
       ghost_video_url: ghostVideoUrl || null,
     } as any);
