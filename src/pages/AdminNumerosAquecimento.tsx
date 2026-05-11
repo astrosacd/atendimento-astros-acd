@@ -1537,9 +1537,9 @@ function NumeroActionsMenu({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="nome-cliente">Nome do Cliente <span className="text-destructive">*</span></Label>
+              <Label htmlFor="nome-cliente-venda">Nome do Cliente <span className="text-destructive">*</span></Label>
               <Input
-                id="nome-cliente"
+                id="nome-cliente-venda"
                 value={nomeCliente}
                 onChange={(e) => setNomeCliente(e.target.value)}
                 placeholder="Ex: Wilder Tecnologia"
