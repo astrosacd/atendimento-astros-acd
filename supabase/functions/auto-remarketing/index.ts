@@ -138,7 +138,7 @@ serve(async (req: Request) => {
       try {
         const viewCount = proposal.view_count || 0;
         const ghostThreshold = config.ghost_view_threshold || 3;
-        const isGhostMode = config.ghost_mode_enabled && viewCount >= ghostThreshold;
+        const ghostDay = config.ghost_mode_day || 3;
         
         console.log(`🧐 Processing proposal ${proposal.id}: status=${proposal.status}, views=${viewCount}`);
 
@@ -158,40 +158,29 @@ serve(async (req: Request) => {
         const lastLog = existingLogs?.[0];
         const dayNumber = lastLog ? lastLog.day_number + 1 : 1;
 
-        // Ghost Mode check: If ghost mode triggers, we send even if it's the same day as a regular remarketing
-        // but we don't want to spam multiple ghost messages on the same day.
-        const alreadySentGhostToday = existingLogs?.some(log => {
-          const logDate = new Date(log.sent_at).toISOString().split('T')[0];
-          const todayDate = new Date().toISOString().split('T')[0];
-          return logDate === todayDate && (log.media_type === 'audio' || log.media_type === 'video');
-        });
-
-        if (isGhostMode && alreadySentGhostToday) {
-          console.log(`⏭️ Proposal ${proposal.id}: Ghost message already sent today, skipping`);
+        // 4. Check if we exceeded max days
+        if (dayNumber > maxDays) {
+          console.log(`⏭️ Proposal ${proposal.id}: already sent ${maxDays} days, skipping`);
           continue;
         }
 
-        if (!isGhostMode) {
+        // 5. Check if already sent today
+        if (lastLog) {
+          const lastSentDate = new Date(lastLog.sent_at).toISOString().split('T')[0];
+          const todayDate = new Date().toISOString().split('T')[0];
+          if (lastSentDate === todayDate) {
+            console.log(`⏭️ Proposal ${proposal.id}: already sent today, skipping`);
+            continue;
+          }
+        }
+
+        // Determine if this should be a Ghost Mode message
+        // Gatilho: Se o modo ghost estiver ativado E (já atingiu o limite de visualizações OU é o dia programado)
+        const isGhostMode = config.ghost_mode_enabled && (viewCount >= ghostThreshold || dayNumber === ghostDay);
+        
+        if (!isGhostMode && proposal.status !== 'viewed') {
           // Regular remarketing only for 'viewed' status
-          if (proposal.status !== 'viewed') {
-            continue;
-          }
-
-          // 4. Check if we exceeded max days
-          if (dayNumber > maxDays) {
-            console.log(`⏭️ Proposal ${proposal.id}: already sent ${maxDays} days, skipping`);
-            continue;
-          }
-
-          // 5. Check if already sent today
-          if (lastLog) {
-            const lastSentDate = new Date(lastLog.sent_at).toISOString().split('T')[0];
-            const todayDate = new Date().toISOString().split('T')[0];
-            if (lastSentDate === todayDate) {
-              console.log(`⏭️ Proposal ${proposal.id}: already sent today, skipping`);
-              continue;
-            }
-          }
+          continue;
         }
 
         // 6. Determine recipient info
