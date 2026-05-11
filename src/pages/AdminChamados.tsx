@@ -336,12 +336,20 @@ const AdminChamados = () => {
                     <Input placeholder="Pesquisar chamados..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10 border-border/40 bg-background/50" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os Status</SelectItem>
+                      <SelectItem value="all">Todos Status</SelectItem>
                       <SelectItem value="aberto">Abertos</SelectItem>
                       <SelectItem value="em_andamento">Em Atendimento</SelectItem>
                       <SelectItem value="resolvido">Resolvidos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-[140px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos Tipos</SelectItem>
+                      <SelectItem value="internal">Internos</SelectItem>
+                      <SelectItem value="public">Públicos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
