@@ -654,20 +654,53 @@ export default function PropostasConfig() {
                                 <p className="text-[10px] text-muted-foreground">Pegue em elevenlabs.io → Profile → API Keys. Lembre de salvar.</p>
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs">Voz</Label>
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs">Voz</Label>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs"
+                                    disabled={loadingVoices || !elevenlabsApiKey.trim()}
+                                    onClick={async () => {
+                                      setLoadingVoices(true);
+                                      try {
+                                        const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
+                                          body: { action: 'list_voices', apiKey: elevenlabsApiKey },
+                                        });
+                                        if (error) throw error;
+                                        if ((data as any)?.error) throw new Error((data as any).error);
+                                        const list = (data as any).voices || [];
+                                        setVoicesList(list);
+                                        toast.success(`${list.length} vozes carregadas`);
+                                      } catch (err: any) {
+                                        toast.error('Erro ao listar vozes: ' + (err.message || err));
+                                      } finally {
+                                        setLoadingVoices(false);
+                                      }
+                                    }}
+                                  >
+                                    {loadingVoices ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
+                                    Atualizar lista
+                                  </Button>
+                                </div>
                                 <Select value={elevenlabsVoiceId} onValueChange={setElevenlabsVoiceId}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectTrigger><SelectValue placeholder="Selecione uma voz" /></SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="JBFqnCBsd6RMkjVDRZzb">George (masculino)</SelectItem>
-                                    <SelectItem value="onwK4e9ZLuTAKqWW03F9">Daniel (masculino grave)</SelectItem>
-                                    <SelectItem value="nPczCjzI2devNBz1zQrb">Brian (masculino casual)</SelectItem>
-                                    <SelectItem value="EXAVITQu4vr4xnSDxMaL">Sarah (feminino)</SelectItem>
-                                    <SelectItem value="XrExE9yKIg1WjnnlVkGX">Matilda (feminino jovem)</SelectItem>
-                                    <SelectItem value="cgSgspJ2msm6clMCkdW9">Jessica (feminino casual)</SelectItem>
-                                    <SelectItem value="FGY2WhTYpPnrIDTdsKH5">Laura (feminino)</SelectItem>
-                                    <SelectItem value="pFZP5JQG7iQjIQuC4Bku">Lily (feminino suave)</SelectItem>
+                                    {voicesList.length === 0 ? (
+                                      <SelectItem value={elevenlabsVoiceId}>Voz atual ({elevenlabsVoiceId.slice(0, 8)}...)</SelectItem>
+                                    ) : (
+                                      voicesList.map((v) => (
+                                        <SelectItem key={v.voice_id} value={v.voice_id}>
+                                          {v.name}
+                                          {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Pro' : v.category === 'premade' ? 'Padrão' : v.category}` : ''}
+                                          {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
+                                        </SelectItem>
+                                      ))
+                                    )}
                                   </SelectContent>
                                 </Select>
+                                <p className="text-[10px] text-muted-foreground">Clique em "Atualizar lista" para puxar suas vozes da ElevenLabs (free + clonadas + pro).</p>
                               </div>
                             </div>
                             <Textarea
