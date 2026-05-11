@@ -561,7 +561,7 @@ const AdminChamados = () => {
                 <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
                   <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {clients?.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                     ))}
