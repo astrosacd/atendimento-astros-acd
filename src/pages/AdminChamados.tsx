@@ -147,13 +147,37 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo, ciclo_cobranca').order('nome');
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      const allClients: Array<{ id: string; nome: string; email: string | null; numero: string; tipo: string | null; cobranca_ativa: boolean; ciclo_cobranca: string }> = [];
+
+      for (let page = 0; page < 20; page++) {
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('id, nome, email, numero, tipo, cobranca_ativa, ciclo_cobranca')
+          .order('nome')
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+
+        if (error) throw error;
+        allClients.push(...(data || []));
+        if (!data || data.length < pageSize) break;
+      }
+
+      return allClients;
     }
   });
 
   const [openClientSearch, setOpenClientSearch] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+
+  const getClientBillingLabel = (client?: { cobranca_ativa?: boolean | null }) => {
+    if (!client) return "";
+    return client.cobranca_ativa === false ? "Registro" : "Mensal";
+  };
+
+  const getClientBillingClasses = (client?: { cobranca_ativa?: boolean | null }) =>
+    client?.cobranca_ativa === false
+      ? "bg-amber-500/15 text-amber-500"
+      : "bg-emerald-500/15 text-emerald-500";
 
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'none') {
@@ -165,6 +189,7 @@ const AdminChamados = () => {
         contato: ""
       });
       setOpenClientSearch(false);
+      setClientSearch("");
       return;
     }
 
@@ -178,6 +203,7 @@ const AdminChamados = () => {
         contato: client.numero || ""
       });
       setOpenClientSearch(false);
+      setClientSearch("");
     }
   };
 
@@ -347,7 +373,7 @@ const AdminChamados = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto">
+        <div className="w-full max-w-none 2xl:max-w-[1800px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', textColor: 'text-blue-500' },
@@ -374,8 +400,8 @@ const AdminChamados = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.4fr)] gap-8 items-start">
+          <div className="space-y-4 min-w-0">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
@@ -403,7 +429,7 @@ const AdminChamados = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[680px] pr-4">
+                <ScrollArea className="h-[680px] pr-2">
                   {isLoading ? <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div> : (
                     <div className="space-y-3">
                       <AnimatePresence>
@@ -411,7 +437,7 @@ const AdminChamados = () => {
                           const conf = statusConfig[c.status];
                           const selected = selectedChamado?.id === c.id;
                           return (
-                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
+                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all w-full overflow-hidden ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
                               <div className="flex justify-between items-start gap-2 min-w-0">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
@@ -441,7 +467,7 @@ const AdminChamados = () => {
             </Card>
           </div>
 
-          <div className="lg:col-span-7 h-fit lg:sticky lg:top-24">
+          <div className="h-fit xl:sticky xl:top-24 min-w-0">
             {selectedChamado ? (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col min-h-[760px] lg:h-[calc(100vh-140px)]">
                 <div className="h-1.5 w-full bg-border/20 shrink-0"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
@@ -605,27 +631,41 @@ const AdminChamados = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vincular Cliente (Opcional)</Label>
+                {newChamado.cliente_id !== "none" && (() => {
+                  const selectedClient = clients?.find((c) => c.id === newChamado.cliente_id);
+                  return selectedClient ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-xs">
+                      <span className="text-muted-foreground">Tipo no banco:</span>
+                      <Badge className={cn("text-[9px] font-bold uppercase border-none", getClientBillingClasses(selectedClient))}>
+                        {getClientBillingLabel(selectedClient)}
+                      </Badge>
+                    </div>
+                  ) : null;
+                })()}
                 <Popover open={openClientSearch} onOpenChange={setOpenClientSearch}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      type="button"
                       role="combobox"
                       aria-expanded={openClientSearch}
-                      className="w-full justify-between font-normal bg-background/50 border-border/40"
+                      className="w-full h-auto min-h-11 justify-between font-normal bg-background/50 border-border/40 text-left"
                     >
-                      <span className="truncate">
+                      <span className="min-w-0 flex-1 truncate">
                         {newChamado.cliente_id !== "none"
                           ? clients?.find((c) => c.id === newChamado.cliente_id)?.nome
-                          : "Selecione um cliente..."}
+                          : "Pesquisar/selecionar cliente..."}
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
+                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start">
                     <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Pesquisar cliente por nome..." 
-                        onValueChange={(v) => setSearch(v)}
+                        value={clientSearch}
+                        onValueChange={setClientSearch}
+                        className="h-12"
                       />
                       <CommandList className="max-h-[280px] overflow-y-auto">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
@@ -633,6 +673,7 @@ const AdminChamados = () => {
                           <CommandItem
                             value="__none__"
                             onSelect={() => handleClientSelect("none")}
+                            className="data-[selected=true]:bg-muted/50"
                           >
                             <Check
                               className={cn(
@@ -643,16 +684,15 @@ const AdminChamados = () => {
                             <span className="text-muted-foreground italic">Nenhum cliente vinculado</span>
                           </CommandItem>
                           {clients?.filter(client => 
-                            client.nome.toLowerCase().includes(search.toLowerCase()) || 
-                            client.email?.toLowerCase().includes(search.toLowerCase())
-                          ).map((client) => {
-                            const isMensal = client.ciclo_cobranca === 'mensal' || client.ciclo_cobranca === 'anual';
-                            return (
+                            client.nome.toLowerCase().includes(clientSearch.toLowerCase()) || 
+                            client.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                            client.numero?.toLowerCase().includes(clientSearch.toLowerCase())
+                          ).map((client) => (
                               <CommandItem
                                 key={client.id}
                                 value={client.id}
                                 onSelect={() => handleClientSelect(client.id)}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-3 py-3"
                               >
                                 <Check
                                   className={cn(
@@ -669,16 +709,13 @@ const AdminChamados = () => {
                                 <Badge
                                   className={cn(
                                     "text-[9px] font-bold uppercase shrink-0 border-none",
-                                    isMensal
-                                      ? "bg-emerald-500/15 text-emerald-500"
-                                      : "bg-blue-500/15 text-blue-500"
+                                    getClientBillingClasses(client)
                                   )}
                                 >
-                                  {isMensal ? 'Mensal' : 'Registro'}
+                                  {getClientBillingLabel(client)}
                                 </Badge>
                               </CommandItem>
-                            );
-                          })}
+                          ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>
