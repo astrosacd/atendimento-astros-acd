@@ -1225,6 +1225,9 @@ function NumeroActionsMenu({
   const [statusId, setStatusId] = useState(numero.status_id || '');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
+  const [nomeCliente, setNomeCliente] = useState('');
+  const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
+  const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
   
   // Fetch observation history for this number
   const { data: obsHistory = [] } = useNumeroHistory(numero.id);
@@ -1240,6 +1243,18 @@ function NumeroActionsMenu({
       return;
     }
 
+    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    
+    // Se mudou para Vendido, abre modal de confirmação de venda
+    if (statusId === vendidoStatusId && numero.status_id !== vendidoStatusId) {
+      setConfirmVendaOpen(true);
+      return;
+    }
+
+    proceedWithSave();
+  };
+
+  const proceedWithSave = (extraObs?: string) => {
     // Validar capacidade ao trocar de modelo
     if (canEdit && modeloId && modeloId !== numero.modelo_id) {
       const modelo = modelosList.find((m) => m.id === modeloId);
@@ -1262,12 +1277,25 @@ function NumeroActionsMenu({
     if (canEdit && modeloId !== numero.modelo_id) updates.modelo_id = modeloId || null;
     if (canEdit && tipoWhatsapp !== numero.tipo_whatsapp) updates.tipo_whatsapp = tipoWhatsapp;
     if (canChangeStatus && statusId !== numero.status_id) updates.status_id = statusId || null;
-    if (canChangeObs && observacoes !== numero.observacoes) updates.observacoes = observacoes;
+    
+    const finalObs = extraObs ? extraObs : observacoes;
+    if (canChangeObs && finalObs !== numero.observacoes) updates.observacoes = finalObs;
     
     if (Object.keys(updates).length > 0) {
       onUpdate(updates);
     }
     setEditOpen(false);
+  };
+
+  const handleConfirmVenda = () => {
+    if (!nomeCliente.trim()) {
+      toast.error('Informe o nome do cliente');
+      return;
+    }
+
+    const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${numero.numero}`;
+    proceedWithSave(extraObs);
+    setConfirmVendaOpen(false);
   };
 
   const handleDelete = () => {
@@ -1482,6 +1510,57 @@ function NumeroActionsMenu({
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Confirmar Exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Venda Confirmation Dialog */}
+      <Dialog open={confirmVendaOpen} onOpenChange={setConfirmVendaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Confirmar Venda de Número
+            </DialogTitle>
+            <DialogDescription>
+              Para marcar como vendido, preencha as informações obrigatórias abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome-cliente">Nome do Cliente <span className="text-destructive">*</span></Label>
+              <Input
+                id="nome-cliente"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                placeholder="Ex: Wilder Tecnologia"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Chip</Label>
+              <Select value={tipoSeguro} onValueChange={(v: any) => setTipoSeguro(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="COM SEGURO">CHIP PRO COM SEGURO</SelectItem>
+                  <SelectItem value="SEM SEGURO">CHIP PRO SEM SEGURO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-muted rounded-md text-xs space-y-1">
+              <p className="font-medium">Formato da observação automática:</p>
+              <p className="text-muted-foreground italic">
+                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {numero.numero}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmVendaOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim()}>
+              Confirmar Venda
             </Button>
           </DialogFooter>
         </DialogContent>
