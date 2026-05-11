@@ -684,23 +684,27 @@ export default function PropostasConfig() {
                                     Atualizar lista
                                   </Button>
                                 </div>
-                                <Select value={elevenlabsVoiceId} onValueChange={setElevenlabsVoiceId}>
-                                  <SelectTrigger><SelectValue placeholder="Selecione uma voz" /></SelectTrigger>
+                                <Select value={voicesList.length > 0 ? elevenlabsVoiceId : ''} onValueChange={setElevenlabsVoiceId} disabled={voicesList.length === 0}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={voicesList.length === 0 ? 'Cole sua chave e clique em "Atualizar lista"' : 'Selecione uma voz'} />
+                                  </SelectTrigger>
                                   <SelectContent>
-                                    {voicesList.length === 0 ? (
-                                      <SelectItem value={elevenlabsVoiceId}>Voz atual ({elevenlabsVoiceId.slice(0, 8)}...)</SelectItem>
-                                    ) : (
-                                      voicesList.map((v) => (
-                                        <SelectItem key={v.voice_id} value={v.voice_id}>
-                                          {v.name}
-                                          {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Pro' : v.category === 'premade' ? 'Padrão' : v.category}` : ''}
-                                          {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
-                                        </SelectItem>
-                                      ))
-                                    )}
+                                    {voicesList.map((v) => (
+                                      <SelectItem key={v.voice_id} value={v.voice_id}>
+                                        {v.name}
+                                        {v.category ? ` · ${v.category === 'cloned' ? 'Clonada' : v.category === 'professional' ? 'Pro' : v.category === 'premade' ? 'Padrão' : v.category}` : ''}
+                                        {v.labels?.gender ? ` · ${v.labels.gender}` : ''}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
-                                <p className="text-[10px] text-muted-foreground">Clique em "Atualizar lista" para puxar suas vozes da ElevenLabs (free + clonadas + pro).</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {!elevenlabsApiKey.trim()
+                                    ? '⚠️ Cole a chave da API acima para habilitar a listagem de vozes.'
+                                    : voicesList.length === 0
+                                    ? 'Clique em "Atualizar lista" para puxar suas vozes (free + clonadas + pro).'
+                                    : `${voicesList.length} vozes disponíveis na sua conta.`}
+                                </p>
                               </div>
                             </div>
                             <Textarea
