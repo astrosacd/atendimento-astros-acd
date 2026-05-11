@@ -206,6 +206,7 @@ const AdminChamados = () => {
         method: 'POST',
         body: {
           ...newChamado,
+          cliente_id: newChamado.cliente_id === 'none' ? null : newChamado.cliente_id,
           is_internal: true,
           criado_por: user?.id
         }
