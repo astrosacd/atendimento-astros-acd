@@ -360,7 +360,7 @@ const AdminChamados = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto">
+        <div className="w-full max-w-none 2xl:max-w-[1800px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
             { label: 'Total', value: stats.total, icon: Ticket, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500', textColor: 'text-blue-500' },
@@ -387,8 +387,8 @@ const AdminChamados = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.4fr)] gap-8 items-start">
+          <div className="space-y-4 min-w-0">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
@@ -416,7 +416,7 @@ const AdminChamados = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[680px] pr-4">
+                <ScrollArea className="h-[680px] pr-2">
                   {isLoading ? <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div> : (
                     <div className="space-y-3">
                       <AnimatePresence>
@@ -424,7 +424,7 @@ const AdminChamados = () => {
                           const conf = statusConfig[c.status];
                           const selected = selectedChamado?.id === c.id;
                           return (
-                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
+                            <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all w-full overflow-hidden ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
                               <div className="flex justify-between items-start gap-2 min-w-0">
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
@@ -454,7 +454,7 @@ const AdminChamados = () => {
             </Card>
           </div>
 
-          <div className="lg:col-span-7 h-fit lg:sticky lg:top-24">
+          <div className="h-fit xl:sticky xl:top-24 min-w-0">
             {selectedChamado ? (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col min-h-[760px] lg:h-[calc(100vh-140px)]">
                 <div className="h-1.5 w-full bg-border/20 shrink-0"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
