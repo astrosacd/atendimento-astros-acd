@@ -1306,6 +1306,21 @@ function NumeroActionsMenu({
     setConfirmVendaOpen(false);
   };
 
+  const handleVoltarEstoque = () => {
+    const ativoStatusId = statusList.find(s => s.nome === 'Ativo')?.id;
+    if (!ativoStatusId) {
+      toast.error('Status "Ativo" não encontrado. Verifique as configurações de status.');
+      return;
+    }
+
+    onUpdate({
+      status_id: ativoStatusId,
+      observacoes: '', // Limpa os dados do cliente anterior ao voltar para o estoque
+    });
+    setConfirmVoltarEstoqueOpen(false);
+    toast.success('Número voltou para o estoque com sucesso');
+  };
+
   const handleDelete = () => {
     if (!deleteMotivo.trim()) {
       toast.error('Informe o motivo da exclusão');
