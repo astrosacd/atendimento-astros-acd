@@ -558,6 +558,7 @@ const AdminChamados = () => {
                   value={newChamado.nome} 
                   onChange={e => setNewChamado({...newChamado, nome: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
               <div className="space-y-2">
@@ -568,6 +569,7 @@ const AdminChamados = () => {
                   value={newChamado.email} 
                   onChange={e => setNewChamado({...newChamado, email: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
             </div>
@@ -580,6 +582,7 @@ const AdminChamados = () => {
                   value={newChamado.contato} 
                   onChange={e => setNewChamado({...newChamado, contato: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
               <div className="space-y-2">
