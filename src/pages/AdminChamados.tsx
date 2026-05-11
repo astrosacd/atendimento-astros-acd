@@ -147,7 +147,7 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo').order('nome');
+      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo, ciclo_cobranca').order('nome');
       if (error) throw error;
       return data;
     }
