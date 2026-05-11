@@ -1642,6 +1642,33 @@ function NumeroActionsMenu({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Voltar para o estoque Confirmation Dialog */}
+      <Dialog open={confirmVoltarEstoqueOpen} onOpenChange={setConfirmVoltarEstoqueOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-blue-600" />
+              Retornar ao Estoque
+            </DialogTitle>
+            <DialogDescription>
+              Deseja realmente retornar o número <strong>{numero.numero}</strong> para o estoque? 
+              Isso limpará as observações atuais do cliente e mudará o status para "Ativo".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmVoltarEstoqueOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleVoltarEstoque}
+            >
+              Confirmar Retorno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
