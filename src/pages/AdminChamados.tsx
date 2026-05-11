@@ -25,6 +25,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { 
   ArrowLeft, 
   Ticket, 
@@ -132,11 +147,35 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome').order('nome');
+      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo').order('nome');
       if (error) throw error;
       return data;
     }
   });
+
+  const handleClientSelect = (clientId: string) => {
+    if (clientId === 'none') {
+      setNewChamado({
+        ...newChamado,
+        cliente_id: 'none',
+        nome: "",
+        email: "",
+        contato: ""
+      });
+      return;
+    }
+
+    const client = clients?.find(c => c.id === clientId);
+    if (client) {
+      setNewChamado({
+        ...newChamado,
+        cliente_id: clientId,
+        nome: client.nome,
+        email: client.email || "",
+        contato: client.numero || ""
+      });
+    }
+  };
 
   const { data: chamados, isLoading, refetch } = useQuery({
     queryKey: ['chamados', statusFilter, typeFilter],
@@ -519,6 +558,7 @@ const AdminChamados = () => {
                   value={newChamado.nome} 
                   onChange={e => setNewChamado({...newChamado, nome: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
               <div className="space-y-2">
@@ -529,6 +569,7 @@ const AdminChamados = () => {
                   value={newChamado.email} 
                   onChange={e => setNewChamado({...newChamado, email: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
             </div>
@@ -541,6 +582,7 @@ const AdminChamados = () => {
                   value={newChamado.contato} 
                   onChange={e => setNewChamado({...newChamado, contato: e.target.value})}
                   required
+                  disabled={newChamado.cliente_id !== 'none'}
                 />
               </div>
               <div className="space-y-2">
@@ -559,15 +601,64 @@ const AdminChamados = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vincular Cliente (Opcional)</Label>
-                <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {clients?.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal bg-background/50 border-border/40"
+                    >
+                      <span className="truncate">
+                        {newChamado.cliente_id !== "none"
+                          ? clients?.find((c) => c.id === newChamado.cliente_id)?.nome
+                          : "Selecione um cliente..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar cliente..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => handleClientSelect("none")}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newChamado.cliente_id === "none" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Nenhum
+                          </CommandItem>
+                          {clients?.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.nome}
+                              onSelect={() => handleClientSelect(client.id)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  newChamado.cliente_id === client.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{client.nome}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">
+                                  {client.tipo || 'Mensal'}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Prioridade</Label>
