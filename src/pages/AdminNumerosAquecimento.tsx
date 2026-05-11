@@ -1361,6 +1361,15 @@ function NumeroActionsMenu({
               Bloqueado (Vendido)
             </DropdownMenuItem>
           )}
+          {isVendido && (canEdit || canChangeStatus) && (
+            <DropdownMenuItem 
+              onClick={() => setConfirmVoltarEstoqueOpen(true)}
+              className="text-blue-600 dark:text-blue-400"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Voltar para o estoque
+            </DropdownMenuItem>
+          )}
           {canDeleteThisNumber && (
             <>
               <DropdownMenuItem 
