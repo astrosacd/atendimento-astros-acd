@@ -46,6 +46,7 @@ export default function PropostasConfig() {
   
   // Ghost Mode
   const [ghostModeEnabled, setGhostModeEnabled] = useState(false);
+  const [ghostModeType, setGhostModeType] = useState<'fixed' | 'dynamic'>('fixed');
   const [ghostViewThreshold, setGhostViewThreshold] = useState(3);
   const [ghostModeDay, setGhostModeDay] = useState(3);
   const [ghostAudioUrl, setGhostAudioUrl] = useState('');
@@ -116,11 +117,13 @@ export default function PropostasConfig() {
       setAutoRemarketingChannel(config.auto_remarketing_channel ?? 'email');
       setAutoRemarketingCronHour((config as any).auto_remarketing_cron_hour ?? 9);
       setGhostModeEnabled((config as any).ghost_mode_enabled ?? false);
+      setGhostModeType((config as any).ghost_mode_type || 'fixed');
       setGhostViewThreshold((config as any).ghost_view_threshold ?? 3);
       setGhostAudioUrl((config as any).ghost_audio_url || '');
       setGhostVideoUrl((config as any).ghost_video_url || '');
       setElevenlabsApiKey((config as any).elevenlabs_api_key || '');
       setElevenlabsVoiceId((config as any).elevenlabs_voice_id || 'JBFqnCBsd6RMkjVDRZzb');
+      setTtsText((config as any).tts_text || '');
     }
   }, [config]);
 
@@ -321,12 +324,14 @@ export default function PropostasConfig() {
       auto_remarketing_channel: autoRemarketingChannel,
       auto_remarketing_cron_hour: autoRemarketingCronHour,
       ghost_mode_enabled: ghostModeEnabled,
+      ghost_mode_type: ghostModeType,
       ghost_view_threshold: ghostViewThreshold,
       ghost_mode_day: ghostModeDay,
       ghost_audio_url: ghostAudioUrl || null,
       ghost_video_url: ghostVideoUrl || null,
       elevenlabs_api_key: elevenlabsApiKey || null,
       elevenlabs_voice_id: elevenlabsVoiceId || null,
+      tts_text: ttsText || null,
     } as any);
 
     // Update cron schedule
@@ -598,8 +603,28 @@ export default function PropostasConfig() {
                             <p className="text-xs text-muted-foreground">0 = ignorar gatilho por visualizações</p>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Áudio (.mp3, .ogg, .opus)</Label>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Tipo de Áudio Ghost</Label>
+                            <Select value={ghostModeType} onValueChange={(v: any) => setGhostModeType(v)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fixed">Áudio Fixo (Upload ou IA Salva)</SelectItem>
+                                <SelectItem value="dynamic">Áudio Dinâmico (IA gera com nome do cliente)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-muted-foreground">
+                              {ghostModeType === 'fixed' 
+                                ? 'O mesmo áudio será enviado para todos.' 
+                                : 'Um novo áudio será gerado para cada cliente usando o texto abaixo.'}
+                            </p>
+                          </div>
+
+                          {ghostModeType === 'fixed' && (
+                            <div className="space-y-2">
+                              <Label>Áudio Fixo (.mp3, .ogg, .opus)</Label>
                           <div className="flex gap-2">
                             <Input
                               type="file"
@@ -712,10 +737,11 @@ export default function PropostasConfig() {
                             <Textarea
                               value={ttsText}
                               onChange={(e) => setTtsText(e.target.value)}
-                              placeholder="Ex: Oi, tudo bem? Vi aqui que você ainda não conferiu a proposta. Dá uma olhada quando puder, qualquer coisa me chama!"
-                              rows={3}
-                              maxLength={1000}
-                            />
+                                placeholder="Ex: Oi {{nome_cliente}}, tudo bem? Vi aqui que você ainda não conferiu a proposta..."
+                                rows={3}
+                                maxLength={1000}
+                              />
+                              <p className="text-[10px] text-blue-500 font-medium">Use {"{{nome_cliente}}"} para falar o nome do cliente automaticamente no áudio dinâmico.</p>
                             <div className="flex flex-wrap gap-2 items-center">
                               <Button
                                 type="button"
@@ -774,6 +800,7 @@ export default function PropostasConfig() {
                               )}
                             </div>
                           </div>
+                        )}
                         </div>
                         <div className="space-y-2">
                           <Label>Vídeo (.mp4)</Label>
@@ -829,13 +856,13 @@ export default function PropostasConfig() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              disabled={!!testSending || !testPhone.trim() || !ghostAudioUrl}
-                              onClick={async () => {
-                                setTestSending('audio');
-                                try {
-                                  const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
-                                    body: { phone: testPhone, mediaType: 'audio' },
-                                  });
+                                disabled={!!testSending || !testPhone.trim() || (ghostModeType === 'fixed' ? !ghostAudioUrl : !ttsText.trim())}
+                                onClick={async () => {
+                                  setTestSending('audio');
+                                  try {
+                                    const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
+                                      body: { phone: testPhone, mediaType: 'audio', clientName: 'João Silva' },
+                                    });
                                   if (error) throw error;
                                   if ((data as any)?.error) throw new Error((data as any).error);
                                   toast.success(`Áudio enviado para ${(data as any).sentTo}`);
@@ -875,7 +902,7 @@ export default function PropostasConfig() {
                             </Button>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            Use o número completo com DDI+DDD (ex: 5544999999999). Se o áudio/vídeo não estiver salvo no banco ainda, clique em "Salvar Remarketing" antes de testar.
+                            Use o número completo com DDI+DDD (ex: 5544999999999). Se for áudio dinâmico, o teste usará o nome "João Silva".
                           </p>
                         </div>
                       </div>
