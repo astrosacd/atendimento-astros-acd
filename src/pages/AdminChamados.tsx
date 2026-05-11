@@ -400,7 +400,7 @@ const AdminChamados = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.4fr)] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(500px,0.9fr)_minmax(0,1.35fr)] gap-8 items-start">
           <div className="space-y-4 min-w-0">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
