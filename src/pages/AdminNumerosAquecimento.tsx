@@ -1550,6 +1550,15 @@ function NumeroActionsMenu({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="whatsapp-cliente-venda">Número/WhatsApp do Cliente <span className="text-destructive">*</span></Label>
+              <Input
+                id="whatsapp-cliente-venda"
+                value={whatsappCliente}
+                onChange={(e) => setWhatsappCliente(e.target.value)}
+                placeholder="Ex: 5511986461474@s.whatsapp.net"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Tipo de Chip</Label>
               <Select value={tipoSeguro} onValueChange={(v: any) => setTipoSeguro(v)}>
                 <SelectTrigger>
