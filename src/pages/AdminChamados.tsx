@@ -147,13 +147,24 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo, ciclo_cobranca').order('nome');
+      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo, cobranca_ativa, ciclo_cobranca').order('nome');
       if (error) throw error;
       return data;
     }
   });
 
   const [openClientSearch, setOpenClientSearch] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+
+  const getClientBillingLabel = (client?: { cobranca_ativa?: boolean | null }) => {
+    if (!client) return "";
+    return client.cobranca_ativa === false ? "Registro" : "Mensal";
+  };
+
+  const getClientBillingClasses = (client?: { cobranca_ativa?: boolean | null }) =>
+    client?.cobranca_ativa === false
+      ? "bg-amber-500/15 text-amber-500"
+      : "bg-emerald-500/15 text-emerald-500";
 
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'none') {
@@ -165,6 +176,7 @@ const AdminChamados = () => {
         contato: ""
       });
       setOpenClientSearch(false);
+      setClientSearch("");
       return;
     }
 
@@ -178,6 +190,7 @@ const AdminChamados = () => {
         contato: client.numero || ""
       });
       setOpenClientSearch(false);
+      setClientSearch("");
     }
   };
 
