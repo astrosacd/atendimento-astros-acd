@@ -224,7 +224,7 @@ const AdminChamados = () => {
         motivo: "",
         prioridade: "media",
         setor: "TI",
-        cliente_id: ""
+        cliente_id: "none"
       });
       toast.success('Chamado interno criado com sucesso');
       logActivity(`Criou um novo chamado interno para ${newChamado.nome}`, 'duvida');
