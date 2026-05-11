@@ -115,6 +115,8 @@ export default function PropostasConfig() {
       setGhostViewThreshold((config as any).ghost_view_threshold ?? 3);
       setGhostAudioUrl((config as any).ghost_audio_url || '');
       setGhostVideoUrl((config as any).ghost_video_url || '');
+      setElevenlabsApiKey((config as any).elevenlabs_api_key || '');
+      setElevenlabsVoiceId((config as any).elevenlabs_voice_id || 'JBFqnCBsd6RMkjVDRZzb');
     }
   }, [config]);
 
