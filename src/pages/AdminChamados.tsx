@@ -15,6 +15,15 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/badge"; // Wait, Dialog is in components/ui/dialog
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, 
   Ticket, 
@@ -41,11 +50,22 @@ import {
   Calendar,
   Filter,
   ArrowUpRight,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Building2,
+  ShieldAlert
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ChamadoStatus = 'aberto' | 'em_andamento' | 'aguardando_cliente' | 'resolvido' | 'fechado';
 type ChamadoPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
