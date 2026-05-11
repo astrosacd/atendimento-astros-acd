@@ -673,6 +673,7 @@ const AdminChamados = () => {
                           <CommandItem
                             value="__none__"
                             onSelect={() => handleClientSelect("none")}
+                            className="data-[selected=true]:bg-muted/50"
                           >
                             <Check
                               className={cn(
