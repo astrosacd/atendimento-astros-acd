@@ -67,6 +67,9 @@ export function usePermissions() {
   const canViewNumerosHistory = () => hasPermission('view_numeros_history');
   const canManageNumerosWebhooks = () => hasPermission('manage_numeros_webhooks');
   const canManageNumerosApi = () => hasPermission('manage_numeros_api');
+  const canRestoreNumeros = () => hasPermission('restore_numeros_aquecimento');
+  const canReturnToStock = () => hasPermission('return_to_stock_numeros');
+  const canDeleteSoldPermanent = () => hasPermission('delete_sold_numeros_permanent');
 
   // Consulta de Números permissions
   const canViewConsultaNumeros = () => hasPermission('view_consulta_numeros');
@@ -279,6 +282,9 @@ export function usePermissions() {
     canViewNumerosHistory,
     canManageNumerosWebhooks,
     canManageNumerosApi,
+    canRestoreNumeros,
+    canReturnToStock,
+    canDeleteSoldPermanent,
     canViewConsultaNumeros,
     canViewValidacaoSms,
     canShareValidacaoSms,
