@@ -234,10 +234,11 @@ serve(async (req) => {
         const { data, error } = await supabase
           .from('chamados')
           .select(`
-            id, codigo, nome, email, contato, motivo, status, prioridade, created_at, updated_at, closed_at,
+            id, codigo, nome, email, contato, motivo, status, prioridade, created_at, updated_at, closed_at, is_internal, setor, cliente_id,
             chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
           `)
           .eq('hash_acesso', hash)
+          .eq('is_internal', false) // Public lookup only for non-internal
           .maybeSingle();
         
         if (error || !data) {
@@ -275,7 +276,7 @@ serve(async (req) => {
       let query = supabase
         .from('chamados')
         .select(`
-          id, codigo, nome, email, contato, motivo, status, prioridade, tecnico_id, created_at, updated_at, closed_at,
+          id, codigo, nome, email, contato, motivo, status, prioridade, tecnico_id, created_at, updated_at, closed_at, is_internal, setor, cliente_id, criado_por,
           chamados_comentarios(id, autor_nome, autor_email, tipo, conteudo, created_at)
         `, { count: 'exact' });
       
@@ -283,6 +284,10 @@ serve(async (req) => {
       if (codigo) query = query.eq('codigo', codigo);
       if (email) query = query.eq('email', email);
       if (status) query = query.eq('status', status);
+      
+      const isInternal = url.searchParams.get('is_internal');
+      if (isInternal === 'true') query = query.eq('is_internal', true);
+      else if (isInternal === 'false') query = query.eq('is_internal', false);
       
       query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
       
@@ -318,11 +323,12 @@ serve(async (req) => {
           .from("chamados")
           .select(
             `
-            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at,
+            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at, is_internal, setor,
             chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
           `
           )
           .eq("codigo", codigo)
+          .eq("is_internal", false)
           .maybeSingle();
 
         if (error || !data) {
@@ -355,11 +361,12 @@ serve(async (req) => {
           .from("chamados")
           .select(
             `
-            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at,
+            id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at, is_internal, setor,
             chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
           `
           )
           .eq("hash_acesso", hash)
+          .eq("is_internal", false)
           .maybeSingle();
 
         if (error || !data) {
@@ -380,7 +387,7 @@ serve(async (req) => {
       }
 
       // Create new ticket
-      const { nome, email, contato, motivo } = body;
+      const { nome, email, contato, motivo, is_internal, setor, cliente_id, prioridade: bodyPrioridade, criado_por } = body;
 
       // Validate required fields
       if (!nome || !email || !contato || !motivo) {
@@ -411,9 +418,14 @@ serve(async (req) => {
           contato: String(contato).trim(),
           motivo: String(motivo).trim(),
           hash_acesso: hashAcesso,
+          is_internal: !!is_internal,
+          setor: setor || null,
+          cliente_id: cliente_id || null,
+          criado_por: criado_por || null,
+          prioridade: bodyPrioridade || 'media'
         })
         .select(
-          "id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at"
+          "id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at, is_internal, setor, cliente_id"
         )
         .single();
 
