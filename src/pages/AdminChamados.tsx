@@ -153,6 +153,8 @@ const AdminChamados = () => {
     }
   });
 
+  const [openClientSearch, setOpenClientSearch] = useState(false);
+
   const handleClientSelect = (clientId: string) => {
     if (clientId === 'none') {
       setNewChamado({
@@ -162,6 +164,7 @@ const AdminChamados = () => {
         email: "",
         contato: ""
       });
+      setOpenClientSearch(false);
       return;
     }
 
@@ -174,6 +177,7 @@ const AdminChamados = () => {
         email: client.email || "",
         contato: client.numero || ""
       });
+      setOpenClientSearch(false);
     }
   };
 
@@ -439,7 +443,7 @@ const AdminChamados = () => {
 
           <div className="lg:col-span-7 h-fit lg:sticky lg:top-24">
             {selectedChamado ? (
-              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col h-[760px]">
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col min-h-[760px] lg:h-[calc(100vh-140px)]">
                 <div className="h-1.5 w-full bg-border/20 shrink-0"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
                 <CardHeader className="pb-4 shrink-0">
                   <div className="flex justify-between items-start mb-2">
@@ -601,11 +605,12 @@ const AdminChamados = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vincular Cliente (Opcional)</Label>
-                <Popover>
+                <Popover open={openClientSearch} onOpenChange={setOpenClientSearch}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
+                      aria-expanded={openClientSearch}
                       className="w-full justify-between font-normal bg-background/50 border-border/40"
                     >
                       <span className="truncate">
@@ -617,8 +622,11 @@ const AdminChamados = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
-                    <Command shouldFilter={true}>
-                      <CommandInput placeholder="Pesquisar cliente por nome..." />
+                    <Command shouldFilter={false}>
+                      <CommandInput 
+                        placeholder="Pesquisar cliente por nome..." 
+                        onValueChange={(v) => setSearch(v)}
+                      />
                       <CommandList className="max-h-[280px] overflow-y-auto">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
@@ -634,12 +642,15 @@ const AdminChamados = () => {
                             />
                             <span className="text-muted-foreground italic">Nenhum cliente vinculado</span>
                           </CommandItem>
-                          {clients?.map((client) => {
+                          {clients?.filter(client => 
+                            client.nome.toLowerCase().includes(search.toLowerCase()) || 
+                            client.email?.toLowerCase().includes(search.toLowerCase())
+                          ).map((client) => {
                             const isMensal = client.ciclo_cobranca === 'mensal' || client.ciclo_cobranca === 'anual';
                             return (
                               <CommandItem
                                 key={client.id}
-                                value={`${client.nome} ${client.email || ''}`}
+                                value={client.id}
                                 onSelect={() => handleClientSelect(client.id)}
                                 className="flex items-center gap-2"
                               >
