@@ -850,51 +850,71 @@ export type Database = {
       }
       chamados: {
         Row: {
+          cliente_id: string | null
           closed_at: string | null
           codigo: string
           contato: string
           created_at: string
+          criado_por: string | null
           email: string
           hash_acesso: string
           id: string
+          is_internal: boolean | null
           motivo: string
           nome: string
           prioridade: Database["public"]["Enums"]["chamado_prioridade"]
+          setor: string | null
           status: Database["public"]["Enums"]["chamado_status"]
           tecnico_id: string | null
           updated_at: string
         }
         Insert: {
+          cliente_id?: string | null
           closed_at?: string | null
           codigo: string
           contato: string
           created_at?: string
+          criado_por?: string | null
           email: string
           hash_acesso: string
           id?: string
+          is_internal?: boolean | null
           motivo: string
           nome: string
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
+          setor?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_id?: string | null
           updated_at?: string
         }
         Update: {
+          cliente_id?: string | null
           closed_at?: string | null
           codigo?: string
           contato?: string
           created_at?: string
+          criado_por?: string | null
           email?: string
           hash_acesso?: string
           id?: string
+          is_internal?: boolean | null
           motivo?: string
           nome?: string
           prioridade?: Database["public"]["Enums"]["chamado_prioridade"]
+          setor?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           tecnico_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chamados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chamados_api_keys: {
         Row: {

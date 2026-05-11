@@ -91,6 +91,7 @@ serve(async (req) => {
           .from('chamados')
           .select('id')
           .eq('email', email.toLowerCase().trim())
+          .eq('is_internal', false)
           .limit(1);
         
         if (ticketError || !existingTickets || existingTickets.length === 0) {
@@ -233,8 +234,9 @@ serve(async (req) => {
           id, codigo, nome, email, contato, motivo, status, prioridade, hash_acesso, created_at, updated_at, closed_at,
           chamados_comentarios(id, autor_nome, tipo, conteudo, created_at)
         `)
-        .eq('email', email.toLowerCase().trim())
-        .order('created_at', { ascending: false });
+          .eq('email', email.toLowerCase().trim())
+          .eq('is_internal', false)
+          .order('created_at', { ascending: false });
       
       // Filter comments to only public ones
       const ticketsFiltered = tickets?.map(t => ({

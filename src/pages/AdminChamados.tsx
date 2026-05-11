@@ -15,6 +15,16 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   Ticket, 
@@ -41,7 +51,10 @@ import {
   Calendar,
   Filter,
   ArrowUpRight,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Building2,
+  ShieldAlert
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,6 +77,10 @@ interface Chamado {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  is_internal: boolean;
+  setor: string | null;
+  cliente_id: string | null;
+  criado_por: string | null;
   chamados_comentarios?: Array<{
     id: string;
     autor_nome: string;
@@ -82,11 +99,13 @@ const statusConfig: Record<ChamadoStatus, { label: string; color: string; icon: 
 };
 
 const prioridadeConfig: Record<ChamadoPrioridade, { label: string; color: string; indicator: string }> = {
-  baixa: { label: 'Baixa', color: 'bg-slate-100 text-slate-600', indicator: 'bg-slate-400' },
-  media: { label: 'Média', color: 'bg-blue-100 text-blue-600', indicator: 'bg-blue-500' },
-  alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600', indicator: 'bg-orange-500' },
-  urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600', indicator: 'bg-red-500' },
+  baixa: { label: 'Baixa', color: 'bg-slate-500/10 text-slate-400', indicator: 'bg-slate-400' },
+  media: { label: 'Média', color: 'bg-blue-500/10 text-blue-400', indicator: 'bg-blue-500' },
+  alta: { label: 'Alta', color: 'bg-orange-500/10 text-orange-400', indicator: 'bg-orange-500' },
+  urgente: { label: 'Urgente', color: 'bg-red-500/10 text-red-400', indicator: 'bg-red-500' },
 };
+
+const setoresInternal = ['TI', 'Financeiro', 'Suporte', 'Vendas', 'Outros'];
 
 const AdminChamados = () => {
   const navigate = useNavigate();
@@ -98,9 +117,29 @@ const AdminChamados = () => {
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null);
   const [newComment, setNewComment] = useState("");
   const [commentType, setCommentType] = useState<"publico" | "interno">("publico");
+  const [typeFilter, setTypeFilter] = useState<string>("all"); // all, internal, public
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newChamado, setNewChamado] = useState({
+    nome: "",
+    email: "",
+    contato: "",
+    motivo: "",
+    prioridade: "media" as ChamadoPrioridade,
+    setor: "TI",
+    cliente_id: ""
+  });
+
+  const { data: clients } = useQuery({
+    queryKey: ['clients-for-tickets'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clientes').select('id, nome').order('nome');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const { data: chamados, isLoading, refetch } = useQuery({
-    queryKey: ['chamados', statusFilter],
+    queryKey: ['chamados', statusFilter, typeFilter],
     queryFn: async () => {
       let query = supabase
         .from('chamados')
@@ -112,6 +151,12 @@ const AdminChamados = () => {
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter as ChamadoStatus);
+      }
+
+      if (typeFilter === 'internal') {
+        query = query.eq('is_internal', true);
+      } else if (typeFilter === 'public') {
+        query = query.eq('is_internal', false);
       }
 
       const { data, error } = await query;
@@ -154,6 +199,44 @@ const AdminChamados = () => {
     },
   });
 
+  const createInternalTicketMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke('api-chamados', {
+        method: 'POST',
+        body: {
+          ...newChamado,
+          is_internal: true,
+          criado_por: user?.id
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chamados'] });
+      setIsDialogOpen(false);
+      setNewChamado({
+        nome: "",
+        email: "",
+        contato: "",
+        motivo: "",
+        prioridade: "media",
+        setor: "TI",
+        cliente_id: ""
+      });
+      toast.success('Chamado interno criado com sucesso');
+      logActivity(`Criou um novo chamado interno para ${newChamado.nome}`, 'duvida');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao criar chamado: ' + error.message);
+    }
+  });
+
+  const handleCreateTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    createInternalTicketMutation.mutate();
+  };
   useEffect(() => {
     const channel = supabase.channel('chamados-realtime').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chamados_comentarios' }, (payload) => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
@@ -172,11 +255,15 @@ const AdminChamados = () => {
     return last && last.tipo === 'publico' && !last.autor_nome?.includes('Astros');
   };
 
-  const filteredChamados = chamados?.filter(c => 
-    c.codigo.toLowerCase().includes(search.toLowerCase()) ||
-    c.nome.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredChamados = chamados?.filter(c => {
+    const term = search.toLowerCase();
+    return (
+      c.codigo.toLowerCase().includes(term) ||
+      c.nome.toLowerCase().includes(term) ||
+      c.email.toLowerCase().includes(term) ||
+      (c.setor && c.setor.toLowerCase().includes(term))
+    );
+  });
 
   const stats = {
     total: chamados?.length || 0,
@@ -204,6 +291,9 @@ const AdminChamados = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20 gap-2">
+            <Plus className="h-4 w-4" /> Novo Chamado
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')} className="border-border/40 hover:bg-primary/5">
             <Settings className="h-4 w-4 mr-2" /> Configurações
           </Button>
@@ -250,12 +340,20 @@ const AdminChamados = () => {
                     <Input placeholder="Pesquisar chamados..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10 border-border/40 bg-background/50" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os Status</SelectItem>
+                      <SelectItem value="all">Todos Status</SelectItem>
                       <SelectItem value="aberto">Abertos</SelectItem>
                       <SelectItem value="em_andamento">Em Atendimento</SelectItem>
                       <SelectItem value="resolvido">Resolvidos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-[140px] h-10 border-border/40 bg-background/50"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos Tipos</SelectItem>
+                      <SelectItem value="internal">Internos</SelectItem>
+                      <SelectItem value="public">Públicos</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -274,6 +372,12 @@ const AdminChamados = () => {
                                 <div>
                                   <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-[10px] font-bold text-muted-foreground font-mono">#{c.codigo}</span>
+                                    {c.is_internal && (
+                                      <Badge className="bg-amber-500/20 text-amber-500 border-none font-bold text-[9px] uppercase px-2 flex items-center gap-1">
+                                        <Lock className="h-2 w-2" /> Interno
+                                      </Badge>
+                                    )}
+                                    {c.setor && <Badge variant="outline" className="text-[9px] uppercase font-bold border-primary/20 text-primary">{c.setor}</Badge>}
                                     <Badge className={`${conf.bg} ${conf.color} border-none font-bold text-[9px] uppercase px-2`}>{conf.label}</Badge>
                                     {hasClientResponse(c) && <Badge className="bg-orange-500 text-white animate-pulse text-[9px]">NOVA RESPOSTA</Badge>}
                                   </div>
@@ -393,6 +497,110 @@ const AdminChamados = () => {
           </div>
         </div>
       </div>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl bg-card border-border/40">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              Abrir Chamado Interno
+            </DialogTitle>
+            <DialogDescription>
+              Crie um chamado para ser acompanhado por outra equipe internamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateTicket} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome do Cliente / Assunto</Label>
+                <Input 
+                  placeholder="Ex: Suporte TI - João" 
+                  value={newChamado.nome} 
+                  onChange={e => setNewChamado({...newChamado, nome: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email para Referência</Label>
+                <Input 
+                  type="email" 
+                  placeholder="cliente@email.com" 
+                  value={newChamado.email} 
+                  onChange={e => setNewChamado({...newChamado, email: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Contato (WhatsApp)</Label>
+                <Input 
+                  placeholder="(11) 99999-9999" 
+                  value={newChamado.contato} 
+                  onChange={e => setNewChamado({...newChamado, contato: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Setor Responsável</Label>
+                <Select value={newChamado.setor} onValueChange={v => setNewChamado({...newChamado, setor: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {setoresInternal.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Vincular Cliente (Opcional)</Label>
+                <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {clients?.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Prioridade</Label>
+                <Select value={newChamado.prioridade} onValueChange={v => setNewChamado({...newChamado, prioridade: v as any})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(prioridadeConfig).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição / Motivo</Label>
+              <Textarea 
+                placeholder="Detalhes do problema ou observação..." 
+                className="min-h-[100px]"
+                value={newChamado.motivo}
+                onChange={e => setNewChamado({...newChamado, motivo: e.target.value})}
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={createInternalTicketMutation.isPending}>
+                {createInternalTicketMutation.isPending ? "Criando..." : "Criar Chamado Interno"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardLayout>
   );
