@@ -47,6 +47,7 @@ export default function PropostasConfig() {
   // Ghost Mode
   const [ghostModeEnabled, setGhostModeEnabled] = useState(false);
   const [ghostViewThreshold, setGhostViewThreshold] = useState(3);
+  const [ghostModeDay, setGhostModeDay] = useState(3);
   const [ghostAudioUrl, setGhostAudioUrl] = useState('');
   const [ghostVideoUrl, setGhostVideoUrl] = useState('');
 
