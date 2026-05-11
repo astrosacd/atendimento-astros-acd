@@ -1294,11 +1294,14 @@ function NumeroActionsMenu({
       toast.error('Informe o nome do cliente');
       return;
     }
+    if (!whatsappCliente.trim()) {
+      toast.error('Informe o número de contato do cliente');
+      return;
+    }
 
-    const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${numero.numero}`;
+    const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${whatsappCliente.trim()}`;
     proceedWithSave(extraObs);
     setConfirmVendaOpen(false);
-    setIsChangingToVendido(false);
   };
 
   const handleDelete = () => {
