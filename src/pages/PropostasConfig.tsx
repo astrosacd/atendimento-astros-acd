@@ -546,6 +546,54 @@ export default function PropostasConfig() {
                     </div>
                   </div>
 
+                  {/* Modo Ghost */}
+                  <div className="border-2 border-purple-500/40 bg-purple-500/5 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold flex items-center gap-2">
+                          👻 Modo Ghost — Áudio/Vídeo no WhatsApp
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Em um dia específico do remarketing, envia automaticamente um áudio ou vídeo seu pelo WhatsApp do cliente.
+                        </p>
+                      </div>
+                      <Switch checked={ghostModeEnabled} onCheckedChange={setGhostModeEnabled} />
+                    </div>
+
+                    {ghostModeEnabled && (
+                      <div className="space-y-4 pt-2 border-t border-purple-500/20">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Programar para o dia</Label>
+                            <Select value={String(ghostModeDay)} onValueChange={(v) => setGhostModeDay(Number(v))}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: autoRemarketingMaxDays }, (_, i) => (
+                                  <SelectItem key={i + 1} value={String(i + 1)}>Dia {i + 1} do remarketing</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">Em qual dia do remarketing enviar o áudio/vídeo</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Ou após X visualizações (opcional)</Label>
+                            <Input type="number" min={0} value={ghostViewThreshold} onChange={(e) => setGhostViewThreshold(Number(e.target.value))} />
+                            <p className="text-xs text-muted-foreground">0 = ignorar gatilho por visualizações</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>URL do Áudio (.mp3, .ogg)</Label>
+                          <Input placeholder="https://..." value={ghostAudioUrl} onChange={(e) => setGhostAudioUrl(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>URL do Vídeo (.mp4)</Label>
+                          <Input placeholder="https://..." value={ghostVideoUrl} onChange={(e) => setGhostVideoUrl(e.target.value)} />
+                          <p className="text-xs text-muted-foreground">Cole o link de um áudio ou vídeo. Se preencher os dois, o vídeo tem prioridade.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
                     <p className="text-sm font-medium">Exemplo de fluxo:</p>
                     <div className="text-sm space-y-1 text-muted-foreground">
