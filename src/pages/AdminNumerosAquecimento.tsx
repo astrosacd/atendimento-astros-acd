@@ -1587,6 +1587,36 @@ function NumeroActionsMenu({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Banido Permanentemente Confirmation Dialog */}
+      <Dialog open={confirmBanOpen} onOpenChange={setConfirmBanOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Confirmar Banimento Permanente
+            </DialogTitle>
+            <DialogDescription>
+              Você confirma que o número <strong>{numero.numero}</strong> foi banido permanentemente? 
+              Ele será movido para a aba de restauração.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmBanOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                onDelete('BANIDO PERMANENTEMENTE');
+                setConfirmBanOpen(false);
+              }}
+            >
+              Confirmar Banimento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
