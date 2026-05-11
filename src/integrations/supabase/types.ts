@@ -5919,6 +5919,8 @@ export type Database = {
           auto_remarketing_enabled: boolean
           auto_remarketing_max_days: number
           created_at: string
+          elevenlabs_api_key: string | null
+          elevenlabs_voice_id: string | null
           email_body_template: string | null
           email_enabled: boolean | null
           email_remarketing_body_template: string | null
@@ -5947,6 +5949,8 @@ export type Database = {
           auto_remarketing_enabled?: boolean
           auto_remarketing_max_days?: number
           created_at?: string
+          elevenlabs_api_key?: string | null
+          elevenlabs_voice_id?: string | null
           email_body_template?: string | null
           email_enabled?: boolean | null
           email_remarketing_body_template?: string | null
@@ -5975,6 +5979,8 @@ export type Database = {
           auto_remarketing_enabled?: boolean
           auto_remarketing_max_days?: number
           created_at?: string
+          elevenlabs_api_key?: string | null
+          elevenlabs_voice_id?: string | null
           email_body_template?: string | null
           email_enabled?: boolean | null
           email_remarketing_body_template?: string | null
