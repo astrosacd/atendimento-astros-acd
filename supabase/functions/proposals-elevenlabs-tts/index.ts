@@ -31,12 +31,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const action = String(body?.action || 'generate');
     const text = String(body?.text || "").trim();
     const voiceId = String(body?.voiceId || "JBFqnCBsd6RMkjVDRZzb");
     const save = Boolean(body?.save);
+    const overrideKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
 
-    if (!text || text.length > 1000) {
+    if (action === 'generate' && (!text || text.length > 1000)) {
       return new Response(JSON.stringify({ error: "Texto inválido (1-1000 caracteres)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -47,9 +49,31 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const apiKey = config?.elevenlabs_api_key;
+    const apiKey = overrideKey || config?.elevenlabs_api_key;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Chave da ElevenLabs não configurada" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // List voices action
+    if (action === 'list_voices') {
+      const vRes = await fetch("https://api.elevenlabs.io/v2/voices?page_size=100", {
+        headers: { "xi-api-key": apiKey },
+      });
+      if (!vRes.ok) {
+        const errText = await vRes.text();
+        return new Response(JSON.stringify({ error: `ElevenLabs: ${errText}` }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const vJson = await vRes.json();
+      const voices = (vJson.voices || []).map((v: any) => ({
+        voice_id: v.voice_id,
+        name: v.name,
+        category: v.category,
+        labels: v.labels || {},
+        preview_url: v.preview_url,
+      }));
+      return new Response(JSON.stringify({ voices }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Generate TTS
