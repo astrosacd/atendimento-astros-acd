@@ -199,7 +199,44 @@ const AdminChamados = () => {
     },
   });
 
-  useEffect(() => {
+  const createInternalTicketMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke('api-chamados', {
+        method: 'POST',
+        body: {
+          ...newChamado,
+          is_internal: true,
+          criado_por: user?.id
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chamados'] });
+      setIsDialogOpen(false);
+      setNewChamado({
+        nome: "",
+        email: "",
+        contato: "",
+        motivo: "",
+        prioridade: "media",
+        setor: "TI",
+        cliente_id: ""
+      });
+      toast.success('Chamado interno criado com sucesso');
+      logActivity(`Criou um novo chamado interno para ${newChamado.nome}`, 'duvida');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao criar chamado: ' + error.message);
+    }
+  });
+
+  const handleCreateTicket = (e: React.FormEvent) => {
+    e.preventDefault();
+    createInternalTicketMutation.mutate();
+  };
     const channel = supabase.channel('chamados-realtime').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chamados_comentarios' }, (payload) => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
       const newC = payload.new as any;
