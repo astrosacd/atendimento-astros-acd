@@ -1311,13 +1311,25 @@ function NumeroActionsMenu({
             </DropdownMenuItem>
           )}
           {canDeleteThisNumber && (
-            <DropdownMenuItem 
-              className="text-destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem 
+                className="text-destructive font-medium"
+                onClick={() => {
+                  setDeleteMotivo('BANIDO PERMANENTEMENTE');
+                  onDelete('BANIDO PERMANENTEMENTE');
+                }}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Banido Permanentemente
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir (Outro motivo)
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
