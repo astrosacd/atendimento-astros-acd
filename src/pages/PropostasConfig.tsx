@@ -101,6 +101,10 @@ export default function PropostasConfig() {
       setAutoRemarketingMaxDays(config.auto_remarketing_max_days ?? 3);
       setAutoRemarketingChannel(config.auto_remarketing_channel ?? 'email');
       setAutoRemarketingCronHour((config as any).auto_remarketing_cron_hour ?? 9);
+      setGhostModeEnabled((config as any).ghost_mode_enabled ?? false);
+      setGhostViewThreshold((config as any).ghost_view_threshold ?? 3);
+      setGhostAudioUrl((config as any).ghost_audio_url || '');
+      setGhostVideoUrl((config as any).ghost_video_url || '');
     }
   }, [config]);
 
