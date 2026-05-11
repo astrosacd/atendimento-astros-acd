@@ -659,7 +659,7 @@ const AdminChamados = () => {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start">
+                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start" onWheel={(e) => e.stopPropagation()}>
                     <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Pesquisar cliente por nome..." 
@@ -667,7 +667,7 @@ const AdminChamados = () => {
                         onValueChange={setClientSearch}
                         className="h-12"
                       />
-                      <CommandList className="max-h-[280px] overflow-y-auto">
+                      <CommandList className="max-h-[280px] overflow-y-auto overscroll-contain">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
                           <CommandItem
