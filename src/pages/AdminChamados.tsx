@@ -493,6 +493,110 @@ const AdminChamados = () => {
           </div>
         </div>
       </div>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl bg-card border-border/40">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500" />
+              Abrir Chamado Interno
+            </DialogTitle>
+            <DialogDescription>
+              Crie um chamado para ser acompanhado por outra equipe internamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateTicket} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome do Cliente / Assunto</Label>
+                <Input 
+                  placeholder="Ex: Suporte TI - João" 
+                  value={newChamado.nome} 
+                  onChange={e => setNewChamado({...newChamado, nome: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email para Referência</Label>
+                <Input 
+                  type="email" 
+                  placeholder="cliente@email.com" 
+                  value={newChamado.email} 
+                  onChange={e => setNewChamado({...newChamado, email: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Contato (WhatsApp)</Label>
+                <Input 
+                  placeholder="(11) 99999-9999" 
+                  value={newChamado.contato} 
+                  onChange={e => setNewChamado({...newChamado, contato: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Setor Responsável</Label>
+                <Select value={newChamado.setor} onValueChange={v => setNewChamado({...newChamado, setor: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {setoresInternal.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Vincular Cliente (Opcional)</Label>
+                <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
+                    {clients?.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Prioridade</Label>
+                <Select value={newChamado.prioridade} onValueChange={v => setNewChamado({...newChamado, prioridade: v as any})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(prioridadeConfig).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição / Motivo</Label>
+              <Textarea 
+                placeholder="Detalhes do problema ou observação..." 
+                className="min-h-[100px]"
+                value={newChamado.motivo}
+                onChange={e => setNewChamado({...newChamado, motivo: e.target.value})}
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={createInternalTicketMutation.isPending}>
+                {createInternalTicketMutation.isPending ? "Criando..." : "Criar Chamado Interno"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
     </DashboardLayout>
   );
