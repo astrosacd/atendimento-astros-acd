@@ -720,13 +720,8 @@ export default function PropostasConfig() {
                                   setTtsGenerating(true);
                                   setTtsPreviewUrl(null);
                                   try {
-                                    if (elevenlabsApiKey !== ((config as any)?.elevenlabs_api_key || '')) {
-                                      toast.info('Salve as configurações primeiro para usar a nova chave.');
-                                      setTtsGenerating(false);
-                                      return;
-                                    }
                                     const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-                                      body: { text: ttsText, voiceId: elevenlabsVoiceId, save: false },
+                                      body: { text: ttsText, voiceId: elevenlabsVoiceId, save: false, apiKey: elevenlabsApiKey },
                                     });
                                     if (error) throw error;
                                     if ((data as any)?.error) throw new Error((data as any).error);
