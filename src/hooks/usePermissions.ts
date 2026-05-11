@@ -84,6 +84,7 @@ export function usePermissions() {
   const canManageChamadosConfig = () => hasPermission('manage_chamados_config');
   const canManageChamadosWebhooks = () => hasPermission('manage_chamados_webhooks');
   const canManageChamadosApi = () => hasPermission('manage_chamados_api');
+  const canCreateChamados = () => hasPermission('chamados.create') || hasPermission('create_chamados');
 
   // Guia permissions
   const canViewGuia = () => hasPermission('view_guia');
@@ -295,6 +296,7 @@ export function usePermissions() {
     canManageChamadosConfig,
     canManageChamadosWebhooks,
     canManageChamadosApi,
+    canCreateChamados,
     canViewGuia,
     canViewGuiaComunicacao,
     canViewGuiaIntegracoes,
