@@ -601,15 +601,64 @@ const AdminChamados = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Vincular Cliente (Opcional)</Label>
-                <Select value={newChamado.cliente_id} onValueChange={v => setNewChamado({...newChamado, cliente_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um cliente" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {clients?.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal bg-background/50 border-border/40"
+                    >
+                      <span className="truncate">
+                        {newChamado.cliente_id !== "none"
+                          ? clients?.find((c) => c.id === newChamado.cliente_id)?.nome
+                          : "Selecione um cliente..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar cliente..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="none"
+                            onSelect={() => handleClientSelect("none")}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                newChamado.cliente_id === "none" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Nenhum
+                          </CommandItem>
+                          {clients?.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.nome}
+                              onSelect={() => handleClientSelect(client.id)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  newChamado.cliente_id === client.id ? "opacity-100" : "opacity-0"
+                                )ix
+                              />
+                              <div className="flex flex-col">
+                                <span>{client.nome}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">
+                                  {client.tipo || 'Mensal'}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label>Prioridade</Label>
