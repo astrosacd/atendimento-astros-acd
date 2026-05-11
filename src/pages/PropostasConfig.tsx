@@ -61,6 +61,8 @@ export default function PropostasConfig() {
   const [ttsSaving, setTtsSaving] = useState(false);
   const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: any; preview_url?: string }>>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState<'audio' | 'video' | null>(null);
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
@@ -811,6 +813,70 @@ export default function PropostasConfig() {
                             </div>
                           )}
                           <p className="text-xs text-muted-foreground">⚠️ O Modo Ghost envia <strong>somente pelo WhatsApp</strong>, mesmo que o canal esteja como "Ambos". Se enviar áudio e vídeo, o vídeo tem prioridade.</p>
+                        </div>
+
+                        {/* Teste rápido */}
+                        <div className="border border-dashed border-primary/40 rounded-lg p-3 space-y-2 bg-primary/5">
+                          <Label className="text-sm font-medium">🧪 Testar envio para um número</Label>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            <Input
+                              placeholder="Ex: 5544999999999"
+                              value={testPhone}
+                              onChange={(e) => setTestPhone(e.target.value)}
+                              className="flex-1 min-w-[180px]"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!!testSending || !testPhone.trim() || !ghostAudioUrl}
+                              onClick={async () => {
+                                setTestSending('audio');
+                                try {
+                                  const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
+                                    body: { phone: testPhone, mediaType: 'audio' },
+                                  });
+                                  if (error) throw error;
+                                  if ((data as any)?.error) throw new Error((data as any).error);
+                                  toast.success(`Áudio enviado para ${(data as any).sentTo}`);
+                                } catch (err: any) {
+                                  toast.error('Erro: ' + (err.message || err));
+                                } finally {
+                                  setTestSending(null);
+                                }
+                              }}
+                            >
+                              {testSending === 'audio' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                              Enviar áudio
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!!testSending || !testPhone.trim() || !ghostVideoUrl}
+                              onClick={async () => {
+                                setTestSending('video');
+                                try {
+                                  const { data, error } = await supabase.functions.invoke('proposals-ghost-test-send', {
+                                    body: { phone: testPhone, mediaType: 'video' },
+                                  });
+                                  if (error) throw error;
+                                  if ((data as any)?.error) throw new Error((data as any).error);
+                                  toast.success(`Vídeo enviado para ${(data as any).sentTo}`);
+                                } catch (err: any) {
+                                  toast.error('Erro: ' + (err.message || err));
+                                } finally {
+                                  setTestSending(null);
+                                }
+                              }}
+                            >
+                              {testSending === 'video' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                              Enviar vídeo
+                            </Button>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Use o número completo com DDI+DDD (ex: 5544999999999). Se o áudio/vídeo não estiver salvo no banco ainda, clique em "Salvar Remarketing" antes de testar.
+                          </p>
                         </div>
                       </div>
                     )}
