@@ -1226,6 +1226,7 @@ function NumeroActionsMenu({
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
   const [nomeCliente, setNomeCliente] = useState('');
+  const [whatsappCliente, setWhatsappCliente] = useState('');
   const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
   const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
   const [isChangingToVendido, setIsChangingToVendido] = useState(false);
@@ -1293,11 +1294,14 @@ function NumeroActionsMenu({
       toast.error('Informe o nome do cliente');
       return;
     }
+    if (!whatsappCliente.trim()) {
+      toast.error('Informe o número de contato do cliente');
+      return;
+    }
 
-    const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${numero.numero}`;
+    const extraObs = `${nomeCliente.trim()} - CHIP PRO ${tipoSeguro} - ${whatsappCliente.trim()}`;
     proceedWithSave(extraObs);
     setConfirmVendaOpen(false);
-    setIsChangingToVendido(false);
   };
 
   const handleDelete = () => {
@@ -1546,6 +1550,15 @@ function NumeroActionsMenu({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="whatsapp-cliente-venda">Número/WhatsApp do Cliente <span className="text-destructive">*</span></Label>
+              <Input
+                id="whatsapp-cliente-venda"
+                value={whatsappCliente}
+                onChange={(e) => setWhatsappCliente(e.target.value)}
+                placeholder="Ex: 5511986461474@s.whatsapp.net"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Tipo de Chip</Label>
               <Select value={tipoSeguro} onValueChange={(v: any) => setTipoSeguro(v)}>
                 <SelectTrigger>
@@ -1560,7 +1573,7 @@ function NumeroActionsMenu({
             <div className="p-3 bg-muted rounded-md text-xs space-y-1">
               <p className="font-medium">Formato da observação automática:</p>
               <p className="text-muted-foreground italic">
-                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {numero.numero}
+                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {whatsappCliente || '[WhatsApp Cliente]'}
               </p>
             </div>
           </div>
@@ -1568,7 +1581,7 @@ function NumeroActionsMenu({
             <Button variant="outline" onClick={() => setConfirmVendaOpen(false)}>
               Voltar
             </Button>
-            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim()}>
+            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim() || !whatsappCliente.trim()}>
               Confirmar Venda
             </Button>
           </DialogFooter>
