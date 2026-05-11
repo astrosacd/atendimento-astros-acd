@@ -628,6 +628,116 @@ export default function PropostasConfig() {
                               <Button type="button" variant="ghost" size="icon" onClick={() => setGhostAudioUrl('')}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           )}
+
+                          {/* ElevenLabs TTS */}
+                          <div className="mt-4 border border-dashed border-border rounded-lg p-3 space-y-3 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">🎙️ Gerar áudio com IA (ElevenLabs)</Label>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Chave da API ElevenLabs</Label>
+                                <div className="relative">
+                                  <Input
+                                    type={showElevenKey ? 'text' : 'password'}
+                                    value={elevenlabsApiKey}
+                                    onChange={(e) => { setElevenlabsApiKey(e.target.value); setTtsPreviewUrl(null); }}
+                                    placeholder="sk_..."
+                                    className="pr-10"
+                                  />
+                                  <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowElevenKey(!showElevenKey)}>
+                                    {showElevenKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </Button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">Pegue em elevenlabs.io → Profile → API Keys. Lembre de salvar.</p>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Voz</Label>
+                                <Select value={elevenlabsVoiceId} onValueChange={setElevenlabsVoiceId}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="JBFqnCBsd6RMkjVDRZzb">George (masculino)</SelectItem>
+                                    <SelectItem value="onwK4e9ZLuTAKqWW03F9">Daniel (masculino grave)</SelectItem>
+                                    <SelectItem value="nPczCjzI2devNBz1zQrb">Brian (masculino casual)</SelectItem>
+                                    <SelectItem value="EXAVITQu4vr4xnSDxMaL">Sarah (feminino)</SelectItem>
+                                    <SelectItem value="XrExE9yKIg1WjnnlVkGX">Matilda (feminino jovem)</SelectItem>
+                                    <SelectItem value="cgSgspJ2msm6clMCkdW9">Jessica (feminino casual)</SelectItem>
+                                    <SelectItem value="FGY2WhTYpPnrIDTdsKH5">Laura (feminino)</SelectItem>
+                                    <SelectItem value="pFZP5JQG7iQjIQuC4Bku">Lily (feminino suave)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <Textarea
+                              value={ttsText}
+                              onChange={(e) => setTtsText(e.target.value)}
+                              placeholder="Ex: Oi, tudo bem? Vi aqui que você ainda não conferiu a proposta. Dá uma olhada quando puder, qualquer coisa me chama!"
+                              rows={3}
+                              maxLength={1000}
+                            />
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={ttsGenerating || !ttsText.trim() || !elevenlabsApiKey.trim()}
+                                onClick={async () => {
+                                  setTtsGenerating(true);
+                                  setTtsPreviewUrl(null);
+                                  try {
+                                    if (elevenlabsApiKey !== ((config as any)?.elevenlabs_api_key || '')) {
+                                      toast.info('Salve as configurações primeiro para usar a nova chave.');
+                                      setTtsGenerating(false);
+                                      return;
+                                    }
+                                    const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
+                                      body: { text: ttsText, voiceId: elevenlabsVoiceId, save: false },
+                                    });
+                                    if (error) throw error;
+                                    if ((data as any)?.error) throw new Error((data as any).error);
+                                    setTtsPreviewUrl(`data:audio/mpeg;base64,${(data as any).audioContent}`);
+                                  } catch (err: any) {
+                                    toast.error('Erro ao gerar: ' + (err.message || err));
+                                  } finally {
+                                    setTtsGenerating(false);
+                                  }
+                                }}
+                              >
+                                {ttsGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                Gerar prévia
+                              </Button>
+                              {ttsPreviewUrl && (
+                                <>
+                                  <audio controls src={ttsPreviewUrl} className="h-8 flex-1 min-w-[200px]" />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={ttsSaving}
+                                    onClick={async () => {
+                                      setTtsSaving(true);
+                                      try {
+                                        const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
+                                          body: { text: ttsText, voiceId: elevenlabsVoiceId, save: true },
+                                        });
+                                        if (error) throw error;
+                                        if ((data as any)?.error) throw new Error((data as any).error);
+                                        setGhostAudioUrl((data as any).url);
+                                        setTtsPreviewUrl(null);
+                                        toast.success('Áudio salvo no Modo Ghost! Clique em "Salvar Remarketing" para aplicar.');
+                                      } catch (err: any) {
+                                        toast.error('Erro ao salvar: ' + (err.message || err));
+                                      } finally {
+                                        setTtsSaving(false);
+                                      }
+                                    }}
+                                  >
+                                    {ttsSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                    Usar este áudio
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label>Vídeo (.mp4)</Label>
