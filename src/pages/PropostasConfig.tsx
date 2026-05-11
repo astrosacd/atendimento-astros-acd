@@ -51,6 +51,14 @@ export default function PropostasConfig() {
   const [ghostAudioUrl, setGhostAudioUrl] = useState('');
   const [ghostVideoUrl, setGhostVideoUrl] = useState('');
   const [uploadingGhost, setUploadingGhost] = useState<'audio' | 'video' | null>(null);
+  // ElevenLabs TTS for Ghost
+  const [elevenlabsApiKey, setElevenlabsApiKey] = useState('');
+  const [elevenlabsVoiceId, setElevenlabsVoiceId] = useState('JBFqnCBsd6RMkjVDRZzb');
+  const [showElevenKey, setShowElevenKey] = useState(false);
+  const [ttsText, setTtsText] = useState('');
+  const [ttsPreviewUrl, setTtsPreviewUrl] = useState<string | null>(null);
+  const [ttsGenerating, setTtsGenerating] = useState(false);
+  const [ttsSaving, setTtsSaving] = useState(false);
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
