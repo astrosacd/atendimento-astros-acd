@@ -147,9 +147,22 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo, cobranca_ativa, ciclo_cobranca').order('nome');
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      const allClients: Array<{ id: string; nome: string; email: string | null; numero: string; tipo: string | null; cobranca_ativa: boolean; ciclo_cobranca: string }> = [];
+
+      for (let page = 0; page < 20; page++) {
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('id, nome, email, numero, tipo, cobranca_ativa, ciclo_cobranca')
+          .order('nome')
+          .range(page * pageSize, page * pageSize + pageSize - 1);
+
+        if (error) throw error;
+        allClients.push(...(data || []));
+        if (!data || data.length < pageSize) break;
+      }
+
+      return allClients;
     }
   });
 
