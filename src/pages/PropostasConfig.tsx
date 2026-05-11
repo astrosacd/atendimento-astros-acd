@@ -59,6 +59,8 @@ export default function PropostasConfig() {
   const [ttsPreviewUrl, setTtsPreviewUrl] = useState<string | null>(null);
   const [ttsGenerating, setTtsGenerating] = useState(false);
   const [ttsSaving, setTtsSaving] = useState(false);
+  const [voicesList, setVoicesList] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: any; preview_url?: string }>>([]);
+  const [loadingVoices, setLoadingVoices] = useState(false);
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
