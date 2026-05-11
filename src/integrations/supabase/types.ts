@@ -5662,6 +5662,8 @@ export type Database = {
           email_sent: boolean | null
           error_message: string | null
           id: string
+          media_type: string | null
+          media_url: string | null
           proposal_id: string
           sent_at: string
           status: string
@@ -5673,6 +5675,8 @@ export type Database = {
           email_sent?: boolean | null
           error_message?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           proposal_id: string
           sent_at?: string
           status?: string
@@ -5684,6 +5688,8 @@ export type Database = {
           email_sent?: boolean | null
           error_message?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           proposal_id?: string
           sent_at?: string
           status?: string
@@ -5921,6 +5927,10 @@ export type Database = {
           evolution_api_key: string | null
           evolution_api_url: string | null
           evolution_instance_name: string | null
+          ghost_audio_url: string | null
+          ghost_mode_enabled: boolean | null
+          ghost_video_url: string | null
+          ghost_view_threshold: number | null
           gmail_app_password: string | null
           gmail_sender_name: string | null
           gmail_user: string | null
@@ -5944,6 +5954,10 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance_name?: string | null
+          ghost_audio_url?: string | null
+          ghost_mode_enabled?: boolean | null
+          ghost_video_url?: string | null
+          ghost_view_threshold?: number | null
           gmail_app_password?: string | null
           gmail_sender_name?: string | null
           gmail_user?: string | null
@@ -5967,6 +5981,10 @@ export type Database = {
           evolution_api_key?: string | null
           evolution_api_url?: string | null
           evolution_instance_name?: string | null
+          ghost_audio_url?: string | null
+          ghost_mode_enabled?: boolean | null
+          ghost_video_url?: string | null
+          ghost_view_threshold?: number | null
           gmail_app_password?: string | null
           gmail_sender_name?: string | null
           gmail_user?: string | null
@@ -6312,6 +6330,7 @@ export type Database = {
           updated_at: string
           user_id: string
           valid_until: string | null
+          view_count: number | null
         }
         Insert: {
           client_id?: string | null
@@ -6341,6 +6360,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           valid_until?: string | null
+          view_count?: number | null
         }
         Update: {
           client_id?: string | null
@@ -6370,6 +6390,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           valid_until?: string | null
+          view_count?: number | null
         }
         Relationships: [
           {

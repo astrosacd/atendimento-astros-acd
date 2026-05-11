@@ -109,7 +109,7 @@ serve(async (req: Request) => {
     const { data: proposals, error: proposalsError } = await supabase
       .from('proposals')
       .select('*, clientes(*)')
-      .eq('status', 'viewed');
+      .in('status', ['viewed', 'sent']); // Also check 'sent' for Ghost Mode
 
     if (proposalsError) {
       console.error("❌ Error fetching proposals:", proposalsError);
@@ -120,7 +120,7 @@ serve(async (req: Request) => {
     }
 
     if (!proposals || proposals.length === 0) {
-      console.log("📭 No viewed proposals found");
+      console.log("📭 No active proposals found");
       return new Response(JSON.stringify({ message: "No proposals to process", processed: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -136,14 +136,19 @@ serve(async (req: Request) => {
 
     for (const proposal of proposals) {
       try {
-        // 3. Check how many auto-remarketings have already been sent
+        const viewCount = proposal.view_count || 0;
+        const ghostThreshold = config.ghost_view_threshold || 3;
+        const isGhostMode = config.ghost_mode_enabled && viewCount >= ghostThreshold;
+        
+        console.log(`🧐 Processing proposal ${proposal.id}: status=${proposal.status}, views=${viewCount}`);
+
+        // 3. Check logs for this proposal
         const { data: existingLogs, error: logsError } = await supabase
           .from('proposal_auto_remarketing_logs')
-          .select('id, sent_at, day_number')
+          .select('id, sent_at, day_number, media_type')
           .eq('proposal_id', proposal.id)
           .eq('status', 'sent')
-          .order('day_number', { ascending: false })
-          .limit(1);
+          .order('day_number', { ascending: false });
 
         if (logsError) {
           console.error(`❌ Error fetching logs for ${proposal.id}:`, logsError);
@@ -153,19 +158,39 @@ serve(async (req: Request) => {
         const lastLog = existingLogs?.[0];
         const dayNumber = lastLog ? lastLog.day_number + 1 : 1;
 
-        // 4. Check if we exceeded max days
-        if (dayNumber > maxDays) {
-          console.log(`⏭️ Proposal ${proposal.id}: already sent ${maxDays} days, skipping`);
+        // Ghost Mode check: If ghost mode triggers, we send even if it's the same day as a regular remarketing
+        // but we don't want to spam multiple ghost messages on the same day.
+        const alreadySentGhostToday = existingLogs?.some(log => {
+          const logDate = new Date(log.sent_at).toISOString().split('T')[0];
+          const todayDate = new Date().toISOString().split('T')[0];
+          return logDate === todayDate && (log.media_type === 'audio' || log.media_type === 'video');
+        });
+
+        if (isGhostMode && alreadySentGhostToday) {
+          console.log(`⏭️ Proposal ${proposal.id}: Ghost message already sent today, skipping`);
           continue;
         }
 
-        // 5. Check if already sent today
-        if (lastLog) {
-          const lastSentDate = new Date(lastLog.sent_at).toISOString().split('T')[0];
-          const todayDate = new Date().toISOString().split('T')[0];
-          if (lastSentDate === todayDate) {
-            console.log(`⏭️ Proposal ${proposal.id}: already sent today, skipping`);
+        if (!isGhostMode) {
+          // Regular remarketing only for 'viewed' status
+          if (proposal.status !== 'viewed') {
             continue;
+          }
+
+          // 4. Check if we exceeded max days
+          if (dayNumber > maxDays) {
+            console.log(`⏭️ Proposal ${proposal.id}: already sent ${maxDays} days, skipping`);
+            continue;
+          }
+
+          // 5. Check if already sent today
+          if (lastLog) {
+            const lastSentDate = new Date(lastLog.sent_at).toISOString().split('T')[0];
+            const todayDate = new Date().toISOString().split('T')[0];
+            if (lastSentDate === todayDate) {
+              console.log(`⏭️ Proposal ${proposal.id}: already sent today, skipping`);
+              continue;
+            }
           }
         }
 
@@ -238,26 +263,45 @@ serve(async (req: Request) => {
                 cleanNumber = '55' + cleanNumber;
               }
 
-              const message = generateRemarketingWhatsAppMessage(
-                clientName,
-                proposal.title,
-                proposalLink,
-                senderName,
-                dayNumber
-              );
+              const urlBase = `${config.evolution_api_url}/message`;
+              let endpoint = `/sendText/${config.evolution_instance_name}`;
+              let body: any = { number: cleanNumber };
 
-              const url = `${config.evolution_api_url}/message/sendText/${config.evolution_instance_name}`;
+              if (isGhostMode && (config.ghost_audio_url || config.ghost_video_url)) {
+                const mediaUrl = config.ghost_audio_url || config.ghost_video_url;
+                const mediaType = config.ghost_audio_url ? 'audio' : 'video';
+                
+                endpoint = mediaType === 'audio' 
+                  ? `/sendWhatsAppAudio/${config.evolution_instance_name}`
+                  : `/sendMedia/${config.evolution_instance_name}`;
+                
+                body = {
+                  number: cleanNumber,
+                  [mediaType === 'audio' ? 'audio' : 'media']: mediaUrl,
+                  ...(mediaType === 'video' ? { mediaType: 'video', caption: `Vi que você olhou a proposta várias vezes! Ficou com alguma dúvida?` } : {}),
+                  delay: 1200,
+                  encoding: true
+                };
+                
+                console.log(`👻 GHOST MODE: Sending ${mediaType} to ${cleanNumber}`);
+              } else {
+                const message = generateRemarketingWhatsAppMessage(
+                  clientName,
+                  proposal.title,
+                  proposalLink,
+                  senderName,
+                  dayNumber
+                );
+                body.text = message;
+              }
 
-              const response = await fetch(url, {
+              const response = await fetch(urlBase + endpoint, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'apikey': config.evolution_api_key,
                 },
-                body: JSON.stringify({
-                  number: cleanNumber,
-                  text: message,
-                }),
+                body: JSON.stringify(body),
               });
 
               if (!response.ok) {
@@ -266,7 +310,7 @@ serve(async (req: Request) => {
               }
 
               whatsappSent = true;
-              console.log(`✅ Auto-remarketing WhatsApp sent for ${proposal.id} (day ${dayNumber})`);
+              console.log(`✅ WhatsApp sent for ${proposal.id} (day ${dayNumber}${isGhostMode ? ' - GHOST' : ''})`);
             }
           } catch (e: any) {
             console.error(`❌ WhatsApp error for ${proposal.id}:`, e.message);
@@ -283,6 +327,8 @@ serve(async (req: Request) => {
             status: 'sent',
             email_sent: emailSent,
             whatsapp_sent: whatsappSent,
+            media_url: isGhostMode ? (config.ghost_audio_url || config.ghost_video_url) : null,
+            media_type: isGhostMode ? (config.ghost_audio_url ? 'audio' : 'video') : null,
           });
 
           // Also log to proposal_history
