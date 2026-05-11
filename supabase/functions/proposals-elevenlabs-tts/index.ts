@@ -31,12 +31,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const action = String(body?.action || 'generate');
     const text = String(body?.text || "").trim();
     const voiceId = String(body?.voiceId || "JBFqnCBsd6RMkjVDRZzb");
     const save = Boolean(body?.save);
+    const overrideKey = typeof body?.apiKey === 'string' ? body.apiKey.trim() : '';
 
-    if (!text || text.length > 1000) {
+    if (action === 'generate' && (!text || text.length > 1000)) {
       return new Response(JSON.stringify({ error: "Texto inválido (1-1000 caracteres)" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
