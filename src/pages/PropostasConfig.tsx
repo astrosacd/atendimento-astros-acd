@@ -43,6 +43,12 @@ export default function PropostasConfig() {
   const [autoRemarketingMaxDays, setAutoRemarketingMaxDays] = useState(3);
   const [autoRemarketingChannel, setAutoRemarketingChannel] = useState('email');
   const [autoRemarketingCronHour, setAutoRemarketingCronHour] = useState(9);
+  
+  // Ghost Mode
+  const [ghostModeEnabled, setGhostModeEnabled] = useState(false);
+  const [ghostViewThreshold, setGhostViewThreshold] = useState(3);
+  const [ghostAudioUrl, setGhostAudioUrl] = useState('');
+  const [ghostVideoUrl, setGhostVideoUrl] = useState('');
 
   // Status notifications
   const [statusNotifEnabled, setStatusNotifEnabled] = useState(false);
@@ -294,6 +300,10 @@ export default function PropostasConfig() {
       auto_remarketing_max_days: autoRemarketingMaxDays,
       auto_remarketing_channel: autoRemarketingChannel,
       auto_remarketing_cron_hour: autoRemarketingCronHour,
+      ghost_mode_enabled: ghostModeEnabled,
+      ghost_view_threshold: ghostViewThreshold,
+      ghost_audio_url: ghostAudioUrl || null,
+      ghost_video_url: ghostVideoUrl || null,
     } as any);
 
     // Update cron schedule
