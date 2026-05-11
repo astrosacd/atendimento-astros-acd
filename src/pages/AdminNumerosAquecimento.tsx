@@ -1514,6 +1514,57 @@ function NumeroActionsMenu({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Venda Confirmation Dialog */}
+      <Dialog open={confirmVendaOpen} onOpenChange={setConfirmVendaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Confirmar Venda de Número
+            </DialogTitle>
+            <DialogDescription>
+              Para marcar como vendido, preencha as informações obrigatórias abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome-cliente">Nome do Cliente <span className="text-destructive">*</span></Label>
+              <Input
+                id="nome-cliente"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                placeholder="Ex: Wilder Tecnologia"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de Chip</Label>
+              <Select value={tipoSeguro} onValueChange={(v: any) => setTipoSeguro(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="COM SEGURO">CHIP PRO COM SEGURO</SelectItem>
+                  <SelectItem value="SEM SEGURO">CHIP PRO SEM SEGURO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-muted rounded-md text-xs space-y-1">
+              <p className="font-medium">Formato da observação automática:</p>
+              <p className="text-muted-foreground italic">
+                {nomeCliente || '[Cliente]'} - CHIP PRO {tipoSeguro} - {numero.numero}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmVendaOpen(false)}>
+              Voltar
+            </Button>
+            <Button onClick={handleConfirmVenda} disabled={!nomeCliente.trim()}>
+              Confirmar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
