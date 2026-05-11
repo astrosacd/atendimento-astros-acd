@@ -132,11 +132,35 @@ const AdminChamados = () => {
   const { data: clients } = useQuery({
     queryKey: ['clients-for-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clientes').select('id, nome').order('nome');
+      const { data, error } = await supabase.from('clientes').select('id, nome, email, numero, tipo').order('nome');
       if (error) throw error;
       return data;
     }
   });
+
+  const handleClientSelect = (clientId: string) => {
+    if (clientId === 'none') {
+      setNewChamado({
+        ...newChamado,
+        cliente_id: 'none',
+        nome: "",
+        email: "",
+        contato: ""
+      });
+      return;
+    }
+
+    const client = clients?.find(c => c.id === clientId);
+    if (client) {
+      setNewChamado({
+        ...newChamado,
+        cliente_id: clientId,
+        nome: client.nome,
+        email: client.email || "",
+        contato: client.numero || ""
+      });
+    }
+  };
 
   const { data: chamados, isLoading, refetch } = useQuery({
     queryKey: ['chamados', statusFilter, typeFilter],
