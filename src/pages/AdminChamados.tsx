@@ -616,14 +616,14 @@ const AdminChamados = () => {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Pesquisar cliente..." />
-                      <CommandList>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border" align="start">
+                    <Command shouldFilter={true}>
+                      <CommandInput placeholder="Pesquisar cliente por nome..." />
+                      <CommandList className="max-h-[280px] overflow-y-auto">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
                           <CommandItem
-                            value="none"
+                            value="__none__"
                             onSelect={() => handleClientSelect("none")}
                           >
                             <Check
@@ -632,28 +632,42 @@ const AdminChamados = () => {
                                 newChamado.cliente_id === "none" ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            Nenhum
+                            <span className="text-muted-foreground italic">Nenhum cliente vinculado</span>
                           </CommandItem>
-                          {clients?.map((client) => (
-                            <CommandItem
-                              key={client.id}
-                              value={client.nome}
-                              onSelect={() => handleClientSelect(client.id)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  newChamado.cliente_id === client.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col">
-                                <span>{client.nome}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">
-                                  {client.tipo || 'Mensal'}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
+                          {clients?.map((client) => {
+                            const isMensal = client.ciclo_cobranca === 'mensal' || client.ciclo_cobranca === 'anual';
+                            return (
+                              <CommandItem
+                                key={client.id}
+                                value={`${client.nome} ${client.email || ''}`}
+                                onSelect={() => handleClientSelect(client.id)}
+                                className="flex items-center gap-2"
+                              >
+                                <Check
+                                  className={cn(
+                                    "h-4 w-4 shrink-0",
+                                    newChamado.cliente_id === client.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{client.nome}</p>
+                                  {client.email && (
+                                    <p className="text-[10px] text-muted-foreground truncate">{client.email}</p>
+                                  )}
+                                </div>
+                                <Badge
+                                  className={cn(
+                                    "text-[9px] font-bold uppercase shrink-0 border-none",
+                                    isMensal
+                                      ? "bg-emerald-500/15 text-emerald-500"
+                                      : "bg-blue-500/15 text-blue-500"
+                                  )}
+                                >
+                                  {isMensal ? 'Mensal' : 'Registro'}
+                                </Badge>
+                              </CommandItem>
+                            );
+                          })}
                         </CommandGroup>
                       </CommandList>
                     </Command>
