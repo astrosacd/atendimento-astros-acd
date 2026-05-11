@@ -1244,7 +1244,10 @@ function NumeroActionsMenu({
       return;
     }
 
-    if (isChangingToVendido) {
+    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+    const isVendidoNow = statusId === vendidoStatusId && numero.status_id !== vendidoStatusId;
+
+    if (isVendidoNow) {
       setConfirmVendaOpen(true);
       return;
     }
