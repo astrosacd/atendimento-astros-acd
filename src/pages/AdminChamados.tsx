@@ -237,6 +237,7 @@ const AdminChamados = () => {
     e.preventDefault();
     createInternalTicketMutation.mutate();
   };
+  useEffect(() => {
     const channel = supabase.channel('chamados-realtime').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chamados_comentarios' }, (payload) => {
       queryClient.invalidateQueries({ queryKey: ['chamados'] });
       const newC = payload.new as any;
