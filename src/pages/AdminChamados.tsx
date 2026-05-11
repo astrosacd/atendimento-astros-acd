@@ -126,7 +126,7 @@ const AdminChamados = () => {
     motivo: "",
     prioridade: "media" as ChamadoPrioridade,
     setor: "TI",
-    cliente_id: ""
+    cliente_id: "none"
   });
 
   const { data: clients } = useQuery({
