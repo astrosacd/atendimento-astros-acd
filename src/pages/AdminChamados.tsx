@@ -408,23 +408,23 @@ const AdminChamados = () => {
                           const selected = selectedChamado?.id === c.id;
                           return (
                             <motion.div key={c.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setSelectedChamado(c)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selected ? 'border-primary bg-primary/10' : 'border-border/40 bg-background/30 hover:border-primary/30'}`}>
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1.5">
-                                    <span className="text-[10px] font-bold text-muted-foreground font-mono">#{c.codigo}</span>
+                              <div className="flex justify-between items-start gap-2 min-w-0">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                                    <span className="text-[10px] font-bold text-muted-foreground font-mono whitespace-nowrap">#{c.codigo}</span>
                                     {c.is_internal && (
-                                      <Badge className="bg-amber-500/20 text-amber-500 border-none font-bold text-[9px] uppercase px-2 flex items-center gap-1">
+                                      <Badge className="bg-amber-500/20 text-amber-500 border-none font-bold text-[9px] uppercase px-1.5 py-0 h-4 flex items-center gap-1 whitespace-nowrap">
                                         <Lock className="h-2 w-2" /> Interno
                                       </Badge>
                                     )}
-                                    {c.setor && <Badge variant="outline" className="text-[9px] uppercase font-bold border-primary/20 text-primary">{c.setor}</Badge>}
-                                    <Badge className={`${conf.bg} ${conf.color} border-none font-bold text-[9px] uppercase px-2`}>{conf.label}</Badge>
-                                    {hasClientResponse(c) && <Badge className="bg-orange-500 text-white animate-pulse text-[9px]">NOVA RESPOSTA</Badge>}
+                                    {c.setor && <Badge variant="outline" className="text-[9px] uppercase font-bold border-primary/20 text-primary px-1.5 py-0 h-4 whitespace-nowrap">{c.setor}</Badge>}
+                                    <Badge className={`${conf.bg} ${conf.color} border-none font-bold text-[9px] uppercase px-1.5 py-0 h-4 whitespace-nowrap`}>{conf.label}</Badge>
+                                    {hasClientResponse(c) && <Badge className="bg-orange-500 text-white animate-pulse text-[9px] px-1.5 py-0 h-4 whitespace-nowrap">NOVA</Badge>}
                                   </div>
-                                  <h4 className="font-bold text-foreground">{c.nome}</h4>
+                                  <h4 className="font-bold text-foreground truncate">{c.nome}</h4>
                                   <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{c.motivo}</p>
                                 </div>
-                                <Badge variant="outline" className="text-[9px] uppercase font-bold">{prioridadeConfig[c.prioridade].label}</Badge>
+                                <Badge variant="outline" className="text-[9px] uppercase font-bold whitespace-nowrap shrink-0">{prioridadeConfig[c.prioridade].label}</Badge>
                               </div>
                             </motion.div>
                           );
