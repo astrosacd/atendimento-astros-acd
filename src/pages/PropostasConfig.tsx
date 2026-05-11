@@ -747,7 +747,7 @@ export default function PropostasConfig() {
                                       setTtsSaving(true);
                                       try {
                                         const { data, error } = await supabase.functions.invoke('proposals-elevenlabs-tts', {
-                                          body: { text: ttsText, voiceId: elevenlabsVoiceId, save: true },
+                                          body: { text: ttsText, voiceId: elevenlabsVoiceId, save: true, apiKey: elevenlabsApiKey },
                                         });
                                         if (error) throw error;
                                         if ((data as any)?.error) throw new Error((data as any).error);
