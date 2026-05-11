@@ -1364,13 +1364,13 @@ function NumeroActionsMenu({
           {isVendido && (canEdit || canChangeStatus) && (
             <DropdownMenuItem 
               onClick={() => setConfirmVoltarEstoqueOpen(true)}
-              className="text-blue-600 dark:text-blue-400"
+              className="text-blue-600 dark:text-blue-400 font-medium"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Voltar para o estoque
             </DropdownMenuItem>
           )}
-          {canDeleteThisNumber && (
+          {!isVendido && canDeleteThisNumber && (
             <>
               <DropdownMenuItem 
                 className="text-destructive font-medium"
