@@ -97,6 +97,7 @@ export default function AdminNumerosAquecimento() {
   const canChangeObs = hasPermission('change_obs_numeros');
   const canDelete = hasPermission('delete_numeros_aquecimento');
   const canDeleteSold = hasPermission('delete_sold_numeros');
+  const canDeleteSoldPermanent = hasPermission('delete_sold_numeros_permanent');
   const canExport = hasPermission('export_numeros_aquecimento');
   const canViewHistory = hasPermission('view_history_numeros');
   const canManageWebhooks = hasPermission('manage_webhooks_numeros');
@@ -104,6 +105,7 @@ export default function AdminNumerosAquecimento() {
   const canManageStatus = hasPermission('manage_status_numeros');
   const canManageModelos = hasPermission('manage_modelos_numeros');
   const canRestoreNumbers = hasPermission('restore_numeros_aquecimento');
+  const canReturnToStock = hasPermission('return_to_stock_numeros');
 
   // Data hooks
   const { data: numeros = [], isLoading } = useNumerosAquecimento({
@@ -1199,6 +1201,7 @@ function NumeroActionsMenu({
   canChangeObs,
   canDelete,
   canDeleteSold,
+  canReturnToStock,
   canViewHistory,
   isVendido,
   onUpdate,
@@ -1213,6 +1216,7 @@ function NumeroActionsMenu({
   canChangeObs: boolean;
   canDelete: boolean;
   canDeleteSold: boolean;
+  canReturnToStock: boolean;
   canViewHistory: boolean;
   isVendido: boolean;
   onUpdate: (data: Partial<NumeroAquecimento>) => void;
@@ -1331,8 +1335,12 @@ function NumeroActionsMenu({
     setDeleteMotivo('');
   };
 
-  // Se o número é vendido e não tem permissão para excluir vendidos, mostra bloqueado
-  if (isVendido && !canDeleteSold) {
+  // Se o número é vendido e não tem permissão para realizar nenhuma ação, desabilita o menu
+  const canAnyAction = isVendido 
+    ? (canReturnToStock || canDeleteSold)
+    : (canEdit || canChangeStatus || canChangeObs || canDeleteThisNumber);
+
+  if (!canAnyAction) {
     return (
       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
         <Lock className="h-4 w-4 text-muted-foreground" />
