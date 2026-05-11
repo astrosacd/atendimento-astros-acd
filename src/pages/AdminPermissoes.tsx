@@ -352,6 +352,8 @@ export default function AdminPermissoes() {
     'Sala dos Agentes': 'Sala dos Agentes',
     'Instagram': 'Instagram',
     'Segurança de Pagamento': 'Segurança de Pagamento',
+    'Agenda Histórico': 'Agenda Histórico',
+    'Follow-ups Configuração': 'Follow-ups Configuração',
   });
 
   const colorOptions = getColorOptions(t);
