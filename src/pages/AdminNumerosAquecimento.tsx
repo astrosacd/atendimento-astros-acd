@@ -1403,7 +1403,14 @@ function NumeroActionsMenu({
             {canChangeStatus && (
               <div>
                 <Label>Status</Label>
-                <Select value={statusId} onValueChange={setStatusId}>
+                <Select 
+                  value={statusId} 
+                  onValueChange={(v) => {
+                    setStatusId(v);
+                    const vendidoStatusId = statusList.find((s) => s.nome === 'Vendido')?.id;
+                    setIsChangingToVendido(v === vendidoStatusId && numero.status_id !== vendidoStatusId);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
