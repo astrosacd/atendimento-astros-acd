@@ -321,6 +321,8 @@ export default function PropostasConfig() {
       ghost_mode_day: ghostModeDay,
       ghost_audio_url: ghostAudioUrl || null,
       ghost_video_url: ghostVideoUrl || null,
+      elevenlabs_api_key: elevenlabsApiKey || null,
+      elevenlabs_voice_id: elevenlabsVoiceId || null,
     } as any);
 
     // Update cron schedule
