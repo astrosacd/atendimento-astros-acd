@@ -287,6 +287,9 @@ const AdminChamados = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20 gap-2">
+            <Plus className="h-4 w-4" /> Novo Chamado
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')} className="border-border/40 hover:bg-primary/5">
             <Settings className="h-4 w-4 mr-2" /> Configurações
           </Button>
