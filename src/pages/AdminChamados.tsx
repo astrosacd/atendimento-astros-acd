@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useSystemActivities } from '@/hooks/useSystemActivities';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -127,6 +128,7 @@ const AdminChamados = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { logActivity } = useSystemActivities();
+  const { canCreateChamados, canManageChamadosConfig, canManageChamadosWebhooks, canManageChamadosApi } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null);
@@ -361,12 +363,16 @@ const AdminChamados = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20 gap-2">
-            <Plus className="h-4 w-4" /> Novo Chamado
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')} className="border-border/40 hover:bg-primary/5">
-            <Settings className="h-4 w-4 mr-2" /> Configurações
-          </Button>
+          {canCreateChamados() && (
+            <Button onClick={() => setIsDialogOpen(true)} className="shadow-lg shadow-primary/20 gap-2">
+              <Plus className="h-4 w-4" /> Novo Chamado
+            </Button>
+          )}
+          {canManageChamadosConfig() && (
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/config')} className="border-border/40 hover:bg-primary/5">
+              <Settings className="h-4 w-4 mr-2" /> Configurações
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => navigate('/admin/chamados/guia')} className="border-border/40 hover:bg-primary/5">
             <BookOpen className="h-4 w-4 mr-2" /> Guia
           </Button>
