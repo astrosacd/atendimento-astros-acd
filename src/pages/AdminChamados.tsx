@@ -400,7 +400,7 @@ const AdminChamados = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(520px,0.9fr)_minmax(0,1.4fr)] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(500px,0.9fr)_minmax(0,1.35fr)] gap-8 items-start">
           <div className="space-y-4 min-w-0">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
@@ -467,7 +467,7 @@ const AdminChamados = () => {
             </Card>
           </div>
 
-          <div className="h-fit xl:sticky xl:top-24 min-w-0">
+          <div className="h-fit lg:sticky lg:top-24 min-w-0">
             {selectedChamado ? (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-2xl overflow-hidden border-2 flex flex-col min-h-[760px] lg:h-[calc(100vh-140px)]">
                 <div className="h-1.5 w-full bg-border/20 shrink-0"><motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: '100%' }} /></div>
@@ -659,7 +659,7 @@ const AdminChamados = () => {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start">
+                  <PopoverContent className="w-[min(92vw,560px)] p-0 bg-popover border-border" align="start" onWheel={(e) => e.stopPropagation()}>
                     <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Pesquisar cliente por nome..." 
@@ -667,7 +667,7 @@ const AdminChamados = () => {
                         onValueChange={setClientSearch}
                         className="h-12"
                       />
-                      <CommandList className="max-h-[280px] overflow-y-auto">
+                      <CommandList className="max-h-[280px] overflow-y-auto overscroll-contain">
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
                           <CommandItem
