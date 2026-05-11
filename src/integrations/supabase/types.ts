@@ -5932,12 +5932,14 @@ export type Database = {
           ghost_audio_url: string | null
           ghost_mode_day: number | null
           ghost_mode_enabled: boolean | null
+          ghost_mode_type: string | null
           ghost_video_url: string | null
           ghost_view_threshold: number | null
           gmail_app_password: string | null
           gmail_sender_name: string | null
           gmail_user: string | null
           id: string
+          tts_text: string | null
           updated_at: string
           whatsapp_enabled: boolean | null
           whatsapp_message_template: string | null
@@ -5962,12 +5964,14 @@ export type Database = {
           ghost_audio_url?: string | null
           ghost_mode_day?: number | null
           ghost_mode_enabled?: boolean | null
+          ghost_mode_type?: string | null
           ghost_video_url?: string | null
           ghost_view_threshold?: number | null
           gmail_app_password?: string | null
           gmail_sender_name?: string | null
           gmail_user?: string | null
           id?: string
+          tts_text?: string | null
           updated_at?: string
           whatsapp_enabled?: boolean | null
           whatsapp_message_template?: string | null
@@ -5992,12 +5996,14 @@ export type Database = {
           ghost_audio_url?: string | null
           ghost_mode_day?: number | null
           ghost_mode_enabled?: boolean | null
+          ghost_mode_type?: string | null
           ghost_video_url?: string | null
           ghost_view_threshold?: number | null
           gmail_app_password?: string | null
           gmail_sender_name?: string | null
           gmail_user?: string | null
           id?: string
+          tts_text?: string | null
           updated_at?: string
           whatsapp_enabled?: boolean | null
           whatsapp_message_template?: string | null
