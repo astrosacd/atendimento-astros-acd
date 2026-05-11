@@ -1225,6 +1225,9 @@ function NumeroActionsMenu({
   const [statusId, setStatusId] = useState(numero.status_id || '');
   const [tipoWhatsapp, setTipoWhatsapp] = useState<'normal' | 'business'>(numero.tipo_whatsapp || 'normal');
   const [observacoes, setObservacoes] = useState(numero.observacoes || '');
+  const [nomeCliente, setNomeCliente] = useState('');
+  const [tipoSeguro, setTipoSeguro] = useState<'COM SEGURO' | 'SEM SEGURO'>('COM SEGURO');
+  const [confirmVendaOpen, setConfirmVendaOpen] = useState(false);
   
   // Fetch observation history for this number
   const { data: obsHistory = [] } = useNumeroHistory(numero.id);
