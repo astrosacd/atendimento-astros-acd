@@ -528,7 +528,8 @@ export default function AdminNumerosAquecimento() {
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
                                     canDelete={canDelete}
-                                    canDeleteSold={canDeleteSold}
+                                    canDeleteSold={canDeleteSoldPermanent}
+                                    canReturnToStock={canReturnToStock}
                                     canViewHistory={canViewHistory}
                                     isVendido={false}
                                     onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
@@ -638,7 +639,8 @@ export default function AdminNumerosAquecimento() {
                                     canChangeStatus={canChangeStatus}
                                     canChangeObs={canChangeObs}
                                     canDelete={canDelete}
-                                    canDeleteSold={canDeleteSold}
+                                    canDeleteSold={canDeleteSoldPermanent}
+                                    canReturnToStock={canReturnToStock}
                                     canViewHistory={canViewHistory}
                                     isVendido={true}
                                     onUpdate={(data) => updateNumero.mutate({ id: numero.id, data, previousData: numero })}
@@ -1369,7 +1371,7 @@ function NumeroActionsMenu({
               Bloqueado (Vendido)
             </DropdownMenuItem>
           )}
-          {isVendido && (canEdit || canChangeStatus) && (
+          {isVendido && canReturnToStock && (
             <DropdownMenuItem 
               onClick={() => setConfirmVoltarEstoqueOpen(true)}
               className="text-blue-600 dark:text-blue-400 font-medium"
