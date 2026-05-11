@@ -1350,8 +1350,7 @@ function NumeroActionsMenu({
               <DropdownMenuItem 
                 className="text-destructive font-medium"
                 onClick={() => {
-                  setDeleteMotivo('BANIDO PERMANENTEMENTE');
-                  onDelete('BANIDO PERMANENTEMENTE');
+                  setConfirmBanOpen(true);
                 }}
               >
                 <XCircle className="h-4 w-4 mr-2" />
